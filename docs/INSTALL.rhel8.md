@@ -7,26 +7,7 @@
     Tested fully working without SELinux by [@SteveClement](https://twitter.com/SteveClement) on 20210401
     TODO: Fix SELinux permissions, *pull-requests welcome*.
 
-!!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
-    Which explains why you will see the use of shell *functions* in various steps.
-    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
-
-### -1/ Installer and Manual install instructions
-
-!!! warning
-    In the **future**, to install MISP on a fresh RHEL 8 or CentOS 8 install all you need to do is:
-
-    ```bash
-    # Please check the installer options first to make the best choice for your install
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-    bash /tmp/INSTALL.sh
-
-    # This will install MISP Core
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-    bash /tmp/INSTALL.sh -c
-    ```
-    **The above does NOT work yet**
+{!generic/manual-install-notes.md!}
 
 !!! notice
     If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel8/).
@@ -38,7 +19,7 @@
 {!generic/rhelVScentos.md!}
 
 !!! warning
-    The core MISP team cannot verify if this guide is working or not. Please help us in keeping it up to date and accurate.
+    The core MISP team cannot easily verify if this guide is working or not. Please help us in keeping it up to date and accurate.
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
 
 !!! notice
@@ -48,7 +29,6 @@
 {!generic/manual-install-notes.md!}
 
 This document details the steps to install MISP on Red Hat Enterprise Linux 8.x (RHEL 8.x) and CentOS 8.x.
-At time of this writing it was tested on versions 8.0 for RHEL.
 This is a joint RHEL/CentOS install guide. The authors tried to make it contextually evident what applies to which flavor.
 
 The following assumptions with regard to this installation have been made.
@@ -83,7 +63,6 @@ sudo hostnamectl set-hostname misp.local # Your choice, in a production environm
 ```
 
 ## 1.3/ **[RHEL]** Register the system for updates with Red Hat Subscription Manager
-Can be skipped if the Machine has been registered during install phase.
 ```bash
 # <snippet-begin 0_RHEL_register.sh>
 registerRHEL () {
@@ -94,20 +73,34 @@ registerRHEL () {
 
 ## 1.4/ **[RHEL]** Enable the optional repos (obsolete in v8)
 ```bash
-# <snippet-begin 0_RHEL_SCL.sh>
+# <snippet-begin 0_RHEL8_SCL.sh>
 enableOptionalRHEL8 () {
-  sudo subscription-manager refresh 
+  sudo subscription-manager refresh
 
   # The following is needed for -devel repos and ONLY for misp-modules, ignore if not needed
   sudo subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
   # Software Collections is available for Red Hat Enterprise Linux 7 and previous supported releases. Starting with Red Hat Enterprise Linux 8, the content traditionally consumed via Software Collections is now part of Application Streams. Please see the Application Streams Life Cycle documentation for that release. Source: https://access.redhat.com/support/policy/updates/rhscl
 }
-# <snippet-end 0_RHEL_SCL.sh>
+# <snippet-end 0_RHEL8_SCL.sh>
 ```
 
 ## 1.5a/ Install the deltarpm package to help reduce download size when installing updates (optional)
 ```bash
 sudo dnf install drpm -y
+```
+
+## 1.5.b/ Install vim (optional)
+```bash
+# Because (neo)vim is just so practical
+sudo dnf install neovim -y
+# For RHEL, it's vim and after enabling epel neovim is available too
+```
+
+## 1.5.c/ Install ntpdate (optional)
+```bash
+# In case you time is wrong, this will fix it.
+sudo dnf install ntpdate -y
+sudo ntpdate pool.ntp.org
 ```
 
 ## 1.5/ Update the system and reboot
@@ -149,13 +142,13 @@ enableREMI_f33 () {
 
 ## 2.01/ Install some base system dependencies
 ```bash
-# <snippet-begin 0_yumInstallCoreDeps.sh>
-yumInstallCoreDeps () {
+# <snippet-begin 0_yumInstallCoreDeps8.sh>
+yumInstallCoreDeps8 () {
   # Install the dependencies:
   PHP_BASE="/etc/"
   PHP_INI="/etc/php.ini"
   sudo dnf install @httpd -y
-  sudo dnf install gcc git zip \
+  sudo dnf install gcc git zip unzip \
                    httpd \
                    mod_ssl \
                    redis \
@@ -164,6 +157,7 @@ yumInstallCoreDeps () {
                    python3-devel python3-pip python3-virtualenv \
                    python3-policycoreutils \
                    policycoreutils-python-utils \
+                   langpacks-en glibc-all-langpacks \
                    libxslt-devel zlib-devel ssdeep-devel -y
   sudo alternatives --set python /usr/bin/python3
 
@@ -185,8 +179,10 @@ yumInstallCoreDeps () {
 
   # cake has php baked in, thus we link to it if necessary.
   [[ ! -e "/usr/bin/php" ]] && sudo ln -s /usr/bin/php74 /usr/bin/php
+
+  sudo systemctl enable --now php-fpm.service
 }
-# <snippet-end 0_yumInstallCoreDeps.sh>
+# <snippet-end 0_yumInstallCoreDeps8.sh>
 ```
 
 ```bash
@@ -200,20 +196,11 @@ installEntropyRHEL () {
 # <snippet-end 0_yumInstallHaveged.sh>
 ```
 
-!!! notice
-    MISP 2.4 requires PHP 5.6 as a minimum, we need a higher version than base RHEL provides.<br />
-    This guide installs PHP 7.4
-
-## 2.05/ Start the PHP FPM service and enable to start on boot
-```bash
-sudo systemctl enable --now php-fpm.service
-```
-
 ### 3/ MISP code
 ## 3.01/ Download MISP code using git in /var/www/ directory
 
 ```bash
-# <snippet-begin 1_mispCoreInstall_RHEL.sh>
+# <snippet-begin 1_mispCoreInstall_RHEL8.sh>
 compileLiefRHEL8 () {
   cd $PATH_TO_MISP/app/files/scripts
   $SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
@@ -350,7 +337,7 @@ installCoreRHEL8 () {
 
   sudo systemctl restart php-fpm.service
 }
-# <snippet-end 1_mispCoreInstall_RHEL.sh>
+# <snippet-end 1_mispCoreInstall_RHEL8.sh>
 ```
 
 ### 4/ CakePHP
@@ -361,17 +348,12 @@ installCoreRHEL8 () {
 
 ```bash
 # <snippet-begin 1_installCake_RHEL.sh>
-installCake_RHEL8 ()
+installCake_RHEL ()
 {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
   sudo mkdir /usr/share/httpd/.composer
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
-  # Update composer.phar (optional)
-  #$SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  #$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === 'baf1608c33254d00611ac1705c1d9958c817a1a33bce370c0595974b342601bd80b92a3f46067da89e3b06bff421f182') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-  #$SUDO_WWW php composer-setup.php
-  #$SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar install
 
   sudo dnf install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
@@ -403,7 +385,7 @@ installCake_RHEL8 ()
 
 ### 5/ Set file permissions
 ```bash
-# <snippet-begin 2_permissions_RHEL.sh>
+# <snippet-begin 2_permissions_RHEL8.sh>
 # Main function to fix permissions to something sane
 permissions_RHEL8 () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
@@ -426,7 +408,7 @@ permissions_RHEL8 () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/orgs
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/custom
 }
-# <snippet-end 2_permissions_RHEL.sh>
+# <snippet-end 2_permissions_RHEL8.sh>
 ```
 
 ### 6/ Create database and user
@@ -434,7 +416,7 @@ permissions_RHEL8 () {
 ## 6.01/ Set database to listen on localhost only
 ```bash
 # <snippet-begin 1_prepareDB_RHEL.sh>
-prepareDB_RHEL8 () {
+prepareDB_RHEL () {
   # Enable, start and secure your mysql database server
   sudo systemctl enable --now mariadb.service
   echo [mysqld] |sudo tee /etc/my.cnf.d/bind-address.cnf
@@ -476,7 +458,7 @@ prepareDB_RHEL8 () {
     If it is disabled, you can ignore the **chcon/setsebool/semanage/checkmodule/semodule*** commands.
 
 ```bash
-# <snippet-begin 1_apacheConfig_RHEL.sh>
+# <snippet-begin 1_apacheConfig_RHEL8.sh>
 apacheConfig_RHEL8 () {
   # Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
   # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
@@ -525,7 +507,7 @@ apacheConfig_RHEL8 () {
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/custom
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/mispzmq
 }
-# <snippet-end 1_apacheConfig_RHEL.sh>
+# <snippet-end 1_apacheConfig_RHEL8.sh>
 ```
 
 !!! warning

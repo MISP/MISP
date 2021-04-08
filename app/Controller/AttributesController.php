@@ -1124,7 +1124,6 @@ class AttributesController extends AppController
                 throw new MethodNotAllowedException();
             }
             if ($this->Attribute->restore($id, $this->Auth->user())) {
-                $this->Attribute->__alterAttributeCount($this->data['Attribute']['event_id']);
                 $this->redirect(array('action' => 'view', $id));
             } else {
                 throw new NotFoundException(__('Could not restore the attribute'));

@@ -979,6 +979,30 @@ theEnd () {
     sudo su - ${MISP_USER}
   fi
 }
-## End Function Section Nothing allowed in .md after this line ##
 # <snippet-end 0_support-functions.sh>
+# <snippet-begin 0_installDepsPhp72.sh>
+# Install Php 7.2 dependencies
+installDepsPhp72 () {
+  debug "Installing PHP 7.2 dependencies"
+  PHP_ETC_BASE=/etc/php/7.2
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  checkAptLock
+  sudo apt install -qy \
+  libapache2-mod-php \
+  php php-cli \
+  php-dev \
+  php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring php-zip \
+  php-redis php-gnupg \
+  php-intl php-bcmath \
+  php-gd
+
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
+}
+## End Function Section Nothing allowed in .md after this line ##
+# <snippet-end 0_installDepsPhp72.sh>
 ```
