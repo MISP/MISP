@@ -1,0 +1,40 @@
+suites:
+    api:
+        actor: ApiTester
+        path: .
+        modules:
+            enabled:
+                - \Helper\Module\Api:
+                      url: https://localhost:8443
+                      depends: PhpBrowser
+                - Db:
+                      dsn: "mysql:host=127.0.0.1;dbname=misp"
+                      user: "root"
+                      password: "password"
+                      dump:
+                          - "../INSTALL/MYSQL.sql"
+                          - "Test/_data/cleanup.sql"
+                      populate: true
+                - \Helper\Module\MispSettings:
+                      depends: Cli
+                      docker: true
+                      docker_compose_file: "../../docker-misp/docker-compose.yml"
+                - \Helper\Module\OpenApiValidator:
+                      depends: \Helper\Module\Api
+                      openapi: "webroot/doc/openapi.yaml"
+            config:
+                PhpBrowser:
+                    url: https://localhost:8443
+                    headers:
+                        Accept: application/json
+                        Content-Type: application/json
+
+paths:
+    tests: Test/Api
+    output: Test/_output
+    data: Test/_data
+    support: Test/_support
+
+settings:
+    shuffle: false
+    lint: true

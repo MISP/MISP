@@ -1,0 +1,324 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: MISP API
+servers:
+  - url: "http://localhost"
+paths:
+  /attributes:
+    get:
+      summary: "Get a list of attributes"
+      operationId: getAttributes
+      tags:
+        - attributes
+      responses:
+        "200":
+          description: "A list of attributes."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttributeResponseList"
+        "403":
+          description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenApiError"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /attributes/view/{attribute_id}:
+    get:
+      summary: "Get an attribute by ID"
+      operationId: getAttributes
+      tags:
+        - attributes
+      parameters:
+        - in: path
+          name: attribute_id
+          schema:
+            type: integer
+          required: true
+          description: Numeric ID of the attribute to get
+      responses:
+        "200":
+          description: "An attribute"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttributeResponse"
+        "403":
+          description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenApiError"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /attributes/add/{event_id}:
+    post:
+      summary: "Add an attribute"
+      operationId: getAttributes
+      tags:
+        - attributes
+      parameters:
+        - in: path
+          name: event_id
+          schema:
+            type: integer
+          required: true
+          description: Numeric ID of the event linked to this attribute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddAttributeRequest"
+      responses:
+        "200":
+          description: "The created attribute"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttributeResponse"
+        "403":
+          description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenApiError"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+
+  schemas:
+    AttributeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: int64
+          nullable: false
+          example: "12345"
+        event_id:
+          type: string
+          format: int64
+          nullable: false
+          example: "12345"
+        object_id:
+          type: string
+          format: int64
+          nullable: false
+          example: "12345"
+          default: "0"
+        object_relation:
+          type: string
+          maxLength: 255
+          nullable: true
+          default: null
+        category:
+          type: string
+          maxLength: 255
+          nullable: false
+          example: "ip-src"
+        type:
+          type: string
+          maxLength: 100
+          nullable: false
+          example: "network-activity"
+        value:
+          type: string
+          maxLength: 131071
+          nullable: false
+          example: "127.0.0.1|"
+        to_ids:
+          type: boolean
+          nullable: false
+          default: true
+        uuid:
+          type: string
+          maxLength: 40
+          nullable: false
+          example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
+        timestamp:
+          type: string
+          format: int64
+          nullable: false
+          default: "0"
+          example: "1617875568"
+        distribution:
+          type: string
+          format: int32
+          nullable: false
+          default: "0"
+          example: "1"
+        sharing_group_id:
+          type: string
+          format: int64
+          nullable: false
+          example: "1"
+        comment:
+          type: string
+          maxLength: 65535
+          nullable: true
+          example: "logged source ip"
+        deleted:
+          type: boolean
+          nullable: false
+          default: false
+        disable_correlation:
+          type: boolean
+          nullable: false
+          default: false
+        first_seen:
+          type: string
+          format: int64
+          nullable: true
+        last_seen:
+          type: string
+          format: int64
+          nullable: true
+
+    AttributeResponseList:
+      type: array
+      items:
+        $ref: "#/components/schemas/AttributeResponse"
+
+    AddAttributeRequest:
+      type: object
+      required:
+        - value
+        - type
+      properties:
+        event_id:
+          type: string
+          format: int64
+          nullable: false
+          example: "12345"
+        object_id:
+          type: string
+          format: int64
+          nullable: false
+          example: 12345
+          default: "0"
+        object_relation:
+          type: string
+          maxLength: 255
+          nullable: true
+          default: null
+        category:
+          type: string
+          maxLength: 255
+          nullable: false
+          example: "ip-src"
+        type:
+          type: string
+          maxLength: 100
+          nullable: false
+          example: "network-activity"
+        value:
+          type: string
+          maxLength: 131071
+          nullable: false
+          example: "127.0.0.1|"
+        to_ids:
+          type: boolean
+          nullable: false
+          default: true
+        uuid:
+          type: string
+          maxLength: 40
+          nullable: false
+          example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
+        timestamp:
+          type: string
+          format: int64
+          nullable: false
+          default: "0"
+          example: 1617875568
+        distribution:
+          type: string
+          format: int32
+          nullable: false
+          default: "0"
+          example: 1
+        sharing_group_id:
+          type: string
+          format: int64
+          nullable: false
+          example: "1"
+        comment:
+          type: string
+          maxLength: 65535
+          nullable: true
+          example: "logged source ip"
+        deleted:
+          type: boolean
+          nullable: false
+          default: false
+        disable_correlation:
+          type: boolean
+          nullable: false
+          default: false
+        first_seen:
+          type: string
+          format: int64
+          nullable: true
+        last_seen:
+          type: string
+          format: int64
+          nullable: true
+
+    ApiError:
+      type: object
+      required:
+        - name
+        - message
+        - url
+      properties:
+        name:
+          type: string
+        message:
+          type: string
+        url:
+          type: string
+          example: "/attributes"
+
+    ForbiddenApiError:
+      type: object
+      required:
+        - name
+        - message
+        - url
+      properties:
+        name:
+          type: string
+          example: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
+        message:
+          type: string
+          example: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
+        url:
+          type: string
+          example: "/attributes"
+
+security:
+  - ApiKeyAuth: []
