@@ -2493,4 +2493,16 @@ misp.direct_call(relative_path, body)
         }
         return $allTags;
     }
+
+    public function removeOrphanedCorrelations()
+    {
+        $success = $this->Server->removeOrphanedCorrelations();
+        $message = __('Orphaned correlation removed');
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($message, $this->response->type());
+        } else {
+            $this->Flash->success($message);
+            $this->redirect(array('action' => 'serverSettings', 'diagnostics'));
+        }
+    }
 }
