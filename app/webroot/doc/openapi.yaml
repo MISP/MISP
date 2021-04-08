@@ -34,7 +34,7 @@ paths:
   /attributes/view/{attribute_id}:
     get:
       summary: "Get an attribute by ID"
-      operationId: getAttributes
+      operationId: viewAttribute
       tags:
         - attributes
       parameters:
@@ -67,7 +67,7 @@ paths:
   /attributes/add/{event_id}:
     post:
       summary: "Add an attribute"
-      operationId: getAttributes
+      operationId: addAttribute
       tags:
         - attributes
       parameters:
