@@ -1,17 +1,12 @@
 <?php
 
-namespace Helper\Fixture;
+namespace Helper\Fixture\Data;
 
-// TODO: Extend from abstract Fixture class
-class AttributeFixture
+use \Helper\Fixture\AbstractFixture;
+use \Helper\Fixture\FixtureInterface;
+
+class AttributeFixture extends AbstractFixture implements FixtureInterface
 {
-    private $attributes;
-
-    public function __construct(array $attributes)
-    {
-        $this->attributes = $attributes;
-    }
-
     public static function fake(array $attributes = []): AttributeFixture
     {
         $faker = \Faker\Factory::create();
@@ -38,13 +33,6 @@ class AttributeFixture
         ];
 
         return new AttributeFixture(array_merge($defaults, $attributes));
-    }
-
-    public function set(array $attributes): array
-    {
-        $this->attributes = array_merge($this->attributes, $attributes);
-
-        return $this->attributes;
     }
 
     public function toRequest(): array
@@ -91,10 +79,5 @@ class AttributeFixture
             'first_seen' => $this->attributes['first_seen'],
             'last_seen' => $this->attributes['last_seen']
         ];
-    }
-
-    public function toDatabase(): array
-    {
-        return $this->attributes;
     }
 }

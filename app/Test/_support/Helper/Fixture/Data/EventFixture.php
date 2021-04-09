@@ -1,18 +1,12 @@
 <?php
 
-namespace Helper\Fixture;
+namespace Helper\Fixture\Data;
 
-// TODO: Extend from abstract Fixture class
-class EventFixture
+use \Helper\Fixture\AbstractFixture;
+use \Helper\Fixture\FixtureInterface;
+
+class EventFixture extends AbstractFixture implements FixtureInterface
 {
-
-    private $attributes;
-
-    public function __construct(array $attributes)
-    {
-        $this->attributes = $attributes;
-    }
-
     public static function fake(array $attributes = []): EventFixture
     {
         $faker = \Faker\Factory::create();
@@ -42,19 +36,7 @@ class EventFixture
         return new EventFixture(array_merge($defaults, $attributes));
     }
 
-    public function set(array $attributes): array
-    {
-        $this->attributes = array_merge($this->attributes, $attributes);
-
-        return $this->attributes;
-    }
-
-    public function toRequest()
-    {
-        return $this->attributes;
-    }
-
-    public function toResponse()
+    public function toResponse(): array
     {
         return [
             'id' => $this->attributes['id'],
@@ -77,10 +59,5 @@ class EventFixture
             'disable_correlation' => $this->attributes['disable_correlation'],
             'extends_uuid' => $this->attributes['extends_uuid']
         ];
-    }
-
-    public function toDatabase()
-    {
-        return $this->attributes;
     }
 }

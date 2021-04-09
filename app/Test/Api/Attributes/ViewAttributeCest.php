@@ -1,6 +1,6 @@
 <?php
 
-use \Helper\Fixture\AttributeFixture;
+use \Helper\Fixture\Data\AttributeFixture;
 
 class ViewAttributesCest
 {

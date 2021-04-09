@@ -1,7 +1,7 @@
 <?php
 
-use \Helper\Fixture\AttributeFixture;
-use \Helper\Fixture\EventFixture;
+use \Helper\Fixture\Data\AttributeFixture;
+use \Helper\Fixture\Data\EventFixture;
 
 class AddAttributeCest
 {

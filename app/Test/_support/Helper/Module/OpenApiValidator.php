@@ -2,6 +2,9 @@
 
 namespace Helper\Module;
 
+use \League\OpenAPIValidation\PSR7\ValidatorBuilder;
+use \League\OpenAPIValidation\PSR7\OperationAddress;
+
 final class OpenApiValidator extends \Codeception\Module implements \Codeception\Lib\Interfaces\DependsOnModule
 {
 
@@ -23,7 +26,7 @@ final class OpenApiValidator extends \Codeception\Module implements \Codeception
 
     public function _initialize()
     {
-        $this->validator = (new \League\OpenAPIValidation\PSR7\ValidatorBuilder)->fromYamlFile($this->config['openapi']);
+        $this->validator = (new ValidatorBuilder)->fromYamlFile($this->config['openapi']);
     }
 
     /**
@@ -44,7 +47,7 @@ final class OpenApiValidator extends \Codeception\Module implements \Codeception
      */
     public function validateResponse(): void
     {
-        $address = new \League\OpenAPIValidation\PSR7\OperationAddress($this->restModule->getUrl(), $this->restModule->getMethod());
+        $address = new OperationAddress($this->restModule->getUrl(), $this->restModule->getMethod());
         $responseValidator = $this->validator->getResponseValidator();
         $responseValidator->validate($address, $this->restModule->getResponse());
     }
