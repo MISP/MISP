@@ -1,11 +1,11 @@
-#  How MISP Project uses git/GitHub
+#  How we use GitHub
 
 MISP issues and code are managed on [GitHub](https://github.com/MISP).
 This page focuses on aspects of GitHub usage that are specific to MISP.
 This workflow is not set in stone: it will evolve based on what we learn while using GitHub.
 For general GitHub usage information, see the [GitHub user documentation](https://docs.github.com/en/github).
 
-## Getting started
+## Get started
 
 To create your GitHub account, visit the [registration page](https://github.com/join) in a web browser.
 Then you will be allowed to open new issues, create merge requests, and fork your own copy of our repositories.
@@ -28,10 +28,14 @@ MISP code is divided into many git repositories for the following reasons:
 
 ### Git branches organisation
 
-MISP development uses several branches:
+MISP uses several branches:
 
 - Version branch: This is the default branch, and it is named to reflect the latest MISP release. At the time of writing, the default branch is `2.4`
 - Topic branches: We use topic branches, sometimes called `fix-*` and `feature-*`, respectively aimed at fixing a single bug and implementing a single new feature. Once ready, a topic branch is merged into the appropriate branch (generally the default branch). Until it has been merged, a topic branch's history may be rewritten.
+
+When the MISP developers make a code change that resolves an issue, the GitHub issue will typically be closed from the relevant patch message. 
+The main MISP core branch, `2.4` (current stable version), that we consider as stable with frequent updates as hot-fixes. 
+Features are developed in separated branches and then regularly merged into the `2.4` stable branch.
 
 ## How we use GitHub metadata
 
@@ -46,14 +50,14 @@ The title should be a short but clear description of what this is about. Some pe
 Open issues can have up to one status label, preceded by the letter "S". Each label has a description of what it represents. 
 See the [list of status labels](https://github.com/MISP/MISP/labels?q=S%3A+), along with their descriptions.
 
+Closed issue may have up to one resolution label, preceded by the letter "R". See the [list of resolution labels](https://github.com/MISP/MISP/labels?q=R%3A+), along with their descriptions. When an issue does not fit into MISP's mission, we reject it by creating a comment explaining why it's being rejected, closing the issue and the `R: wontfix` label. When an issue is closed as a duplicate, we create a comment that mentions the other, duplicated issue and add the `R: duplicate` label. If the issue is closed without one of the specific resolutions or a comment, then it means, by default, that the issue in question was fixed or the requested enhancement was implemented.
+
 The main advantage of using these labels is to organize and visualize issues on Issue Boards.
 Using these labels accurately improves the team's workflow.
 
-Closed issue may have up to one resolution label, preceded by the letter "R". See the [list of resolution labels](https://github.com/MISP/MISP/labels?q=R%3A+), along with their descriptions. When an issue does not fit into MISP's mission, we reject it by creating a comment explaining why it's being rejected, closing the issue and the `R: wontfix` label. When an issue is closed as a duplicate, we create a comment that mentions the other, duplicated issue and add the `R: duplicate` label. If the issue is closed without one of the specific resolutions or a comment, then it means, by default, that the issue in question was fixed or the requested enhancement was implemented.
-
 ### Assignee
 
-We use the Assignee field in a way that helps us organize our work as a team, focus on what matters most currently, and avoid individual over-commitment & feelings of failure.
+We use the Assignee field in a way that helps us organize our work as a team, focus on what matters most currently, and avoid individual over-commitment and feelings of failure.
 To this aim, most tasks should be up for grabs for anyone who has spare capacity and the required skills.
 So in general, issues and merge requests should not be assigned to anyone.
 
@@ -74,6 +78,7 @@ Othertimes, it is use it as a pool of tasks they want to have on their short-ter
 To indicate the type of work that's needed to complete the next step on an issue, we use labels whose name starts with T. See the [list of type of work labels](https://github.com/MISP/MISP/labels?q=t%3A) and their descriptions.
 
 ### Other labels
+
 See our [full list of labels](https://code.briarproject.org/groups/briar/-/labels) for other uncategorized labels we use. 
 
 ## Relationships between issues
@@ -82,12 +87,11 @@ GitHub is a bit limited when it comes to expressing semantic relationships betwe
 - Parent/subtask: Issues with the `T:meta` label indicate parent issues that have subtasks under it. In the child issues, a comment will be added mentioning the parent issue. 
 - Related issues: Related issues can be listed either in the description or in a comment. Either way, this adds a message in the activity stream of the referenced issue, with a link to the referencing issue.
 
-
 ## How to document progress
 
 ### Create and update issues
 
-For details about labels, see [metadata](). If you are very certain to work on the issue, leave a comment expressing your interest or ask to be assigned to it to avoid duplicate work. 
+For details about labels, see [metadata](#how-we-use-github-metadata). If you are very certain to work on the issue, leave a comment expressing your interest or ask to be assigned to it to avoid duplicate work. 
 
 All the knowledge useful to the others should be kept on that issue, or at least linked from there.
 When committing changes that will resolve an issue once merged, please include #NNNN in the commit message, NNNN being the issue number. Then, GitHub will automatically reference this commit on the corresponding issue, once the branch is pushed to our Git repository. For example:
@@ -104,21 +108,29 @@ It is important to:
 
 If you don't think you will manage to work on an issue any time soon, it's often best to make this clear on the issue, or to de-assign yourself.
 
-### How to propose, review, and merge changes
+### Propose changes
 
-We use Pull Requests (aka. PRs) to propose, review, and merge changes.
+We use Pull Requests (aka. PRs) to propose, review, and merge changes. 
+You can comment on issues and pull requests. 
+[Our code of conduct](https://briarproject.org/code-of-conduct/) applies. 
 
-You can comment on issues and pull requests. [Our code of conduct](https://briarproject.org/code-of-conduct/) applies.
+To submit your work:
+- Fork us on our GitHub
+- Push your work to a dedicated git topic branch
+- Once you would like your branch to be reviewed, and possibly merged, submit it by create a pull request (PR). In this new PR, use the description field to summarize what problem this PR will fix, in terms of impact on users and reference the issues this PR will solve, e.g "Closes #xxx, #yyyy".
 
+Follow these conventions when submitting changes to any MISP Project repository:
+- Submit one pull request (PR) per fix/feature/change. Don't split one feature into multiple PRs. Similarly, do not join several fixes and features into one pull request. 
+- Keep the amount of commits per PR as small as possible. If for any reason, you need to fix your commit after the pull request, please squash the changes in one single commit (or tell us why not).
+- Always ensure your PR is mergeable in the default branch.
+- Make sure Travis CI works on the PR, or update the test cases if needed.
+- Any major changes adding a functionality should be disabled by default in the config.
 
+### Request input from someone else
 
-### Requesting input from someone else
+If you need input from someone else on an issue or pull request, ask your question in a comment there, mentioning them with their GitHub login name: @nick. If you want to raise attention of every single member of a team, mention it with the name of the corresponding group: @xyz-team. GitHub will send them an email notification about it.  
 
-If you need input from someone else on an issue or pull request, ask your question in a comment there, mentioning them with their GitHub login name: @nick. GitHub will send them an email notification about it.
-
-If you want to raise attention of every single member of a team, mention it with the name of the corresponding group: @xyz-team. GitHub will notify every member of this group.
-
-### Acting upon input requests
+### Act upon input requests
 
 It's important to provide requested information as quickly as you can, to make the MISP contribution process more efficient and enjoyable.
 
@@ -126,11 +138,11 @@ When input is requested from you on an issue or pull request with @nick:
 - GitHub may send you an email notification
 - Please ensure your GitHub email notification settings and your email setup allow you to receive and notice these messages.
 
-When you receive such a request, if you cannot provide the requested input immediately, you're responsible for keeping track of this task, for example creating a new issue assigned to yourself, or using whatever personal organization tools work for you.
+When you receive such a request, if you cannot provide the requested input immediately, you're responsible for keeping track of this task. For example, by creating a new issue assigned to yourself, or using whatever personal organization tools work for you.
 
-### Automatic integration and testing
+## Automatic integration and testing
 
-MISP core uses CodeQL and LGTM for some code analysis and security checks. When you submit a PR, consider the results of checks. Ensure that your code builds without errors and fix failing checks. 
+MISP core uses CodeQL and LGTM for some code analysis and security checks. When you submit a PR, consider the results of checks. In addition, ensure that your code builds without errors. 
 
 The majority of the repositories within the MISP GitHub organisation includes automatic integration with [TravisCI](https://travis-ci.org/MISP).
 If you contribute and make a pull request, verify if your changes affect the result of the tests.
@@ -138,22 +150,7 @@ Automatic integration is not perfect including Travis but it’s a quick way to 
 When you make a pull-request, TravisCI is automatically called. If there are failing checks, no worries, review the output at Travis (it’s not
 always you).
 
-#### JSON validation for MISP libraries
-All JSON format (galaxy, taxonomies, objects or
-warning-lists) are described in a JSON Schema 3 .
-The TravisCI tests are including JSON validation (via jq) and
-validated with the associated JSON schema.
-How to contribute a JSON library (objects, taxonomies,
-galaxy or warning-list):
-I If you update a JSON library, don’t forget to run
-jq_all_the_things.sh. It’s fast and easy. If it fails, review your
-JSON.
-I Commit your code and make a pull-request.
-Documentations (in PDF and HTML format) for the librairies
-are automatically generated from the JSON via asciidoctor 4
-
-### Access control
+## Access control
 
 If you need to do something in GitHub and you appear to lack the needed credentials, please ask the MISP team to grant you more power.
 For example, you will need "Triage" access in order to add labels or assign issues. See [GitHub's access permissions documentation](https://docs.github.com/en/github/getting-started-with-github/access-permissions-on-github).
-
