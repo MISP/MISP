@@ -964,6 +964,31 @@ class MispObject extends AppModel
     public function editObject($object, $eventId, $user, $log, $force = false, &$nothingToChange = false)
     {
         $object['event_id'] = $eventId;
+        if (isset($object['distribution']) && $object['distribution'] == 4) {
+            if (!empty($object['SharingGroup'])) {
+                $object['sharing_group_id'] = $this->SharingGroup->captureSG($object['SharingGroup'], $user);
+            } elseif (!empty($object['sharing_group_id'])) {
+                if (!$this->SharingGroup->checkIfAuthorised($user, $object['sharing_group_id'])) {
+                    unset($object['sharing_group_id']);
+                }
+            }
+            if (empty($object['sharing_group_id'])) {
+                $object_short = (isset($object['meta-category']) ? $object['meta-category'] : 'N/A') . '/' . (isset($object['name']) ? $object['name'] : 'N/A') . ' ' . (isset($object['uuid']) ? $object['uuid'] : 'N/A');
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $this->Log->save(array(
+                    'org' => $user['Organisation']['name'],
+                    'model' => 'MispObject',
+                    'model_id' => 0,
+                    'email' => $user['email'],
+                    'action' => 'edit',
+                    'user_id' => $user['id'],
+                    'title' => 'Object dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $object_short,
+                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object),
+                ));
+                return 'Invalid sharing group choice.';
+            }
+        }
         if (isset($object['uuid'])) {
             $existingObject = $this->find('first', array(
                 'recursive' => -1,
@@ -976,7 +1001,7 @@ class MispObject extends AppModel
                     $log->create();
                     $log->save(array(
                             'org' => $user['Organisation']['name'],
-                            'model' => 'Object',
+                            'model' => 'MispObject',
                             'model_id' => 0,
                             'email' => $user['email'],
                             'action' => 'edit',
