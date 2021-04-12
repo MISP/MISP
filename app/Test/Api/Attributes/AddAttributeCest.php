@@ -54,5 +54,6 @@ class AddAttributeCest
                 'AttributeTag' => []
             ]
         );
+        $I->seeInDatabase('attributes', $fakeAttribute->toDatabase());
     }
 }

@@ -3,14 +3,100 @@ info:
   version: 1.0.0
   title: MISP API
 servers:
-  - url: "http://localhost"
+  - url: /
+tags:
+  - name: Attributes
+    description: Attributes in MISP can be network indicators (e.g. IP address), system indicators (e.g. a string in memory) or even bank account details.
+    externalDocs:
+      url: https://www.circl.lu/doc/misp/GLOSSARY.html#misp-attribute
+  - name: Events
+    description: MISP events are encapsulations for contextually related information represented as attribute and object.
+    externalDocs:
+      url: https://www.circl.lu/doc/misp/GLOSSARY.html#misp-event
 paths:
+  /attributes/add/{event_id}:
+    post:
+      summary: "Add an attribute"
+      operationId: addAttribute
+      tags:
+        - Attributes
+      parameters:
+        - in: path
+          name: event_id
+          schema:
+            type: integer
+          required: true
+          description: Numeric ID of the event linked to this attribute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddAttributeRequest"
+      responses:
+        "200":
+          description: "The created attribute"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttributeResponse"
+        "403":
+          description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenApiError"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /attributes/edit/{event_id}:
+    put:
+      summary: "Edit an attribute"
+      operationId: editAttribute
+      tags:
+        - Attributes
+      parameters:
+        - in: path
+          name: event_id
+          schema:
+            type: integer
+          required: true
+          description: Numeric ID of the event linked to this attribute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditAttributeRequest"
+      responses:
+        "200":
+          description: "The created attribute"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttributeResponse"
+        "403":
+          description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenApiError"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /attributes:
     get:
       summary: "Get a list of attributes"
       operationId: getAttributes
       tags:
-        - attributes
+        - Attributes
       responses:
         "200":
           description: "A list of attributes."
@@ -36,7 +122,7 @@ paths:
       summary: "Get an attribute by ID"
       operationId: viewAttribute
       tags:
-        - attributes
+        - Attributes
       parameters:
         - in: path
           name: attribute_id
@@ -47,45 +133,6 @@ paths:
       responses:
         "200":
           description: "An attribute"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AttributeResponse"
-        "403":
-          description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ForbiddenApiError"
-        default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
-
-  /attributes/add/{event_id}:
-    post:
-      summary: "Add an attribute"
-      operationId: addAttribute
-      tags:
-        - attributes
-      parameters:
-        - in: path
-          name: event_id
-          schema:
-            type: integer
-          required: true
-          description: Numeric ID of the event linked to this attribute
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AddAttributeRequest"
-      responses:
-        "200":
-          description: "The created attribute"
           content:
             application/json:
               schema:
@@ -149,7 +196,7 @@ components:
           type: string
           maxLength: 131071
           nullable: false
-          example: "127.0.0.1|"
+          example: "127.0.0.1"
         to_ids:
           type: boolean
           nullable: false
@@ -162,7 +209,7 @@ components:
         timestamp:
           type: string
           format: int64
-          nullable: false
+          nullable: true
           default: "0"
           example: "1617875568"
         distribution:
@@ -239,7 +286,7 @@ components:
           type: string
           maxLength: 131071
           nullable: false
-          example: "127.0.0.1|"
+          example: "127.0.0.1"
         to_ids:
           type: boolean
           nullable: false
@@ -252,7 +299,89 @@ components:
         timestamp:
           type: string
           format: int64
+          nullable: true
+          default: "0"
+          example: "1617875568"
+        distribution:
+          type: string
+          format: int32
           nullable: false
+          default: "0"
+          example: 1
+        sharing_group_id:
+          type: string
+          format: int64
+          nullable: false
+          example: "1"
+        comment:
+          type: string
+          maxLength: 65535
+          nullable: true
+          example: "logged source ip"
+        deleted:
+          type: boolean
+          nullable: false
+          default: false
+        disable_correlation:
+          type: boolean
+          nullable: false
+          default: false
+        first_seen:
+          type: string
+          format: int64
+          nullable: true
+        last_seen:
+          type: string
+          format: int64
+          nullable: true
+
+    EditAttributeRequest:
+      type: object
+      properties:
+        event_id:
+          type: string
+          format: int64
+          nullable: false
+          example: "12345"
+        object_id:
+          type: string
+          format: int64
+          nullable: false
+          example: 12345
+          default: "0"
+        object_relation:
+          type: string
+          maxLength: 255
+          nullable: true
+          default: null
+        category:
+          type: string
+          maxLength: 255
+          nullable: false
+          example: "ip-src"
+        type:
+          type: string
+          maxLength: 100
+          nullable: false
+          example: "network-activity"
+        value:
+          type: string
+          maxLength: 131071
+          nullable: false
+          example: "127.0.0.1"
+        to_ids:
+          type: boolean
+          nullable: false
+          default: true
+        uuid:
+          type: string
+          maxLength: 40
+          nullable: false
+          example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
+        timestamp:
+          type: string
+          format: int64
+          nullable: true
           default: "0"
           example: 1617875568
         distribution:
