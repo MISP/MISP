@@ -22,7 +22,7 @@ class ApiTester extends \Codeception\Actor
 
     public function _beforeSuite($settings = array())
     {
-        $this->haveMispSetting('Security.advanced_authkeys', '1');
+        $this->haveMispSetting('Security.advanced_authkeys', '0');
     }
 
     /**
@@ -82,22 +82,6 @@ class ApiTester extends \Codeception\Actor
             ]
         );
 
-        // TODO: Refactor, use AuthKeyFixture
-        $this->haveInDatabase(
-            'auth_keys',
-            [
-                'id' => 1,
-                'uuid' => '2d55a036-6e26-4c2c-b462-6794aa952965',
-                'authkey' => '$2a$10$Blmws.S1fIPzKOZuVDMnRuJvGUziOS92h/E9/myTjeuSnEDlKwsDS',
-                'authkey_start' => '621B',
-                'authkey_end' => '7Kq8',
-                'created' => 1617286581,
-                'expiration' => 0,
-                'user_id' => 1,
-                'comment' => ''
-            ]
-        );
-
-        $this->haveHttpHeader('Authorization', '621BMxivVvKsQDZpC8jjiYGl9ndmXMSpfzmY7Kq8');
+        $this->haveHttpHeader('Authorization', 'x7xVLpxkdHcIgpWf1WmZr8M90dABbtXOwNTk5fUe');
     }
 }

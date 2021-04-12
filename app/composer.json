@@ -14,6 +14,7 @@
         "monolog/monolog": "1.24.0"
     },
     "require-dev": {
+        "php": ">=7.2.0,<8.0.0",
         "phpunit/phpunit": "^8",
         "php-parallel-lint/php-parallel-lint": "^1.2",
         "codeception/codeception": "^4.1",
@@ -23,6 +24,9 @@
         "codeception/module-cli": "^1.1",
         "fzaninotto/faker": "^1.9",
         "league/openapi-psr7-validator": "^0.15.2"
+    },
+    "conflict": {
+        "symfony/polyfill-php80": "*"
     },
     "suggest": {
         "ext-gd": "For creating image thumbnails",
