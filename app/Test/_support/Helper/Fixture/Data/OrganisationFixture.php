@@ -1,0 +1,33 @@
+<?php
+
+namespace Helper\Fixture\Data;
+
+use \Helper\Fixture\AbstractFixture;
+use \Helper\Fixture\FixtureInterface;
+
+class OrganisationFixture extends AbstractFixture implements FixtureInterface
+{
+    public static function fake(array $attributes = []): OrganisationFixture
+    {
+        $faker = \Faker\Factory::create();
+
+        $defaults = [
+            'id' => 1,
+            'name' => $faker->text(20),
+            'date_created' => $faker->date('Y-m-d h:i:s', 'now'),
+            'date_modified' => $faker->date('Y-m-d h:i:s', 'now'),
+            'description' => $faker->text(),
+            'type' => 'ADMIN',
+            'nationality' => '',
+            'sector' => '',
+            'created_by' => 0,
+            'uuid' => $faker->uuid,
+            'contacts' => null,
+            'local' => 1,
+            'restricted_to_domain' => '',
+            'landingpage' => null
+        ];
+
+        return new OrganisationFixture(array_merge($defaults, $attributes));
+    }
+}

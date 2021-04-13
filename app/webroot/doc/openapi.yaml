@@ -263,7 +263,7 @@ components:
         object_id:
           type: string
           format: int64
-          nullable: falstruee
+          nullable: true
           example: 12345
           default: "0"
         object_relation:

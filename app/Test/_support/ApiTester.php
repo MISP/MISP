@@ -1,5 +1,8 @@
 <?php
 
+use Helper\Fixture\Data\AuthKeyFixture;
+use Helper\Fixture\Data\OrganisationFixture;
+use Helper\Fixture\Data\UserFixture;
 
 /**
  * Inherited Methods
@@ -22,66 +25,36 @@ class ApiTester extends \Codeception\Actor
 
     public function _beforeSuite($settings = array())
     {
-        $this->haveMispSetting('Security.advanced_authkeys', '0');
+        $this->haveMispSetting('Security.advanced_authkeys', '1');
+        $this->haveMispSetting('MISP.live', '1');
     }
 
     /**
      * Define custom actions here
      */
 
-    public function haveAdminAuthorizationKey()
-    {
-        // TODO: Refactor, use OrganisationFixture
-        $this->haveInDatabase(
-            'organisations',
-            [
-                'id' => 1,
-                'name' => 'ORGNAME',
-                'date_created' => '2021-04-08 13:45:06',
-                'date_modified' => '2021-04-08 13:45:06',
-                'description' => 'Automatically generated admin organisation',
-                'type' => 'ADMIN',
-                'nationality' => '',
-                'sector' => '',
-                'created_by' => 0,
-                'uuid' => '76e91054-b441-47a0-ab5f-c4db436dacce',
-                'contacts' => null,
-                'local' => 1,
-                'restricted_to_domain' => '',
-                'landingpage' => null
-            ]
-        );
+    public function haveAdminAuthorizationKey(
+        string $email = 'admin@admin.test',
+        string $password = 'admin',
+        string $authkey_plain = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    ) {
+        $orgId = 1;
+        $userId = 1;
 
-        // TODO: Refactor, use UserFixture
-        $this->haveInDatabase(
-            'users',
-            [
-                'id' => 1,
-                'password' => '$2a$10$.4Wxcl93EkdM9yJSfwrmv.OAeaC/4DNWdJSqwhBcEblIIoPpINSWy',
-                'org_id' => '1',
-                'server_id' => '0',
-                'email' => 'admin@admin.test',
-                'autoalert' => 0,
-                'authkey' => 'x7xVLpxkdHcIgpWf1WmZr8M90dABbtXOwNTk5fUe',
-                'invited_by' => 0,
-                'gpgkey' => null,
-                'certif_public' => '',
-                'nids_sid' => 4000000,
-                'termsaccepted' => 1,
-                'newsread' => 1,
-                'role_id' => 1,
-                'change_pw' => 0,
-                'contactalert' => 0,
-                'disabled' => 0,
-                'expiration' => null,
-                'current_login' => 0,
-                'last_login' => 0,
-                'force_logout' => 0,
-                'date_created' => null,
-                'date_modified' => 1617889510
-            ]
-        );
+        $fakeOrg = OrganisationFixture::fake(['id' => $orgId]);
+        $this->haveInDatabase('organisations', $fakeOrg->toDatabase());
 
-        $this->haveHttpHeader('Authorization', 'x7xVLpxkdHcIgpWf1WmZr8M90dABbtXOwNTk5fUe');
+        $fakeUser = UserFixture::fake([
+            'id' => $userId,
+            'email' => $email,
+            'password' => $password,
+            'authkey' => $authkey_plain
+        ]);
+        $this->haveInDatabase('users', $fakeUser->toDatabase());
+
+        $fakeAuthKey = AuthKeyFixture::fake(['user_id' => $userId, 'authkey' => $authkey_plain]);
+        $this->haveInDatabase('auth_keys', $fakeAuthKey->toDatabase());
+
+        $this->haveHttpHeader('Authorization', $authkey_plain);
     }
 }
