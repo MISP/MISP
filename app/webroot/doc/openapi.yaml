@@ -254,17 +254,16 @@ components:
       type: object
       required:
         - value
-        - type
       properties:
         event_id:
           type: string
           format: int64
-          nullable: false
+          nullable: true
           example: "12345"
         object_id:
           type: string
           format: int64
-          nullable: false
+          nullable: falstruee
           example: 12345
           default: "0"
         object_relation:
@@ -275,12 +274,12 @@ components:
         category:
           type: string
           maxLength: 255
-          nullable: false
+          nullable: true
           example: "ip-src"
         type:
           type: string
           maxLength: 100
-          nullable: false
+          nullable: true
           example: "network-activity"
         value:
           type: string
@@ -289,12 +288,12 @@ components:
           example: "127.0.0.1"
         to_ids:
           type: boolean
-          nullable: false
+          nullable: true
           default: true
         uuid:
           type: string
           maxLength: 40
-          nullable: false
+          nullable: true
           example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
         timestamp:
           type: string
@@ -305,13 +304,13 @@ components:
         distribution:
           type: string
           format: int32
-          nullable: false
+          nullable: true
           default: "0"
           example: 1
         sharing_group_id:
           type: string
           format: int64
-          nullable: false
+          nullable: true
           example: "1"
         comment:
           type: string
@@ -320,11 +319,11 @@ components:
           example: "logged source ip"
         deleted:
           type: boolean
-          nullable: false
+          nullable: true
           default: false
         disable_correlation:
           type: boolean
-          nullable: false
+          nullable: true
           default: false
         first_seen:
           type: string
@@ -341,12 +340,12 @@ components:
         event_id:
           type: string
           format: int64
-          nullable: false
+          nullable: true
           example: "12345"
         object_id:
           type: string
           format: int64
-          nullable: false
+          nullable: true
           example: 12345
           default: "0"
         object_relation:
@@ -357,26 +356,26 @@ components:
         category:
           type: string
           maxLength: 255
-          nullable: false
+          nullable: true
           example: "ip-src"
         type:
           type: string
           maxLength: 100
-          nullable: false
+          nullable: true
           example: "network-activity"
         value:
           type: string
           maxLength: 131071
-          nullable: false
+          nullable: true
           example: "127.0.0.1"
         to_ids:
           type: boolean
-          nullable: false
+          nullable: true
           default: true
         uuid:
           type: string
           maxLength: 40
-          nullable: false
+          nullable: true
           example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
         timestamp:
           type: string
@@ -387,13 +386,13 @@ components:
         distribution:
           type: string
           format: int32
-          nullable: false
+          nullable: true
           default: "0"
           example: 1
         sharing_group_id:
           type: string
           format: int64
-          nullable: false
+          nullable: true
           example: "1"
         comment:
           type: string
@@ -402,11 +401,11 @@ components:
           example: "logged source ip"
         deleted:
           type: boolean
-          nullable: false
+          nullable: true
           default: false
         disable_correlation:
           type: boolean
-          nullable: false
+          nullable: true
           default: false
         first_seen:
           type: string
