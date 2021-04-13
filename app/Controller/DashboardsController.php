@@ -12,7 +12,7 @@ class DashboardsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        $this->Security->unlockedActions = array('renderWidget', 'updateSettings', 'getForm');
+        $this->Security->unlockedActions = array_merge(array('renderWidget', 'updateSettings', 'getForm'), $this->Security->unlockedActions);
     }
 
     public $paginate = array(
