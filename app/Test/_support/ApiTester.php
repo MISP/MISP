@@ -33,21 +33,19 @@ class ApiTester extends \Codeception\Actor
      * Define custom actions here
      */
 
-    public function haveAdminAuthorizationKey(
-        string $email = 'admin@admin.test',
-        string $password = 'admin',
+    public function haveAuthorizationKey(
+        int $orgId = 1,
+        int $userId = 1,
+        int $roleId = UserFixture::ROLE_USER,
         string $authkey_plain = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
     ) {
-        $orgId = 1;
-        $userId = 1;
-
         $fakeOrg = OrganisationFixture::fake(['id' => $orgId]);
         $this->haveInDatabase('organisations', $fakeOrg->toDatabase());
 
         $fakeUser = UserFixture::fake([
             'id' => $userId,
-            'email' => $email,
-            'password' => $password,
+            'org_id' => $orgId,
+            'role_id' => $roleId,
             'authkey' => $authkey_plain
         ]);
         $this->haveInDatabase('users', $fakeUser->toDatabase());

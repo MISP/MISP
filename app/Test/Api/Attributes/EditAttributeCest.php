@@ -2,6 +2,7 @@
 
 use \Helper\Fixture\Data\AttributeFixture;
 use \Helper\Fixture\Data\EventFixture;
+use \Helper\Fixture\Data\UserFixture;
 
 class EditAttributeCest
 {
@@ -28,7 +29,7 @@ class EditAttributeCest
 
     public function testEditModifiesExpectedAttribute(ApiTester $I)
     {
-        $I->haveAdminAuthorizationKey();
+        $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 
         $eventId = '1';
         $attributeId = '10';

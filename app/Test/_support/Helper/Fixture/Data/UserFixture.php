@@ -7,6 +7,13 @@ use \Helper\Fixture\FixtureInterface;
 
 class UserFixture extends AbstractFixture implements FixtureInterface
 {
+    public const ROLE_ADMIN = 1;
+    public const ROLE_ORG_ADMIN = 2;
+    public const ROLE_USER = 3;
+    public const ROLE_PUBLISHER = 4;
+    public const ROLE_SYNC_USER = 5;
+    public const ROLE_READ_ONLY = 6;
+
     public static function fake(array $attributes = []): UserFixture
     {
         $faker = \Faker\Factory::create();

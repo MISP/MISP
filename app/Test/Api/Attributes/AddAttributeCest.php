@@ -2,6 +2,7 @@
 
 use \Helper\Fixture\Data\AttributeFixture;
 use \Helper\Fixture\Data\EventFixture;
+use \Helper\Fixture\Data\UserFixture;
 
 class AddAttributeCest
 {
@@ -27,9 +28,9 @@ class AddAttributeCest
 
     public function testAddCreatesExpectedAttribute(ApiTester $I)
     {
-        $I->haveAdminAuthorizationKey();
-
         $eventId = '1';
+        $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
+
         $fakeEvent = EventFixture::fake(['id' => $eventId]);
         $I->haveInDatabase('events', $fakeEvent->toDatabase());
 

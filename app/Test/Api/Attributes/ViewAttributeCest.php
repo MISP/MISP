@@ -1,6 +1,7 @@
 <?php
 
 use \Helper\Fixture\Data\AttributeFixture;
+use \Helper\Fixture\Data\EventFixture;
 
 class ViewAttributesCest
 {
@@ -21,10 +22,16 @@ class ViewAttributesCest
 
     public function testViewReturnsExpectedAttribute(ApiTester $I)
     {
-        $I->haveAdminAuthorizationKey();
-
         $attributeId = 10;
-        $fakeAttribute = AttributeFixture::fake(['id' => $attributeId]);
+        $eventId = 1;
+        $orgId = 10;
+        $userId = 10;
+
+        $I->haveAuthorizationKey($orgId, $userId);
+        $fakeEvent = EventFixture::fake(['id' => $eventId, 'org_id' => $orgId, 'user_id' => $userId]);
+        $I->haveInDatabase('events', $fakeEvent->toDatabase());
+
+        $fakeAttribute = AttributeFixture::fake(['id' => $attributeId, 'event_id' => $eventId]);
         $I->haveInDatabase('attributes', $fakeAttribute->toDatabase());
 
         $I->sendGet(sprintf(self::URL, $attributeId));
