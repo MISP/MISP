@@ -14,127 +14,62 @@ tags:
     externalDocs:
       url: https://www.circl.lu/doc/misp/GLOSSARY.html#misp-event
 paths:
-  /attributes/add/{event_id}:
+  /attributes/add/{eventId}:
     post:
       summary: "Add an attribute"
       operationId: addAttribute
       tags:
         - Attributes
       parameters:
-        - in: path
-          name: event_id
-          schema:
-            type: integer
-          required: true
-          description: Numeric ID of the event linked to this attribute
+        - $ref: "#/components/parameters/eventIdParameter"
       requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AddAttributeRequest"
+        $ref: "#/components/requestBodies/AddAttributeRequest"
       responses:
         "200":
-          description: "The created attribute"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AttributeResponse"
+          $ref: "#/components/responses/AttributeResponse"
         "403":
-          description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ForbiddenApiError"
+          $ref: "#/components/responses/UnauthorizedApiError"
         default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
+          $ref: "#/components/responses/ApiError"
 
-  /attributes/edit/{event_id}:
+  /attributes/edit/{attributeId}:
     put:
       summary: "Edit an attribute"
       operationId: editAttribute
       tags:
         - Attributes
       parameters:
-        - in: path
-          name: event_id
-          schema:
-            type: integer
-          required: true
-          description: Numeric ID of the event linked to this attribute
+        - $ref: "#/components/parameters/attributeIdParameter"
       requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/EditAttributeRequest"
+        $ref: "#/components/requestBodies/EditAttributeRequest"
       responses:
         "200":
-          description: "The edited attribute"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AttributeResponse"
+          $ref: "#/components/responses/AttributeResponse"
         "403":
-          description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ForbiddenApiError"
+          $ref: "#/components/responses/UnauthorizedApiError"
         "404":
-          description: "Attribute not found."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EntityNotFoundApiError"
+          $ref: "#/components/responses/NotFoundApiError"
         default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
-  /attributes/delete/{attribute_id}:
+          $ref: "#/components/responses/ApiError"
+
+  /attributes/delete/{attributeId}:
     delete:
       summary: "Delete an attribute"
       operationId: deleteAttribute
       tags:
         - Attributes
       parameters:
-        - in: path
-          name: attribute_id
-          schema:
-            type: integer
-          required: true
-          description: Numeric ID of the attribute
+        - $ref: "#/components/parameters/attributeIdParameter"
       responses:
         "200":
-          description: "Deletion status message"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DeleteAttributeResponse"
+          $ref: "#/components/responses/DeleteAttributeResponse"
         "403":
-          description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ForbiddenApiError"
+          $ref: "#/components/responses/UnauthorizedApiError"
         "404":
-          description: "Attribute not found."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EntityNotFoundApiError"
+          $ref: "#/components/responses/NotFoundApiError"
         default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
+          $ref: "#/components/responses/ApiError"
+
   /attributes:
     get:
       summary: "Get a list of attributes"
@@ -143,70 +78,29 @@ paths:
         - Attributes
       responses:
         "200":
-          description: "A list of attributes."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AttributeResponseList"
+          $ref: "#/components/responses/AttributeListResponse"
         "403":
-          description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ForbiddenApiError"
+          $ref: "#/components/responses/UnauthorizedApiError"
         default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
+          $ref: "#/components/responses/ApiError"
 
-  /attributes/view/{attribute_id}:
+  /attributes/view/{attributeId}:
     get:
       summary: "Get an attribute by ID"
       operationId: viewAttribute
       tags:
         - Attributes
       parameters:
-        - in: path
-          name: attribute_id
-          schema:
-            type: integer
-          required: true
-          description: Numeric ID of the attribute to get
+        - $ref: "#/components/parameters/attributeIdParameter"
       responses:
         "200":
-          description: "An attribute"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AttributeResponse"
+          $ref: "#/components/responses/AttributeResponse"
         "403":
-          description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ForbiddenApiError"
-        "404":
-          description: "Attribute not found."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EntityNotFoundApiError"
+          $ref: "#/components/responses/UnauthorizedApiError"
         default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
+          $ref: "#/components/responses/ApiError"
 
 components:
-  securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: Authorization
-
   schemas:
     AttributeResponse:
       type: object
@@ -295,7 +189,7 @@ components:
           format: int64
           nullable: true
 
-    AttributeResponseList:
+    AttributeListResponse:
       type: array
       items:
         $ref: "#/components/schemas/AttributeResponse"
@@ -306,172 +200,6 @@ components:
         message:
           type: string
           example: Attribute deleted.
-
-    AddAttributeRequest:
-      type: object
-      required:
-        - value
-      properties:
-        event_id:
-          type: string
-          format: int64
-          nullable: true
-          example: "12345"
-        object_id:
-          type: string
-          format: int64
-          nullable: true
-          example: 12345
-          default: "0"
-        object_relation:
-          type: string
-          maxLength: 255
-          nullable: true
-          default: null
-        category:
-          type: string
-          maxLength: 255
-          nullable: true
-          example: "ip-src"
-        type:
-          type: string
-          maxLength: 100
-          nullable: true
-          example: "network-activity"
-        value:
-          type: string
-          maxLength: 131071
-          nullable: false
-          example: "127.0.0.1"
-        to_ids:
-          type: boolean
-          nullable: true
-          default: true
-        uuid:
-          type: string
-          maxLength: 40
-          nullable: true
-          example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
-        timestamp:
-          type: string
-          format: int64
-          nullable: true
-          default: "0"
-          example: "1617875568"
-        distribution:
-          type: string
-          format: int32
-          nullable: true
-          default: "0"
-          example: 1
-        sharing_group_id:
-          type: string
-          format: int64
-          nullable: true
-          example: "1"
-        comment:
-          type: string
-          maxLength: 65535
-          nullable: true
-          example: "logged source ip"
-        deleted:
-          type: boolean
-          nullable: true
-          default: false
-        disable_correlation:
-          type: boolean
-          nullable: true
-          default: false
-        first_seen:
-          type: string
-          format: int64
-          nullable: true
-        last_seen:
-          type: string
-          format: int64
-          nullable: true
-
-    EditAttributeRequest:
-      type: object
-      properties:
-        event_id:
-          type: string
-          format: int64
-          nullable: true
-          example: "12345"
-        object_id:
-          type: string
-          format: int64
-          nullable: true
-          example: 12345
-          default: "0"
-        object_relation:
-          type: string
-          maxLength: 255
-          nullable: true
-          default: null
-        category:
-          type: string
-          maxLength: 255
-          nullable: true
-          example: "ip-src"
-        type:
-          type: string
-          maxLength: 100
-          nullable: true
-          example: "network-activity"
-        value:
-          type: string
-          maxLength: 131071
-          nullable: true
-          example: "127.0.0.1"
-        to_ids:
-          type: boolean
-          nullable: true
-          default: true
-        uuid:
-          type: string
-          maxLength: 40
-          nullable: true
-          example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
-        timestamp:
-          type: string
-          format: int64
-          nullable: true
-          default: "0"
-          example: 1617875568
-        distribution:
-          type: string
-          format: int32
-          nullable: true
-          default: "0"
-          example: 1
-        sharing_group_id:
-          type: string
-          format: int64
-          nullable: true
-          example: "1"
-        comment:
-          type: string
-          maxLength: 65535
-          nullable: true
-          example: "logged source ip"
-        deleted:
-          type: boolean
-          nullable: true
-          default: false
-        disable_correlation:
-          type: boolean
-          nullable: true
-          default: false
-        first_seen:
-          type: string
-          format: int64
-          nullable: true
-        last_seen:
-          type: string
-          format: int64
-          nullable: true
 
     ApiError:
       type: object
@@ -488,7 +216,7 @@ components:
           type: string
           example: "/attributes"
 
-    ForbiddenApiError:
+    UnauthorizedApiError:
       type: object
       required:
         - name
@@ -505,7 +233,7 @@ components:
           type: string
           example: "/attributes"
 
-    EntityNotFoundApiError:
+    NotFoundApiError:
       type: object
       required:
         - name
@@ -521,6 +249,264 @@ components:
         url:
           type: string
           example: "/attributes/1234"
+
+  parameters:
+    eventIdParameter:
+      name: eventId
+      in: path
+      description: Numeric ID of the event linked to this attribute
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+
+    attributeIdParameter:
+      name: attributeId
+      in: path
+      description: Numeric ID of the attribute to get
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+
+    returnFormatParameter:
+      name: returnFormat
+      in: query
+      description: Return type of the restSearch query.
+      required: true
+      schema:
+        type: string
+        enum:
+          - json
+          - xml
+          - download
+          - stix
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+
+  requestBodies:
+    AddAttributeRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - value
+            properties:
+              event_id:
+                type: string
+                format: int64
+                nullable: true
+                example: "12345"
+              object_id:
+                type: string
+                format: int64
+                nullable: true
+                example: 12345
+                default: "0"
+              object_relation:
+                type: string
+                maxLength: 255
+                nullable: true
+                default: null
+              category:
+                type: string
+                maxLength: 255
+                nullable: true
+                example: "ip-src"
+              type:
+                type: string
+                maxLength: 100
+                nullable: true
+                example: "network-activity"
+              value:
+                type: string
+                maxLength: 131071
+                nullable: false
+                example: "127.0.0.1"
+              to_ids:
+                type: boolean
+                nullable: true
+                default: true
+              uuid:
+                type: string
+                maxLength: 40
+                nullable: true
+                example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
+              timestamp:
+                type: string
+                format: int64
+                nullable: true
+                default: "0"
+                example: "1617875568"
+              distribution:
+                type: string
+                format: int32
+                nullable: true
+                default: "0"
+                example: 1
+              sharing_group_id:
+                type: string
+                format: int64
+                nullable: true
+                example: "1"
+              comment:
+                type: string
+                maxLength: 65535
+                nullable: true
+                example: "logged source ip"
+              deleted:
+                type: boolean
+                nullable: true
+                default: false
+              disable_correlation:
+                type: boolean
+                nullable: true
+                default: false
+              first_seen:
+                type: string
+                format: int64
+                nullable: true
+              last_seen:
+                type: string
+                format: int64
+                nullable: true
+
+    EditAttributeRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              event_id:
+                type: string
+                format: int64
+                nullable: true
+                example: "12345"
+              object_id:
+                type: string
+                format: int64
+                nullable: true
+                example: 12345
+                default: "0"
+              object_relation:
+                type: string
+                maxLength: 255
+                nullable: true
+                default: null
+              category:
+                type: string
+                maxLength: 255
+                nullable: true
+                example: "ip-src"
+              type:
+                type: string
+                maxLength: 100
+                nullable: true
+                example: "network-activity"
+              value:
+                type: string
+                maxLength: 131071
+                nullable: true
+                example: "127.0.0.1"
+              to_ids:
+                type: boolean
+                nullable: true
+                default: true
+              uuid:
+                type: string
+                maxLength: 40
+                nullable: true
+                example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
+              timestamp:
+                type: string
+                format: int64
+                nullable: true
+                default: "0"
+                example: 1617875568
+              distribution:
+                type: string
+                format: int32
+                nullable: true
+                default: "0"
+                example: 1
+              sharing_group_id:
+                type: string
+                format: int64
+                nullable: true
+                example: "1"
+              comment:
+                type: string
+                maxLength: 65535
+                nullable: true
+                example: "logged source ip"
+              deleted:
+                type: boolean
+                nullable: true
+                default: false
+              disable_correlation:
+                type: boolean
+                nullable: true
+                default: false
+              first_seen:
+                type: string
+                format: int64
+                nullable: true
+              last_seen:
+                type: string
+                format: int64
+                nullable: true
+
+  responses:
+    AttributeResponse:
+      description: "An attribute"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AttributeResponse"
+
+    AttributeListResponse:
+      description: "A list of attributes"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AttributeListResponse"
+
+    DeleteAttributeResponse:
+      description: "Delete attribute response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DeleteAttributeResponse"
+
+    ApiError:
+      description: "Unexpected API error"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+
+    NotFoundApiError:
+      description: "The specified resource was not found"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/NotFoundApiError"
+
+    UnauthorizedApiError:
+      description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UnauthorizedApiError"
 
 security:
   - ApiKeyAuth: []
