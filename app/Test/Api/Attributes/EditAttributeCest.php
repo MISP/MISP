@@ -7,7 +7,7 @@ use \Helper\Fixture\Data\UserFixture;
 class EditAttributeCest
 {
 
-    private const URL = '/attributes/edit/%d';
+    private const URL = '/attributes/edit/%s';
 
     public function testEditReturnsForbiddenWithoutAuthKey(ApiTester $I)
     {
@@ -27,7 +27,7 @@ class EditAttributeCest
         $I->seeResponseIsJson();
     }
 
-    public function testEditModifiesExpectedAttribute(ApiTester $I)
+    public function testEditByIDModifiesExpectedAttribute(ApiTester $I)
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 
@@ -52,6 +52,50 @@ class EditAttributeCest
 
         $I->sendPut(
             sprintf(self::URL, $attributeId),
+            $fakeAttribute->toRequest()
+        );
+
+        $fakeAttribute->set([
+            'timestamp' => $I->grabDataFromResponseByJsonPath('$..Attribute.timestamp')[0],
+        ]);
+
+        $I->validateRequest();
+        $I->validateResponse();
+
+        $I->seeResponseCodeIs(200);
+        $I->seeResponseContainsJson(
+            [
+                'Attribute' => $fakeAttribute->toResponse(),
+            ]
+        );
+        $I->seeInDatabase('attributes', $fakeAttribute->toDatabase());
+    }
+
+    public function testEditByUUIDModifiesExpectedAttribute(ApiTester $I)
+    {
+        $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
+
+        $eventId = 1;
+        $attributeUUID = '574e881d-07c0-4197-8d83-4e35950d210f';
+        $fakeEvent = EventFixture::fake(['id' => (string)$eventId]);
+        $fakeAttribute = AttributeFixture::fake(
+            [
+                'uuid' => $attributeUUID,
+                'event_id' => (string)$eventId,
+                'type' => 'text',
+                'timestamp' => '0'
+            ]
+        );
+        $I->haveInDatabase('events', $fakeEvent->toDatabase());
+        $I->haveInDatabase('attributes', $fakeAttribute->toDatabase());
+
+        $fakeAttribute->set([
+            'value1' => 'foobar',
+            'timestamp' => null
+        ]);
+
+        $I->sendPut(
+            sprintf(self::URL, $attributeUUID),
             $fakeAttribute->toRequest()
         );
 

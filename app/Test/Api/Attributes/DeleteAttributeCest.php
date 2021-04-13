@@ -7,7 +7,7 @@ use \Helper\Fixture\Data\UserFixture;
 class DeleteAttributeCest
 {
 
-    private const URL = '/attributes/delete/%d';
+    private const URL = '/attributes/delete/%s';
 
     public function testDeleteReturnsForbiddenWithoutAuthKey(ApiTester $I)
     {
@@ -24,7 +24,7 @@ class DeleteAttributeCest
         $I->seeResponseIsJson();
     }
 
-    public function testDeleteRemovesExpectedAttribute(ApiTester $I)
+    public function testDeleteByIDRemovesExpectedAttribute(ApiTester $I)
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 
@@ -50,5 +50,33 @@ class DeleteAttributeCest
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson(['message' => 'Attribute deleted.']);
         $I->seeInDatabase('attributes', ['id' => $attributeId, 'deleted' => 1]);
+    }
+
+    public function testDeleteByUUIDRemovesExpectedAttribute(ApiTester $I)
+    {
+        $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
+
+        $eventId = 1;
+        $attributeUUID = '574e881d-07c0-4197-8d83-4e35950d210f';
+        $fakeEvent = EventFixture::fake(['id' => (string)$eventId]);
+        $fakeAttribute = AttributeFixture::fake(
+            [
+                'uuid' => $attributeUUID,
+                'event_id' => (string)$eventId,
+                'type' => 'text',
+                'timestamp' => '0'
+            ]
+        );
+        $I->haveInDatabase('events', $fakeEvent->toDatabase());
+        $I->haveInDatabase('attributes', $fakeAttribute->toDatabase());
+
+        $I->sendDelete(sprintf(self::URL, $attributeUUID));
+
+        $I->validateRequest();
+        $I->validateResponse();
+
+        $I->seeResponseCodeIs(200);
+        $I->seeResponseContainsJson(['message' => 'Attribute deleted.']);
+        $I->seeInDatabase('attributes', ['uuid' => $attributeUUID, 'deleted' => 1]);
     }
 }

@@ -14,7 +14,7 @@ class AuthKeyFixture extends AbstractFixture implements FixtureInterface
         $authkey = isset($attributes['authkey']) ?? $faker->sha1;
 
         $defaults = [
-            'id' => $faker->numberBetween(),
+            'id' => (string)$faker->numberBetween(),
             'uuid' => $faker->uuid,
             'authkey' => $authkey,
             'authkey_start' => substr($authkey, 0, 4),

@@ -7,7 +7,7 @@ use \Helper\Fixture\Data\UserFixture;
 class AddAttributeCest
 {
 
-    private const URL = '/attributes/add/%d';
+    private const URL = '/attributes/add/%s';
 
     public function testAddReturnsForbiddenWithoutAuthKey(ApiTester $I)
     {

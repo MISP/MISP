@@ -19,29 +19,29 @@ class UserFixture extends AbstractFixture implements FixtureInterface
         $faker = \Faker\Factory::create();
 
         $defaults = [
-            'id' => $faker->numberBetween(),
+            'id' => (string)$faker->numberBetween(),
             'password' => $faker->password(10),
-            'org_id' => $faker->numberBetween(),
-            'server_id' => $faker->numberBetween(),
+            'org_id' => (string)$faker->numberBetween(),
+            'server_id' => (string)$faker->numberBetween(),
             'email' => $faker->email,
-            'autoalert' => 0,
+            'autoalert' => '0',
             'authkey' => $faker->sha1,
-            'invited_by' => 0,
+            'invited_by' => '0',
             'gpgkey' => null,
             'certif_public' => '',
             'nids_sid' => 4000000,
-            'termsaccepted' => 1,
-            'newsread' => 1,
-            'role_id' => 1,
-            'change_pw' => 0,
-            'contactalert' => 0,
-            'disabled' => 0,
+            'termsaccepted' => '1',
+            'newsread' => '1',
+            'role_id' => '1',
+            'change_pw' => '0',
+            'contactalert' => '0',
+            'disabled' => '0',
             'expiration' => null,
-            'current_login' => 0,
-            'last_login' => 0,
-            'force_logout' => 0,
-            'date_created' => time(),
-            'date_modified' => time()
+            'current_login' => '0',
+            'last_login' => '0',
+            'force_logout' => '0',
+            'date_created' => (string)time(),
+            'date_modified' => (string)time()
         ];
 
         return new UserFixture(array_merge($defaults, $attributes));

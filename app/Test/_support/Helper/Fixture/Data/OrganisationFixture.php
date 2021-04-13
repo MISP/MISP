@@ -12,7 +12,7 @@ class OrganisationFixture extends AbstractFixture implements FixtureInterface
         $faker = \Faker\Factory::create();
 
         $defaults = [
-            'id' => 1,
+            'id' => (string)$faker->numberBetween(),
             'name' => $faker->text(20),
             'date_created' => $faker->date('Y-m-d h:i:s', 'now'),
             'date_modified' => $faker->date('Y-m-d h:i:s', 'now'),
@@ -20,10 +20,10 @@ class OrganisationFixture extends AbstractFixture implements FixtureInterface
             'type' => 'ADMIN',
             'nationality' => '',
             'sector' => '',
-            'created_by' => 0,
+            'created_by' => '0',
             'uuid' => $faker->uuid,
             'contacts' => null,
-            'local' => 1,
+            'local' => '1',
             'restricted_to_domain' => '',
             'landingpage' => null
         ];

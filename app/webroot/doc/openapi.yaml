@@ -411,22 +411,22 @@ components:
     eventIdParameter:
       name: eventId
       in: path
-      description: Numeric ID of the event linked to this attribute
+      description: UUID or numeric ID of the event
       required: true
       schema:
-        type: integer
-        format: int64
-        minimum: 1
+        anyOf:
+          - $ref: "#/components/schemas/EventId"
+          - $ref: "#/components/schemas/UUID"
 
     attributeIdParameter:
       name: attributeId
       in: path
-      description: Numeric ID of the attribute to get
+      description: UUID or numeric ID of the attribute
       required: true
       schema:
-        type: integer
-        format: int64
-        minimum: 1
+        anyOf:
+          - $ref: "#/components/schemas/AttributeId"
+          - $ref: "#/components/schemas/UUID"
 
     returnFormatParameter:
       name: returnFormat
@@ -460,6 +460,7 @@ components:
       content:
         application/json:
           schema:
+            type: object
             $ref: "#/components/schemas/Attribute"
 
     AttributesRestSearchRequest:

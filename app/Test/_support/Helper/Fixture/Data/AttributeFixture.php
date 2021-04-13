@@ -12,8 +12,8 @@ class AttributeFixture extends AbstractFixture implements FixtureInterface
         $faker = \Faker\Factory::create();
 
         $defaults = [
-            'id' => $faker->numberBetween(1, 1000),
-            'event_id' => $faker->numberBetween(1, 1000),
+            'id' => (string)$faker->numberBetween(1, 1000),
+            'event_id' => (string)$faker->numberBetween(1, 1000),
             'object_id' => '0',
             'object_relation' => null,
             'category' => 'Other',
