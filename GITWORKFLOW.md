@@ -80,7 +80,7 @@ See the [list of the 'type of work' labels](https://github.com/MISP/MISP/labels?
 
 ### Other labels
 
-See our [full list of labels](https://code.briarproject.org/groups/briar/-/labels) for other uncategorized labels we use. 
+See our [full list of labels](https://github.com/MISP/MISP/labels) for other uncategorized labels we use. 
 
 ## Relationships between issues
 
@@ -113,7 +113,7 @@ If you don't think you will manage to work on an issue any time soon, it's often
 
 We use Pull Requests (aka. PRs) to propose, review, and merge changes. 
 You can comment on issues and pull requests. 
-[Our code of conduct](https://briarproject.org/code-of-conduct/) applies. 
+[Our code of conduct](https://github.com/MISP/MISP/blob/2.4/code_of_conduct.md) applies. 
 
 To submit your work:
 - Fork us on our GitHub
