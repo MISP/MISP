@@ -100,99 +100,227 @@ paths:
         default:
           $ref: "#/components/responses/ApiError"
 
+  /attributes/restSearch:
+    post:
+      summary: "Get a filtered and paginated list of attributes"
+      operationId: restSearchAttributes
+      tags:
+        - Attributes
+      parameters:
+        - $ref: "#/components/parameters/returnFormatParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/AttributesRestSearchRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AttributesRestSearchResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiError"
+        default:
+          $ref: "#/components/responses/ApiError"
+
 components:
   schemas:
-    AttributeResponse:
+    AttributeId:
+      type: string
+      format: int64
+      example: "12345"
+
+    AttributeType:
+      type: string
+      maxLength: 100
+      example: "ip-src"
+
+    AttributeValue:
+      type: string
+      maxLength: 131071
+      example: "127.0.0.1"
+
+    AttributeCategory:
+      type: string
+      maxLength: 255
+      example: "Payload delivery"
+
+    AttributeComment:
+      type: string
+      maxLength: 65535
+      example: "logged source ip"
+
+    EventId:
+      type: string
+      format: int64
+      example: "12345"
+
+    EventInfo:
+      type: string
+      maxLength: 65535
+      example: "logged source ip"
+
+    ObjectId:
+      type: string
+      format: int64
+      example: "12345"
+      default: "0"
+
+    ObjectRelation:
+      type: string
+      maxLength: 255
+      default: null
+
+    DistributionLevel:
+      type: string
+      format: int32
+      enum: ["0", "1", "2", "3", "4"]
+      description: >
+        Who will be able to see this event once it becomes published and eventually when it becomes pulled:
+          * `0` - Your organization only
+          * `1` - This community only
+          * `2` - Connected communities
+          * `3` - All communities
+          * `4` - Sharing group
+
+    ThreatLevel:
+      type: string
+      format: int32
+      enum: ["1", "2", "3", "4"]
+      description: >
+        Represents the threat level.
+          * `1` - High
+          * `2` - Medium
+          * `3` - Low
+          * `4` - Undefined
+    ToIDS:
+      type: boolean
+      default: true
+
+    SharingGroupId:
+      type: string
+      format: int64
+      example: "1"
+
+    UUID:
+      type: string
+      format: uuid
+      maxLength: 40
+      example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
+
+    Timestamp:
+      type: string
+      format: int64
+      default: "0"
+      example: "1617875568"
+
+    MicroTimestamp:
+      type: string
+      format: int64
+      default: null
+      example: "1581984000000000"
+
+    SoftDeletedFlag:
+      type: boolean
+      default: false
+
+    DisableCorrelationFlag:
+      type: boolean
+      default: false
+
+    OrganisationId:
+      type: string
+      format: int64
+      example: "12345"
+
+    OrganisationName:
+      type: string
+      maxLength: 255
+      example: "ORGNAME"
+
+    AttributeNoId:
       type: object
       properties:
-        id:
-          type: string
-          format: int64
-          nullable: false
-          example: "12345"
         event_id:
-          type: string
-          format: int64
-          nullable: false
-          example: "12345"
+          $ref: "#/components/schemas/EventId"
         object_id:
-          type: string
-          format: int64
-          nullable: false
-          example: "12345"
-          default: "0"
+          $ref: "#/components/schemas/ObjectId"
         object_relation:
-          type: string
-          maxLength: 255
           nullable: true
-          default: null
+          allOf:
+            - $ref: "#/components/schemas/ObjectRelation"
         category:
-          type: string
-          maxLength: 255
-          nullable: false
-          example: "ip-src"
+          $ref: "#/components/schemas/AttributeCategory"
         type:
-          type: string
-          maxLength: 100
-          nullable: false
-          example: "network-activity"
+          $ref: "#/components/schemas/AttributeType"
         value:
-          type: string
-          maxLength: 131071
-          nullable: false
-          example: "127.0.0.1"
+          $ref: "#/components/schemas/AttributeValue"
         to_ids:
-          type: boolean
-          nullable: false
-          default: true
+          $ref: "#/components/schemas/ToIDS"
         uuid:
-          type: string
-          maxLength: 40
-          nullable: false
-          example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
+          $ref: "#/components/schemas/UUID"
         timestamp:
-          type: string
-          format: int64
           nullable: true
-          default: "0"
-          example: "1617875568"
+          allOf:
+            - $ref: "#/components/schemas/Timestamp"
         distribution:
-          type: string
-          format: int32
-          nullable: false
-          default: "0"
-          example: "1"
+          $ref: "#/components/schemas/DistributionLevel"
         sharing_group_id:
-          type: string
-          format: int64
-          nullable: false
-          example: "1"
+          $ref: "#/components/schemas/SharingGroupId"
         comment:
-          type: string
-          maxLength: 65535
-          nullable: true
-          example: "logged source ip"
+          $ref: "#/components/schemas/AttributeComment"
         deleted:
-          type: boolean
-          nullable: false
-          default: false
+          $ref: "#/components/schemas/SoftDeletedFlag"
         disable_correlation:
-          type: boolean
-          nullable: false
-          default: false
+          $ref: "#/components/schemas/DisableCorrelationFlag"
         first_seen:
-          type: string
-          format: int64
           nullable: true
+          allOf:
+            - $ref: "#/components/schemas/MicroTimestamp"
         last_seen:
-          type: string
-          format: int64
           nullable: true
+          allOf:
+            - $ref: "#/components/schemas/MicroTimestamp"
 
-    AttributeListResponse:
+    Attribute:
+      allOf:
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/AttributeId"
+        - $ref: "#/components/schemas/AttributeNoId"
+
+    EventNoId:
+      type: object
+      properties:
+        org_id:
+          $ref: "#/components/schemas/OrganisationId"
+        distribution:
+          $ref: "#/components/schemas/DistributionLevel"
+        info:
+          $ref: "#/components/schemas/EventInfo"
+        orgc_id:
+          $ref: "#/components/schemas/OrganisationId"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+
+    Event:
+      allOf:
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/EventId"
+        - $ref: "#/components/schemas/EventNoId"
+
+    AttributeList:
       type: array
       items:
-        $ref: "#/components/schemas/AttributeResponse"
+        $ref: "#/components/schemas/Attribute"
+
+    AttributeRestSearchList:
+      type: array
+      items:
+        allOf:
+          - $ref: "#/components/schemas/Attribute"
+          - type: object
+            properties:
+              Event:
+                $ref: "#/components/schemas/Event"
 
     DeleteAttributeResponse:
       type: object
@@ -200,6 +328,35 @@ components:
         message:
           type: string
           example: Attribute deleted.
+
+    PageRestSearchFilter:
+      type: integer
+      format: int32
+      nullable: true
+      minimum: 0
+
+    LimitRestSearchFilter:
+      type: integer
+      format: int32
+      nullable: true
+      minimum: 0
+
+    AttributesDateRestSearchFilter:
+      description: "The user set date field on the event level. You can use any of the valid time related filters (examples: 7d, timestamps, [14d, 7d] for ranges, etc.)"
+      type: string
+      nullable: true
+
+    AttributesLastRestSearchFilter:
+      description: "Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
+      type: integer
+      nullable: true
+
+    AttributesTagsRestSearchFilter:
+      nullable: true
+      type: array
+      items:
+        type: string
+        example: "tlp:amber"
 
     ApiError:
       type: object
@@ -296,174 +453,111 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - value
-            properties:
-              event_id:
-                type: string
-                format: int64
-                nullable: true
-                example: "12345"
-              object_id:
-                type: string
-                format: int64
-                nullable: true
-                example: 12345
-                default: "0"
-              object_relation:
-                type: string
-                maxLength: 255
-                nullable: true
-                default: null
-              category:
-                type: string
-                maxLength: 255
-                nullable: true
-                example: "ip-src"
-              type:
-                type: string
-                maxLength: 100
-                nullable: true
-                example: "network-activity"
-              value:
-                type: string
-                maxLength: 131071
-                nullable: false
-                example: "127.0.0.1"
-              to_ids:
-                type: boolean
-                nullable: true
-                default: true
-              uuid:
-                type: string
-                maxLength: 40
-                nullable: true
-                example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
-              timestamp:
-                type: string
-                format: int64
-                nullable: true
-                default: "0"
-                example: "1617875568"
-              distribution:
-                type: string
-                format: int32
-                nullable: true
-                default: "0"
-                example: 1
-              sharing_group_id:
-                type: string
-                format: int64
-                nullable: true
-                example: "1"
-              comment:
-                type: string
-                maxLength: 65535
-                nullable: true
-                example: "logged source ip"
-              deleted:
-                type: boolean
-                nullable: true
-                default: false
-              disable_correlation:
-                type: boolean
-                nullable: true
-                default: false
-              first_seen:
-                type: string
-                format: int64
-                nullable: true
-              last_seen:
-                type: string
-                format: int64
-                nullable: true
+            $ref: "#/components/schemas/AttributeNoId"
 
     EditAttributeRequest:
       required: true
       content:
         application/json:
           schema:
+            $ref: "#/components/schemas/Attribute"
+
+    AttributesRestSearchRequest:
+      required: true
+      content:
+        application/json:
+          schema:
             type: object
             properties:
-              event_id:
-                type: string
-                format: int64
-                nullable: true
-                example: "12345"
-              object_id:
-                type: string
-                format: int64
-                nullable: true
-                example: 12345
-                default: "0"
-              object_relation:
-                type: string
-                maxLength: 255
-                nullable: true
-                default: null
-              category:
-                type: string
-                maxLength: 255
-                nullable: true
-                example: "ip-src"
-              type:
-                type: string
-                maxLength: 100
-                nullable: true
-                example: "network-activity"
+              page:
+                $ref: "#/components/schemas/PageRestSearchFilter"
+              limit:
+                $ref: "#/components/schemas/LimitRestSearchFilter"
               value:
-                type: string
-                maxLength: 131071
-                nullable: true
-                example: "127.0.0.1"
-              to_ids:
+                $ref: "#/components/schemas/AttributeValue"
+              type:
+                $ref: "#/components/schemas/AttributeType"
+              category:
+                $ref: "#/components/schemas/AttributeCategory"
+              org:
+                anyOf:
+                  - $ref: "#/components/schemas/OrganisationId"
+                  - $ref: "#/components/schemas/OrganisationName"
+              tags:
+                $ref: "#/components/schemas/AttributesTagsRestSearchFilter"
+              date:
+                $ref: "#/components/schemas/AttributesDateRestSearchFilter"
+              last:
+                $ref: "#/components/schemas/AttributesLastRestSearchFilter"
+              eventid:
+                $ref: "#/components/schemas/EventId"
+              withAttachments:
+                description: "Extends the response with the base64 representation of the attachment, if there is one"
                 type: boolean
-                nullable: true
-                default: true
+                default: false
               uuid:
-                type: string
-                maxLength: 40
-                nullable: true
-                example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
+                $ref: "#/components/schemas/UUID"
+              publish_timestamp:
+                $ref: "#/components/schemas/Timestamp"
               timestamp:
-                type: string
-                format: int64
-                nullable: true
-                default: "0"
-                example: 1617875568
-              distribution:
-                type: string
-                format: int32
-                nullable: true
-                default: "0"
-                example: 1
-              sharing_group_id:
-                type: string
-                format: int64
-                nullable: true
-                example: "1"
-              comment:
-                type: string
-                maxLength: 65535
-                nullable: true
-                example: "logged source ip"
+                $ref: "#/components/schemas/Timestamp"
+              attribute_timestamp:
+                description: "The timestamp at which the attribute was last modified"
+                $ref: "#/components/schemas/Timestamp"
+              enforceWarninglist:
+                description: "Should the warning list be enforced. Adds blocked field for matching attributes"
+                type: boolean
+                default: false
+              to_ids:
+                description: "The state of the `to_ids` flag"
+                $ref: "#/components/schemas/ToIDS"
               deleted:
-                type: boolean
-                nullable: true
-                default: false
-              disable_correlation:
-                type: boolean
-                nullable: true
-                default: false
+                description: "Include deleted elements"
+                $ref: "#/components/schemas/SoftDeletedFlag"
+              event_timestamp:
+                description: "The timestamp at which the event was last modified"
+                $ref: "#/components/schemas/Timestamp"
+              threat_level_id:
+                $ref: "#/components/schemas/ThreatLevel"
+              eventinfo:
+                description: "Quick event description"
+                type: string
+              decayingModel:
+                description: "Specify the decaying model from which the decaying score should be calculated"
+                type: string
+              score:
+                description: "An alias to override on-the-fly the threshold of the decaying model"
+                type: string
               first_seen:
+                description: "Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
                 type: string
-                format: int64
-                nullable: true
               last_seen:
+                description: "Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
                 type: string
-                format: int64
-                nullable: true
+              includeEventUuid:
+                description: "Include matching eventUuids in the response"
+                type: boolean
+                default: false
+              includeEventTags:
+                description: "Include tags of matching events in the response"
+                type: boolean
+                default: false
+              includeProposals:
+                description: "Include proposals of matching events in the response"
+                type: boolean
+                default: false
+              includeDecayScore:
+                description: "Include all enabled decaying score"
+                type: boolean
+                default: false
+              includeFullModel:
+                description: "Include all model information of matching events in the response"
+                type: boolean
+                default: false
+              excludeDecayed:
+                description: "Should the decayed elements by excluded"
+                type: boolean
+                default: false
 
   responses:
     AttributeResponse:
@@ -471,14 +565,14 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/AttributeResponse"
+            $ref: "#/components/schemas/Attribute"
 
     AttributeListResponse:
       description: "A list of attributes"
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/AttributeListResponse"
+            $ref: "#/components/schemas/AttributeList"
 
     DeleteAttributeResponse:
       description: "Delete attribute response"
@@ -486,6 +580,19 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/DeleteAttributeResponse"
+
+    AttributesRestSearchResponse:
+      description: "Rest search attributes response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              response:
+                type: object
+                properties:
+                  Attribute:
+                    $ref: "#/components/schemas/AttributeRestSearchList"
 
     ApiError:
       description: "Unexpected API error"
