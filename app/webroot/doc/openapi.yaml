@@ -74,7 +74,7 @@ paths:
               $ref: "#/components/schemas/EditAttributeRequest"
       responses:
         "200":
-          description: "The created attribute"
+          description: "The edited attribute"
           content:
             application/json:
               schema:
@@ -85,6 +85,50 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenApiError"
+        "404":
+          description: "Attribute not found."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntityNotFoundApiError"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /attributes/delete/{attribute_id}:
+    delete:
+      summary: "Delete an attribute"
+      operationId: deleteAttribute
+      tags:
+        - Attributes
+      parameters:
+        - in: path
+          name: attribute_id
+          schema:
+            type: integer
+          required: true
+          description: Numeric ID of the attribute
+      responses:
+        "200":
+          description: "Deletion status message"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteAttributeResponse"
+        "403":
+          description: "Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenApiError"
+        "404":
+          description: "Attribute not found."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntityNotFoundApiError"
         default:
           description: Unexpected error
           content:
@@ -143,6 +187,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenApiError"
+        "404":
+          description: "Attribute not found."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntityNotFoundApiError"
         default:
           description: Unexpected error
           content:
@@ -249,6 +299,13 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/AttributeResponse"
+
+    DeleteAttributeResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Attribute deleted.
 
     AddAttributeRequest:
       type: object
@@ -447,6 +504,23 @@ components:
         url:
           type: string
           example: "/attributes"
+
+    EntityNotFoundApiError:
+      type: object
+      required:
+        - name
+        - message
+        - url
+      properties:
+        name:
+          type: string
+          example: "Invalid attribute"
+        message:
+          type: string
+          example: "Invalid attribute"
+        url:
+          type: string
+          example: "/attributes/1234"
 
 security:
   - ApiKeyAuth: []

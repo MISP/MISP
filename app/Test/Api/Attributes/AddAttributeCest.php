@@ -11,9 +11,9 @@ class AddAttributeCest
 
     public function testAddReturnsForbiddenWithoutAuthKey(ApiTester $I)
     {
-        $eventId = '1';
+        $eventId = 1;
 
-        $fakeAttribute = AttributeFixture::fake(['event_id' => $eventId]);
+        $fakeAttribute = AttributeFixture::fake(['event_id' => (string)$eventId]);
         $I->sendPost(
             sprintf(self::URL, $eventId),
             $fakeAttribute->toRequest()
@@ -28,13 +28,13 @@ class AddAttributeCest
 
     public function testAddCreatesExpectedAttribute(ApiTester $I)
     {
-        $eventId = '1';
+        $eventId = 1;
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 
-        $fakeEvent = EventFixture::fake(['id' => $eventId]);
+        $fakeEvent = EventFixture::fake(['id' => (string)$eventId]);
         $I->haveInDatabase('events', $fakeEvent->toDatabase());
 
-        $fakeAttribute = AttributeFixture::fake(['event_id' => $eventId]);
+        $fakeAttribute = AttributeFixture::fake(['event_id' => (string)$eventId]);
         $I->sendPost(
             sprintf(self::URL, $eventId),
             $fakeAttribute->toRequest()

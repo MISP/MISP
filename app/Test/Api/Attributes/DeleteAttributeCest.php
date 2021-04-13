@@ -4,21 +4,18 @@ use \Helper\Fixture\Data\AttributeFixture;
 use \Helper\Fixture\Data\EventFixture;
 use \Helper\Fixture\Data\UserFixture;
 
-class EditAttributeCest
+class DeleteAttributeCest
 {
 
-    private const URL = '/attributes/edit/%d';
+    private const URL = '/attributes/delete/%d';
 
-    public function testEditReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testDeleteReturnsForbiddenWithoutAuthKey(ApiTester $I)
     {
         $eventId = 1;
         $attributeId = 1;
 
         $fakeAttribute = AttributeFixture::fake(['id' => (string)$attributeId, 'event_id' => (string)$eventId]);
-        $I->sendPut(
-            sprintf(self::URL, $attributeId),
-            $fakeAttribute->toRequest()
-        );
+        $I->sendDelete(sprintf(self::URL, $attributeId));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -27,7 +24,7 @@ class EditAttributeCest
         $I->seeResponseIsJson();
     }
 
-    public function testEditModifiesExpectedAttribute(ApiTester $I)
+    public function testDeleteRemovesExpectedAttribute(ApiTester $I)
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 
@@ -45,29 +42,13 @@ class EditAttributeCest
         $I->haveInDatabase('events', $fakeEvent->toDatabase());
         $I->haveInDatabase('attributes', $fakeAttribute->toDatabase());
 
-        $fakeAttribute->set([
-            'value1' => 'foobar',
-            'timestamp' => null
-        ]);
-
-        $I->sendPut(
-            sprintf(self::URL, $attributeId),
-            $fakeAttribute->toRequest()
-        );
-
-        $fakeAttribute->set([
-            'timestamp' => $I->grabDataFromResponseByJsonPath('$..Attribute.timestamp')[0],
-        ]);
+        $I->sendDelete(sprintf(self::URL, $attributeId));
 
         $I->validateRequest();
         $I->validateResponse();
 
         $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson(
-            [
-                'Attribute' => $fakeAttribute->toResponse(),
-            ]
-        );
-        $I->seeInDatabase('attributes', $fakeAttribute->toDatabase());
+        $I->seeResponseContainsJson(['message' => 'Attribute deleted.']);
+        $I->seeInDatabase('attributes', ['id' => $attributeId, 'deleted' => 1]);
     }
 }
