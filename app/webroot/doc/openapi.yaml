@@ -120,6 +120,7 @@ paths:
 
 components:
   schemas:
+    # Attributes
     AttributeId:
       type: string
       format: int64
@@ -145,6 +146,214 @@ components:
       maxLength: 65535
       example: "logged source ip"
 
+    AttributeEventUUID:
+      $ref: "#/components/schemas/UUID"
+
+    AttributeNoId:
+      type: object
+      properties:
+        event_id:
+          $ref: "#/components/schemas/EventId"
+        object_id:
+          $ref: "#/components/schemas/ObjectId"
+        object_relation:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ObjectRelation"
+        category:
+          $ref: "#/components/schemas/AttributeCategory"
+        type:
+          $ref: "#/components/schemas/AttributeType"
+        value:
+          $ref: "#/components/schemas/AttributeValue"
+        to_ids:
+          $ref: "#/components/schemas/ToIDS"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        timestamp:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Timestamp"
+        distribution:
+          $ref: "#/components/schemas/DistributionLevel"
+        sharing_group_id:
+          $ref: "#/components/schemas/SharingGroupId"
+        comment:
+          $ref: "#/components/schemas/AttributeComment"
+        deleted:
+          $ref: "#/components/schemas/SoftDeletedFlag"
+        disable_correlation:
+          $ref: "#/components/schemas/DisableCorrelationFlag"
+        first_seen:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/MicroTimestamp"
+        last_seen:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/MicroTimestamp"
+
+    Attribute:
+      allOf:
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/AttributeId"
+        - $ref: "#/components/schemas/AttributeNoId"
+
+    ExtendedAttribute:
+      allOf:
+        - $ref: "#/components/schemas/Attribute"
+        - type: object
+          properties:
+            data:
+              description: "Present if `withAttachments` was set to *true* in the rest search request and the attribute contains an attachment"
+              $ref: "#/components/schemas/UUID"
+        - type: object
+          properties:
+            event_uuid:
+              description: "Present if `includeEventUuid` was set to *true* in the rest search request"
+              nullable: true
+              $ref: "#/components/schemas/UUID"
+        - type: object
+          properties:
+            decay_score:
+              description: "Present if `includeDecayScore` was set to *true* in the rest search request"
+              nullable: true
+              $ref: "#/components/schemas/DecayScoreList"
+
+    AttributeList:
+      type: array
+      items:
+        $ref: "#/components/schemas/Attribute"
+
+    AttributeRestSearchList:
+      type: array
+      items:
+        allOf:
+          - $ref: "#/components/schemas/ExtendedAttribute"
+          - type: object
+            properties:
+              Event:
+                $ref: "#/components/schemas/Event"
+          - type: object
+            properties:
+              Tag:
+                description: "Present if `includeEventTags` was set to *true* in the rest search request"
+                nullable: true
+                $ref: "#/components/schemas/TagList"
+
+    # Decay Models
+    DecayingModelParameters:
+      type: object
+      properties:
+        lifetime:
+          type: number
+          format: float
+          example: 3
+        decay_speed:
+          type: number
+          format: float
+          example: 2.3
+        threshold:
+          type: number
+          format: float
+          example: 30
+        default_base_score:
+          type: number
+          format: float
+          example: 80
+        base_score_config:
+          type: object
+          example:
+            estimative-language:confidence-in-analytic-judgment: 0.25
+            estimative-language:likelihood-probability: 0.25
+            phishing:psychological-acceptability: 0.25
+            phishing:state: 0.20
+
+    DecayingModel:
+      type: object
+      properties:
+        id:
+          type: string
+          format: int64
+          example: "12345"
+        name:
+          type: string
+          maxLength: 255
+          example: "Phishing model"
+
+    FullDecayingModel:
+      description: "Present if the `includeFullModel` flag was set to *true* in the rest search request"
+      type: object
+      properties:
+        id:
+          type: string
+          format: int64
+          example: "12345"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        name:
+          type: string
+          maxLength: 255
+          example: "Phishing model"
+        description:
+          type: string
+          maxLength: 65535
+          example: "Simple model to rapidly decay phishing website."
+        parameters:
+          $ref: "#/components/schemas/DecayingModelParameters"
+        attribute_types:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttributeType"
+        org_id:
+          $ref: "#/components/schemas/OrganisationId"
+        enabled:
+          type: boolean
+        all_orgs:
+          type: boolean
+        ref:
+          type: array
+          items:
+            type: string
+            example: "https://arxiv.org/abs/1902.03914"
+        formula:
+          type: string
+          enum:
+            - Polynomial
+        version:
+          type: string
+          example: "2"
+        default:
+          type: boolean
+        isEditable:
+          type: boolean
+
+    DecayScore:
+      type: object
+      properties:
+        score:
+          type: number
+          format: float
+          example: 10.5
+        base_score:
+          type: number
+          format: float
+          example: 80
+        decayed:
+          type: boolean
+        DecayingModel:
+          anyOf:
+            - $ref: "#/components/schemas/DecayingModel"
+            - $ref: "#/components/schemas/FullDecayingModel"
+
+    DecayScoreList:
+      type: array
+      items:
+        $ref: "#/components/schemas/DecayScore"
+
+    # Events
     EventId:
       type: string
       format: int64
@@ -155,6 +364,93 @@ components:
       maxLength: 65535
       example: "logged source ip"
 
+    EventNoId:
+      type: object
+      properties:
+        org_id:
+          $ref: "#/components/schemas/OrganisationId"
+        distribution:
+          $ref: "#/components/schemas/DistributionLevel"
+        info:
+          $ref: "#/components/schemas/EventInfo"
+        orgc_id:
+          $ref: "#/components/schemas/OrganisationId"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+
+    Event:
+      allOf:
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/EventId"
+        - $ref: "#/components/schemas/EventNoId"
+
+    # Tags
+    TagId:
+      type: string
+      format: int64
+      example: "12345"
+
+    TagName:
+      type: string
+      example: "tlp:white"
+      maxLength: 255
+
+    TagColour:
+      type: string
+      example: "#ffffff"
+      maxLength: 7
+
+    TagNumericalValue:
+      type: string
+      nullable: true
+      format: int64
+      example: "12345"
+
+    HideTagFlag:
+      type: boolean
+      default: false
+
+    TagNoId:
+      type: object
+      properties:
+        name:
+          $ref: "#/components/schemas/TagName"
+        colour:
+          $ref: "#/components/schemas/TagColour"
+        exportable:
+          $ref: "#/components/schemas/IsExportable"
+        org_id:
+          $ref: "#/components/schemas/OrganisationId"
+        user_id:
+          $ref: "#/components/schemas/UserId"
+        hide_tag:
+          $ref: "#/components/schemas/HideTagFlag"
+        numerical_value:
+          $ref: "#/components/schemas/TagNumericalValue"
+        is_galaxy:
+          $ref: "#/components/schemas/IsGalaxy"
+        is_custom_galaxy:
+          $ref: "#/components/schemas/IsCustomGalaxy"
+        inherited:
+          $ref: "#/components/schemas/IsInherited"
+
+    Tag:
+      description: "A tag is a simple method to classify an event with a simple string. The tag name can be freely chosen. The tag name can be also chosen from a fixed machine-tag vocabulary called MISP taxonomies"
+      allOf:
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/TagId"
+        - $ref: "#/components/schemas/TagNoId"
+
+    TagList:
+      type: array
+      items:
+        $ref: "#/components/schemas/Tag"
+
+    # General
     ObjectId:
       type: string
       format: int64
@@ -233,101 +529,26 @@ components:
       maxLength: 255
       example: "ORGNAME"
 
-    AttributeNoId:
-      type: object
-      properties:
-        event_id:
-          $ref: "#/components/schemas/EventId"
-        object_id:
-          $ref: "#/components/schemas/ObjectId"
-        object_relation:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/ObjectRelation"
-        category:
-          $ref: "#/components/schemas/AttributeCategory"
-        type:
-          $ref: "#/components/schemas/AttributeType"
-        value:
-          $ref: "#/components/schemas/AttributeValue"
-        to_ids:
-          $ref: "#/components/schemas/ToIDS"
-        uuid:
-          $ref: "#/components/schemas/UUID"
-        timestamp:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/Timestamp"
-        distribution:
-          $ref: "#/components/schemas/DistributionLevel"
-        sharing_group_id:
-          $ref: "#/components/schemas/SharingGroupId"
-        comment:
-          $ref: "#/components/schemas/AttributeComment"
-        deleted:
-          $ref: "#/components/schemas/SoftDeletedFlag"
-        disable_correlation:
-          $ref: "#/components/schemas/DisableCorrelationFlag"
-        first_seen:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/MicroTimestamp"
-        last_seen:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/MicroTimestamp"
+    IsExportable:
+      type: boolean
+      default: true
 
-    Attribute:
-      allOf:
-        - type: object
-          properties:
-            id:
-              $ref: "#/components/schemas/AttributeId"
-        - $ref: "#/components/schemas/AttributeNoId"
+    IsGalaxy:
+      type: boolean
+      default: true
 
-    EventNoId:
-      type: object
-      properties:
-        org_id:
-          $ref: "#/components/schemas/OrganisationId"
-        distribution:
-          $ref: "#/components/schemas/DistributionLevel"
-        info:
-          $ref: "#/components/schemas/EventInfo"
-        orgc_id:
-          $ref: "#/components/schemas/OrganisationId"
-        uuid:
-          $ref: "#/components/schemas/UUID"
+    IsCustomGalaxy:
+      type: boolean
+      default: true
 
-    Event:
-      allOf:
-        - type: object
-          properties:
-            id:
-              $ref: "#/components/schemas/EventId"
-        - $ref: "#/components/schemas/EventNoId"
+    IsInherited:
+      type: boolean
+      default: true
 
-    AttributeList:
-      type: array
-      items:
-        $ref: "#/components/schemas/Attribute"
-
-    AttributeRestSearchList:
-      type: array
-      items:
-        allOf:
-          - $ref: "#/components/schemas/Attribute"
-          - type: object
-            properties:
-              Event:
-                $ref: "#/components/schemas/Event"
-
-    DeleteAttributeResponse:
-      type: object
-      properties:
-        message:
-          type: string
-          example: Attribute deleted.
+    UserId:
+      type: string
+      format: int64
+      example: "12345"
 
     PageRestSearchFilter:
       type: integer
@@ -580,7 +801,11 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/DeleteAttributeResponse"
+            type: object
+            properties:
+              message:
+                type: string
+                example: Attribute deleted.
 
     AttributesRestSearchResponse:
       description: "Rest search attributes response"
