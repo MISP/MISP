@@ -149,6 +149,11 @@ components:
     AttributeEventUUID:
       $ref: "#/components/schemas/UUID"
 
+    AttributeAttachment:
+      description: "base64 representation of the attachment"
+      type: string
+      format: byte
+
     AttributeNoId:
       type: object
       properties:
@@ -208,7 +213,7 @@ components:
           properties:
             data:
               description: "Present if `withAttachments` was set to *true* in the rest search request and the attribute contains an attachment"
-              $ref: "#/components/schemas/UUID"
+              $ref: "#/components/schemas/AttributeAttachment"
         - type: object
           properties:
             event_uuid:
@@ -236,6 +241,10 @@ components:
             properties:
               Event:
                 $ref: "#/components/schemas/Event"
+          - type: object
+            properties:
+              Object:
+                type: object
           - type: object
             properties:
               Tag:
@@ -465,7 +474,7 @@ components:
     DistributionLevel:
       type: string
       format: int32
-      enum: ["0", "1", "2", "3", "4"]
+      enum: ["0", "1", "2", "3", "4", "5"]
       description: >
         Who will be able to see this event once it becomes published and eventually when it becomes pulled:
           * `0` - Your organization only
@@ -473,6 +482,7 @@ components:
           * `2` - Connected communities
           * `3` - All communities
           * `4` - Sharing group
+          * `5` - Inherit Event
 
     ThreatLevel:
       type: string
@@ -542,8 +552,9 @@ components:
       default: true
 
     IsInherited:
-      type: boolean
-      default: true
+      type: integer
+      format: int32
+      default: 1
 
     UserId:
       type: string
