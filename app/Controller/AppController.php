@@ -18,7 +18,6 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @property CRUDComponent $CRUD
  * @property IndexFilterComponent $IndexFilter
  * @property RateLimitComponent $RateLimit
- * @property MetricsComponent $Metrics
  */
 class AppController extends Controller
 {
@@ -88,8 +87,7 @@ class AppController extends Controller
         'IndexFilter',
         'Deprecation',
         'RestSearch',
-        'CRUD',
-        'Metrics'
+        'CRUD'
         //,'DebugKit.Toolbar'
     );
 
