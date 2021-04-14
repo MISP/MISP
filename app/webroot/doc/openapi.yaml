@@ -672,6 +672,7 @@ components:
           - xml
           - download
           - stix
+          - stix2
 
   securitySchemes:
     ApiKeyAuth:
@@ -820,6 +821,13 @@ components:
 
     AttributesRestSearchResponse:
       description: "Rest search attributes response"
+      headers:
+        X-Result-Count:
+          $ref: "#/components/headers/X-Result-Count"
+        X-Export-Module-Used:
+          $ref: "#/components/headers/X-Export-Module-Used"
+        X-Response-Format:
+          $ref: "#/components/headers/X-Response-Format"
       content:
         application/json:
           schema:
@@ -851,6 +859,34 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/UnauthorizedApiError"
+
+  headers:
+    X-Result-Count:
+      description: Result set count
+      schema:
+        type: integer
+
+    X-Export-Module-Used:
+      description: Export module used
+      schema:
+        type: string
+        enum:
+          - json
+          - xml
+          - download
+          - stix
+          - stix2
+
+    X-Response-Format:
+      description: Response format
+      schema:
+        type: string
+        enum:
+          - json
+          - xml
+          - download
+          - stix
+          - stix2
 
 security:
   - ApiKeyAuth: []
