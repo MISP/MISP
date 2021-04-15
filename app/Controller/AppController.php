@@ -341,7 +341,6 @@ class AppController extends Controller
 
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
         if ($this->_isRest()) {
-            $this->__writeMetrics();
             $this->__rateLimitCheck();
         }
         if ($this->modelClass !== 'CakeError') {
@@ -749,11 +748,6 @@ class AppController extends Controller
                 $this->_stop();
             }
         }
-    }
-
-    private function __writeMetrics()
-    {
-        $this->Metrics->write();
     }
 
     private function __rateLimitCheck()

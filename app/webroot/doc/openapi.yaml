@@ -70,6 +70,62 @@ paths:
         default:
           $ref: "#/components/responses/ApiError"
 
+  /attributes/restore/{attributeId}:
+    post:
+      summary: "Restore an attribute"
+      operationId: restoreAttribute
+      tags:
+        - Attributes
+      parameters:
+        - $ref: "#/components/parameters/attributeIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/AttributeResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiError"
+        "404":
+          $ref: "#/components/responses/NotFoundApiError"
+        default:
+          $ref: "#/components/responses/ApiError"
+
+  /attributes/addTag/{attributeId}/{tagId}:
+    post:
+      summary: "Add a tag to an attribute"
+      operationId: tagAttribute
+      tags:
+        - Attributes
+      parameters:
+        - $ref: "#/components/parameters/attributeIdParameter"
+        - $ref: "#/components/parameters/tagIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/AddAttributeTagResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiError"
+        "404":
+          $ref: "#/components/responses/NotFoundApiError"
+        default:
+          $ref: "#/components/responses/ApiError"
+
+  /attributes/removeTag/{attributeId}/{tagId}:
+    post:
+      summary: "Remove a tag from an attribute"
+      operationId: untagAttribute
+      tags:
+        - Attributes
+      parameters:
+        - $ref: "#/components/parameters/attributeIdParameter"
+        - $ref: "#/components/parameters/tagIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/RemoveAttributeTagResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiError"
+        "404":
+          $ref: "#/components/responses/NotFoundApiError"
+        default:
+          $ref: "#/components/responses/ApiError"
+
   /attributes:
     get:
       summary: "Get a list of attributes"
@@ -660,6 +716,15 @@ components:
           - $ref: "#/components/schemas/AttributeId"
           - $ref: "#/components/schemas/UUID"
 
+    tagIdParameter:
+      name: tagId
+      in: path
+      description: Numeric ID of the attribute
+      required: true
+      schema:
+        anyOf:
+          - $ref: "#/components/schemas/TagId"
+
     returnFormatParameter:
       name: returnFormat
       in: query
@@ -818,6 +883,54 @@ components:
               message:
                 type: string
                 example: Attribute deleted.
+
+    AddAttributeTagResponse:
+      description: "Add attribute tag response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                description: "`true` if the tag was succesfully added, `false` if it failed"
+                type: boolean
+                nullable: false
+              success:
+                description: "Present if the tag was succesfully added"
+                type: string
+                nullable: true
+                example: "Tag added."
+              check_publish:
+                type: boolean
+                nullable: true
+              errors:
+                type: string
+                nullable: true
+                example: Tag could not be added.
+
+    RemoveAttributeTagResponse:
+      description: "Remove attribute tag response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                description: "`true` if the tag was succesfully removed, `false` if it failed"
+                type: boolean
+                nullable: false
+              success:
+                description: "Present if the tag was succesfully added"
+                type: string
+                nullable: true
+                example: "Tag removed."
+              check_publish:
+                type: boolean
+                nullable: true
+              errors:
+                type: string
+                nullable: true
+                example: Tag could not be added.
 
     AttributesRestSearchResponse:
       description: "Rest search attributes response"
