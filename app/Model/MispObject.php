@@ -317,7 +317,7 @@ class MispObject extends AppModel
             }
             $newObjectAttributes[] = hash(
                 'sha256',
-                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] . $this->data['Attribute']['value'] = $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value'])
+                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value'])
             );
         }
         $newObjectAttributeCount = count($newObjectAttributes);
