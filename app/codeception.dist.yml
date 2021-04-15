@@ -7,14 +7,20 @@ suites:
                 - \Helper\Module\Api:
                       url: https://localhost:8443
                       depends: PhpBrowser
-                - Db:
-                      dsn: "mysql:host=127.0.0.1;dbname=misp"
-                      user: "root"
-                      password: "password"
-                      dump:
-                          - "../INSTALL/MYSQL.sql"
-                          - "Test/_data/cleanup.sql"
-                      populate: true
+                - \Helper\Module\ExtendedDb:
+                      depends: Db
+                      dsn: "mysql:host=127.0.0.1;port=33060;dbname=misp"
+                      user: "misp"
+                      password: "example"
+                      cleanup: true
+                      cleanup_queries:
+                          - "TRUNCATE misp.auth_keys;"
+                          - "TRUNCATE misp.attributes;"
+                          - "TRUNCATE misp.events;"
+                          - "TRUNCATE misp.users;"
+                          - "TRUNCATE misp.organisations;"
+                          - "TRUNCATE misp.tags;"
+                          - "TRUNCATE misp.attribute_tags;"
                 - \Helper\Module\MispSettings:
                       depends: Cli
                       docker: true
@@ -28,6 +34,10 @@ suites:
                     headers:
                         Accept: application/json
                         Content-Type: application/json
+                Db:
+                    dsn: "mysql:host=127.0.0.1;port=33060;dbname=misp"
+                    user: "misp"
+                    password: "example"
 
 paths:
     tests: Test/Api

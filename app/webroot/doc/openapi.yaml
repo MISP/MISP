@@ -174,6 +174,37 @@ paths:
         default:
           $ref: "#/components/responses/ApiError"
 
+  /attributes/attributeStatistics/{context}/{percentage}:
+    get:
+      summary: "Get a filtered and paginated list of attributes"
+      operationId: getAttributeStatistics
+      tags:
+        - Attributes
+      parameters:
+        - $ref: "#/components/parameters/attributeStatisticsContextParameter"
+        - $ref: "#/components/parameters/attributeStatisticsPercentageParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/AttributeStatisticsResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiError"
+        default:
+          $ref: "#/components/responses/ApiError"
+
+  /attributes/describeTypes:
+    get:
+      summary: "Get a list of the available attribute types"
+      operationId: describeAttributeTypes
+      tags:
+        - Attributes
+      responses:
+        "200":
+          $ref: "#/components/responses/DescribeAttributeTypesResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiError"
+        default:
+          $ref: "#/components/responses/ApiError"
+
 components:
   schemas:
     # Attributes
@@ -307,6 +338,49 @@ components:
                 description: "Present if `includeEventTags` was set to *true* in the rest search request"
                 nullable: true
                 $ref: "#/components/schemas/TagList"
+
+    AttributeStatisticsResponse:
+      description: Dictionary of attribute types/categories showing the ammount of occurences/percentage.
+      type: object
+      example:
+        - "Antivirus detection": "10"
+        - "Artifacts dropped": "20"
+
+    DescribeAttributeTypesResponse:
+      description: "Lists available attribute types, default categories and category-type mappings."
+      type: object
+      properties:
+        sane_defaults:
+          type: object
+          example:
+            md5:
+              default_category: "Payload delivery"
+              to_ids: 1
+            pdb:
+              default_category: "Artifacts dropped"
+              to_ids: 0
+        types:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttributeType"
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttributeCategory"
+        category_type_mappings:
+          type: object
+          example:
+            "Internal reference":
+              - "text"
+              - "link"
+              - "comment"
+              - "other"
+            "Antivirus detection":
+              - "link"
+              - "comment"
+              - "text"
+              - "hex"
+              - "other"
 
     # Decay Models
     DecayingModelParameters:
@@ -739,6 +813,27 @@ components:
           - stix
           - stix2
 
+    attributeStatisticsContextParameter:
+      name: context
+      in: path
+      required: true
+      description: Context of the statistics.
+      schema:
+        type: string
+        default: "type"
+        enum:
+          - type
+          - category
+
+    attributeStatisticsPercentageParameter:
+      name: percentage
+      in: path
+      required: true
+      description: "`0` to show attribute count, `1` for showing percentages"
+      schema:
+        type: integer
+        default: 0
+
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
@@ -951,6 +1046,22 @@ components:
                 properties:
                   Attribute:
                     $ref: "#/components/schemas/AttributeRestSearchList"
+
+    AttributeStatisticsResponse:
+      description: "Attribute statistics response"
+      content:
+        application/json:
+          schema:
+            anyOf:
+              - $ref: "#/components/schemas/AttributeStatisticsResponse"
+
+    DescribeAttributeTypesResponse:
+      description: "Describe attribute categories and types response"
+      content:
+        application/json:
+          schema:
+            anyOf:
+              - $ref: "#/components/schemas/DescribeAttributeTypesResponse"
 
     ApiError:
       description: "Unexpected API error"
