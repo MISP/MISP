@@ -1,7 +1,5 @@
 <?php
 
-use \Helper\Fixture\Data\AttributeFixture;
-use \Helper\Fixture\Data\EventFixture;
 use \Helper\Fixture\Data\UserFixture;
 
 class DescribeAttributeTypesCest
