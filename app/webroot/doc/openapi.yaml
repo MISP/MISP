@@ -215,7 +215,7 @@ paths:
         $ref: "#/components/requestBodies/AddEventRequest"
       responses:
         "200":
-          $ref: "#/components/responses/CreatedEventResponse"
+          $ref: "#/components/responses/AddEventResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         default:
@@ -223,7 +223,7 @@ paths:
 
   /events/edit/{eventId}:
     put:
-      summary: "Add event"
+      summary: "Edit event"
       operationId: editEvent
       tags:
         - Events
@@ -233,7 +233,23 @@ paths:
         $ref: "#/components/requestBodies/EditEventRequest"
       responses:
         "200":
-          $ref: "#/components/responses/UpdatedEventResponse"
+          $ref: "#/components/responses/EditEventResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /events/delete/{eventId}:
+    delete:
+      summary: "Delete event"
+      operationId: deleteEvent
+      tags:
+        - Events
+      parameters:
+        - $ref: "#/components/parameters/eventIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteEventResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         default:
@@ -1513,19 +1529,48 @@ components:
             anyOf:
               - $ref: "#/components/schemas/DescribeAttributeTypesResponse"
 
-    CreatedEventResponse:
+    AddEventResponse:
       description: "A freshly created event"
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/CreatedEvent"
 
-    UpdatedEventResponse:
+    EditEventResponse:
       description: "A freshly updated event"
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/UpdatedEvent"
+
+    DeleteEventResponse:
+      description: "Delete event response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                description: "`true` if the event was succesfully deleted, `false` if it failed"
+                type: boolean
+              success:
+                description: "`true` if the event was succesfully deleted, `false` if it failed"
+                nullable: true
+                type: boolean
+              name:
+                type: string
+                example: "Event deleted."
+              message:
+                type: string
+                example: "Could not delete Event"
+              url:
+                type: string
+                example: "/events/delete/1"
+              errors:
+                description: "Only present if an error occurred when deleting the event"
+                type: string
+                nullable: true
+                example: "Event was not deleted."
 
     ExtendedEventListResponse:
       description: "A list of events"
