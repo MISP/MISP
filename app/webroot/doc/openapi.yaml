@@ -235,6 +235,22 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /events/view/{eventId}:
+    get:
+      summary: "View event"
+      operationId: viewEvent
+      tags:
+        - Events
+      parameters:
+        - $ref: "#/components/parameters/eventIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/ExtendedEventResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -643,6 +659,23 @@ components:
           properties:
             Orgc:
               $ref: "#/components/schemas/EventOrganisation"
+        - type: object
+          properties:
+            Attribute:
+              $ref: "#/components/schemas/AttributeList"
+        - type: object
+          properties:
+            ShadowAttribute:
+              $ref: "#/components/schemas/AttributeList"
+        - type: object
+          properties:
+            RelatedEvent:
+              type: array
+              items:
+                type: object
+                properties:
+                  Event:
+                    $ref: "#/components/schemas/ExtendedEvent"
         - type: object
           properties:
             EventTag:
@@ -1374,6 +1407,14 @@ components:
             anyOf:
               - $ref: "#/components/schemas/ExtendedEventList"
               - $ref: "#/components/schemas/MinimalEventList"
+
+    ExtendedEventResponse:
+      description: "An event with extended properties"
+      content:
+        application/json:
+          schema:
+            anyOf:
+              - $ref: "#/components/schemas/ExtendedEvent"
 
     ApiErrorResponse:
       description: "Unexpected API error"

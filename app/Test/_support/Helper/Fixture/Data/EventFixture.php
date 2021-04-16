@@ -58,7 +58,7 @@ class EventFixture extends AbstractFixture implements FixtureInterface
             'locked' => $this->attributes['locked'],
             'threat_level_id' => $this->attributes['threat_level_id'],
             'publish_timestamp' => $this->attributes['publish_timestamp'],
-            'sighting_timestamp' => $this->attributes['sighting_timestamp'],
+            // 'sighting_timestamp' => $this->attributes['sighting_timestamp'],
             'disable_correlation' => $this->attributes['disable_correlation'],
             'extends_uuid' => $this->attributes['extends_uuid']
         ];
