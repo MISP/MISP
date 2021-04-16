@@ -205,6 +205,40 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /events/add:
+    post:
+      summary: "Add event"
+      operationId: addEvent
+      tags:
+        - Events
+      requestBody:
+        $ref: "#/components/requestBodies/AddEventRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/CreatedEventResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /events/edit/{eventId}:
+    put:
+      summary: "Add event"
+      operationId: editEvent
+      tags:
+        - Events
+      parameters:
+        - $ref: "#/components/parameters/eventIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/EditEventRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/UpdatedEventResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /events:
     get:
       summary: "Get a list of events"
@@ -373,7 +407,7 @@ components:
           - type: object
             properties:
               Event:
-                $ref: "#/components/schemas/Event"
+                $ref: "#/components/schemas/MinimalEvent"
           - type: object
             properties:
               Object:
@@ -592,6 +626,9 @@ components:
       items:
         $ref: "#/components/schemas/EventTag"
 
+    EventReport: # TODO: describe
+      type: object
+
     EventNoId:
       type: object
       properties:
@@ -603,6 +640,34 @@ components:
           $ref: "#/components/schemas/EventInfo"
         orgc_id:
           $ref: "#/components/schemas/OrganisationId"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        published:
+          $ref: "#/components/schemas/PublishedFlag"
+        analysis:
+          $ref: "#/components/schemas/AnalysisLevelId"
+        attribute_count:
+          $ref: "#/components/schemas/EventAttributeCount"
+        timestamp:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Timestamp"
+        sharing_group_id:
+          $ref: "#/components/schemas/SharingGroupId"
+        proposal_email_lock:
+          $ref: "#/components/schemas/EventProposalEmailLock"
+        locked:
+          $ref: "#/components/schemas/IsLocked"
+        threat_level_id:
+          $ref: "#/components/schemas/ThreatLevelId"
+        publish_timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        sighting_timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        disable_correlation:
+          $ref: "#/components/schemas/DisableCorrelationFlag"
+        extends_uuid:
+          $ref: "#/components/schemas/ExtendsUUID"
 
     Event:
       allOf:
@@ -612,45 +677,9 @@ components:
               $ref: "#/components/schemas/EventId"
         - $ref: "#/components/schemas/EventNoId"
 
-    ExtendedEventNoId:
-      allOf:
-        - $ref: "#/components/schemas/EventNoId"
-        - type: object
-          properties:
-            uuid:
-              $ref: "#/components/schemas/UUID"
-            published:
-              $ref: "#/components/schemas/PublishedFlag"
-            analysis:
-              $ref: "#/components/schemas/AnalysisLevelId"
-            attribute_count:
-              $ref: "#/components/schemas/EventAttributeCount"
-            timestamp:
-              $ref: "#/components/schemas/Timestamp"
-            sharing_group_id:
-              $ref: "#/components/schemas/SharingGroupId"
-            proposal_email_lock:
-              $ref: "#/components/schemas/EventProposalEmailLock"
-            locked:
-              $ref: "#/components/schemas/IsLocked"
-            threat_level_id:
-              $ref: "#/components/schemas/ThreatLevelId"
-            publish_timestamp:
-              $ref: "#/components/schemas/Timestamp"
-            sighting_timestamp:
-              $ref: "#/components/schemas/Timestamp"
-            disable_correlation:
-              $ref: "#/components/schemas/DisableCorrelationFlag"
-            extends_uuid:
-              $ref: "#/components/schemas/ExtendsUUID"
-
     ExtendedEvent:
       allOf:
-        - type: object
-          properties:
-            id:
-              $ref: "#/components/schemas/EventId"
-        - $ref: "#/components/schemas/ExtendedEventNoId"
+        - $ref: "#/components/schemas/Event"
         - type: object
           properties:
             Org:
@@ -680,6 +709,72 @@ components:
           properties:
             EventTag:
               $ref: "#/components/schemas/EventTagList"
+
+    CreatedEvent:
+      type: object
+      properties:
+        Event:
+          allOf:
+            - $ref: "#/components/schemas/ExtendedEvent"
+            - type: object
+              properties:
+                event_creator_email:
+                  type: string
+                  format: email
+            - type: object
+              properties:
+                Galaxy:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Galaxy"
+            - type: object
+              properties:
+                Object:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Object"
+            - type: object
+              properties:
+                EventReport:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/EventReport"
+
+    UpdatedEvent:
+      type: object
+      properties:
+        Event:
+          allOf:
+            - $ref: "#/components/schemas/ExtendedEvent"
+            - type: object
+              properties:
+                event_creator_email:
+                  type: string
+                  format: email
+            - type: object
+              properties:
+                Galaxy:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Galaxy"
+            - type: object
+              properties:
+                Object:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Object"
+            - type: object
+              properties:
+                EventReport:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/EventReport"
+            - type: object
+              properties:
+                Tag:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Tag"
 
     MinimalEvent:
       allOf:
@@ -712,6 +807,14 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/MinimalEvent"
+
+    # Objects
+    Object: # TODO: describe
+      type: object
+
+    # Galaxies
+    Galaxy: # TODO: describe
+      type: object
 
     # Tags
     TagId:
@@ -1183,6 +1286,20 @@ components:
                 type: boolean
                 default: false
 
+    AddEventRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EventNoId"
+
+    EditEventRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Event"
+
     EventSearchRequest:
       required: true
       content:
@@ -1395,6 +1512,20 @@ components:
           schema:
             anyOf:
               - $ref: "#/components/schemas/DescribeAttributeTypesResponse"
+
+    CreatedEventResponse:
+      description: "A freshly created event"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CreatedEvent"
+
+    UpdatedEventResponse:
+      description: "A freshly updated event"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UpdatedEvent"
 
     ExtendedEventListResponse:
       description: "A list of events"

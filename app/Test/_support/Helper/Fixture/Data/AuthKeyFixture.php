@@ -11,7 +11,7 @@ class AuthKeyFixture extends AbstractFixture implements FixtureInterface
     {
         $faker = \Faker\Factory::create();
 
-        $authkey = isset($attributes['authkey']) ?? $faker->sha1;
+        $authkey = $attributes['authkey'] ?? $faker->sha1;
 
         $defaults = [
             'id' => (string)$faker->numberBetween(),

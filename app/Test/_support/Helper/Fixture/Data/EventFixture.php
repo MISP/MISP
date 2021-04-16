@@ -11,14 +11,14 @@ class EventFixture extends AbstractFixture implements FixtureInterface
     {
         $faker = \Faker\Factory::create();
 
-        $orgId = isset($attributes['org_id']) ?? (string)$faker->numberBetween(1, 1000);
+        $orgId = $attributes['org_id'] ?? (string)$faker->numberBetween(1, 1000);
 
         $defaults = [
             'id' => (string)$faker->numberBetween(1, 1000),
             'org_id' => $orgId,
             'date' => $faker->date('Y-m-d'),
             'info' => $faker->text(200),
-            'user_id' => 1,
+            'user_id' => '1',
             'uuid' => $faker->uuid,
             'published' => false,
             'analysis' => '0',
@@ -27,7 +27,7 @@ class EventFixture extends AbstractFixture implements FixtureInterface
             'timestamp' => '0',
             'distribution' => '0',
             'sharing_group_id' => '0',
-            'proposal_email_lock' => true,
+            'proposal_email_lock' => false,
             'locked' => false,
             'threat_level_id' => '1',
             'publish_timestamp' => '0',
@@ -75,4 +75,5 @@ class EventFixture extends AbstractFixture implements FixtureInterface
             // 'orgc_uuid' => $this->attributes['orgc_uuid'],
         ];
     }
+
 }
