@@ -1,21 +1,19 @@
 <?php
 
-use \Helper\Fixture\Data\AttributeFixture;
 use \Helper\Fixture\Data\EventFixture;
 use \Helper\Fixture\Data\UserFixture;
 use \Helper\Fixture\Data\TagFixture;
 
-class RemoveAttributeTagCest
+class RemoveEventTagCest
 {
 
-    private const URL = '/attributes/removeTag/%s/%s';
+    private const URL = '/events/removeTag/%s/%s';
 
     public function testRemoveTagReturnsForbiddenWithoutAuthKey(ApiTester $I)
     {
-        $attributeId = 1;
+        $eventId = 1;
         $tagId = 1;
-
-        $I->sendPost(sprintf(self::URL, $attributeId, $tagId));
+        $I->sendPost(sprintf(self::URL, $eventId, $tagId));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -26,29 +24,30 @@ class RemoveAttributeTagCest
 
     public function testRemoveTag(ApiTester $I)
     {
-        $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
-
+        $orgId = 1;
         $eventId = 1;
-        $attributeId = 1;
         $tagId = 1;
-        $fakeEvent = EventFixture::fake(['id' => (string)$eventId]);
-        $fakeTag = TagFixture::fake(['id' => (string)$tagId]);
-        $fakeAttribute = AttributeFixture::fake(
+
+        $I->haveAuthorizationKey($orgId, 1, UserFixture::ROLE_ADMIN);
+        $fakeEvent = EventFixture::fake(
             [
-                'id' => (string)$attributeId,
-                'event_id' => (string)$eventId
+                'id' => (string)$eventId,
+                'org_id' => (string)$orgId,
+                'orgc_id' => (string)$orgId
             ]
         );
+        $fakeTag = TagFixture::fake(['id' => (string)$tagId]);
         $I->haveInDatabase('events', $fakeEvent->toDatabase());
-        $I->haveInDatabase('attributes', $fakeAttribute->toDatabase());
         $I->haveInDatabase('tags', $fakeTag->toDatabase());
-        $I->haveInDatabase('attribute_tags', [
-            'attribute_id' => $attributeId,
-            'event_id' => $eventId,
-            'tag_id' => $tagId,
-        ]);
+        $I->haveInDatabase(
+            'event_tags',
+            [
+                'event_id' => $eventId,
+                'tag_id' => $tagId
+            ]
+        );
 
-        $I->sendPost(sprintf(self::URL, $attributeId, $tagId));
+        $I->sendPost(sprintf(self::URL, $eventId, $tagId));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -56,9 +55,8 @@ class RemoveAttributeTagCest
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson(['saved' => true, 'success' => 'Tag removed.']);
         $I->cantSeeInDatabase(
-            'attribute_tags',
+            'event_tags',
             [
-                'attribute_id' => $attributeId,
                 'event_id' => $eventId,
                 'tag_id' => $tagId
             ]

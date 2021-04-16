@@ -21,6 +21,7 @@ suites:
                           - "TRUNCATE misp.organisations;"
                           - "TRUNCATE misp.tags;"
                           - "TRUNCATE misp.attribute_tags;"
+                          - "TRUNCATE misp.event_tags;"
                 - \Helper\Module\MispSettings:
                       depends: Cli
                       docker: true

@@ -47,8 +47,8 @@ class ViewAttributesCest
     {
         $attributeUUID = '574e881d-07c0-4197-8d83-4e35950d210f';
         $eventId = 1;
-        $orgId = 10;
-        $userId = 10;
+        $orgId = 1;
+        $userId = 1;
 
         $I->haveAuthorizationKey($orgId, $userId);
         $fakeEvent = EventFixture::fake(['id' => $eventId, 'org_id' => $orgId, 'user_id' => $userId]);

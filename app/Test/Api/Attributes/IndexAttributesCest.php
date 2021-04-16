@@ -22,8 +22,8 @@ class IndexAttributesCest
     public function testIndexReturnsExpectedAttribute(ApiTester $I)
     {
         $eventId = 1;
-        $orgId = 10;
-        $userId = 10;
+        $orgId = 1;
+        $userId = 1;
 
         $I->haveAuthorizationKey($orgId, $userId);
         $fakeEvent = EventFixture::fake(['id' => $eventId, 'org_id' => $orgId, 'user_id' => $userId]);

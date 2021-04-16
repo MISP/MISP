@@ -29,7 +29,7 @@ class DeleteAttributeCest
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 
         $eventId = 1;
-        $attributeId = 10;
+        $attributeId = 1;
         $fakeEvent = EventFixture::fake(['id' => (string)$eventId]);
         $fakeAttribute = AttributeFixture::fake(
             [

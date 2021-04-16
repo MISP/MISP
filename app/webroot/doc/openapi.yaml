@@ -301,6 +301,40 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /events/addTag/{eventId}/{tagId}:
+    post:
+      summary: "Add event tag"
+      operationId: tagEvent
+      tags:
+        - Events
+      parameters:
+        - $ref: "#/components/parameters/eventIdParameter"
+        - $ref: "#/components/parameters/tagIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/AddEventTagResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /events/removeTag/{eventId}/{tagId}:
+    post:
+      summary: "Remove event tag"
+      operationId: untagEvent
+      tags:
+        - Events
+      parameters:
+        - $ref: "#/components/parameters/eventIdParameter"
+        - $ref: "#/components/parameters/tagIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/RemoveEventTagResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -1571,6 +1605,54 @@ components:
                 type: string
                 nullable: true
                 example: "Event was not deleted."
+
+    AddEventTagResponse:
+      description: "Add event tag response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                description: "`true` if the tag was succesfully added, `false` if it failed"
+                type: boolean
+                nullable: false
+              success:
+                description: "Present if the tag was succesfully added"
+                type: string
+                nullable: true
+                example: "Tag added."
+              check_publish:
+                type: boolean
+                nullable: true
+              errors:
+                type: string
+                nullable: true
+                example: Tag could not be added.
+
+    RemoveEventTagResponse:
+      description: "Remove event tag response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                description: "`true` if the tag was succesfully removed, `false` if it failed"
+                type: boolean
+                nullable: false
+              success:
+                description: "Present if the tag was succesfully added"
+                type: string
+                nullable: true
+                example: "Tag removed."
+              check_publish:
+                type: boolean
+                nullable: true
+              errors:
+                type: string
+                nullable: true
+                example: Tag could not be added.
 
     ExtendedEventListResponse:
       description: "A list of events"

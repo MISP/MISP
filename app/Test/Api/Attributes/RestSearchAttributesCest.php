@@ -22,8 +22,8 @@ class RestSearchAttributesCest
     public function testRestSearchReturnsExpectedAttribute(ApiTester $I)
     {
         $eventId = 1;
-        $orgId = 10;
-        $userId = 10;
+        $orgId = 1;
+        $userId = 1;
 
         $I->haveAuthorizationKey($orgId, $userId);
 
