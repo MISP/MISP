@@ -519,17 +519,18 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 case 'noticelist':
                     if ($menuItem === 'view') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'view',
+                            'element_id' => 'view_noticelist',
                             'text' => __('View Noticelist')
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'index',
+                        'element_id' => 'list_noticelists',
                         'url' => $baseurl . '/noticelists/index',
                         'text' => __('List Noticelist')
                     ));
                     if ($canAccess('noticelists', 'update')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'element_id' => 'update_noticelists',
                             'url' => $baseurl . '/noticelists/update',
                             'text' => __('Update Noticelists'),
                             'message' => __('Do you wish to continue and update all noticelists?')

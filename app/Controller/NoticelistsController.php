@@ -6,31 +6,21 @@ class NoticelistsController extends AppController
     public $components = array('Session', 'RequestHandler');
 
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999,
-            'order' => array(
-                'Noticelist.id' => 'DESC'
-            ),
+        'limit' => 60,
+        'maxLimit' => 9999,
+        'order' => array(
+            'Noticelist.id' => 'DESC'
+        ),
     );
 
     public function index()
     {
-        $this->paginate['recursive'] = -1;
-        if ($this->_isRest()) {
-            $noticelists = $this->Noticelist->find('all', $this->paginate);
-            foreach ($noticelists as $k => $v) {
-                $noticelists[$k]['Noticelist']['ref'] = json_decode($noticelists[$k]['Noticelist']['ref']);
-                $noticelists[$k]['Noticelist']['geographical_area'] = json_decode($noticelists[$k]['Noticelist']['geographical_area']);
-            }
-            return $this->RestResponse->viewData($noticelists, $this->response->type());
-        } else {
-            $noticelists = $this->paginate();
-            foreach ($noticelists as $k => $v) {
-                $noticelists[$k]['Noticelist']['ref'] = json_decode($noticelists[$k]['Noticelist']['ref']);
-                $noticelists[$k]['Noticelist']['geographical_area'] = json_decode($noticelists[$k]['Noticelist']['geographical_area']);
-            }
-            $this->set('noticelists', $noticelists);
+        $params = [];
+        $this->CRUD->index($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
+        $this->set('menuData', array('menuList' => 'noticelist', 'menuItem' => 'list_noticelists'));
     }
 
     public function update()
@@ -50,14 +40,14 @@ class NoticelistsController extends AppController
                     }
                     $this->Log->create();
                     $this->Log->save(array(
-                            'org' => $this->Auth->user('Organisation')['name'],
-                            'model' => 'Noticelist',
-                            'model_id' => $id,
-                            'email' => $this->Auth->user('email'),
-                            'action' => 'update',
-                            'user_id' => $this->Auth->user('id'),
-                            'title' => 'Notice list updated',
-                            'change' => $change,
+                        'org' => $this->Auth->user('Organisation')['name'],
+                        'model' => 'Noticelist',
+                        'model_id' => $id,
+                        'email' => $this->Auth->user('email'),
+                        'action' => 'update',
+                        'user_id' => $this->Auth->user('id'),
+                        'title' => 'Notice list updated',
+                        'change' => $change,
                     ));
                     $successes++;
                 }
@@ -66,14 +56,14 @@ class NoticelistsController extends AppController
                 foreach ($result['fails'] as $id => $fail) {
                     $this->Log->create();
                     $this->Log->save(array(
-                            'org' => $this->Auth->user('Organisation')['name'],
-                            'model' => 'Noticelist',
-                            'model_id' => $id,
-                            'email' => $this->Auth->user('email'),
-                            'action' => 'update',
-                            'user_id' => $this->Auth->user('id'),
-                            'title' => 'Notice list failed to update',
-                            'change' => $fail['name'] . ' could not be installed/updated. Error: ' . $fail['fail'],
+                        'org' => $this->Auth->user('Organisation')['name'],
+                        'model' => 'Noticelist',
+                        'model_id' => $id,
+                        'email' => $this->Auth->user('email'),
+                        'action' => 'update',
+                        'user_id' => $this->Auth->user('id'),
+                        'title' => 'Notice list failed to update',
+                        'change' => $fail['name'] . ' could not be installed/updated. Error: ' . $fail['fail'],
                     ));
                     $fails++;
                 }
@@ -81,14 +71,14 @@ class NoticelistsController extends AppController
         } else {
             $this->Log->create();
             $this->Log->save(array(
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'model' => 'Noticelist',
-                    'model_id' => 0,
-                    'email' => $this->Auth->user('email'),
-                    'action' => 'update',
-                    'user_id' => $this->Auth->user('id'),
-                    'title' => 'Noticelist update (nothing to update)',
-                    'change' => 'Executed an update of the notice lists, but there was nothing to update.',
+                'org' => $this->Auth->user('Organisation')['name'],
+                'model' => 'Noticelist',
+                'model_id' => 0,
+                'email' => $this->Auth->user('email'),
+                'action' => 'update',
+                'user_id' => $this->Auth->user('id'),
+                'title' => 'Noticelist update (nothing to update)',
+                'change' => 'Executed an update of the notice lists, but there was nothing to update.',
             ));
         }
         if ($successes == 0 && $fails == 0) {
@@ -116,11 +106,11 @@ class NoticelistsController extends AppController
     {
         $id = $this->request->data['Noticelist']['data'];
         if (!is_numeric($id)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Noticelist not found.')), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => 'Noticelist not found.')), 'status' => 200, 'type' => 'json'));
         }
         $currentState = $this->Noticelist->find('first', array('conditions' => array('id' => $id), 'recursive' => -1));
         if (empty($currentState)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Noticelist not found.')), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => 'Noticelist not found.')), 'status' => 200, 'type' => 'json'));
         }
         $currentState['Noticelist']['ref'] = json_decode($currentState['Noticelist']['ref']);
         $currentState['Noticelist']['geographical_area'] = json_decode($currentState['Noticelist']['geographical_area']);
@@ -132,9 +122,9 @@ class NoticelistsController extends AppController
             $message = 'enabled';
         }
         if ($this->Noticelist->save($currentState)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Noticelist ' . $message)), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body' => json_encode(array('saved' => true, 'success' => 'Noticelist ' . $message)), 'status' => 200, 'type' => 'json'));
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Noticelist could not be enabled.')), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => 'Noticelist could not be enabled.')), 'status' => 200, 'type' => 'json'));
         }
     }
 
