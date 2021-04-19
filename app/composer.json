@@ -9,7 +9,6 @@
         "ext-dom": "*",
         "ext-simplexml": "*",
         "ext-pcre": "*",
-        "cakephp/cakephp": "2.10.24",
         "kamisama/cake-resque": "4.1.2",
         "pear/crypt_gpg": "1.6.3",
         "monolog/monolog": "1.24.0"

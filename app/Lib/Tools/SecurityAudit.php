@@ -476,7 +476,7 @@ class SecurityAudit
      */
     private function getCakeVersion()
     {
-        $filePath = CAKE_CORE_INCLUDE_PATH . '/Cake/VERSION.txt';
+        $filePath = APP . 'Lib/cakephp/lib/Cake/VERSION.txt';
         $version = file_get_contents($filePath);
         if (!$version) {
             throw new RuntimeException("Could not open CakePHP version file '$filePath'.");

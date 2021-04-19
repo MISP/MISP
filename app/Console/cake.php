@@ -3,45 +3,30 @@
 /**
  * Command-line code generation utility to automate programmer chores.
  *
- * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * PHP 5
+ *
+ * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
+ * Copyright 2005-2012, Cake Software Foundation, Inc.
  *
  * Licensed under The MIT License
- * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
- * @link          https://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright 2005-2012, Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * @link          http://cakephp.org CakePHP(tm) Project
  * @package       app.Console
  * @since         CakePHP(tm) v 2.0
- * @license       https://opensource.org/licenses/mit-license.php MIT License
+ * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
-
-if (!defined('DS')) {
-    define('DS', DIRECTORY_SEPARATOR);
-}
-
-$dispatcher = 'Cake' . DS . 'Console' . DS . 'ShellDispatcher.php';
-
+$ds = DIRECTORY_SEPARATOR;
+$dispatcher = dirname(__DIR__) . $ds . 'Lib' . $ds . 'cakephp' . $ds . 'lib' . $ds . 'Cake' . $ds . 'Console' . $ds . 'ShellDispatcher.php';
 if (function_exists('ini_set')) {
-    $root = dirname(dirname(dirname(__FILE__)));
-    $appDir = basename(dirname(dirname(__FILE__)));
-    $install = $root . DS . 'lib';
-    $composerInstall = $root . DS . $appDir . DS . 'Vendor' . DS . 'cakephp' . DS . 'cakephp' . DS . 'lib';
-
-    // the following lines differ from its sibling
-    // /lib/Cake/Console/Templates/skel/Console/cake.php
-    if (file_exists($composerInstall . DS . $dispatcher)) {
-        $install = $composerInstall;
-    }
-
-    ini_set('include_path', $install . PATH_SEPARATOR . ini_get('include_path'));
-    unset($root, $appDir, $install, $composerInstall);
+	$root = dirname(dirname(dirname(__FILE__)));
+	ini_set('include_path', $root . $ds . 'lib' . PATH_SEPARATOR . ini_get('include_path'));
 }
 
-if (!include $dispatcher) {
-    trigger_error('Could not locate CakePHP core files.', E_USER_ERROR);
+if (!include ($dispatcher)) {
+	trigger_error('Could not locate CakePHP core files.', E_USER_ERROR);
 }
-unset($dispatcher);
+unset($paths, $path, $dispatcher, $root, $ds);
 
 return ShellDispatcher::run($argv);
