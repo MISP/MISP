@@ -2741,7 +2741,12 @@ class Event extends AppModel
                     if (!is_numeric($org)) {
                         $existingOrg = $this->Orgc->find('first', array(
                             'recursive' => -1,
-                            'conditions' => array('Orgc.name' => $org),
+                            'conditions' => array(
+                                'OR' => array(
+                                    'Orgc.name' => $org,
+                                    'Orgc.uuid' => $org
+                                )
+                            ),
                             'fields' => array('Orgc.id')
                         ));
                         if (empty($existingOrg)) {
@@ -2758,7 +2763,12 @@ class Event extends AppModel
                     if (!is_numeric($org)) {
                         $existingOrg = $this->Orgc->find('first', array(
                             'recursive' => -1,
-                            'conditions' => array('Orgc.name' => $org),
+                            'conditions' => array(
+                                'OR' => array(
+                                    'Orgc.name' => $org,
+                                    'Orgc.uuid' => $org
+                                )
+                            ),
                             'fields' => array('Orgc.id')
                         ));
                         if (!empty($existingOrg)) {

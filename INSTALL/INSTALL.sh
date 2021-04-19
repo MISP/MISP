@@ -10,16 +10,19 @@
 ############################################################
 #INSTALLATION INSTRUCTIONS                                #
 ##########################################################
-#------------------------- for Debian Flavored Linux Distributions
+#------------------------- for Linux Distributions
 #
 #-------------------------------------------------------|
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
-#    20200513: Ubuntu 20.04 tested and working. -- sCl
-#    20200412: Ubuntu 18.04.4 tested and working. -- sCl
-#    20190302: Ubuntu 18.04.2 tested and working. -- sCl
-#    20190208: Kali Linux tested and working. -- sCl
+#  20210406: CentOS 7.9        tested and working. -- sCl
+#  20210406: CentOS 8          tested and working. -- sCl
+#  20210406: CentOS Stream     tested and working. -- sCl
+#  20210406: Ubuntu 21.04      tested and working. -- sCl
+#  20210406: Ubuntu 20.04.2    tested and working. -- sCl
+#  20210406: Ubuntu 18.04.5    tested and working. -- sCl
+#  20210331: Kali Linux 2021.1 tested and working. -- sCl
 #
 #
 #-------------------------------------------------------------------------------------------------|
@@ -68,7 +71,7 @@
 #
 #### BEGIN AUTOMATED SECTION ####
 #
-# $ eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | grep -v \`\`\`)"
+# $ eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | awk '/^# <snippet-begin/,0' | grep -v \`\`\`)"
 # $ MISPvars
 MISPvars () {
   debug "Setting generic ${LBLUE}MISP${NC} variables shared by all flavours" 2> /dev/null
@@ -76,9 +79,16 @@ MISPvars () {
   MISP_USER="${MISP_USER:-misp}"
   MISP_PASSWORD="${MISP_PASSWORD:-$(openssl rand -hex 32)}"
 
+  # Cheap distribution detector
+  FLAVOUR="$(. /etc/os-release && echo "$ID"| tr '[:upper:]' '[:lower:]')"
+  STREAM="$(. /etc/os-release && echo "$NAME"| grep -o -i stream |tr '[:upper:]' '[:lower:]')"
+  DIST_VER="$(. /etc/os-release && echo "$VERSION_ID")"
+  DISTRI=${FLAVOUR}${DIST_VER}${STREAM}
+
   # The web server user
   # RHEL/CentOS
   if [[ -f "/etc/redhat-release" ]]; then
+    SE_LINUX=$(sestatus  -v -b |grep "^SELinux status"| grep enabled ; echo $?)
     WWW_USER="apache"
     SUDO_WWW="sudo -H -u ${WWW_USER} "
   # Debian flavoured
@@ -322,12 +332,13 @@ checkFlavour () {
       fi
       echo "${FLAVOUR} support is experimental at the moment"
     ;;
-    rhel|ol|sles)
+    rhel|ol|sles|fedora)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        # FIXME: On fedora the trimming fails
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
-	dist_version=${dist_version:0:1}  # Only interested about major version
+        dist_version=${dist_version:0:1}  # Only interested about major version
       fi
-      # Only tested for RHEL 7 so far 
+      # FIXME: Only tested for RHEL 7 so far 
       echo "${FLAVOUR} support is experimental at the moment"
     ;;
     *)
@@ -397,7 +408,7 @@ EOF
 
 checkInstaller () {
   # Workaround: shasum is not available on RHEL, only checking sha512
-  if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
+  if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]] || [[ "${FLAVOUR}" == "fedora" ]]; then
   INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
   /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
         chsum=$(cat /tmp/INSTALL.sh.sha512)
@@ -1141,7 +1152,6 @@ theEnd () {
     sudo su - ${MISP_USER}
   fi
 }
-## End Function Section Nothing allowed in .md after this line ##
 
 aptUpgrade () {
   debug "Upgrading system"
@@ -1193,6 +1203,13 @@ installCoreDeps () {
   sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -qy
 }
 
+upgradeToPHP74 () {
+  sudo apt install software-properties-common -qy
+  sudo add-apt-repository ppa:ondrej/php -y
+  sudo apt update
+  sudo apt dist-upgrade -y
+}
+
 # Install Php 7.4 dependencies
 installDepsPhp74 () {
   debug "Installing PHP 7.4 dependencies"
@@ -1200,13 +1217,13 @@ installDepsPhp74 () {
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   checkAptLock
   sudo apt install -qy \
-  libapache2-mod-php \
-  php php-cli \
-  php-dev \
-  php-json php-xml php-mysql php7.4-opcache php-readline php-mbstring php-zip \
-  php-redis php-gnupg \
-  php-intl php-bcmath \
-  php-gd
+  libapache2-mod-php7.4 \
+  php7.4 php7.4-cli \
+  php7.4-dev \
+  php7.4-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip \
+  php7.4-redis php7.4-gnupg \
+  php7.4-intl php7.4-bcmath \
+  php7.4-gd
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
@@ -1269,6 +1286,7 @@ installDepsPhp72 () {
   sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
   sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 }
+## End Function Section Nothing allowed in .md after this line ##
 
 # Install Php 7.0 dependencies
 installDepsPhp70 () {
@@ -1509,183 +1527,278 @@ configMISP () {
 }
 
 # Core cake commands to tweak MISP and aleviate some of the configuration pains
-# The $RUN_PHP is ONLY set on RHEL/CentOS installs and can thus be ignored
+# The ${RUN_PHP} is ONLY set on RHEL/CentOS installs and can thus be ignored
 # This file is NOT an excuse to NOT read the settings and familiarize ourselves with them ;)
 
 coreCAKE () {
   debug "Running core Cake commands to set sane defaults for ${LBLUE}MISP${NC}"
 
   # IF you have logged in prior to running this, it will fail but the fail is NON-blocking
-  $SUDO_WWW $RUN_PHP -- $CAKE userInit -q
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} userInit -q
 
   # This makes sure all Database upgrades are done, without logging in.
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin runUpdates
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin runUpdates
 
   # The default install is Python >=3.6 in a virtualenv, setting accordingly
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
   # Set default role
   # TESTME: The following seem defunct, please test.
-  # $SUDO_WWW $RUN_PHP -- $CAKE setDefaultRole 3
+  # ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} setDefaultRole 3
 
   # Tune global time outs
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Session.autoRegenerate" 0
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Session.timeout" 600
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Session.cookieTimeout" 3600
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Session.autoRegenerate" 0
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Session.timeout" 600
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Session.cookieTimeout" 3600
 
   # Change base url, either with this CLI command or in the UI
-  $SUDO_WWW $RUN_PHP -- $CAKE Baseurl $MISP_BASEURL
+  [[ ! -z ${MISP_BASEURL} ]] && ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Baseurl $MISP_BASEURL
   # example: 'baseurl' => 'https://<your.FQDN.here>',
   # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
   # 'baseurl' => '',
   # The base url of the application (in the format https://www.mymispinstance.com) as visible externally/by other MISPs.
   # MISP will encode this URL in sharing groups when including itself. If this value is not set, the baseurl is used as a fallback.
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.external_baseurl" $MISP_BASEURL
+  [[ ! -z ${MISP_BASEURL} ]] && ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.external_baseurl" ${MISP_BASEURL}
 
   # Enable GnuPG
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "GnuPG.email" "$GPG_EMAIL_ADDRESS"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "GnuPG.homedir" "$PATH_TO_MISP/.gnupg"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "GnuPG.password" "$GPG_PASSPHRASE"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "GnuPG.obscure_subject" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.email" "${GPG_EMAIL_ADDRESS}"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.homedir" "${PATH_TO_MISP}/.gnupg"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.password" "${GPG_PASSPHRASE}"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.obscure_subject" true
   # FIXME: what if we have not gpg binary but a gpg2 one?
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "GnuPG.binary" "$(which gpg)"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "GnuPG.binary" "$(which gpg)"
 
   # Enable installer org and tune some configurables
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.host_org_id" 1
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.email" "info@admin.test"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disable_emailing" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.contact" "info@admin.test"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disablerestalert" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.showCorrelationsOnIndex" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.default_event_tag_collection" 0
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.host_org_id" 1
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.email" "info@admin.test"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.disable_emailing" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.contact" "info@admin.test"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.disablerestalert" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.showCorrelationsOnIndex" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.default_event_tag_collection" 0
 
   # Provisional Cortex tunes
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Cortex_services_enable" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Cortex_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Cortex_services_port" 9000
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Cortex_timeout" 120
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Cortex_authkey" ""
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_peer" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_host" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Cortex_ssl_allow_self_signed" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_services_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_services_url" "http://127.0.0.1"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_services_port" 9000
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_timeout" 120
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_authkey" ""
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_ssl_verify_peer" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_ssl_verify_host" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_ssl_allow_self_signed" true
 
   # Various plugin sightings settings
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_policy" 0
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_anonymise" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_anonymise_as" 1
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_range" 365
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_sighting_db_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Sightings_policy" 0
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Sightings_anonymise" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Sightings_anonymise_as" 1
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Sightings_range" 365
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Sightings_sighting_db_enable" false
 
-  # Plugin Enrichment hover defaults
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_popover_only" false
+  # TODO: Fix the below list
+  # Set API_Required modules to false
+  PLUGS=(Plugin.Enrichment_cuckoo_submit_enabled
+         Plugin.Enrichment_vmray_submit_enabled
+         Plugin.Enrichment_circl_passivedns_enabled
+         Plugin.Enrichment_circl_passivessl_enabled
+         Plugin.Enrichment_domaintools_enabled
+         Plugin.Enrichment_eupi_enabled
+         Plugin.Enrichment_farsight_passivedns_enabled
+         Plugin.Enrichment_passivetotal_enabled
+         Plugin.Enrichment_passivetotal_enabled
+         Plugin.Enrichment_virustotal_enabled
+         Plugin.Enrichment_whois_enabled
+         Plugin.Enrichment_shodan_enabled
+         Plugin.Enrichment_geoip_asn_enabled
+         Plugin.Enrichment_geoip_city_enabled
+         Plugin.Enrichment_geoip_country_enabled
+         Plugin.Enrichment_iprep_enabled
+         Plugin.Enrichment_otx_enabled
+         Plugin.Enrichment_vulndb_enabled
+         Plugin.Enrichment_crowdstrike_falcon_enabled
+         Plugin.Enrichment_onyphe_enabled
+         Plugin.Enrichment_xforceexchange_enabled
+         Plugin.Enrichment_vulners_enabled
+         Plugin.Enrichment_macaddress_io_enabled
+         Plugin.Enrichment_intel471_enabled
+         Plugin.Enrichment_backscatter_io_enabled
+         Plugin.Enrichment_hibp_enabled
+         Plugin.Enrichment_greynoise_enabled
+         Plugin.Enrichment_joesandbox_submit_enabled
+         Plugin.Enrichment_virustotal_public_enabled
+         Plugin.Enrichment_apiosintds_enabled
+         Plugin.Enrichment_urlscan_enabled
+         Plugin.Enrichment_securitytrails_enabled
+         Plugin.Enrichment_apivoid_enabled
+         Plugin.Enrichment_assemblyline_submit_enabled
+         Plugin.Enrichment_assemblyline_query_enabled
+         Plugin.Enrichment_ransomcoindb_enabled
+         Plugin.Enrichment_lastline_query_enabled
+         Plugin.Enrichment_sophoslabs_intelix_enabled
+         Plugin.Enrichment_cytomic_orion_enabled
+         Plugin.Enrichment_censys_enrich_enabled
+         Plugin.Enrichment_trustar_enrich_enabled
+         Plugin.Enrichment_recordedfuture_enabled
+         Plugin.ElasticSearch_logging_enable
+         Plugin.S3_enable)
+  for PLUG in "${PLUGS[@]}"; do
+    ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting ${PLUG} false
+  done
 
   # Plugin CustomAuth tuneable
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.CustomAuth_disable_logout" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.CustomAuth_disable_logout" false
 
   # RPZ Plugin settings
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_policy" "DROP"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_walled_garden" "127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_serial" "\$date00"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_refresh" "2h"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_retry" "30m"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_expiry" "30d"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_minimum_ttl" "1h"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_ttl" "1w"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_ns" "localhost."
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_ns_alt" ""
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_email" "root.localhost"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_policy" "DROP"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_walled_garden" "127.0.0.1"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_serial" "\$date00"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_refresh" "2h"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_retry" "30m"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_expiry" "30d"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_minimum_ttl" "1h"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_ttl" "1w"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_ns" "localhost."
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_ns_alt" ""
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_email" "root.localhost"
+
+  # Kafka settings
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_brokers" "kafka:9092"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_rdkafka_config" "/etc/rdkafka.ini"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_include_attachments" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_event_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_event_notifications_topic" "misp_event"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_event_publish_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_event_publish_notifications_topic" "misp_event_publish"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_object_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_object_notifications_topic" "misp_object"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_object_reference_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_object_reference_notifications_topic" "misp_object_reference"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_attribute_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_attribute_notifications_topic" "misp_attribute"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_shadow_attribute_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_shadow_attribute_notifications_topic" "misp_shadow_attribute"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_tag_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_tag_notifications_topic" "misp_tag"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_sighting_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_sighting_notifications_topic" "misp_sighting"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_user_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_user_notifications_topic" "misp_user"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_organisation_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_organisation_notifications_topic" "misp_organisation"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_audit_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_audit_notifications_topic" "misp_audit"
+
+  # ZeroMQ settings
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_host" "127.0.0.1"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_port" 50000
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_include_attachments" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
 
   # Force defaults to make MISP Server Settings less RED
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.language" "eng"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.proposals_block_attributes" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.language" "eng"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.proposals_block_attributes" false
 
   # Redis block
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.redis_host" "127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.redis_port" 6379
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.redis_database" 13
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.redis_password" ""
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.redis_host" "127.0.0.1"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.redis_port" 6379
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.redis_database" 13
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.redis_password" ""
 
   # Force defaults to make MISP Server Settings less YELLOW
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.ssdeep_correlation_threshold" 40
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.extended_alert_subject" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.default_event_threat_level" 4
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.newUserText" "Dear new MISP user,\\n\\nWe would hereby like to welcome you to the \$org MISP community.\\n\\n Use the credentials below to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nPassword: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.passwordResetText" "Dear MISP user,\\n\\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nYour temporary password: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.enableEventBlocklisting" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.enableOrgBlocklisting" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.log_client_ip" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.log_auth" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.log_user_ips" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.log_user_ips_authkeys" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disableUserSelfManagement" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disable_user_login_change" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disable_user_password_change" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disable_user_add" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_event_alert" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\""
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_old_event_alert" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_old_event_alert_age" ""
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_old_event_alert_by_date" ""
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.incoming_tags_disabled_by_default" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.maintenance_message" "Great things are happening! MISP is undergoing maintenance, but will return shortly. You can contact the administration at \$email."
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.footermidleft" "This is an initial install"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.footermidright" "Please configure and harden accordingly"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.welcome_text_top" "Initial Install, please configure"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.ssdeep_correlation_threshold" 40
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.extended_alert_subject" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.default_event_threat_level" 4
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.newUserText" "Dear new MISP user,\\n\\nWe would hereby like to welcome you to the \$org MISP community.\\n\\n Use the credentials below to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nPassword: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.passwordResetText" "Dear MISP user,\\n\\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nYour temporary password: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.enableEventBlocklisting" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.enableOrgBlocklisting" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.log_client_ip" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.log_auth" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.log_user_ips" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.log_user_ips_authkeys" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.disableUserSelfManagement" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.disable_user_login_change" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.disable_user_password_change" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.disable_user_add" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.block_event_alert" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\""
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.block_old_event_alert" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.block_old_event_alert_age" ""
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.block_old_event_alert_by_date" ""
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.incoming_tags_disabled_by_default" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.maintenance_message" "Great things are happening! MISP is undergoing maintenance, but will return shortly. You can contact the administration at \$email."
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.footermidleft" "This is an initial install"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.footermidright" "Please configure and harden accordingly"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.welcome_text_top" "Initial Install, please configure"
   # TODO: Make sure $FLAVOUR is correct
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.welcome_text_bottom" "Welcome to MISP on $FLAVOUR, change this message in MISP Settings"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.attachments_dir" "$PATH_TO_MISP/app/files"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.download_attachments_on_load" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.title_text" "MISP"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.terms_download" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.showorgalternate" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.event_view_filter_fields" "id, uuid, value, comment, type, category, Tag.name"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.welcome_text_bottom" "Welcome to MISP on ${FLAVOUR}, change this message in MISP Settings"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.attachments_dir" "${PATH_TO_MISP}/app/files"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.download_attachments_on_load" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.event_alert_metadata_only" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.title_text" "MISP"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.terms_download" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.showorgalternate" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.event_view_filter_fields" "id, uuid, value, comment, type, category, Tag.name"
 
   # Force defaults to make MISP Server Settings less GREEN
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "debug" 0
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.auth_enforced" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.rest_client_baseurl" ""
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.advanced_authkeys" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.password_policy_length" 12
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators."
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "debug" 0
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.auth_enforced" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.log_each_individual_auth_fail" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.rest_client_baseurl" ""
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.advanced_authkeys" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.password_policy_length" 12
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators."
 
   # Appease the security audit, #hardening
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.disable_browser_cache" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.check_sec_fetch_site_header" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.csp_enforce" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.advanced_authkeys" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.do_not_log_authkeys" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.disable_browser_cache" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.check_sec_fetch_site_header" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.csp_enforce" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.advanced_authkeys" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.do_not_log_authkeys" true
 
   # Appease the security audit, #loggin
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.username_in_response_header" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Security.username_in_response_header" true
 
   # It is possible to updateMISP too, only here for reference how to to that on the CLI.
-  ## $SUDO_WWW $RUN_PHP -- $CAKE Admin updateMISP
+  ## ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin updateMISP
 
   # Set MISP Live
-  $SUDO_WWW $RUN_PHP -- $CAKE Live $MISP_LIVE
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Live ${MISP_LIVE}
 }
 
 # This updates Galaxies, ObjectTemplates, Warninglists, Noticelists, Templates
 updateGOWNT () {
   # AUTH_KEY Place holder in case we need to **curl** somehing in the future
   # 
-  $SUDO_WWW $RUN_MYSQL -- mysql -h $DBHOST -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1 > /tmp/auth.key
+  ${SUDO_WWW} ${RUN_MYSQL} -- mysql -h ${DBHOST} -u ${DBUSER_MISP} -p${DBPASSWORD_MISP} misp -e "SELECT authkey FROM users;" | tail -1 > /tmp/auth.key
   AUTH_KEY=$(cat /tmp/auth.key)
   rm /tmp/auth.key
 
   debug "Updating Galaxies, ObjectTemplates, Warninglists, Noticelists and Templates"
   # Update the galaxies…
   # TODO: Fix updateGalaxies
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin updateGalaxies
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin updateGalaxies
   # Updating the taxonomies…
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin updateTaxonomies
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin updateTaxonomies
   # Updating the warning lists…
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin updateWarningLists
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin updateWarningLists
   # Updating the notice lists…
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin updateNoticeLists
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin updateNoticeLists
   # Updating the object templates…
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin updateObjectTemplates "1337"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin updateObjectTemplates "1337"
 }
 
 # Generate GnuPG key
@@ -1804,47 +1917,70 @@ mispmodules () {
 
   # Sleep 9 seconds to give misp-modules a chance to spawn
   sleep 9
+}
 
+modulesCAKE () {
   # Enable Enrichment, set better timeouts
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_hover_popover_only" false
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
-  # TODO:"Investigate why the next one fails"
-  #$SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_asn_history_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_btc_steroids_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_ipasn_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_yara_syntax_validator_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_yara_query_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_pdf_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_docx_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_xlsx_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_pptx_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_ods_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_odt_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_services_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_hover_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_hover_popover_only" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_hover_timeout" 150
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_timeout" 300
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_bgpranking_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_countrycode_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_cve_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_cve_advanced_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_cpe_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_dns_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_eql_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_btc_steroids_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_ipasn_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_reversedns_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_yara_syntax_validator_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_yara_query_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_wiki_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_threatminer_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_threatcrowd_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_hashdd_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_rbl_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_sigma_syntax_validator_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_stix2_pattern_syntax_validator_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_sigma_queries_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_dbl_spamhaus_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_btc_scam_check_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_macvendors_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_qrcode_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_ocr_enrich_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_pdf_enrich_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_docx_enrich_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_xlsx_enrich_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_pptx_enrich_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_ods_enrich_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_odt_enrich_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_urlhaus_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_malwarebazaar_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_html_to_markdown_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_socialscan_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Enrichment_services_port" 6666
 
   # Enable Import modules, set better timeout
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Import_services_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Import_services_port" 6666
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Import_timeout" 300
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Import_mispjson_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Import_openiocimport_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Import_threatanalyzer_import_enabled" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Import_services_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Import_services_port" 6666
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Import_timeout" 300
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Import_ocr_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Import_mispjson_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Import_openiocimport_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Import_threatanalyzer_import_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Import_csvimport_enabled" true
 
   # Enable Export modules, set better timeout
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Export_services_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Export_services_port" 6666
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Export_timeout" 300
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Export_services_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Export_services_port" 6666
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Export_timeout" 300
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Export_pdfexport_enabled" true
 }
 
 # Main MISP Dashboard install function
@@ -1918,22 +2054,23 @@ mispDashboard () {
 
 dashboardCAKE () {
   # Enable ZeroMQ for misp-dashboard
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
-  $SUDO_WWW $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_host" "127.0.0.1"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_port" 50000
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_include_attachments" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 }
 
 # Main mail2misp install function
@@ -1941,30 +2078,29 @@ mail2misp () {
   debug "Installing Mail2${LBLUE}MISP${NC}"
   cd /usr/local/src/
   sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
-  false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/MISP/mail_to_misp.git; done
+  false; while [[ $? -ne 0 ]]; do ${SUDO_CMD} git clone https://github.com/MISP/mail_to_misp.git; done
   ## TODO: The below fails miserably (obviously) if faup/gtcac dirs exist, let's just make the dangerous assumption (for the sake of the installer, that they exist)
-  ##[[ ! -d "faup" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/stricaud/faup.git faup; done
-  ##[[ ! -d "gtcaca" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca; done
+  ##[[ ! -d "faup" ]] && false; while [[ $? -ne 0 ]]; do ${SUDO_CMD} git clone https://github.com/stricaud/faup.git faup; done
+  ##[[ ! -d "gtcaca" ]] && false; while [[ $? -ne 0 ]]; do ${SUDO_CMD} git clone https://github.com/stricaud/gtcaca.git gtcaca; done
   sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp gtcaca
   cd gtcaca
-  $SUDO_CMD mkdir -p build
+  ${SUDO_CMD} mkdir -p build
   cd build
-  $SUDO_CMD cmake .. && $SUDO_CMD make
+  ${SUDO_CMD} cmake .. && ${SUDO_CMD} make
   sudo make install
   cd ../../faup
-  $SUDO_CMD mkdir -p build
+  ${SUDO_CMD} mkdir -p build
   cd build
-  $SUDO_CMD cmake .. && $SUDO_CMD make
+  ${SUDO_CMD} cmake .. && ${SUDO_CMD} make
   sudo make install
   sudo ldconfig
   cd ../../mail_to_misp
-  $SUDO_CMD virtualenv -p python3 venv
-  $SUDO_CMD ./venv/bin/pip install lief
-  $SUDO_CMD ./venv/bin/pip install -r requirements.txt
-  $SUDO_CMD cp mail_to_misp_config.py-example mail_to_misp_config.py
+  ${SUDO_CMD} virtualenv -p python3 venv
+  ${SUDO_CMD} ./venv/bin/pip install -r requirements.txt
+  ${SUDO_CMD} cp mail_to_misp_config.py-example mail_to_misp_config.py
   ##$SUDO cp mail_to_misp_config.py-example mail_to_misp_config.py
-  $SUDO_CMD sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-  $SUDO_CMD sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  ${SUDO_CMD} sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  ${SUDO_CMD} sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
 }
 
 ssdeep () {
@@ -2054,31 +2190,65 @@ viper () {
 }
 
 
-enableReposRHEL () {
+registerRHEL () {
+  sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
+}
+
+enableReposRHEL7 () {
   sudo subscription-manager refresh
   sudo subscription-manager repos --enable rhel-7-server-optional-rpms
   sudo subscription-manager repos --enable rhel-7-server-extras-rpms
 }
 
-centosEPEL () {
-  # We need some packages from the Extra Packages for Enterprise Linux repository
-  sudo yum install epel-release -y
+enableOptionalRHEL8 () {
+  sudo subscription-manager refresh
 
-  # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
-  # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
-  sudo yum install centos-release-scl -y
+  # The following is needed for -devel repos and ONLY for misp-modules, ignore if not needed
+  sudo subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
+  # Software Collections is available for Red Hat Enterprise Linux 7 and previous supported releases. Starting with Red Hat Enterprise Linux 8, the content traditionally consumed via Software Collections is now part of Application Streams. Please see the Application Streams Life Cycle documentation for that release. Source: https://access.redhat.com/support/policy/updates/rhscl
 }
 
 enableEPEL () {
-  sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
-  sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
-  sudo yum install yum-utils -y
+  sudo yum install dnf -y
+  sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
+  sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
+  sudo dnf install yum-utils policycoreutils-python -y
   sudo yum-config-manager --enable remi-php74
 }
 
-yumInstallCoreDeps () {
+centosEPEL () {
+  # We need some packages from the Extra Packages for Enterprise Linux repository
+  sudo yum install dnf -y
+  sudo dnf install epel-release -y
+
+  # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
+  # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
+  sudo dnf install centos-release-scl -y
+  sudo dnf install yum-utils -y
+  sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
+  sudo yum-config-manager --enable remi-php74
+}
+
+enableEPEL_REMI_8 () {
+  sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
+  sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
+  sudo dnf install dnf-utils -y
+  sudo dnf module enable php:remi-7.4 -y
+  [[ ${DISTRI} == "centos8stream" ]] && sudo dnf config-manager --set-enabled powertools
+  [[ ${DISTRI} == "centos8" ]] && sudo dnf config-manager --set-enabled powertools
+}
+
+enableREMI_f33 () {
+  sudo dnf install http://rpms.remirepo.net/fedora/remi-release-33.rpm
+  sudo dnf install dnf-utils -y
+  sudo dnf module enable php:remi-7.4 -y
+}
+
+yumInstallCoreDeps7 () {
   # Install the dependencies:
-  sudo yum install gcc git zip \
+  PHP_BASE="/etc/"
+  PHP_INI="/etc/php.ini"
+  sudo dnf install gcc git zip unzip \
                    mod_ssl \
                    redis \
                    libxslt-devel zlib-devel ssdeep-devel -y
@@ -2087,50 +2257,86 @@ yumInstallCoreDeps () {
   sudo systemctl enable --now redis.service
 
   # Install MariaDB
-  sudo yum install wget -y
-  wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
-  chmod +x mariadb_repo_setup
-  sudo ./mariadb_repo_setup
-  rm mariadb_repo_setup
-  sudo yum install MariaDB-server -y
+  sudo dnf install wget -y
+  wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup && chmod +x mariadb_repo_setup && sudo ./mariadb_repo_setup && rm mariadb_repo_setup
+  sudo dnf install MariaDB-server -y
 
-  WWW_USER="apache"
-  SUDO_WWW="sudo -H -u $WWW_USER"
-  PHP_INI="/etc/opt/remi/php74/php.ini"
   # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/7/php74/x86_64/repoview/
-  sudo yum install php74 php74-php-fpm php74-php-devel \
-                   php74-php-mysqlnd \
-                   php74-php-mbstring \
-                   php74-php-xml \
-                   php74-php-bcmath \
-                   php74-php-opcache \
-                   php74-php-zip \
-                   php74-php-pear \
-                   php74-php-brotli \
-                   php74-php-intl \
-                   php74-php-gd -y
+  sudo dnf install php php-fpm php-devel \
+                   php-mysqlnd \
+                   php-mbstring \
+                   php-xml \
+                   php-bcmath \
+                   php-opcache \
+                   php-zip \
+                   php-pear \
+                   php-brotli \
+                   php-intl \
+                   php-gd -y
 
-  # cake has php baked in, thus we link to it
-  sudo ln -s /usr/bin/php74 /usr/bin/php
+  # cake has php baked in, thus we link to it if necessary.
+  [[ ! -e "/usr/bin/php" ]] && sudo ln -s /usr/bin/php74 /usr/bin/php
 
   # Python 3.6 is now available in RHEL 7.7 base
-  sudo yum install python3 python3-devel -y
+  sudo dnf install python3 python3-devel python3-virtualenv -y
 
-  sudo systemctl enable --now php74-php-fpm.service
+  sudo systemctl enable --now php-fpm.service
 }
 
-installCoreRHEL () {
+yumInstallCoreDeps8 () {
+  # Install the dependencies:
+  PHP_BASE="/etc/"
+  PHP_INI="/etc/php.ini"
+  sudo dnf install @httpd -y
+  sudo dnf install gcc git zip unzip \
+                   httpd \
+                   mod_ssl \
+                   redis \
+                   mariadb \
+                   mariadb-server \
+                   python3-devel python3-pip python3-virtualenv \
+                   python3-policycoreutils \
+                   policycoreutils-python-utils \
+                   langpacks-en glibc-all-langpacks \
+                   libxslt-devel zlib-devel ssdeep-devel -y
+  sudo alternatives --set python /usr/bin/python3
+
+  # Enable and start redis
+  sudo systemctl enable --now redis.service
+
+  # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/8/php74/x86_64/repoview/
+  sudo dnf install php php-fpm php-devel \
+                   php-mysqlnd \
+                   php-mbstring \
+                   php-xml \
+                   php-bcmath \
+                   php-opcache \
+                   php-zip \
+                   php-pear \
+                   php-brotli \
+                   php-intl \
+                   php-gd -y
+
+  # cake has php baked in, thus we link to it if necessary.
+  [[ ! -e "/usr/bin/php" ]] && sudo ln -s /usr/bin/php74 /usr/bin/php
+
+  sudo systemctl enable --now php-fpm.service
+}
+
+installEntropyRHEL () {
+  # GPG needs lots of entropy, haveged provides entropy
+  # /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
+  sudo dnf install haveged -y
+  sudo systemctl enable --now haveged.service
+}
+
+installCoreRHEL7 () {
   # Download MISP using git in the $PATH_TO_MISP directory.
   sudo mkdir -p $(dirname $PATH_TO_MISP)
   sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
   cd $(dirname $PATH_TO_MISP)
   $SUDO_WWW git clone https://github.com/MISP/MISP.git
   cd $PATH_TO_MISP
-  ##$SUDO_WWW git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
-  # if the last shortcut doesn't work, specify the latest version manually
-  # example: git checkout tags/v2.4.XY
-  # the message regarding a "detached HEAD state" is expected behaviour
-  # (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
   # Fetch submodules
   $SUDO_WWW git submodule update --init --recursive
@@ -2140,7 +2346,8 @@ installCoreRHEL () {
   $SUDO_WWW git config core.filemode false
 
   # Create a python3 virtualenv
-  sudo pip3 install virtualenv
+  [[ -e $(which virtualenv-3 2>/dev/null) ]] && $SUDO_WWW virtualenv-3 -p python3 $PATH_TO_MISP/venv
+  [[ -e $(which virtualenv 2>/dev/null) ]] && $SUDO_WWW virtualenv -p python3 $PATH_TO_MISP/venv
   $SUDO_WWW python3 -m venv $PATH_TO_MISP/venv
   sudo mkdir /usr/share/httpd/.cache
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
@@ -2149,7 +2356,6 @@ installCoreRHEL () {
   cd $PATH_TO_MISP/app/files/scripts
   $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
   $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  ##$SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
@@ -2191,7 +2397,7 @@ installCoreRHEL () {
 
   # FIXME: Remove libfaup etc once the egg has the library baked-in
   # BROKEN: This needs to be tested on RHEL/CentOS
-  sudo yum install libcaca-devel cmake3 -y
+  sudo dnf install libcaca-devel cmake3 -y
   cd /tmp
   [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
   [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
@@ -2210,10 +2416,149 @@ installCoreRHEL () {
 
   # Enable dependencies detection in the diagnostics page
   # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
-  echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/remi/php74/php-fpm.d/www.conf
-  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/remi/php74/php-fpm.d/www.conf
-  sudo systemctl restart php74-php-fpm.service
+  echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a ${PHP_BASE}/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' ${PHP_BASE}/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^\(listen =\) \/run\/php-fpm\/www\.sock/\1 127.0.0.1:9000/' ${PHP_BASE}/php-fpm.d/www.conf
+
+  sudo systemctl restart php-fpm.service
   umask $UMASK
+}
+
+compileLiefRHEL8 () {
+  cd $PATH_TO_MISP/app/files/scripts
+  $SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
+  # lief might need manual compilation
+  sudo dnf groupinstall "Development Tools" -y
+
+  cd $PATH_TO_MISP/app/files/scripts/lief
+  $SUDO_WWW git config core.filemode false
+  $SUDO_WWW mkdir build
+  cd build
+  $SUDO_WWW ${CMAKE_BIN} \
+    -DLIEF_PYTHON_API=on \
+    -DPYTHON_VERSION=3.6 \
+    -DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
+    -DLIEF_DOC=off \
+    -DCMAKE_BUILD_TYPE=Release \
+  ..
+  $SUDO_WWW make -j3 pyLIEF
+
+  if [ $? == 2 ]; then
+    # In case you get "internal compiler error: Killed (program cc1plus)"
+    # You ran out of memory.
+    # Create some swap
+    TEMP_DIR=$(mktemp -d)
+    TEMP_SWAP=${TEMP_DIR}/swap.img
+    sudo dd if=/dev/zero of=${TEMP_SWAP} bs=1024k count=4000
+    sudo mkswap ${TEMP_SWAP}
+    sudo swapon ${TEMP_SWAP}
+    # And compile again
+    ${SUDO_WWW} make -j3 pyLIEF
+    sudo swapoff ${TEMP_SWAP}
+    sudo rm -r ${TEMP_DIR}
+  fi
+
+  # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
+  echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
+  [[ "${DISTRI}" == "fedora33" ]] && (echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.9/site-packages/lief.pth)
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic plyara
+}
+
+installCoreRHEL8 () {
+  # Download MISP using git in the $PATH_TO_MISP directory.
+  sudo mkdir -p $(dirname $PATH_TO_MISP)
+  sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
+  cd $(dirname $PATH_TO_MISP)
+  $SUDO_WWW git clone https://github.com/MISP/MISP.git
+  cd $PATH_TO_MISP
+
+  # Fetch submodules
+  $SUDO_WWW git submodule update --init --recursive
+  # Make git ignore filesystem permission differences for submodules
+  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
+  # Make git ignore filesystem permission differences
+  $SUDO_WWW git config core.filemode false
+
+  # Create a python3 virtualenv
+  [[ -e $(which virtualenv-3 2>/dev/null) ]] && $SUDO_WWW virtualenv-3 -p python3 $PATH_TO_MISP/venv
+  [[ -e $(which virtualenv 2>/dev/null) ]] && $SUDO_WWW virtualenv -p python3 $PATH_TO_MISP/venv
+  sudo mkdir /usr/share/httpd/.cache
+  sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
+
+  cd $PATH_TO_MISP/app/files/scripts
+  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
+  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
+  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
+
+  cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW git config core.filemode false
+  # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
+  ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
+  [[ ${DISTRI} == 'centos8stream' ]] && sudo dnf install cmake -y && CMAKE_BIN='cmake'
+  [[ ${DISTRI} == 'centos8' ]] && sudo dnf install cmake -y && CMAKE_BIN='cmake'
+
+  UMASK=$(umask)
+  umask 0022
+
+  cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW git config core.filemode false
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  cd $PATH_TO_MISP/app/files/scripts/python-stix
+  $SUDO_WWW git config core.filemode false
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  # install mixbox to accommodate the new STIX dependencies:
+  cd $PATH_TO_MISP/app/files/scripts/mixbox
+  $SUDO_WWW git config core.filemode false
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  # install STIX2.0 library to support STIX 2.0 export:
+  cd $PATH_TO_MISP/cti-python-stix2
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  # install maec, zmq, redis
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U maec zmq redis
+
+  # install magic, pydeep
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
+
+  # install lief
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U lief || compileLiefRHEL8
+
+  # install PyMISP
+  cd $PATH_TO_MISP/PyMISP
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
+
+  # FIXME: Remove libfaup etc once the egg has the library baked-in
+  # BROKEN: This needs to be tested on RHEL/CentOS
+  sudo dnf install libcaca-devel -y
+  cd /tmp
+  [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
+  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
+  sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+  cd gtcaca
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD ${CMAKE_BIN} .. && $SUDO_CMD make
+  sudo make install
+  cd ../../faup
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD ${CMAKE_BIN} .. && $SUDO_CMD make
+  sudo make install
+  sudo ldconfig
+
+  # Enable dependencies detection in the diagnostics page
+  # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
+  echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a ${PHP_BASE}/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' ${PHP_BASE}/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^\(listen =\) \/run\/php-fpm\/www\.sock/\1 127.0.0.1:9000/' ${PHP_BASE}/php-fpm.d/www.conf
+
+  umask $UMASK
+
+  sudo systemctl restart php-fpm.service
 }
 
 installCake_RHEL ()
@@ -2222,20 +2567,15 @@ installCake_RHEL ()
   sudo mkdir /usr/share/httpd/.composer
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
-  # Update composer.phar (optional)
-  #EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
-  #$SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  #$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-  #$SUDO_WWW php composer-setup.php
-  #$SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar install
 
-  sudo yum install php74-php-pecl-redis php74-php-pecl-ssdeep php74-php-pecl-gnupg -y
+  sudo dnf install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
 
-  sudo systemctl restart php74-php-fpm.service
+  sudo systemctl restart php-fpm.service
 
   # If you have not yet set a timezone in php.ini
-  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/remi/php74/php.d/timezone.ini
+  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/php-fpm.d/timezone.ini
+  sudo ln -s ../php-fpm.d/timezone.ini /etc/php.d/99-timezone.ini
 
   # Recommended: Change some PHP settings in /etc/opt/remi/php74/php.ini
   # max_execution_time = 300
@@ -2248,13 +2588,14 @@ installCake_RHEL ()
   done
   sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
   sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
-  sudo systemctl restart php74-php-fpm.service
+  sudo systemctl restart php-fpm.service
 
   # To use the scheduler worker for scheduled tasks, do the following:
   sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 }
 
 prepareDB_RHEL () {
+  # Enable, start and secure your mysql database server
   sudo systemctl enable --now mariadb.service
   echo [mysqld] |sudo tee /etc/my.cnf.d/bind-address.cnf
   echo bind-address=127.0.0.1 |sudo tee -a /etc/my.cnf.d/bind-address.cnf
@@ -2271,7 +2612,7 @@ prepareDB_RHEL () {
   # Make sure that NOBODY can access the server without a password
   sudo mysqladmin -h $DBHOST -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
   # Make our changes take effect
-  sudo mysql -h $DBHOST -e "FLUSH PRIVILEGES"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES"
 
   sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE DATABASE ${DBNAME};"
   sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
@@ -2282,7 +2623,7 @@ prepareDB_RHEL () {
   ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -h $DBHOST -u "${DBUSER_MISP}" -p"${DBPASSWORD_MISP}" ${DBNAME}
 }
 
-apacheConfig_RHEL () {
+apacheConfig_RHEL7 () {
   # Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
   # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
 
@@ -2330,6 +2671,55 @@ apacheConfig_RHEL () {
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/mispzmq
 }
 
+apacheConfig_RHEL8 () {
+  # Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
+  # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
+
+  sudo cp $PATH_TO_MISP/INSTALL/apache.misp.centos7.ssl /etc/httpd/conf.d/misp.ssl.conf
+  #sudo sed -i "s/SetHandler/\#SetHandler/g" /etc/httpd/conf.d/misp.ssl.conf
+  sudo rm /etc/httpd/conf.d/ssl.conf
+  sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
+  sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
+
+  # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
+  echo "The Common Name used below will be: ${OPENSSL_CN}"
+  # This will take a rather long time, be ready. (13min on a VM, 8GB Ram, 1 core)
+  if [[ ! -e "/etc/pki/tls/certs/dhparam.pem" ]]; then
+    sudo openssl dhparam -out /etc/pki/tls/certs/dhparam.pem 4096
+  fi
+  sudo openssl genrsa -des3 -passout pass:xxxx -out /tmp/misp.local.key 4096
+  sudo openssl rsa -passin pass:xxxx -in /tmp/misp.local.key -out /etc/pki/tls/private/misp.local.key
+  sudo rm /tmp/misp.local.key
+  sudo openssl req -new -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" -key /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.csr
+  sudo openssl x509 -req -days 365 -in /etc/pki/tls/certs/misp.local.csr -signkey /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.crt
+  sudo ln -s /etc/pki/tls/certs/misp.local.csr /etc/pki/tls/certs/misp-chain.crt
+  cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.crt
+
+  sudo systemctl restart httpd.service
+
+  # Since SELinux is enabled, we need to allow httpd to write to certain directories
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/terms
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Plugin/CakeResque/tmp
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/cake
+  sudo sh -c "chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/*.sh"
+  sudo sh -c "chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py"
+  sudo sh -c "chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py"
+  [[ -e ${PATH_TO_MISP}/app/files/scripts/lief/build/api/python/lief.so ]] && sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
+  sudo sh -c "chcon -R -t bin_t $PATH_TO_MISP/venv/bin/*"
+  sudo find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
+  # Only run these if you want to be able to update MISP from the web interface
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Lib
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/orgs
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/custom
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/mispzmq
+}
+
 firewall_RHEL () {
   # Allow httpd to connect to the redis server and php-fpm over tcp/ip
   sudo setsebool -P httpd_can_network_connect on
@@ -2347,7 +2737,30 @@ firewall_RHEL () {
 }
 
 # Main function to fix permissions to something sane
-permissions_RHEL () {
+permissions_RHEL7 () {
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
+  ## ? chown -R root:$WWW_USER $PATH_TO_MISP
+  sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
+  sudo chmod -R g+r,o= $PATH_TO_MISP
+  ## **Note :** For updates through the web interface to work, apache must own the $PATH_TO_MISP folder and its subfolders as shown above, which can lead to security issues. If you do not require updates through the web interface to work, you can use the following more restrictive permissions :
+  sudo chmod -R 750 $PATH_TO_MISP
+  sudo chmod -R g+xws $PATH_TO_MISP/app/tmp
+  sudo chmod -R g+ws $PATH_TO_MISP/app/files
+  sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chmod -R g+rw $PATH_TO_MISP/venv
+  sudo chmod -R g+rw $PATH_TO_MISP/.git
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/files
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/files/terms
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Plugin/CakeResque/tmp
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/tmp
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/orgs
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/custom
+}
+
+# Main function to fix permissions to something sane
+permissions_RHEL8 () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
   ## ? chown -R root:$WWW_USER $PATH_TO_MISP
   sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
@@ -2381,6 +2794,7 @@ logRotation_RHEL () {
   sudo semanage fcontext -a -t httpd_sys_rw_content_t "$PATH_TO_MISP(/.*)?"
   sudo semanage fcontext -a -t httpd_log_t "$PATH_TO_MISP/app/tmp/logs(/.*)?"
   sudo chcon -R -t httpd_log_t $PATH_TO_MISP/app/tmp/logs
+  sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp/logs
   # Impact of the following: ?!?!?!!?111
   ##sudo restorecon -R $PATH_TO_MISP
 
@@ -2476,7 +2890,7 @@ EOF
 configWorkersRHEL () {
   echo "[Unit]
   Description=MISP background workers
-  After=mariadb.service redis.service php74-php-fpm.service
+  After=mariadb.service redis.service php-fpm.service
 
   [Service]
   Type=forking
@@ -2496,19 +2910,25 @@ configWorkersRHEL () {
 }
 
 mispmodulesRHEL () {
-  # some misp-modules dependencies
-  sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel pkgconfig python-devel redhat-rpm-config -y
+  # some misp-modules dependencies for RHEL<8
+  [[ "${DIST_VER}" =~ ^[7].* ]] && sudo dnf install openjpeg-devel gcc-c++ poppler-cpp-devel pkgconfig python3-devel redhat-rpm-config -y
+
+  # some misp-modules dependencies for RHEL8
+  ([[ "${DISTRI}" == "fedora33" ]] || [[ "${DIST_VER}" =~ ^[8].* ]]) && sudo dnf install openjpeg2-devel gcc-c++ poppler-cpp-devel pkgconfig python3-devel redhat-rpm-config -y
 
   sudo chmod 2777 /usr/local/src
   sudo chown root:users /usr/local/src
   cd /usr/local/src/
-  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/misp-modules.git; done
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MISP/misp-modules.git; done
   cd misp-modules
   # pip install
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install pyfaup censys
-  sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U -I -r REQUIREMENTS
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U .
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install pyfaup censys
+  # some misp-modules dependencies for RHEL<8
+  ([[ "${DISTRI}" == "fedora33" ]] || [[ "${DIST_VER}" =~ ^[7].* ]]) && sudo dnf install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
+  # some misp-modules dependencies for RHEL8
+  [[ "${DIST_VER}" =~ ^[8].* ]] && sudo dnf install https://packages.endpoint.com/rhel/8/main/x86_64/endpoint-repo-8-1.ep8.noarch.rpm -y && sudo dnf install zbar-devel opencv-devel -y
 
   echo "[Unit]
   Description=MISP modules
@@ -2516,8 +2936,8 @@ mispmodulesRHEL () {
 
   [Service]
   Type=simple
-  User=$WWW_USER
-  Group=$WWW_USER
+  User=${WWW_USER}
+  Group=${WWW_USER}
   WorkingDirectory=/usr/local/src/misp-modules
   Environment="PATH=/var/www/MISP/venv/bin"
   ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s\"
@@ -2529,48 +2949,8 @@ mispmodulesRHEL () {
 
   sudo systemctl daemon-reload
   # Test misp-modules
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s &
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &
   sudo systemctl enable --now misp-modules
-
-  # Enable Enrichment, set better timeouts
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
-  # TODO:"Investigate why the next one fails"
-  #$SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_asn_history_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_btc_steroids_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ipasn_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_syntax_validator_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_query_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pdf_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_docx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_xlsx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pptx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ods_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_odt_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
-
-  # Enable Import modules, set better timeout
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_port" 6666
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_mispjson_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_openiocimport_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_threatanalyzer_import_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
-
-  # Enable Export modules, set better timeout
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_port" 6666
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
 }
 
 
@@ -2612,12 +2992,12 @@ generateInstaller () {
   cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu2004.md INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md INSTALL.rhel7.md`; do
+  for f in `echo INSTALL.ubuntu2004.md INSTALL.ubuntu1804.md xINSTALL.debian10.md xINSTALL.tsurugi.md INSTALL.rhel7.md INSTALL.rhel8.md`; do
     xsnippet . ../../docs/${f}
   done
 
   # Pull out code snippets from generic Install Documents
-  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-modules-debian.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md misp-modules-centos.md`; do
+  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-dashboard-centos.md misp-dashboard-cake.md misp-modules-debian.md misp-modules-centos.md misp-modules-cake.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
     xsnippet . ../../docs/generic/${f}
   done
 
@@ -2631,6 +3011,7 @@ generateInstaller () {
   perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_upgradePhp74.sh ##/`cat 0_upgradePhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp74.sh ##/`cat 0_installDepsPhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.tpl.sh
@@ -2646,6 +3027,7 @@ generateInstaller () {
   perl -pe 's/^## 2_logRotation.sh ##/`cat 2_logRotation.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_backgroundWorkers.sh ##/`cat 2_backgroundWorkers.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_core-cake.sh ##/`cat 2_core-cake.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 3_misp-modules-cake.sh ##/`cat 3_misp-modules-cake.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 3_misp-modules.sh ##/`cat 3_misp-modules.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 4_misp-dashboard-cake.sh ##/`cat 4_misp-dashboard-cake.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.tpl.sh
@@ -2653,15 +3035,23 @@ generateInstaller () {
   perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.tpl.sh
 
-  perl -pe 's/^## 0_RHEL_SCL.sh ##/`cat 0_RHEL_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL_register.sh ##/`cat 0_RHEL_register.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_SCL.sh ##/`cat 0_RHEL7_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL8_SCL.sh ##/`cat 0_RHEL8_SCL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_CentOS_EPEL.sh ##/`cat 0_CentOS_EPEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 0_RHEL_EPEL.sh ##/`cat 0_RHEL_EPEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 0_yumInstallCoreDeps.sh ##/`cat 0_yumInstallCoreDeps.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 1_mispCoreInstall_RHEL.sh ##/`cat 1_mispCoreInstall_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_EPEL.sh ##/`cat 0_RHEL7_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallCoreDeps7.sh ##/`cat 0_yumInstallCoreDeps7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallCoreDeps8.sh ##/`cat 0_yumInstallCoreDeps8.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallHaveged.sh ##/`cat 0_yumInstallHaveged.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall_RHEL7.sh ##/`cat 1_mispCoreInstall_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall_RHEL8.sh ##/`cat 1_mispCoreInstall_RHEL8.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_EPEL_REMI.sh ##/`cat 0_EPEL_REMI.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_installCake_RHEL.sh ##/`cat 1_installCake_RHEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 2_permissions_RHEL.sh ##/`cat 2_permissions_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions_RHEL7.sh ##/`cat 2_permissions_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions_RHEL8.sh ##/`cat 2_permissions_RHEL8.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_prepareDB_RHEL.sh ##/`cat 1_prepareDB_RHEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 1_apacheConfig_RHEL.sh ##/`cat 1_apacheConfig_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig_RHEL7.sh ##/`cat 1_apacheConfig_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig_RHEL8.sh ##/`cat 1_apacheConfig_RHEL8.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_firewall_RHEL.sh ##/`cat 1_firewall_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_logRotation_RHEL.sh ##/`cat 2_logRotation_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_configMISP_RHEL.sh ##/`cat 2_configMISP_RHEL.sh`/ge' -i INSTALL.tpl.sh
@@ -2805,10 +3195,6 @@ installSupported () {
   [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE
   progress 4
 
-  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT
-  progress 4
-
   # Disable spinner
   #(kill $SPIN_PID 2>&1) >/dev/null
 
@@ -2824,6 +3210,14 @@ installSupported () {
 
   # Install misp-modules - functionLocation('generic/misp-modules-debian.md')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
+  progress 4
+
+  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
+  [[ -n $CORE ]]      || [[ -n $ALL ]] && updateGOWNT
+  progress 4
+
+  # Install misp-modules - functionLocation('generic/misp-modules-cake.md')
+  [[ -n $MODULES ]]   || [[ -n $ALL ]] && modulesCAKE
   progress 4
 
   # Install Viper - functionLocation('generic/viper-debian.md')
@@ -3090,6 +3484,7 @@ installMISPonKali () {
 
   debug "Installing misp-modules"
   mispmodules
+  modulesCAKE
 
   ## FIXME: The current state of Viper is broken, disabling any use.
   ##debug "Installing Viper"
@@ -3118,43 +3513,80 @@ installMISPRHEL () {
     space
     echo "Proceeding with MISP core installation on RHEL ${dist_version}"
     space
- 
+
     id -u "${MISP_USER}" > /dev/null
     if [[ $? -eq 1 ]]; then
       debug "Creating MISP user"
-      sudo useradd -r "${MISP_USER}"
+      sudo useradd -G wheel -m "${MISP_USER}"
     fi 
-    
-    debug "Enabling Extras Repos (SCL)"
-    if [[ "${FLAVOUR}" == "rhel" ]]; then
-      sudo subscription-manager register --auto-attach
-      enableReposRHEL
-      enableEPEL
-    else # CentOS
-      centosEPEL
+
+    # Register system if RHEL
+    if [[ "${DISTRI}" =~ ^[rhel].* ]]; then
+      registerRHEL
     fi
 
-    debug "Installing System Dependencies"
-    yumInstallCoreDeps
+    debug "Enabling Extras Repos (SCL)"
+    if [[ "${DISTRI}" == "rhel7" ]]; then
+      enableReposRHEL7
+      enableEPEL
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps7
+      installEntropyRHEL
+      debug "Installing MISP code"
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Setting File permissions"
+      permissions_RHEL7
+      debug "Preparing Database"
+      prepareDB_RHEL
+      apacheConfig_RHEL7
+    fi
+
+    if [[ "${DISTRI}" == "fedora33" ]]; then
+      enableREMI_f33
+      yumInstallCoreDeps8
+      installEntropyRHEL
+      installCoreRHEL8
+      installCake_RHEL
+      permissions_RHEL8
+      prepareDB_RHEL
+      debug "Configuring Apache"
+      apacheConfig_RHEL8
+    fi
+
+    if [[ "${DIST_VER}" =~ ^[8].* ]]; then
+      enableEPEL_REMI_8
+      enableOptionalRHEL8
+      yumInstallCoreDeps8
+      installCoreRHEL8
+      installCake_RHEL
+      permissions_RHEL8
+      prepareDB_RHEL
+      apacheConfig_RHEL8
+    fi
+
+    if [[ "${DISTRI}" == "centos7" ]]; then
+      centosEPEL
+      debug "Installing MISP code"
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps7
+      installEntropyRHEL
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Setting File permissions"
+      permissions_RHEL7
+      debug "Preparing Database"
+      prepareDB_RHEL
+      debug "Configuring Apache"
+      apacheConfig_RHEL7
+    fi
 
     debug "Enabling Haveged for additional entropy"
     sudo yum install haveged -y
     sudo systemctl enable --now haveged.service
 
-    debug "Installing MISP code"
-    installCoreRHEL
-
-    debug "Install Cake PHP"
-    installCake_RHEL
-
-    debug "Setting File permissions"
-    permissions_RHEL
-
-    debug "Preparing Database"
-    prepareDB_RHEL
-
-    debug "Configuring Apache"
-    apacheConfig_RHEL
 
     debug "Setting up firewall"
     firewall_RHEL
@@ -3183,6 +3615,9 @@ installMISPRHEL () {
     space
 
     mispmodulesRHEL
+    # Another sleep to avoid RC
+    sleep 3
+    modulesCAKE
 
     echo "MISP modules installation finished."
   fi
@@ -3247,13 +3682,19 @@ fi
 SUPPORT_MAP="
 x86_64-centos-7
 x86_64-rhel-7
-x86_64-fedora-30
+x86_64-centos-8
+x86_64-rhel-8
+x86_64-fedora-33
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
 x86_64-ubuntu-focal
 x86_64-ubuntu-hirsute
 x86_64-kali-2020.4
+x86_64-kali-2021.1
+x86_64-kali-2021.2
+x86_64-kali-2021.3
+x86_64-kali-2021.4
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-debian-jessie
@@ -3280,7 +3721,8 @@ if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   if [[ "${RELEASE}" == "18.04" ]]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installSupported && exit || exit
+    upgradeToPHP74
+    installSupported PHP="7.4" && exit || exit
   fi
   if [[ "${RELEASE}" == "20.04" ]]; then
     echo "Install on Ubuntu 20.04 LTS fully supported."
@@ -3358,7 +3800,7 @@ if [[ "${FLAVOUR}" == "kali" ]]; then
 fi
 
 # If RHEL/CentOS is detected, run appropriate script
-if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
+if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]] || [[ "${FLAVOUR}" == "fedora" ]]; then
   installMISPRHEL
   echo "Installation done !"
   exit

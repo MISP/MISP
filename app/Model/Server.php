@@ -4414,6 +4414,42 @@ class Server extends AppModel
         return parent::__get($name);
     }
 
+    public function removeOrphanedCorrelations()
+    {
+        $this->Correlation = ClassRegistry::init('Correlation');
+        $orphansLeft = $this->Correlation->find('all', [
+            'joins' => [
+                [
+                    'table' => 'attributes',
+                    'alias' => 'Attribute',
+                    'type' => 'LEFT',
+                    'conditions' => [
+                        'OR' => [
+                            'Correlation.attribute_id = Attribute.id',
+                        ]
+                        
+                    ]
+                ]
+            ],
+            'conditions' => [
+                'Attribute.id IS NULL'
+            ],
+        ]);
+        $orphansRight = $this->Correlation->find('all', [
+            'conditions' => [
+                '1_attribute_id' => Hash::extract($orphansLeft, '{n}.Correlation.attribute_id')
+            ]
+        ]);
+        $orphans = array_merge(
+            Hash::extract($orphansLeft, '{n}.Correlation.id'),
+            Hash::extract($orphansRight, '{n}.Correlation.id')
+        );
+        $success = $this->Correlation->deleteAll([
+            'Correlation.id' => $orphans
+        ]);
+        return $success;
+    }
+
     /**
      * Generate just when required
      * @return array[]

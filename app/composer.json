@@ -15,7 +15,8 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^8",
-        "php-parallel-lint/php-parallel-lint": "^1.2"
+        "php-parallel-lint/php-parallel-lint": "^1.2",
+        "cakephp/debug_kit": "^2.2.0"
     },
     "suggest": {
         "ext-gd": "For creating image thumbnails",

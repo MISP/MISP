@@ -4,28 +4,10 @@
 ### -2/ RHEL7/CentOS7 - status
 -------------------------
 !!! notice
-    MISP-core and misp-modules Tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210326
+    Tested fully working without SELinux by [@SteveClement](https://twitter.com/SteveClement) on 20210401
+    TODO: Fix SELinux permissions, *pull-requests welcome*.
 
-!!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
-    Which explains why you will see the use of shell *functions* in various steps.
-    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
-
-### -1/ Installer and Manual install instructions
-
-!!! warning
-    In the **future**, to install MISP on a fresh RHEL 7 install all you need to do is:
-
-    ```bash
-    # Please check the installer options first to make the best choice for your install
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-    bash /tmp/INSTALL.sh
-
-    # This will install MISP Core
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-    bash /tmp/INSTALL.sh -c
-    ```
-    **The above does NOT fully work yet**
+{!generic/manual-install-notes.md!}
 
 !!! notice
     If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
@@ -47,7 +29,6 @@
 {!generic/manual-install-notes.md!}
 
 This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x) and CentOS 7.x.
-At time of this writing it was tested on versions 7.6 for both.
 This is a joint RHEL/CentOS install guide. The authors tried to make it contextually evident what applies to which flavor.
 
 The following assumptions with regard to this installation have been made.
@@ -84,7 +65,9 @@ sudo hostnamectl set-hostname misp.local # Your choice, in a production environm
 ## 1.3/ **[RHEL]** Register the system for updates with Red Hat Subscription Manager
 ```bash
 # <snippet-begin 0_RHEL_register.sh>
-sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
+registerRHEL () {
+  sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
+}
 # <snippet-end 0_RHEL_register.sh>
 ```
 
@@ -104,13 +87,14 @@ enableReposRHEL7 () {
 # <snippet-begin 0_CentOS_EPEL.sh>
 centosEPEL () {
   # We need some packages from the Extra Packages for Enterprise Linux repository
-  sudo yum install epel-release -y
+  sudo yum install dnf -y
+  sudo dnf install epel-release -y
 
   # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
   # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
-  sudo yum install centos-release-scl -y
-  sudo yum install yum-utils -y
-  sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
+  sudo dnf install centos-release-scl -y
+  sudo dnf install yum-utils -y
+  sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
   sudo yum-config-manager --enable remi-php74
 }
 # <snippet-end 0_CentOS_EPEL.sh>
@@ -118,20 +102,20 @@ centosEPEL () {
 
 ## 1.5a/ Install the deltarpm package to help reduce download size when installing updates (optional)
 ```bash
-sudo yum install deltarpm -y
+sudo dnf install deltarpm -y
 ```
 
 ## 1.5.b/ Install vim (optional)
 ```bash
 # Because (neo)vim is just so practical
-sudo yum install neovim -y
-# For RHEL, it's vim
+sudo dnf install neovim -y
+# For RHEL, it's vim and after enabling epel neovim is available too
 ```
 
 ## 1.5.c/ Install ntpdate (optional)
 ```bash
 # In case you time is wrong, this will fix it.
-sudo yum install ntpdate -y
+sudo dnf install ntpdate -y
 sudo ntpdate pool.ntp.org
 ```
 
@@ -139,7 +123,7 @@ sudo ntpdate pool.ntp.org
 ```bash
 # <snippet-begin 0_yum-update.sh>
 yumUpdate () {
-  sudo yum update -y
+  sudo dnf update -y
 }
 # <snippet-end 0_yum-update.sh>
 ```
@@ -148,9 +132,10 @@ yumUpdate () {
 ```bash
 # <snippet-begin 0_RHEL7_EPEL.sh>
 enableEPEL () {
-  sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
-  sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
-  sudo yum install yum-utils -y
+  sudo yum install dnf -y
+  sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
+  sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
+  sudo dnf install yum-utils policycoreutils-python -y
   sudo yum-config-manager --enable remi-php74
 }
 # <snippet-end 0_RHEL7_EPEL.sh>
@@ -159,20 +144,21 @@ enableEPEL () {
 ### 2/ Dependencies
 
 !!! note
-    This guide installs PHP 7.4 from Remi's Repo
+    This guide installs PHP 7.4 from Remi's repo
 
 !!! warning
     [PHP 5.6 and 7.0 aren't supported since December 2018](https://secure.php.net/supported-versions.php). Please update accordingly. In the future only PHP7 will be supported.
 
 ## 2.01/ Install some base system dependencies
 ```bash
-# <snippet-begin 0_yumInstallCoreDeps.sh>
-yumInstallCoreDeps () {
+# <snippet-begin 0_yumInstallCoreDeps7.sh>
+yumInstallCoreDeps7 () {
   # Install the dependencies:
   PHP_BASE="/etc/"
   PHP_INI="/etc/php.ini"
-  sudo yum install gcc git zip \
+  sudo dnf install gcc git zip unzip \
                    mod_ssl \
+                   moreutils \
                    redis \
                    libxslt-devel zlib-devel ssdeep-devel -y
 
@@ -180,15 +166,12 @@ yumInstallCoreDeps () {
   sudo systemctl enable --now redis.service
 
   # Install MariaDB
-  sudo yum install wget -y
-  wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
-  chmod +x mariadb_repo_setup
-  sudo ./mariadb_repo_setup
-  rm mariadb_repo_setup
-  sudo yum install MariaDB-server -y
+  sudo dnf install wget -y
+  wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup && chmod +x mariadb_repo_setup && sudo ./mariadb_repo_setup && rm mariadb_repo_setup
+  sudo dnf install MariaDB-server -y
 
   # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/7/php74/x86_64/repoview/
-  sudo yum install php php-fpm php-devel \
+  sudo dnf install php php-fpm php-devel \
                    php-mysqlnd \
                    php-mbstring \
                    php-xml \
@@ -204,19 +187,21 @@ yumInstallCoreDeps () {
   [[ ! -e "/usr/bin/php" ]] && sudo ln -s /usr/bin/php74 /usr/bin/php
 
   # Python 3.6 is now available in RHEL 7.7 base
-  sudo yum install python3 python3-devel -y
+  sudo dnf install python3 python3-devel python3-virtualenv -y
 
   sudo systemctl enable --now php-fpm.service
 }
-# <snippet-end 0_yumInstallCoreDeps.sh>
+# <snippet-end 0_yumInstallCoreDeps7.sh>
 ```
 
 ```bash
 # <snippet-begin 0_yumInstallHaveged.sh>
-# GPG needs lots of entropy, haveged provides entropy
-# /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
-sudo yum install haveged -y
-sudo systemctl enable --now haveged.service
+installEntropyRHEL () {
+  # GPG needs lots of entropy, haveged provides entropy
+  # /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
+  sudo dnf install haveged -y
+  sudo systemctl enable --now haveged.service
+}
 # <snippet-end 0_yumInstallHaveged.sh>
 ```
 
@@ -232,11 +217,6 @@ installCoreRHEL7 () {
   cd $(dirname $PATH_TO_MISP)
   $SUDO_WWW git clone https://github.com/MISP/MISP.git
   cd $PATH_TO_MISP
-  ##$SUDO_WWW git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
-  # if the last shortcut doesn't work, specify the latest version manually
-  # example: git checkout tags/v2.4.XY
-  # the message regarding a "detached HEAD state" is expected behaviour
-  # (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
   # Fetch submodules
   $SUDO_WWW git submodule update --init --recursive
@@ -246,7 +226,8 @@ installCoreRHEL7 () {
   $SUDO_WWW git config core.filemode false
 
   # Create a python3 virtualenv
-  sudo pip3 install virtualenv
+  [[ -e $(which virtualenv-3 2>/dev/null) ]] && $SUDO_WWW virtualenv-3 -p python3 $PATH_TO_MISP/venv
+  [[ -e $(which virtualenv 2>/dev/null) ]] && $SUDO_WWW virtualenv -p python3 $PATH_TO_MISP/venv
   $SUDO_WWW python3 -m venv $PATH_TO_MISP/venv
   sudo mkdir /usr/share/httpd/.cache
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
@@ -255,7 +236,6 @@ installCoreRHEL7 () {
   cd $PATH_TO_MISP/app/files/scripts
   $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
   $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  ##$SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
@@ -297,7 +277,7 @@ installCoreRHEL7 () {
 
   # FIXME: Remove libfaup etc once the egg has the library baked-in
   # BROKEN: This needs to be tested on RHEL/CentOS
-  sudo yum install libcaca-devel cmake3 -y
+  sudo dnf install libcaca-devel cmake3 -y
   cd /tmp
   [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
   [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
@@ -340,15 +320,9 @@ installCake_RHEL ()
   sudo mkdir /usr/share/httpd/.composer
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
-  # Update composer.phar (optional)
-  #EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
-  #$SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  #$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-  #$SUDO_WWW php composer-setup.php
-  #$SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar install
 
-  sudo yum install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
+  sudo dnf install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
 
   sudo systemctl restart php-fpm.service
 
@@ -449,8 +423,8 @@ prepareDB_RHEL () {
     If it is disabled, you can ignore the **chcon/setsebool/semanage/checkmodule/semodule*** commands.
 
 ```bash
-# <snippet-begin 1_apacheConfig_RHEL.sh>
-apacheConfig_RHEL () {
+# <snippet-begin 1_apacheConfig_RHEL7.sh>
+apacheConfig_RHEL7 () {
   # Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
   # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
 
@@ -497,7 +471,7 @@ apacheConfig_RHEL () {
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/custom
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/mispzmq
 }
-# <snippet-end 1_apacheConfig_RHEL.sh>
+# <snippet-end 1_apacheConfig_RHEL7.sh>
 ```
 
 !!! warning
@@ -694,13 +668,8 @@ configWorkersRHEL () {
 
 {!generic/recommended.actions.md!}
 
-### 11/ LIEF Installation
-*lief* is required for the Advanced Attachment Handler and requires manual compilation
-
-The installation is explained in section **[3.01](https://misp.github.io/MISP/INSTALL.rhel7/#301-download-misp-code-using-git-in-varwww-directory)**
-
-### 12/ Known Issues
-## 12.01/ Workers cannot be started or restarted from the web page
+### 11/ Known Issues
+## 11.01/ Workers cannot be started or restarted from the web page
 Possible also due to package being installed via SCL, attempting to start workers through the web page will result in error. Worker's can be restarted via the CLI using the following command.
 ```bash
 systemctl restart misp-workers.service
@@ -711,3 +680,4 @@ systemctl restart misp-workers.service
     via this guide and will need additional investigation.
 
 {!generic/hardening.md!}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               

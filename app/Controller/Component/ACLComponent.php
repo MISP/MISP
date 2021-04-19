@@ -355,7 +355,7 @@ class ACLComponent extends Component
             'jobs' => array(
                     'cache' => array('*'),
                     'getError' => array(),
-                    'getGenerateCorrelationProgress' => array('*'),
+                    'getGenerateCorrelationProgress' => array(),
                     'getProgress' => array('*'),
                     'index' => array(),
                     'clearJobs' => array()
@@ -514,6 +514,7 @@ class ACLComponent extends Component
                     'push' => array(),
                     'releaseUpdateLock' => array(),
                     'resetRemoteAuthKey' => array(),
+                    'removeOrphanedCorrelations' => array('perm_site_admin'),
                     'rest' => array('perm_auth'),
                     'restartDeadWorkers' => array(),
                     'restartWorkers' => array(),

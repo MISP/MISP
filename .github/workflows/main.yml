@@ -27,6 +27,8 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
 
       # Stop mysql
       - name: Shutdown Ubuntu MySQL (SUDO)
@@ -64,7 +66,6 @@ jobs:
         env:
           php_version: ${{ matrix.php }}
         run: |
-              git submodule update --init --recursive
               sudo apt-get -y update
               # Repo is missing for unknown reason
               LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y

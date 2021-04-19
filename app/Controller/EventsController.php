@@ -3685,28 +3685,7 @@ class EventsController extends AppController
                     );
                 }
             }
-            foreach ($resultArray as $key => $result) {
-                if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
-                    $pieces = explode('|', $result['value']);
-                    if (in_array($result['default_type'], $this->Event->Attribute->primaryOnlyCorrelatingTypes)) {
-                        $or = array('Attribute.value1' => $pieces[0],
-                                    'Attribute.value2' => $pieces[0]);
-                    } else {
-                        $or = array('Attribute.value1' => $pieces,
-                                    'Attribute.value2' => $pieces);
-                    }
-                } else {
-                    $or = array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']);
-                }
-                $options = array(
-                    'conditions' => array('OR' => $or),
-                    'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                    'order' => false,
-                    'limit' => 11,
-                    'flatten' => 1
-                );
-                $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
-            }
+            $this->Event->Attribute->fetchRelated($this->Auth->user(), $resultArray);
             $resultArray = array_values($resultArray);
             $typeCategoryMapping = array();
             foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
@@ -4988,20 +4967,8 @@ class EventsController extends AppController
                 $typeCategoryMapping[$type][$k] = $k;
             }
         }
+        $this->Event->Attribute->fetchRelated($this->Auth->user(), $resultArray);
         foreach ($resultArray as $key => $result) {
-            if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
-                $pieces = explode('|', $result['value']);
-                $or = array('Attribute.value1' => $pieces,
-                            'Attribute.value2' => $pieces);
-            } else {
-                $or = array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']);
-            }
-            $options = array(
-                'conditions' => array('OR' => $or),
-                'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                'order' => false
-            );
-            $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
             if (isset($result['data'])) {
                 App::uses('FileAccessTool', 'Tools');
                 $fileAccessTool = new FileAccessTool();
@@ -5189,21 +5156,7 @@ class EventsController extends AppController
                                 $typeCategoryMapping[$type][$k] = $k;
                             }
                         }
-                        foreach ($resultArray as $key => $result) {
-                            if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
-                                $pieces = explode('|', $result['value']);
-                                $or = array('Attribute.value1' => $pieces,
-                                            'Attribute.value2' => $pieces);
-                            } else {
-                                $or = array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']);
-                            }
-                            $options = array(
-                                'conditions' => array('OR' => $or),
-                                'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                                'order' => false
-                            );
-                            $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
-                        }
+                        $this->Event->Attribute->fetchRelated($this->Auth->user(), $resultArray);
                         $this->set('event', $event);
                         $this->set('resultArray', $resultArray);
                         $this->set('typeDefinitions', $this->Event->Attribute->typeDefinitions);
@@ -5469,40 +5422,51 @@ class EventsController extends AppController
         return $this->RestResponse->viewData(['deleted' => $deleted], $this->response->type());
     }
 
-    public function checkLocks($id)
+    public function checkLocks($id, $timestamp)
     {
         $event = $this->Event->find('first', array(
             'recursive' => -1,
-            'conditions' => array('Event.id' => $id),
-            'fields' => array('Event.orgc_id')
+            'conditions' => ['Event.id' => $id],
+            'fields' => ['Event.orgc_id', 'Event.timestamp'],
         ));
-        $locks = array();
-        if (!empty($event) && ($event['Event']['orgc_id'] == $this->Auth->user('org_id') || $this->_isSiteAdmin())) {
-            $this->loadModel('EventLock');
-            $locks = $this->EventLock->checkLock($this->Auth->user(), $id);
-        }
-        if (!empty($locks)) {
-            $temp = $locks;
-            $locks = array();
-            foreach ($temp as $t) {
-                if ($t['type'] === 'user' && $t['User']['id'] !== $this->Auth->user('id')) {
-                    if (!$this->_isSiteAdmin() && $t['User']['org_id'] != $this->Auth->user('org_id')) {
-                        $locks[] = __('another user');
-                    } else {
-                        $locks[] = $t['User']['email'];
-                    }
-                } else if ($t['type'] === 'job') {
-                    $locks[] = __('background job');
-                } else if ($t['type'] === 'api') {
-                    $locks[] = __('external tool');
-                }
-            }
-        }
-        if (empty($locks)) {
-            return $this->RestResponse->viewData('', $this->response->type(), false, true);
+        // Return empty response if event not found or user org is not owner
+        if (empty($event) || ($event['Event']['orgc_id'] != $this->Auth->user('org_id') && !$this->_isSiteAdmin())) {
+            return new CakeResponse(['status' => 204]);
         }
 
-        $message = __('Warning: Your view on this event might not be up to date as it is currently being edited by: %s', implode(', ', $locks));
+        $user = $this->Auth->user();
+        $this->loadModel('EventLock');
+        $locks = $this->EventLock->checkLock($user, $id);
+
+        $editors = [];
+        foreach ($locks as $t) {
+            if ($t['type'] === 'user' && $t['User']['id'] !== $user['id']) {
+                if (!$this->_isSiteAdmin() && $t['User']['org_id'] != $user['org_id']) {
+                    $editors[] = __('another user');
+                } else {
+                    $editors[] = $t['User']['email'];
+                }
+            } else if ($t['type'] === 'job') {
+                $editors[] = __('background job');
+            } else if ($t['type'] === 'api') {
+                $editors[] = __('external tool');
+            }
+        }
+        $editors = array_unique($editors);
+
+        if ($event['Event']['timestamp'] > $timestamp && empty($editors)) {
+            $message = __('<b>Waning<b>: This event view is outdated. Please reload page to see latest changes.');
+            $this->set('class', 'alert');
+        } else if ($event['Event']['timestamp'] > $timestamp) {
+            $message = __('<b>Waning<b>: This event view is outdated, because is currently being edited by: %s. Please reload page to see latest changes.', h(implode(', ', $editors)));
+            $this->set('class', 'alert');
+        } else if (empty($editors)) {
+            return new CakeResponse(['status' => 204]);
+        } else {
+            $message = __('This event is currently being edited by: %s', h(implode(', ', $editors)));
+            $this->set('class', 'alert alert-info');
+        }
+
         $this->set('message', $message);
         $this->layout = false;
         $this->render('/Events/ajax/event_lock');

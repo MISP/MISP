@@ -9,6 +9,7 @@ $config = array(
             'require_password_confirmation' => true
 			//'auth'=>array('CertAuth.Certificate'), // additional authentication methods
 			//'auth'=>array('ShibbAuth.ApacheShibb'),
+			//'auth'=>array('AadAuth.AadAuthenticate'),
 		),
 	'MISP'             =>
 		array(
@@ -172,6 +173,26 @@ $config = array(
 			'ldapAllowReferrals' => true,   // allow or disallow chasing LDAP referrals
 			//'ldapEmailField' => array('emailAddress, 'mail'), // Optional : fields from which the email address should be retrieved. Default to 'mail' only. If more than one field is set (e.g. 'emailAddress' and 'mail' in this example), only the first one will be used.
 			//'updateUser' => true, // Optional : Will update user on LDAP login to update user fields (e.g. role)
+		),
+	*/
+	
+	// Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.
+	// Feel free to enable it and report back to us if you run into any issues.
+	//
+	// Uncomment the following to enable Azure AD authentication
+	/*
+	'AadAuth'         =>
+        array(
+			'client_id' => '', // Client ID (see Azure AD)
+			'ad_tenant' => '', // Directory ID (see Azure AD)
+			'client_secret' => '', // Client secret (see Azure AD)
+			'redirect_uri' => '', // Your MISP URI, must be the same as in Azure AD
+			'auth_provider' => 'https://login.microsoftonline.com/',	// Can be left to this default
+			'auth_provider_user' => 'https://graph.microsoft.com/',		// Can be left to this default
+			'misp_user' => 'MISP Users',	// The AD group for MISP users
+			'misp_orgadmin' => 'MISP Administrators',	// The AD group for MISP administrators
+			'misp_siteadmin' => 'MISP Site Administrators', 	// The AD group for MISP site administrators
+			'check_ad_groups' => true	// Should we check if the user belongs to one of the above AD groups?
 		),
 	*/
 );
