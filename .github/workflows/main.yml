@@ -207,6 +207,7 @@ jobs:
               cat /etc/hosts
               echo '127.0.0.1 '${HOST} | sudo tee -a /etc/hosts
               cat /etc/hosts
+              sudo apache2ctl -S
               curl http://${HOST}
               sudo chmod -R 777 PyMISP
               pushd PyMISP
