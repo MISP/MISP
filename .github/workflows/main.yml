@@ -248,3 +248,4 @@ jobs:
         if: ${{ always() }}
         run: |
               tail -n +1 `pwd`/app/tmp/logs/*
+              tail -n +1 /var/log/apache2/*.log
