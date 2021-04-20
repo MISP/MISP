@@ -176,8 +176,36 @@
 ?>
 </div>
 <div id="hiddenRuleForms">
-    <?php echo $this->element('serverRuleElements/push'); ?>
-    <?php echo $this->element('serverRuleElements/pull'); ?>
+    <?php
+        $modalData = [
+            'data' => [
+                'title' => __('Set PUSH rules'),
+                'content' => [
+                    [
+                        'html' => $this->element('serverRuleElements/push', [
+                            'allTags' => $allTags,
+                            'allOrganisations' => $allOrganisations,
+                        ])
+                    ]
+                ],
+            ],
+            'type' => 'xl',
+            'class' => 'push-rule-modal',
+            'confirm' => [
+                'title' => __('Update'),
+                'onclick' => "submitServerRulePopulateTagPicklistValues('push');"
+            ]
+        ];
+        echo $this->element('genericElements/infoModal', $modalData);
+        $modalData['data']['title'] = __('Set PULL rules');
+        $modalData['data']['content'][0]['html'] = $this->element('serverRuleElements/pull', [
+            'context' => 'servers',
+            'qwerty' => 'qwer'
+        ]);
+        $modalData['class'] = 'pull-rule-modal';
+        $modalData['confirm']['onclick'] = "submitServerRulePopulateTagPicklistValues('pull');";
+        echo $this->element('genericElements/infoModal', $modalData);
+    ?>
 </div>
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => $this->action));
@@ -239,12 +267,27 @@ $(document).ready(function() {
             }).popover('show');
     });
     rules = convertServerFilterRules(rules);
-    serverRulePopulateTagPicklist();
     $("#push_modify").click(function() {
-        serverRuleFormActivate('push');
+        $('#genericModal.push-rule-modal').modal().on('shown', function () {
+            var $containers = $(this).find('.rules-widget-container')
+            $containers.each(function() {
+                var initFun = $(this).data('funname');
+                if (typeof window[initFun] === 'function') {
+                    window[initFun]()
+                }
+            })
+        });
     });
     $("#pull_modify").click(function() {
-        serverRuleFormActivate('pull');
+        $('#genericModal.pull-rule-modal').modal().on('shown', function () {
+            var $containers = $(this).find('.rules-widget-container')
+            $containers.each(function() {
+                var initFun = $(this).data('funname');
+                if (typeof window[initFun] === 'function') {
+                    window[initFun]()
+                }
+            })
+        });
     });
 
     $('#add_cert_file').click(function() {

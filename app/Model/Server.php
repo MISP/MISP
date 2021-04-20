@@ -4450,6 +4450,44 @@ class Server extends AppModel
         return $success;
     }
 
+    public function queryAvailableSyncFilteringRules($server)
+    {
+        $HttpSocket = $this->setupHttpSocket($server, null);
+        $uri = $server['Server']['url'] . '/servers/getAvailableSyncFilteringRules';
+        $request = $this->setupSyncRequest($server);
+        $response = $HttpSocket->get($uri, false, $request);
+        if ($response === false) {
+            throw new Exception(__('Connection failed for unknown reason.'));
+        }
+
+        $syncFilteringRules = [];
+        if ($response->isOk()) {
+            $syncFilteringRules = $this->jsonDecode($response->body());
+        } else {
+            throw new Exception(__('Reponse was not OK.'));
+        }
+        return $syncFilteringRules;
+    }
+
+    public function getAvailableSyncFilteringRules($user)
+    {
+        $this->Organisation = ClassRegistry::init('Organisation');
+        $this->Tag = ClassRegistry::init('Tag');
+        $organisations = [];
+        if ($user['Role']['perm_sharing_group'] || !Configure::read('Security.hide_organisation_index_from_users')) {
+            $organisations = $this->Organisation->find('list', [
+                'fields' => 'name'
+            ]);
+        }
+        $tags = $this->Tag->find('list', [
+            'fields' => 'name'
+        ]);
+        return [
+            'organisations' => array_values($organisations),
+            'tags' => array_values($tags),
+        ];
+    }
+
     /**
      * Generate just when required
      * @return array[]

@@ -3548,38 +3548,6 @@ function serverRuleGenerateJSON() {
     });
 }
 
-function serverRulePopulateTagPicklist() {
-    var fields = ["tags", "orgs"];
-    var target = "";
-    fields.forEach(function(field) {
-        target = "";
-        window[field].forEach(function(element) {
-            if ($.inArray(element.id, rules["push"][field]["OR"]) != -1) target = "#" + field + "pushLeftValues";
-            else if ($.inArray(element.id, rules["push"][field]["NOT"]) != -1) target = "#" + field + "pushRightValues";
-            else target = "#" + field + "pushMiddleValues";
-            $(target).append($('<option/>', {
-                value: element.id,
-                text : element.name
-            }));
-        });
-        target = "#" + field + "pullLeftValues";
-        rules["pull"][field]["OR"].forEach(function(t) {
-            $(target).append($('<option/>', {
-                value: t,
-                text : t
-            }));
-        });
-        target = "#" + field + "pullRightValues";
-        rules["pull"][field]["NOT"].forEach(function(t) {
-            $(target).append($('<option/>', {
-                value: t,
-                text : t
-            }));
-        });
-    });
-    $('#urlParams').val(rules["pull"]["url_params"]);
-}
-
 function submitServerRulePopulateTagPicklistValues(context) {
     validFields.forEach(function(field) {
         rules[context][field]["OR"] = [];
@@ -3594,47 +3562,7 @@ function submitServerRulePopulateTagPicklistValues(context) {
     if (context === 'pull') {
         rules[context]["url_params"] = $('#urlParams').val();
     }
-    $('#server_' + context + '_rule_popover').fadeOut();
-    $('#gray_out').fadeOut();
     serverRuleUpdate();
-}
-
-// type = pull/push, field = tags/orgs, from = Left/Middle/Right, to = Left/Middle/Right
-function serverRuleMoveFilter(type, field, from, to) {
-    var opposites = {"Left": "Right", "Right": "Left"};
-    // first fetch the value
-    var value = "";
-    if (type == "pull" && from == "Middle") {
-        var doInsert = true;
-        value = $("#" + field + type + "NewValue").val();
-        if (value.length !== 0 && value.trim()) {
-            $("#" + field + type + to + "Values" + " option").each(function() {
-                if (value == $(this).val()) doInsert = false;
-            });
-            $("#" + field + type + opposites[to] + "Values" + " option").each(function() {
-                if (value == $(this).val()) $(this).remove();
-            });
-            if (doInsert) {
-                $("#" + field + type + to + "Values").append($('<option/>', {
-                    value: value,
-                    text : value
-                }));
-            }
-        }
-        $("#" + field + type + "NewValue").val('');
-    } else {
-        $("#" + field + type + from + "Values option:selected").each(function () {
-            if (type != "pull" || to != "Middle") {
-                value = $(this).val();
-                text = $(this).text();
-                $("#" + field + type + to + "Values").append($('<option/>', {
-                    value: value,
-                    text : text
-                }));
-            }
-            $(this).remove();
-        });
-    }
 }
 
 function syncUserSelected() {
