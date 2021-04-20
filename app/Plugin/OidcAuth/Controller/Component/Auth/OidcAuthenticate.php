@@ -47,6 +47,9 @@ class OidcAuthenticate extends BaseAuthenticate
         if (property_exists($verifiedClaims, $roleProperty)) {
             $roles = $verifiedClaims->{$roleProperty};
         }
+        if (empty($roles)) {
+            $roles = $oidc->requestUserInfo($roleProperty);
+        }
 
         $this->settings['fields'] = ['username' => 'email'];
         $user = $this->_findUser($mispUsername);
