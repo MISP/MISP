@@ -151,6 +151,7 @@ yumInstallCoreDeps8 () {
   sudo dnf install gcc git zip unzip \
                    httpd \
                    mod_ssl \
+                   moreutils \
                    redis \
                    mariadb \
                    mariadb-server \
