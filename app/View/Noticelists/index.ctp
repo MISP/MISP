@@ -29,20 +29,22 @@ $fields = [
         'name' => __('version'),
         'data_path' => 'Noticelist.version',
     ],
-    // [
-    //     'name' => __('enabled'),
-    //     'data_path' => 'Noticelist.enabled',
-    //     'element' => 'toggle',
-    //     'url' => '/noticelists/enableNoticelist',
-    //     'url_params_data_paths' => ['Noticelist.id'],
-    //     'requirement' => $isSiteAdmin
-    // ],
     [
         'name' => __('enabled'),
-        'data_path' => 'Noticelist.default',
+        'data_path' => 'Noticelist.enabled',
+        'element' => 'toggle',
+        'url' => '/noticelists/toggleEnable',
+        'url_params_data_paths' => ['Noticelist.id'],
+        // 'checkbox_class' => 'defaultRoleCheckbox',
+        // 'beforeHook' => "$('.defaultRoleCheckbox').prop('checked', false); $(this).prop('checked', true);",
+        'requirement' => $isSiteAdmin,
+    ],
+    [
+        'name' => __('Default'),
+        'data_path' => 'Noticelist.enabled',
         'element' => 'boolean',
         'colors' => true,
-        // 'requirement' => !$isSiteAdmin,
+        'requirement' => !$isSiteAdmin,
     ],
 ];
 
@@ -51,9 +53,6 @@ echo $this->element('genericElements/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
-            'top_bar' => [
-                'pull' => 'right',
-            ],
             'fields' => $fields,
             'title' => empty($ajax) ? __('Noticelists') : false,
             'actions' => [

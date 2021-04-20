@@ -517,7 +517,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     break;
 
                 case 'noticelist':
-                    if ($menuItem === 'view') {
+                    if ($menuItem === 'view_noticelist') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view_noticelist',
                             'text' => __('View Noticelist')

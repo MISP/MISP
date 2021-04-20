@@ -102,29 +102,34 @@ class NoticelistsController extends AppController
         }
     }
 
-    public function toggleEnable()
+    public function toggleEnable($noticelist_id = false)
     {
-        $id = $this->request->data['Noticelist']['data'];
-        if (!is_numeric($id)) {
-            return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => 'Noticelist not found.')), 'status' => 200, 'type' => 'json'));
-        }
-        $currentState = $this->Noticelist->find('first', array('conditions' => array('id' => $id), 'recursive' => -1));
-        if (empty($currentState)) {
-            return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => 'Noticelist not found.')), 'status' => 200, 'type' => 'json'));
-        }
-        $currentState['Noticelist']['ref'] = json_decode($currentState['Noticelist']['ref']);
-        $currentState['Noticelist']['geographical_area'] = json_decode($currentState['Noticelist']['geographical_area']);
-        if ($currentState['Noticelist']['enabled']) {
-            $currentState['Noticelist']['enabled'] = 0;
-            $message = 'disabled';
+        if ($this->request->is('post')) {
+            $this->Noticelist->read(null, $noticelist_id);
+
+            if (!$this->Noticelist->exists()) {
+                $message = 'Invalid Noticelist.';
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Noticelists', 'toggleEnable', $noticelist_id, $message, $this->response->type());
+                } else {
+                    return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
+                }
+            }
+
+            $this->Noticelist->saveField('enabled', (int)!$this->Noticelist->data['Noticelist']['enabled']);
+
+            $message = $this->Noticelist->enabled ? __('Noticelist disabled.') : __('Noticelist enabled.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Noticelists', 'toggleEnable', $noticelist_id, $this->response->type(), $message);
+            } else {
+                return new CakeResponse(array('body' => json_encode(array('saved' => true, 'success' => $message)), 'status' => 200, 'type' => 'json'));
+            }
         } else {
-            $currentState['Noticelist']['enabled'] = 1;
-            $message = 'enabled';
-        }
-        if ($this->Noticelist->save($currentState)) {
-            return new CakeResponse(array('body' => json_encode(array('saved' => true, 'success' => 'Noticelist ' . $message)), 'status' => 200, 'type' => 'json'));
-        } else {
-            return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => 'Noticelist could not be enabled.')), 'status' => 200, 'type' => 'json'));
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Noticelists', 'toggleEnable', false, __('This endpoint expects a POST request.'), $this->response->type());
+            } else {
+                $this->layout = false;
+            }
         }
     }
 
@@ -154,12 +159,12 @@ class NoticelistsController extends AppController
 
     public function view($id)
     {
-        $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'view_noticelist']);
         $this->CRUD->view($id, ['contain' => []]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
         $this->set('id', $id);
+        $this->set('menuData', array('menuList' => 'noticelist', 'menuItem' => 'view_noticelist'));
     }
 
     public function delete($id)
