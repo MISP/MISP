@@ -1,4 +1,4 @@
-<div style="display: flex; flex-direction: column; justify-content: center;" class="server-rule-container-pull">
+<div style="display: flex; flex-direction: column;" class="server-rule-container-pull">
     <?php if ($context == 'servers'): ?>
         <div class="alert alert-primary notice-pull-rule-fetched">
             <button type="button" class="close" data-dismiss="alert">&times;</button>

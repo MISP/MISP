@@ -1,4 +1,4 @@
-<div style="display: flex; flex-direction: column; justify-content: center;" class="server-rule-container-push">
+<div style="display: flex; flex-direction: column;" class="server-rule-container-push">
     <?php
         echo $this->element('serverRuleElements/rules_widget', [
             'scope' => 'tag',
@@ -21,4 +21,5 @@
             'options' => $allOrganisations
         ]);
     ?>
+    <div style="height: 50px;"></div>
 </div>
