@@ -22,7 +22,8 @@
             'scopeI18n' => __('tag'),
             'technique' => 'pull',
             'allowEmptyOptions' => true,
-            'options' => $allTags
+            'options' => $allTags,
+            'optionNoValue' => true,
         ]);
     ?>
 
@@ -37,7 +38,8 @@
             'scopeI18n' => __('org'),
             'technique' => 'pull',
             'allowEmptyOptions' => true,
-            'options' => $allOrganisations
+            'options' => $allOrganisations,
+            'optionNoValue' => true,
         ]);
     ?>
 

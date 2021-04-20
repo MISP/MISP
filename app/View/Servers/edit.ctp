@@ -200,7 +200,6 @@
         $modalData['data']['title'] = __('Set PULL rules');
         $modalData['data']['content'][0]['html'] = $this->element('serverRuleElements/pull', [
             'context' => 'servers',
-            'qwerty' => 'qwer'
         ]);
         $modalData['class'] = 'pull-rule-modal';
         $modalData['confirm']['onclick'] = "submitServerRulePopulateTagPicklistValues('pull');";

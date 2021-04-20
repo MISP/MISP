@@ -4,7 +4,7 @@
             'scope' => 'tag',
             'scopeI18n' => __('tag'),
             'technique' => 'push',
-            'options' => $allTags
+            'options' => $allTags,
         ]);
     ?>
 
@@ -18,7 +18,7 @@
             'scope' => 'org',
             'scopeI18n' => __('org'),
             'technique' => 'push',
-            'options' => $allOrganisations
+            'options' => $allOrganisations,
         ]);
     ?>
     <div style="height: 50px;"></div>
