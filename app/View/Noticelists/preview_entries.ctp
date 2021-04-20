@@ -22,7 +22,7 @@ $fields = [
     ],
     [
         'name' => __('Message'),
-        'data_path' => 'data.message',
+        'data_path' => 'data.message.en',
         'class' => 'shortish'
     ],
 ];
