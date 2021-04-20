@@ -284,6 +284,9 @@ $(document).ready(function() {
                     window[initFun]()
                 }
             })
+            if (typeof window['cm'] === "object") {
+                window['cm'].refresh()
+            }
         });
     });
     $("#FeedDistribution").change(function() {

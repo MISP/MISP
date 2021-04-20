@@ -76,15 +76,13 @@ echo $this->element('genericElements/assetLoader', array(
 ?>
 
 <script>
+var cm;
 $(function() {
     var serverID = "<?= isset($id) ? $id : '' ?>"
     <?php if ($context == 'servers'): ?>
     addPullFilteringRulesToPicker()
     <?php endif; ?>
-    setTimeout(() => {
-        
-        setupCodeMirror()
-    }, 5000);
+    setupCodeMirror()
 
     function addPullFilteringRulesToPicker() {
         var $rootContainer = $('div.server-rule-container-pull')
@@ -140,7 +138,6 @@ $(function() {
         });
     }
 
-    var cm;
     function setupCodeMirror() {
         var cmOptions = {
             mode: "application/json",
