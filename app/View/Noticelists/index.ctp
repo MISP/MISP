@@ -1,7 +1,7 @@
 <?php
 $fields = [
     [
-        'name' => __('Id'),
+        'name' => __('ID'),
         'sort' => 'Noticelist.id',
         'data_path' => 'Noticelist.id'
     ],
@@ -18,7 +18,7 @@ $fields = [
     [
         'name' => __('ref'),
         'data_path' => 'Noticelist.ref',
-        'element' => 'links'
+        'element' => 'list'
     ],
     [
         'name' => __('geographical_area'),
@@ -35,8 +35,6 @@ $fields = [
         'element' => 'toggle',
         'url' => '/noticelists/toggleEnable',
         'url_params_data_paths' => ['Noticelist.id'],
-        // 'checkbox_class' => 'defaultRoleCheckbox',
-        // 'beforeHook' => "$('.defaultRoleCheckbox').prop('checked', false); $(this).prop('checked', true);",
         'requirement' => $isSiteAdmin,
     ],
     [

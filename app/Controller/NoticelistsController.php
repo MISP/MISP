@@ -105,10 +105,14 @@ class NoticelistsController extends AppController
     public function toggleEnable($noticelist_id = false)
     {
         if ($this->request->is('post')) {
-            $this->Noticelist->read(null, $noticelist_id);
+            $noticelist = $this->Noticelist->find('first', array(
+                'conditions' => array('id' => $noticelist_id),
+                'recursive' => -1,
+                'fields' => array('Noticelist.id', 'Noticelist.enabled')
+            ));
 
-            if (!$this->Noticelist->exists()) {
-                $message = 'Invalid Noticelist.';
+            if ($noticelist === null) {
+                $message = __('Noticelist not found.');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Noticelists', 'toggleEnable', $noticelist_id, $message, $this->response->type());
                 } else {
@@ -116,9 +120,12 @@ class NoticelistsController extends AppController
                 }
             }
 
-            $this->Noticelist->saveField('enabled', (int)!$this->Noticelist->data['Noticelist']['enabled']);
+            $enable = (int)!$noticelist['Noticelist']['enabled'];
 
-            $message = $this->Noticelist->enabled ? __('Noticelist disabled.') : __('Noticelist enabled.');
+            $noticelist['Noticelist']['enabled'] = $enable;
+            $result = $this->Noticelist->save($noticelist);
+
+            $message = $enable ? __('Noticelist enabled.') : __('Noticelist disabled.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Noticelists', 'toggleEnable', $noticelist_id, $this->response->type(), $message);
             } else {
@@ -137,7 +144,7 @@ class NoticelistsController extends AppController
     {
         $this->Noticelist->id = $id;
         if (!$this->Noticelist->exists()) {
-            throw new NotFoundException('Invalid Noticelist.');
+            throw new NotFoundException(__('Noticelist not found.'));
         }
         // DBMS interoperability: convert boolean false to integer 0 so cakephp doesn't try to insert an empty string into the database
         if ($enable === false) {
@@ -195,7 +202,7 @@ class NoticelistsController extends AppController
 
         $noticelist = $this->Noticelist->find('first', array('contain' => array('NoticelistEntry'), 'conditions' => array('id' => $id)));
         if (empty($noticelist)) {
-            throw new NotFoundException('Noticelist not found.');
+            throw new NotFoundException(__('Noticelist not found.'));
         }
         $noticelistEntries = $noticelist['NoticelistEntry'];
 
