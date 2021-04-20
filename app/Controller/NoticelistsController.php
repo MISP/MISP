@@ -15,8 +15,15 @@ class NoticelistsController extends AppController
 
     public function index()
     {
-        $params = [];
-        $this->CRUD->index($params);
+        $this->CRUD->index([
+            'afterFind' => function (array $noticelists) {
+                foreach ($noticelists as &$noticelist) {
+                    $noticelist['Noticelist']['ref'] = json_decode($noticelist['Noticelist']['ref']);
+                    $noticelist['Noticelist']['geographical_area'] = json_decode($noticelist['Noticelist']['geographical_area']);
+                }
+                return $noticelists;
+            }
+        ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
@@ -166,7 +173,16 @@ class NoticelistsController extends AppController
 
     public function view($id)
     {
-        $this->CRUD->view($id, ['contain' => []]);
+        $this->CRUD->view(
+            $id,
+            [
+                'afterFind' => function (array $noticelist) {
+                    $noticelist['Noticelist']['ref'] = json_decode($noticelist['Noticelist']['ref']);
+                    $noticelist['Noticelist']['geographical_area'] = json_decode($noticelist['Noticelist']['geographical_area']);
+                    return $noticelist;
+                }
+            ]
+        );
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
