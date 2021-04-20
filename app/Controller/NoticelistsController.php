@@ -154,19 +154,12 @@ class NoticelistsController extends AppController
 
     public function view($id)
     {
-        if (!is_numeric($id)) {
-            throw new NotFoundException('Invalid ID.');
+        $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'view_noticelist']);
+        $this->CRUD->view($id, ['contain' => []]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        $noticelist = $this->Noticelist->find('first', array('contain' => array('NoticelistEntry'), 'conditions' => array('id' => $id)));
-        if (empty($noticelist)) {
-            throw new NotFoundException('Noticelist not found.');
-        }
-        if ($this->_isRest()) {
-            $noticelist['Noticelist']['NoticelistEntry'] = $noticelist['NoticelistEntry'];
-            return $this->RestResponse->viewData($noticelist, $this->response->type());
-        } else {
-            $this->set('noticelist', $noticelist);
-        }
+        $this->set('id', $id);
     }
 
     public function delete($id)
@@ -188,6 +181,27 @@ class NoticelistsController extends AppController
             } else {
                 throw new MethodNotAllowedException('This function can only be reached via AJAX.');
             }
+        }
+    }
+
+    public function preview_entries($id)
+    {
+        $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'previewNoticelistEntries']);
+
+        $noticelist = $this->Noticelist->find('first', array('contain' => array('NoticelistEntry'), 'conditions' => array('id' => $id)));
+        if (empty($noticelist)) {
+            throw new NotFoundException('Noticelist not found.');
+        }
+        $noticelistEntries = $noticelist['NoticelistEntry'];
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($noticelistEntries, $this->response->type());
+        } else {
+            App::uses('CustomPaginationTool', 'Tools');
+            $customPagination = new CustomPaginationTool();
+            $customPagination->truncateAndPaginate($noticelistEntries, $this->params, false, true);
+            $this->set('data', $noticelistEntries);
+            $this->set('noticelist', $noticelist);
         }
     }
 }

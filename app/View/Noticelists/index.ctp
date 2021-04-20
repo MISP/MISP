@@ -29,14 +29,21 @@ $fields = [
         'name' => __('version'),
         'data_path' => 'Noticelist.version',
     ],
+    // [
+    //     'name' => __('enabled'),
+    //     'data_path' => 'Noticelist.enabled',
+    //     'element' => 'toggle',
+    //     'url' => '/noticelists/enableNoticelist',
+    //     'url_params_data_paths' => ['Noticelist.id'],
+    //     'requirement' => $isSiteAdmin
+    // ],
     [
         'name' => __('enabled'),
-        'data_path' => 'Noticelist.enabled',
-        'element' => 'toggle',
-        'url' => '/admin/noticelists/enableNoticelist',
-        'url_params_data_paths' => ['Noticelist.id'],
-        'requirement' => $isSiteAdmin
-    ]
+        'data_path' => 'Noticelist.default',
+        'element' => 'boolean',
+        'colors' => true,
+        // 'requirement' => !$isSiteAdmin,
+    ],
 ];
 
 
@@ -49,7 +56,6 @@ echo $this->element('genericElements/IndexTable/scaffold', [
             ],
             'fields' => $fields,
             'title' => empty($ajax) ? __('Noticelists') : false,
-            // 'description' => empty($ajax) ? __('You can connect your MISP to one or several Cerebrate instances to act as lookup directories for organisation and sharing group information.') : false,
             'actions' => [
                 [
                     'url' => $baseurl . '/noticelists/view',

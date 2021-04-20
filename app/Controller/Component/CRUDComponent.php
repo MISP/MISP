@@ -5,7 +5,8 @@ class CRUDComponent extends Component
     /** @var AppController */
     public $Controller = null;
 
-    public function initialize(Controller $controller, $settings=array()) {
+    public function initialize(Controller $controller, $settings = array())
+    {
         $this->Controller = $controller;
     }
 
