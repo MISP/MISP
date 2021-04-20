@@ -4,7 +4,15 @@ $seed = rand();
 <div>
     <div style="display: flex;" class="rules-widget-container container-seed-<?= $seed ?>" data-funname="initRuleWidgetPicker<?= $seed ?>">
         <div style="flex-grow: 1;">
-            <div class="bold green" style=""><?= __('Allowed %s (OR)', Inflector::pluralize($scopeI18n));?></div>
+            <div class="bold green" style="display: flex; align-items: center;">
+                <?= __('Allowed %s (OR)', Inflector::pluralize($scopeI18n));?>
+                <i
+                    class="useCursorPointer <?= $this->FontAwesome->getClass('trash') ?>"
+                    style="margin-left: auto;"
+                    title="<?= __('Delete selected rules') ?>"
+                    onClick="<?= sprintf("handleDeleteButtonClick('%s', this); ", 'rules-allow') ?>"
+                ></i>
+            </div>
             <select
                 id="<?= sprintf('%s%sLeftValues', Inflector::pluralize($scope), $technique) ?>"
                 size="6" multiple
@@ -76,7 +84,15 @@ $seed = rand();
             </div>
         </div>
         <div style="flex-grow: 1;">
-            <div class="bold red" style="margin-left: auto;"><?php echo __('Blocked %s (AND NOT)', Inflector::pluralize($scopeI18n));?></div>
+            <div class="bold red" style="display: flex; align-items: center;">
+                <?php echo __('Blocked %s (AND NOT)', Inflector::pluralize($scopeI18n));?>
+                <i
+                    class="useCursorPointer <?= $this->FontAwesome->getClass('trash') ?>"
+                    style="margin-left: auto;"
+                    title="<?= __('Delete selected rules') ?>"
+                    onClick="<?= sprintf("handleDeleteButtonClick('%s', this); ", 'rules-block') ?>"
+                ></i>
+            </div>
             <select
                 id="<?= sprintf('%s%sRightValues', Inflector::pluralize($scope), $technique) ?>"
                 size="6" multiple
@@ -110,6 +126,12 @@ function deleteSelectedRules($select, $pickerSelect) {
         $item.remove()
     })
     $pickerSelect.trigger('chosen:updated')
+}
+
+function handleDeleteButtonClick(targetClass, clicked) {
+    var $select = $(clicked).closest('.rules-widget-container').find('select.' + targetClass)
+    var $pickerSelect = $select.closest('.rules-widget-container').find('select.rules-select-picker')
+    deleteSelectedRules($select, $pickerSelect)
 }
 
 function handleFreetextButtonClick(targetClass, clicked) {

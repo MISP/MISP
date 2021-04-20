@@ -55,12 +55,34 @@
     </div>
 </div>
 
+<?php
+echo $this->element('genericElements/assetLoader', array(
+    'js' => array(
+        'codemirror/codemirror',
+        'codemirror/modes/javascript',
+        'codemirror/addons/closebrackets',
+        'codemirror/addons/lint',
+        'codemirror/addons/jsonlint',
+        'codemirror/addons/json-lint',
+    ),
+    'css' => array(
+        'codemirror',
+        'codemirror/show-hint',
+        'codemirror/lint',
+    )
+));
+?>
+
 <script>
 $(function() {
     var serverID = "<?= isset($id) ? $id : '' ?>"
     <?php if ($context == 'servers'): ?>
     addPullFilteringRulesToPicker()
     <?php endif; ?>
+    setTimeout(() => {
+        
+        setupCodeMirror()
+    }, 5000);
 
     function addPullFilteringRulesToPicker() {
         var $rootContainer = $('div.server-rule-container-pull')
@@ -115,5 +137,32 @@ $(function() {
             }));
         });
     }
+
+    var cm;
+    function setupCodeMirror() {
+        var cmOptions = {
+            mode: "application/json",
+            theme:'default',
+            gutters: ["CodeMirror-lint-markers"],
+            lint: true,
+            lineNumbers: true,
+            indentUnit: 4,
+            showCursorWhenSelecting: true,
+            lineWrapping: true,
+            autoCloseBrackets: true,
+        }
+        cm = CodeMirror.fromTextArea(document.getElementById('urlParams'), cmOptions);
+        cm.on("keyup", function (cm, event) {
+            $('#urlParams').val(cm.getValue())
+        });
+    }
 })
 </script>
+
+<style>
+div.server-rule-container-pull .CodeMirror {
+    height: 100px;
+    width: 100%;
+    border: 1px solid #ddd;
+}
+</style>
