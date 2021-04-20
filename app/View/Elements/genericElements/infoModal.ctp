@@ -38,7 +38,7 @@
         $confirmButton = sprintf('<button class="%s" data-dismiss="modal" aria-hidden="true" onClick="%s">%s</button>',
             $dataConfirmButton['class'],
             $dataConfirmButton['onclick'],
-            $dataConfirmButton['title']
+            h($dataConfirmButton['title'])
         );
     }
     $cancelButton = sprintf('<button class="btn" data-dismiss="modal" aria-hidden="true" onClick="%s">%s</button>',
