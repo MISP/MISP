@@ -204,6 +204,9 @@ jobs:
       - name: Test if apache is working
         run: |
               sudo systemctl status apache2 --no-pager -l
+              cat /etc/hosts
+              echo '127.0.0.1 '${HOST} | sudo tee -a /etc/hosts
+              cat /etc/hosts
               curl http://${HOST}
               sudo chmod -R 777 PyMISP
               pushd PyMISP
