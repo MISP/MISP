@@ -358,8 +358,8 @@ class FeedsController extends AppController
                 }
             }
             if (!isset($this->request->data['Feed']['settings'])) {
-                if (!empty($this->Feed->data['Feed']['settings'])) {
-                    $this->request->data['Feed']['settings'] = $this->Feed->data['Feed']['settings'];
+                if (!empty($feed['Feed']['settings'])) {
+                    $this->request->data['Feed']['settings'] = $feed['Feed']['settings'];
                 } else {
                     $this->request->data['Feed']['settings'] = array();
                 }
@@ -404,9 +404,9 @@ class FeedsController extends AppController
                 return $this->RestResponse->describe('Feeds', 'edit', false, $this->response->type());
             }
             if (!isset($this->request->data['Feed'])) {
-                $this->request->data = $this->Feed->data;
-                if ($this->Feed->data['Feed']['event_id']) {
-                    $this->request->data['Feed']['target_event'] = $this->Feed->data['Feed']['event_id'];
+                $this->request->data = $feed;
+                if ($feed['Feed']['event_id']) {
+                    $this->request->data['Feed']['target_event'] = $feed['Feed']['event_id'];
                 }
             }
             $this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
