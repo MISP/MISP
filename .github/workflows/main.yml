@@ -59,7 +59,7 @@ jobs:
       - name: Initialize variables
         run: |
           echo "USER=`id -u -n`" >> $GITHUB_ENV
-          echo "HOST=`hostname`" >> $GITHUB_ENV
+          echo "HOST=localhost" >> $GITHUB_ENV
 
       # Runs a set of commands using the runners shell
       - name: Install deps
