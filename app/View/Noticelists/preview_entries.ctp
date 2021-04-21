@@ -3,12 +3,12 @@ $fields = [
     [
         'name' => __('Scope'),
         'data_path' => 'data.scope',
-        'class' => 'shortish'
+        'class' => 'short'
     ],
     [
         'name' => __('Field'),
         'data_path' => 'data.field',
-        'class' => 'shortish'
+        'class' => 'short'
     ],
     [
         'name' => __('Value'),

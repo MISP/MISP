@@ -24,6 +24,7 @@ echo $this->element(
             [
                 'key' => __('Ref'),
                 'path' => 'Noticelist.ref',
+                'type' => 'links',
             ],
             [
                 'key' => __('Geographical Area'),

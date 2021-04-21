@@ -18,7 +18,7 @@ $fields = [
     [
         'name' => __('ref'),
         'data_path' => 'Noticelist.ref',
-        'element' => 'list'
+        'element' => 'links'
     ],
     [
         'name' => __('geographical_area'),
@@ -51,6 +51,17 @@ echo $this->element('genericElements/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'top_bar' => [
+                'pull' => 'right',
+                'children' => [
+                    [
+                        'type' => 'search',
+                        'button' => __('Filter'),
+                        'placeholder' => __('Enter value to search'),
+                        'searchKey' => 'quickFilter',
+                    ]
+                ]
+            ],
             'fields' => $fields,
             'title' => empty($ajax) ? __('Noticelists') : false,
             'actions' => [

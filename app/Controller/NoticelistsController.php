@@ -16,6 +16,7 @@ class NoticelistsController extends AppController
     public function index()
     {
         $this->CRUD->index([
+            'quickFilters' => ['name', 'expanded_name'],
             'afterFind' => function (array $noticelists) {
                 foreach ($noticelists as &$noticelist) {
                     $noticelist['Noticelist']['ref'] = json_decode($noticelist['Noticelist']['ref']);
