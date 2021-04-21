@@ -580,7 +580,7 @@ class TestSecurity(unittest.TestCase):
     def test_advanced_authkeys_allow_all(self):
         with self.__setting("Security.advanced_authkeys", True):
             auth_key = self.__create_advanced_authkey(self.test_usr.id, {
-                "allowed_ips": ["0.0.0.0/0"],
+                "allowed_ips": ["0.0.0.0/0", "::/0"],
             })
 
             # Try to login
@@ -589,7 +589,7 @@ class TestSecurity(unittest.TestCase):
             self.__delete_advanced_authkey(auth_key["id"])
 
     def test_authkey_keep_session(self):
-        with self.__setting( "Security.authkey_keep_session", True):
+        with self.__setting("Security.authkey_keep_session", True):
             logged_in = PyMISP(url, self.test_usr.authkey)
             check_response(logged_in.get_user())
             check_response(logged_in.get_user())
