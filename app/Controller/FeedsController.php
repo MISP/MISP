@@ -394,7 +394,7 @@ class FeedsController extends AppController
             } else {
                 $message = __('Feed could not be updated. Reason: %s', json_encode($this->Feed->validationErrors));
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Feeds', 'add', false, $message, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('Feeds', 'edit', false, $message, $this->response->type());
                 }
                 $this->Flash->error($message);
             }
