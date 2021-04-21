@@ -1326,6 +1326,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Force Update Galaxies'),
                             'message' => __('Are you sure you want to drop and reimport all galaxies from the submodule?')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'element_id' => 'forceupdate',
+                            'url' => $baseurl . '/galaxies/wipe_default',
+                            'text' => __('Wipe Default Galaxy Clusters'),
+                            'message' => __('Are you sure you want to drop all default galaxy clusters?')
+                        ));
                     }
                     if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {
                         echo $divider;

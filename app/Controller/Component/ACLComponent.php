@@ -315,6 +315,7 @@ class ACLComponent extends Component
                 'update' => array(),
                 'view' => array('*'),
                 'viewGraph' => array('*'),
+                'wipe_default' => array(),
             ),
             'galaxyClusterBlocklists' => array(
                 'add' => array(),

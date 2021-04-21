@@ -66,9 +66,24 @@ class GalaxiesController extends AppController
             $force = 0;
         }
         $result = $this->Galaxy->update($force);
-        $message = 'Galaxies updated.';
+        $message = __('Galaxies updated.');
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Galaxy', 'update', false, $this->response->type(), $message);
+        } else {
+            $this->Flash->success($message);
+            $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+        }
+    }
+
+    public function wipe_default()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This action is only accessible via POST requests.');
+        }
+        $result = $this->Galaxy->GalaxyCluster->wipe_default();
+        $message = __('Default galaxy clusters dropped.');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Galaxy', 'wipe_default', false, $this->response->type(), $message);
         } else {
             $this->Flash->success($message);
             $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));

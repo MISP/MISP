@@ -700,4 +700,11 @@ class AdminShell extends AppShell
         $done = $this->AdminSetting->updatesDone($blocking);
         $this->out($done ? 'True' : 'False');
     }
+
+    public function wipeDefaultClusters()
+    {
+        $this->loadModel('GalaxyCluster');
+        $this->out('Dropping default galaxy clusters. This process might take some time...');
+        $this->GalaxyCluster->wipe_default();
+    }
 }
