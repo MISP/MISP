@@ -3,15 +3,15 @@
         <div class="alert alert-primary notice-pull-rule-fetched">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
             <i class="<?= $this->FontAwesome->getClass('spinner') ?> fa-spin"></i>
-            <?= __('Organisation and Tags are being fetched from the remote server.') ?>
+            <?= __('Organisations and Tags are being fetched from the remote server.') ?>
         </div>
         <div class="alert alert-success hidden notice-pull-rule-fetched">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
-            <?= __('Organisation and Tags have been fetched from the remote server.') ?>
+            <?= __('Organisations and Tags have been fetched from the remote server.') ?>
         </div>
         <div class="alert alert-warning hidden notice-pull-rule-fetched">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
-            <?= __('Issues while trying to fetch Organisation and Tags from the remote server.') ?>
+            <?= __('Issues while trying to fetch Organisations and Tags from the remote server.') ?>
             <div><strong><?= __('Reason:') ?></strong></div>
             <div><pre class="reason" style="margin-bottom: 0;"></pre></div>
         </div>
