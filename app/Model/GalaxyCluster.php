@@ -877,7 +877,9 @@ class GalaxyCluster extends AppModel
     public function getTags($galaxyType, $clusterValue = false, $user)
     {
         $this->Event = ClassRegistry::init('Event');
-        $event_ids = $this->Event->fetchEventIds($user, false, false, false, true);
+        $event_ids = $this->Event->fetchEventIds($user, [
+            'list' => true
+        ]);
         $tags = $this->Event->EventTag->Tag->find('list', array(
                 'conditions' => array('name LIKE' => 'misp-galaxy:' . $galaxyType . '="' . ($clusterValue ? $clusterValue : '%') .'"'),
                 'fields' => array('name', 'id'),

@@ -59,7 +59,7 @@ jobs:
       - name: Initialize variables
         run: |
           echo "USER=`id -u -n`" >> $GITHUB_ENV
-          echo "HOST=`hostname`" >> $GITHUB_ENV
+          echo "HOST=localhost" >> $GITHUB_ENV
 
       # Runs a set of commands using the runners shell
       - name: Install deps
@@ -203,6 +203,8 @@ jobs:
 
       - name: Test if apache is working
         run: |
+              sudo systemctl status apache2 --no-pager -l
+              sudo apache2ctl -S
               curl http://${HOST}
               sudo chmod -R 777 PyMISP
               pushd PyMISP
@@ -247,3 +249,4 @@ jobs:
         if: ${{ always() }}
         run: |
               tail -n +1 `pwd`/app/tmp/logs/*
+              tail -n +1 /var/log/apache2/*.log
