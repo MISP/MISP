@@ -1740,31 +1740,24 @@ class Event extends AppModel
         return $this->find('all', $params);
     }
 
-    public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false, $timestamp = false, $publish_timestamp = false, $eventIdList = false)
+    public function fetchEventIds($user, $options)
     {
         // restricting to non-private or same org if the user is not a site-admin.
         $conditions = $this->createEventConditions($user);
-        $fields = array('Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id');
-
-        if ($from) {
-            $conditions['AND'][] = array('Event.date >=' => $from);
+        $paramMapping = [
+            'from' => 'Event.date >=',
+            'to' => 'Event.date <=',
+            'last' => 'Event.publish_timestamp >=',
+            'timestamp' => 'Event.timestamp >=',
+            'publish_timestamp' => 'Event.publish_timestamp >=',
+            'eventIdList' => 'Event.id',
+        ];
+        foreach ($paramMapping as $paramName => $paramLookup) {
+            if (isset($options[$paramName])) {
+                $conditions['AND'][] = [$paramLookup => $options[$paramName]];
+            }
         }
-        if ($to) {
-            $conditions['AND'][] = array('Event.date <=' => $to);
-        }
-        if ($last) {
-            $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
-        }
-        if ($timestamp) {
-            $conditions['AND'][] = array('Event.timestamp >=' => $timestamp);
-        }
-        if ($publish_timestamp) {
-            $conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
-        }
-        if ($eventIdList) {
-            $conditions['AND'][] = array('Event.id' => $eventIdList);
-        }
-        if ($list) {
+        if (isset($options['list'])) {
             $params = array(
                 'conditions' => $conditions,
                 'fields' => ['Event.id'],
@@ -1774,7 +1767,7 @@ class Event extends AppModel
             $params = array(
                 'conditions' => $conditions,
                 'recursive' => -1,
-                'fields' => $fields,
+                'fields' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'],
             );
             $results = $this->find('all', $params);
         }

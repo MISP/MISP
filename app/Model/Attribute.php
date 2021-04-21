@@ -2126,7 +2126,11 @@ class Attribute extends AppModel
             $typeArray[] = 'malware-sample';
         }
         $rules = array();
-        $eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
+        $eventIds = $this->Event->fetchEventIds($user, [
+            'from' => $from,
+            'to' => $to,
+            'last' => $last
+        ]);
         if (!empty($tags)) {
             $tag = ClassRegistry::init('Tag');
             $args = $this->dissectArgs($tags);
@@ -2184,7 +2188,11 @@ class Attribute extends AppModel
         if (empty($user)) {
             throw new MethodNotAllowedException(__('Could not read user.'));
         }
-        $eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
+        $eventIds = $this->Event->fetchEventIds($user, [
+            'from' => $from,
+            'to' => $to,
+            'last' => $last
+        ]);
 
         // If we sent any tags along, load the associated tag names for each attribute
         if ($tags) {
