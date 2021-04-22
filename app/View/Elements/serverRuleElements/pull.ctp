@@ -24,6 +24,8 @@
             'allowEmptyOptions' => true,
             'options' => $allTags,
             'optionNoValue' => true,
+            'initAllowOptions' => [],
+            'initBlockOptions' => [],
         ]);
     ?>
 
@@ -40,6 +42,8 @@
             'allowEmptyOptions' => true,
             'options' => $allOrganisations,
             'optionNoValue' => true,
+            'initAllowOptions' => [],
+            'initBlockOptions' => [],
         ]);
     ?>
 

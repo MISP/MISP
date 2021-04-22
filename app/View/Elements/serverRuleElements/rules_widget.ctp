@@ -17,7 +17,15 @@ $seed = rand();
                 id="<?= sprintf('%s%sLeftValues', Inflector::pluralize(h($scope)), h($technique)) ?>"
                 size="6" multiple
                 style="margin-bottom: 0;  width: 100%; overflow-x: auto;" class="rules-select-data rules-allow"
-            ></select>
+            >
+                <?php foreach($initAllowOptions as $option): ?>
+                    <?php if(is_array($option)): ?>
+                        <option value="<?= !empty($optionNoValue) ? h($option['name']) : h($option['id']) ?>"><?= h($option['name']) ?></option>
+                    <?php else: ?>
+                        <option value="<?= h($option) ?>"><?= h($option) ?></option>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </select>
         </div>
         <div style="display: flex; margin: 0 0.5em; flex-shrink: 1; padding-top: 20px;">
             <div style="display: flex; flex-direction: column;">
@@ -97,7 +105,15 @@ $seed = rand();
                 id="<?= sprintf('%s%sRightValues', Inflector::pluralize(h($scope)), h($technique)) ?>"
                 size="6" multiple
                 style="margin-bottom: 0; width: 100%; overflow-x: auto;" class="rules-select-data rules-block"
-            ></select>
+            >
+                <?php foreach($initBlockOptions as $option): ?>
+                    <?php if(is_array($option)): ?>
+                        <option value="<?= !empty($optionNoValue) ? h($option['name']) : h($option['id']) ?>"><?= h($option['name']) ?></option>
+                    <?php else: ?>
+                        <option value="<?= h($option) ?>"><?= h($option) ?></option>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </select>
         </div>
     </div>
 </div>
