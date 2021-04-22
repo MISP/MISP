@@ -4464,7 +4464,7 @@ class Server extends AppModel
         if ($response->isOk()) {
             $syncFilteringRules = $this->jsonDecode($response->body());
         } else {
-            throw new Exception(__('Reponse was not OK.'));
+            throw new Exception(__('Reponse was not OK. (HTTP code: %s)', $response->code));
         }
         return $syncFilteringRules;
     }
