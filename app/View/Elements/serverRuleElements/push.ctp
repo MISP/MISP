@@ -4,12 +4,11 @@
         $tagBlockRules = [];
         $orgAllowRules = [];
         $orgBlockRules = [];
-        if (!empty($server['Server']['push_rules'])) {
-            $tagRules = json_decode($server['Server']['push_rules'], true);
-            $tagAllowRules = mapIDsToObject($allTags, $tagRules['tags']['OR']);
-            $tagBlockRules = mapIDsToObject($allTags, $tagRules['tags']['NOT']);
-            $orgAllowRules = mapIDsToObject($allOrganisations, $tagRules['orgs']['OR']);
-            $orgBlockRules = mapIDsToObject($allOrganisations, $tagRules['orgs']['NOT']);
+        if (!empty($ruleObject)) {
+            $tagAllowRules = mapIDsToObject($allTags, $ruleObject['tags']['OR']);
+            $tagBlockRules = mapIDsToObject($allTags, $ruleObject['tags']['NOT']);
+            $orgAllowRules = mapIDsToObject($allOrganisations, $ruleObject['orgs']['OR']);
+            $orgBlockRules = mapIDsToObject($allOrganisations, $ruleObject['orgs']['NOT']);
         }
         function mapIDsToObject($data, $ids) {
             $result = [];

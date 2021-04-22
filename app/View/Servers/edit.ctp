@@ -177,6 +177,9 @@
 </div>
 <div id="hiddenRuleForms">
     <?php
+        $pushRules = json_decode($server['Server']['push_rules'], true);
+        $pullRules = json_decode($server['Server']['pull_rules'], true);
+        $pullRules['url_params'] = json_decode($pullRules['url_params'], true);
         $modalData = [
             'data' => [
                 'title' => __('Set PUSH rules'),
@@ -185,6 +188,7 @@
                         'html' => $this->element('serverRuleElements/push', [
                             'allTags' => $allTags,
                             'allOrganisations' => $allOrganisations,
+                            'ruleObject' => $pushRules
                         ])
                     ]
                 ],
@@ -200,6 +204,7 @@
         $modalData['data']['title'] = __('Set PULL rules');
         $modalData['data']['content'][0]['html'] = $this->element('serverRuleElements/pull', [
             'context' => 'servers',
+            'ruleObject' => $pullRules
         ]);
         $modalData['class'] = 'pull-rule-modal';
         $modalData['confirm']['onclick'] = "submitServerRulePopulateTagPicklistValues('pull');";

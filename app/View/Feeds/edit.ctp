@@ -222,6 +222,8 @@
     ?>
     <div id="hiddenRuleForms">
         <?php
+            $pullRules = json_decode($feed['Feed']['rules'], true);
+            $pullRules['url_params'] = json_decode($pullRules['url_params'], true);
             $modalData = [
                 'data' => [
                     'title' => __('Set PULL rules'),
@@ -231,6 +233,7 @@
                                 'context' => 'feeds',
                                 'allTags' => $tags,
                                 'allOrganisations' => $orgs,
+                                'ruleObject' => $pullRules
                             ])
                         ]
                     ],
