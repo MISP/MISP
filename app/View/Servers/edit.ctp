@@ -177,9 +177,12 @@
 </div>
 <div id="hiddenRuleForms">
     <?php
-        $pushRules = json_decode($server['Server']['push_rules'], true);
-        $pullRules = json_decode($server['Server']['pull_rules'], true);
-        $pullRules['url_params'] = json_decode($pullRules['url_params'], true);
+        $pushRules = $pullRules = [];
+        if (!empty($server)) {
+            $pushRules = json_decode($server['Server']['push_rules'], true);
+            $pullRules = json_decode($server['Server']['pull_rules'], true);
+            $pullRules['url_params'] = json_decode($pullRules['url_params'], true);
+        }
         $modalData = [
             'data' => [
                 'title' => __('Set PUSH rules'),
