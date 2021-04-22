@@ -5,7 +5,7 @@ $seed = rand();
     <div style="display: flex;" class="rules-widget-container container-seed-<?= $seed ?>" data-funname="initRuleWidgetPicker<?= $seed ?>">
         <div style="flex-grow: 1;">
             <div class="bold green" style="display: flex; align-items: center;">
-                <?= __('Allowed %s (OR)', Inflector::pluralize($scopeI18n));?>
+                <?= __('Allowed %s (OR)', Inflector::pluralize(h($scopeI18n)));?>
                 <i
                     class="useCursorPointer <?= $this->FontAwesome->getClass('trash') ?>"
                     style="margin-left: auto;"
@@ -14,7 +14,7 @@ $seed = rand();
                 ></i>
             </div>
             <select
-                id="<?= sprintf('%s%sLeftValues', Inflector::pluralize($scope), $technique) ?>"
+                id="<?= sprintf('%s%sLeftValues', Inflector::pluralize(h($scope)), h($technique)) ?>"
                 size="6" multiple
                 style="margin-bottom: 0;  width: 100%; overflow-x: auto;" class="rules-select-data rules-allow"
             ></select>
@@ -25,19 +25,19 @@ $seed = rand();
                     <button
                         class="btn"
                         type="button"
-                        title="<?= __('Move %s to the list of %s to allow', $scopeI18n, Inflector::pluralize($scopeI18n));?>"
-                        aria-label="<?= __('Move %s to the list of %s to allow', $scopeI18n, Inflector::pluralize($scopeI18n));?>"
+                        title="<?= __('Move %s to the list of %s to allow', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
+                        aria-label="<?= __('Move %s to the list of %s to allow', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
                         role="button" tabindex="0"
                         onClick="<?= sprintf("handleFreetextButtonClick('%s', this); ", 'rules-allow') ?>"
                     >
                     <i class="<?= $this->FontAwesome->getClass('caret-left') ?>"></i>
                     </button>
-                    <input type="text" style="" placeholder="<?= sprintf('Freetext %s name', $scopeI18n) ?>">
+                    <input type="text" style="" placeholder="<?= sprintf('Freetext %s name', h($scopeI18n)) ?>">
                     <button
                         class="btn"
                         type="button"
-                        title="<?= __('Move %s to the list of %s to block', $scopeI18n, Inflector::pluralize($scopeI18n));?>"
-                        aria-label="<?= __('Move %s to the list of %s to block', $scopeI18n, Inflector::pluralize($scopeI18n));?>"
+                        title="<?= __('Move %s to the list of %s to block', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
+                        aria-label="<?= __('Move %s to the list of %s to block', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
                         role="button" tabindex="0"
                         onClick="<?= sprintf("handleFreetextButtonClick('%s', this); ", 'rules-block') ?>"
                     >
@@ -49,17 +49,17 @@ $seed = rand();
                         <button
                             class="btn"
                             type="button"
-                            title="<?= __('Move %s to the list of %s to allow', $scopeI18n, Inflector::pluralize($scopeI18n));?>"
-                            aria-label="<?= __('Move %s to the list of %s to allow', $scopeI18n, Inflector::pluralize($scopeI18n));?>"
+                            title="<?= __('Move %s to the list of %s to allow', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
+                            aria-label="<?= __('Move %s to the list of %s to allow', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
                             role="button" tabindex="0"
                             onClick="<?= sprintf("handlePickerButtonClick('%s', this); ", 'rules-allow') ?>"
                         >
                         <i class="<?= $this->FontAwesome->getClass('caret-left') ?>"></i>
                         </button>
                         <select
-                            class="rules-select-picker rules-select-picker-<?= $scope ?>"
+                            class="rules-select-picker rules-select-picker-<?= h($scope) ?>"
                             multiple
-                            placeholder="<?= sprintf('%s name', $scopeI18n) ?>"
+                            placeholder="<?= sprintf('%s name', h($scopeI18n)) ?>"
                         >
                             <?php foreach($options as $option): ?>
                                 <?php if(is_array($option)): ?>
@@ -72,8 +72,8 @@ $seed = rand();
                         <button
                             class="btn"
                             type="button"
-                            title="<?= __('Move %s to the list of %s to block', $scopeI18n, Inflector::pluralize($scopeI18n));?>"
-                            aria-label="<?= __('Move %s to the list of %s to block', $scopeI18n, Inflector::pluralize($scopeI18n));?>"
+                            title="<?= __('Move %s to the list of %s to block', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
+                            aria-label="<?= __('Move %s to the list of %s to block', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
                             role="button" tabindex="0"
                             onClick="<?= sprintf("handlePickerButtonClick('%s', this); ", 'rules-block') ?>"
                         >
@@ -85,7 +85,7 @@ $seed = rand();
         </div>
         <div style="flex-grow: 1;">
             <div class="bold red" style="display: flex; align-items: center;">
-                <?php echo __('Blocked %s (AND NOT)', Inflector::pluralize($scopeI18n));?>
+                <?php echo __('Blocked %s (AND NOT)', Inflector::pluralize(h($scopeI18n)));?>
                 <i
                     class="useCursorPointer <?= $this->FontAwesome->getClass('trash') ?>"
                     style="margin-left: auto;"
@@ -94,7 +94,7 @@ $seed = rand();
                 ></i>
             </div>
             <select
-                id="<?= sprintf('%s%sRightValues', Inflector::pluralize($scope), $technique) ?>"
+                id="<?= sprintf('%s%sRightValues', Inflector::pluralize(h($scope)), h($technique)) ?>"
                 size="6" multiple
                 style="margin-bottom: 0; width: 100%; overflow-x: auto;" class="rules-select-data rules-block"
             ></select>
