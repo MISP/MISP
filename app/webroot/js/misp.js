@@ -3548,19 +3548,14 @@ function serverRuleGenerateJSON() {
     });
 }
 
-function submitServerRulePopulateTagPicklistValues(context) {
+function serverRulesUpdateState(context) {
+    var $rootContainer = $('.server-rule-container-' + context)
     validFields.forEach(function(field) {
-        rules[context][field]["OR"] = [];
-        $("#" + field + context + "LeftValues option").each(function() {
-            rules[context][field]["OR"].push($(this).val());
-        });
-        rules[context][field]["NOT"] = [];
-        $("#" + field + context + "RightValues option").each(function() {
-            rules[context][field]["NOT"].push($(this).val());
-        });
-    });
+        var $fieldContainer = $rootContainer.find('.scope-' + field)
+        rules[context][field] = $fieldContainer.data('rules')
+    })
     if (context === 'pull') {
-        rules[context]["url_params"] = $('#urlParams').val();
+        rules[context]["url_params"] = $rootContainer.find('textarea#urlParams').val();
     }
     serverRuleUpdate();
 }

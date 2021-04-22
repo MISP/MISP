@@ -130,6 +130,7 @@ function initRuleWidgetPicker<?= $seed ?>() {
             deleteSelectedRules($select, $pickerSelect)
         }
     });
+    rebuildRules($('.container-seed-<?= $seed ?>'))
 }
 
 function deleteSelectedRules($select, $pickerSelect) {
@@ -144,6 +145,7 @@ function deleteSelectedRules($select, $pickerSelect) {
         $item.remove()
     })
     $pickerSelect.trigger('chosen:updated')
+    rebuildRules($select.closest('.rules-widget-container'))
 }
 
 function handleDeleteButtonClick(targetClass, clicked) {
@@ -179,6 +181,7 @@ function moveItemToSelect($target, $source) {
         }));
     }
     $source.remove()
+    rebuildRules($target.closest('.rules-widget-container'))
 }
 
 function addItemToSelect($target, data) {
@@ -188,6 +191,7 @@ function addItemToSelect($target, data) {
             text : data
         }));
     }
+    rebuildRules($target.closest('.rules-widget-container'))
 }
 
 function getValuesFromSelect($select) {
@@ -196,6 +200,15 @@ function getValuesFromSelect($select) {
         values.push($(this).val())
     })
     return values
+}
+
+function rebuildRules($ruleContainer) {
+    var tmpRules = {}
+    var $selectAllow = $ruleContainer.find('select.rules-allow')
+    var $selectBlock = $ruleContainer.find('select.rules-block')
+    tmpRules['OR'] = getValuesFromSelect($selectAllow)
+    tmpRules['NOT'] = getValuesFromSelect($selectBlock)
+    $ruleContainer.data('rules', tmpRules)
 }
 </script>
 

@@ -200,7 +200,7 @@
             'class' => 'push-rule-modal',
             'confirm' => [
                 'title' => __('Update'),
-                'onclick' => "submitServerRulePopulateTagPicklistValues('push');"
+                'onclick' => "serverRulesUpdateState('push');"
             ]
         ];
         echo $this->element('genericElements/infoModal', $modalData);
@@ -210,7 +210,7 @@
             'ruleObject' => $pullRules
         ]);
         $modalData['class'] = 'pull-rule-modal';
-        $modalData['confirm']['onclick'] = "submitServerRulePopulateTagPicklistValues('pull');";
+        $modalData['confirm']['onclick'] = "serverRulesUpdateState('pull');";
         echo $this->element('genericElements/infoModal', $modalData);
     ?>
 </div>

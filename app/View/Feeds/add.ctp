@@ -239,7 +239,7 @@
                 'class' => 'pull-rule-modal',
                 'confirm' => [
                     'title' => __('Update'),
-                    'onclick' => "submitServerRulePopulateTagPicklistValues('pull');"
+                    'onclick' => "serverRulesUpdateState('pull');"
                 ]
             ];
             echo $this->element('genericElements/infoModal', $modalData);
