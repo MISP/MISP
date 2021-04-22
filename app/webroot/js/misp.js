@@ -3506,7 +3506,9 @@ function serverRuleUpdate() {
                     rules[type][field][status].forEach(function(item) {
                         if (t.length > 0) t += ', ';
                         if (type === 'pull') t += item;
-                        else t += indexedList[item];
+                        else {
+                            t += indexedList[item] !== undefined ? indexedList[item] : item;
+                        }
                     });
                     $('#' + type + '_' + field + '_' + status + '_text').text(t);
                 } else {
@@ -3524,18 +3526,6 @@ function serverRuleUpdate() {
         }
     });
     serverRuleGenerateJSON();
-}
-
-function serverRuleFormActivate(type) {
-    if (type != 'pull' && type != 'push') return false;
-    $('.server_rule_popover').hide();
-    $('#gray_out').fadeIn();
-    $('#server_' + type + '_rule_popover').show();
-}
-
-function serverRuleCancel() {
-    $("#gray_out").fadeOut();
-    $(".server_rule_popover").fadeOut();
 }
 
 function serverRuleGenerateJSON() {
