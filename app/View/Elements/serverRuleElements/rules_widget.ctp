@@ -2,7 +2,7 @@
 $seed = rand();
 ?>
 <div>
-    <div style="display: flex;" class="rules-widget-container container-seed-<?= $seed ?>" data-funname="initRuleWidgetPicker<?= $seed ?>">
+    <div style="display: flex;" class="rules-widget-container container-seed-<?= $seed ?> scope-<?= Inflector::pluralize(h($scope)) ?>" data-funname="initRuleWidgetPicker<?= $seed ?>">
         <div style="flex-grow: 1;">
             <div class="bold green" style="display: flex; align-items: center;">
                 <?= __('Allowed %s (OR)', Inflector::pluralize(h($scopeI18n)));?>
@@ -29,29 +29,31 @@ $seed = rand();
         </div>
         <div style="display: flex; margin: 0 0.5em; flex-shrink: 1; padding-top: 20px;">
             <div style="display: flex; flex-direction: column;">
-                <div class="input-prepend input-append">
-                    <button
-                        class="btn"
-                        type="button"
-                        title="<?= __('Move %s to the list of %s to allow', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
-                        aria-label="<?= __('Move %s to the list of %s to allow', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
-                        role="button" tabindex="0"
-                        onClick="<?= sprintf("handleFreetextButtonClick('%s', this); ", 'rules-allow') ?>"
-                    >
-                    <i class="<?= $this->FontAwesome->getClass('caret-left') ?>"></i>
-                    </button>
-                    <input type="text" style="" placeholder="<?= sprintf('Freetext %s name', h($scopeI18n)) ?>">
-                    <button
-                        class="btn"
-                        type="button"
-                        title="<?= __('Move %s to the list of %s to block', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
-                        aria-label="<?= __('Move %s to the list of %s to block', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
-                        role="button" tabindex="0"
-                        onClick="<?= sprintf("handleFreetextButtonClick('%s', this); ", 'rules-block') ?>"
-                    >
-                        <i class="<?= $this->FontAwesome->getClass('caret-right') ?>"></i>
-                    </button>
-                </div>
+                <?php if(!isset($disableFreeText) || !$disableFreeText): ?>
+                    <div class="input-prepend input-append">
+                        <button
+                            class="btn"
+                            type="button"
+                            title="<?= __('Move %s to the list of %s to allow', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
+                            aria-label="<?= __('Move %s to the list of %s to allow', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
+                            role="button" tabindex="0"
+                            onClick="<?= sprintf("handleFreetextButtonClick('%s', this); ", 'rules-allow') ?>"
+                        >
+                        <i class="<?= $this->FontAwesome->getClass('caret-left') ?>"></i>
+                        </button>
+                        <input type="text" style="" placeholder="<?= sprintf('Freetext %s name', h($scopeI18n)) ?>">
+                        <button
+                            class="btn"
+                            type="button"
+                            title="<?= __('Move %s to the list of %s to block', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
+                            aria-label="<?= __('Move %s to the list of %s to block', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
+                            role="button" tabindex="0"
+                            onClick="<?= sprintf("handleFreetextButtonClick('%s', this); ", 'rules-block') ?>"
+                        >
+                            <i class="<?= $this->FontAwesome->getClass('caret-right') ?>"></i>
+                        </button>
+                    </div>
+                <?php endif; ?>
                 <?php if(!empty($options) || $allowEmptyOptions): ?>
                     <div class="input-prepend input-append">
                         <button
