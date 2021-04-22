@@ -47,7 +47,8 @@
             'technique' => 'push',
             'options' => $allOrganisations,
             'initAllowOptions' => $orgAllowRules,
-            'initBlockOptions' => $orgBlockRules
+            'initBlockOptions' => $orgBlockRules,
+            'disableFreeText' => true
         ]);
     ?>
     <div style="height: 50px;"></div>
