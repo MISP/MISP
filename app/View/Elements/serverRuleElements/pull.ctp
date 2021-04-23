@@ -136,15 +136,15 @@ $(function() {
         }
     }
 
-    function getPullFilteringRules(cb, fcb, acb) {
+    function getPullFilteringRules(callback, failCallback, alwaysCallback) {
         $.getJSON('/servers/queryAvailableSyncFilteringRules/' + serverID, function(availableRules) {
-            cb(availableRules)
+            callback(availableRules)
         })
         .fail(function(jqxhr, textStatus, error) {
-            fcb(jqxhr.responseJSON.message !== undefined ? jqxhr.responseJSON.message : textStatus)
+            failCallback(jqxhr.responseJSON.message !== undefined ? jqxhr.responseJSON.message : textStatus)
         })
         .always(function() {
-            acb()
+            alwaysCallback()
         })
     }
 
