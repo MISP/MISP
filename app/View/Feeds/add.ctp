@@ -221,7 +221,29 @@
     echo $this->Form->end();
     ?>
     <div id="hiddenRuleForms">
-        <?php echo $this->element('serverRuleElements/pull'); ?>
+    <?php
+            $modalData = [
+                'data' => [
+                    'title' => __('Set PULL rules'),
+                    'content' => [
+                        [
+                            'html' => $this->element('serverRuleElements/pull', [
+                                'context' => 'feeds',
+                                'allTags' => $tags,
+                                'allOrganisations' => $orgs,
+                            ])
+                        ]
+                    ],
+                ],
+                'type' => 'xl',
+                'class' => 'pull-rule-modal',
+                'confirm' => [
+                    'title' => __('Update'),
+                    'onclick' => "serverRulesUpdateState('pull');"
+                ]
+            ];
+            echo $this->element('genericElements/infoModal', $modalData);
+        ?>
     </div>
 </div>
 <?php
@@ -237,7 +259,15 @@ var modelContext = 'Feed';
 $(document).ready(function() {
     feedDistributionChange();
     $("#pull_modify").click(function() {
-        serverRuleFormActivate('pull');
+        $('#genericModal.pull-rule-modal').modal().on('shown', function () {
+            var $containers = $(this).find('.rules-widget-container')
+            $containers.each(function() {
+                var initFun = $(this).data('funname');
+                if (typeof window[initFun] === 'function') {
+                    window[initFun]()
+                }
+            })
+        });
     });
     $("#FeedDistribution").change(function() {
         feedDistributionChange();
