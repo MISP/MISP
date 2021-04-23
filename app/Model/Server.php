@@ -1516,10 +1516,10 @@ class Server extends AppModel
 
     public function testLocalOrg($value)
     {
-        $this->Organisation = ClassRegistry::init('Organisation');
         if ($value == 0) {
-            return 'No organisation selected';
+            return true; // `No organisation selected` option
         }
+        $this->Organisation = ClassRegistry::init('Organisation');
         $local_orgs = $this->Organisation->find('list', array(
             'conditions' => array('local' => 1),
             'recursive' => -1,
