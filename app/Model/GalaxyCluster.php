@@ -574,6 +574,37 @@ class GalaxyCluster extends AppModel
     }
 
     /**
+     * wipe_default Delete all default galaxy clusters and their associations.
+     *  Relying on the cake's recursive deletion for the associations adds an non-negligible overhead.
+     *  Same for cake's before/afterDelete callbacks. We do it by hand to speed up the process
+     *
+     */
+    public function wipe_default()
+    {
+        $clusters = $this->find('all', [
+            'conditions' => ['default' => true],
+            'fields' => ['id', 'uuid']
+        ]);
+        $cluster_ids = Hash::extract($clusters, '{n}.GalaxyCluster.id');
+        $cluster_uuids = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
+        $relation_ids = $this->GalaxyClusterRelation->find('list', [
+            'conditions' => ['galaxy_cluster_id' => $cluster_ids],
+            'fields' => ['id']
+        ]);
+        $this->deleteAll(['GalaxyCluster.default' => true], false, false);
+        $this->GalaxyElement->deleteAll(['GalaxyElement.galaxy_cluster_id' => $cluster_ids], false, false);
+        $this->GalaxyClusterRelation->deleteAll(['GalaxyClusterRelation.galaxy_cluster_id' => $cluster_ids], false, false);
+        $this->GalaxyClusterRelation->updateAll(
+            ['GalaxyClusterRelation.referenced_galaxy_cluster_id' => 0],
+            ['GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $cluster_uuids] // For all default clusters being referenced
+        );
+        $this->GalaxyClusterRelation->GalaxyClusterRelationTag->deleteAll(['GalaxyClusterRelationTag.galaxy_cluster_relation_id' => $relation_ids], false, false);
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->createLogEntry('SYSTEM', 'wipe_default', 'GalaxyCluster', 0, "Wiping default galaxy clusters");
+    
+    }
+
+    /**
      * uploadClusterToServersRouter Upload the cluster to all remote servers
      *
      * @param  int $clusterId

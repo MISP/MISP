@@ -72,7 +72,8 @@ class Log extends AppModel
                     'upgrade_24',
                     'upload_sample',
                     'version_warning',
-                    'warning'
+                    'warning',
+                    'wipe_default'
                 )
             ),
             'message' => 'Options : ...'
