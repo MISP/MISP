@@ -95,6 +95,11 @@ class FeedsController extends AppController
         } else {
             $data = $this->paginate();
         }
+        foreach ($data as $i => $entry) {
+            if (!$this->_isSiteAdmin()) {
+                unset($data[$i]['Feed']['headers']);
+            }
+        }
         $this->loadModel('Event');
         foreach ($data as $key => $value) {
             if ($value['Feed']['event_id'] != 0 && $value['Feed']['fixed_event']) {
@@ -130,6 +135,9 @@ class FeedsController extends AppController
             'recursive' => -1,
             'contain' => array('Tag')
         ));
+        if (!$this->_isSiteAdmin()) {
+            unset($feed['Feed']['headers']);
+        }
         $feed['Feed']['cached_elements'] = $this->Feed->getCachedElements($feed['Feed']['id']);
         $feed['Feed']['coverage_by_other_feeds'] = $this->Feed->getFeedCoverage($feed['Feed']['id'], 'feed', 'all') . '%';
         if ($this->_isRest()) {
