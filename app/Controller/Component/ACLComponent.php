@@ -296,7 +296,10 @@ class ACLComponent extends Component
                         'perm_site_admin',
                     ]],
                     'toggleSelected' => array('perm_site_admin'),
-                    'view' => array('*'),
+                    'view' => ['OR' => [
+                        'host_org_user',
+                        'perm_site_admin',
+                    ]],
             ),
             'galaxies' => array(
                 'attachCluster' => array('perm_tagger'),

@@ -95,6 +95,7 @@ echo $this->element('genericElements/assetLoader', array(
 ?>
 
 <script>
+var pullRemoteRules404Error = '<?= __('Connection error or the remote version is not supporting remote filter lookups (v2.4.142+). Make sure that the remote instance is accessible and that it is up to date.') ?>'
 var cm;
 $(function() {
     var serverID = "<?= isset($id) ? $id : '' ?>"
@@ -118,6 +119,13 @@ $(function() {
                 },
                 function(errorMessage) {
                     showMessage('fail', '<?= __('Could not fetch remote sync filtering rules.') ?>');
+                    var regex = /Reponse was not OK\. \(HTTP code: (?<code>\d+)\)/m
+                    var matches = errorMessage.match(regex)
+                    if (matches !== null) {
+                        if (matches.groups !== undefined && matches.groups.code !== undefined) {
+                            errorMessage += '\n ↳ ' + pullRemoteRules404Error
+                        }
+                    }
                     $('div.notice-pull-rule-fetched.alert-warning').show().find('.reason').text(errorMessage)
                     $pickerTags.parent().remove()
                     $pickerOrgs.parent().remove()
@@ -136,15 +144,15 @@ $(function() {
         }
     }
 
-    function getPullFilteringRules(cb, fcb, acb) {
+    function getPullFilteringRules(callback, failCallback, alwaysCallback) {
         $.getJSON('/servers/queryAvailableSyncFilteringRules/' + serverID, function(availableRules) {
-            cb(availableRules)
+            callback(availableRules)
         })
         .fail(function(jqxhr, textStatus, error) {
-            fcb(jqxhr.responseJSON.message !== undefined ? jqxhr.responseJSON.message : textStatus)
+            failCallback(jqxhr.responseJSON.message !== undefined ? jqxhr.responseJSON.message : textStatus)
         })
         .always(function() {
-            acb()
+            alwaysCallback()
         })
     }
 
