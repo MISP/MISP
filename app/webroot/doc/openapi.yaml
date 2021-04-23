@@ -301,6 +301,24 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /events/restSearch:
+    post:
+      summary: "Get a filtered and paginated list of events"
+      operationId: restSearchEvents
+      tags:
+        - Events
+      parameters:
+        - $ref: "#/components/parameters/returnFormatParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/EventsRestSearchRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/EventsRestSearchResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /events/addTag/{eventId}/{tagId}:
     post:
       summary: "Add event tag"
@@ -858,6 +876,20 @@ components:
       items:
         $ref: "#/components/schemas/MinimalEvent"
 
+    EventRestSearchList:
+      type: array
+      items:
+        type: object
+        properties:
+          Event:
+            type: object
+            allOf:
+              - $ref: "#/components/schemas/ExtendedEvent"
+              - type: object
+                properties:
+                  Event:
+                    $ref: "#/components/schemas/MinimalEvent"
+
     # Objects
     Object: # TODO: describe
       type: object
@@ -1086,22 +1118,98 @@ components:
         - "asc"
         - "desc"
 
-    AttributesDateRestSearchFilter:
-      description: "The user set date field on the event level. You can use any of the valid time related filters (examples: 7d, timestamps, [14d, 7d] for ranges, etc.)"
+    DateRestSearchFilter:
+      description: "You can use any of the valid time related filters (examples: 7d, timestamps, [14d, 7d] for ranges, etc.)"
       type: string
       nullable: true
 
-    AttributesLastRestSearchFilter:
-      description: "Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
+    LastRestSearchFilter:
+      description: "Published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
       type: integer
       nullable: true
 
-    AttributesTagsRestSearchFilter:
+    TagsRestSearchFilter:
       nullable: true
       type: array
       items:
         type: string
         example: "tlp:amber"
+
+    MetadataRestSearchFilter:
+      description: "Will only return the metadata of the given query scope, contained data is omitted."
+      nullable: true
+      type: boolean
+
+    IncludeEventUUIDRestSearchFlag:
+      description: "Include matching eventUuids in the response"
+      type: boolean
+      default: false
+
+    IncludeEventTagsRestSearchFlag:
+      description: "Include tags of matching events in the response"
+      type: boolean
+      default: false
+
+    IncludeProposalsRestSearchFlag:
+      description: "Include proposals of matching events in the response"
+      type: boolean
+      default: false
+
+    EnforceWarninglistRestSearchFilter:
+      description: "Should the warning list be enforced. Adds blocked field for matching attributes"
+      nullable: true
+      type: boolean
+
+    RequestedAttributesRestSearchFilter:
+      description: "List of properties that will be selected in the CSV export"
+      type: array
+      items:
+        type: string
+        example: "id"
+
+    IncludeContextRestSearchFlag:
+      description: "Adds events context fields in the CSV export"
+      nullable: true
+      type: boolean
+
+    HeaderlessRestSearchFlag:
+      description: "Removes header in the CSV export"
+      nullable: true
+      type: boolean
+
+    IncludeWarninglistHitsRestSearchFlag:
+      nullable: true
+      type: boolean
+
+    AttackGalaxyRestSearchFilter:
+      nullable: true
+      type: string
+      example: "mitre-attack"
+
+    ExcludeLocalTagsRestSearchFilter:
+      description: "Exclude local tags from the export"
+      nullable: true
+      type: boolean
+
+    IncludeSightingDbRestSearchFlag:
+      description: "Extend response with Sightings DB results if the module is enabled"
+      nullable: true
+      type: boolean
+
+    IncludeCorrelationsRestSearchFlag:
+      nullable: true
+      type: boolean
+
+    ModelOverridesRestSearchFilter:
+      description: "Model parameters to override decaying model calculation"
+      nullable: true
+      $ref: "#/components/schemas/DecayingModelParameters"
+
+    ObjectRelationRestSearchFilter:
+      description: "Filter by the attribute object relation value"
+      nullable: true
+      type: string
+      example: "filepath"
 
     ApiError:
       type: object
@@ -1261,11 +1369,13 @@ components:
                   - $ref: "#/components/schemas/OrganisationId"
                   - $ref: "#/components/schemas/OrganisationName"
               tags:
-                $ref: "#/components/schemas/AttributesTagsRestSearchFilter"
-              date:
-                $ref: "#/components/schemas/AttributesDateRestSearchFilter"
+                $ref: "#/components/schemas/TagsRestSearchFilter"
+              from:
+                $ref: "#/components/schemas/DateRestSearchFilter"
+              to:
+                $ref: "#/components/schemas/DateRestSearchFilter"
               last:
-                $ref: "#/components/schemas/AttributesLastRestSearchFilter"
+                $ref: "#/components/schemas/LastRestSearchFilter"
               eventid:
                 $ref: "#/components/schemas/EventId"
               withAttachments:
@@ -1276,15 +1386,15 @@ components:
                 $ref: "#/components/schemas/UUID"
               publish_timestamp:
                 $ref: "#/components/schemas/Timestamp"
+              published:
+                $ref: "#/components/schemas/PublishedFlag"
               timestamp:
                 $ref: "#/components/schemas/Timestamp"
               attribute_timestamp:
                 description: "The timestamp at which the attribute was last modified"
                 $ref: "#/components/schemas/Timestamp"
               enforceWarninglist:
-                description: "Should the warning list be enforced. Adds blocked field for matching attributes"
-                type: boolean
-                default: false
+                $ref: "#/components/schemas/EnforceWarninglistRestSearchFilter"
               to_ids:
                 description: "The state of the `to_ids` flag"
                 $ref: "#/components/schemas/ToIDS"
@@ -1312,17 +1422,29 @@ components:
                 description: "Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
                 type: string
               includeEventUuid:
-                description: "Include matching eventUuids in the response"
-                type: boolean
-                default: false
+                $ref: "#/components/schemas/IncludeEventUUIDRestSearchFlag"
               includeEventTags:
-                description: "Include tags of matching events in the response"
-                type: boolean
-                default: false
+                $ref: "#/components/schemas/IncludeEventTagsRestSearchFlag"
               includeProposals:
-                description: "Include proposals of matching events in the response"
-                type: boolean
-                default: false
+                $ref: "#/components/schemas/IncludeProposalsRestSearchFlag"
+              requested_attributes:
+                $ref: "#/components/schemas/RequestedAttributesRestSearchFilter"
+              includeContext:
+                $ref: "#/components/schemas/IncludeContextRestSearchFlag"
+              headerless:
+                $ref: "#/components/schemas/HeaderlessRestSearchFlag"
+              includeWarninglistHits:
+                $ref: "#/components/schemas/IncludeWarninglistHitsRestSearchFlag"
+              attackGalaxy:
+                $ref: "#/components/schemas/AttackGalaxyRestSearchFilter"
+              object_relation:
+                $ref: "#/components/schemas/ObjectRelationRestSearchFilter"
+              includeSightings:
+                $ref: "#/components/schemas/IncludeSightingDbRestSearchFlag"
+              includeCorrelations:
+                $ref: "#/components/schemas/IncludeCorrelationsRestSearchFlag"
+              modelOverrides:
+                $ref: "#/components/schemas/ModelOverridesRestSearchFilter"
               includeDecayScore:
                 description: "Include all enabled decaying score"
                 type: boolean
@@ -1452,6 +1574,88 @@ components:
                 type: string
                 nullable: true
                 example: "1"
+
+    EventsRestSearchRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              page:
+                $ref: "#/components/schemas/PageSearchFilter"
+              limit:
+                $ref: "#/components/schemas/LimitSearchFilter"
+              value:
+                $ref: "#/components/schemas/AttributeValue"
+              type:
+                $ref: "#/components/schemas/AttributeType"
+              category:
+                $ref: "#/components/schemas/AttributeCategory"
+              org:
+                anyOf:
+                  - $ref: "#/components/schemas/OrganisationId"
+                  - $ref: "#/components/schemas/OrganisationName"
+              tags:
+                $ref: "#/components/schemas/TagsRestSearchFilter"
+              searchall:
+                description: "Search events by matching any tag names, event descriptions, attribute values or attribute comments"
+                type: string
+                example: malware
+              from:
+                $ref: "#/components/schemas/DateRestSearchFilter"
+              to:
+                $ref: "#/components/schemas/DateRestSearchFilter"
+              last:
+                $ref: "#/components/schemas/LastRestSearchFilter"
+              eventid:
+                $ref: "#/components/schemas/EventId"
+              withAttachments:
+                description: "Extends the response with the base64 representation of the attachment, if there is one"
+                type: boolean
+                default: false
+              metadata:
+                $ref: "#/components/schemas/MetadataRestSearchFilter"
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              publish_timestamp:
+                $ref: "#/components/schemas/Timestamp"
+              timestamp:
+                $ref: "#/components/schemas/Timestamp"
+              published:
+                $ref: "#/components/schemas/PublishedFlag"
+              enforceWarninglist:
+                $ref: "#/components/schemas/EnforceWarninglistRestSearchFilter"
+              sgReferenceOnly:
+                description: "Will only return the sharing group ID"
+                type: boolean
+              requested_attributes:
+                $ref: "#/components/schemas/RequestedAttributesRestSearchFilter"
+              includeContext:
+                $ref: "#/components/schemas/IncludeContextRestSearchFlag"
+              headerless:
+                $ref: "#/components/schemas/HeaderlessRestSearchFlag"
+              includeWarninglistHits:
+                $ref: "#/components/schemas/IncludeWarninglistHitsRestSearchFlag"
+              attackGalaxy:
+                $ref: "#/components/schemas/AttackGalaxyRestSearchFilter"
+              to_ids:
+                $ref: "#/components/schemas/ToIDS"
+              deleted:
+                description: "Include deleted elements"
+                $ref: "#/components/schemas/SoftDeletedFlag"
+              excludeLocalTags:
+                $ref: "#/components/schemas/ExcludeLocalTagsRestSearchFilter"
+              date:
+                $ref: "#/components/schemas/DateRestSearchFilter"
+              includeSightingdb:
+                $ref: "#/components/schemas/IncludeSightingDbRestSearchFlag"
+              tag:
+                $ref: "#/components/schemas/TagName"
+              object_relation:
+                $ref: "#/components/schemas/ObjectRelationRestSearchFilter"
+              threat_level_id:
+                $ref: "#/components/schemas/ThreatLevelId"
 
   responses:
     AttributeResponse:
@@ -1673,6 +1877,23 @@ components:
           schema:
             anyOf:
               - $ref: "#/components/schemas/ExtendedEvent"
+
+    EventsRestSearchResponse:
+      description: "Rest search events response"
+      headers:
+        X-Result-Count:
+          $ref: "#/components/headers/X-Result-Count"
+        X-Export-Module-Used:
+          $ref: "#/components/headers/X-Export-Module-Used"
+        X-Response-Format:
+          $ref: "#/components/headers/X-Response-Format"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              response:
+                $ref: "#/components/schemas/EventRestSearchList"
 
     ApiErrorResponse:
       description: "Unexpected API error"
