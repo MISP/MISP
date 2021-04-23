@@ -5455,10 +5455,10 @@ class EventsController extends AppController
         $editors = array_unique($editors);
 
         if ($event['Event']['timestamp'] > $timestamp && empty($editors)) {
-            $message = __('<b>Waning<b>: This event view is outdated. Please reload page to see latest changes.');
+            $message = __('<b>Warning<b>: This event view is outdated. Please reload page to see latest changes.');
             $this->set('class', 'alert');
         } else if ($event['Event']['timestamp'] > $timestamp) {
-            $message = __('<b>Waning<b>: This event view is outdated, because is currently being edited by: %s. Please reload page to see latest changes.', h(implode(', ', $editors)));
+            $message = __('<b>Warning<b>: This event view is outdated, because is currently being edited by: %s. Please reload page to see latest changes.', h(implode(', ', $editors)));
             $this->set('class', 'alert');
         } else if (empty($editors)) {
             return new CakeResponse(['status' => 204]);
