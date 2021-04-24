@@ -106,8 +106,7 @@ We invite software developers to use the native MISP format for exchanging threa
 If you want to contribute to our IETF Internet-Draft for the MISP standard, [misp-rfc](https://github.com/MISP/misp-rfc) is the repository to propose changes. 
 Each format folder has several files of different extensions, including XML and Markdown (MD). 
 You should update only the Markdown file; the XML and ASCII for the IETF I-D are automatically generated.
-If a major release or updates happen in the format, we will [publish the I-D to the IETF](https://datatracker.ietf.org/doc/search/?name=misp&
-activedrafts=on&rfcs=on).
+If a major release or updates happen in the format, we will [publish the I-D to the IETF](https://datatracker.ietf.org/doc/search/?name=misp&activedrafts=on&rfcs=on).
 
 ## Writing documentation
 
