@@ -2,10 +2,12 @@
 App::uses('AppController', 'Controller');
 
 /**
- * @property AuthKey $AuthKey
+ * @property Correlation $Correlation
  */
 class CorrelationsController extends AppController
 {
+    public $components = array('Security', 'RequestHandler');
+    
     public function top()
     {
         $options = [
@@ -28,7 +30,7 @@ class CorrelationsController extends AppController
         }
         $query = $this->CRUD->setFilters($params, $query);
         $query = $this->CRUD->setQuickFilters($params, $query, empty($options['quickFilters']) ? [] : $options['quickFilters']);
-        if ($this->IndexFilter->isRest()) {
+        if ($this->_isRest()) {
             $data = $this->Correlation->find('all', $query);
             return $this->RestResponse->viewData($data, 'json');
         } else {
