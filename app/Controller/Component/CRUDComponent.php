@@ -287,7 +287,7 @@ class CRUDComponent extends Component
         $this->Controller->render('/genericTemplates/delete');
     }
 
-    protected function setQuickFilters($params, array $query, $quickFilterFields)
+    public function setQuickFilters($params, array $query, $quickFilterFields)
     {
         if (!empty($params['quickFilter']) && !empty($quickFilterFields)) {
             $queryConditions = [];
@@ -300,7 +300,7 @@ class CRUDComponent extends Component
         return $query;
     }
 
-    protected function setFilters(array $params, array $query)
+    public function setFilters(array $params, array $query)
     {
         // For CakePHP 2, we don't need to distinguish between simpleFilters and relatedFilters
         //$params = $this->massageFilters($params);
