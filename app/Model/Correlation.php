@@ -218,6 +218,9 @@ class Correlation extends AppModel
 
     private function __saveCorrelations($correlations)
     {
+        if (empty($correlations)) {
+            return true;
+        }
         $fields = [
             'value', '1_event_id', '1_attribute_id', 'event_id', 'attribute_id', 'org_id',
             'distribution', 'a_distribution', 'sharing_group_id', 'a_sharing_group_id',
