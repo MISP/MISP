@@ -494,6 +494,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/correlation_exclusions/add',
                         'text' => __('Add Correlation Exclusion')
                     ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'top',
+                        'url' => $baseurl . '/correlations/top',
+                        'text' => __('Top Correlations')
+                    ));
                     break;
                 case 'warninglist':
                     if ($menuItem === 'view') {
