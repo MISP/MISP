@@ -2,7 +2,7 @@
 App::uses('AppController', 'Controller');
 
 /**
- * @property AuthKey $AuthKey
+ * @property CorrelationExclusion $CorrelationExclusion
  */
 class CorrelationExclusionsController extends AppController
 {
