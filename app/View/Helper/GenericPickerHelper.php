@@ -44,16 +44,16 @@ class GenericPickerHelper extends AppHelper {
         return $option_html;
     }
 
-    function add_link_params($param, $defaults=array()) {
+    function add_link_params($param, $defaults=array(), $ignoreFunction=false) {
         $param_html = ' ';
-        if (isset($param['functionName'])) {
+        if (!$ignoreFunction && isset($param['functionName'])) {
             $param_html .= sprintf('onclick="execAndClose(this, %s)" ', h($param['functionName']));
         } else { // fallback to default submit function
-            if ($defaults['functionName'] !== '') {
+            if (!$ignoreFunction && $defaults['functionName'] !== '') {
                 $param_html .= 'onclick="submitFunction(this, ' . h($defaults['functionName']) . ')" ';
                 $param_html .= sprintf('onclick="submitFunction(this, %s)" ', h($defaults['functionName']));
             } else {
-                $param_html .= sprintf('data-endpoint="%s" onclick="fetchRequestedData(this)" ', h($param['value']));
+                $param_html .= sprintf('data-endpoint="%s" onclick="fetchRequestedData(this); event.stopPropagation(); return false;" ', h($param['value']));;
             }
         }
 
@@ -85,6 +85,12 @@ class GenericPickerHelper extends AppHelper {
         }
         if (isset($param['isMatrix']) && $param['isMatrix']) {
             $span = '<span style="position: absolute; font-size: 8px; top: 2px;" class="fa fa-th" title="' . __('Start the galaxy matrix picker') . '"></span>';
+            $pill_html .= $span;
+            $span = sprintf(
+                '<button class="btn btn-mini" style="float: right; display: inline-block; margin-left: 16px; margin-top: -4px; margin-right: -5px;" %s>%s</button>',
+                $this->add_link_params($param, $defaults, true),
+                '<span class="fa fa-list" title="' . __('Use the picker instead') . '"></span>'
+            );
             $pill_html .= $span;
         }
         $pill_html .= '</a>';

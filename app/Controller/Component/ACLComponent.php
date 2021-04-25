@@ -265,7 +265,9 @@ class ACLComponent extends Component
                     'viewEventAttributes' => array('*'),
                     'viewGraph' => array('*'),
                     'viewGalaxyMatrix' => array('*'),
-                    'xml' => array('*')
+                    'xml' => array('*'),
+                'addEventLock' => ['perm_auth'],
+                'removeEventLock' => ['perm_auth'],
             ),
             'favouriteTags' => array(
                 'toggle' => array('*'),
@@ -297,7 +299,10 @@ class ACLComponent extends Component
                         'perm_site_admin',
                     ]],
                     'toggleSelected' => array('perm_site_admin'),
-                    'view' => array('*'),
+                    'view' => ['OR' => [
+                        'host_org_user',
+                        'perm_site_admin',
+                    ]],
             ),
             'galaxies' => array(
                 'attachCluster' => array('perm_tagger'),
@@ -316,6 +321,7 @@ class ACLComponent extends Component
                 'update' => array(),
                 'view' => array('*'),
                 'viewGraph' => array('*'),
+                'wipe_default' => array(),
             ),
             'galaxyClusterBlocklists' => array(
                 'add' => array(),
@@ -349,12 +355,14 @@ class ACLComponent extends Component
                 'view' => array('*'),
             ),
             'galaxyElements' => array(
-                    'index' => array('*')
+                'delete' => array('perm_galaxy_editor'),
+                'flattenJson' => array('perm_galaxy_editor'),
+                'index' => array('*'),
             ),
             'jobs' => array(
                     'cache' => array('*'),
                     'getError' => array(),
-                    'getGenerateCorrelationProgress' => array('*'),
+                    'getGenerateCorrelationProgress' => array(),
                     'getProgress' => array('*'),
                     'index' => array(),
                     'clearJobs' => array()
@@ -415,6 +423,7 @@ class ACLComponent extends Component
                 'edit' => array('perm_object_template'),
                 'delete' => array('perm_object_template'),
                 'getToggleField' => array(),
+                'getRaw' => array('perm_object_template'),
                 'objectChoice' => array('*'),
                 'objectMetaChoice' => array('perm_add'),
                 'view' => array('*'),
@@ -488,6 +497,7 @@ class ACLComponent extends Component
                     'fetchServersForSG' => array('perm_sharing_group'),
                     'filterEventIndex' => array(),
                     'getApiInfo' => array('*'),
+                    'getAvailableSyncFilteringRules' => array('*'),
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
                     'getRemoteUser' => array(),
@@ -495,7 +505,7 @@ class ACLComponent extends Component
                     'getSubmodulesStatus' => array(),
                     'getSubmoduleQuickUpdateForm' => array(),
                     'getWorkers' => array(),
-                    'getVersion' => array('*'),
+                    'getVersion' => array('perm_auth'),
                     'idTranslator' => ['OR' => [
                         'host_org_user',
                         'perm_site_admin',
@@ -503,15 +513,17 @@ class ACLComponent extends Component
                     'import' => array(),
                     'index' => array(),
                     'ondemandAction' => array(),
-                    'postTest' => array('perm_sync'),
+                    'postTest' => array('*'),
                     'previewEvent' => array(),
                     'previewIndex' => array(),
                     'compareServers' => [],
                     'pull' => array(),
                     'purgeSessions' => array(),
                     'push' => array(),
+                    'queryAvailableSyncFilteringRules' => array('*'),
                     'releaseUpdateLock' => array(),
                     'resetRemoteAuthKey' => array(),
+                    'removeOrphanedCorrelations' => array('perm_site_admin'),
                     'rest' => array('perm_auth'),
                     'restartDeadWorkers' => array(),
                     'restartWorkers' => array(),
@@ -531,6 +543,7 @@ class ACLComponent extends Component
                     'uploadFile' => array(),
                     'viewDeprecatedFunctionUse' => array(),
                     'killAllWorkers' => ['perm_site_admin'],
+                'cspReport' => ['*'],
             ),
             'shadowAttributes' => array(
                     'accept' => array('perm_add'),
@@ -545,6 +558,7 @@ class ACLComponent extends Component
                     'generateCorrelation' => array(),
                     'index' => array('*'),
                     'view' => array('*'),
+                    'viewPicture' => array('*'),
             ),
             'sharingGroups' => array(
                     'add' => array('perm_sharing_group'),
@@ -683,7 +697,7 @@ class ACLComponent extends Component
                     'register' => array('*'),
                     'registrations' => array('perm_site_admin'),
                     'resetAllSyncAuthKeys' => array(),
-                    'resetauthkey' => array('*'),
+                    'resetauthkey' => ['AND' => ['self_management_enabled', 'perm_auth']],
                     'request_API' => array('*'),
                     'routeafterlogin' => array('*'),
                     'statistics' => array('*'),
@@ -702,7 +716,8 @@ class ACLComponent extends Component
                     'setSetting' => array('*'),
                     'getSetting' => array('*'),
                     'delete' => array('*'),
-                    'setHomePage' => array('*')
+                    'setHomePage' => array('*'),
+                'eventIndexColumnToggle' => ['*'],
             ),
             'warninglists' => array(
                     'checkValue' => array('perm_auth'),
@@ -723,6 +738,7 @@ class ACLComponent extends Component
             ),
             'eventGraph' => array(
                     'view' => array('*'),
+                    'viewPicture' => array('*'),
                     'add' => array('perm_add'),
                     'delete' => array('perm_modify'),
             )

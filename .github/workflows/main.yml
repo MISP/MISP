@@ -20,13 +20,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-20.04]
         php: ['7.2', '7.3', '7.4']
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
 
       # Stop mysql
       - name: Shutdown Ubuntu MySQL (SUDO)
@@ -57,18 +59,20 @@ jobs:
       - name: Initialize variables
         run: |
           echo "USER=`id -u -n`" >> $GITHUB_ENV
-          echo "HOST=`hostname`" >> $GITHUB_ENV
+          echo "HOST=localhost" >> $GITHUB_ENV
 
       # Runs a set of commands using the runners shell
       - name: Install deps
         env:
           php_version: ${{ matrix.php }}
         run: |
-              git submodule update --init --recursive
               sudo apt-get -y update
-              sudo apt-get -y install curl python3 python3-venv virtualenv python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version php$php_version-xml php$php_version-mbstring php$php_version-mysql libfuzzy-dev libemail-address-perl libemail-outlook-message-perl
-              sudo pip3 install --upgrade pip setuptools requests pyzmq poetry
+              # Repo is missing for unknown reason
+              LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
+              sudo apt-get -y install curl python3 python3-zmq python3-requests python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version libfuzzy-dev
+              sudo pip3 install virtualenv # virtualenv must be instaled from pip and not from ubuntu pacckages
               sudo pip3 install --upgrade -r requirements.txt
+              curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
               sudo chown $USER:www-data $HOME/.composer
               pushd app
               sudo -H -u $USER php composer.phar install --no-progress
@@ -185,7 +189,7 @@ jobs:
               sudo chmod -R 777 ./tests
               # Start workers
               # Dirty install python stuff
-              virtualenv -p python3 ./venv
+              python3 -m virtualenv -p python3 ./venv
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
               pushd cti-python-stix2
@@ -199,6 +203,8 @@ jobs:
 
       - name: Test if apache is working
         run: |
+              sudo systemctl status apache2 --no-pager -l
+              sudo apache2ctl -S
               curl http://${HOST}
               sudo chmod -R 777 PyMISP
               pushd PyMISP
@@ -209,9 +215,11 @@ jobs:
 
       - name: Run tests
         run: |
+              source $HOME/.poetry/env # enable poetry binary
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
               ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
               ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
+              ./app/Vendor/bin/phpunit app/Test/CidrToolTest.php
 
               # Ensure the perms of config files
               sudo chown -R $USER:www-data `pwd`/app/Config
@@ -241,3 +249,4 @@ jobs:
         if: ${{ always() }}
         run: |
               tail -n +1 `pwd`/app/tmp/logs/*
+              tail -n +1 /var/log/apache2/*.log

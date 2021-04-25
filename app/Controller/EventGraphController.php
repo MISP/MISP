@@ -50,6 +50,37 @@ class EventGraphController extends AppController
         return $this->RestResponse->viewData($eventGraphs, $this->response->type());
     }
 
+    public function viewPicture($event_id, $graph_id)
+    {
+        $this->loadModel('Event');
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $event_id);
+        if (empty($event)) {
+            throw new NotFoundException('Invalid event');
+        }
+
+        $conditions = [
+            'EventGraph.event_id' => $event['Event']['id'],
+            'EventGraph.org_id' => $this->Auth->user('org_id'),
+            'EventGraph.id' => $graph_id,
+        ];
+        $eventGraph = $this->EventGraph->find('first', array(
+            'conditions' => $conditions,
+            'contain' => array(
+                'User' => array(
+                    'fields' => array(
+                        'User.email'
+                    )
+                )
+            )
+        ));
+        if (empty($eventGraph)) {
+            throw new MethodNotAllowedException('Invalid event graph');
+        }
+        $eventGraph = $eventGraph;
+        $imageData = $this->EventGraph->getPictureData($eventGraph);
+        return new CakeResponse(array('body' => $imageData, 'type' => 'png'));
+    }
+
     public function add($event_id = false)
     {
         if ($this->request->is('get')) {

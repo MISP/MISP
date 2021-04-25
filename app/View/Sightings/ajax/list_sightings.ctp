@@ -18,7 +18,7 @@ $deleteSightingTitle = __('Delete sighting');
     foreach ($sightings as $item):
 ?>
     <tr>
-        <td class="short"><?php echo date('Y-m-d H:i:s', $item['Sighting']['date_sighting']);?></td>
+        <td class="short"><?= $this->Time->time($item['Sighting']['date_sighting']) ?></td>
         <td class="short">
           <?php if ($item['Organisation']['name']) {
               echo $this->OrgImg->getOrgImg(array('name' => $item['Organisation']['name'], 'id' => $item['Sighting']['org_id'], 'size' => 24));

@@ -7,7 +7,7 @@
                     $stackTrace = "";
                     if (isset($response['backtrace']) && !empty($response['backtrace'])) {
                         foreach ($response['backtrace'] as $line) {
-                            $stackTrace .= h($line) . '</br>';
+                            $stackTrace .= h($line) . '<br>';
                         }
                     }
                     foreach ($fields as $name => $content):

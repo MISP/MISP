@@ -32,7 +32,10 @@ class Feed extends AppModel
             'rule' => array('urlOrExistingFilepath')
         ),
         'provider' => 'valueNotEmpty',
-        'name' => 'valueNotEmpty',
+        'name' => [
+            'rule' => 'valueNotEmpty',
+            'required' => true,
+        ],
         'event_id' => array(
             'rule' => array('numeric'),
             'message' => 'Please enter a numeric event ID or leave this field blank.',
@@ -207,7 +210,7 @@ class Feed extends AppModel
      * @return array
      * @throws Exception
      */
-    public function getManifest($feed, HttpSocket $HttpSocket = null)
+    public function getManifest(array $feed, HttpSocket $HttpSocket = null)
     {
         $events = $this->downloadManifest($feed, $HttpSocket);
         $events = $this->__filterEventsIndex($events, $feed);
@@ -658,13 +661,19 @@ class Feed extends AppModel
         return true;
     }
 
-    private function __filterEventsIndex($events, $feed)
+    private function __filterEventsIndex(array $events, array $feed)
     {
         $filterRules = $this->__prepareFilterRules($feed);
         if (!$filterRules) {
             $filterRules = array();
         }
         foreach ($events as $k => $event) {
+            if (isset($event['orgc']) && !isset($event['Orgc'])) { // fix key case
+                $event['Orgc'] = $event['orgc'];
+                unset($event['orgc']);
+                $events[$k] = $event;
+            }
+
             if (isset($filterRules['orgs']['OR']) && !empty($filterRules['orgs']['OR']) && !in_array($event['Orgc']['name'], $filterRules['orgs']['OR'])) {
                 unset($events[$k]);
                 continue;
@@ -767,7 +776,13 @@ class Feed extends AppModel
         return $result;
     }
 
-    private function __prepareEvent($event, $feed, $filterRules)
+    /**
+     * @param array $event
+     * @param array $feed
+     * @param array $filterRules
+     * @return array|string
+     */
+    private function __prepareEvent($event, array $feed, $filterRules)
     {
         if (isset($event['response'])) {
             $event = $event['response'];
@@ -776,7 +791,11 @@ class Feed extends AppModel
             $event = $event[0];
         }
         if (!isset($event['Event']['uuid'])) {
-            throw new Exception("Event uuid field missing.");
+            throw new InvalidArgumentException("Event UUID field missing.");
+        }
+        if (isset($event['Event']['orgc']) && !isset($event['Event']['Orgc'])) { // fix key case
+            $event['Event']['Orgc'] = $event['Event']['orgc'];
+            unset($event['Event']['orgc']);
         }
         $event['Event']['distribution'] = $feed['Feed']['distribution'];
         $event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
@@ -994,7 +1013,7 @@ class Feed extends AppModel
      * @return bool
      * @throws Exception
      */
-    public function saveFreetextFeedData($feed, $data, $user, $jobId = false)
+    public function saveFreetextFeedData(array $feed, array $data, array $user, $jobId = false)
     {
         $this->Event = ClassRegistry::init('Event');
 
@@ -1037,25 +1056,14 @@ class Feed extends AppModel
             }
         }
         if ($feed['Feed']['fixed_event']) {
-            $existsAttributes = $this->Event->Attribute->find('all', array(
+            $existsAttributesValueToId = $this->Event->Attribute->find('list', array(
                 'conditions' => array(
                     'Attribute.deleted' => 0,
                     'Attribute.event_id' => $event['Event']['id']
                 ),
                 'recursive' => -1,
-                'fields' => array('id', 'value1', 'value2')
+                'fields' => array('value', 'id')
             ));
-            $existsAttributesValueToId = array();
-            foreach ($existsAttributes as $t) {
-                if (!empty($t['Attribute']['value2'])) {
-                    $value = $t['Attribute']['value1'] . '|' . $t['Attribute']['value2'];
-                } else {
-                    $value = $t['Attribute']['value1'];
-                }
-                // Since event values are unique, it is OK to put value into key
-                $existsAttributesValueToId[$value] = $t['Attribute']['id'];
-            }
-            unset($existsAttributes);
 
             // Create event diff. After this cycle, `$data` will contains just attributes that do not exists in current
             // event and in `$existsAttributesValueToId` will contains just attributes that do not exists in current feed.
@@ -1095,7 +1103,6 @@ class Feed extends AppModel
             return true;
         }
 
-        $data = array_values($data);
         $uniqueValues = array();
         foreach ($data as $key => $value) {
             if (isset($uniqueValues[$value['value']])) {
@@ -1125,7 +1132,7 @@ class Feed extends AppModel
             $this->Event->publishRouter($event['Event']['id'], null, $user);
         }
         if ($feed['Feed']['tag_id']) {
-            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], $feed['Feed']['tag_id']);
+            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $feed['Feed']['tag_id']]);
         }
         return true;
     }
@@ -1235,7 +1242,7 @@ class Feed extends AppModel
         $md5Values = array_map('md5', array_column($values, 'value'));
 
         $redis->del('misp:feed_cache:' . $feedId);
-        foreach (array_chunk($md5Values, 1000) as $k => $chunk) {
+        foreach (array_chunk($md5Values, 5000) as $k => $chunk) {
             $pipe = $redis->multi(Redis::PIPELINE);
             if (method_exists($redis, 'sAddArray')) {
                 $redis->sAddArray('misp:feed_cache:' . $feedId, $chunk);
@@ -1247,7 +1254,7 @@ class Feed extends AppModel
                 }
             }
             $pipe->exec();
-            $this->jobProgress($jobId, __('Feed %s: %s/%s values cached.', $feedId, $k * 1000, count($md5Values)));
+            $this->jobProgress($jobId, __('Feed %s: %s/%s values cached.', $feedId, $k * 5000, count($md5Values)));
         }
         $redis->set('misp:feed_cache_timestamp:' . $feedId, time());
         return true;
@@ -1469,7 +1476,7 @@ class Feed extends AppModel
                     }
                 }
                 $this->create();
-                if (!$this->save($feed, true, array('name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings', 'tag_id', 'default', 'lookup_visible'))) {
+                if (!$this->save($feed, true, array('name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings', 'tag_id', 'default', 'lookup_visible', 'headers'))) {
                     $results['fails']++;
                 } else {
                     $results['successes']++;
@@ -1615,7 +1622,6 @@ class Feed extends AppModel
 
     public function searchCaches($value)
     {
-        $value = strtolower(trim($value));
         $hits = array();
         $this->Server = ClassRegistry::init('Server');
         $result['Server'] = $this->Server->find('all', array(
@@ -1626,82 +1632,105 @@ class Feed extends AppModel
             'fields' => array('Server.id', 'Server.name', 'Server.url')
         ));
         $redis = $this->setupRedis();
-        if (empty($value) || $redis->sismember('misp:feed_cache:combined', md5($value))) {
-            $feeds = $this->find('all', array(
-                'conditions' => array(
-                    'caching_enabled' => 1
-                ),
-                'recursive' => -1,
-                'fields' => array('Feed.id', 'Feed.name', 'Feed.url', 'Feed.source_format')
-            ));
-            foreach ($feeds as $feed) {
-                if (empty($value) || $redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], md5($value))) {
-                    if ($feed['Feed']['source_format'] === 'misp') {
-                        $uuid = $redis->smembers('misp:feed_cache:event_uuid_lookup:' . md5($value));
-                        foreach ($uuid as $k => $url) {
-                            $uuid[$k] = explode('/', $url)[1];
-                        }
-                        $feed['Feed']['uuid'] = $uuid;
-                        if (!empty($feed['Feed']['uuid'])) {
-                            foreach ($feed['Feed']['uuid'] as $uuid) {
+        $is_array = true;
+        if (!is_array($value)) {
+            $is_array = false;
+            if (empty($value)) {
+                // old behaviour allowd for empty values to return all data
+                $value = [false];
+            } else {
+                $value = [$value];
+            }
+        }
+        foreach ($value as $v) {
+            if ($v !== false) {
+                $v = strtolower(trim($v));
+            }
+            if ($v === false || $redis->sismember('misp:feed_cache:combined', md5($v))) {
+                $feeds = $this->find('all', array(
+                    'conditions' => array(
+                        'caching_enabled' => 1
+                    ),
+                    'recursive' => -1,
+                    'fields' => array('Feed.id', 'Feed.name', 'Feed.url', 'Feed.source_format')
+                ));
+                foreach ($feeds as $feed) {
+                    if (($v === false) || $redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], md5($v))) {
+                        if ($feed['Feed']['source_format'] === 'misp') {
+                            $uuid = $redis->smembers('misp:feed_cache:event_uuid_lookup:' . md5($v));
+                            foreach ($uuid as $k => $url) {
+                                $uuid[$k] = explode('/', $url)[1];
+                            }
+                            $feed['Feed']['uuid'] = $uuid;
+                            if (!empty($feed['Feed']['uuid'])) {
+                                foreach ($feed['Feed']['uuid'] as $uuid) {
+                                    $feed['Feed']['direct_urls'][] = array(
+                                        'url' => sprintf(
+                                            '%s/feeds/previewEvent/%s/%s',
+                                            Configure::read('MISP.baseurl'),
+                                            h($feed['Feed']['id']),
+                                            h($uuid)
+                                        ),
+                                        'name' => __('Event %s', $uuid)
+                                    );
+                                }
+                            }
+                            $feed['Feed']['type'] = 'MISP Feed';
+                        } else {
+                            $feed['Feed']['type'] = 'Feed';
+                            if (!empty($v)) {
                                 $feed['Feed']['direct_urls'][] = array(
                                     'url' => sprintf(
-                                        '%s/feeds/previewEvent/%s/%s',
+                                        '%s/feeds/previewIndex/%s',
                                         Configure::read('MISP.baseurl'),
-                                        h($feed['Feed']['id']),
-                                        h($uuid)
+                                        h($feed['Feed']['id'])
                                     ),
-                                    'name' => __('Event %s', $uuid)
+                                    'name' => __('Feed %s', $feed['Feed']['id'])
                                 );
                             }
                         }
-                        $feed['Feed']['type'] = 'MISP Feed';
-                    } else {
-                        $feed['Feed']['type'] = 'Feed';
-                        if (!empty($value)) {
-                            $feed['Feed']['direct_urls'][] = array(
-                                'url' => sprintf(
-                                    '%s/feeds/previewIndex/%s',
-                                    Configure::read('MISP.baseurl'),
-                                    h($feed['Feed']['id'])
-                                ),
-                                'name' => __('Feed %s', $feed['Feed']['id'])
-                            );
+                        if ($is_array) {
+                            $hits[$v][] = $feed;
+                        } else {
+                            $hits[] = $feed;
                         }
                     }
-                    $hits[] = $feed;
                 }
             }
-        }
-        if (empty($value) || $redis->sismember('misp:server_cache:combined', md5($value))) {
-            $this->Server = ClassRegistry::init('Server');
-            $servers = $this->Server->find('all', array(
-                'conditions' => array(
-                    'caching_enabled' => 1
-                ),
-                'recursive' => -1,
-                'fields' => array('Server.id', 'Server.name', 'Server.url')
-            ));
-            foreach ($servers as $server) {
-                if (empty($value) || $redis->sismember('misp:server_cache:' . $server['Server']['id'], md5($value))) {
-                    $uuid = $redis->smembers('misp:server_cache:event_uuid_lookup:' . md5($value));
-                    if (!empty($uuid)) {
-                        foreach ($uuid as $k => $url) {
-                            $uuid[$k] = explode('/', $url)[1];
-                            $server['Server']['direct_urls'][] = array(
-                                'url' => sprintf(
-                                    '%s/servers/previewEvent/%s/%s',
-                                    Configure::read('MISP.baseurl'),
-                                    h($server['Server']['id']),
-                                    h($uuid[$k])
-                                ),
-                                'name' => __('Event %s', h($uuid[$k]))
-                            );
+            if ($v === false || $redis->sismember('misp:server_cache:combined', md5($v))) {
+                $this->Server = ClassRegistry::init('Server');
+                $servers = $this->Server->find('all', array(
+                    'conditions' => array(
+                        'caching_enabled' => 1
+                    ),
+                    'recursive' => -1,
+                    'fields' => array('Server.id', 'Server.name', 'Server.url')
+                ));
+                foreach ($servers as $server) {
+                    if ($v === false || $redis->sismember('misp:server_cache:' . $server['Server']['id'], md5($v))) {
+                        $uuid = $redis->smembers('misp:server_cache:event_uuid_lookup:' . md5($v));
+                        if (!empty($uuid)) {
+                            foreach ($uuid as $k => $url) {
+                                $uuid[$k] = explode('/', $url)[1];
+                                $server['Server']['direct_urls'][] = array(
+                                    'url' => sprintf(
+                                        '%s/servers/previewEvent/%s/%s',
+                                        Configure::read('MISP.baseurl'),
+                                        h($server['Server']['id']),
+                                        h($uuid[$k])
+                                    ),
+                                    'name' => __('Event %s', h($uuid[$k]))
+                                );
+                            }
+                        }
+                        $server['Server']['uuid'] = $uuid;
+                        $server['Server']['type'] = 'MISP Server';
+                        if ($is_array) {
+                            $hits[$v][] = array('Feed' => $server['Server']);
+                        } else {
+                            $hits[] = array('Feed' => $server['Server']);
                         }
                     }
-                    $server['Server']['uuid'] = $uuid;
-                    $server['Server']['type'] = 'MISP Server';
-                    $hits[] = array('Feed' => $server['Server']);
                 }
             }
         }

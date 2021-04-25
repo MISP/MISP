@@ -24,10 +24,11 @@
         </div>
     </div>
     <span id="fullscreen-btn-timeline" class="fullscreen-btn-timeline btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
+    <span class="timeline-help shortcut-help btn btn-xs btn-info">?</span>
 </div>
 
 <?php
-    echo $this->Html->script('moment-with-locales');
+    echo $this->Html->script('moment.min');
     echo $this->Html->script('event-timeline');
     echo $this->Html->css('event-timeline');
 ?>

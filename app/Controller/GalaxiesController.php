@@ -66,9 +66,24 @@ class GalaxiesController extends AppController
             $force = 0;
         }
         $result = $this->Galaxy->update($force);
-        $message = 'Galaxies updated.';
+        $message = __('Galaxies updated.');
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Galaxy', 'update', false, $this->response->type(), $message);
+        } else {
+            $this->Flash->success($message);
+            $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+        }
+    }
+
+    public function wipe_default()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This action is only accessible via POST requests.');
+        }
+        $result = $this->Galaxy->GalaxyCluster->wipe_default();
+        $message = __('Default galaxy clusters dropped.');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Galaxy', 'wipe_default', false, $this->response->type(), $message);
         } else {
             $this->Flash->success($message);
             $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
@@ -267,6 +282,7 @@ class GalaxiesController extends AppController
     {
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
         $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
+        $eventid = !empty($this->params['named']['eventid']) ? $this->params['named']['eventid'] : '0';
         $conditions = $namespace === '0' ? array() : array('namespace' => $namespace);
         $galaxies = $this->Galaxy->find('all', array(
             'recursive' => -1,
@@ -278,14 +294,14 @@ class GalaxiesController extends AppController
         $items = array(
             array(
                 'name' => __('All clusters'),
-                'value' => $this->baseurl . "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'. '/local:' . $local
+                'value' => $this->baseurl . "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'. '/local:' . $local . '/eventid:' . $eventid
             )
         );
         foreach ($galaxies as $galaxy) {
             if (!isset($galaxy['Galaxy']['kill_chain_order']) || $noGalaxyMatrix) {
                 $items[] = array(
                     'name' => h($galaxy['Galaxy']['name']),
-                    'value' => $this->baseurl . "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local,
+                    'value' => $this->baseurl . "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local . '/eventid:' . $eventid,
                     'template' => array(
                         'preIcon' => 'fa-' . $galaxy['Galaxy']['icon'],
                         'name' => $galaxy['Galaxy']['name'],
@@ -295,12 +311,14 @@ class GalaxiesController extends AppController
             } else { // should use matrix instead
                 $param = array(
                     'name' => $galaxy['Galaxy']['name'],
+                    'value' => $this->baseurl . "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local . '/eventid:' . $eventid,
                     'functionName' => sprintf(
-                        "getMatrixPopup('%s', '%s', '%s/local:%s')",
+                        "getMatrixPopup('%s', '%s', '%s/local:%s/eventid:%s')",
                         $target_type,
                         $target_id,
                         $galaxy['Galaxy']['id'],
-                        $local
+                        $local,
+                        $eventid
                     ),
                     'isPill' => true,
                     'isMatrix' => true
@@ -325,15 +343,17 @@ class GalaxiesController extends AppController
             'order' => array('namespace asc')
         ));
         $local = !empty($this->params['named']['local']) ? '1' : '0';
+        $eventid = !empty($this->params['named']['eventid']) ? $this->params['named']['eventid'] : '0';
         $items = array();
+        $noGalaxyMatrix = $noGalaxyMatrix ? '1' : '0';
         $items[] = array(
             'name' => __('All namespaces'),
-            'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/' . $noGalaxyMatrix . '/local:' . $local
+            'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/' . $noGalaxyMatrix . '/local:' . $local . '/eventid:' . $eventid
         );
         foreach ($namespaces as $namespace) {
             $items[] = array(
                 'name' => $namespace,
-                'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/' . $noGalaxyMatrix . '/local:' . $local
+                'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/' . $noGalaxyMatrix . '/local:' . $local . '/eventid:' . $eventid
             );
         }
 
@@ -553,8 +573,8 @@ class GalaxiesController extends AppController
         if (empty($clusters)) {
             throw new MethodNotAllowedException('Invalid Galaxy.');
         }
+        $this->Galaxy->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
         foreach ($clusters as $k => $cluster) {
-            $clusters[$k] = $this->Galaxy->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
             $clusters[$k] = $this->Galaxy->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
         }
         $galaxy = $this->Galaxy->find('first', array(
@@ -581,8 +601,7 @@ class GalaxiesController extends AppController
             'conditions' => array('Galaxy.id' => $galaxyId)
         ));
         App::uses('ClusterRelationsGraphTool', 'Tools');
-        $grapher = new ClusterRelationsGraphTool();
-        $grapher->construct($this->Auth->user(), $this->Galaxy->GalaxyCluster);
+        $grapher = new ClusterRelationsGraphTool($this->Auth->user(), $this->Galaxy->GalaxyCluster);
         $relations = $grapher->getNetwork($clusters);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($relations, $this->response->type());

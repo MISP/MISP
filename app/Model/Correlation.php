@@ -282,11 +282,11 @@ class Correlation extends AppModel
         if (!empty($a['disable_correlation']) || Configure::read('MISP.completely_disable_correlation')) {
             return true;
         }
-        if ($this->__preventExcludedCorrelations($a)) {
-            return true;
-        }
         // Don't do any correlation if the type is a non correlating type
         if (in_array($a['type'], $this->Attribute->nonCorrelatingTypes)) {
+            return true;
+        }
+        if ($this->__preventExcludedCorrelations($a)) {
             return true;
         }
         if (!$event) {
@@ -434,7 +434,32 @@ class Correlation extends AppModel
                     $conditions['INET_ATON(value1) BETWEEN ? AND ?'] = array($startIp, $endIp);
 
                     // Just fetch IPv4 address that starts with given prefix. This is fast, because value1 is indexed.
-                    // This optimisation is possible just to mask bigger than 8 bits.
+                    // This optimisation is possible just to mask bigger than 8 bites.
+                    if ($mask >= 8) {
+                        $ipv4Parts = explode('.', $networkIp);
+                        $ipv4Parts = array_slice($ipv4Parts, 0, intval($mask / 8));
+                        $prefix = implode('.', $ipv4Parts);
+                        $conditions['value1 LIKE'] = $prefix . '%';
+                    }
+                } else {
+                    $conditions[] = 'IS_IPV6(value1)';
+                    // Just fetch IPv6 address that starts with given prefix. This is fast, because value1 is indexed.
+                    if ($mask >= 16) {
+                        $ipv6Parts = explode(':', rtrim($networkIp, ':'));
+                        $ipv6Parts = array_slice($ipv6Parts, 0, intval($mask / 16));
+                        $prefix = implode(':', $ipv6Parts);
+                        $conditions['value1 LIKE'] = $prefix . '%';
+                    }
+                }// Massive speed up for CIDR correlation. Instead of testing all in PHP, database can do that work much
+                // faster. But these methods are just supported by MySQL.
+                if ($ip_version === 4) {
+                    $startIp = ip2long($networkIp) & ((-1 << (32 - $mask)));
+                    $endIp = $startIp + pow(2, (32 - $mask)) - 1;
+                    // Just fetch IP address that fit in CIDR range.
+                    $conditions['INET_ATON(value1) BETWEEN ? AND ?'] = array($startIp, $endIp);
+
+                    // Just fetch IPv4 address that starts with given prefix. This is fast, because value1 is indexed.
+                    // This optimisation is possible just to mask bigger than 8 bites.
                     if ($mask >= 8) {
                         $ipv4Parts = explode('.', $networkIp);
                         $ipv4Parts = array_slice($ipv4Parts, 0, intval($mask / 8));

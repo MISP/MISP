@@ -82,7 +82,7 @@
                     )
                 ),
                 array(
-                    'name' => __('Id'),
+                    'name' => __('ID'),
                     'sort' => 'Feed.id',
                     'class' => 'short',
                     'data_path' => 'Feed.id',
@@ -108,6 +108,7 @@
                     'name' => __('Name'),
                     'class' => 'shortish',
                     'data_path' => 'Feed.name',
+                    'sort' => 'Feed.name',
                 ),
                 array(
                     'name' => __('Format'),
@@ -143,7 +144,8 @@
                 array(
                     'name' => __('Headers'),
                     'class' => 'shortish',
-                    'data_path' => 'Feed.headers'
+                    'data_path' => 'Feed.headers',
+                    'requirement' => $isSiteAdmin
                 ),
                 array(
                     'name' => __('Target'),
@@ -190,7 +192,8 @@
                     'name' => __('Tag'),
                     'class' => 'short',
                     'data_path' => 'Tag',
-                    'element' => 'tags'
+                    'element' => 'tags',
+                    'scope' => 'feeds'
                 ),
                 array(
                     'name' => __('Visible'),
@@ -309,7 +312,7 @@
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'index'));
 ?>
 <script type="text/javascript">
-    $(document).ready(function(){
+    $(function() {
         popoverStartup();
         $('.select').on('change', function() {
             listCheckboxesChecked();

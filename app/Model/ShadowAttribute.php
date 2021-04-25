@@ -819,4 +819,49 @@ class ShadowAttribute extends AppModel
             ));
         }
     }
+
+    public function saveAttachment($shadowAttribute, $path_suffix='')
+    {
+        $result = $this->loadAttachmentTool()->saveShadow($shadowAttribute['event_id'], $shadowAttribute['id'], $shadowAttribute['data'], $path_suffix);
+        if ($result) {
+            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_SHADOW_ATTRIBUTE, $shadowAttribute);
+        }
+        return $result;
+    }
+
+    /**
+     * @param array $shadowAttribute
+     * @param bool $thumbnail
+     * @param int $maxWidth - When $thumbnail is true
+     * @param int $maxHeight - When $thumbnail is true
+     * @return string
+     * @throws Exception
+     */
+    public function getPictureData(array $shadowAttribute, $thumbnail=false, $maxWidth=200, $maxHeight=200)
+    {
+        if ($thumbnail && extension_loaded('gd')) {
+            if ($maxWidth == 200 && $maxHeight == 200) {
+                // Return thumbnail directly if already exists
+                try {
+                    return $this->getAttachment($shadowAttribute['ShadowAttribute'], $path_suffix = '_thumbnail');
+                } catch (NotFoundException $e) {
+                    // pass
+                }
+            }
+
+            // Thumbnail doesn't exists, we need to generate it
+            $imageData = $this->getAttachment($shadowAttribute['ShadowAttribute']);
+            $imageData = $this->Attribute->resizeImage($imageData, $maxWidth, $maxHeight);
+
+            // Save just when requested default thumbnail size
+            if ($maxWidth == 200 && $maxHeight == 200) {
+                $shadowAttribute['ShadowAttribute']['data'] = $imageData;
+                $this->saveAttachment($shadowAttribute['ShadowAttribute'], $path_suffix='_thumbnail');
+            }
+        } else {
+            $imageData = $this->getAttachment($shadowAttribute['ShadowAttribute']);
+        }
+
+        return $imageData;
+    }
 }

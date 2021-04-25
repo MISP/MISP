@@ -115,23 +115,35 @@
   ?>
   <td class="short action-links">
     <?php
-      if ($mayModify && empty($object['deleted'])) {
-        echo sprintf(
-          '<a href="%s/objects/edit/%s" title="%s" aria-label="%s" class="fa fa-edit white useCursorPointer"></a> ',
-          $baseurl,
-          h($object['id']),
-          __('Edit'),
-          __('Edit')
-        );
-        echo sprintf(
-          '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
-          (empty($event['Event']['publish_timestamp']) ? __('Permanently delete object') : __('Soft delete object')),
-          sprintf(
-            'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',
-            empty($event['Event']['publish_timestamp']) ? h($object['id']) . '/true' : h($object['id']),
-            h($event['Event']['id'])
-          )
-        );
+      if ($mayModify) {
+          if (empty($object['deleted'])) {
+            echo sprintf(
+              '<a href="%s/objects/edit/%s" title="%s" aria-label="%s" class="fa fa-edit white useCursorPointer"></a> ',
+              $baseurl,
+              h($object['id']),
+              __('Edit'),
+              __('Edit')
+            );
+            echo sprintf(
+              '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
+              (empty($event['Event']['publish_timestamp']) ? __('Permanently delete object') : __('Soft delete object')),
+              sprintf(
+                'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',
+                empty($event['Event']['publish_timestamp']) ? h($object['id']) . '/true' : h($object['id']),
+                h($event['Event']['id'])
+              )
+            );
+        } else {
+            echo sprintf(
+              '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
+              __('Permanently delete object'),
+              sprintf(
+                'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',
+                h($object['id']) . '/true',
+                h($event['Event']['id'])
+              )
+            );
+        }
       }
     ?>
   </td>
@@ -151,4 +163,3 @@
     }
     echo '<tr class="objectAddFieldTr"><td><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') .'" onclick="popoverPopup(this, ' . h($object['id']) . ', \'objects\', \'quickFetchTemplateWithValidObjectAttributes\')"></span></td></tr>';
   }
-

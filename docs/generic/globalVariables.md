@@ -1,8 +1,19 @@
 #### MISP configuration variables
 
+If you are doing a manual install, copy and pasting from this document, please do the following before starting:
+
+```bash
+eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | awk '/^# <snippet-begin/,0' | grep -v \`\`\`)"
+MISPvars
+```
+
+!!! notice
+    Do NOT leave your session after this mid-install as some initial passwords have been generated and thus would be lost.
+    Consider using a mux like [screen or tmux](https://superuser.com/questions/423310/byobu-vs-gnu-screen-vs-tmux-usefulness-and-transferability-of-skills).
+
 ```bash
 # <snippet-begin 0_global-vars.sh>
-# $ eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | grep -v \`\`\`)"
+# $ eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | awk '/^# <snippet-begin/,0' | grep -v \`\`\`)"
 # $ MISPvars
 MISPvars () {
   debug "Setting generic ${LBLUE}MISP${NC} variables shared by all flavours" 2> /dev/null
@@ -10,9 +21,16 @@ MISPvars () {
   MISP_USER="${MISP_USER:-misp}"
   MISP_PASSWORD="${MISP_PASSWORD:-$(openssl rand -hex 32)}"
 
+  # Cheap distribution detector
+  FLAVOUR="$(. /etc/os-release && echo "$ID"| tr '[:upper:]' '[:lower:]')"
+  STREAM="$(. /etc/os-release && echo "$NAME"| grep -o -i stream |tr '[:upper:]' '[:lower:]')"
+  DIST_VER="$(. /etc/os-release && echo "$VERSION_ID")"
+  DISTRI=${FLAVOUR}${DIST_VER}${STREAM}
+
   # The web server user
   # RHEL/CentOS
   if [[ -f "/etc/redhat-release" ]]; then
+    SE_LINUX=$(sestatus  -v -b |grep "^SELinux status"| grep enabled ; echo $?)
     WWW_USER="apache"
     SUDO_WWW="sudo -H -u ${WWW_USER} "
   # Debian flavoured
@@ -84,6 +102,8 @@ MISPvars () {
   post_max_size="50M"
   max_execution_time="300"
   memory_limit="2048M"
+  session0sid_length="32"
+  session0use_strict_mode="1"
 
   CAKE="${PATH_TO_MISP}/app/Console/cake"
 

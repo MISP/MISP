@@ -12,6 +12,7 @@ App::uses('ComplexTypeTool', 'Tools');
 /**
  * @property Event $Event
  * @property AttributeTag $AttributeTag
+ * @property Sighting $Sighting
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
@@ -62,6 +63,7 @@ class Attribute extends AppModel
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
 
+    private $exclusions = null;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -202,17 +204,17 @@ class Attribute extends AppModel
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty')
             ),
+            'validComposite' => array(
+                'rule' => array('validComposite'),
+                'message' => 'Composite type found but the value not in the composite (value1|value2) format.'
+            ),
             'userdefined' => array(
                 'rule' => array('validateAttributeValue'),
                 'message' => 'Value not in the right type/format. Please double check the value or select type "other".'
             ),
             'uniqueValue' => array(
-                    'rule' => array('valueIsUnique'),
-                    'message' => 'A similar attribute already exists for this event.'
-            ),
-            'validComposite' => array(
-                'rule' => array('validComposite'),
-                'message' => 'Composite type found but the value not in the composite (value1|value2) format.'
+                'rule' => array('valueIsUnique'),
+                'message' => 'A similar attribute already exists for this event.'
             ),
             'maxTextLength' => array(
                 'rule' => array('maxTextLength')
@@ -608,7 +610,7 @@ class Attribute extends AppModel
     public function validComposite($fields)
     {
         $compositeTypes = $this->getCompositeTypes();
-        if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
+        if (in_array($this->data['Attribute']['type'], $compositeTypes, true)) {
             if (substr_count($fields['value'], '|') !== 1) {
                 return false;
             }
@@ -1037,6 +1039,7 @@ class Attribute extends AppModel
             case 'first-name':
             case 'middle-name':
             case 'last-name':
+            case 'full-name':
                 $returnValue = true;
                 break;
             case 'link':
@@ -1101,6 +1104,8 @@ class Attribute extends AppModel
             case 'github-repository':
             case 'github-organisation':
             case 'twitter-id':
+            case 'dkim':
+            case 'dkim-signature':
             case 'favicon-mmh3':
             case 'chrome-extension-id':
             case 'mobile-application-id':
@@ -1406,6 +1411,7 @@ class Attribute extends AppModel
         // prepare the conditions
         $conditions = array(
                 'Attribute.event_id !=' => $attribute['event_id'],
+                'Attribute.deleted !=' => 1,
                 );
 
         // prevent issues with empty fields
@@ -1581,7 +1587,7 @@ class Attribute extends AppModel
      * @return string
      * @throws Exception
      */
-    private function resizeImage($data, $maxWidth, $maxHeight)
+    public function resizeImage($data, $maxWidth, $maxHeight)
     {
         $image = imagecreatefromstring($data);
         if ($image === false) {
@@ -1622,6 +1628,45 @@ class Attribute extends AppModel
         imagedestroy($imageThumbnail);
 
         return $imageData;
+    }
+
+    /**
+     * @param array $user
+     * @param array $resultArray
+     */
+    public function fetchRelated(array $user, array &$resultArray)
+    {
+        if (empty($resultArray)) {
+            return;
+        }
+
+        $composeTypes = $this->getCompositeTypes();
+        foreach ($resultArray as $key => $result) {
+            if (in_array($result['default_type'], $composeTypes, true)) {
+                $pieces = explode('|', $result['value']);
+                if (in_array($result['default_type'], $this->primaryOnlyCorrelatingTypes, true)) {
+                    $or = ['Attribute.value1' => $pieces[0], 'Attribute.value2' => $pieces[0]];
+                } else {
+                    $or = ['Attribute.value1' => $pieces, 'Attribute.value2' => $pieces];
+                }
+            } else {
+                $or = ['Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']];
+            }
+            $options = array(
+                'conditions' => [
+                    'OR' => $or,
+                    'NOT' => [
+                        'Attribute.type' => $this->nonCorrelatingTypes,
+                    ],
+                    'Attribute.disable_correlation' => 0,
+                ],
+                'fields' => ['Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'],
+                'order' => false,
+                'limit' => 11,
+                'flatten' => 1,
+            );
+            $resultArray[$key]['related'] = $this->fetchAttributes($user, $options);
+        }
     }
 
     public function checkComposites()
@@ -1698,7 +1743,11 @@ class Attribute extends AppModel
             $typeArray[] = 'malware-sample';
         }
         $rules = array();
-        $eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
+        $eventIds = $this->Event->fetchEventIds($user, [
+            'from' => $from,
+            'to' => $to,
+            'last' => $last
+        ]);
         if (!empty($tags)) {
             $tag = ClassRegistry::init('Tag');
             $args = $this->dissectArgs($tags);
@@ -1756,7 +1805,11 @@ class Attribute extends AppModel
         if (empty($user)) {
             throw new MethodNotAllowedException(__('Could not read user.'));
         }
-        $eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
+        $eventIds = $this->Event->fetchEventIds($user, [
+            'from' => $from,
+            'to' => $to,
+            'last' => $last
+        ]);
 
         // If we sent any tags along, load the associated tag names for each attribute
         if ($tags) {
@@ -2156,7 +2209,6 @@ class Attribute extends AppModel
                 'recursive' => -1, // int
                 'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.comment', 'Attribute.to_ids', 'Attribute.value', 'Attribute.value' . $valueField),
                 'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
-                'group' => array('Attribute.type', 'Attribute.value' . $valueField), // fields to GROUP BY
                 'enforceWarninglist' => $enforceWarninglist,
                 'flatten' => 1
             )
@@ -2558,9 +2610,7 @@ class Attribute extends AppModel
         if (!empty($attribute)) {
             if (!empty($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
-                    if ($at['Tag']['exportable']) {
-                        $attribute['Attribute']['Tag'][] = $at['Tag'];
-                    }
+                    $attribute['Attribute']['Tag'][] = $at['Tag'];
                 }
             }
             unset($attribute['AttributeTag']);
@@ -2706,7 +2756,7 @@ class Attribute extends AppModel
             $params['conditions']['AND'][] = $options['conditions'];
         }
         if (empty($options['flatten'])) {
-            $params['conditions']['AND'][] = array('(Attribute.object_id + 0)' => 0);
+            $params['conditions']['AND'][] = array('Attribute.object_id' => 0);
         }
         if (isset($options['order'])) {
             $params['order'] = $options['order'];
@@ -2737,11 +2787,12 @@ class Attribute extends AppModel
         } else {
             $options['includeDecayScore'] = true;
         }
+        //Add EventTags to attributes to take them into account when calculating decay score
         if ($options['includeDecayScore']) {
             $options['includeEventTags'] = true;
         }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
-            $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
+            $params['conditions']['AND']['Attribute.deleted'] = 0;
         } else {
             if ($options['deleted'] === "only") {
                 $options['deleted'] = 1;
@@ -3131,6 +3182,7 @@ class Attribute extends AppModel
             $attribute['Event']['published'] = 0;
             $attribute['Event']['timestamp'] = $date->getTimestamp();
             $this->Event->save($attribute['Event']);
+            $this->__alterAttributeCount($attribute['Event']['id']);
             return true;
         } else {
             return 'Could not save changes.';
@@ -3593,7 +3645,7 @@ class Attribute extends AppModel
                 }
             }
             if (!empty($attribute['Sighting'])) {
-                $this->Sighting->captureSighting($attribute['Sighting'], $this->id, $eventId, $user);
+                $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
             }
         }
         if (!empty($this->validationErrors)) {
@@ -3716,6 +3768,10 @@ class Attribute extends AppModel
             ));
             return $this->validationErrors;
         } else {
+            if (isset($attribute['Sighting']) && !empty($attribute['Sighting'])) {
+                $this->Sighting = ClassRegistry::init('Sighting');
+                $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
+            }
             if ($user['Role']['perm_tagger']) {
                 /*
                     We should uncomment the line below in the future once we have tag soft-delete
@@ -3863,7 +3919,7 @@ class Attribute extends AppModel
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
-                    'timestamp' => array('function' => 'set_filter_timestamp'),
+                    'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'attribute_timestamp' => array('function' => 'set_filter_timestamp'),
                     'first_seen' => array('function' => 'set_filter_seen'),
                     'last_seen' => array('function' => 'set_filter_seen'),
@@ -4243,7 +4299,7 @@ class Attribute extends AppModel
             ),
             'Network activity' => array(
                 'desc' => __('Information about network traffic generated by the malware'),
-                'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'port', 'hostname', 'domain', 'domain|ip', 'mac-address', 'mac-eui-64', 'email', 'email-dst', 'email-src', 'eppn', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'filename-pattern','stix2-pattern', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hex', 'cookie', 'hostname|port', 'bro', 'zeek', 'anonymised', 'community-id', 'email-subject', 'favicon-mmh3')
+                'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'port', 'hostname', 'domain', 'domain|ip', 'mac-address', 'mac-eui-64', 'email', 'email-dst', 'email-src', 'eppn', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'filename-pattern','stix2-pattern', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hex', 'cookie', 'hostname|port', 'bro', 'zeek', 'anonymised', 'community-id', 'email-subject', 'favicon-mmh3', 'dkim', 'dkim-signature')
             ),
             'Payload type' => array(
                 'desc' => __('Information about the final payload(s)'),
@@ -4275,7 +4331,7 @@ class Attribute extends AppModel
             ),
             'Person' => array(
                 'desc' => __('A human being - natural person'),
-                'types' => array('first-name', 'middle-name', 'last-name', 'date-of-birth', 'place-of-birth', 'gender', 'passport-number', 'passport-country', 'passport-expiration', 'redress-number', 'nationality', 'visa-number', 'issue-date-of-the-visa', 'primary-residence', 'country-of-residence', 'special-service-request', 'frequent-flyer-number', 'travel-details', 'payment-details', 'place-port-of-original-embarkation', 'place-port-of-clearance', 'place-port-of-onward-foreign-destination', 'passenger-name-record-locator-number', 'comment', 'text', 'other', 'phone-number', 'identity-card-number', 'anonymised', 'email', 'pgp-public-key', 'pgp-private-key')
+                'types' => array('first-name', 'middle-name', 'last-name', 'full-name', 'date-of-birth', 'place-of-birth', 'gender', 'passport-number', 'passport-country', 'passport-expiration', 'redress-number', 'nationality', 'visa-number', 'issue-date-of-the-visa', 'primary-residence', 'country-of-residence', 'special-service-request', 'frequent-flyer-number', 'travel-details', 'payment-details', 'place-port-of-original-embarkation', 'place-port-of-clearance', 'place-port-of-onward-foreign-destination', 'passenger-name-record-locator-number', 'comment', 'text', 'other', 'phone-number', 'identity-card-number', 'anonymised', 'email', 'pgp-public-key', 'pgp-private-key')
             ),
             'Other' => array(
                 'desc' => __('Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future'),
@@ -4452,9 +4508,12 @@ class Attribute extends AppModel
             'github-organisation' => array('desc' => __('A github organisation'), 'default_category' => 'Social network', 'to_ids' => 0),
             'jabber-id' => array('desc' => __('Jabber ID'), 'default_category' => 'Social network', 'to_ids' => 0),
             'twitter-id' => array('desc' => __('Twitter ID'), 'default_category' => 'Social network', 'to_ids' => 0),
+            'dkim' => array('desc' => __('DKIM public key'), 'default_category' => 'Network activity', 'to_ids' => 0),
+            'dkim-signature'=> array('desc' => __('DKIM signature'), 'default_category' => 'Network activity', 'to_ids' => 0),
             'first-name' => array('desc' => __('First name of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),
             'middle-name' => array('desc' => __('Middle name of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),
             'last-name' => array('desc' => __('Last name of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),
+            'full-name' => array('desc' => __('Full name of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),
             'date-of-birth' => array('desc' => __('Date of birth of a natural person (in YYYY-MM-DD format)'), 'default_category' => 'Person', 'to_ids' => 0),
             'place-of-birth' => array('desc' => __('Place of birth of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),
             'gender' => array('desc' => __('The gender of a natural person (Male, Female, Other, Prefer not to say)'), 'default_category' => 'Person', 'to_ids' => 0),
@@ -4473,7 +4532,7 @@ class Attribute extends AppModel
             //'remarks' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
             'travel-details' => array('desc' => __('Travel details'), 'default_category' => 'Person', 'to_ids' => 0),
             'payment-details' => array('desc' => __('Payment details'), 'default_category' => 'Person', 'to_ids' => 0),
-            'place-port-of-original-embarkation' => array('desc' => __('The orignal port of embarkation'), 'default_category' => 'Person', 'to_ids' => 0),
+            'place-port-of-original-embarkation' => array('desc' => __('The original port of embarkation'), 'default_category' => 'Person', 'to_ids' => 0),
             'place-port-of-clearance' => array('desc' => __('The port of clearance'), 'default_category' => 'Person', 'to_ids' => 0),
             'place-port-of-onward-foreign-destination' => array('desc' => __('A Port where the passenger is transiting to'), 'default_category' => 'Person', 'to_ids' => 0),
             'passenger-name-record-locator-number' => array('desc' => __('The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.'), 'default_category' => 'Person', 'to_ids' => 0),

@@ -51,7 +51,7 @@
                         'id' => 'create-button',
                         'title' => $possibleAction === 'attribute' ? __('Add attribute') : __('Add proposal'),
                         'fa-icon' => 'plus',
-                        //'onClick' => 'clickCreateButton',
+                        'class' => 'last',
                         'onClick' => 'openGenericModal',
                         'onClickParams' => array('/' . $possibleAction . 's/add/' . h($event['Event']['id']))
                     ),
@@ -78,7 +78,7 @@
                         'fa-icon' => 'rebel',
                         'fa-source' => 'fab',
                         'onClick' => 'popoverPopup',
-                        'onClickParams' => array('this', 'selected/attribute', 'galaxies', 'selectGalaxyNamespace')
+                        'onClickParams' => array('this', 'selected/attribute/eventid:' . h($event['Event']['id']), 'galaxies', 'selectGalaxyNamespace')
                     ),
                     array(
                         'id' => 'group-into-object-button',

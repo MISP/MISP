@@ -4,6 +4,7 @@
      *
      * Simply pass a JSON with the following keys set:
      * - model: The model used to create the form (such as Attribute, Event)
+     * - description: text description of the form
      * - fields: an array with each element generating an input field
      *     - field is the actual field name (such as org_id, name, etc) which is required
      *     - optional fields: default, type, options, placeholder, label - these are passed directly to $this->Form->input(),
@@ -51,7 +52,7 @@
                     }
                     $params['class'] = $class;
                 } else {
-                    if (!empty($fieldData['type']) && $fieldData['type'] != 'checkbox') {
+                    if (!empty($fieldData['type']) && ($fieldData['type'] !== 'checkbox' && $fieldData['type'] !== 'radio')) {
                         $params['class'] = 'span6';
                     }
                 }

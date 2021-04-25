@@ -28,7 +28,7 @@ switch ($object['type']) {
         if ($object['type'] === 'attachment' && isset($object['image'])) {
             if ($object['image'] === true) {
                 $img = '<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>';
-                $img .= '<img class="screenshot screenshot-collapsed useCursorPointer img-rounded hidden" src="' . $baseurl . '/attributes/viewPicture/' . h($object['id']) . '/1' . '" title="' . h($object['value']) . '" onload="$(this).show(200); $(this).parent().find(\'.fa-spinner\').remove();"/>';
+                $img .= '<img class="screenshot screenshot-collapsed useCursorPointer img-rounded hidden" src="' . $baseurl . sprintf('/%s/viewPicture/', $object['objectType'] == 'proposal' ? 'shadowAttributes' : 'attributes') . h($object['id']) . '/1' . '" title="' . h($object['value']) . '" onload="$(this).show(200); $(this).parent().find(\'.fa-spinner\').remove();"/>';
                 echo $img;
             } else {
                 $extension = pathinfo($object['value'], PATHINFO_EXTENSION);
@@ -69,6 +69,9 @@ switch ($object['type']) {
                 echo ' <i class="fas fa-virus" title="' . __('This file contains malware %s', $object['infected'])  . '"></i>';
             }
         }
+        break;
+    case 'datetime':
+        echo $this->Time->time($object['value']);
         break;
 
     case 'vulnerability':

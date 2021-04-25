@@ -19,6 +19,30 @@
                 h($v)
             );
         }
+
+        $columnsDescription = [
+            'owner_org' => __('Owner org'),
+            'attribute_count' => __('Attribute count'),
+            'creator_user' => __('Creator user'),
+            'tags' => __('Tags'),
+            'clusters' => __('Clusters'),
+            'correlations' => __('Correlations'),
+            'sightings' => __('Sightings'),
+            'proposals' => __('Proposals'),
+            'discussion' => __('Posts'),
+        ];
+
+        $columnsMenu = [];
+        foreach ($possibleColumns as $possibleColumn) {
+            $html = in_array($possibleColumn, $columns, true) ? '<i class="fa fa-check"></i> ' : '<i class="fa fa-check" style="visibility: hidden"></i> ';
+            $html .= $columnsDescription[$possibleColumn];
+            $columnsMenu[] = [
+                'html' => $html,
+                'onClick' => 'eventIndexColumnsToggle',
+                'onClickParams' => [$possibleColumn],
+            ];
+        }
+
         $filterParamsString = implode(' & ', $filterParamsString);
         $data = array(
             'children' => array(
@@ -37,7 +61,7 @@
                     'children' => array(
                         array(
                             'id' => 'multi-delete-button',
-                            'title' => __('Delete selected Events'),
+                            'title' => __('Delete selected events'),
                             'fa-icon' => 'trash',
                             'class' => 'hidden mass-select',
                             'onClick' => 'multiSelectDeleteEvents'
@@ -85,6 +109,18 @@
                     )
                 ),
                 array(
+                    'children' => array(
+                        array(
+                            'id' => 'simple_filter',
+                            'type' => 'group',
+                            'class' => 'last',
+                            'title' => __('Choose columns to show'),
+                            'fa-icon' => 'columns',
+                            'children' => $columnsMenu,
+                        ),
+                    ),
+                ),
+                array(
                     'type' => 'search',
                     'button' => __('Filter'),
                     'placeholder' => __('Enter value to search'),
@@ -127,6 +163,5 @@
     echo $this->Html->css('distribution-graph');
     echo $this->Html->script('network-distribution-graph');
 ?>
-<input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/event_index.json" />
 <?php
     if (!$ajax) echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));

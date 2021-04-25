@@ -102,8 +102,8 @@ class MispZmq:
         self.socket = context.socket(zmq.PUB)
         if self.settings["username"]:
             self.socket.plain_server = True  # must come before bind
-        self.socket.bind("tcp://*:{}".format(self.settings["port"]))
-        self._logger.debug("ZMQ listening on tcp://*:{}".format(self.settings["port"]))
+        self.socket.bind("tcp://{}:{}".format(self.settings["host"], self.settings["port"]))
+        self._logger.debug("ZMQ listening on tcp://{}:{}".format(self.settings["host"], self.settings["port"]))
 
         if self._logger.isEnabledFor(logging.DEBUG):
             monitor = self.socket.get_monitor_socket()

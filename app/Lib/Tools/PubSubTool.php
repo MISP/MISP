@@ -273,6 +273,7 @@ class PubSubTool
             'redis_password' => '',
             'redis_database' => '1',
             'redis_namespace' => 'mispq',
+            'host' => '127.0.0.1',
             'port' => '50000',
             'username' => null,
             'password' => null,
