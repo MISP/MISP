@@ -6,7 +6,7 @@ App::uses('AppController', 'Controller');
  */
 class CorrelationsController extends AppController
 {
-    public function top_correlations()
+    public function top()
     {
         $options = [
             'filters' => ['value', 'quickFilter'],
@@ -32,28 +32,16 @@ class CorrelationsController extends AppController
             $data = $this->Correlation->find('all', $query);
             return $this->RestResponse->viewData($data, 'json');
         } else {
-            if (empty($query['limit'])) {
-                $query['limit'] = 20;
-            }
-            if (empty($query['page'])) {
-                $query['page'] = 1;
-            }
+            $query['limit'] = empty($query['limit']) ? 20 : $query['limit'];
+            $query['page'] = empty($query['page']) ? 1 : $query['page'];
             $this->paginate = $query;
             $data = $this->Correlation->find('all', $query);
             $this->set('data', $data);
             $this->set('title_for_layout', __('Top correlations index'));
             $this->set('menuData', [
                 'menuList' => 'correlationExclusions',
-                'menuItem' => 'top_correlations'
+                'menuItem' => 'top'
             ]);
         }
-        if ($this->IndexFilter->isRest()) {
-            return $this->restResponsePayload;
-        }
-        $this->set('title_for_layout', __('Correlation Exclusions index'));
-        $this->set('menuData', [
-            'menuList' => 'correlationExclusions',
-            'menuItem' => 'index'
-        ]);
     }
 }
