@@ -117,6 +117,13 @@ class CRUDComponent extends Component
                     }
 
                     $redirect = isset($params['redirect']) ? $params['redirect'] : ['action' => 'index'];
+                    if (!empty($params['redirect_controller'])) {
+                        if (is_array($redirect)) {
+                            $redirect['controller'] = $params['redirect_controller'];
+                        } else {
+                            $redirect = '/' . $params['redirect_controller'] . '/' . $redirect;
+                        }
+                    }
                     // For AJAX requests doesn't make sense to redirect, redirect must be done on javascript side in `submitGenericFormInPlace`
                     if ($this->Controller->request->is('ajax')) {
                         $redirect = Router::url($redirect);
