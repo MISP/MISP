@@ -95,6 +95,7 @@ class ACLComponent extends Component
                 'view' => []
             ],
             'correlations' => [
+                'generateTopCorrelations' => [],
                 'top' => []
             ],
             'dashboards' => array(
