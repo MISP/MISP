@@ -849,7 +849,7 @@
   },
   {
     "Feed": {
-      "name": "http://cybercrime-tracker.net",
+      "name": "http://cybercrime-tracker.net hashlist",
       "provider": "http://cybercrime-tracker.net hashlist",
       "url": "https://cybercrime-tracker.net/ccamlist.php",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
@@ -869,7 +869,7 @@
   },
   {
     "Feed": {
-      "name": "http://cybercrime-tracker.net",
+      "name": "http://cybercrime-tracker.net gatelist",
       "provider": "http://cybercrime-tracker.net gatelist",
       "url": "https://cybercrime-tracker.net/ccamgate.php",
       "rules": "",
