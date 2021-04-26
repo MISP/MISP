@@ -232,6 +232,7 @@ jobs:
               ./curl_tests_GH.sh $AUTH $HOST
               popd
 
+              sudo chmod -R g+ws `pwd`/app/tmp/logs
               pushd PyMISP
               poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport -E email
               poetry run python tests/testlive_comprehensive.py
