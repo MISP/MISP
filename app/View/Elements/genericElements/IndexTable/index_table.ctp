@@ -35,16 +35,19 @@
             }
         }
     }
-
     $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : [];
     if ($ajax && isset($containerId)) {
         $paginationData['data-paginator'] = "#{$containerId}_content";
     }
     $this->Paginator->options($paginationData);
-
-    $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
+    $skipPagination = (!empty($data['skip_pagination']) || !empty($data['stupid_pagination'])) ? 1 : 0;
     if (!$skipPagination) {
         $paginatonLinks = $this->element('/genericElements/IndexTable/pagination_links');
+        echo $paginatonLinks;
+    }
+
+    if (!empty($data['stupid_pagination'])) {
+        $paginatonLinks = $this->element('/genericElements/IndexTable/stupid_pagination_links');
         echo $paginatonLinks;
     }
     $hasSearch = false;

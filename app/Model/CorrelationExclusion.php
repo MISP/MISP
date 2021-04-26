@@ -21,6 +21,20 @@ class CorrelationExclusion extends AppModel
         $this->cacheValues();
     }
 
+    public function beforeDelete($cascade = true)
+    {
+        $exclusion = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'id' => $this->id
+            ]
+        ]);
+        $this->Correlation = ClassRegistry::init('Correlation');
+        if (!empty($exclusion)) {
+            $this->Correlation->correlateValueRouter($exclusion['CorrelationExclusion']['value']);
+        }
+    }
+
     public function afterDelete()
     {
         $this->cacheValues();

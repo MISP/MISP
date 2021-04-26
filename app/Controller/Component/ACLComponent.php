@@ -94,6 +94,9 @@ class ACLComponent extends Component
                 'index' => [],
                 'view' => []
             ],
+            'correlations' => [
+                'top' => []
+            ],
             'dashboards' => array(
                 'getForm' => array('*'),
                 'index' => array('*'),

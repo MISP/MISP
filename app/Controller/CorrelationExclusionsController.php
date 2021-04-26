@@ -2,7 +2,7 @@
 App::uses('AppController', 'Controller');
 
 /**
- * @property AuthKey $AuthKey
+ * @property CorrelationExclusion $CorrelationExclusion
  */
 class CorrelationExclusionsController extends AppController
 {
@@ -43,9 +43,15 @@ class CorrelationExclusionsController extends AppController
         }
     }
 
-    public function add($user_id = false)
+    public function add()
     {
-        $params = [];
+        $options = [
+            'filters' => ['value', 'redirect']
+        ];
+        $params = $this->IndexFilter->harvestParameters($options['filters']);
+        if (!empty($params['value'])) {
+            $this->request->data['CorrelationExclusion']['value'] = $params['value'];
+        }
         $this->CRUD->add($params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
