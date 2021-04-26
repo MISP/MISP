@@ -13,6 +13,11 @@ tags:
     description: MISP events are encapsulations for contextually related information represented as attribute and object.
     externalDocs:
       url: https://www.circl.lu/doc/misp/GLOSSARY.html#misp-event
+  - name: Galaxies
+    description: Galaxies in MISP are a method used to express a large object called cluster that can be attached to MISP events or attributes.
+    externalDocs:
+      url: https://www.circl.lu/doc/misp/galaxy/
+
 paths:
   /attributes/add/{eventId}:
     post:
@@ -348,6 +353,34 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/RemoveEventTagResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /galaxies:
+    get:
+      summary: "Get galaxies"
+      operationId: getGalaxies
+      tags:
+        - Galaxies
+      responses:
+        "200":
+          $ref: "#/components/responses/GalaxyListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+    post:
+      summary: "Search galaxies"
+      operationId: searchGalaxies
+      tags:
+        - Galaxies
+      requestBody:
+        $ref: "#/components/requestBodies/GalaxySearchRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/GalaxyListResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         default:
@@ -895,8 +928,77 @@ components:
       type: object
 
     # Galaxies
-    Galaxy: # TODO: describe
+    GalaxyId:
+      type: string
+      format: int64
+      example: "12345"
+
+    GalaxyName:
+      type: string
+      maxLength: 255
+      example: "Ransomware"
+
+    GalaxyType:
+      type: string
+      maxLength: 255
+      example: "ransomware"
+
+    GalaxyDescription:
+      type: string
+      maxLength: 65535
+      example: "Ransomware galaxy based on ..."
+
+    GalaxyVersion:
+      type: string
+      maxLength: 255
+      example: "1"
+
+    GalaxyNamespace:
+      type: string
+      maxLength: 255
+      example: "misp"
+
+    Galaxy:
       type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/GalaxyId"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        name:
+          $ref: "#/components/schemas/GalaxyName"
+        type:
+          $ref: "#/components/schemas/GalaxyType"
+        description:
+          $ref: "#/components/schemas/GalaxyDescription"
+        version:
+          $ref: "#/components/schemas/GalaxyVersion"
+        icon:
+          $ref: "#/components/schemas/Icon"
+        namespace:
+          $ref: "#/components/schemas/GalaxyNamespace"
+        kill_chain_order:
+          type: object
+          nullable: true
+          example:
+            fraud-tactics:
+              - "Initiation"
+              - "Target Compromise"
+              - "Perform Fraud"
+              - "Obtain Fraudulent Assets"
+              - "Assets Transfer"
+              - "Monetisation"
+
+    GalaxyList:
+      type: array
+      items:
+        type: object
+        $ref: "#/components/schemas/Galaxy"
+
+    GalaxyValueSearchFilter:
+      description: "Text search term to find a matching galaxy name, namespace, description, kill_chain_order or uuid."
+      type: string
+      example: "botnet"
 
     # Tags
     TagId:
@@ -1085,6 +1187,11 @@ components:
 
     IsLocal:
       type: boolean
+
+    Icon:
+      type: string
+      maxLength: 255
+      example: "globe"
 
     UserId:
       type: string
@@ -1657,6 +1764,16 @@ components:
               threat_level_id:
                 $ref: "#/components/schemas/ThreatLevelId"
 
+    GalaxySearchRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              page:
+                $ref: "#/components/schemas/GalaxyValueSearchFilter"
+
   responses:
     AttributeResponse:
       description: "An attribute"
@@ -1894,6 +2011,18 @@ components:
             properties:
               response:
                 $ref: "#/components/schemas/EventRestSearchList"
+
+    GalaxyListResponse:
+      description: "A list of galaxies"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                Galaxy:
+                  $ref: "#/components/schemas/Galaxy"
 
     ApiErrorResponse:
       description: "Unexpected API error"
