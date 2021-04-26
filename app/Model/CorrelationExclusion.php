@@ -16,6 +16,15 @@ class CorrelationExclusion extends AppModel
         'Containable',
     );
 
+    public $validate = [
+        'value' => [
+            'uniqueValue' => [
+                'rule' => 'isUnique',
+                'message' => 'Value is already in the exclusion list.'
+            ]
+        ]
+    ];
+
     public function afterSave($created, $options = array())
     {
         $this->cacheValues();
