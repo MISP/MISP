@@ -360,6 +360,8 @@ class FeedsController extends AppController
                 if ($this->request->data['Feed']['fixed_event'] == 1) {
                     if (isset($this->request->data['Feed']['target_event']) && is_numeric($this->request->data['Feed']['target_event'])) {
                         $this->request->data['Feed']['event_id'] = $this->request->data['Feed']['target_event'];
+                    } else if (!empty($feed['Feed']['event_id'])) {
+                        $this->request->data['Feed']['event_id'] = $feed['Feed']['event_id'];
                     } else {
                         $this->request->data['Feed']['event_id'] = 0;
                     }
