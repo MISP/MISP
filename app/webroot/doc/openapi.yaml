@@ -386,6 +386,22 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /galaxies/view/{galaxyId}:
+    get:
+      summary: "Get a galaxy by ID"
+      operationId: viewGalaxies
+      tags:
+        - Galaxies
+      parameters:
+        - $ref: "#/components/parameters/galaxyIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/ExtendedGalaxyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -989,6 +1005,134 @@ components:
               - "Assets Transfer"
               - "Monetisation"
 
+    GalaxyClusterId:
+      type: string
+      format: int64
+      example: "12345"
+
+    GalaxyClusterValue:
+      type: string
+      maxLength: 65535
+      example: "Brute Force - T1110"
+
+    GalaxyClusterType:
+      type: string
+      maxLength: 255
+      example: "mitre-enterprise-attack-attack-pattern"
+
+    GalaxyClusterDescription:
+      type: string
+      maxLength: 65535
+      example: "Adversaries may use brute force techniques to attempt access to accounts when passwords are unknown or when password hashes are obtained..."
+
+    GalaxyClusterSource:
+      type: string
+      maxLength: 255
+      example: "https://github.com/mitre/cti"
+
+    GalaxyClusterAuthors:
+      type: array
+      items:
+        type: string
+        example: "MITRE"
+
+    GalaxyClusterVersion:
+      type: string
+      maxLength: 255
+      example: "1"
+
+    GalaxyElementId:
+      type: string
+      format: int64
+      example: "12345"
+
+    GalaxyElementKey:
+      type: string
+      maxLength: 255
+      example: "categories"
+
+    GalaxyElementValue:
+      type: string
+      maxLength: 65535
+      example: "Military"
+
+    GalaxyElement:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/GalaxyElementId"
+        galaxy_cluster_id:
+          $ref: "#/components/schemas/GalaxyClusterId"
+        key:
+          $ref: "#/components/schemas/GalaxyElementKey"
+        value:
+          $ref: "#/components/schemas/GalaxyElementValue"
+
+    GalaxyCluster:
+      description: "MISP galaxy is a simple method to express a large object called cluster that can be attached to MISP events or attributes."
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/GalaxyClusterId"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        collection_uuid:
+          $ref: "#/components/schemas/UUID"
+        type:
+          $ref: "#/components/schemas/GalaxyClusterType"
+        value:
+          $ref: "#/components/schemas/GalaxyClusterValue"
+        tag_name:
+          $ref: "#/components/schemas/TagName"
+        description:
+          $ref: "#/components/schemas/GalaxyClusterDescription"
+        galaxy_id:
+          $ref: "#/components/schemas/GalaxyId"
+        source:
+          $ref: "#/components/schemas/GalaxyClusterSource"
+        authors:
+          $ref: "#/components/schemas/GalaxyClusterAuthors"
+        version:
+          $ref: "#/components/schemas/GalaxyClusterVersion"
+        distribution:
+          $ref: "#/components/schemas/DistributionLevelId"
+        sharing_group_id:
+          $ref: "#/components/schemas/SharingGroupId"
+        org_id:
+          $ref: "#/components/schemas/OrganisationId"
+        orgc_id:
+          $ref: "#/components/schemas/OrganisationId"
+        default:
+          $ref: "#/components/schemas/IsDefault"
+        locked:
+          $ref: "#/components/schemas/IsLocked"
+        extends_uuid:
+          $ref: "#/components/schemas/ExtendsUUID"
+        extends_version:
+          $ref: "#/components/schemas/GalaxyClusterVersion"
+        published:
+          $ref: "#/components/schemas/PublishedFlag"
+        deleted:
+          $ref: "#/components/schemas/SoftDeletedFlag"
+        GalaxyElement:
+          type: array
+          items:
+            type: object # TODO define GalaxyElement
+
+    ExtendedGalaxy:
+      description: "A galaxy with it's galaxy cluster details."
+      allOf:
+        - type: object
+          properties:
+            Galaxy:
+              $ref: "#/components/schemas/Galaxy"
+        - type: object
+          properties:
+            GalaxyCluster:
+              type: array
+              items:
+                $ref: "#/components/schemas/GalaxyCluster"
+
     GalaxyList:
       type: array
       items:
@@ -1116,6 +1260,7 @@ components:
 
     SharingGroupId:
       type: string
+      nullable: true
       format: int64
       example: "1"
 
@@ -1183,6 +1328,9 @@ components:
       default: 1
 
     IsLocked:
+      type: boolean
+
+    IsDefault:
       type: boolean
 
     IsLocal:
@@ -1396,6 +1544,16 @@ components:
       schema:
         anyOf:
           - $ref: "#/components/schemas/TagId"
+
+    galaxyIdParameter:
+      name: galaxyId
+      in: path
+      description: UUID or numeric ID of the galaxy
+      required: true
+      schema:
+        anyOf:
+          - $ref: "#/components/schemas/GalaxyId"
+          - $ref: "#/components/schemas/UUID"
 
     returnFormatParameter:
       name: returnFormat
@@ -2023,6 +2181,13 @@ components:
               properties:
                 Galaxy:
                   $ref: "#/components/schemas/Galaxy"
+
+    ExtendedGalaxyResponse:
+      description: "A extended galaxy response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ExtendedGalaxy"
 
     ApiErrorResponse:
       description: "Unexpected API error"
