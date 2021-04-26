@@ -295,15 +295,18 @@ class Attribute extends AppModel
         )
     );
 
-    public $hasMany = array(
-        'AttributeTag' => array(
+    public $hasMany = [
+        'AttributeTag' => [
             'dependent' => true
-        ),
-        'Sighting' => array(
+        ],
+        'Correlation' => [
+            'dependent' => false
+        ],
+        'Sighting' => [
                 'className' => 'Sighting',
                 'dependent' => true,
-        )
-    );
+        ]
+    ];
 
     public $hashTypes = array(
         'md5' => array(
@@ -390,7 +393,10 @@ class Attribute extends AppModel
         }
         // update correlation...
         if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
-            $this->__beforeSaveCorrelation($this->data['Attribute']);
+            if (empty($this->Correlation)) {
+                $this->Correlation = ClassRegistry::init('Correlation');
+            }
+            $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
             if (isset($this->data['Attribute']['event_id'])) {
                 $this->__alterAttributeCount($this->data['Attribute']['event_id'], false);
             }
@@ -411,11 +417,11 @@ class Attribute extends AppModel
                     $this->data['Attribute']['distribution'] != $this->old['Attribute']['distribution'] ||
                     $this->data['Attribute']['sharing_group_id'] != $this->old['Attribute']['sharing_group_id']
                 ) {
-                    $this->__beforeSaveCorrelation($this->data['Attribute']);
-                    $this->__afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
+                    $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
+                    $this->Correlation->afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
                 }
             } else {
-                $this->__afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
+                $this->Correlation->afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
             }
         }
         $result = true;
@@ -477,7 +483,7 @@ class Attribute extends AppModel
             $this->loadAttachmentTool()->delete($this->data['Attribute']['event_id'], $this->data['Attribute']['id']);
         }
         // update correlation..
-        $this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
+        $this->Correlation->beforeDeleteCorrelation($this->data['Attribute']['id']);
         if (!empty($this->data['Attribute']['id'])) {
             if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
                 $pubSubTool = $this->getPubSubTool();
@@ -1624,393 +1630,43 @@ class Attribute extends AppModel
         return $imageData;
     }
 
-    public function __beforeSaveCorrelation($a)
+    /**
+     * @param array $user
+     * @param array $resultArray
+     */
+    public function fetchRelated(array $user, array &$resultArray)
     {
-        // (update-only) clean up the relation of the old value: remove the existing relations related to that attribute, we DO have a reference, the id
-        // ==> DELETE FROM correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id; */
-        // first check if it's an update
-        if (isset($a['id'])) {
-            $this->Correlation = ClassRegistry::init('Correlation');
-            // FIXME : check that $a['id'] is checked correctly so that the user can't remove attributes he shouldn't
-            $dummy = $this->Correlation->deleteAll(
-                array('OR' => array(
-                    'Correlation.1_attribute_id' => $a['id'],
-                    'Correlation.attribute_id' => $a['id']))
-            );
-        }
-        if ($a['type'] === 'ssdeep') {
-            $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
-            $this->FuzzyCorrelateSsdeep->purge(null, $a['id']);
-        }
-    }
-
-    // using Alnitak's solution from http://stackoverflow.com/questions/594112/matching-an-ip-to-a-cidr-mask-in-php5
-    private function __ipv4InCidr($ip, $cidr)
-    {
-        list($subnet, $bits) = explode('/', $cidr);
-        $ip = ip2long($ip);
-        $subnet = ip2long($subnet);
-        $mask = -1 << (32 - $bits);
-        $subnet &= $mask; # nb: in case the supplied subnet wasn't correctly aligned
-        return ($ip & $mask) == $subnet;
-    }
-
-    // Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
-    private function __ipv6InCidr($ip, $cidr)
-    {
-        list($address, $netmask) = explode('/', $cidr);
-
-        $bytesAddr = unpack('n*', inet_pton($address));
-        $bytesTest = unpack('n*', inet_pton($ip));
-
-        for ($i = 1, $ceil = ceil($netmask / 16); $i <= $ceil; ++$i) {
-            $left = $netmask - 16 * ($i - 1);
-            $left = ($left <= 16) ? $left : 16;
-            $mask = ~(0xffff >> $left) & 0xffff;
-            if (($bytesAddr[$i] & $mask) != ($bytesTest[$i] & $mask)) {
-                return false;
-            }
+        if (empty($resultArray)) {
+            return;
         }
 
-        return true;
-    }
-
-    private function __cidrCorrelation($a)
-    {
-        $ipValues = array();
-        $ip = $a['value1'];
-        if (strpos($ip, '/') !== false) { // IP is CIDR
-            list($networkIp, $mask) = explode('/', $ip);
-            $ip_version = filter_var($networkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
-
-            $conditions = array(
-                'type' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'),
-                'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
-                'disable_correlation' => 0,
-                'deleted' => 0,
-            );
-
-            if (in_array($this->getDataSource()->config['datasource'], array('Database/Mysql', 'Database/MysqlObserver'))) {
-                // Massive speed up for CIDR correlation. Instead of testing all in PHP, database can do that work much
-                // faster. But these methods are just supported by MySQL.
-                if ($ip_version === 4) {
-                    $startIp = ip2long($networkIp) & ((-1 << (32 - $mask)));
-                    $endIp = $startIp + pow(2, (32 - $mask)) - 1;
-                    // Just fetch IP address that fit in CIDR range.
-                    $conditions['INET_ATON(value1) BETWEEN ? AND ?'] = array($startIp, $endIp);
-
-                    // Just fetch IPv4 address that starts with given prefix. This is fast, because value1 is indexed.
-                    // This optimisation is possible just to mask bigger than 8 bites.
-                    if ($mask >= 8) {
-                        $ipv4Parts = explode('.', $networkIp);
-                        $ipv4Parts = array_slice($ipv4Parts, 0, intval($mask / 8));
-                        $prefix = implode('.', $ipv4Parts);
-                        $conditions['value1 LIKE'] = $prefix . '%';
-                    }
+        $composeTypes = $this->getCompositeTypes();
+        foreach ($resultArray as $key => $result) {
+            if (in_array($result['default_type'], $composeTypes, true)) {
+                $pieces = explode('|', $result['value']);
+                if (in_array($result['default_type'], $this->primaryOnlyCorrelatingTypes, true)) {
+                    $or = ['Attribute.value1' => $pieces[0], 'Attribute.value2' => $pieces[0]];
                 } else {
-                    $conditions[] = 'IS_IPV6(value1)';
-                    // Just fetch IPv6 address that starts with given prefix. This is fast, because value1 is indexed.
-                    if ($mask >= 16) {
-                        $ipv6Parts = explode(':', rtrim($networkIp, ':'));
-                        $ipv6Parts = array_slice($ipv6Parts, 0, intval($mask / 16));
-                        $prefix = implode(':', $ipv6Parts);
-                        $conditions['value1 LIKE'] = $prefix . '%';
-                    }
+                    $or = ['Attribute.value1' => $pieces, 'Attribute.value2' => $pieces];
                 }
+            } else {
+                $or = ['Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']];
             }
-
-            $ipList = $this->find('column', array(
-                'conditions' => $conditions,
-                'fields' => ['Attribute.value1'],
-                'unique' => true,
+            $options = array(
+                'conditions' => [
+                    'OR' => $or,
+                    'NOT' => [
+                        'Attribute.type' => $this->nonCorrelatingTypes,
+                    ],
+                    'Attribute.disable_correlation' => 0,
+                ],
+                'fields' => ['Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'],
                 'order' => false,
-            ));
-            foreach ($ipList as $ipToCheck) {
-                $ipToCheckVersion = filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
-                if ($ipToCheckVersion === $ip_version) {
-                    if ($ip_version === 4) {
-                        if ($this->__ipv4InCidr($ipToCheck, $ip)) {
-                            $ipValues[] = $ipToCheck;
-                        }
-                    } else {
-                        if ($this->__ipv6InCidr($ipToCheck, $ip)) {
-                            $ipValues[] = $ipToCheck;
-                        }
-                    }
-                }
-            }
-        } else {
-            $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
-            $cidrList = $this->getSetCIDRList();
-            foreach ($cidrList as $cidr) {
-                if (strpos($cidr, '.') !== false) {
-                    if ($ip_version === 4 && $this->__ipv4InCidr($ip, $cidr)) {
-                        $ipValues[] = $cidr;
-                    }
-                } else {
-                    if ($ip_version === 6 && $this->__ipv6InCidr($ip, $cidr)) {
-                        $ipValues[] = $cidr;
-                    }
-                }
-            }
-        }
-        $extraConditions = array();
-        if (!empty($ipValues)) {
-            $extraConditions = array('OR' => array(
-                'Attribute.value1' => $ipValues,
-                'Attribute.value2' => $ipValues
-            ));
-        }
-        return $extraConditions;
-    }
-
-    private function __preventExcludedCorrelations($a)
-    {
-        $value = $a['value1'];
-        if (!empty($a['value2'])) {
-            $value .= '|' . $a['value2'];
-        }
-        if ($this->exclusions === null) {
-            try {
-                $redis = $this->setupRedisWithException();
-                $this->exclusions = $redis->sMembers('misp:correlation_exclusions');
-            } catch (Exception $e) {
-                $this->exclusions = [];
-            }
-        }
-        foreach ($this->exclusions as $exclusion) {
-            if (!empty($exclusion)) {
-                $firstChar = $exclusion[0];
-                $lastChar = substr($exclusion, -1);
-                if ($firstChar === '%' && $lastChar === '%') {
-                    $exclusion = substr($exclusion, 1, -1);
-                    if (strpos($value, $exclusion) !== false) {
-                        return true;
-                    }
-                } else if ($firstChar === '%') {
-                    $exclusion = substr($exclusion, 1);
-                    if (substr($value, -strlen($exclusion)) === $exclusion) {
-                        return true;
-                    }
-                } else if ($lastChar === '%') {
-                    $exclusion = substr($exclusion, 0, -1);
-                    if (substr($value, 0, strlen($exclusion)) === $exclusion) {
-                        return true;
-                    }
-                } else {
-                    if ($value === $exclusion) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    public function __afterSaveCorrelation($a, $full = false, $event = false)
-    {
-        if (!empty($a['disable_correlation']) || Configure::read('MISP.completely_disable_correlation')) {
-            return true;
-        }
-        // Don't do any correlation if the type is a non correlating type
-        if (in_array($a['type'], $this->nonCorrelatingTypes, true)) {
-            return true;
-        }
-        if ($this->__preventExcludedCorrelations($a)) {
-            return true;
-        }
-        if (!$event) {
-            $event = $this->Event->find('first', array(
-                'recursive' => -1,
-                'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
-                'conditions' => array('id' => $a['event_id']),
-                'order' => array(),
-            ));
-        }
-
-        if (!empty($event['Event']['disable_correlation']) && $event['Event']['disable_correlation']) {
-            return true;
-        }
-
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'))) {
-            $extraConditions = $this->__cidrCorrelation($a);
-        } else if ($a['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
-            $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
-            $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($a['value1'], $a['id']);
-            if (!empty($fuzzyIds)) {
-                $ssdeepIds = $this->find('list', array(
-                    'recursive' => -1,
-                    'conditions' => array(
-                        'Attribute.type' => 'ssdeep',
-                        'Attribute.id' => $fuzzyIds
-                    ),
-                    'fields' => array('Attribute.id', 'Attribute.value1')
-                ));
-                $threshold = Configure::read('MISP.ssdeep_correlation_threshold') ?: 40;
-                $attributeIds = array();
-                foreach ($ssdeepIds as $attributeId => $v) {
-                    $ssdeep_value = ssdeep_fuzzy_compare($a['value1'], $v);
-                    if ($ssdeep_value >= $threshold) {
-                        $attributeIds[] = $attributeId;
-                    }
-                }
-                $extraConditions = array('Attribute.id' => $attributeIds);
-            }
-        }
-
-        $correlatingValues = array($a['value1']);
-        if (!empty($a['value2']) && !in_array($a['type'], $this->primaryOnlyCorrelatingTypes)) {
-            $correlatingValues[] = $a['value2'];
-        }
-
-        $correlatingAttributes = array();
-        foreach ($correlatingValues as $k => $cV) {
-            $conditions = array(
-                'OR' => array(
-                    'Attribute.value1' => $cV,
-                    'AND' => array(
-                        'Attribute.value2' => $cV,
-                        'NOT' => array('Attribute.type' => $this->primaryOnlyCorrelatingTypes)
-                    )
-                ),
-                'NOT' => array(
-                    'Attribute.event_id' => $a['event_id'],
-                    'Attribute.type' => $this->nonCorrelatingTypes,
-                ),
-                'Attribute.disable_correlation' => 0,
-                'Event.disable_correlation' => 0,
-                '(Attribute.deleted + 0)' => 0
+                'limit' => 11,
+                'flatten' => 1,
             );
-            if (!empty($extraConditions)) {
-                $conditions['OR'][] = $extraConditions;
-            }
-            if ($full) {
-                $conditions['Attribute.id > '] = $a['id'];
-            }
-            $correlatingAttributes[$k] = $this->find('all', array(
-                'conditions' => $conditions,
-                'recursive' => -1,
-                'fields' => array(
-                    'Attribute.event_id',
-                    'Attribute.id',
-                    'Attribute.distribution',
-                    'Attribute.sharing_group_id',
-                    'Attribute.value1',
-                    'Attribute.value2',
-                ),
-                'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
-                'order' => array(),
-            ));
+            $resultArray[$key]['related'] = $this->fetchAttributes($user, $options);
         }
-        $correlations = array();
-        foreach ($correlatingAttributes as $k => $cA) {
-            foreach ($cA as $corr) {
-                if (Configure::read('MISP.deadlock_avoidance')) {
-                    $correlations[] = array(
-                        'value' => $k === 0 ? $corr['Attribute']['value1'] : $corr['Attribute']['value2'],
-                        '1_event_id' => $event['Event']['id'],
-                        '1_attribute_id' => $a['id'],
-                        'event_id' => $corr['Attribute']['event_id'],
-                        'attribute_id' => $corr['Attribute']['id'],
-                        'org_id' => $corr['Event']['org_id'],
-                        'distribution' => $corr['Event']['distribution'],
-                        'a_distribution' => $corr['Attribute']['distribution'],
-                        'sharing_group_id' => $corr['Event']['sharing_group_id'],
-                        'a_sharing_group_id' => $corr['Attribute']['sharing_group_id'],
-                        'date' => $corr['Event']['date'],
-                        'info' => $corr['Event']['info']
-                    );
-                    $correlations[] = array(
-                        'value' => $correlatingValues[$k],
-                        '1_event_id' => $corr['Event']['id'],
-                        '1_attribute_id' => $corr['Attribute']['id'],
-                        'event_id' => $a['event_id'],
-                        'attribute_id' => $a['id'],
-                        'org_id' => $event['Event']['org_id'],
-                        'distribution' => $event['Event']['distribution'],
-                        'a_distribution' => $a['distribution'],
-                        'sharing_group_id' => $event['Event']['sharing_group_id'],
-                        'a_sharing_group_id' => $a['sharing_group_id'],
-                        'date' => $event['Event']['date'],
-                        'info' => $event['Event']['info']
-                    );
-                } else {
-                    $correlations[] = array(
-                        $k === 0 ? $corr['Attribute']['value1'] : $corr['Attribute']['value2'],
-                        $event['Event']['id'],
-                        $a['id'],
-                        $corr['Attribute']['event_id'],
-                        $corr['Attribute']['id'],
-                        $corr['Event']['org_id'],
-                        $corr['Event']['distribution'],
-                        $corr['Attribute']['distribution'],
-                        $corr['Event']['sharing_group_id'],
-                        $corr['Attribute']['sharing_group_id'],
-                        $corr['Event']['date'],
-                        $corr['Event']['info']
-                    );
-                    $correlations[] = array(
-                        $correlatingValues[$k],
-                        $corr['Event']['id'],
-                        $corr['Attribute']['id'],
-                        $a['event_id'],
-                        $a['id'],
-                        $event['Event']['org_id'],
-                        $event['Event']['distribution'],
-                        $a['distribution'],
-                        $event['Event']['sharing_group_id'],
-                        $a['sharing_group_id'],
-                        $event['Event']['date'],
-                        $event['Event']['info']
-                    );
-                }
-            }
-        }
-
-        if (empty($correlations)) {
-            return true;
-        }
-
-        $fields = array(
-            'value',
-            '1_event_id',
-            '1_attribute_id',
-            'event_id',
-            'attribute_id',
-            'org_id',
-            'distribution',
-            'a_distribution',
-            'sharing_group_id',
-            'a_sharing_group_id',
-            'date',
-            'info'
-        );
-        if (Configure::read('MISP.deadlock_avoidance')) {
-            $this->Correlation = ClassRegistry::init('Correlation');
-            return $this->Correlation->saveMany($correlations, array(
-                'atomic' => false,
-                'callbacks' => false,
-                'deep' => false,
-                'validate' => false,
-                'fieldList' => $fields,
-            ));
-        } else {
-            $db = $this->getDataSource();
-            return $db->insertMulti('correlations', $fields, $correlations);
-        }
-    }
-
-    private function __beforeDeleteCorrelation($attribute_id)
-    {
-        $this->Correlation = ClassRegistry::init('Correlation');
-        // When we remove an attribute we need to
-        // - remove the existing relations related to that attribute, we DO have an id reference
-        // ==> DELETE FROM correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id;
-        $dummy = $this->Correlation->deleteAll(
-            array('OR' => array(
-                        'Correlation.1_attribute_id' => $attribute_id,
-                        'Correlation.attribute_id' => $attribute_id))
-        );
     }
 
     public function checkComposites()
@@ -2087,7 +1743,11 @@ class Attribute extends AppModel
             $typeArray[] = 'malware-sample';
         }
         $rules = array();
-        $eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
+        $eventIds = $this->Event->fetchEventIds($user, [
+            'from' => $from,
+            'to' => $to,
+            'last' => $last
+        ]);
         if (!empty($tags)) {
             $tag = ClassRegistry::init('Tag');
             $args = $this->dissectArgs($tags);
@@ -2145,7 +1805,11 @@ class Attribute extends AppModel
         if (empty($user)) {
             throw new MethodNotAllowedException(__('Could not read user.'));
         }
-        $eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
+        $eventIds = $this->Event->fetchEventIds($user, [
+            'from' => $from,
+            'to' => $to,
+            'last' => $last
+        ]);
 
         // If we sent any tags along, load the associated tag names for each attribute
         if ($tags) {
@@ -2624,7 +2288,7 @@ class Attribute extends AppModel
                 'order' => [],
             ]);
             foreach ($attributes as $attribute) {
-                $this->__afterSaveCorrelation($attribute['Attribute'], $full, $event);
+                $this->Correlation->afterSaveCorrelation($attribute['Attribute'], $full, $event);
                 $attributeCount++;
             }
         }
@@ -3123,6 +2787,7 @@ class Attribute extends AppModel
         } else {
             $options['includeDecayScore'] = true;
         }
+        //Add EventTags to attributes to take them into account when calculating decay score
         if ($options['includeDecayScore']) {
             $options['includeEventTags'] = true;
         }

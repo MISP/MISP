@@ -499,6 +499,7 @@
     </div><br />
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
     <?php echo $this->Form->postButton(__('Remove orphaned attributes'), $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+    <?php echo $this->Form->postButton(__('Remove orphaned correlations'), $baseurl . '/servers/removeOrphanedCorrelations', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
     <?php echo $this->Form->postButton(__('Remove published empty events'), $baseurl . '/events/cullEmptyEvents', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
     <h3><?php echo __('Administrator On-demand Action');?></h3>
     <p><?php echo __('Click the following button to go to the Administrator On-demand Action page.');?></p>

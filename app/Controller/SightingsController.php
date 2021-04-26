@@ -270,7 +270,9 @@ class SightingsController extends AppController
         if ($eventid) {
             $conditions['eventid'] = $sightedEvents;
         }
-        $events = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, false, false, false, $sightedEvents);
+        $events = $this->Event->fetchEventIds($this->Auth->user(), [
+            'eventIdList' => $sightedEvents
+        ]);
         $sightings = array();
         if (!empty($events)) {
             foreach ($events as $k => $event) {

@@ -10,7 +10,7 @@ require_once 'AppShell.php';
  */
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation');
     public $tasks = array('ConfigLoad');
 
     public function getOptionParser()
@@ -96,7 +96,7 @@ class EventShell extends AppShell
             'job_input' => $id,
             'status' => 0,
             'retries' => 0,
-            //'org' => $jobOrg,
+            'org' => 0,
             'message' => 'Job created.',
         );
         $this->Job->save($data);
@@ -107,6 +107,26 @@ class EventShell extends AppShell
         $fieldList = array('published', 'id', 'info');
         $this->Event->save($event, array('fieldList' => $fieldList));
         // only allow form submit CSRF protection.
+        $this->Job->saveField('status', 1);
+        $this->Job->saveField('message', 'Job done.');
+    }
+
+    public function correlateValue()
+    {
+        $this->ConfigLoad->execute();
+        $value = $this->args[0];
+        $this->Job->create();
+        $data = array(
+            'worker' => 'default',
+            'job_type' => 'correlateValue',
+            'job_input' => $value,
+            'status' => 0,
+            'retries' => 0,
+            'org' => 0,
+            'message' => 'Job created.',
+        );
+        $this->Job->save($data);
+        $this->Correlation->correlateValue($value, $this->Job->id);
         $this->Job->saveField('status', 1);
         $this->Job->saveField('message', 'Job done.');
     }

@@ -191,11 +191,25 @@ class Galaxy extends AppModel
                         $value = [$value];
                     }
                     foreach ($value as $v) {
-                        $elements[] = array(
-                            $galaxyClusterId,
-                            $key,
-                            strval($v)
-                        );
+                        if (is_array($v)) {
+                            $this->Log = ClassRegistry::init('Log');
+                            $this->Log->create();
+                            $this->Log->save(array(
+                                'org' => 'SYSTEM',
+                                'model' => 'Galaxy',
+                                'model_id' => 0,
+                                'email' => 0,
+                                'action' => 'error',
+                                'title' => sprintf('Found a malformed galaxy cluster (%s) during the update, skipping. Reason: Malformed meta field, embedded array found.', $cluster['uuid']),
+                                'change' => ''
+                            ));
+                        } else {
+                            $elements[] = array(
+                                $galaxyClusterId,
+                                $key,
+                                strval($v)
+                            );
+                        }
                     }
                 }
             }

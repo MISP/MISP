@@ -215,13 +215,39 @@
     <span id="pull_tags_NOT" style="display:none;"><?php echo __('Events with the following tags blocked');?>: <span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
     <span id="pull_orgs_OR" style="display:none;"><?php echo __('Events with the following organisations allowed');?>: <span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
     <span id="pull_orgs_NOT" style="display:none;"><?php echo __('Events with the following organisations blocked');?>: <span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
+    <span id="pull_url_params" style="display:none;"><?php echo __('Additional parameters: ');?><span id="pull_url_params_text" style="color:green;"></span><br /></span>
     <span id="pull_modify"  class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify');?></span><br /><br />
     <?php
     echo $this->Form->button(__('Edit'), array('class' => 'btn btn-primary'));
     echo $this->Form->end();
     ?>
     <div id="hiddenRuleForms">
-        <?php echo $this->element('serverRuleElements/pull'); ?>
+        <?php
+            $pullRules = json_decode($feed['Feed']['rules'], true);
+            $pullRules['url_params'] = json_decode($pullRules['url_params'], true);
+            $modalData = [
+                'data' => [
+                    'title' => __('Set PULL rules'),
+                    'content' => [
+                        [
+                            'html' => $this->element('serverRuleElements/pull', [
+                                'context' => 'feeds',
+                                'allTags' => $tags,
+                                'allOrganisations' => $orgs,
+                                'ruleObject' => $pullRules
+                            ])
+                        ]
+                    ],
+                ],
+                'type' => 'xl',
+                'class' => 'pull-rule-modal',
+                'confirm' => [
+                    'title' => __('Update'),
+                    'onclick' => "serverRulesUpdateState('pull');"
+                ]
+            ];
+            echo $this->element('genericElements/infoModal', $modalData);
+        ?>
     </div>
 </div>
 <?php
@@ -252,10 +278,20 @@ var orgs = [];
 
 $(document).ready(function() {
     rules = convertServerFilterRules(rules);
-    serverRulePopulateTagPicklist();
     feedDistributionChange();
     $("#pull_modify").click(function() {
-        serverRuleFormActivate('pull');
+        $('#genericModal.pull-rule-modal').modal().on('shown', function () {
+            var $containers = $(this).find('.rules-widget-container')
+            $containers.each(function() {
+                var initFun = $(this).data('funname');
+                if (typeof window[initFun] === 'function') {
+                    window[initFun]()
+                }
+            })
+            if (typeof window['cm'] === "object") {
+                window['cm'].refresh()
+            }
+        });
     });
     $("#FeedDistribution").change(function() {
         feedDistributionChange();

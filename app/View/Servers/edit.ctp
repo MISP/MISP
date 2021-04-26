@@ -176,8 +176,43 @@
 ?>
 </div>
 <div id="hiddenRuleForms">
-    <?php echo $this->element('serverRuleElements/push'); ?>
-    <?php echo $this->element('serverRuleElements/pull'); ?>
+    <?php
+        $pushRules = $pullRules = [];
+        if (!empty($server)) {
+            $pushRules = json_decode($server['Server']['push_rules'], true);
+            $pullRules = json_decode($server['Server']['pull_rules'], true);
+            $pullRules['url_params'] = json_decode($pullRules['url_params'], true);
+        }
+        $modalData = [
+            'data' => [
+                'title' => __('Set PUSH rules'),
+                'content' => [
+                    [
+                        'html' => $this->element('serverRuleElements/push', [
+                            'allTags' => $allTags,
+                            'allOrganisations' => $allOrganisations,
+                            'ruleObject' => $pushRules
+                        ])
+                    ]
+                ],
+            ],
+            'type' => 'xl',
+            'class' => 'push-rule-modal',
+            'confirm' => [
+                'title' => __('Update'),
+                'onclick' => "serverRulesUpdateState('push');"
+            ]
+        ];
+        echo $this->element('genericElements/infoModal', $modalData);
+        $modalData['data']['title'] = __('Set PULL rules');
+        $modalData['data']['content'][0]['html'] = $this->element('serverRuleElements/pull', [
+            'context' => 'servers',
+            'ruleObject' => $pullRules
+        ]);
+        $modalData['class'] = 'pull-rule-modal';
+        $modalData['confirm']['onclick'] = "serverRulesUpdateState('pull');";
+        echo $this->element('genericElements/infoModal', $modalData);
+    ?>
 </div>
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => $this->action));
@@ -239,12 +274,30 @@ $(document).ready(function() {
             }).popover('show');
     });
     rules = convertServerFilterRules(rules);
-    serverRulePopulateTagPicklist();
     $("#push_modify").click(function() {
-        serverRuleFormActivate('push');
+        $('#genericModal.push-rule-modal').modal().on('shown', function () {
+            var $containers = $(this).find('.rules-widget-container')
+            $containers.each(function() {
+                var initFun = $(this).data('funname');
+                if (typeof window[initFun] === 'function') {
+                    window[initFun]()
+                }
+            })
+        });
     });
     $("#pull_modify").click(function() {
-        serverRuleFormActivate('pull');
+        $('#genericModal.pull-rule-modal').modal().on('shown', function () {
+            var $containers = $(this).find('.rules-widget-container')
+            $containers.each(function() {
+                var initFun = $(this).data('funname');
+                if (typeof window[initFun] === 'function') {
+                    window[initFun]()
+                }
+            })
+            if (typeof window['cm'] === "object") {
+                window['cm'].refresh()
+            }
+        });
     });
 
     $('#add_cert_file').click(function() {

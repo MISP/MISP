@@ -317,7 +317,7 @@ class MispObject extends AppModel
             }
             $newObjectAttributes[] = hash(
                 'sha256',
-                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] . $this->data['Attribute']['value'] = $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value'])
+                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value'])
             );
         }
         $newObjectAttributeCount = count($newObjectAttributes);
@@ -1056,8 +1056,8 @@ class MispObject extends AppModel
                 'email' => $user['email'],
                 'action' => 'edit',
                 'user_id' => $user['id'],
-                'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $object['name'],
-                'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($attribute),
+                'title' => 'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['name'],
+                'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object),
             ));
             return $this->validationErrors;
         }
