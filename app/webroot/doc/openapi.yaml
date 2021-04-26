@@ -402,6 +402,40 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /galaxies/update:
+    post:
+      summary: "Force update the galaxies with the galaxy json definitions."
+      operationId: updateGalaxies
+      tags:
+        - Galaxies
+      responses:
+        "200":
+          $ref: "#/components/responses/UpdateGalaxiesResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /galaxies/delete/{galaxyId}:
+    delete:
+      summary: "Delete a galaxy"
+      operationId: deleteGalaxy
+      tags:
+        - Galaxies
+      parameters:
+        - $ref: "#/components/parameters/galaxyIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteGalaxyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -2188,6 +2222,56 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ExtendedGalaxy"
+
+    UpdateGalaxiesResponse:
+      description: "Update galaxies response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                description: "Present and `true` if the galaxies were succesfully updated."
+                nullable: true
+                type: boolean
+              success:
+                description: "Present and `true` if the galaxies were succesfully updated."
+                nullable: true
+                type: boolean
+              name:
+                type: string
+                example: "Galaxies updated."
+              message:
+                type: string
+                example: "Galaxies updated."
+              url:
+                type: string
+                example: "/galaxies/update"
+
+    DeleteGalaxyResponse:
+      description: "Delete galaxy response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                description: "Present and `true` if the galaxy was succesfully removed."
+                nullable: true
+                type: boolean
+              success:
+                description: "Present and `true` if the galaxy was succesfully removed."
+                nullable: true
+                type: boolean
+              name:
+                type: string
+                example: "Galaxy deleted"
+              message:
+                type: string
+                example: "Galaxy deleted"
+              url:
+                type: string
+                example: "/galaxies/delete"
 
     ApiErrorResponse:
       description: "Unexpected API error"

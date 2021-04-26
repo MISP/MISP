@@ -18,6 +18,17 @@ class IndexGalaxiesCest
         $I->seeResponseIsJson();
     }
 
+    public function testPostIndexReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    {
+        $I->sendPost(self::URL);
+
+        $I->validateRequest();
+        $I->validateResponse();
+
+        $I->seeResponseCodeIs(403);
+        $I->seeResponseIsJson();
+    }
+
     public function testIndexReturnsExpectedGalaxy(ApiTester $I)
     {
         $I->haveAuthorizationKey();
