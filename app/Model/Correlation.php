@@ -5,6 +5,9 @@ App::uses('RandomTool', 'Tools');
 class Correlation extends AppModel
 {
 
+    public $cache_name = 'misp:top_correlations';
+    public $cache_age = 'misp:top_correlations_age';
+
     public $belongsTo = array(
         'Attribute' => [
             'className' => 'Attribute',
@@ -36,7 +39,7 @@ class Correlation extends AppModel
             $this->Job->save($data);
             $jobId = $this->Job->id;
             $process_id = CakeResque::enqueue(
-                    'email',
+                    'default',
                     'EventShell',
                     ['correlateValue', $value, $jobId],
                     true
@@ -203,7 +206,7 @@ class Correlation extends AppModel
             if (!empty($extraCorrelations)) {
                 foreach ($extraCorrelations as $k3 => $extraCorrelation) {
                     $correlations = $this->__addCorrelationEntry($value, $correlatingAttribute, $extraCorrelation, $correlations);
-                    $correlations = $this->__addCorrelationEntry($value, $extraCorrelation, $correlatingAttribute, $correlations);
+                    //$correlations = $this->__addCorrelationEntry($value, $extraCorrelation, $correlatingAttribute, $correlations);
                 }
             }
             if ($jobId && $k % 100 === 0) {
@@ -353,13 +356,13 @@ class Correlation extends AppModel
         }
         if (empty($this->exclusions)) {
             try {
-                $redis = $this->setupRedisWithException();
+                $this->redis = $this->setupRedisWithException();
             } catch (Exception $e) {
                 $redisFail = true;
             }
             if (empty($redisFail)) {
                 $this->Correlation = ClassRegistry::init('Correlation');
-                $this->exclusions = $redis->sMembers('misp:correlation_exclusions');
+                $this->exclusions = $this->redis->sMembers('misp:correlation_exclusions');
             }
         }
         foreach ($this->exclusions as $exclusion) {
@@ -575,5 +578,130 @@ class Correlation extends AppModel
         }
 
         return true;
+    }
+
+    public function generateTopCorrelationsRouter()
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            if (empty($this->Job)) {
+                $this->Job = ClassRegistry::init('Job');
+            }
+            $this->Job->create();
+            $data = array(
+                    'worker' => 'default',
+                    'job_type' => 'generateTopCorrelations',
+                    'job_input' => '',
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => 0,
+                    'org' => 0,
+                    'message' => 'Starting generation of top correlations.',
+            );
+            $this->Job->save($data);
+            $jobId = $this->Job->id;
+            $process_id = CakeResque::enqueue(
+                    'default',
+                    'EventShell',
+                    ['generateTopCorrelations', $jobId],
+                    true
+            );
+            $this->Job->saveField('process_id', $process_id);
+            return true;
+        } else {
+            return $this->generateTopCorrelations();
+        }
+    }
+
+    public function generateTopCorrelations($jobId = false)
+    {
+        try {
+            $this->redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            throw new NotFoundException(__('No redis connection found.'));
+        }
+        $mem_initial = memory_get_usage();
+        $max_id = $this->find('first', [
+            'fields' => ['MAX(id) AS max_id'],
+            'recursive' => -1
+        ]);
+        if (empty($max_id)) {
+            return false;
+        }
+        if ($jobId) {
+            if (empty($this->Job)) {
+                $this->Job = ClassRegistry::init('Job');
+            }
+            $job = $this->Job->find('first', [
+                'recursive' => -1,
+                'conditions' => ['id' => $jobId]
+            ]);
+            if (empty($job)) {
+                $jobId = false;
+            }
+        }
+        $max_id = $max_id[0]['max_id'];
+
+        $this->redis->del($this->cache_name);
+        $this->redis->set($this->cache_age, time());
+        $chunk_size = 1000000;
+        $max = ceil($max_id / $chunk_size);
+        for ($i = 0; $i < $max; $i++) {
+            $correlations = $this->find('column', [
+                'recursive' => -1,
+                'fields' => ['value'],
+                'conditions' => [
+                    'id >' => ($i * $chunk_size),
+                    'id <=' => (($i + 1) * $chunk_size)
+                ]
+            ]);
+            $newElements = count($correlations);
+            $correlations = array_count_values($correlations);
+            $pipeline = $this->redis->pipeline();
+            foreach ($correlations as $correlation => $count) {
+                $pipeline->zadd($this->cache_name, ['INCR'], $count, $correlation);
+            }
+            $pipeline->exec();
+            if ($jobId) {
+                $job['Job']['progress'] = floor(100 * $i / $max);
+                $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+                $job['Job']['message'] = __('Generating top correlations. Processed %s IDs.', ($i * $chunk_size) + $newElements);
+                $this->Job->save($job);
+                return $jobId;
+            }
+        }
+        return true;
+    }
+
+    public function findTop($query)
+    {
+        try {
+            $this->redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+        $start = $query['limit'] * ($query['page'] -1);
+        $end = $query['limit'] * ($query['page']);
+        $list = $this->redis->zRevRange($this->cache_name, $start, $end, true);
+        $results = [];
+        foreach ($list as $value => $count) {
+            $results[] = [
+                'Correlation' => [
+                    'value' => $value,
+                    'count' => $count / 2,
+                    'excluded' => $this->redis->sismember('misp:correlation_exclusions', $value)
+                ]
+            ];
+        }
+        return $results;
+    }
+
+    public function getTopTime()
+    {
+        try {
+            $this->redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+        return $this->redis->get($this->cache_age);
     }
 }

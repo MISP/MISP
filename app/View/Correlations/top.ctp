@@ -1,31 +1,42 @@
 <?php
     echo sprintf('<div%s>', empty($ajax) ? ' class="index"' : '');
+
     echo $this->element('genericElements/IndexTable/index_table', [
         'data' => [
             'stupid_pagination' => 1,
             'data' => $data,
             'top_bar' => [
-                'pull' => 'right',
                 'children' => [
                     [
-                        'type' => 'search',
-                        'button' => __('Filter'),
-                        'placeholder' => __('Enter value to search'),
-                        'searchKey' => 'quickFilter',
+                        'children' => [
+                            [
+                                'type' => 'text',
+                                'text' => __('Cache age: %s%s', $age, $age_unit)
+                            ],
+                            [
+                                'type' => 'simple',
+                                'url' => $baseurl . '/correlations/generateTopCorrelations',
+                                'text' => __('Regenerate cache')
+                            ]
+                        ]
                     ]
                 ]
             ],
             'fields' => [
                 [
                     'name' => 'Value',
-                    'sort' => 'Correlation.value',
                     'data_path' => 'Correlation.value',
+                ],
+                [
+                    'name' => 'Excluded',
+                    'data_path' => 'Correlation.excluded',
+                    'element' => 'boolean',
                     'class' => 'short'
                 ],
                 [
                     'name' => 'Correlation count',
-                    'sort' => 'Correlation.count',
-                    'data_path' => 'Correlation.count'
+                    'data_path' => 'Correlation.count',
+                    'class' => 'shortish'
                 ]
             ],
             'title' => empty($ajax) ? $title_for_layout : false,
@@ -34,12 +45,22 @@
             'actions' => [
                 [
                     'onclick' => sprintf(
-                        'openGenericModal(\'%s/correlation_exclusions/add/redirect:top_correlations/value:[onclick_params_data_path]\');',
+                        'openGenericModal(\'%s/correlation_exclusions/add/redirect_controller:correlations/redirect:top/value:[onclick_params_data_path]\');',
                         $baseurl
                     ),
                     'onclick_params_data_path' => 'Correlation.value',
                     'icon' => 'trash',
                     'title' => __('Add exclusion entry for value'),
+                    'complex_requirement' => [
+                        'options' => [
+                            'datapath' => [
+                                'excluded' => 'Correlation.excluded'
+                            ]
+                        ],
+                        'function' => function ($row, $options) {
+                            return (!$options['datapath']['excluded']);
+                        }
+                    ]
                 ]
             ]
         ]

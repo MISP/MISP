@@ -46,7 +46,7 @@ class CorrelationExclusionsController extends AppController
     public function add()
     {
         $options = [
-            'filters' => ['value', 'redirect']
+            'filters' => ['value', 'redirect', 'redirect_controller']
         ];
         $params = $this->IndexFilter->harvestParameters($options['filters']);
         if (!empty($params['value'])) {

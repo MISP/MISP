@@ -532,4 +532,20 @@ class EventShell extends AppShell
         }
         return $user;
     }
+
+    public function generateTopCorrelations()
+    {
+        $this->ConfigLoad->execute();
+        $jobId = $this->args[0];
+        $job = $this->Job->read(null, $jobId);
+        $job['Job']['progress'] = 1;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $job['Job']['message'] = __('Generating top correlations list.');
+        $this->Job->save($job);
+        $result = $this->Correlation->generateTopCorrelations($jobId);
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $job['Job']['message'] = __('Job done.');
+        $this->Job->save($job);
+    }
 }
