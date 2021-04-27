@@ -36,6 +36,7 @@ class AttributesController extends AppController
             $this->Security->csrfCheck = false;
         }
         $this->Security->unlockedActions[] = 'getMassEditForm';
+        $this->Security->unlockedActions[] = 'search';
         if ($this->action == 'add_attachment') {
             $this->Security->disabledFields = array('values');
         }
