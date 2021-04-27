@@ -7,7 +7,7 @@ echo $this->element('genericElements/Form/genericForm', [
     ],
     'data' => [
         'model' => $modelForForm,
-        'title' => __('New Organisation'),
+        'title' => __('%s Organisation', Inflector::Humanize($action)),
         'fields' => [
             sprintf('<h4>%s</h4>', __('Mandatory Fields')),
             [
@@ -83,4 +83,8 @@ echo $this->element('genericElements/Form/genericForm', [
     ]
 ]);
 
-echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'addOrg'));
+echo $this->element('/genericElements/SideMenu/side_menu', [
+    'menuList' => 'admin',
+    'menuItem' => $action === 'add' ? 'addOrg' : 'editOrg',
+    'orgId' => $action === 'edit' ? $orgId : 0,
+]);
