@@ -1245,9 +1245,9 @@ class UsersController extends AppController
           ),
           'recursive' => -1
       ));
-      $lastUserLogin = $user['User']['last_login'];
       unset($user['User']['password']);
       $this->User->updateLoginTimes($user['User']);
+      $lastUserLogin = $user['User']['last_login'];
       $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
       if ($lastUserLogin) {
           $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
