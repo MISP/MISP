@@ -1,6 +1,5 @@
 <?php
     echo sprintf('<div%s>', empty($ajax) ? ' class="index"' : '');
-
     echo $this->element('genericElements/IndexTable/index_table', [
         'data' => [
             'stupid_pagination' => 1,
@@ -25,7 +24,12 @@
             'fields' => [
                 [
                     'name' => 'Value',
+                    'element' => 'postlink',
                     'data_path' => 'Correlation.value',
+                    'url' => '/attributes/search',
+                    'payload_paths' => [
+                        'value' => 'Correlation.value'
+                    ]
                 ],
                 [
                     'name' => 'Excluded',
@@ -70,11 +74,4 @@
         echo $this->element('/genericElements/SideMenu/side_menu', $menuData);
     }
 ?>
-<script type="text/javascript">
-    var passedArgsArray = <?php echo $passedArgs; ?>;
-    $(function() {
-        $('#quickFilterButton').click(function() {
-            runIndexQuickFilter();
-        });
-    });
-</script>
+
