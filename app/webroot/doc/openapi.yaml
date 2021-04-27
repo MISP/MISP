@@ -170,7 +170,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/returnFormatParameter"
       requestBody:
-        $ref: "#/components/requestBodies/AttributesRestSearchRequest"
+        $ref: "#/components/requestBodies/RestSearchAttributesRequest"
       responses:
         "200":
           $ref: "#/components/responses/AttributesRestSearchResponse"
@@ -281,7 +281,7 @@ paths:
       tags:
         - Events
       requestBody:
-        $ref: "#/components/requestBodies/EventSearchRequest"
+        $ref: "#/components/requestBodies/SearchEventRequest"
       responses:
         "200":
           $ref: "#/components/responses/ExtendedEventListResponse"
@@ -315,7 +315,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/returnFormatParameter"
       requestBody:
-        $ref: "#/components/requestBodies/EventsRestSearchRequest"
+        $ref: "#/components/requestBodies/RestSearchEventsRequest"
       responses:
         "200":
           $ref: "#/components/responses/EventsRestSearchResponse"
@@ -377,7 +377,7 @@ paths:
       tags:
         - Galaxies
       requestBody:
-        $ref: "#/components/requestBodies/GalaxySearchRequest"
+        $ref: "#/components/requestBodies/SearchGalaxyRequest"
       responses:
         "200":
           $ref: "#/components/responses/GalaxyListResponse"
@@ -429,6 +429,24 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/DeleteGalaxyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /galaxies/import:
+    post:
+      summary: "Import a galaxy cluster"
+      operationId: importGalaxyCluster
+      tags:
+        - Galaxies
+      requestBody:
+        $ref: "#/components/requestBodies/ImportGalaxyClusterRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/ImportGalaxyClusterResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
@@ -1102,12 +1120,9 @@ components:
         value:
           $ref: "#/components/schemas/GalaxyElementValue"
 
-    GalaxyCluster:
-      description: "MISP galaxy is a simple method to express a large object called cluster that can be attached to MISP events or attributes."
+    GalaxyClusterNoId:
       type: object
       properties:
-        id:
-          $ref: "#/components/schemas/GalaxyClusterId"
         uuid:
           $ref: "#/components/schemas/UUID"
         collection_uuid:
@@ -1151,7 +1166,16 @@ components:
         GalaxyElement:
           type: array
           items:
-            type: object # TODO define GalaxyElement
+            $ref: "#/components/schemas/GalaxyElement"
+
+    GalaxyCluster:
+      description: "MISP galaxy is a simple method to express a large object called cluster that can be attached to MISP events or attributes."
+      allOf:
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/GalaxyClusterId"
+        - $ref: "#/components/schemas/GalaxyClusterNoId"
 
     ExtendedGalaxy:
       description: "A galaxy with it's galaxy cluster details."
@@ -1646,7 +1670,7 @@ components:
             type: object
             $ref: "#/components/schemas/Attribute"
 
-    AttributesRestSearchRequest:
+    RestSearchAttributesRequest:
       required: true
       content:
         application/json:
@@ -1771,7 +1795,7 @@ components:
           schema:
             $ref: "#/components/schemas/Event"
 
-    EventSearchRequest:
+    SearchEventRequest:
       required: true
       content:
         application/json:
@@ -1874,7 +1898,7 @@ components:
                 nullable: true
                 example: "1"
 
-    EventsRestSearchRequest:
+    RestSearchEventsRequest:
       required: true
       content:
         application/json:
@@ -1956,7 +1980,7 @@ components:
               threat_level_id:
                 $ref: "#/components/schemas/ThreatLevelId"
 
-    GalaxySearchRequest:
+    SearchGalaxyRequest:
       required: true
       content:
         application/json:
@@ -1965,6 +1989,26 @@ components:
             properties:
               page:
                 $ref: "#/components/schemas/GalaxyValueSearchFilter"
+
+    ImportGalaxyClusterRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              allOf:
+                - type: object
+                  properties:
+                    GalaxyCluster:
+                      $ref: "#/components/schemas/GalaxyClusterNoId"
+                - type: object
+                  properties:
+                    Galaxy:
+                      type: object
+                      properties:
+                        uuid:
+                          $ref: "#/components/schemas/UUID"
 
   responses:
     AttributeResponse:
@@ -2272,6 +2316,31 @@ components:
               url:
                 type: string
                 example: "/galaxies/delete"
+
+    ImportGalaxyClusterResponse:
+      description: "import galaxy cluster response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                description: "Present and `true` if the galaxy was succesfully imported."
+                nullable: true
+                type: boolean
+              success:
+                description: "Present and `true` if the galaxy was succesfully imported."
+                nullable: true
+                type: boolean
+              name:
+                type: string
+                example: "'Galaxy clusters imported. 1 imported, 0 ignored, 0 failed."
+              message:
+                type: string
+                example: "'Galaxy clusters imported. 1 imported, 0 ignored, 0 failed."
+              url:
+                type: string
+                example: "/galaxies/import"
 
     ApiErrorResponse:
       description: "Unexpected API error"

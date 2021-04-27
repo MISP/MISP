@@ -26,12 +26,6 @@ class GalaxyClusterFixture extends AbstractFixture implements FixtureInterface
             'collection_uuid' => $faker->uuid,
             'type' => $faker->randomElement(['tool', 'android', 'botnet']),
             'value' => $faker->text(),
-            'tag_name' => $faker->randomElement(
-                [
-                    'misp-galaxy:sod-matrix="Ensuring that fundamental rights are respected during the investigation and prosecution - CSIRT - [S]"',
-                    'misp-galaxy:mitre-enterprise-attack-attack-pattern="Signed Binary Proxy Execution - T1218"'
-                ]
-            ),
             'description' => $faker->text(),
             'galaxy_id' => (string)$faker->numberBetween(1, 1000),
             'source' => 'https://github.com/mitre/cti',
@@ -49,7 +43,18 @@ class GalaxyClusterFixture extends AbstractFixture implements FixtureInterface
             'deleted' => false,
         ];
 
+
         return new GalaxyClusterFixture(array_merge($defaults, $attributes), $galaxyElements);
+    }
+
+    public function toRequest(): array
+    {
+        return array_merge(
+            parent::toResponse(),
+            [
+                'authors' => json_decode($this->attributes['authors'])
+            ]
+        );
     }
 
     public function toResponse(): array
