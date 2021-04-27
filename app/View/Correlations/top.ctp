@@ -75,11 +75,4 @@
         echo $this->element('/genericElements/SideMenu/side_menu', $menuData);
     }
 ?>
-<script type="text/javascript">
-    var passedArgsArray = <?php echo $passedArgs; ?>;
-    $(function() {
-        $('#quickFilterButton').click(function() {
-            runIndexQuickFilter();
-        });
-    });
-</script>
+
