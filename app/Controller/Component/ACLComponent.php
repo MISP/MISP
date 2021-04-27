@@ -89,6 +89,7 @@ class ACLComponent extends Component
             ],
             'correlationExclusions' => [
                 'add' => [],
+                'edit' => [],
                 'clean' => [],
                 'delete' => [],
                 'index' => [],
