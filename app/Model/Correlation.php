@@ -687,7 +687,7 @@ class Correlation extends AppModel
             $results[] = [
                 'Correlation' => [
                     'value' => $value,
-                    'count' => $count / 2,
+                    'count' => $count,
                     'excluded' => $this->redis->sismember('misp:correlation_exclusions', $value)
                 ]
             ];

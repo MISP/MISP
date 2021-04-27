@@ -25,7 +25,12 @@
             'fields' => [
                 [
                     'name' => 'Value',
+                    'element' => 'postlink',
                     'data_path' => 'Correlation.value',
+                    'url' => '/attributes/search',
+                    'payload_paths' => [
+                        'value' => 'Correlation.value'
+                    ]
                 ],
                 [
                     'name' => 'Excluded',
