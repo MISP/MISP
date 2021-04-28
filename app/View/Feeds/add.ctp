@@ -259,15 +259,24 @@ var modelContext = 'Feed';
 $(document).ready(function() {
     feedDistributionChange();
     $("#pull_modify").click(function() {
-        $('#genericModal.pull-rule-modal').modal().on('shown', function () {
-            var $containers = $(this).find('.rules-widget-container')
-            $containers.each(function() {
-                var initFun = $(this).data('funname');
-                if (typeof window[initFun] === 'function') {
-                    window[initFun]()
-                }
+        $('#genericModal.pull-rule-modal').modal()
+            .on('shown', function () {
+                var $containers = $(this).find('.rules-widget-container')
+                $containers.each(function() {
+                    var initFun = $(this).data('funname');
+                    if (typeof window[initFun] === 'function') {
+                        window[initFun]()
+                    }
+                })
             })
-        });
+            .on('hidden', function () {
+                var $containers = $(this).find('.rules-widget-container')
+                $containers.each(function() {
+                    if ($(this).data('resetrulesfun') !== undefined) {
+                        $(this).data('resetrulesfun')()
+                    }
+                })
+            });
     });
     $("#FeedDistribution").change(function() {
         feedDistributionChange();

@@ -140,15 +140,26 @@ $pickerDisplayed = false;
 
 <script>
 function initRuleWidgetPicker<?= $seed ?>() {
-    $('.container-seed-<?= $seed ?> select.rules-select-picker').chosen()
-    $('.container-seed-<?= $seed ?> select.rules-select-data').keydown(function(evt) {
+    var $baseContainer = $('.container-seed-<?= $seed ?>');
+    $baseContainer.find('select.rules-select-picker').chosen()
+    $baseContainer.find('select.rules-select-data').keydown(function(evt) {
         var $select = $(this)
         var $pickerSelect = $select.closest('.rules-widget-container').find('select.rules-select-picker')
         if (evt.keyCode === 46) { // <DELETE>
             deleteSelectedRules($select, $pickerSelect)
         }
     });
-    rebuildRules($('.container-seed-<?= $seed ?>'))
+    rebuildRules($baseContainer)
+    $baseContainer.data('initial-rules-allow', $baseContainer.find('.rules-allow').children())
+    $baseContainer.data('initial-rules-block', $baseContainer.find('.rules-block').children())
+    $baseContainer.data('resetrulesfun', function() {
+        $baseContainer.find('.rules-allow').empty().append(
+            $baseContainer.data('initial-rules-allow')
+        )
+        $baseContainer.find('.rules-block').empty().append(
+            $baseContainer.data('initial-rules-block')
+        )
+    })
 }
 
 function deleteSelectedRules($select, $pickerSelect) {
