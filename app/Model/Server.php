@@ -1450,14 +1450,19 @@ class Server extends AppModel
         return $options;
     }
 
-    private function loadLocalOrganisations()
+    private function loadLocalOrganisations($strict = false)
     {
         $localOrgs = $this->Organisation->find('list', array(
             'conditions' => array('local' => 1),
             'recursive' => -1,
             'fields' => array('Organisation.id', 'Organisation.name')
         ));
-        return array_replace(array(0 => __('No organisation selected.')), $localOrgs);
+
+        if(!$strict){
+            return array_replace(array(0 => __('No organisation selected.')), $localOrgs);
+        }
+
+        return $localOrgs;
     }
 
     public function testTagCollections($value)
@@ -1515,6 +1520,15 @@ class Server extends AppModel
     }
 
     public function testLocalOrg($value)
+    {
+        if ($value == 0) {
+            return true; // `No organisation selected` option
+        }
+
+        return $this->testLocalOrgStrict($value);
+    }
+
+    public function testLocalOrgStrict($value)
     {
         $this->Organisation = ClassRegistry::init('Organisation');
         if ($value == 0) {
@@ -4414,6 +4428,80 @@ class Server extends AppModel
         return parent::__get($name);
     }
 
+    public function removeOrphanedCorrelations()
+    {
+        $this->Correlation = ClassRegistry::init('Correlation');
+        $orphansLeft = $this->Correlation->find('all', [
+            'joins' => [
+                [
+                    'table' => 'attributes',
+                    'alias' => 'Attribute',
+                    'type' => 'LEFT',
+                    'conditions' => [
+                        'OR' => [
+                            'Correlation.attribute_id = Attribute.id',
+                        ]
+                        
+                    ]
+                ]
+            ],
+            'conditions' => [
+                'Attribute.id IS NULL'
+            ],
+        ]);
+        $orphansRight = $this->Correlation->find('all', [
+            'conditions' => [
+                '1_attribute_id' => Hash::extract($orphansLeft, '{n}.Correlation.attribute_id')
+            ]
+        ]);
+        $orphans = array_merge(
+            Hash::extract($orphansLeft, '{n}.Correlation.id'),
+            Hash::extract($orphansRight, '{n}.Correlation.id')
+        );
+        $success = $this->Correlation->deleteAll([
+            'Correlation.id' => $orphans
+        ]);
+        return $success;
+    }
+
+    public function queryAvailableSyncFilteringRules($server)
+    {
+        $HttpSocket = $this->setupHttpSocket($server, null);
+        $uri = $server['Server']['url'] . '/servers/getAvailableSyncFilteringRules';
+        $request = $this->setupSyncRequest($server);
+        $response = $HttpSocket->get($uri, false, $request);
+        if ($response === false) {
+            throw new Exception(__('Connection failed for unknown reason.'));
+        }
+
+        $syncFilteringRules = [];
+        if ($response->isOk()) {
+            $syncFilteringRules = $this->jsonDecode($response->body());
+        } else {
+            throw new Exception(__('Reponse was not OK. (HTTP code: %s)', $response->code));
+        }
+        return $syncFilteringRules;
+    }
+
+    public function getAvailableSyncFilteringRules($user)
+    {
+        $this->Organisation = ClassRegistry::init('Organisation');
+        $this->Tag = ClassRegistry::init('Tag');
+        $organisations = [];
+        if ($user['Role']['perm_sharing_group'] || !Configure::read('Security.hide_organisation_index_from_users')) {
+            $organisations = $this->Organisation->find('list', [
+                'fields' => 'name'
+            ]);
+        }
+        $tags = $this->Tag->find('list', [
+            'fields' => 'name'
+        ]);
+        return [
+            'organisations' => array_values($organisations),
+            'tags' => array_values($tags),
+        ];
+    }
+
     /**
      * Generate just when required
      * @return array[]
@@ -4678,10 +4766,10 @@ class Server extends AppModel
                     'description' => __('The hosting organisation of this instance. If this is not selected then replication instances cannot be added.'),
                     'value' => '0',
                     'errorMessage' => '',
-                    'test' => 'testLocalOrg',
+                    'test' => 'testLocalOrgStrict',
                     'type' => 'numeric',
                     'optionsSource' => function () {
-                        return $this->loadLocalOrganisations();
+                        return $this->loadLocalOrganisations(true);
                     },
                 ),
                 'uuid' => array(

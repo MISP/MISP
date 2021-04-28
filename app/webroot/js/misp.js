@@ -2326,7 +2326,7 @@ function indexSetRowVisibility() {
 }
 
 function indexEvaluateSimpleFiltering(field) {
-    text = "";
+    var text = "";
     if (filtering[field].OR.length == 0 && filtering[field].NOT.length == 0) {
         $('#value_' + field).html(text);
         return false;
@@ -2411,19 +2411,21 @@ function indexRuleChange() {
     $('[id^=' + context + 'Search]').hide();
     var rule = $('#' + context + 'Rule').val();
     var fieldName = '#' + context + 'Search' + rule;
-    if (fieldName == '#' + context + 'Searchdate') {
+    if (fieldName === '#' + context + 'Searchdate') {
         $(fieldName + 'from').show();
         $(fieldName + 'until').show();
     } else {
-        $(fieldName).show();
+        if ($(fieldName + '_chosen').length) {
+            $(fieldName + '_chosen').show();
+        } else {
+            $(fieldName).show();
+        }
     }
     if (simpleFilters.indexOf(rule) != -1) {
         $('#' + context + 'Searchbool').show();
     } else $('#' + context + 'Searchbool').hide();
 
-    $('#addRuleButton').show();
-    $('#addRuleButton').unbind("click");
-    $('#addRuleButton').click({param1: rule}, indexAddRule);
+    $('#addRuleButton').show().unbind("click").click({param1: rule}, indexAddRule);
 }
 
 function indexFilterClearRow(field) {
@@ -2444,66 +2446,6 @@ function indexFilterClearRow(field) {
     }
     indexSetTableVisibility();
     indexEvaluateFiltering();
-}
-
-
-function restrictEventViewPagination() {
-    var showPages = new Array();
-    var start;
-    var end;
-    var i;
-
-    if (page < 6) {
-        start = 1;
-        if (count - page < 6) {
-            end = count;
-        } else {
-            end = page + (9 - (page - start));
-        }
-    } else if (count - page < 6) {
-        end = count;
-        start = count - 10;
-    } else {
-        start = page-5;
-        end = page+5;
-    }
-
-    if (start > 2) {
-        $("#apage" + start).parent().before("<li><a href id='aExpandLeft'>...</a></li>");
-        $("#aExpandLeft").click(function() {expandPagination(0, 0); return false;});
-        $("#bpage" + start).parent().before("<li><a href id='bExpandLeft'>...</a></li>");
-        $("#bExpandLeft").click(function() {expandPagination(1, 0); return false;})
-    }
-
-    if (end < (count - 1)) {
-        $("#apage" + end).parent().after("<li><a href id='aExpandRight'>...</a></li>");
-        $("#aExpandRight").click(function() {expandPagination(0, 1); return false;});
-        $("#bpage" + end).parent().after("<li><a href id='bExpandRight'>...</a></li>");
-        $("#bExpandRight").click(function() {expandPagination(1, 1); return false;})
-    }
-
-    for (i = 1; i < (count+1); i++) {
-        if (i != 1 && i != count && (i < start || i > end)) {
-            $("#apage" + i).hide();
-            $("#bpage" + i).hide();
-        }
-    }
-}
-
-function expandPagination(bottom, right) {
-    var i;
-    var prefix = "a";
-    if (bottom == 1) prefix = "b";
-    var start = 1;
-    var end = page;
-    if (right == 1) {
-        start = page;
-        end = count;
-        $("#" + prefix + "ExpandRight").remove();
-    } else $("#" + prefix + "ExpandLeft").remove();
-    for (i = start; i < end; i++) {
-        $("#" + prefix + "page" + i).show();
-    }
 }
 
 function getSubGroupFromSetting(setting) {
@@ -3564,7 +3506,9 @@ function serverRuleUpdate() {
                     rules[type][field][status].forEach(function(item) {
                         if (t.length > 0) t += ', ';
                         if (type === 'pull') t += item;
-                        else t += indexedList[item];
+                        else {
+                            t += indexedList[item] !== undefined ? indexedList[item] : item;
+                        }
                     });
                     $('#' + type + '_' + field + '_' + status + '_text').text(t);
                 } else {
@@ -3584,18 +3528,6 @@ function serverRuleUpdate() {
     serverRuleGenerateJSON();
 }
 
-function serverRuleFormActivate(type) {
-    if (type != 'pull' && type != 'push') return false;
-    $('.server_rule_popover').hide();
-    $('#gray_out').fadeIn();
-    $('#server_' + type + '_rule_popover').show();
-}
-
-function serverRuleCancel() {
-    $("#gray_out").fadeOut();
-    $(".server_rule_popover").fadeOut();
-}
-
 function serverRuleGenerateJSON() {
     validOptions.forEach(function(type) {
         if ($('#Server' + type.ucfirst() + "Rules").length) {
@@ -3606,93 +3538,16 @@ function serverRuleGenerateJSON() {
     });
 }
 
-function serverRulePopulateTagPicklist() {
-    var fields = ["tags", "orgs"];
-    var target = "";
-    fields.forEach(function(field) {
-        target = "";
-        window[field].forEach(function(element) {
-            if ($.inArray(element.id, rules["push"][field]["OR"]) != -1) target = "#" + field + "pushLeftValues";
-            else if ($.inArray(element.id, rules["push"][field]["NOT"]) != -1) target = "#" + field + "pushRightValues";
-            else target = "#" + field + "pushMiddleValues";
-            $(target).append($('<option/>', {
-                value: element.id,
-                text : element.name
-            }));
-        });
-        target = "#" + field + "pullLeftValues";
-        rules["pull"][field]["OR"].forEach(function(t) {
-            $(target).append($('<option/>', {
-                value: t,
-                text : t
-            }));
-        });
-        target = "#" + field + "pullRightValues";
-        rules["pull"][field]["NOT"].forEach(function(t) {
-            $(target).append($('<option/>', {
-                value: t,
-                text : t
-            }));
-        });
-    });
-    $('#urlParams').val(rules["pull"]["url_params"]);
-}
-
-function submitServerRulePopulateTagPicklistValues(context) {
+function serverRulesUpdateState(context) {
+    var $rootContainer = $('.server-rule-container-' + context)
     validFields.forEach(function(field) {
-        rules[context][field]["OR"] = [];
-        $("#" + field + context + "LeftValues option").each(function() {
-            rules[context][field]["OR"].push($(this).val());
-        });
-        rules[context][field]["NOT"] = [];
-        $("#" + field + context + "RightValues option").each(function() {
-            rules[context][field]["NOT"].push($(this).val());
-        });
-    });
+        var $fieldContainer = $rootContainer.find('.scope-' + field)
+        rules[context][field] = $fieldContainer.data('rules')
+    })
     if (context === 'pull') {
-        rules[context]["url_params"] = $('#urlParams').val();
+        rules[context]["url_params"] = $rootContainer.find('textarea#urlParams').val();
     }
-    $('#server_' + context + '_rule_popover').fadeOut();
-    $('#gray_out').fadeOut();
     serverRuleUpdate();
-}
-
-// type = pull/push, field = tags/orgs, from = Left/Middle/Right, to = Left/Middle/Right
-function serverRuleMoveFilter(type, field, from, to) {
-    var opposites = {"Left": "Right", "Right": "Left"};
-    // first fetch the value
-    var value = "";
-    if (type == "pull" && from == "Middle") {
-        var doInsert = true;
-        value = $("#" + field + type + "NewValue").val();
-        if (value.length !== 0 && value.trim()) {
-            $("#" + field + type + to + "Values" + " option").each(function() {
-                if (value == $(this).val()) doInsert = false;
-            });
-            $("#" + field + type + opposites[to] + "Values" + " option").each(function() {
-                if (value == $(this).val()) $(this).remove();
-            });
-            if (doInsert) {
-                $("#" + field + type + to + "Values").append($('<option/>', {
-                    value: value,
-                    text : value
-                }));
-            }
-        }
-        $("#" + field + type + "NewValue").val('');
-    } else {
-        $("#" + field + type + from + "Values option:selected").each(function () {
-            if (type != "pull" || to != "Middle") {
-                value = $(this).val();
-                text = $(this).text();
-                $("#" + field + type + to + "Values").append($('<option/>', {
-                    value: value,
-                    text : text
-                }));
-            }
-            $(this).remove();
-        });
-    }
 }
 
 function syncUserSelected() {
@@ -3724,6 +3579,16 @@ function filterAttributes(filter, event_id) {
         },
         error: function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
+        }
+    });
+}
+
+function eventIndexColumnsToggle(columnName) {
+    xhr({
+        url: "/userSettings/eventIndexColumnToggle/" + columnName,
+        method: "post",
+        success: function () {
+            window.location.reload(); // update page
         }
     });
 }
@@ -4820,22 +4685,21 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
     });
 });
 
-function queryEventLock(event_id) {
+function queryEventLock(event_id, timestamp) {
     if (!document.hidden) {
         $.ajax({
-            url: baseurl + "/events/checkLocks/" + event_id,
-            type: "get",
+            url: baseurl + "/events/checkLocks/" + event_id + "/" + timestamp,
             success: function(data, statusText, xhr) {
                  if (xhr.status == 200) {
                      $('#event_lock_warning').remove();
-                     if (data != '') {
-                         $('#main-view-container').append(data);
-                     }
+                     $('#main-view-container').append(data);
+                 } else if (xhr.status == 204) {
+                     $('#event_lock_warning').remove();
                  }
             }
         });
     }
-    setTimeout(function() { queryEventLock(event_id); }, 5000);
+    setTimeout(function() { queryEventLock(event_id, timestamp); }, 5000);
 }
 
 function checkIfLoggedIn() {
@@ -5273,10 +5137,10 @@ function setHomePage() {
     });
 }
 
-function changeLocationFromIndexDblclick(row_index) {
-    var href = $('table tr[data-row-id=\"' + row_index + '\"] .dblclickActionElement').attr('href')
+$(document.body).on('dblclick', '.dblclickElement', function() {
+    var href = $(this).closest('tr').find('.dblclickActionElement').attr('href');
     window.location = href;
-}
+});
 
 function loadClusterRelations(clusterId) {
     if (clusterId !== undefined) {

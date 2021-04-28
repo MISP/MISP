@@ -19,6 +19,8 @@ var relationship_type_mapping = {
    'followed-by': 'after',
    'preceding-by': 'before',
 }
+var shortcut_text = "<b>ALT+Mouse_Wheel</b> Zoom IN/OUT"
+    + "\n<b>CTRL</b> Multi select"
 var options = {
     template: function (item, element, data) {
         switch(item.group) {
@@ -567,6 +569,15 @@ function enable_timeline() {
                 eventTimeline.focus(id);
                 $("#timeline-typeahead").blur();
             });
+            $('.timeline-help').popover({
+                container: 'body',
+                title: 'Shortcuts',
+                content: shortcut_text,
+                placement: 'left',
+                trigger: 'hover',
+                template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content preWarp"></div></div>',
+                html: true,
+            });
         },
         error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );
@@ -625,6 +636,15 @@ function handle_not_seen_enabled(hide, include_hidden) {
             items_timeline.add(items_backup);
         }
     }
+}
+
+function setVisibleWindow() {
+    var startDate = $('#checkbox_timeline_display_daterange_start').val()
+    var endDate = $('#checkbox_timeline_display_daterange_end').val()
+    var currentWindow = eventTimeline.getWindow()
+    startDate = startDate === '' ? currentWindow.start : startDate
+    endDate = endDate === '' ? currentWindow.end : endDate
+    eventTimeline.setWindow(startDate, endDate);
 }
 
 $('#fullscreen-btn-timeline').click(function() {
@@ -704,5 +724,30 @@ function init_popover() {
             reload_timeline()
         },
         checked: true
+    });
+    menu_display_timeline.add_datepicker({
+        id: 'checkbox_timeline_display_daterange_start',
+        label: "Start date",
+        title: "Start date of the window",
+        event: function(value) {
+            setVisibleWindow()
+        },
+    });
+    menu_display_timeline.add_datepicker({
+        id: 'checkbox_timeline_display_daterange_end',
+        label: "End date",
+        title: "End date of the window",
+        event: function(value) {
+            setVisibleWindow()
+        },
+    });
+    menu_display_timeline.add_button({
+        id: 'checkbox_timeline_display_fit',
+        type: "primary",
+        label: "Fit all visible items",
+        title: "Fit all visible items in the window",
+        event: function(value) {
+            eventTimeline.fit()
+        }
     });
 }

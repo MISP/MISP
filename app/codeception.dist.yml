@@ -22,6 +22,9 @@ suites:
                           - "TRUNCATE misp.tags;"
                           - "TRUNCATE misp.attribute_tags;"
                           - "TRUNCATE misp.event_tags;"
+                          - "TRUNCATE misp.galaxies;"
+                          - "TRUNCATE misp.galaxy_clusters;"
+                          - "TRUNCATE misp.galaxy_elements;"
                 - \Helper\Module\MispSettings:
                       depends: Cli
                       docker: true

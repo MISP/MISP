@@ -26,7 +26,8 @@
         "league/openapi-psr7-validator": "^0.15.2"
     },
     "conflict": {
-        "symfony/polyfill-php80": "*"
+        "symfony/polyfill-php80": "*",
+        "cakephp/debug_kit": "^2.2.0"
     },
     "suggest": {
         "ext-gd": "For creating image thumbnails",

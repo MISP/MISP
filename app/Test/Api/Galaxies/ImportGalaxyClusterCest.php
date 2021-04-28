@@ -20,7 +20,7 @@ class ImportGalaxyClusterCest
         $I->seeResponseIsJson();
     }
 
-    public function testUpdate(ApiTester $I)
+    public function testImport(ApiTester $I)
     {
         $orgId = 1;
         $I->haveAuthorizationKey($orgId, 1, UserFixture::ROLE_ADMIN);
@@ -58,6 +58,7 @@ class ImportGalaxyClusterCest
                 ]
             ]
         );
+        $fakeGalaxyCluster->set(['id' => $I->grabFromDatabase('galaxy_clusters', 'id', array('uuid' => $galaxyClusterUuid))]);
 
         $I->validateRequest();
         $I->validateResponse();
@@ -72,7 +73,6 @@ class ImportGalaxyClusterCest
                 'url' => '/galaxies/import',
             ]
         );
-        $fakeGalaxyCluster->set(['id' => $I->grabFromDatabase('galaxy_clusters', 'id', array('uuid' => $galaxyClusterUuid))]);
         $I->seeInDatabase('galaxy_clusters', $fakeGalaxyCluster->toDatabase());
     }
 }

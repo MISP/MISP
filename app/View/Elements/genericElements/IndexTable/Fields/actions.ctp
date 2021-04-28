@@ -58,6 +58,17 @@
             }
             $url .= '/' . $url_param_data_paths;
         }
+        $url_params_values = '';
+        if (!empty($action['url_params_values'])) {
+            if (is_array($action['url_params_values'])) {
+                $temp = array();
+                foreach ($action['url_params_values'] as $namedParam => $value) {
+                    $temp[] = sprintf('%s:%s', h($namedParam), h($value));
+                }
+                $url_params_values = implode('/', $temp);
+            }
+            $url .= '/' . $url_params_values;
+        }
         if (!empty($action['url_extension'])) {
             $url .= '.' . $action['url_extension'];
         }

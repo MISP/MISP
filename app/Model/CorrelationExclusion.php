@@ -16,9 +16,32 @@ class CorrelationExclusion extends AppModel
         'Containable',
     );
 
+    public $validate = [
+        'value' => [
+            'uniqueValue' => [
+                'rule' => 'isUnique',
+                'message' => 'Value is already in the exclusion list.'
+            ]
+        ]
+    ];
+
     public function afterSave($created, $options = array())
     {
         $this->cacheValues();
+    }
+
+    public function beforeDelete($cascade = true)
+    {
+        $exclusion = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'id' => $this->id
+            ]
+        ]);
+        $this->Correlation = ClassRegistry::init('Correlation');
+        if (!empty($exclusion)) {
+            $this->Correlation->correlateValueRouter($exclusion['CorrelationExclusion']['value']);
+        }
     }
 
     public function afterDelete()

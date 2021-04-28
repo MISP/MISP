@@ -2124,7 +2124,7 @@ class UsersController extends AppController
                 unset($organisations[$id]);
             }
         }
-        $organisations = array_merge([0 => __('All')], $organisations);
+        $organisations = [0 => __('All')] + $organisations;
         $this->set('organisations', $organisations);
 
         if (isset($params['organisation']) && $params['organisation'] != 0) {

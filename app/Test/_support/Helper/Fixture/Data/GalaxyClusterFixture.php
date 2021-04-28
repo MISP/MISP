@@ -72,4 +72,15 @@ class GalaxyClusterFixture extends AbstractFixture implements FixtureInterface
             ]
         );
     }
+
+    public function toExportResponse(): array
+    {
+        $response = $this->toResponse();
+        unset($response['id'], $response['galaxy_id']);
+        foreach ($response['GalaxyElement'] as &$galaxyElement) {
+            unset($galaxyElement['id'], $galaxyElement['galaxy_cluster_id']);
+        }
+
+        return $response;
+    }
 }

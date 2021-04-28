@@ -34,7 +34,7 @@
     </td>
     <td id="Attribute_<?php echo h($object['id']); ?>_container" class="showspaces limitedWidth shortish">
         <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            <span style="white-space: nowrap;" title="<?php echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => 'blue')) ?>"><?php echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => 'blue')) ?></span>
+            <span style="white-space: nowrap;"><?php echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => 'blue')) ?></span>
         </div>
     </td>
     <td class="shortish">
@@ -60,7 +60,7 @@
             'isSiteAdmin' => false, // prevent add button
             'isAclTagger' => false,
             'data' => !empty($object['Galaxy']) ? $object['Galaxy'] : array(),
-            'event' => $object,
+            'event' => $event,
             'target_id' => $object['id'],
             'target_type' => 'attribute'
         ));

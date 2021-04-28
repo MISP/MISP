@@ -18,16 +18,13 @@
             $url_param_data_paths = implode('/', $temp);
         } else {
             $url_param_data_paths = Hash::extract($row, $field['url_params_data_paths']);
-            if (!empty($url_param_data_paths)) {
-                $url_param_data_paths = $url_param_data_paths[0];
-            } else {
+            if (empty($url_param_data_paths)) {
                 $url_param_data_paths = '';
             }
         }
-        $urlWithData .= '/' . $url_param_data_paths;
     }
     $links = array();
-    foreach ($data_elements as $data) {
+    foreach ($data_elements as $k => $data) {
         if (!empty($data['name'])) {
             $field['title'] = $data['name'];
         }
@@ -40,6 +37,13 @@
                 $data
             );
         } elseif (!empty($field['url_params_data_paths'])) {
+            if (!empty($url_param_data_paths)) {
+                if (is_array($url_param_data_paths)) {
+                    $urlWithData .= '/' . $url_param_data_paths[$k];
+                } else {
+                    $urlWithData .= '/' . $url_param_data_paths;
+                }
+            }
             $url = $urlWithData;
         } else {
             $url = $data;
