@@ -129,6 +129,10 @@ $(function() {
                     $('div.notice-pull-rule-fetched.alert-warning').show().find('.reason').text(errorMessage)
                     $pickerTags.parent().remove()
                     $pickerOrgs.parent().remove()
+                    $rootContainer.find('.freetext-button-toggle-tag').collapse('show').remove()
+                    $rootContainer.find('.freetext-button-toggle-org').collapse('show').remove()
+                    $rootContainer.find('.collapse-freetext-tag').removeClass('collapse')
+                    $rootContainer.find('.collapse-freetext-org').removeClass('collapse')
                 },
                 function() {
                     $('div.notice-pull-rule-fetched.alert-primary').hide()
