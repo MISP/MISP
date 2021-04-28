@@ -65,7 +65,7 @@ class StixBuilder():
     @staticmethod
     def _get_event(events):
         if events.get('response'):
-            return {'response': [event['Event'] if event.get('Event') else event for event in events]}
+            return {'response': [event['Event'] if event.get('Event') else event for event in events['response']]}
         return events['Event'] if events.get('Event') else events
 
     def _get_packages(self):
