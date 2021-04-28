@@ -40,7 +40,7 @@ class ViewGalaxyCest
             ],
             [$fakeGalaxyElementFoo]
         );
-        $fakeGalaxyBar = GalaxyFixture::fake(['name' => 'bar']);
+        $fakeGalaxyBar = GalaxyFixture::fake(['id' => 2, 'name' => 'bar']);
         $I->haveInDatabase('galaxies', $fakeGalaxyFoo->toDatabase());
         $I->haveInDatabase('galaxy_clusters', $fakeGalaxyClusterFoo->toDatabase());
         $I->haveInDatabase('galaxy_elements', $fakeGalaxyElementFoo->toDatabase());

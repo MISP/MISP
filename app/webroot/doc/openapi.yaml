@@ -479,7 +479,8 @@ components:
     # Attributes
     AttributeId:
       type: string
-      format: int64
+      format: int32
+      maxLength: 10
       example: "12345"
 
     AttributeType:
@@ -596,7 +597,7 @@ components:
           - type: object
             properties:
               Event:
-                $ref: "#/components/schemas/MinimalEvent"
+                $ref: "#/components/schemas/Event"
           - type: object
             properties:
               Object:
@@ -684,7 +685,8 @@ components:
       properties:
         id:
           type: string
-          format: int64
+          format: int32
+          maxLength: 10
           example: "12345"
         name:
           type: string
@@ -697,7 +699,8 @@ components:
       properties:
         id:
           type: string
-          format: int64
+          format: int32
+          maxLength: 10
           example: "12345"
         uuid:
           $ref: "#/components/schemas/UUID"
@@ -752,7 +755,7 @@ components:
         decayed:
           type: boolean
         DecayingModel:
-          anyOf:
+          oneOf:
             - $ref: "#/components/schemas/DecayingModel"
             - $ref: "#/components/schemas/FullDecayingModel"
 
@@ -764,7 +767,8 @@ components:
     # Events
     EventId:
       type: string
-      format: int64
+      format: int32
+      maxLength: 10
       example: "12345"
 
     EventInfo:
@@ -793,7 +797,8 @@ components:
 
     EventTagId:
       type: string
-      format: int64
+      format: int32
+      maxLength: 10
       example: "12345"
 
     EventTag:
@@ -898,6 +903,9 @@ components:
           properties:
             EventTag:
               $ref: "#/components/schemas/EventTagList"
+      required:
+        - Org
+        - Orgc
 
     CreatedEvent:
       type: object
@@ -966,21 +974,27 @@ components:
                     $ref: "#/components/schemas/Tag"
 
     MinimalEvent:
-      allOf:
-        - type: object
-          properties:
-            id:
-              $ref: "#/components/schemas/EventId"
-            timestamp:
-              $ref: "#/components/schemas/Timestamp"
-            sighting_timestamp:
-              $ref: "#/components/schemas/Timestamp"
-            published:
-              $ref: "#/components/schemas/PublishedFlag"
-            uuid:
-              $ref: "#/components/schemas/UUID"
-            orgc_uuid:
-              $ref: "#/components/schemas/UUID"
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/EventId"
+        timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        sighting_timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        published:
+          $ref: "#/components/schemas/PublishedFlag"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        orgc_uuid:
+          $ref: "#/components/schemas/UUID"
+      required:
+        - id
+        - timestamp
+        - sighting_timestamp
+        - published
+        - uuid
+        - orgc_uuid
 
     EventList:
       type: array
@@ -1018,7 +1032,8 @@ components:
     # Galaxies
     GalaxyId:
       type: string
-      format: int64
+      format: int32
+      maxLength: 10
       example: "12345"
 
     GalaxyName:
@@ -1079,7 +1094,8 @@ components:
 
     GalaxyClusterId:
       type: string
-      format: int64
+      format: int32
+      maxLength: 10
       example: "12345"
 
     GalaxyClusterValue:
@@ -1115,7 +1131,8 @@ components:
 
     GalaxyElementId:
       type: string
-      format: int64
+      format: int32
+      maxLength: 10
       example: "12345"
 
     GalaxyElementKey:
@@ -1222,7 +1239,7 @@ components:
         authors:
           $ref: "#/components/schemas/GalaxyClusterAuthors"
         version:
-          anyOf:
+          oneOf:
             - type: boolean
             - $ref: "#/components/schemas/GalaxyClusterVersion"
         uuid:
@@ -1247,7 +1264,7 @@ components:
               extends_Version:
                 $ref: "#/components/schemas/GalaxyClusterVersion"
               meta:
-                description: "Each galaxy element associated to this cluster represents a key-value property."
+                description: "Each Galaxy element associated to this cluster represents a key-value property."
                 type: object
                 example:
                   - categories: "botnet"
@@ -1268,7 +1285,8 @@ components:
     # Tags
     TagId:
       type: string
-      format: int64
+      format: int32
+      maxLength: 10
       example: "12345"
 
     TagName:
@@ -1284,7 +1302,7 @@ components:
     TagNumericalValue:
       type: string
       nullable: true
-      format: int64
+      format: int32
       example: "12345"
 
     HideTagFlag:
@@ -1332,7 +1350,8 @@ components:
     # General
     ObjectId:
       type: string
-      format: int64
+      format: int32
+      maxLength: 10
       example: "12345"
       default: "0"
 
@@ -1382,7 +1401,8 @@ components:
     SharingGroupId:
       type: string
       nullable: true
-      format: int64
+      format: int32
+      maxLength: 10
       example: "1"
 
     UUID:
@@ -1423,7 +1443,8 @@ components:
 
     OrganisationId:
       type: string
-      format: int64
+      format: int32
+      maxLength: 10
       example: "12345"
 
     OrganisationName:
@@ -1464,7 +1485,8 @@ components:
 
     UserId:
       type: string
-      format: int64
+      format: int32
+      maxLength: 10
       example: "12345"
 
     PageSearchFilter:
@@ -1643,7 +1665,7 @@ components:
       description: UUID or numeric ID of the event
       required: true
       schema:
-        anyOf:
+        oneOf:
           - $ref: "#/components/schemas/EventId"
           - $ref: "#/components/schemas/UUID"
 
@@ -1653,7 +1675,7 @@ components:
       description: UUID or numeric ID of the attribute
       required: true
       schema:
-        anyOf:
+        oneOf:
           - $ref: "#/components/schemas/AttributeId"
           - $ref: "#/components/schemas/UUID"
 
@@ -1663,8 +1685,7 @@ components:
       description: Numeric ID of the attribute
       required: true
       schema:
-        anyOf:
-          - $ref: "#/components/schemas/TagId"
+        $ref: "#/components/schemas/TagId"
 
     galaxyIdParameter:
       name: galaxyId
@@ -1672,7 +1693,7 @@ components:
       description: UUID or numeric ID of the galaxy
       required: true
       schema:
-        anyOf:
+        oneOf:
           - $ref: "#/components/schemas/GalaxyId"
           - $ref: "#/components/schemas/UUID"
 
@@ -1751,7 +1772,7 @@ components:
               category:
                 $ref: "#/components/schemas/AttributeCategory"
               org:
-                anyOf:
+                oneOf:
                   - $ref: "#/components/schemas/OrganisationId"
                   - $ref: "#/components/schemas/OrganisationName"
               tags:
@@ -1856,7 +1877,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Event"
+            $ref: "#/components/schemas/EventNoId"
 
     SearchEventRequest:
       required: true
@@ -1979,7 +2000,7 @@ components:
               category:
                 $ref: "#/components/schemas/AttributeCategory"
               org:
-                anyOf:
+                oneOf:
                   - $ref: "#/components/schemas/OrganisationId"
                   - $ref: "#/components/schemas/OrganisationName"
               tags:
@@ -2200,16 +2221,14 @@ components:
       content:
         application/json:
           schema:
-            anyOf:
-              - $ref: "#/components/schemas/AttributeStatisticsResponse"
+            $ref: "#/components/schemas/AttributeStatisticsResponse"
 
     DescribeAttributeTypesResponse:
       description: "Describe attribute categories and types response"
       content:
         application/json:
           schema:
-            anyOf:
-              - $ref: "#/components/schemas/DescribeAttributeTypesResponse"
+            $ref: "#/components/schemas/DescribeAttributeTypesResponse"
 
     AddEventResponse:
       description: "A freshly created event"
@@ -2310,7 +2329,7 @@ components:
       content:
         application/json:
           schema:
-            anyOf:
+            oneOf:
               - $ref: "#/components/schemas/ExtendedEventList"
               - $ref: "#/components/schemas/MinimalEventList"
 
@@ -2319,8 +2338,10 @@ components:
       content:
         application/json:
           schema:
-            anyOf:
-              - $ref: "#/components/schemas/ExtendedEvent"
+            type: object
+            properties:
+              Event:
+                $ref: "#/components/schemas/ExtendedEvent"
 
     EventsRestSearchResponse:
       description: "Rest search events response"
@@ -2438,7 +2459,7 @@ components:
       content:
         application/json:
           schema:
-            anyOf:
+            oneOf:
               - type: array
                 items:
                   $ref: "#/components/schemas/GalaxyCluster"
