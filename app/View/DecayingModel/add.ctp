@@ -37,7 +37,7 @@
                 'label' => sprintf('<b>%s</b> [%s]: %s', __('Lifetime'), __('days'),  __('Lifetime of the attribute, or time after which the score will be 0')),
                 'type' => 'number',
                 'min' => 0,
-                'title' => _('The end of life of the indicator'),
+                'title' => __('The end of life of the indicator'),
                 'class' => 'form-control span6',
                 'div' => 'clear',
                 'value' => isset($this->request->data['DecayingModel']['parameters']['lifetime']) ? $this->request->data['DecayingModel']['parameters']['lifetime'] : ''
@@ -47,7 +47,7 @@
                 'type' => 'number',
                 'min' => 0,
                 'step' => 0.01,
-                'title' => _('The decay speed of the indicator'),
+                'title' => __('The decay speed of the indicator'),
                 'class' => 'form-control span6',
                 'div' => 'clear',
                 'value' => isset($this->request->data['DecayingModel']['parameters']['decay_speed']) ? $this->request->data['DecayingModel']['parameters']['decay_speed'] : ''
@@ -56,7 +56,7 @@
                 'label' => sprintf('<b>%s</b> [%s]: %s', __('Cutoff threshold'), __('float'),  __('Cutoff value at which an indicator will be marked as decayed instead of 0')),
                 'type' => 'number',
                 'min' => 0,
-                'title' => _('The model threshold of the indicator'),
+                'title' => __('The model threshold of the indicator'),
                 'class' => 'form-control span6',
                 'div' => 'clear',
                 'value' => isset($this->request->data['DecayingModel']['parameters']['threshold']) ? $this->request->data['DecayingModel']['parameters']['threshold'] : ''
@@ -66,7 +66,7 @@
                 'type' => 'number',
                 'min' => 0,
                 'max' => 100,
-                'title' => _('The model default base_score of the indicator'),
+                'title' => __('The model default base_score of the indicator'),
                 'class' => 'form-control span6',
                 'div' => 'clear',
                 'value' => isset($this->request->data['DecayingModel']['parameters']['default_base_score']) ? $this->request->data['DecayingModel']['parameters']['default_base_score'] : ''
