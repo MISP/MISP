@@ -188,6 +188,9 @@
                 'title' => __('Set PUSH rules'),
                 'content' => [
                     [
+                        'html' => sprintf('<h5 style="font-weight: normal;"><i>%s</i></h5>', __('Configure the rules to be applied when PUSHing data to the server'))
+                    ],
+                    [
                         'html' => $this->element('serverRuleElements/push', [
                             'allTags' => $allTags,
                             'allOrganisations' => $allOrganisations,
@@ -205,7 +208,8 @@
         ];
         echo $this->element('genericElements/infoModal', $modalData);
         $modalData['data']['title'] = __('Set PULL rules');
-        $modalData['data']['content'][0]['html'] = $this->element('serverRuleElements/pull', [
+        $modalData['data']['content'][1]['html'] = sprintf('<h5 style="font-weight: normal;"><i>%s</i></h5>', __('Configure the rules to be applied when PULLing data from the server'));
+        $modalData['data']['content'][1]['html'] = $this->element('serverRuleElements/pull', [
             'context' => 'servers',
             'ruleObject' => $pullRules
         ]);

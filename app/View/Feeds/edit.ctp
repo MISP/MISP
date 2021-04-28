@@ -230,6 +230,9 @@
                     'title' => __('Set PULL rules'),
                     'content' => [
                         [
+                            'html' => sprintf('<h5 style="font-weight: normal;"><i>%s</i></h5>', __('Configure the rules to be applied when PULLing data from the server'))
+                        ],
+                        [
                             'html' => $this->element('serverRuleElements/pull', [
                                 'context' => 'feeds',
                                 'allTags' => $tags,
