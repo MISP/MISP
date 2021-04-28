@@ -1,63 +1,70 @@
 <?php
-    echo '<div class="index">';
-    $description = __(
-        'Click %s to reset the API keys of all sync and org admin users in one shot. This will also automatically inform them of their new API keys.',
-        $this->Form->postLink(
-            __('here'),
-            $baseurl . '/users/resetAllSyncAuthKeys',
-            array(
-                'title' => __('Reset all sync user API keys'),
-                'aria-label' => __('Reset all sync user API keys'),
-                'class' => 'bold'
-            ),
-            __('Are you sure you wish to reset the API keys of all users with sync privileges?')
-        )
-    );
+    if (!$this->request->is('ajax')) {
+        // Allow reset Keys, filtering and searching if viewing the /users/index page
+        echo '<div class="index">';
+        $description = __(
+            'Click %s to reset the API keys of all sync and org admin users in one shot. This will also automatically inform them of their new API keys.',
+            $this->Form->postLink(
+                __('here'),
+                $baseurl . '/users/resetAllSyncAuthKeys',
+                array(
+                    'title' => __('Reset all sync user API keys'),
+                    'aria-label' => __('Reset all sync user API keys'),
+                    'class' => 'bold'
+                ),
+                __('Are you sure you wish to reset the API keys of all users with sync privileges?')
+            )
+        );
+        $topBar = array(
+            'children' => array(
+                array(
+                    'type' => 'simple',
+                    'children' => array(
+                        array(
+                            'id' => 'create-button',
+                            'title' => __('Modify filters'),
+                            'fa-icon' => 'search',
+                            'onClick' => 'getPopup',
+                            'onClickParams' => array($urlparams, 'admin/users', 'filterUserIndex')
+                        )
+                    )
+                ),
+                array(
+                    'type' => 'simple',
+                    'children' => array(
+                        array(
+                            'url' => $baseurl . '/admin/users/index',
+                            'text' => __('All'),
+                            'active' => !isset($passedArgsArray['disabled']),
+                        ),
+                        array(
+                            'url' => $baseurl . '/admin/users/index/searchdisabled:0',
+                            'text' => __('Active'),
+                            'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "0",
+                        ),
+                        array(
+                            'url' => $baseurl . '/admin/users/index/searchdisabled:1',
+                            'text' => __('Disabled'),
+                            'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "1",
+                        )
+                    )
+                ),
+                array(
+                    'type' => 'search',
+                    'button' => __('Filter'),
+                    'placeholder' => __('Enter value to search'),
+                    'searchKey' => 'value',
+                )
+            )
+        );
+    } else {
+        $description = '';
+        $topBar = [];
+    }
     echo $this->element('/genericElements/IndexTable/index_table', array(
         'data' => array(
             'data' => $users,
-            'top_bar' => array(
-                'children' => array(
-                    array(
-                        'type' => 'simple',
-                        'children' => array(
-                            array(
-                                'id' => 'create-button',
-                                'title' => __('Modify filters'),
-                                'fa-icon' => 'search',
-                                'onClick' => 'getPopup',
-                                'onClickParams' => array($urlparams, 'admin/users', 'filterUserIndex')
-                            )
-                        )
-                    ),
-                    array(
-                        'type' => 'simple',
-                        'children' => array(
-                            array(
-                                'url' => $baseurl . '/admin/users/index',
-                                'text' => __('All'),
-                                'active' => !isset($passedArgsArray['disabled']),
-                            ),
-                            array(
-                                'url' => $baseurl . '/admin/users/index/searchdisabled:0',
-                                'text' => __('Active'),
-                                'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "0",
-                            ),
-                            array(
-                                'url' => $baseurl . '/admin/users/index/searchdisabled:1',
-                                'text' => __('Disabled'),
-                                'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "1",
-                            )
-                        )
-                    ),
-                    array(
-                        'type' => 'search',
-                        'button' => __('Filter'),
-                        'placeholder' => __('Enter value to search'),
-                        'searchKey' => 'value',
-                    )
-                )
-            ),
+            'top_bar' => $topBar,
             'fields' => array(
                 array(
                     'name' => __('ID'),
@@ -232,5 +239,7 @@
             )
         )
     ));
-    echo '</div>';
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'indexUser'));
+    if (!$this->request->is('ajax')) {
+        echo '</div>';
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'indexUser'));
+    }

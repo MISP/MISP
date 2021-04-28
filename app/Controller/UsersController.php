@@ -473,11 +473,6 @@ class UsersController extends AppController
                 }
                 $this->set('users', $users);
             }
-            if ($this->request->is('ajax')) {
-                $this->autoRender = false;
-                $this->layout = false;
-                $this->render('ajax/admin_index');
-            }
         }
     }
 
