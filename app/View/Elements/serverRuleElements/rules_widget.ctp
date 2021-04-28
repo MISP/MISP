@@ -141,7 +141,9 @@ $pickerDisplayed = false;
 <script>
 function initRuleWidgetPicker<?= $seed ?>() {
     var $baseContainer = $('.container-seed-<?= $seed ?>');
-    $baseContainer.find('select.rules-select-picker').chosen()
+    $baseContainer.find('select.rules-select-picker').chosen({
+        placeholder_text_multiple: "<?= __('Select some %s', Inflector::humanize(Inflector::pluralize(h($scopeI18n)))); ?>"
+    })
     $baseContainer.find('select.rules-select-data').keydown(function(evt) {
         var $select = $(this)
         var $pickerSelect = $select.closest('.rules-widget-container').find('select.rules-select-picker')
