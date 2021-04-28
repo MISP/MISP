@@ -2000,7 +2000,7 @@ class ExternalStixParser(StixParser):
                     misp_object.add_attribute(**attribute)
                 self.misp_event.add_object(**misp_object)
             else:
-                attribute = {field: attributes[0][field] for field in stix2misp_mapping.single_attribute_fields if attributes[0].get(field)}
+                attribute = {field: attributes[0][field] for field in stix2misp_mapping.single_attribute_fields if attributes[0].get(field) is not None}
                 attribute['uuid'] = stix_object.id.split('--')[1]
                 attribute.update(self.parse_timeline(stix_object))
                 if isinstance(stix_object, stix2.v20.Indicator):
