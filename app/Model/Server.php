@@ -4466,19 +4466,28 @@ class Server extends AppModel
 
     public function queryAvailableSyncFilteringRules($server)
     {
+        $syncFilteringRules = [
+            'error' => '',
+            'data' => []
+        ];
         $HttpSocket = $this->setupHttpSocket($server, null);
         $uri = $server['Server']['url'] . '/servers/getAvailableSyncFilteringRules';
         $request = $this->setupSyncRequest($server);
-        $response = $HttpSocket->get($uri, false, $request);
-        if ($response === false) {
-            throw new Exception(__('Connection failed for unknown reason.'));
+        try {
+            $response = $HttpSocket->get($uri, false, $request);
+            if ($response === false) {
+                $syncFilteringRules['error'] = __('Connection failed for unknown reason.');
+                return $syncFilteringRules;
+            }
+        } catch (SocketException $e) {
+            $syncFilteringRules['error'] = __('Connection failed for unknown reason. Error returned: %s', $e->getMessage());
+            return $syncFilteringRules;
         }
 
-        $syncFilteringRules = [];
         if ($response->isOk()) {
-            $syncFilteringRules = $this->jsonDecode($response->body());
+            $syncFilteringRules['data'] = $this->jsonDecode($response->body());
         } else {
-            throw new Exception(__('Reponse was not OK. (HTTP code: %s)', $response->code));
+            $syncFilteringRules['error'] = __('Reponse was not OK. (HTTP code: %s)', $response->code);
         }
         return $syncFilteringRules;
     }

@@ -118,7 +118,6 @@ $(function() {
                     $('div.notice-pull-rule-fetched.alert-success').show()
                 },
                 function(errorMessage) {
-                    showMessage('fail', '<?= __('Could not fetch remote sync filtering rules.') ?>');
                     var regex = /Reponse was not OK\. \(HTTP code: (?<code>\d+)\)/m
                     var matches = errorMessage.match(regex)
                     if (matches !== null) {
@@ -150,10 +149,11 @@ $(function() {
 
     function getPullFilteringRules(callback, failCallback, alwaysCallback) {
         $.getJSON('/servers/queryAvailableSyncFilteringRules/' + serverID, function(availableRules) {
-            callback(availableRules)
-        })
-        .fail(function(jqxhr, textStatus, error) {
-            failCallback(jqxhr.responseJSON.message !== undefined ? jqxhr.responseJSON.message : textStatus)
+            if (availableRules.error.length == 0) {
+                callback(availableRules.data)
+            } else {
+                failCallback(availableRules.error)
+            }
         })
         .always(function() {
             alwaysCallback()
