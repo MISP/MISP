@@ -49,18 +49,29 @@ class StixBuilder():
         pathname = os.path.dirname(args[0])
         filename = os.path.join(pathname, args[1])
         with open(filename, 'rt', encoding='utf-8') as f:
-            self.json_event = json.loads(f.read())
+            self.json_event = self._get_event(json.loads(f.read()))
         self.filename = filename
 
     def buildEvent(self):
         try:
-            stix_packages = [sdo for event in self.json_event['response'] for sdo in self.handler(event['Event'])] if self.json_event.get('response') else self.handler(self.json_event['Event'])
+            stix_packages = self._get_packages()
             outputfile = "{}.out".format(self.filename)
             with open(outputfile, 'wt', encoding='utf-8') as f:
                 f.write(json.dumps(stix_packages, cls=STIXJSONEncoder))
             print(json.dumps({'success': 1}))
         except Exception as e:
             print(json.dumps({'error': e.__str__()}))
+
+    @staticmethod
+    def _get_event(events):
+        if events.get('response'):
+            return {'response': [event['Event'] if event.get('Event') else event for event in events]}
+        return events['Event'] if events.get('Event') else events
+
+    def _get_packages(self):
+        if self.json_event.get('response'):
+            return [sdo for event in self.json_event['response'] for sdo in self.handler(event)]
+        return self.handler(self.json_event)
 
     def eventReport(self):
         if not self.object_refs and self.links:
