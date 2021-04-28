@@ -474,6 +474,27 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /galaxies/attachCluster/{attachTargetId}/{attachTargetType}:
+    post:
+      summary: "Attach the galaxy cluster tag a given entity."
+      operationId: attachGalaxyCluster
+      tags:
+        - Galaxies
+      parameters:
+        - $ref: "#/components/parameters/attachTargetIdParameter"
+        - $ref: "#/components/parameters/attachTargetTypeParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/AttachGalaxyClusterRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AttachGalaxyClusterResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -1347,6 +1368,12 @@ components:
       items:
         $ref: "#/components/schemas/Tag"
 
+    TagCollectionId:
+      type: string
+      format: int32
+      maxLength: 10
+      example: "12345"
+
     # General
     ObjectId:
       type: string
@@ -1662,7 +1689,7 @@ components:
     eventIdParameter:
       name: eventId
       in: path
-      description: UUID or numeric ID of the event
+      description: "UUID or numeric ID of the event"
       required: true
       schema:
         oneOf:
@@ -1672,7 +1699,7 @@ components:
     attributeIdParameter:
       name: attributeId
       in: path
-      description: UUID or numeric ID of the attribute
+      description: "UUID or numeric ID of the attribute"
       required: true
       schema:
         oneOf:
@@ -1690,12 +1717,35 @@ components:
     galaxyIdParameter:
       name: galaxyId
       in: path
-      description: UUID or numeric ID of the galaxy
+      description: "UUID or numeric ID of the galaxy"
       required: true
       schema:
         oneOf:
           - $ref: "#/components/schemas/GalaxyId"
           - $ref: "#/components/schemas/UUID"
+
+    attachTargetIdParameter:
+      name: attachTargetId
+      in: path
+      description: "UUID or numeric ID of the target entity (Event, Attribute or TagCollection)"
+      required: true
+      schema:
+        anyOf:
+          - $ref: "#/components/schemas/EventId"
+          - $ref: "#/components/schemas/AttributeId"
+          - $ref: "#/components/schemas/TagCollectionId"
+
+    attachTargetTypeParameter:
+      name: attachTargetType
+      in: path
+      description: "Type of the target entity to attach to the galaxy cluster."
+      required: true
+      schema:
+        type: string
+        enum:
+          - "event"
+          - "attribute"
+          - "tag_collection"
 
     returnFormatParameter:
       name: returnFormat
@@ -2095,7 +2145,6 @@ components:
                           $ref: "#/components/schemas/UUID"
 
     ExportGalaxyClusterRequest:
-      description: "Export galaxy and clusters"
       content:
         application/json:
           schema:
@@ -2121,6 +2170,21 @@ components:
                   download:
                     description: "`true` returns the response as a json file attachment, `false` returns the response in the response body."
                     type: boolean
+
+    AttachGalaxyClusterRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Galaxy:
+                type: object
+                properties:
+                  target_id:
+                    description: "Target galaxy cluster to attach."
+                    type: integer
+                    format: int32
+                    example: 1235
 
   responses:
     AttributeResponse:
@@ -2464,6 +2528,23 @@ components:
                 items:
                   $ref: "#/components/schemas/GalaxyCluster"
               - $ref: "#/components/schemas/GalaxyMispFormat"
+
+    AttachGalaxyClusterResponse:
+      description: "Attach galaxy cluster response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                description: "Present and `true` if the galaxy cluster was succesfully attached."
+                type: boolean
+              success:
+                description: "Status message of the operation."
+                type: string
+                example: "Cluster attached."
+              check_publish:
+                type: boolean
 
     ApiErrorResponse:
       description: "Unexpected API error"
