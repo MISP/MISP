@@ -79,7 +79,6 @@ $pickerDisplayed = false;
                             <?= __('Show freetext input') ?>
                         </a>
                     <?php endif; ?>
-                    
                     <div
                         id="collapse-freetext-<?= h($scope) ?>-<?= $seed ?>"
                         class="collapse collapse-freetext-<?= h($scope) ?>"
