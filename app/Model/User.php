@@ -9,6 +9,7 @@ App::uses('SendEmail', 'Tools');
  * @property Log $Log
  * @property Organisation $Organisation
  * @property Role $Role
+ * @property UserSetting $UserSetting
  */
 class User extends AppModel
 {
@@ -805,7 +806,6 @@ class User extends AppModel
 
         $gpg = $this->initializeGpg();
         $sendEmail = new SendEmail($gpg);
-
         try {
             $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
 
@@ -942,6 +942,7 @@ class User extends AppModel
         }
         $body = str_replace('$password', $password, $body);
         $body = str_replace('$username', $user['User']['email'], $body);
+        $body = str_replace('\n', PHP_EOL, $body);
         $result = $this->sendEmail($user, $body, false, $subject);
         if ($result) {
             $this->id = $user['User']['id'];

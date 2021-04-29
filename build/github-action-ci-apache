@@ -1,4 +1,4 @@
-<VirtualHost %HOST%>
+<VirtualHost *:80>
         ServerAdmin me@me.local
         ServerName %HOST%
         DocumentRoot %GITHUB_WORKSPACE%/app/webroot

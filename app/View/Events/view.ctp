@@ -567,7 +567,7 @@
 <script type="text/javascript">
 var showContext = false;
 $(function () {
-    queryEventLock('<?php echo h($event['Event']['id']); ?>');
+    queryEventLock('<?= h($event['Event']['id']); ?>', <?= (int)$event['Event']['timestamp'] ?>);
     popoverStartup();
 
     $("th, td, dt, div, span, li").tooltip({

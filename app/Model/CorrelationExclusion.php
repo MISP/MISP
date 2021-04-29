@@ -16,9 +16,32 @@ class CorrelationExclusion extends AppModel
         'Containable',
     );
 
+    public $validate = [
+        'value' => [
+            'uniqueValue' => [
+                'rule' => 'isUnique',
+                'message' => 'Value is already in the exclusion list.'
+            ]
+        ]
+    ];
+
     public function afterSave($created, $options = array())
     {
         $this->cacheValues();
+    }
+
+    public function beforeDelete($cascade = true)
+    {
+        $exclusion = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'id' => $this->id
+            ]
+        ]);
+        $this->Correlation = ClassRegistry::init('Correlation');
+        if (!empty($exclusion)) {
+            $this->Correlation->correlateValueRouter($exclusion['CorrelationExclusion']['value']);
+        }
     }
 
     public function afterDelete()
@@ -71,38 +94,23 @@ class CorrelationExclusion extends AppModel
 
     public function clean($jobId = false)
     {
-        try {
-            $redis = $this->setupRedisWithException();
-        } catch (Exception $e) {
-            return false;
-        }
-        $this->Correlation = ClassRegistry::init('Correlation');
-        $exclusions = $redis->sMembers($this->key);
-        $conditions = [];
-        $exclusions = array_chunk($exclusions, 100);
         if ($jobId) {
             $this->Job = ClassRegistry::init('Job');
             $this->Job->id = $jobId;
         }
-        $total = count($exclusions);
-        foreach ($exclusions as $exclusion_chunk) {
-            $i = 0;
-            foreach ($exclusion_chunk as $exclusion) {
-                $i += 1;
-                if (!empty($exclusion)) {
-                    if ($exclusion[0] === '%' || substr($exclusion, -1) === '%') {
-                        $conditions['OR'][] = ['Correlation.value LIKE' => $exclusion];
-                    } else {
-                        $conditions['OR']['Correlation.value'][] = $exclusion;
-                    }
-                }
-                if (!empty($conditions)) {
-                    $this->Correlation->deleteAll($conditions);
-                }
-                if ($i % 100 === 0) {
-                    $this->Job->saveProgress($jobId, 'Chunk ' . $i . '/' . $total, $i * 100 / $total);
-                }
-            }
-        }
+        $query = sprintf(
+            'DELETE FROM correlations where (%s) or (%s);',
+            sprintf(
+                'value IN (%s)',
+                'SELECT correlation_exclusions.value FROM correlation_exclusions WHERE correlations.value = correlation_exclusions.value'
+            ),
+            sprintf(
+                'EXISTS (SELECT NULL FROM correlation_exclusions WHERE (%s) OR (%s))',
+                "correlations.value LIKE CONCAT('%', correlation_exclusions.value)",
+                "correlations.value LIKE CONCAT(correlation_exclusions.value, '%')"
+            )
+        );
+        $this->query($query);
+        $this->Job->saveProgress($jobId, 'Job done.', 100);
     }
 }

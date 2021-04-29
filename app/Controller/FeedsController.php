@@ -311,12 +311,14 @@ class FeedsController extends AppController
 
     public function edit($feedId)
     {
-        $this->Feed->id = $feedId;
-        if (!$this->Feed->exists()) {
+        $feed = $this->Feed->find('first', [
+            'recursive' => -1,
+            'conditions' => ['id' => $feedId]
+        ]);
+        if (empty($feed)) {
             throw new NotFoundException(__('Invalid feed.'));
         }
-        $this->Feed->read();
-        $this->set('feed', $this->Feed->data);
+        $this->set('feed', $feed);
         $this->loadModel('Event');
         $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $distributionLevels = $this->Event->distributionLevels;
@@ -333,8 +335,8 @@ class FeedsController extends AppController
             'fields' => array('id', 'name'),
             'order' => 'LOWER(name)'
         )));
-        if (!empty($this->Feed->data['Feed']['settings'])) {
-            $this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
+        if (!empty($feed['Feed']['settings'])) {
+            $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             if ($this->_isRest()) {
@@ -358,14 +360,16 @@ class FeedsController extends AppController
                 if ($this->request->data['Feed']['fixed_event'] == 1) {
                     if (isset($this->request->data['Feed']['target_event']) && is_numeric($this->request->data['Feed']['target_event'])) {
                         $this->request->data['Feed']['event_id'] = $this->request->data['Feed']['target_event'];
+                    } else if (!empty($feed['Feed']['event_id'])) {
+                        $this->request->data['Feed']['event_id'] = $feed['Feed']['event_id'];
                     } else {
                         $this->request->data['Feed']['event_id'] = 0;
                     }
                 }
             }
             if (!isset($this->request->data['Feed']['settings'])) {
-                if (!empty($this->Feed->data['Feed']['settings'])) {
-                    $this->request->data['Feed']['settings'] = $this->Feed->data['Feed']['settings'];
+                if (!empty($feed['Feed']['settings'])) {
+                    $this->request->data['Feed']['settings'] = $feed['Feed']['settings'];
                 } else {
                     $this->request->data['Feed']['settings'] = array();
                 }
@@ -379,11 +383,10 @@ class FeedsController extends AppController
                 $this->request->data['Feed']['settings']['delimiter'] = ',';
             }
             $this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
-            $fields = array('id', 'name', 'provider', 'enabled', 'caching_enabled','rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'source_format', 'override_ids', 'settings', 'input_source', 'delete_local_file', 'lookup_visible', 'headers', 'orgc_id');
-            $feed = array();
+            $fields = array('name', 'provider', 'enabled', 'caching_enabled','rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'source_format', 'override_ids', 'settings', 'input_source', 'delete_local_file', 'lookup_visible', 'headers', 'orgc_id');
             foreach ($fields as $field) {
                 if (isset($this->request->data['Feed'][$field])) {
-                    $feed[$field] = $this->request->data['Feed'][$field];
+                    $feed['Feed'][$field] = $this->request->data['Feed'][$field];
                 }
             }
             $result = $this->Feed->save($feed);
@@ -392,7 +395,7 @@ class FeedsController extends AppController
                 if (file_exists($feedCache)) {
                     unlink($feedCache);
                 }
-                $message = __('Feed added.');
+                $message = __('Feed updated.');
                 if ($this->_isRest()) {
                     $feed = $this->Feed->find('first', array('conditions' => array('Feed.id' => $this->Feed->id), 'recursive' => -1));
                     return $this->RestResponse->viewData($feed, $this->response->type());
@@ -411,9 +414,9 @@ class FeedsController extends AppController
                 return $this->RestResponse->describe('Feeds', 'edit', false, $this->response->type());
             }
             if (!isset($this->request->data['Feed'])) {
-                $this->request->data = $this->Feed->data;
-                if ($this->Feed->data['Feed']['event_id']) {
-                    $this->request->data['Feed']['target_event'] = $this->Feed->data['Feed']['event_id'];
+                $this->request->data = $feed;
+                if ($feed['Feed']['event_id']) {
+                    $this->request->data['Feed']['target_event'] = $feed['Feed']['event_id'];
                 }
             }
             $this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];

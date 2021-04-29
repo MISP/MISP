@@ -11,6 +11,10 @@
      *   - code: Code snipet to be displayed - copy pastable (optional)
      * - type: Controls the size of the modal (`xl` or `lg`)
      * - class: A class to be applied on the modal (For reference or customization)
+     * - confirm: array to defined the submit button (optional)
+     *   - title: Title in the submit button (default: `Submit`)
+     *   - onclick: The function to be called when clicking the button (default: [close modal])
+     *   - class: The class string to be applied on the button (default: `btn btn-primary`)
      */
     $contents = '';
     foreach ($data['content'] as $content) {
@@ -24,6 +28,23 @@
     }
     $action = $this->request->params['action'];
     $controller = $this->request->params['controller'];
+    $dataConfirmButton = [
+        'title' => isset($confirm['title']) ? $confirm['title'] : __('Submit'),
+        'onclick' => isset($confirm['onclick']) ? $confirm['onclick'] : '',
+        'class' => isset($confirm['class']) ? $confirm['class'] : 'btn btn-primary',
+    ];
+    $confirmButton = '';
+    if (!empty($confirm)) {
+        $confirmButton = sprintf('<button class="%s" data-dismiss="modal" aria-hidden="true" onClick="%s">%s</button>',
+            $dataConfirmButton['class'],
+            $dataConfirmButton['onclick'],
+            h($dataConfirmButton['title'])
+        );
+    }
+    $cancelButton = sprintf('<button class="btn" data-dismiss="modal" aria-hidden="true" onClick="%s">%s</button>',
+        'cancelPopoverForm();',
+        __('Cancel')
+    );
     echo sprintf(
         '<div id="genericModal" class="modal %s hide fade %s" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true">%s%s%s</div>',
         isset($type) ? sprintf('modal-%s', $type) : '',
@@ -40,9 +61,9 @@
             $contents
         ),
         sprintf(
-            '<div class="modal-footer"><button class="btn" data-dismiss="modal" aria-hidden="true" onClick="%s">%s</button></div>',
-            'cancelPopoverForm();',
-            __('Cancel')
+            '<div class="modal-footer">%s%s</div>',
+            $confirmButton,
+            $cancelButton
         )
     );
 ?>

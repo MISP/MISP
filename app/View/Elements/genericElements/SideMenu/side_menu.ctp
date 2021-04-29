@@ -494,6 +494,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/correlation_exclusions/add',
                         'text' => __('Add Correlation Exclusion')
                     ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'top',
+                        'url' => $baseurl . '/correlations/top',
+                        'text' => __('Top Correlations')
+                    ));
                     break;
                 case 'warninglist':
                     if ($menuItem === 'view') {
@@ -1325,6 +1330,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => $baseurl . '/galaxies/update/force:1',
                             'text' => __('Force Update Galaxies'),
                             'message' => __('Are you sure you want to drop and reimport all galaxies from the submodule?')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'element_id' => 'forceupdate',
+                            'url' => $baseurl . '/galaxies/wipe_default',
+                            'text' => __('Wipe Default Galaxy Clusters'),
+                            'message' => __('Are you sure you want to drop all default galaxy clusters?')
                         ));
                     }
                     if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {

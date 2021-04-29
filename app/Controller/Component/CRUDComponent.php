@@ -117,6 +117,13 @@ class CRUDComponent extends Component
                     }
 
                     $redirect = isset($params['redirect']) ? $params['redirect'] : ['action' => 'index'];
+                    if (!empty($params['redirect_controller'])) {
+                        if (is_array($redirect)) {
+                            $redirect['controller'] = $params['redirect_controller'];
+                        } else {
+                            $redirect = '/' . $params['redirect_controller'] . '/' . $redirect;
+                        }
+                    }
                     // For AJAX requests doesn't make sense to redirect, redirect must be done on javascript side in `submitGenericFormInPlace`
                     if ($this->Controller->request->is('ajax')) {
                         $redirect = Router::url($redirect);
@@ -287,7 +294,7 @@ class CRUDComponent extends Component
         $this->Controller->render('/genericTemplates/delete');
     }
 
-    protected function setQuickFilters($params, array $query, $quickFilterFields)
+    public function setQuickFilters($params, array $query, $quickFilterFields)
     {
         if (!empty($params['quickFilter']) && !empty($quickFilterFields)) {
             $queryConditions = [];
@@ -300,7 +307,7 @@ class CRUDComponent extends Component
         return $query;
     }
 
-    protected function setFilters(array $params, array $query)
+    public function setFilters(array $params, array $query)
     {
         // For CakePHP 2, we don't need to distinguish between simpleFilters and relatedFilters
         //$params = $this->massageFilters($params);

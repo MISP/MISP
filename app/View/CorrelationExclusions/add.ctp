@@ -1,12 +1,18 @@
 <?php
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
-        'title' => __('Add Correlation Exclusion Entry'),
+        'title' => $this->action === 'add' ? __('Add Correlation Exclusion Entry') : __('Edit Correlation Exclusion Entry'),
         'description' => __('If you wish to exclude certain entries from being correlated on, simply add an entry here.'),
         'fields' => [
             [
                 'field' => 'value',
                 'label' => __('Value'),
+                'class' => 'span6',
+                'requirements' => $this->action === 'add'
+            ],
+            [
+                'field' => 'comment',
+                'label' => __('Comment'),
                 'class' => 'span6',
             ]
         ],

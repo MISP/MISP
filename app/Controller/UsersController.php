@@ -1739,6 +1739,7 @@ class UsersController extends AppController
 
             // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
             $userForSendMail = $this->User->getUserById($user_id);
+            $body = str_replace('\n', PHP_EOL, $body);
             $result = $this->User->sendEmail($userForSendMail, $body, false, "[MISP] Email OTP");
 
             if ($result) {
@@ -2124,7 +2125,7 @@ class UsersController extends AppController
                 unset($organisations[$id]);
             }
         }
-        $organisations = array_merge([0 => __('All')], $organisations);
+        $organisations = [0 => __('All')] + $organisations;
         $this->set('organisations', $organisations);
 
         if (isset($params['organisation']) && $params['organisation'] != 0) {

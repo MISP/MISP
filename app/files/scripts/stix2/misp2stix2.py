@@ -49,18 +49,29 @@ class StixBuilder():
         pathname = os.path.dirname(args[0])
         filename = os.path.join(pathname, args[1])
         with open(filename, 'rt', encoding='utf-8') as f:
-            self.json_event = json.loads(f.read())
+            self.json_event = self._get_event(json.loads(f.read()))
         self.filename = filename
 
     def buildEvent(self):
         try:
-            stix_packages = [sdo for event in self.json_event['response'] for sdo in self.handler(event['Event'])] if self.json_event.get('response') else self.handler(self.json_event['Event'])
+            stix_packages = self._get_packages()
             outputfile = "{}.out".format(self.filename)
             with open(outputfile, 'wt', encoding='utf-8') as f:
                 f.write(json.dumps(stix_packages, cls=STIXJSONEncoder))
             print(json.dumps({'success': 1}))
         except Exception as e:
             print(json.dumps({'error': e.__str__()}))
+
+    @staticmethod
+    def _get_event(events):
+        if events.get('response'):
+            return {'response': [event['Event'] if event.get('Event') else event for event in events['response']]}
+        return events['Event'] if events.get('Event') else events
+
+    def _get_packages(self):
+        if self.json_event.get('response'):
+            return [sdo for event in self.json_event['response'] for sdo in self.handler(event)]
+        return self.handler(self.json_event)
 
     def eventReport(self):
         if not self.object_refs and self.links:
@@ -1789,8 +1800,9 @@ class StixBuilder():
     @staticmethod
     def handle_time_fields(attribute, timestamp, stix_type):
         to_return = {'created': timestamp, 'modified': timestamp}
+        iso_timestamp = timestamp.isoformat(timespec='milliseconds')
         for misp_field, stix_field in zip(('first_seen', 'last_seen'), _time_fields[stix_type]):
-            to_return[stix_field] = datetime.strptime(attribute[misp_field].split('+')[0], '%Y-%m-%dT%H:%M:%S.%f') if attribute.get(misp_field) else timestamp
+            to_return[stix_field] = datetime.strptime(attribute[misp_field].split('+')[0], '%Y-%m-%dT%H:%M:%S.%f') if attribute.get(misp_field) else iso_timestamp
         return to_return
 
     @staticmethod
