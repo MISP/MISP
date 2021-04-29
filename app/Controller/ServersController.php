@@ -2527,4 +2527,7 @@ misp.direct_call(relative_path, body)
         $syncFilteringRules = $this->Server->getAvailableSyncFilteringRules($this->Auth->user());
         return $this->RestResponse->viewData($syncFilteringRules);
     }
+
+    public function openapi() {
+	}
 }
