@@ -58,7 +58,12 @@ class ImportGalaxyClusterCest
                 ]
             ]
         );
-        $fakeGalaxyCluster->set(['id' => $I->grabFromDatabase('galaxy_clusters', 'id', array('uuid' => $galaxyClusterUuid))]);
+        $fakeGalaxyCluster->set(
+            [
+                'id' => $I->grabFromDatabase('galaxy_clusters', 'id', array('uuid' => $galaxyClusterUuid)),
+                'tag_name' => $I->grabFromDatabase('galaxy_clusters', 'tag_name', array('uuid' => $galaxyClusterUuid))
+            ]
+        );
 
         $I->validateRequest();
         $I->validateResponse();

@@ -26,7 +26,7 @@ class GalaxyClusterFixture extends AbstractFixture implements FixtureInterface
             'collection_uuid' => $faker->uuid,
             'type' => $faker->randomElement(['tool', 'android', 'botnet']),
             'value' => $faker->text(),
-            // 'tag_name' => '',
+            'tag_name' => '',
             'description' => $faker->text(),
             'galaxy_id' => (string)$faker->numberBetween(1, 1000),
             'source' => 'https://github.com/mitre/cti',
@@ -43,7 +43,6 @@ class GalaxyClusterFixture extends AbstractFixture implements FixtureInterface
             'published' => false,
             'deleted' => false,
         ];
-
 
         return new GalaxyClusterFixture(array_merge($defaults, $attributes), $galaxyElements);
     }
@@ -63,7 +62,6 @@ class GalaxyClusterFixture extends AbstractFixture implements FixtureInterface
 
     public function toResponse(): array
     {
-
         $response = array_merge(
             parent::toResponse(),
             [
