@@ -30,7 +30,7 @@ class IndexGalaxyClustersCest
         $I->seeResponseIsJson();
     }
 
-    public function testIndexReturnsExpectedGalaxy(ApiTester $I)
+    public function testIndexReturnsExpectedGalaxyCluster(ApiTester $I)
     {
         $I->haveAuthorizationKey();
 
@@ -55,7 +55,7 @@ class IndexGalaxyClustersCest
         $I->seeResponseContainsJson([['GalaxyCluster' => $fakeGalaxyCluster->toResponse()]]);
     }
 
-    public function testPostIndexReturnsExpectedGalaxy(ApiTester $I)
+    public function testPostIndexReturnsExpectedGalaxyCluster(ApiTester $I)
     {
         $I->haveAuthorizationKey();
 

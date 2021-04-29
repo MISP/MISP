@@ -152,7 +152,7 @@ paths:
   /attributes/view/{attributeId}:
     get:
       summary: "Get an attribute by ID"
-      operationId: viewAttribute
+      operationId: getAttributeById
       tags:
         - Attributes
       parameters:
@@ -296,8 +296,8 @@ paths:
 
   /events/view/{eventId}:
     get:
-      summary: "View event"
-      operationId: viewEvent
+      summary: "Get event by ID"
+      operationId: getEventById
       tags:
         - Events
       parameters:
@@ -392,8 +392,8 @@ paths:
 
   /galaxies/view/{galaxyId}:
     get:
-      summary: "Get a galaxy by ID"
-      operationId: viewGalaxies
+      summary: "Get galaxy by ID"
+      operationId: getGalaxyById
       tags:
         - Galaxies
       parameters:
@@ -516,7 +516,6 @@ paths:
           $ref: "#/components/responses/NotFoundApiErrorResponse"
         default:
           $ref: "#/components/responses/ApiErrorResponse"
-
     post:
       summary: "Search galaxy clusters."
       operationId: searchGalaxyClusters
@@ -529,6 +528,24 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/GalaxyClusterListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /galaxy_clusters/view/{galaxyClusterId}:
+    get:
+      summary: "Get galaxy cluster by ID."
+      operationId: getGalaxyClusterById
+      tags:
+        - GalaxyClusters
+      parameters:
+        - $ref: "#/components/parameters/galaxyClusterIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/GalaxyClusterResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
@@ -633,14 +650,10 @@ components:
             data:
               description: "Present if `withAttachments` was set to *true* in the rest search request and the attribute contains an attachment"
               $ref: "#/components/schemas/AttributeAttachment"
-        - type: object
-          properties:
             event_uuid:
               description: "Present if `includeEventUuid` was set to *true* in the rest search request"
               nullable: true
               $ref: "#/components/schemas/UUID"
-        - type: object
-          properties:
             decay_score:
               description: "Present if `includeDecayScore` was set to *true* in the rest search request"
               nullable: true
@@ -660,12 +673,8 @@ components:
             properties:
               Event:
                 $ref: "#/components/schemas/Event"
-          - type: object
-            properties:
               Object:
                 type: object
-          - type: object
-            properties:
               Tag:
                 description: "Present if `includeEventTags` was set to *true* in the rest search request"
                 nullable: true
@@ -940,20 +949,12 @@ components:
           properties:
             Org:
               $ref: "#/components/schemas/EventOrganisation"
-        - type: object
-          properties:
             Orgc:
               $ref: "#/components/schemas/EventOrganisation"
-        - type: object
-          properties:
             Attribute:
               $ref: "#/components/schemas/AttributeList"
-        - type: object
-          properties:
             ShadowAttribute:
               $ref: "#/components/schemas/AttributeList"
-        - type: object
-          properties:
             RelatedEvent:
               type: array
               items:
@@ -961,8 +962,6 @@ components:
                 properties:
                   Event:
                     $ref: "#/components/schemas/ExtendedEvent"
-        - type: object
-          properties:
             EventTag:
               $ref: "#/components/schemas/EventTagList"
       required:
@@ -980,20 +979,14 @@ components:
                 event_creator_email:
                   type: string
                   format: email
-            - type: object
-              properties:
                 Galaxy:
                   type: array
                   items:
                     $ref: "#/components/schemas/Galaxy"
-            - type: object
-              properties:
                 Object:
                   type: array
                   items:
                     $ref: "#/components/schemas/Object"
-            - type: object
-              properties:
                 EventReport:
                   type: array
                   items:
@@ -1010,32 +1003,24 @@ components:
                 event_creator_email:
                   type: string
                   format: email
-            - type: object
-              properties:
                 Galaxy:
                   type: array
                   items:
                     $ref: "#/components/schemas/Galaxy"
-            - type: object
-              properties:
                 Object:
                   type: array
                   items:
                     $ref: "#/components/schemas/Object"
-            - type: object
-              properties:
                 EventReport:
                   type: array
                   items:
                     $ref: "#/components/schemas/EventReport"
-            - type: object
-              properties:
                 Tag:
                   type: array
                   items:
                     $ref: "#/components/schemas/Tag"
 
-    MinimalEvent:
+    SlimEvent:
       type: object
       properties:
         id:
@@ -1068,10 +1053,10 @@ components:
       items:
         $ref: "#/components/schemas/ExtendedEvent"
 
-    MinimalEventList:
+    SlimEventList:
       type: array
       items:
-        $ref: "#/components/schemas/MinimalEvent"
+        $ref: "#/components/schemas/SlimEvent"
 
     EventRestSearchList:
       type: array
@@ -1085,7 +1070,7 @@ components:
               - type: object
                 properties:
                   Event:
-                    $ref: "#/components/schemas/MinimalEvent"
+                    $ref: "#/components/schemas/SlimEvent"
 
     # Objects
     Object: # TODO: describe
@@ -1219,6 +1204,19 @@ components:
         value:
           $ref: "#/components/schemas/GalaxyElementValue"
 
+    GalaxyElementList:
+      type: array
+      items:
+        $ref: "#/components/schemas/GalaxyElement"
+
+    GalaxyClusterRelation:
+      type: object # TODO describe
+
+    GalaxyClusterRelationList:
+      type: array
+      items:
+        $ref: "#/components/schemas/GalaxyElement"
+
     GalaxyClusterNoId:
       type: object
       properties:
@@ -1276,6 +1274,28 @@ components:
               $ref: "#/components/schemas/GalaxyClusterId"
         - $ref: "#/components/schemas/GalaxyClusterNoId"
 
+    ExtendedGalaxyCluster:
+      description: "A galaxy cluster with all it's details."
+      allOf:
+        - $ref: "#/components/schemas/GalaxyCluster"
+        - type: object
+          properties:
+            Galaxy:
+              $ref: "#/components/schemas/Galaxy"
+            GalaxyElement:
+              $ref: "#/components/schemas/GalaxyElementList"
+            GalaxyClusterRelation:
+              $ref: "#/components/schemas/GalaxyClusterRelationList"
+            Org:
+              $ref: "#/components/schemas/Organisation"
+            Orgc:
+              $ref: "#/components/schemas/Organisation"
+            tag_count:
+              type: integer
+              format: int32
+            tag_id:
+              $ref: "#/components/schemas/TagId"
+
     ExtendedGalaxy:
       description: "A galaxy with it's galaxy cluster details."
       allOf:
@@ -1283,8 +1303,6 @@ components:
           properties:
             Galaxy:
               $ref: "#/components/schemas/Galaxy"
-        - type: object
-          properties:
             GalaxyCluster:
               type: array
               items:
@@ -1519,6 +1537,45 @@ components:
       type: string
       maxLength: 255
       example: "ORGNAME"
+
+    OrganisationType:
+      type: string
+      nullable: true
+      maxLength: 255
+      example: "ADMIN"
+
+    Organisation:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/OrganisationId"
+        name:
+          $ref: "#/components/schemas/OrganisationName"
+        date_created:
+          $ref: "#/components/schemas/Timestamp"
+        date_modified:
+          $ref: "#/components/schemas/Timestamp"
+        description:
+          type: string
+        type:
+          $ref: "#/components/schemas/OrganisationType"
+        nationality:
+          type: string
+        sector:
+          type: string
+        created_by:
+          $ref: "#/components/schemas/UserId"
+        uuid:
+          type: string
+        contacts:
+          type: string
+        local:
+          type: boolean
+        restricted_to_domain:
+          type: string
+        landingpage:
+          nullable: true
+          type: string
 
     IsExportable:
       type: boolean
@@ -1763,6 +1820,16 @@ components:
       schema:
         oneOf:
           - $ref: "#/components/schemas/GalaxyId"
+          - $ref: "#/components/schemas/UUID"
+
+    galaxyClusterIdParameter:
+      name: galaxyClusterId
+      in: path
+      description: "UUID or numeric ID of the galaxy cluster"
+      required: true
+      schema:
+        oneOf:
+          - $ref: "#/components/schemas/GalaxyClusterId"
           - $ref: "#/components/schemas/UUID"
 
     attachTargetIdParameter:
@@ -2177,8 +2244,6 @@ components:
                   properties:
                     GalaxyCluster:
                       $ref: "#/components/schemas/GalaxyClusterNoId"
-                - type: object
-                  properties:
                     Galaxy:
                       type: object
                       properties:
@@ -2454,7 +2519,7 @@ components:
           schema:
             oneOf:
               - $ref: "#/components/schemas/ExtendedEventList"
-              - $ref: "#/components/schemas/MinimalEventList"
+              - $ref: "#/components/schemas/SlimEventList"
 
     ExtendedEventResponse:
       description: "An event with extended properties"
@@ -2604,6 +2669,16 @@ components:
                 example: "Cluster attached."
               check_publish:
                 type: boolean
+
+    GalaxyClusterResponse:
+      description: "Get galaxy cluster by ID response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              GalaxyCluster:
+                $ref: "#/components/schemas/ExtendedGalaxyCluster"
 
     GalaxyClusterListResponse:
       description: "Get galaxy clusters response"
