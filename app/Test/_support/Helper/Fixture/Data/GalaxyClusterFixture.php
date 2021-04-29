@@ -26,6 +26,7 @@ class GalaxyClusterFixture extends AbstractFixture implements FixtureInterface
             'collection_uuid' => $faker->uuid,
             'type' => $faker->randomElement(['tool', 'android', 'botnet']),
             'value' => $faker->text(),
+            // 'tag_name' => '',
             'description' => $faker->text(),
             'galaxy_id' => (string)$faker->numberBetween(1, 1000),
             'source' => 'https://github.com/mitre/cti',
@@ -49,8 +50,11 @@ class GalaxyClusterFixture extends AbstractFixture implements FixtureInterface
 
     public function toRequest(): array
     {
+        $request =  parent::toRequest();
+        unset($request['tag_name']);
+
         return array_merge(
-            parent::toResponse(),
+            $request,
             [
                 'authors' => json_decode($this->attributes['authors'])
             ]
@@ -59,26 +63,35 @@ class GalaxyClusterFixture extends AbstractFixture implements FixtureInterface
 
     public function toResponse(): array
     {
-        return array_merge(
+
+        $response = array_merge(
             parent::toResponse(),
             [
-                'authors' => json_decode($this->attributes['authors']),
-                'GalaxyElement' => array_map(
-                    function ($galaxyElement) {
-                        return $galaxyElement->toResponse();
-                    },
-                    $this->galaxyElements
-                )
+                'authors' => json_decode($this->attributes['authors'])
             ]
         );
+
+        if (!empty($this->galaxyElements)) {
+            $response['GalaxyElement'] = array_map(
+                function ($galaxyElement) {
+                    return $galaxyElement->toResponse();
+                },
+                $this->galaxyElements
+            );
+        }
+
+        return $response;
     }
 
     public function toExportResponse(): array
     {
         $response = $this->toResponse();
         unset($response['id'], $response['galaxy_id']);
-        foreach ($response['GalaxyElement'] as &$galaxyElement) {
-            unset($galaxyElement['id'], $galaxyElement['galaxy_cluster_id']);
+
+        if (isset($response['GalaxyElement'])) {
+            foreach ($response['GalaxyElement'] as &$galaxyElement) {
+                unset($galaxyElement['id'], $galaxyElement['galaxy_cluster_id']);
+            }
         }
 
         return $response;

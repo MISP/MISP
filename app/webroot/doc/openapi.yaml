@@ -17,6 +17,10 @@ tags:
     description: Galaxies in MISP are a method used to express a large object called cluster that can be attached to MISP events or attributes.
     externalDocs:
       url: https://www.circl.lu/doc/misp/galaxy/
+  - name: GalaxyClusters
+    description: A galaxy cluster that can be attached to MISP events or attributes.
+    externalDocs:
+      url: https://www.circl.lu/doc/misp/galaxy/
 
 paths:
   /attributes/add/{eventId}:
@@ -488,6 +492,43 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/AttachGalaxyClusterResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /galaxy_clusters/index/{galaxyId}:
+    get:
+      summary: "Get galaxy clusters."
+      operationId: getGalaxyClusters
+      tags:
+        - GalaxyClusters
+      parameters:
+        - $ref: "#/components/parameters/galaxyIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/GalaxyClusterListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+    post:
+      summary: "Search galaxy clusters."
+      operationId: searchGalaxyClusters
+      tags:
+        - GalaxyClusters
+      parameters:
+        - $ref: "#/components/parameters/galaxyIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/SearchGalaxyClustersRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/GalaxyClusterListResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
@@ -1289,7 +1330,7 @@ components:
                 type: object
                 example:
                   - categories: "botnet"
-                  - refs: "http://foo.bar"
+                  - refs: "http://example.com"
                   - aliases:
                       - "malware"
                       - "win32"
@@ -1953,7 +1994,7 @@ components:
                 description: "Filter events matching the given string with attributes values"
                 type: string
                 nullable: true
-                example: "foo"
+                example: "covert channel"
               eventid:
                 description: "Filter events by matching an specifict event id"
                 nullable: true
@@ -2185,6 +2226,24 @@ components:
                     type: integer
                     format: int32
                     example: 1235
+
+    SearchGalaxyClustersRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              context:
+                type: string
+                enum:
+                  - "all"
+                  - "default"
+                  - "org"
+                  - "deleted"
+              searchall:
+                description: "Search galaxy clusters by matching any value, description, uuid or galaxy elements values."
+                type: string
+                example: "botnet"
 
   responses:
     AttributeResponse:
@@ -2545,6 +2604,18 @@ components:
                 example: "Cluster attached."
               check_publish:
                 type: boolean
+
+    GalaxyClusterListResponse:
+      description: "Get galaxy clusters response"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                GalaxyCluster:
+                  $ref: "#/components/schemas/GalaxyCluster"
 
     ApiErrorResponse:
       description: "Unexpected API error"
