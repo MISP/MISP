@@ -150,8 +150,6 @@ CREATE TABLE IF NOT EXISTS `correlations` (
   `a_distribution` tinyint(4) NOT NULL,
   `sharing_group_id` int(11) NOT NULL,
   `a_sharing_group_id` int(11) NOT NULL,
-  `date` date NOT NULL,
-  `info` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `1_event_id` (`1_event_id`),
