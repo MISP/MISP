@@ -891,6 +891,17 @@
                 "extra": ""
             },
             {
+                "column_name": "comment",
+                "is_nullable": "NO",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            },
+            {
                 "column_name": "from_json",
                 "is_nullable": "YES",
                 "data_type": "tinyint",
@@ -7986,5 +7997,5 @@
             "id": true
         }
     },
-    "db_version": "67"
+    "db_version": "68"
 }
