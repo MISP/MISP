@@ -5324,7 +5324,7 @@ class Server extends AppModel
                 ),
                 'event_alert_republish_ban' => array(
                     'level' => 1,
-                    'description' => __('Enable this setting to start blocking alert e-mails for events that have already been publish since a specified amount of time. This threshold is defined by MISP.event_alert_republish_ban_threshold'),
+                    'description' => __('Enable this setting to start blocking alert e-mails for events that have already been published since a specified amount of time. This threshold is defined by MISP.event_alert_republish_ban_threshold'),
                     'value' => false,
                     'errorMessage' => '',
                     'test' => 'testBool',
