@@ -5340,6 +5340,15 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => false,
                 ),
+                'event_alert_republish_ban_refresh_on_retry' => array(
+                    'level' => 1,
+                    'description' => __('If the MISP.event_alert_republish_ban setting is set, this setting will control if a ban time should be reset if emails are tried to be sent during the ban.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
                 'org_alert_threshold' => array(
                     'level' => 1,
                     'description' => __('Set a value to limit the number of email alerts that events can generate per creator organisation (for example, if an organisation pushes out 2000 events in one shot, only alert on the first 20).'),
