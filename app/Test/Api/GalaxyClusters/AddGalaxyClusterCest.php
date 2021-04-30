@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use \Helper\Fixture\Data\GalaxyFixture;
 use \Helper\Fixture\Data\GalaxyClusterFixture;
 use \Helper\Fixture\Data\UserFixture;

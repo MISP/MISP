@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 use \Helper\Fixture\Data\GalaxyFixture;
 use \Helper\Fixture\Data\GalaxyClusterFixture;
-use \Helper\Fixture\Data\GalaxyElementFixture;
+use \Helper\Fixture\Data\UserFixture;
 
-class ViewGalaxyClusterCest
+class EditGalaxyClusterCest
 {
 
-    private const URL = '/galaxy_clusters/view/%s';
+    private const URL = '/galaxy_clusters/edit/%s';
 
-    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testEditReturnsForbiddenWithoutAuthKey(ApiTester $I)
     {
-        $I->sendGet(sprintf(self::URL, 1));
+        $I->sendPost(sprintf(self::URL, 1));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -22,31 +22,35 @@ class ViewGalaxyClusterCest
         $I->seeResponseIsJson();
     }
 
-    public function testViewReturnsExpectedGalaxyCluster(ApiTester $I)
+    public function testEdit(ApiTester $I)
     {
-        $I->haveAuthorizationKey();
+        $orgId = 1;
+        $userId = 1;
+        $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
 
         $galaxyId = 1;
         $galaxyClusterId = 1;
         $fakeGalaxy = GalaxyFixture::fake(['id' => $galaxyId]);
         $fakeGalaxyCluster = GalaxyClusterFixture::fake(
             [
-                'id' => $galaxyClusterId,
+                'id' => (string)$galaxyClusterId,
                 'galaxy_id' => (string)$galaxyId,
-                'tag_name' => 'foobar'
-            ]
-        );
-        $fakeGalaxyElement = GalaxyElementFixture::fake(
-            [
-                'galaxy_cluster_id' => (string)$galaxyClusterId
+                'value' => 'foo',
+                'tag_name' => 'foobar',
+                'default' => false
             ]
         );
 
         $I->haveInDatabase('galaxies', $fakeGalaxy->toDatabase());
         $I->haveInDatabase('galaxy_clusters', $fakeGalaxyCluster->toDatabase());
-        $I->haveInDatabase('galaxy_elements', $fakeGalaxyElement->toDatabase());
 
-        $I->sendGet(sprintf(self::URL, $galaxyClusterId));
+        $fakeGalaxyCluster->set(['value' => 'bar']);
+
+        $I->sendPost(sprintf(self::URL, $galaxyClusterId), $fakeGalaxyCluster->toRequest());
+
+        $fakeGalaxyCluster->set([
+            'version' => $I->grabDataFromResponseByJsonPath('$..GalaxyCluster.version')[0],
+        ]);
 
         $I->validateRequest();
         $I->validateResponse();

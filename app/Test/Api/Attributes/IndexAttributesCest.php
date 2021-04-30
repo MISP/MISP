@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use \Helper\Fixture\Data\AttributeFixture;
 use \Helper\Fixture\Data\EventFixture;
 

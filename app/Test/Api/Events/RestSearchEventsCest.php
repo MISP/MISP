@@ -1,8 +1,8 @@
 <?php
 
-use \Helper\Fixture\Data\AttributeFixture;
+declare(strict_types=1);
+
 use \Helper\Fixture\Data\EventFixture;
-use \Helper\Fixture\Data\UserFixture;
 
 class RestSearchEventsCest
 {
