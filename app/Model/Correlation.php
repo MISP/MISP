@@ -553,6 +553,10 @@ class Correlation extends AppModel
         return true;
     }
 
+    /**
+     * @return int|bool
+     * @throws Exception
+     */
     public function generateTopCorrelationsRouter()
     {
         if (Configure::read('MISP.background_jobs')) {
@@ -579,7 +583,7 @@ class Correlation extends AppModel
                     true
             );
             $this->Job->saveField('process_id', $process_id);
-            return true;
+            return $jobId;
         } else {
             return $this->generateTopCorrelations();
         }
@@ -640,7 +644,7 @@ class Correlation extends AppModel
         return true;
     }
 
-    public function findTop($query)
+    public function findTop(array $query)
     {
         try {
             $redis = $this->setupRedisWithException();
@@ -656,7 +660,7 @@ class Correlation extends AppModel
                 'Correlation' => [
                     'value' => $value,
                     'count' => $count,
-                    'excluded' => $redis->sismember('misp:correlation_exclusions', $value)
+                    'excluded' => $this->__preventExcludedCorrelations(['value1' => $value]),
                 ]
             ];
         }
