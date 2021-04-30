@@ -7353,7 +7353,15 @@ class Event extends AppModel
             if (!empty($banLiftTimestamp)) {
                 $remainingMinutes = (intval($banLiftTimestamp) - time()) / 60;
                 $banStatus['active'] = true;
-                $banStatus['message'] = __('Reason: Event is banned from sending out emails. Ban will be lifted in %smin %ssec.', floor($remainingMinutes), $remainingMinutes % 60);
+                if (Configure::read('MISP.event_alert_republish_ban_refresh_on_retry')) {
+                    $redis->multi(Redis::PIPELINE)
+                        ->set($redisKey, time() + $banThresholdSeconds)
+                        ->expire($redisKey, $banThresholdSeconds)
+                        ->exec();
+                    $banStatus['message'] = __('Reason: Event is banned from sending out emails. Ban has been refreshed and will be lifted in %smin', $banThresholdMinutes);
+                } else {
+                    $banStatus['message'] = __('Reason: Event is banned from sending out emails. Ban will be lifted in %smin %ssec.', floor($remainingMinutes), $remainingMinutes % 60);
+                }
                 return $banStatus;
             } else {
                 $redis->multi(Redis::PIPELINE)
