@@ -4,7 +4,7 @@ info:
   title: MISP Automation API
   description: |
 
-    ## Getting Started
+    ### Getting Started
     Automation functionality is designed to automatically generate signatures for intrusion detection systems. 
     To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes. 
     Note that not all attribute types are applicable for signature generation, currently we only support NIDS signature 
@@ -14,21 +14,7 @@ info:
     The [API](https://www.circl.lu/doc/misp/GLOSSARY.html#api) key can be found and managed under My Profile page (/users/view/me) 
     on a MISP instance.
 
-
-    ### Authorization
-    The authentication of the automation is performed via a secure key available in the MISP UI interface. 
-    Make sure you keep that key secret as it gives access to the entire database! The [API](https://www.circl.lu/doc/misp/GLOSSARY.html#api) 
-    key is available in the event actions menu under automation.
-
-    The authorization is performed by using the following header in the API requests:
-
-        Authorization: YOUR_API_KEY
-        
-    > **NOTE**: Since version 2.2 the usage of the authentication key in the URL is deprecated. 
-      Instead, pass the auth key in an Authorization header in the request. The legacy option of having the auth key 
-      in the URL is temporarily still supported but not recommended.
-
-    ### Accept and Content-Type headers 
+    #### Accept and Content-Type headers 
     When performing your request, depending on the type of request, you might need to explicitly specify in what content 
     type you want to get your results. This is done by setting one of the below `Accept` headers:
 
@@ -50,12 +36,12 @@ info:
 
     > **NOTE**: By appending .json or .xml the content type can also be set without the need for a header.
 
-    ### Automation using PyMISP
+    #### Automation using PyMISP
 
     [PyMISP](https://github.com/MISP/PyMISP) is a Python library to access MISP platforms via their REST [API](https://www.circl.lu/doc/misp/GLOSSARY.html#api).
     It allows you to fetch events, add or update events/attributes, add or update samples or search for attributes.
 
-    ## FAQ
+    ### FAQ
     * [Dev FAQ](https://www.circl.lu/doc/misp/dev-faq/)
     * [GitHub project FAQ](https://github.com/MISP/MISP/wiki/Frequently-Asked-Questions)
 
@@ -2057,7 +2043,19 @@ components:
       type: apiKey
       in: header
       name: Authorization
+      description: |
+          The authentication of the automation is performed via a secure key available in the MISP UI interface. 
+          Make sure you keep that key secret as it gives access to the entire database! The [API](https://www.circl.lu/doc/misp/GLOSSARY.html#api) 
+          key is available in the event actions menu under automation.
 
+          The authorization is performed by using the following header in the API requests:
+
+              Authorization: YOUR_API_KEY
+              
+          > **NOTE**: Since version 2.2 the usage of the authentication key in the URL is deprecated. 
+            Instead, pass the auth key in an Authorization header in the request. The legacy option of having the auth key 
+            in the URL is temporarily still supported but not recommended.
+      
   requestBodies:
     AddAttributeRequest:
       required: true
