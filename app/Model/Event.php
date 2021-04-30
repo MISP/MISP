@@ -3154,6 +3154,21 @@ class Event extends AppModel
             ));
             return true;
         }
+        $banStatus = $this->getEventRepublishBanStatus($id);
+        if ($banStatus['active']) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Event',
+                    'model_id' => $id,
+                    'email' => $user['email'],
+                    'action' => 'publish',
+                    'title' => __('E-mail alerts not sent out during publishing'),
+                    'change' => $banStatus['message'],
+            ));
+            return !$banStatus['error'];
+        }
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $job->create();
@@ -7303,5 +7318,52 @@ class Event extends AppModel
             return $extendingEventIds;
         }
         return [];
+    }
+
+    public function getEventRepublishBanStatus($eventID)
+    {
+        $banStatus = [
+            'error' => false,
+            'active' => false,
+            'message' => __('Event publish is not banned')
+        ];
+        if (Configure::read('MISP.event_alert_republish_ban')) {
+            $event = $this->find('first', array(
+                    'conditions' => array('Event.id' => $eventID),
+                    'recursive' => -1,
+                    'fields' => array('Event.uuid')
+            ));
+            if (empty($event)) {
+                $banStatus['error'] = true;
+                $banStatus['active'] = true;
+                $banStatus['message'] = __('Event not found');
+                return $banStatus;
+            }
+            $banThresholdMinutes = intval(Configure::read('MISP.event_alert_republish_ban_threshold'));
+            $banThresholdSeconds = 60 * $banThresholdMinutes;
+            $redis = $this->setupRedis();
+            if ($redis === false) {
+                $banStatus['error'] = true;
+                $banStatus['active'] = true;
+                $banStatus['message'] =  __('Reason: Could not reach redis to chech republish ban.');
+                return $banStatus;
+            }
+            $redisKey = "misp:event_alert_republish_ban:{$event['Event']['uuid']}";
+            $banLiftTimestamp = $redis->get($redisKey);
+            if (!empty($banLiftTimestamp)) {
+                $remainingMinutes = (intval($banLiftTimestamp) - time()) / 60;
+                $banStatus['active'] = true;
+                $banStatus['message'] = __('Reason: Event is banned from publishing. Ban will be lifted in %smin %ssec.', floor($remainingMinutes), $remainingMinutes % 60);
+                return $banStatus;
+            } else {
+                $redis->multi(Redis::PIPELINE)
+                    ->set($redisKey, time() + $banThresholdSeconds)
+                    ->expire($redisKey, $banThresholdSeconds)
+                    ->exec();
+                return $banStatus;
+            }
+        }
+        $banStatus['message'] = __('Republishing ban setting is not enabled');
+        return $banStatus;
     }
 }
