@@ -6,12 +6,12 @@ use \Helper\Fixture\Data\GalaxyFixture;
 use \Helper\Fixture\Data\GalaxyClusterFixture;
 use \Helper\Fixture\Data\UserFixture;
 
-class UnpublishGalaxyClusterCest
+class RestoreGalaxyClusterCest
 {
 
-    private const URL = '/galaxy_clusters/unpublish/%s';
+    private const URL = '/galaxy_clusters/restore/%s';
 
-    public function testUnpublishReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testRestoreReturnsForbiddenWithoutAuthKey(ApiTester $I)
     {
         $I->sendPost(sprintf(self::URL, 1));
 
@@ -22,7 +22,7 @@ class UnpublishGalaxyClusterCest
         $I->seeResponseIsJson();
     }
 
-    public function testUnpublish(ApiTester $I)
+    public function testRestore(ApiTester $I)
     {
         $orgId = 1;
         $userId = 1;
@@ -35,8 +35,7 @@ class UnpublishGalaxyClusterCest
             [
                 'id' => (string)$galaxyClusterId,
                 'galaxy_id' => (string)$galaxyId,
-                'default' => false,
-                'published' => true
+                'deleted' => true,
             ]
         );
 
@@ -52,10 +51,10 @@ class UnpublishGalaxyClusterCest
         $I->seeResponseContainsJson([
             'saved' => true,
             'success' => true,
-            'name' => 'GalaxyCluster unpublished',
-            'message' => 'GalaxyCluster unpublished',
+            'name' => 'GalaxyCluster restored',
+            'message' => 'GalaxyCluster restored',
             'url' => sprintf(self::URL, $galaxyClusterId),
         ]);
-        $I->seeInDatabase('galaxy_clusters', ['id' => $galaxyClusterId, 'published' => false]);
+        $I->seeInDatabase('galaxy_clusters', ['id' => $galaxyClusterId, 'deleted' => false]);
     }
 }

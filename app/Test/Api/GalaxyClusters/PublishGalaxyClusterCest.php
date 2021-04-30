@@ -35,8 +35,6 @@ class PublishGalaxyClusterCest
             [
                 'id' => (string)$galaxyClusterId,
                 'galaxy_id' => (string)$galaxyId,
-                'value' => 'foo',
-                'tag_name' => 'foobar',
                 'default' => false,
                 'published' => false
             ]

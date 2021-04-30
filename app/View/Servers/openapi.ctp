@@ -6,6 +6,8 @@
 <div id="redoc-container"></div>
 <script>
     Redoc.init('/doc/openapi.yaml', {
-        fontFamily: "inherit"
+        fontFamily: "inherit",
+        disableSearch: true,
+        expandResponses: "200"
     }, document.getElementById('redoc-container'))
 </script>

@@ -25,6 +25,7 @@ suites:
                           - "TRUNCATE misp.galaxies;"
                           - "TRUNCATE misp.galaxy_clusters;"
                           - "TRUNCATE misp.galaxy_elements;"
+                          - "TRUNCATE misp.jobs;"
                 - \Helper\Module\MispSettings:
                       depends: Cli
                       docker: true
