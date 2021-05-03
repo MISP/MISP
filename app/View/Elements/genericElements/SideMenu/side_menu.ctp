@@ -519,6 +519,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'message' => __('Are you sure you want to update all warninglists?')
                         ));
                     }
+
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'check_value',
+                        'url' => $baseurl . '/warninglists/checkValue',
+                        'text' => __('Search in Warninglists')
+                    ));
                     break;
 
                 case 'noticelist':
