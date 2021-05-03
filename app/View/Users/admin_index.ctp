@@ -1,4 +1,5 @@
 <?php
+    $multiSelectField = array();
     if (!$this->request->is('ajax')) {
         // Allow reset Keys, filtering and searching if viewing the /users/index page
         echo '<div class="index">';
@@ -17,6 +18,34 @@
         );
         $topBar = array(
             'children' => array(
+                array(
+                    'children' => array(
+                        array(
+                            'class' => 'hidden mass-select',
+                            'text' => __('Disable selected users'),
+                            'onClick' => "multiSelectToggleField",
+                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '1')
+                        ),
+                        array(
+                            'class' => 'hidden mass-select',
+                            'text' => __('Enable selected users'),
+                            'onClick' => "multiSelectToggleField",
+                            'onClickParams' => array('admin/users', 'massToggleField', 'disabled', '0')
+                        ),
+                        array(
+                            'class' => 'hidden mass-select',
+                            'text' => __('Disable publish emailing'),
+                            'onClick' => "multiSelectToggleField",
+                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '0')
+                        ),
+                        array(
+                            'class' => 'hidden mass-select',
+                            'text' => __('Enable publish emailing'),
+                            'onClick' => "multiSelectToggleField",
+                            'onClickParams' => array('admin/users', 'massToggleField', 'autoalert', '1')
+                        ),
+                    )
+                ),
                 array(
                     'type' => 'simple',
                     'children' => array(
@@ -57,6 +86,15 @@
                 )
             )
         );
+        $multiSelectField = array(array(
+            'element' => 'selector',
+            'class' => 'short',
+            'data' => array(
+                'id' => array(
+                    'value_path' => 'User.id'
+                )
+            )
+        ));
     } else {
         $description = '';
         $topBar = [];
@@ -65,122 +103,125 @@
         'data' => array(
             'data' => $users,
             'top_bar' => $topBar,
-            'fields' => array(
+            'fields' => array_merge(
+                $multiSelectField,
                 array(
-                    'name' => __('ID'),
-                    'sort' => 'id',
-                    'class' => 'short',
-                    'data_path' => 'User.id'
-                ),
-                array(
-                    'name' => __('Org'),
-                    'sort' => 'User.org_id',
-                    'element' => 'org',
-                    'data_path' => 'Organisation'
-                ),
-                array(
-                    'name' => __('Role'),
-                    'sort' => 'User.role_id',
-                    'class' => 'short',
-                    'element' => 'role',
-                    'data_path' => 'Role'
-                ),
-                array(
-                    'name' => __('Email'),
-                    'sort' => 'User.email',
-                    'data_path' => 'User.email'
-                ),
-                array(
-                    'name' => __('Authkey'),
-                    'sort' => 'User.authkey',
-                    'class' => 'bold quickSelect',
-                    'data_path' => 'User.authkey',
-                    'privacy' => 1,
-                    'requirement' => empty(Configure::read('Security.advanced_authkeys'))
-                ),
-                array(
-                    'name' => __('Event alert'),
-                    'element' => 'boolean',
-                    'sort' => 'User.autoalert',
-                    'class' => 'short',
-                    'data_path' => 'User.autoalert'
-                ),
-                array(
-                    'name' => __('Contact alert'),
-                    'element' => 'boolean',
-                    'sort' => 'User.contactalert',
-                    'class' => 'short',
-                    'data_path' => 'User.contactalert'
-                ),
-                array(
-                    'name' => __('PGP Key'),
-                    'element' => 'boolean',
-                    'sort' => 'User.gpgkey',
-                    'class' => 'short',
-                    'data_path' => 'User.gpgkey'
-                ),
-                array(
-                    'name' => __('S/MIME'),
-                    'element' => 'boolean',
-                    'sort' => 'User.certif_public',
-                    'class' => 'short',
-                    'data_path' => 'User.certif_public',
-                    'requirement' => Configure::read('SMIME.enabled')
-                ),
-                array(
-                    'name' => __('NIDS SID'),
-                    'sort' => 'User.nids_sid',
-                    'class' => 'short',
-                    'data_path' => 'User.nids_sid'
-                ),
-                array(
-                    'name' => __('Terms Accepted'),
-                    'element' => 'boolean',
-                    'sort' => 'User.termsaccepted',
-                    'class' => 'short',
-                    'data_path' => 'User.termsaccepted'
-                ),
-                array(
-                    'name' => __('Last Login'),
-                    'sort' => 'User.current_login',
-                    'element' => 'datetime',
-                    'empty' => __('Never'),
-                    'class' => 'short',
-                    'data_path' => 'User.current_login'
-                ),
-                array(
-                    'name' => __('Created'),
-                    'sort' => 'User.date_created',
-                    'element' => 'datetime',
-                    'class' => 'short',
-                    'data_path' => 'User.date_created'
-                ),
-                array(
-                    'name' => (Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : __('External Auth')),
-                    'sort' => 'User.external_auth_required',
-                    'element' => 'boolean',
-                    'class' => 'short',
-                    'data_path' => 'User.external_auth_required',
-                    'requirement' => (Configure::read('Plugin.CustomAuth_enable') && empty(Configure::read('Plugin.CustomAuth_required')))
-                ),
-                array(
-                    'name' => __('Monitored'),
-                    'element' => 'toggle',
-                    'url' => $baseurl . '/admin/users/monitor',
-                    'url_params_data_paths' => array(
-                        'User.id'
+                    array(
+                        'name' => __('ID'),
+                        'sort' => 'id',
+                        'class' => 'short',
+                        'data_path' => 'User.id'
                     ),
-                    'sort' => 'User.disabled',
-                    'class' => 'short',
-                    'data_path' => 'User.monitored',
-                    'requirement' => $isSiteAdmin && Configure::read('Security.user_monitoring_enabled')
-                ),
-                array(
-                    'name' => __('Disabled'),
-                    'element' => 'boolean',
-                    'sort' => 'User.disabled',
-                    'class' => 'short',
-                    'data_path' => 'User.disabled'
+                    array(
+                        'name' => __('Org'),
+                        'sort' => 'User.org_id',
+                        'element' => 'org',
+                        'data_path' => 'Organisation'
+                    ),
+                    array(
+                        'name' => __('Role'),
+                        'sort' => 'User.role_id',
+                        'class' => 'short',
+                        'element' => 'role',
+                        'data_path' => 'Role'
+                    ),
+                    array(
+                        'name' => __('Email'),
+                        'sort' => 'User.email',
+                        'data_path' => 'User.email'
+                    ),
+                    array(
+                        'name' => __('Authkey'),
+                        'sort' => 'User.authkey',
+                        'class' => 'bold quickSelect',
+                        'data_path' => 'User.authkey',
+                        'privacy' => 1,
+                        'requirement' => empty(Configure::read('Security.advanced_authkeys'))
+                    ),
+                    array(
+                        'name' => __('Event alert'),
+                        'element' => 'boolean',
+                        'sort' => 'User.autoalert',
+                        'class' => 'short',
+                        'data_path' => 'User.autoalert'
+                    ),
+                    array(
+                        'name' => __('Contact alert'),
+                        'element' => 'boolean',
+                        'sort' => 'User.contactalert',
+                        'class' => 'short',
+                        'data_path' => 'User.contactalert'
+                    ),
+                    array(
+                        'name' => __('PGP Key'),
+                        'element' => 'boolean',
+                        'sort' => 'User.gpgkey',
+                        'class' => 'short',
+                        'data_path' => 'User.gpgkey'
+                    ),
+                    array(
+                        'name' => __('S/MIME'),
+                        'element' => 'boolean',
+                        'sort' => 'User.certif_public',
+                        'class' => 'short',
+                        'data_path' => 'User.certif_public',
+                        'requirement' => Configure::read('SMIME.enabled')
+                    ),
+                    array(
+                        'name' => __('NIDS SID'),
+                        'sort' => 'User.nids_sid',
+                        'class' => 'short',
+                        'data_path' => 'User.nids_sid'
+                    ),
+                    array(
+                        'name' => __('Terms Accepted'),
+                        'element' => 'boolean',
+                        'sort' => 'User.termsaccepted',
+                        'class' => 'short',
+                        'data_path' => 'User.termsaccepted'
+                    ),
+                    array(
+                        'name' => __('Last Login'),
+                        'sort' => 'User.current_login',
+                        'element' => 'datetime',
+                        'empty' => __('Never'),
+                        'class' => 'short',
+                        'data_path' => 'User.current_login'
+                    ),
+                    array(
+                        'name' => __('Created'),
+                        'sort' => 'User.date_created',
+                        'element' => 'datetime',
+                        'class' => 'short',
+                        'data_path' => 'User.date_created'
+                    ),
+                    array(
+                        'name' => (Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : __('External Auth')),
+                        'sort' => 'User.external_auth_required',
+                        'element' => 'boolean',
+                        'class' => 'short',
+                        'data_path' => 'User.external_auth_required',
+                        'requirement' => (Configure::read('Plugin.CustomAuth_enable') && empty(Configure::read('Plugin.CustomAuth_required')))
+                    ),
+                    array(
+                        'name' => __('Monitored'),
+                        'element' => 'toggle',
+                        'url' => $baseurl . '/admin/users/monitor',
+                        'url_params_data_paths' => array(
+                            'User.id'
+                        ),
+                        'sort' => 'User.disabled',
+                        'class' => 'short',
+                        'data_path' => 'User.monitored',
+                        'requirement' => $isSiteAdmin && Configure::read('Security.user_monitoring_enabled')
+                    ),
+                    array(
+                        'name' => __('Disabled'),
+                        'element' => 'boolean',
+                        'sort' => 'User.disabled',
+                        'class' => 'short',
+                        'data_path' => 'User.disabled'
+                    )
                 )
             ),
             'title' => __('Users index'),

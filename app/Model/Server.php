@@ -5515,6 +5515,15 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true,
                 ],
+                'warning_for_all' => [
+                    'level' => 1,
+                    'description' => __('Enable warning list notification regardless of the IDS flag value'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ]
             ),
             'GnuPG' => array(
                 'branch' => 1,
