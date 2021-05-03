@@ -145,6 +145,7 @@
                     'postLink' => true,
                     'postLinkConfirm' => __('Are you sure you want to delete the entry?'),
                     'icon' => 'trash',
+                    'requirement' => $me['Role']['perm_site_admin'],
                 ),
             )
         )
