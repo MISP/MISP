@@ -9,6 +9,7 @@ class CorrelationExclusion extends AppModel
     public $key = 'misp:correlation_exclusions';
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
                 'userModel' => 'User',
                 'userKey' => 'user_id',

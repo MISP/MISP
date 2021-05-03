@@ -445,6 +445,7 @@ class EventShell extends AppShell
         $inputData = $tempFile->read();
         $inputData = json_decode($inputData, true);
         $tempFile->delete();
+        Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processFreeTextData(
             $inputData['user'],
             $inputData['attributes'],
@@ -465,6 +466,7 @@ class EventShell extends AppShell
         $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
         $inputData = json_decode($tempFile->read(), true);
         $tempFile->delete();
+        Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processModuleResultsData(
             $inputData['user'],
             $inputData['misp_format'],
@@ -530,6 +532,7 @@ class EventShell extends AppShell
         if (empty($user)) {
             $this->error("User with ID $userId does not exists.");
         }
+        Configure::write('CurrentUserId', $user['id']); // for audit logging purposes
         return $user;
     }
 

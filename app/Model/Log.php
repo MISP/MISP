@@ -155,11 +155,11 @@ class Log extends AppModel
         $conditions = array();
         $this->Organisation = ClassRegistry::init('Organisation');
         if ($org !== 'all') {
-            $org = $this->Organisation->find('first', array('fields' => array('name'), 'recursive' => -1, 'conditions' => array('UPPER(Organisation.name) LIKE' => strtoupper($org))));
+            $org = $this->Organisation->fetchOrg($org);
             if (empty($org)) {
-                return MethodNotAllowedException('Invalid organisation.');
+                throw new MethodNotAllowedException('Invalid organisation.');
             }
-            $conditions['org'] = $org['Organisation']['name'];
+            $conditions['org'] = $org['name'];
         }
         $conditions['AND']['NOT'] = array('action' => array('login', 'logout', 'changepw'));
         if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
@@ -206,6 +206,9 @@ class Log extends AppModel
      */
     public function createLogEntry($user, $action, $model, $modelId = 0, $title = '', $change = '')
     {
+        if (in_array($action, ['tag', 'galaxy', 'publish', 'publish_sightings'], true) && Configure::read('MISP.log_new_audit')) {
+            return; // Do not store tag changes when new audit is enabled
+        }
         if ($user === 'SYSTEM') {
             $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
         } else if (!is_array($user)) {

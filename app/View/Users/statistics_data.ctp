@@ -57,13 +57,9 @@
 <div id="orgs">
     <select onchange="updateCalendar(this.options[this.selectedIndex].value);">
         <option value="all"><?php echo __('All organisations');?></option>
-        <?php
-            foreach ($orgs as $org):
-                ?>
-                    <option value="<?php echo h($org['Organisation']['name']); ?>"><?php echo h($org['Organisation']['name']); ?></option>
-                <?php
-            endforeach;
-        ?>
+        <?php foreach ($orgs as $orgId => $orgName): ?>
+        <option value="<?php echo h($orgId); ?>"><?php echo h($orgName); ?></option>
+        <?php endforeach; ?>
     </select>
 </div>
 <div>
@@ -89,7 +85,7 @@ cal.init({
     domain:"month",
     subDomain:"x_day",
     start: new Date(<?php echo $startDateCal; ?>),
-    data: "<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates.json",
+    data: "<?= $activityUrl ?>.json",
     highlight: "now",
     domainDynamicDimension: false,
     cellSize: 20,
@@ -101,21 +97,21 @@ cal.init({
 
 function updateCalendar(org) {
     if (org == "all") {
-        cal.update("<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/all.json");
+        cal.update("<?= $activityUrl ?>/all.json");
         orgSelected = "all";
     } else {
-        cal.update("<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+org+".json");
+        cal.update("<?= $activityUrl ?>/"+org+".json");
         orgSelected = org;
     }
 }
 
 function goRight() {
-    cal.options.data = "<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+orgSelected+".json";
+    cal.options.data = "<?= $activityUrl ?>/"+orgSelected+".json";
     cal.next();
 }
 
 function goLeft() {
-    cal.options.data = "<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates/"+orgSelected+".json";
+    cal.options.data = "<?= $activityUrl ?>/"+orgSelected+".json";
     cal.previous();
 }
 </script>
@@ -133,6 +129,4 @@ if (preg_match('/(?i)msie [2-9]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERV
 }
 ?>
 </div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
