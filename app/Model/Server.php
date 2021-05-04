@@ -3553,19 +3553,13 @@ class Server extends AppModel
     {
         $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         $workers = $this->ResqueStatus->getWorkers();
-        if (function_exists('posix_getpwuid')) {
-            $currentUser = posix_getpwuid(posix_geteuid());
-            $currentUser = $currentUser['name'];
-        } else {
-            $currentUser = trim(shell_exec('whoami'));
-        }
         $killed = array();
         foreach ($workers as $pid => $worker) {
             if (!is_numeric($pid)) {
                 throw new MethodNotAllowedException('Non numeric PID found!');
             }
-            $pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false;
-            if ($worker['user'] == $currentUser && !$pidTest) {
+            $pidTest = file_exists('/proc/' . addslashes($pid));
+            if (!$pidTest) {
                 $this->ResqueStatus->removeWorker($pid);
                 $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
                 if (empty($killed[$worker['queue']])) {
@@ -4441,7 +4435,7 @@ class Server extends AppModel
                         'OR' => [
                             'Correlation.attribute_id = Attribute.id',
                         ]
-                        
+
                     ]
                 ]
             ],
