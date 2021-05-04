@@ -1346,6 +1346,7 @@ class AttributesController extends AppController
         $this->set('clusterItemsRemove', $clusterItemsRemove);
         $this->set('options', array( // set chosen (select picker) options
             'multiple' => -1,
+            'autofocus' => false,
             'disabledSubmitButton' => true,
             'flag_redraw_chosen' => true,
             'select_options' => array(
