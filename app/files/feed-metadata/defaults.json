@@ -3,7 +3,7 @@
     "Feed": {
       "name": "CIRCL OSINT Feed",
       "provider": "CIRCL",
-      "url": "https://www.circl.lu/doc/misp/feed-osint",
+      "url": "https://www.circl.lu/doc/misp/feed-osint/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "3",

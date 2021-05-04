@@ -3280,41 +3280,40 @@ class EventsController extends AppController
     public function proposalEventIndex()
     {
         $this->loadModel('ShadowAttribute');
-        $this->ShadowAttribute->recursive = -1;
         $conditions = array('ShadowAttribute.deleted' => 0);
         if (!$this->_isSiteAdmin()) {
             $conditions[] = array('ShadowAttribute.event_org_id' => $this->Auth->user('org_id'));
         }
-        $result = $this->ShadowAttribute->find('all', array(
-                'fields' => array('event_id'),
-                'group' => array('event_id', 'id'),
-                'conditions' => $conditions
-        ));
+        $result = $this->ShadowAttribute->find('column', [
+            'fields' => ['event_id'],
+            'conditions' => $conditions,
+            'unique' => true,
+        ]);
         $this->Event->recursive = -1;
-        $conditions = array();
-        foreach ($result as $eventId) {
-            $conditions['OR'][] = array('Event.id =' => $eventId['ShadowAttribute']['event_id']);
-        }
+
         if (empty($result)) {
-            $conditions['OR'][] = array('Event.id =' => -1);
+            $conditions = array('Event.id' => -1);
+        } else {
+            $conditions = array('Event.id' => $result);
         }
         $this->paginate = array(
-                'fields' => array('Event.id', 'Event.org_id', 'Event.orgc_id', 'Event.publish_timestamp', 'Event.distribution', 'Event.info', 'Event.date', 'Event.published'),
-                'conditions' => $conditions,
-                'contain' => array(
-                    'User' => array(
-                            'fields' => array(
-                                'User.email'
-                    )),
-                    'ShadowAttribute'=> array(
-                        'fields' => array(
-                            'ShadowAttribute.id', 'ShadowAttribute.org_id', 'ShadowAttribute.event_id'
-                        ),
-                        'conditions' => array(
-                            'ShadowAttribute.deleted' => 0
-                        ),
+            'fields' => array('Event.id', 'Event.org_id', 'Event.orgc_id', 'Event.publish_timestamp', 'Event.distribution', 'Event.info', 'Event.date', 'Event.published'),
+            'conditions' => $conditions,
+            'contain' => array(
+                'User' => array(
+                    'fields' => array(
+                        'User.email'
+                )),
+                'ShadowAttribute'=> array(
+                    'fields' => array(
+                        'ShadowAttribute.id', 'ShadowAttribute.org_id', 'ShadowAttribute.event_id'
                     ),
-        ));
+                    'conditions' => array(
+                        'ShadowAttribute.deleted' => 0
+                    ),
+                ),
+            )
+        );
         $events = $this->paginate();
         $orgIds = array();
         foreach ($events as $k => $event) {
@@ -5455,10 +5454,10 @@ class EventsController extends AppController
         $editors = array_unique($editors);
 
         if ($event['Event']['timestamp'] > $timestamp && empty($editors)) {
-            $message = __('<b>Warning<b>: This event view is outdated. Please reload page to see latest changes.');
+            $message = __('<b>Warning</b>: This event view is outdated. Please reload page to see latest changes.');
             $this->set('class', 'alert');
         } else if ($event['Event']['timestamp'] > $timestamp) {
-            $message = __('<b>Warning<b>: This event view is outdated, because is currently being edited by: %s. Please reload page to see latest changes.', h(implode(', ', $editors)));
+            $message = __('<b>Warning</b>: This event view is outdated, because is currently being edited by: %s. Please reload page to see latest changes.', h(implode(', ', $editors)));
             $this->set('class', 'alert');
         } else if (empty($editors)) {
             return new CakeResponse(['status' => 204]);
