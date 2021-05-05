@@ -7,6 +7,7 @@ class GalaxyElement extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
             'Containable',
     );
 

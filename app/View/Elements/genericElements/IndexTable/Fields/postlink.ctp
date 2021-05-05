@@ -37,16 +37,25 @@
         'id' => 'form-' . $randomId,
         'url' => $baseurl . $url,
     ]);
-    foreach ($fieldsArray as $field => $value) {
-        $form .= $this->Form->input($field, ['value' => $value]);
+    foreach ($fieldsArray as $inputField => $value) {
+        $form .= $this->Form->input($inputField, ['value' => $value]);
     }
     $form .= $this->Form->end();
+    $onclick = sprintf(
+        '$(\'#form-%s\').submit();',
+        $randomId
+    );
+    if (!empty($field['confirm_post'])) {
+        $field['confirm_message'] = !empty($field['confirm_message']) ? $field['confirm_message'] : __('Confirm action?');
+        $onclick = sprintf(
+            '%s ? $(\'#form-%s\').submit() : \'\';',
+            sprintf('confirm(\'%s\')', h($field['confirm_message'])),
+            $randomId
+        );
+    }
     echo sprintf(
         '%s<a href="#" onClick="event.preventDefault(); %s">%s</a>',
         $form,
-        sprintf(
-            '$(\'#form-%s\').submit();',
-            $randomId
-        ),
+        $onclick,
         $text
     );

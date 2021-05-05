@@ -188,6 +188,9 @@
                 'title' => __('Set PUSH rules'),
                 'content' => [
                     [
+                        'html' => sprintf('<h5 style="font-weight: normal;"><i>%s</i></h5>', __('Configure the rules to be applied when PUSHing data to the server'))
+                    ],
+                    [
                         'html' => $this->element('serverRuleElements/push', [
                             'allTags' => $allTags,
                             'allOrganisations' => $allOrganisations,
@@ -205,7 +208,8 @@
         ];
         echo $this->element('genericElements/infoModal', $modalData);
         $modalData['data']['title'] = __('Set PULL rules');
-        $modalData['data']['content'][0]['html'] = $this->element('serverRuleElements/pull', [
+        $modalData['data']['content'][1]['html'] = sprintf('<h5 style="font-weight: normal;"><i>%s</i></h5>', __('Configure the rules to be applied when PULLing data from the server'));
+        $modalData['data']['content'][1]['html'] = $this->element('serverRuleElements/pull', [
             'context' => 'servers',
             'ruleObject' => $pullRules
         ]);
@@ -275,29 +279,47 @@ $(document).ready(function() {
     });
     rules = convertServerFilterRules(rules);
     $("#push_modify").click(function() {
-        $('#genericModal.push-rule-modal').modal().on('shown', function () {
-            var $containers = $(this).find('.rules-widget-container')
-            $containers.each(function() {
-                var initFun = $(this).data('funname');
-                if (typeof window[initFun] === 'function') {
-                    window[initFun]()
-                }
+        $('#genericModal.push-rule-modal').modal()
+            .on('shown', function () {
+                var $containers = $(this).find('.rules-widget-container')
+                $containers.each(function() {
+                    var initFun = $(this).data('funname');
+                    if (typeof window[initFun] === 'function') {
+                        window[initFun]()
+                    }
+                })
             })
-        });
+            .on('hidden', function () {
+                var $containers = $(this).find('.rules-widget-container')
+                $containers.each(function() {
+                    if ($(this).data('resetrulesfun') !== undefined) {
+                        $(this).data('resetrulesfun')()
+                    }
+                })
+            });
     });
     $("#pull_modify").click(function() {
-        $('#genericModal.pull-rule-modal').modal().on('shown', function () {
-            var $containers = $(this).find('.rules-widget-container')
-            $containers.each(function() {
-                var initFun = $(this).data('funname');
-                if (typeof window[initFun] === 'function') {
-                    window[initFun]()
+        $('#genericModal.pull-rule-modal').modal()
+            .on('shown', function () {
+                var $containers = $(this).find('.rules-widget-container')
+                $containers.each(function() {
+                    var initFun = $(this).data('funname');
+                    if (typeof window[initFun] === 'function') {
+                        window[initFun]()
+                    }
+                })
+                if (typeof window['cm'] === "object") {
+                    window['cm'].refresh()
                 }
             })
-            if (typeof window['cm'] === "object") {
-                window['cm'].refresh()
-            }
-        });
+            .on('hidden', function () {
+                var $containers = $(this).find('.rules-widget-container')
+                $containers.each(function() {
+                    if ($(this).data('resetrulesfun') !== undefined) {
+                        $(this).data('resetrulesfun')()
+                    }
+                })
+            });
     });
 
     $('#add_cert_file').click(function() {

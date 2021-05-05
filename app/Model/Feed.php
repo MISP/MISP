@@ -5,7 +5,9 @@ App::uses('TmpFileTool', 'Tools');
 
 class Feed extends AppModel
 {
-    public $actsAs = array('SysLogLogable.SysLogLogable' => array(
+    public $actsAs = array(
+        'AuditLog',
+        'SysLogLogable.SysLogLogable' => array(
             'change' => 'full'
         ),
         'Trim',

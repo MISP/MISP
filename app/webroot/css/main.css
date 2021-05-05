@@ -2749,3 +2749,8 @@ Query builder
     margin-top: 0;
 }
 
+/* Fix text input for query builder */
+.query-builder .rule-value-container input[type="text"] {
+    padding: 4px !important;
+    height: 30px;
+}

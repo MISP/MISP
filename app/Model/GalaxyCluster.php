@@ -13,6 +13,7 @@ class GalaxyCluster extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
@@ -694,15 +695,17 @@ class GalaxyCluster extends AppModel
             }
             $modelsToUnset = array('GalaxyClusterRelation', 'TargetingClusterRelation');
             foreach ($modelsToUnset as $modelName) {
-                foreach ($cluster['GalaxyCluster'][$modelName] as $i => $relation) {
-                    unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['id']);
-                    unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['galaxy_cluster_id']);
-                    unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['referenced_galaxy_cluster_id']);
-                    if (isset($relation['Tag'])) {
-                        foreach ($relation['Tag'] as $j => $tags) {
-                            unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['id']);
-                            unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['org_id']);
-                            unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['user_id']);
+                if (!empty($cluster['GalaxyCluster'][$modelName])) {
+                    foreach ($cluster['GalaxyCluster'][$modelName] as $i => $relation) {
+                        unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['id']);
+                        unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['galaxy_cluster_id']);
+                        unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['referenced_galaxy_cluster_id']);
+                        if (isset($relation['Tag'])) {
+                            foreach ($relation['Tag'] as $j => $tags) {
+                                unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['id']);
+                                unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['org_id']);
+                                unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['user_id']);
+                            }
                         }
                     }
                 }
