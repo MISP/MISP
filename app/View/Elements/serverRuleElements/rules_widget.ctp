@@ -1,5 +1,6 @@
 <?php 
 $seed = rand();
+$pickerDisplayed = false;
 ?>
 <div>
     <div style="display: flex;" class="rules-widget-container container-seed-<?= $seed ?> scope-<?= Inflector::pluralize(h($scope)) ?>" data-funname="initRuleWidgetPicker<?= $seed ?>">
@@ -29,32 +30,8 @@ $seed = rand();
         </div>
         <div style="display: flex; margin: 0 0.5em; flex-shrink: 1; padding-top: 20px;">
             <div style="display: flex; flex-direction: column;">
-                <?php if(!isset($disableFreeText) || !$disableFreeText): ?>
-                    <div class="input-prepend input-append">
-                        <button
-                            class="btn"
-                            type="button"
-                            title="<?= __('Move %s to the list of %s to allow', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
-                            aria-label="<?= __('Move %s to the list of %s to allow', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
-                            role="button" tabindex="0"
-                            onClick="<?= sprintf("handleFreetextButtonClick('%s', this); ", 'rules-allow') ?>"
-                        >
-                        <i class="<?= $this->FontAwesome->getClass('caret-left') ?>"></i>
-                        </button>
-                        <input type="text" style="" placeholder="<?= sprintf('Freetext %s name', h($scopeI18n)) ?>">
-                        <button
-                            class="btn"
-                            type="button"
-                            title="<?= __('Move %s to the list of %s to block', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
-                            aria-label="<?= __('Move %s to the list of %s to block', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
-                            role="button" tabindex="0"
-                            onClick="<?= sprintf("handleFreetextButtonClick('%s', this); ", 'rules-block') ?>"
-                        >
-                            <i class="<?= $this->FontAwesome->getClass('caret-right') ?>"></i>
-                        </button>
-                    </div>
-                <?php endif; ?>
                 <?php if(!empty($options) || $allowEmptyOptions): ?>
+                    <?php $pickerDisplayed = true; ?>
                     <div class="input-prepend input-append">
                         <button
                             class="btn"
@@ -91,6 +68,46 @@ $seed = rand();
                         </button>
                     </div>
                 <?php endif; ?>
+                <?php if(!isset($disableFreeText) || !$disableFreeText): ?>
+                    <?php if ($pickerDisplayed): ?>
+                        <a
+                            data-toggle="collapse" data-target="#collapse-freetext-<?= h($scope) ?>-<?= $seed ?>"
+                            class="text-left useCursorPointer freetext-button-toggle-<?= h($scope) ?>"
+                            title="<?= __('This text input allows you to add custom values to the rules') ?>"
+                        >
+                            <i class="fas fa-caret-down fa-rotate"></i>
+                            <?= __('Show freetext input') ?>
+                        </a>
+                    <?php endif; ?>
+                    <div
+                        id="collapse-freetext-<?= h($scope) ?>-<?= $seed ?>"
+                        class="collapse collapse-freetext-<?= h($scope) ?>"
+                    >
+                        <div class="input-prepend input-append" style="margin: 1px;">
+                            <button
+                                class="btn"
+                                type="button"
+                                title="<?= __('Move %s to the list of %s to allow', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
+                                aria-label="<?= __('Move %s to the list of %s to allow', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
+                                role="button" tabindex="0"
+                                onClick="<?= sprintf("handleFreetextButtonClick('%s', this); ", 'rules-allow') ?>"
+                            >
+                            <i class="<?= $this->FontAwesome->getClass('caret-left') ?>"></i>
+                            </button>
+                            <input type="text" style="" placeholder="<?= sprintf('Freetext %s name', h($scopeI18n)) ?>">
+                            <button
+                                class="btn"
+                                type="button"
+                                title="<?= __('Move %s to the list of %s to block', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
+                                aria-label="<?= __('Move %s to the list of %s to block', h($scopeI18n), Inflector::pluralize(h($scopeI18n)));?>"
+                                role="button" tabindex="0"
+                                onClick="<?= sprintf("handleFreetextButtonClick('%s', this); ", 'rules-block') ?>"
+                            >
+                                <i class="<?= $this->FontAwesome->getClass('caret-right') ?>"></i>
+                            </button>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
         <div style="flex-grow: 1;">
@@ -122,15 +139,28 @@ $seed = rand();
 
 <script>
 function initRuleWidgetPicker<?= $seed ?>() {
-    $('.container-seed-<?= $seed ?> select.rules-select-picker').chosen()
-    $('.container-seed-<?= $seed ?> select.rules-select-data').keydown(function(evt) {
+    var $baseContainer = $('.container-seed-<?= $seed ?>');
+    $baseContainer.find('select.rules-select-picker').chosen({
+        placeholder_text_multiple: "<?= __('Select some %s', Inflector::humanize(Inflector::pluralize(h($scopeI18n)))); ?>"
+    })
+    $baseContainer.find('select.rules-select-data').keydown(function(evt) {
         var $select = $(this)
         var $pickerSelect = $select.closest('.rules-widget-container').find('select.rules-select-picker')
         if (evt.keyCode === 46) { // <DELETE>
             deleteSelectedRules($select, $pickerSelect)
         }
     });
-    rebuildRules($('.container-seed-<?= $seed ?>'))
+    rebuildRules($baseContainer)
+    $baseContainer.data('initial-rules-allow', $baseContainer.find('.rules-allow').children())
+    $baseContainer.data('initial-rules-block', $baseContainer.find('.rules-block').children())
+    $baseContainer.data('resetrulesfun', function() {
+        $baseContainer.find('.rules-allow').empty().append(
+            $baseContainer.data('initial-rules-allow')
+        )
+        $baseContainer.find('.rules-block').empty().append(
+            $baseContainer.data('initial-rules-block')
+        )
+    })
 }
 
 function deleteSelectedRules($select, $pickerSelect) {

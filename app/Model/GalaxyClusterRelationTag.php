@@ -4,7 +4,7 @@ App::uses('AppModel', 'Model');
 class GalaxyClusterRelationTag extends AppModel
 {
     public $useTable = 'galaxy_cluster_relation_tags';
-    public $actsAs = array('Containable');
+    public $actsAs = array('AuditLog', 'Containable');
 
     public $validate = array(
         'galaxy_cluster_relation_id' => array(

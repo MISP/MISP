@@ -30,7 +30,7 @@ class UsageDataWidget
         $this->Correlation = ClassRegistry::init('Correlation');
         $correlationsCount = $this->Correlation->find('count', array('recursive' => -1)) / 2;
 
-        $proposalsCount = $this->Event->ShadowAttribute->find('count', array('recursive' => -1));
+        $proposalsCount = $this->Event->ShadowAttribute->find('count', array('recursive' => -1, 'conditions' => array('deleted' => 0)));
 
         $usersCount = $this->User->find('count', array('recursive' => -1));
         $usersCountPgp = $this->User->find('count', array('recursive' => -1, 'conditions' => array('User.gpgkey !=' => '')));

@@ -153,10 +153,12 @@ function buildMISPElementHints() {
     MISPElementHints['object'] = []
     Object.keys(proxyMISPElements['object']).forEach(function(uuid) {
         var object = proxyMISPElements['object'][uuid]
+        var topPriorityValue = getTopPriorityValue(object)
         MISPElementHints['object'].push(
             [object.name, uuid],
             [object.id, uuid],
             [object.uuid, uuid],
+            [topPriorityValue, uuid],
         )
     })
     MISPElementHints['galaxymatrix'] = []
@@ -181,6 +183,7 @@ function hintMISPElements(cm, options) {
     var authorizedMISPElements = ['attribute', 'object', 'galaxymatrix', 'tag']
     var availableScopes = ['attribute', 'object', 'galaxymatrix', 'tag']
     var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)?\\)');
+    var reMISPScope = RegExp('@\\[(?<scope>\\S+)\\]\\(\\)');
     var reExtendedWord = /\S/
     var hintList = []
     var scope, elementID, element
@@ -202,6 +205,25 @@ function hintMISPElements(cm, options) {
             list: hintList,
             from: CodeMirror.Pos(cursor.line, start),
             to: CodeMirror.Pos(cursor.line, end)
+        }
+    }
+
+    var resScope = reMISPScope.exec(word)
+    if (resScope !== null) {
+        var partialScope = resScope.groups.scope
+        availableScopes.forEach(function(scope) {
+            if (scope.startsWith(partialScope) && scope !== partialScope) {
+                hintList.push({
+                    text: '@[' + scope + ']()'
+                })
+            }
+        });
+        if (hintList.length > 0) {
+            return {
+                list: hintList,
+                from: CodeMirror.Pos(cursor.line, start),
+                to: CodeMirror.Pos(cursor.line, end)
+            }
         }
     }
 
@@ -288,13 +310,7 @@ function renderHintElement(scope, element) {
                     .text(element.value)
             )
     } else if (scope == 'object') {
-        var associatedTemplate = element.template_uuid + '.' + element.template_version
-        var objectTemplate = proxyMISPElements['objectTemplates'][associatedTemplate]
-        var topPriorityValue = element.Attribute.length
-        if (objectTemplate !== undefined) {
-            var temp = getPriorityValue(element, objectTemplate)
-            topPriorityValue = temp !== false ? temp : topPriorityValue
-        }
+        var topPriorityValue = getTopPriorityValue(element)
         $node = $('<span/>').addClass('hint-object')
         $node.append($('<i/>').addClass('').text('[' + element['meta-category'] + '] '))
             .append($('<span/>').addClass('bold').text(element.name + ' '))
@@ -1414,6 +1430,17 @@ function getPriorityValue(mispObject, objectTemplate) {
         }
     }
     return false
+}
+
+function getTopPriorityValue(object) {
+    var associatedTemplate = object.template_uuid + '.' + object.template_version
+    var objectTemplate = proxyMISPElements['objectTemplates'][associatedTemplate]
+    var topPriorityValue = object.Attribute.length
+    if (objectTemplate !== undefined) {
+        var temp = getPriorityValue(object, objectTemplate)
+        topPriorityValue = temp !== false ? temp : topPriorityValue
+    }
+    return topPriorityValue
 }
 
 function constructTag(tagName) {
