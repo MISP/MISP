@@ -138,9 +138,13 @@
                 ),
                 array(
                     'title' => __('Delete'),
+                    'url' => $baseurl . '/warninglists/delete',
+                    'url_params_data_paths' => array(
+                        'Warninglist.id'
+                    ),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to delete the entry?'),
                     'icon' => 'trash',
-                    'onclick' => 'simplePopup(\'' . $baseurl . '/warninglists/delete/[onclick_params_data_path]\');',
-                    'onclick_params_data_path' => 'Warninglist.id',
                     'requirement' => $me['Role']['perm_site_admin'],
                 ),
             )
