@@ -566,7 +566,8 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     if ($menuItem == 'edit') {
                         echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/admin/allowedlists/edit' . h($id),
+                            'url' => $baseurl . '/admin/allowedlists/edit/' . h($id),
+                            'element_id' => 'edit',
                             'text' => __('Edit Allowedlist')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
