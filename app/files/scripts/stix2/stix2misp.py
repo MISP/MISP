@@ -1454,6 +1454,17 @@ class ExternalStixParser(StixParser):
             print(f'File extension type(s) not supported at the moment: {", ".join(extension_types)}', file=sys.stderr)
         self.handle_import_case(observable, attributes, 'file', _force_object=('file-encoding', 'path'))
 
+    def parse_ip_address_observable(self, observable):
+        attributes = []
+        for observable_object in observable.objects.values():
+            attribute = {
+                'value': observable_object.value,
+                'to_ids': False
+            }
+            attribute.update(stix2misp_mapping.ip_attribute_mapping)
+            attributes.append(attribute)
+        self.handle_import_case(observable, attributes, 'ip-port')
+
     def parse_ip_network_traffic_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable.objects, 'NetworkTraffic')
         extension = self._network_traffic_has_extension(network_traffic)
@@ -2000,7 +2011,7 @@ class ExternalStixParser(StixParser):
                     misp_object.add_attribute(**attribute)
                 self.misp_event.add_object(**misp_object)
             else:
-                attribute = {field: attributes[0][field] for field in stix2misp_mapping.single_attribute_fields if attributes[0].get(field)}
+                attribute = {field: attributes[0][field] for field in stix2misp_mapping.single_attribute_fields if attributes[0].get(field) is not None}
                 attribute['uuid'] = stix_object.id.split('--')[1]
                 attribute.update(self.parse_timeline(stix_object))
                 if isinstance(stix_object, stix2.v20.Indicator):

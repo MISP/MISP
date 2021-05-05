@@ -12,14 +12,21 @@
         }
         function mapIDsToObject($data, $ids) {
             $result = [];
-            foreach ($ids as $id) {
-                foreach ($data as $i => $entry) {
+            foreach ($ids as $i => $id) {
+                foreach ($data as $j => $entry) {
                     if ($id == $entry['id']) {
                         $result[] = $entry;
-                        unset($data[$i]);
+                        unset($data[$j]);
+                        unset($ids[$i]);
                         break;
                     }
                 }
+            }
+            foreach ($ids as $freetextValue) {
+                $result[] = [
+                    'name' => $freetextValue,
+                    'id' => $freetextValue
+                ];
             }
             return $result;
         }

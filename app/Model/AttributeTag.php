@@ -7,7 +7,7 @@ App::uses('AppModel', 'Model');
  */
 class AttributeTag extends AppModel
 {
-    public $actsAs = array('Containable');
+    public $actsAs = array('AuditLog', 'Containable');
 
     public $validate = array(
         'attribute_id' => array(

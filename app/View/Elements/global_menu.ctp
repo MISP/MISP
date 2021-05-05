@@ -459,12 +459,17 @@
             ),
             array(
                 'type' => 'root',
-                'text' => __('Audit'),
+                'text' => __('Logs'),
                 'requirement' => $isAclAudit,
                 'children' => array(
                     array(
                         'text' => __('List Logs'),
                         'url' => $baseurl . '/admin/logs/index'
+                    ),
+                    array(
+                        'text' => __('List Audit Logs'),
+                        'url' => $baseurl . '/admin/audit_logs/index',
+                        'requirement' => Configure::read('MISP.log_new_audit'),
                     ),
                     array(
                         'text' => __('Search Logs'),
