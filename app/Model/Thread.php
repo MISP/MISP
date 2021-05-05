@@ -5,6 +5,7 @@ App::uses('AppModel', 'Model');
 class Thread extends AppModel
 {
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'Thread',

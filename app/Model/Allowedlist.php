@@ -9,6 +9,7 @@ class Allowedlist extends AppModel
     public $displayField = 'name';
 
     public $actsAs = array(
+        'AuditLog',
             'Trim',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'Role',

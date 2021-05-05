@@ -12,6 +12,7 @@ class Organisation extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
         'Containable',
         'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
                 'roleModel' => 'Organisation',

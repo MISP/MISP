@@ -15,6 +15,7 @@ class MispObject extends AppModel
     public $useTable = 'objects';
 
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                 'userModel' => 'User',

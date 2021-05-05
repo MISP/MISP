@@ -12,6 +12,7 @@ class Tag extends AppModel
     public $displayField = 'name';
 
     public $actsAs = array(
+        'AuditLog',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'Tag',
                     'roleKey' => 'tag_id',
