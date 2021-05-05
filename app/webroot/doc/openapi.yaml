@@ -371,6 +371,38 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /events/publish/{eventId}:
+    post:
+      summary: "Publish an event"
+      operationId: publishEvent
+      tags:
+        - Events
+      parameters:
+        - $ref: "#/components/parameters/eventIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/PublishEventResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /events/unpublish/{eventId}:
+    post:
+      summary: "Unpublish an event"
+      operationId: unpublishEvent
+      tags:
+        - Events
+      parameters:
+        - $ref: "#/components/parameters/eventIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/UnpublishEventResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /events/addTag/{eventId}/{tagId}:
     post:
       summary: "Add event tag"
@@ -2709,6 +2741,47 @@ components:
             properties:
               response:
                 $ref: "#/components/schemas/EventRestSearchList"
+
+    PublishEventResponse:
+      description: "Publish event response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                example: "Publish"
+              message:
+                type: string
+                example: "Job queued"
+              url:
+                type: string
+                example: "https://misp.local/events/alert/1"
+              id:
+                type: string
+                format: int32
+
+    UnpublishEventResponse:
+      description: "Unpublish event response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "Event unpublished."
+              message:
+                type: string
+                example: "Event unpublished."
+              url:
+                type: string
+                example: "/events/unpublish/1"
 
     GalaxyListResponse:
       description: "A list of galaxies"
