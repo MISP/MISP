@@ -159,6 +159,7 @@ class OrganisationsController extends AppController
         }
         $countries = array_merge(['' => __('Not specified')], $this->_arrayToValuesIndexArray($this->Organisation->getCountries()));
         $this->set('countries', $countries);
+        $this->set('action', 'add');
     }
 
     public function admin_edit($id)
@@ -245,6 +246,8 @@ class OrganisationsController extends AppController
             $this->request->data['Organisation']['restricted_to_domain'] = implode("\n", $this->request->data['Organisation']['restricted_to_domain']);
         }
         $this->set('id', $id);
+        $this->set('action', 'edit');
+        $this->render('admin_add');
     }
 
     public function admin_delete($id)
