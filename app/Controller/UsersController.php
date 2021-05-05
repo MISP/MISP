@@ -28,6 +28,8 @@ class UsersController extends AppController
 
     public $helpers = array('Js' => array('Jquery'));
 
+    public $toggleableFields = ['disabled', 'autoalert'];
+
     public function beforeFilter()
     {
         parent::beforeFilter();
@@ -472,11 +474,6 @@ class UsersController extends AppController
                     }
                 }
                 $this->set('users', $users);
-            }
-            if ($this->request->is('ajax')) {
-                $this->autoRender = false;
-                $this->layout = false;
-                $this->render('ajax/admin_index');
             }
         }
     }
@@ -1093,6 +1090,54 @@ class UsersController extends AppController
         }
         $this->Flash->error(__('User was not deleted'));
         $this->redirect(array('action' => 'index'));
+    }
+
+    public function admin_massToggleField($fieldName, $enabled)
+    {
+        if (!in_array($fieldName, $this->toggleableFields)) {
+            throw new MethodNotAllowedException(__('The field `%s` cannot be toggled', $fieldName));
+        }
+        if (!$this->_isAdmin()) {
+            throw new UnauthorizedException(__('Administrators only'));
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $jsonIds = $this->request->data['User']['user_ids'];
+            $ids = $this->User->jsonDecode($jsonIds);
+            $conditions = ['User.id' => $ids];
+            if (!$this->_isSiteAdmin()) {
+                $conditions['User.org_id'] = $this->Auth->user('org_id');
+            }
+            $users = $this->User->find('all', [
+                    'conditions' => $conditions,
+                    'recursive' => -1
+            ]);
+            if (empty($users)) {
+                throw new NotFoundException(__('Invalid users'));
+            }
+            $count = 0;
+            foreach ($users as $user) {
+                if ($user['User'][$fieldName] != $enabled) {
+                    $this->User->id = $user['User']['id'];
+                    $this->User->saveField($fieldName, $enabled);
+                    $count++;
+                }
+            }
+            if ($count > 0) {
+                $message = __('%s users got their field `%s` %s', $count, $fieldName, $enabled ? __('enabled') : __('disabled'));
+            } else {
+                $message = __('All users have already their field `%s` %s', $fieldName, $enabled ? __('enabled') : __('disabled'));
+            }
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('User', 'admin_massToggleField', 'selected', $this->response->type(), $message);
+            } else {
+                if ($count > 0) {
+                    $this->Flash->success($message);
+                } else {
+                    $this->Flash->info($message);
+                }
+                $this->redirect('/admin/users/index');
+            }
+        }
     }
 
     public function updateLoginTime()
