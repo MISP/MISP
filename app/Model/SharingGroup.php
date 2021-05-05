@@ -9,6 +9,7 @@ App::uses('AppModel', 'Model');
 class SharingGroup extends AppModel
 {
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'SharingGroup',

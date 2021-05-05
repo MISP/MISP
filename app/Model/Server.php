@@ -14,7 +14,9 @@ class Server extends AppModel
 
     public $name = 'Server';
 
-    public $actsAs = array('SysLogLogable.SysLogLogable' => array(
+    public $actsAs = array(
+        'AuditLog',
+        'SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',
             'userKey' => 'user_id',
             'change' => 'full'
@@ -469,6 +471,7 @@ class Server extends AppModel
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
     {
         if ($jobId) {
+            Configure::write('CurrentUserId', $user['id']);
             $job = ClassRegistry::init('Job');
             $job->read(null, $jobId);
             $email = "Scheduled job";
@@ -2628,24 +2631,32 @@ class Server extends AppModel
 
     public function dbSpaceUsage()
     {
+        $inMb = function ($value) {
+            return round($value / 1024 / 1024, 2) . " MB";
+        };
+
+        $result = [];
         $dataSource = $this->getDataSource()->config['datasource'];
-        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+        if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
             $sql = sprintf(
-                'select TABLE_NAME, sum((DATA_LENGTH+INDEX_LENGTH)/1024/1024) AS used, sum(DATA_FREE)/1024/1024 AS reclaimable from information_schema.tables where table_schema = %s group by TABLE_NAME;',
+                'select TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE from information_schema.tables where table_schema = %s group by TABLE_NAME;',
                 "'" . $this->getDataSource()->config['database'] . "'"
             );
             $sqlResult = $this->query($sql);
-            $result = array();
+
             foreach ($sqlResult as $temp) {
-                foreach ($temp[0] as $k => $v) {
-                    $temp[0][$k] = round($v, 2) . 'MB';
-                }
-                $temp[0]['table'] = $temp['tables']['TABLE_NAME'];
-                $result[] = $temp[0];
+                $result[$temp['tables']['TABLE_NAME']] = [
+                    'table' => $temp['tables']['TABLE_NAME'],
+                    'used' => $inMb($temp['tables']['DATA_LENGTH'] + $temp['tables']['INDEX_LENGTH']),
+                    'reclaimable' => $inMb($temp['tables']['DATA_FREE']),
+                    'data_in_bytes' => (int) $temp['tables']['DATA_LENGTH'],
+                    'index_in_bytes' => (int) $temp['tables']['INDEX_LENGTH'],
+                    'reclaimable_in_bytes' => (int) $temp['tables']['DATA_FREE'],
+                ];
             }
-            return $result;
+
         }
-        else if ($dataSource == 'Database/Postgres') {
+        else if ($dataSource === 'Database/Postgres') {
             $sql = sprintf(
                 'select TABLE_NAME as table, pg_total_relation_size(%s||%s||TABLE_NAME) as used from information_schema.tables where table_schema = %s group by TABLE_NAME;',
                 "'" . $this->getDataSource()->config['database'] . "'",
@@ -2653,19 +2664,18 @@ class Server extends AppModel
                 "'" . $this->getDataSource()->config['database'] . "'"
             );
             $sqlResult = $this->query($sql);
-            $result = array();
             foreach ($sqlResult as $temp) {
                 foreach ($temp[0] as $k => $v) {
                     if ($k == "table") {
                         continue;
                     }
-                    $temp[0][$k] = round($v / 1024 / 1024, 2) . 'MB';
+                    $temp[0][$k] = $inMb($v);
                 }
-                $temp[0]['reclaimable'] = '0MB';
+                $temp[0]['reclaimable'] = '0 MB';
                 $result[] = $temp[0];
             }
-            return $result;
         }
+        return $result;
     }
 
     public function redisInfo()

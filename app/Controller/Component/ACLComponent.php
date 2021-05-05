@@ -377,6 +377,12 @@ class ACLComponent extends Component
                     'testForStolenAttributes' => array(),
                     'pruneUpdateLogs' => array()
             ),
+      'auditLogs' => [
+          'admin_index' => ['perm_audit'],
+          'fullChange' => ['perm_audit'],
+          'eventIndex' => ['*'],
+          'returnDates' => ['*'],
+      ],
       'modules' => array(
         'index' => array('perm_auth'),
         'queryEnrichment' => array('perm_auth'),
@@ -677,6 +683,7 @@ class ACLComponent extends Component
                     'admin_email' => array('perm_admin'),
                     'admin_filterUserIndex' => array('perm_admin'),
                     'admin_index' => array('perm_admin'),
+                    'admin_massToggleField' => array('perm_admin'),
                     'admin_monitor' => array('perm_site_admin'),
                     'admin_quickEmail' => array('perm_admin'),
                     'admin_view' => array('perm_admin'),

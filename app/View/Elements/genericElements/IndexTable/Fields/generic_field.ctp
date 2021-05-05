@@ -2,7 +2,10 @@
     $data = Hash::extract($row, $field['data_path']);
     if (is_array($data)) {
         if (count($data) > 1) {
-            $data = implode(', ', $data);
+            $implodeGlue = isset($field['array_implode_glue']) ? $field['array_implode_glue'] : ', ';
+            $data = implode($implodeGlue, array_map(function($entry) {
+                return h($entry);
+            }, $data));
         } else {
             if (count($data) > 0) {
                 $data = $data[0];
@@ -10,8 +13,7 @@
                 $data = '';
             }
         }
-    }
-    if (is_bool($data)) {
+    } else if (is_bool($data)) {
         $data = sprintf(
             '<i class="black fa fa-%s"></i>',
             $data ? 'check' : 'times'
