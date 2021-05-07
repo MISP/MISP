@@ -1159,7 +1159,17 @@ class EventsController extends AppController
             $this->set('includeDecayScore', 0);
         }
 
-        $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
+        // Site admin can view event as different user
+        if ($this->_isSiteAdmin() && isset($this->params['named']['viewAs'])) {
+            $user = $this->User->getAuthUser($this->params['named']['viewAs']);
+            if (empty($user)) {
+                throw new NotFoundException(__("User not found"));
+            }
+        } else {
+            $user = $this->Auth->user();
+        }
+
+        $results = $this->Event->fetchEvent($user, $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
         }
@@ -1308,11 +1318,12 @@ class EventsController extends AppController
     }
 
     /**
+     * @param array $user
      * @param array $event
      * @param bool $continue
      * @param int $fromEvent
      */
-    private function __viewUI($event, $continue, $fromEvent)
+    private function __viewUI(array $user, $event, $continue, $fromEvent)
     {
         $this->loadModel('Taxonomy');
         $filterData = array(
@@ -1346,7 +1357,7 @@ class EventsController extends AppController
         // set the data for the contributors / history field
         $contributors = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
         $this->set('contributors', $contributors);
-        if ($this->userRole['perm_publish'] && $event['Event']['orgc_id'] == $this->Auth->user('org_id')) {
+        if ($user['Role']['perm_publish'] && $event['Event']['orgc_id'] == $user['org_id']) {
             $proposalStatus = false;
             if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute'])) {
                 $proposalStatus = true;
@@ -1490,12 +1501,12 @@ class EventsController extends AppController
         }
         unset($modificationMap);
         $this->loadModel('Sighting');
-        $sightingsData = $this->Sighting->eventsStatistic([$event], $this->Auth->user());
+        $sightingsData = $this->Sighting->eventsStatistic([$event], $user);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, false, $sightingsData);
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->loadModel('Sightingdb');
-            $event = $this->Sightingdb->attachToEvent($event, $this->Auth->user());
+            $event = $this->Sightingdb->attachToEvent($event, $user);
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
@@ -1504,10 +1515,10 @@ class EventsController extends AppController
                 'Event.extends_uuid' => $event['Event']['uuid']
             )
         );
-        $extensions = $this->Event->fetchSimpleEvents($this->Auth->user(), $extensionParams);
+        $extensions = $this->Event->fetchSimpleEvents($user, $extensionParams);
         $this->set('extensions', $extensions);
         if (!empty($event['Event']['extends_uuid'])) {
-            $extendedEvent = $this->Event->fetchSimpleEvents($this->Auth->user(), array('conditions' => array('Event.uuid' => $event['Event']['extends_uuid'])));
+            $extendedEvent = $this->Event->fetchSimpleEvents($user, array('conditions' => array('Event.uuid' => $event['Event']['extends_uuid'])));
             if (empty($extendedEvent)) {
                 $extendedEvent = $event['Event']['extends_uuid'];
             }
@@ -1517,8 +1528,8 @@ class EventsController extends AppController
             $this->loadModel('EventDelegation');
             $delegationConditions = array('EventDelegation.event_id' => $event['Event']['id']);
             if (!$this->_isSiteAdmin() && $this->userRole['perm_publish']) {
-                $delegationConditions['OR'] = array('EventDelegation.org_id' => $this->Auth->user('org_id'),
-                                                    'EventDelegation.requester_org_id' => $this->Auth->user('org_id'));
+                $delegationConditions['OR'] = array('EventDelegation.org_id' => $user['org_id'],
+                                                    'EventDelegation.requester_org_id' => $user['org_id']);
             }
             $this->set('delegationRequest', $this->EventDelegation->find('first', array(
                 'conditions' => $delegationConditions,
@@ -1528,11 +1539,11 @@ class EventsController extends AppController
         }
         if (Configure::read('Plugin.Enrichment_services_enable')) {
             $this->loadModel('Module');
-            $modules = $this->Module->getEnabledModules($this->Auth->user());
+            $modules = $this->Module->getEnabledModules($user);
             if (is_array($modules)) {
                 foreach ($modules as $k => $v) {
                     if (isset($v['restrict'])) {
-                        if ($this->_isSiteAdmin() && $v['restrict'] != $this->Auth->user('org_id')) {
+                        if ($this->_isSiteAdmin() && $v['restrict'] != $user['org_id']) {
                             unset($modules[$k]);
                         }
                     }
@@ -1542,7 +1553,7 @@ class EventsController extends AppController
         }
         if (Configure::read('Plugin.Cortex_services_enable')) {
             $this->loadModel('Module');
-            $cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
+            $cortex_modules = $this->Module->getEnabledModules($user, false, 'Cortex');
             $this->set('cortex_modules', $cortex_modules);
         }
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
@@ -1562,7 +1573,7 @@ class EventsController extends AppController
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
-            $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($this->Auth->user()));
+            $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($user));
         }
         $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('relatedEventCorrelationCount', $relatedEventCorrelationCount);
@@ -1663,7 +1674,19 @@ class EventsController extends AppController
         } else {
             $conditions['includeServerCorrelations'] = $this->params['named']['includeServerCorrelations'];
         }
-        $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
+
+        // Site admin can view event as different user
+        if ($this->_isSiteAdmin() && isset($this->params['named']['viewAs'])) {
+            $user = $this->User->getAuthUser($this->params['named']['viewAs']);
+            if (empty($user)) {
+                throw new NotFoundException(__("User not found"));
+            }
+            $this->Flash->info(__('Viewing event as %s from %s', h($user['email']), h($user['Organisation']['name'])));
+        } else {
+            $user = $this->Auth->user();
+        }
+
+        $results = $this->Event->fetchEvent($user, $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
         }
@@ -1711,7 +1734,7 @@ class EventsController extends AppController
         if ($this->_isSiteAdmin() && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
             $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
         }
-        $this->__viewUI($event, $continue, $fromEvent);
+        $this->__viewUI($user, $event, $continue, $fromEvent);
     }
 
     /**

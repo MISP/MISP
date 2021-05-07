@@ -296,8 +296,13 @@ class AttributeTag extends AppModel
         return $allTags;
     }
 
-    // find all galaxies that belong to a list of attributes (contains in the same event)
-    public function getAttributesClusters(array $attributes)
+    /**
+     * Find all galaxies that belong to a list of attributes (contains in the same event)
+     * @param array $user
+     * @param array $attributes
+     * @return array
+     */
+    public function getAttributesClusters(array $user, array $attributes)
     {
         if (empty($attributes)) {
             return array();
