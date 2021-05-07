@@ -782,6 +782,24 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /admin/users/delete/{userId}:
+    delete:
+      summary: "Delete user."
+      operationId: deleteUser
+      tags:
+        - Users
+      parameters:
+        - $ref: "#/components/parameters/userIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteUserResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /admin/users:
     get:
       summary: "Get users."
@@ -800,7 +818,7 @@ paths:
 
   /admin/users/view/{userId}:
     get:
-      summary: "Get users."
+      summary: "Get user by ID."
       operationId: getUserById
       tags:
         - Users
@@ -3361,6 +3379,27 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ExtendedUser"
+
+    DeleteUserResponse:
+      description: "Delete user response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "User deleted."
+              message:
+                type: string
+                example: "User deleted."
+              url:
+                type: string
+                example: "/admin/users/delete/1"
 
     ApiErrorResponse:
       description: "Unexpected API error"

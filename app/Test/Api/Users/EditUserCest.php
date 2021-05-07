@@ -25,9 +25,9 @@ class EditUserCest
     {
         $orgId = 1;
         $userId = 1;
-        $fakeUserId = 2;
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
 
+        $fakeUserId = 2;
         $fakeUser = UserFixture::fake(
             [
                 'id' => (string)$fakeUserId,
