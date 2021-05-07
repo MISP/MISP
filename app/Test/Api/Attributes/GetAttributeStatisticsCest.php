@@ -11,7 +11,7 @@ class GetAttributeStatisticsCest
 
     private const URL = '/attributes/attributeStatistics/%s/%s';
 
-    public function testGetAttributeStatisticsReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testGetAttributeStatisticsReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendGet(sprintf(self::URL, 'type', '0'));
 
@@ -22,7 +22,7 @@ class GetAttributeStatisticsCest
         $I->seeResponseIsJson();
     }
 
-    public function testGetAttributeStatisticsReturnsExpectedCount(ApiTester $I)
+    public function testGetAttributeStatisticsReturnsExpectedCount(ApiTester $I): void
     {
         $eventId = 1;
 
@@ -44,7 +44,7 @@ class GetAttributeStatisticsCest
         $I->seeResponseContainsJson(['attachment' => 1, 'ip-src' => 1]);
     }
 
-    public function testGetAttributeStatisticsReturnsExpectedPercentage(ApiTester $I)
+    public function testGetAttributeStatisticsReturnsExpectedPercentage(ApiTester $I): void
     {
         $eventId = 1;
 

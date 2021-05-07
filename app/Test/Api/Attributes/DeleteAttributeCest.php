@@ -11,7 +11,7 @@ class DeleteAttributeCest
 
     private const URL = '/attributes/delete/%s';
 
-    public function testDeleteReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testDeleteReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $eventId = 1;
         $attributeId = 1;
@@ -26,7 +26,7 @@ class DeleteAttributeCest
         $I->seeResponseIsJson();
     }
 
-    public function testDeleteByIDRemovesAttribute(ApiTester $I)
+    public function testDeleteByIDRemovesAttribute(ApiTester $I): void
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 
@@ -54,7 +54,7 @@ class DeleteAttributeCest
         $I->seeInDatabase('attributes', ['id' => $attributeId, 'deleted' => 1]);
     }
 
-    public function testDeleteByUUIDRemovesAttribute(ApiTester $I)
+    public function testDeleteByUUIDRemovesAttribute(ApiTester $I): void
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 

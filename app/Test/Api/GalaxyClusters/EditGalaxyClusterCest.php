@@ -11,7 +11,7 @@ class EditGalaxyClusterCest
 
     private const URL = '/galaxy_clusters/edit/%s';
 
-    public function testEditReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testEditReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendPost(sprintf(self::URL, 1));
 
@@ -22,7 +22,7 @@ class EditGalaxyClusterCest
         $I->seeResponseIsJson();
     }
 
-    public function testEdit(ApiTester $I)
+    public function testEdit(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;

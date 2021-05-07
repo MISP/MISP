@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Helper\Fixture\Data;
 
 use \Helper\Fixture\AbstractFixture;
@@ -7,6 +9,9 @@ use \Helper\Fixture\FixtureInterface;
 
 class EventFixture extends AbstractFixture implements FixtureInterface
 {
+    /**
+     * @param array<mixed> $attributes
+     */
     public static function fake(array $attributes = []): EventFixture
     {
         $faker = \Faker\Factory::create();
@@ -64,7 +69,10 @@ class EventFixture extends AbstractFixture implements FixtureInterface
         ];
     }
 
-    public function toMinimalResponse()
+    /**
+     * @return array<mixed>
+     */
+    public function toMinimalResponse(): array
     {
         return [
             'id' => $this->attributes['id'],
@@ -75,5 +83,4 @@ class EventFixture extends AbstractFixture implements FixtureInterface
             // 'orgc_uuid' => $this->attributes['orgc_uuid'],
         ];
     }
-
 }

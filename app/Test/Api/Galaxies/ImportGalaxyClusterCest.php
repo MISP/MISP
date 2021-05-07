@@ -11,7 +11,7 @@ class ImportGalaxyClusterCest
 
     private const URL = '/galaxies/import';
 
-    public function testImportReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testImportReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendPost(self::URL);
 
@@ -22,7 +22,7 @@ class ImportGalaxyClusterCest
         $I->seeResponseIsJson();
     }
 
-    public function testImport(ApiTester $I)
+    public function testImport(ApiTester $I): void
     {
         $orgId = 1;
         $I->haveAuthorizationKey($orgId, 1, UserFixture::ROLE_ADMIN);

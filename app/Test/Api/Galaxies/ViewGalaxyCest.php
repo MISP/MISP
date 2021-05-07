@@ -11,7 +11,7 @@ class ViewGalaxyCest
 
     private const URL = '/galaxies/view/%s';
 
-    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendGet(self::URL);
 
@@ -22,7 +22,7 @@ class ViewGalaxyCest
         $I->seeResponseIsJson();
     }
 
-    public function testViewReturnsExpectedGalaxy(ApiTester $I)
+    public function testViewReturnsExpectedGalaxy(ApiTester $I): void
     {
         $I->haveAuthorizationKey();
 

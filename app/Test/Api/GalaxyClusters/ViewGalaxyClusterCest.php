@@ -11,7 +11,7 @@ class ViewGalaxyClusterCest
 
     private const URL = '/galaxy_clusters/view/%s';
 
-    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendGet(sprintf(self::URL, 1));
 
@@ -22,7 +22,7 @@ class ViewGalaxyClusterCest
         $I->seeResponseIsJson();
     }
 
-    public function testViewReturnsExpectedGalaxyCluster(ApiTester $I)
+    public function testViewReturnsExpectedGalaxyCluster(ApiTester $I): void
     {
         $I->haveAuthorizationKey();
 

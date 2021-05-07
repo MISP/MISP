@@ -10,7 +10,7 @@ class IndexGalaxyClustersCest
 
     private const URL = '/galaxy_clusters/index/%s';
 
-    public function testIndexReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testIndexReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendGet(sprintf(self::URL, 1));
 
@@ -21,7 +21,7 @@ class IndexGalaxyClustersCest
         $I->seeResponseIsJson();
     }
 
-    public function testPostIndexReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testPostIndexReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendPost(sprintf(self::URL, 1));
 
@@ -32,7 +32,7 @@ class IndexGalaxyClustersCest
         $I->seeResponseIsJson();
     }
 
-    public function testIndexReturnsExpectedGalaxyCluster(ApiTester $I)
+    public function testIndexReturnsExpectedGalaxyCluster(ApiTester $I): void
     {
         $I->haveAuthorizationKey();
 
@@ -57,7 +57,7 @@ class IndexGalaxyClustersCest
         $I->seeResponseContainsJson([['GalaxyCluster' => $fakeGalaxyCluster->toResponse()]]);
     }
 
-    public function testPostIndexReturnsExpectedGalaxyCluster(ApiTester $I)
+    public function testPostIndexReturnsExpectedGalaxyCluster(ApiTester $I): void
     {
         $I->haveAuthorizationKey();
 

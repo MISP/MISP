@@ -9,7 +9,7 @@ class IndexGalaxiesCest
 
     private const URL = '/galaxies';
 
-    public function testIndexReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testIndexReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendGet(self::URL);
 
@@ -20,7 +20,7 @@ class IndexGalaxiesCest
         $I->seeResponseIsJson();
     }
 
-    public function testPostIndexReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testPostIndexReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendPost(self::URL);
 
@@ -31,7 +31,7 @@ class IndexGalaxiesCest
         $I->seeResponseIsJson();
     }
 
-    public function testIndexReturnsExpectedGalaxy(ApiTester $I)
+    public function testIndexReturnsExpectedGalaxy(ApiTester $I): void
     {
         $I->haveAuthorizationKey();
         $fakeGalaxy = GalaxyFixture::fake();
@@ -46,7 +46,7 @@ class IndexGalaxiesCest
         $I->seeResponseContainsJson([['Galaxy' => $fakeGalaxy->toResponse()]]);
     }
 
-    public function testPostIndexReturnsExpectedGalaxy(ApiTester $I)
+    public function testPostIndexReturnsExpectedGalaxy(ApiTester $I): void
     {
         $I->haveAuthorizationKey();
         $fakeGalaxyFoo = GalaxyFixture::fake(['name' => 'foo']);

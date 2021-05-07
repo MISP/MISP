@@ -10,7 +10,7 @@ class ViewAttributesCest
 
     private const URL = '/attributes/view/%s';
 
-    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $attributeId = 10;
         $I->sendGet(sprintf(self::URL, $attributeId));
@@ -22,7 +22,7 @@ class ViewAttributesCest
         $I->seeResponseIsJson();
     }
 
-    public function testViewByIDReturnsExpectedAttribute(ApiTester $I)
+    public function testViewByIDReturnsExpectedAttribute(ApiTester $I): void
     {
         $attributeId = 10;
         $eventId = 1;
@@ -45,7 +45,7 @@ class ViewAttributesCest
         $I->seeResponseContainsJson($fakeAttribute->toResponse());
     }
 
-    public function testViewByUUIDReturnsExpectedAttribute(ApiTester $I)
+    public function testViewByUUIDReturnsExpectedAttribute(ApiTester $I): void
     {
         $attributeUUID = '574e881d-07c0-4197-8d83-4e35950d210f';
         $eventId = 1;

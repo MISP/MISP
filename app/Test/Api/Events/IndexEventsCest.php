@@ -10,7 +10,7 @@ class IndexEventsCest
 
     private const URL = '/events';
 
-    public function testIndexReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testIndexReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendGet(self::URL);
 
@@ -21,7 +21,7 @@ class IndexEventsCest
         $I->seeResponseIsJson();
     }
 
-    public function testIndexReturnsExpectedEvent(ApiTester $I)
+    public function testIndexReturnsExpectedEvent(ApiTester $I): void
     {
         $orgId = 1;
 

@@ -10,7 +10,7 @@ class PublishEventCest
 
     private const URL = '/events/publish/%s';
 
-    public function testPublishReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testPublishReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $eventId = 1;
         $I->sendPost(sprintf(self::URL, $eventId));
@@ -22,7 +22,7 @@ class PublishEventCest
         $I->seeResponseIsJson();
     }
 
-    public function testPublish(ApiTester $I)
+    public function testPublish(ApiTester $I): void
     {
         $orgId = 1;
         $eventId = 1;

@@ -10,7 +10,7 @@ class DeleteEventCest
 
     private const URL = '/events/delete/%s';
 
-    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $eventId = 1;
         $I->sendDelete(sprintf(self::URL, $eventId));
@@ -22,7 +22,7 @@ class DeleteEventCest
         $I->seeResponseIsJson();
     }
 
-    public function testViewReturnsExpectedEvent(ApiTester $I)
+    public function testViewReturnsExpectedEvent(ApiTester $I): void
     {
         $orgId = 1;
         $eventId = 1;

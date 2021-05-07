@@ -12,7 +12,7 @@ class AddAttributeTagCest
 
     private const URL = '/attributes/addTag/%s/%s';
 
-    public function testAddTagReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testAddTagReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $eventId = 1;
         $attributeId = 1;
@@ -28,7 +28,7 @@ class AddAttributeTagCest
         $I->seeResponseIsJson();
     }
 
-    public function testAddTag(ApiTester $I)
+    public function testAddTag(ApiTester $I): void
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 

@@ -5,13 +5,14 @@ declare(strict_types=1);
 use \Helper\Fixture\Data\AttributeFixture;
 use \Helper\Fixture\Data\EventFixture;
 use \Helper\Fixture\Data\UserFixture;
+use \Codeception\Scenario;
 
 class RestoreAttributeCest
 {
 
     private const URL = '/attributes/restore/%s';
 
-    public function testRestoreReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testRestoreReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $eventId = 1;
         $attributeId = 1;
@@ -26,7 +27,7 @@ class RestoreAttributeCest
         $I->seeResponseIsJson();
     }
 
-    public function testRestoreByIDRestoresAttribute(ApiTester $I)
+    public function testRestoreByIDRestoresAttribute(ApiTester $I): void
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 
@@ -60,7 +61,7 @@ class RestoreAttributeCest
         $I->seeInDatabase('attributes', ['id' => $attributeId, 'deleted' => 0]);
     }
 
-    public function testRestoreByUUIDRestoresAttribute(ApiTester $I, $scenario)
+    public function testRestoreByUUIDRestoresAttribute(ApiTester $I, Scenario $scenario): void
     {
         $scenario->skip('Endpoint not available, TODO: Enable restore attribute by UUID');
 

@@ -10,7 +10,7 @@ class IndexAttributesCest
 
     private const URL = '/attributes';
 
-    public function testIndexReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testIndexReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendGet(self::URL);
 
@@ -21,7 +21,7 @@ class IndexAttributesCest
         $I->seeResponseIsJson();
     }
 
-    public function testIndexReturnsExpectedAttribute(ApiTester $I)
+    public function testIndexReturnsExpectedAttribute(ApiTester $I): void
     {
         $eventId = 1;
         $orgId = 1;

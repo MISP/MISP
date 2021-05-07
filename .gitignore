@@ -107,3 +107,4 @@ vagrant/*.log
 !/app/Lib/Dashboard/Custom/empty
 codeception.yml
 .vscode/
+phpstan.neon

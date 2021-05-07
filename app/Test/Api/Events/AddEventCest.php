@@ -10,7 +10,7 @@ class AddEventCest
 
     private const URL = '/events/add';
 
-    public function testAddReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testAddReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendPost(self::URL);
 
@@ -21,7 +21,7 @@ class AddEventCest
         $I->seeResponseIsJson();
     }
 
-    public function testAdd(ApiTester $I)
+    public function testAdd(ApiTester $I): void
     {
         $orgId = 1;
 

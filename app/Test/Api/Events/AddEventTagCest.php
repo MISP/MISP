@@ -11,7 +11,7 @@ class AddEventTagCest
 
     private const URL = '/events/addTag/%s/%s';
 
-    public function testAddTagReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testAddTagReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $eventId = 1;
         $tagId = 1;
@@ -24,7 +24,7 @@ class AddEventTagCest
         $I->seeResponseIsJson();
     }
 
-    public function testAddTag(ApiTester $I)
+    public function testAddTag(ApiTester $I): void
     {
         $orgId = 1;
         $eventId = 1;

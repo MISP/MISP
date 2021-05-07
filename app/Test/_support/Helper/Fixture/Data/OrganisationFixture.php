@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Helper\Fixture\Data;
 
 use \Helper\Fixture\AbstractFixture;
@@ -7,6 +9,9 @@ use \Helper\Fixture\FixtureInterface;
 
 class OrganisationFixture extends AbstractFixture implements FixtureInterface
 {
+    /**
+     * @param array<mixed> $attributes
+     */
     public static function fake(array $attributes = []): OrganisationFixture
     {
         $faker = \Faker\Factory::create();

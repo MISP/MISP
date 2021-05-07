@@ -11,7 +11,7 @@ class DeleteGalaxyClusterCest
 
     private const URL = '/galaxy_clusters/delete/%s';
 
-    public function testDeleteReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testDeleteReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendPost(sprintf(self::URL, 1));
 
@@ -22,7 +22,7 @@ class DeleteGalaxyClusterCest
         $I->seeResponseIsJson();
     }
 
-    public function testDelete(ApiTester $I)
+    public function testDelete(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;

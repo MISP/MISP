@@ -1,13 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Helper\Fixture;
 
 abstract class AbstractFixture
 {
 
-    /** @var array */
+    /** @var array<mixed> */
     protected $attributes;
 
+    /**
+     * @param array<mixed> $attributes
+     */
     public function __construct(array $attributes)
     {
         $this->attributes = $attributes;
@@ -16,7 +21,7 @@ abstract class AbstractFixture
     /**
      * Updates the fixture with the given attributes
      * 
-     * @param array $attributes
+     * @param array<mixed> $attributes
      * 
      * @return void
      */
@@ -28,7 +33,7 @@ abstract class AbstractFixture
     /**
      * Returns the API request representation of the entity mocked by this fixture
      * 
-     * @return array
+     * @return array<mixed>
      */
     public function toRequest(): array
     {
@@ -38,7 +43,7 @@ abstract class AbstractFixture
     /**
      * Returns the API response representation of the entity mocked by this fixture
      * 
-     * @return array
+     * @return array<mixed>
      */
     public function toResponse(): array
     {
@@ -48,7 +53,7 @@ abstract class AbstractFixture
     /**
      * Returns the database representation of the entity mocked by this fixture
      * 
-     * @return array
+     * @return array<mixed>
      */
     public function toDatabase(): array
     {

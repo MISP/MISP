@@ -11,7 +11,7 @@ class AddAttributeCest
 
     private const URL = '/attributes/add/%s';
 
-    public function testAddReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testAddReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $eventId = 1;
 
@@ -28,7 +28,7 @@ class AddAttributeCest
         $I->seeResponseIsJson();
     }
 
-    public function testAddCreatesExpectedAttribute(ApiTester $I)
+    public function testAddCreatesExpectedAttribute(ApiTester $I): void
     {
         $eventId = 1;
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);

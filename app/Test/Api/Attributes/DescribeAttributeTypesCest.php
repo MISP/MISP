@@ -9,7 +9,7 @@ class DescribeAttributeTypesCest
 
     private const URL = '/attributes/describeTypes';
 
-    public function testDescribeAttributeTypesReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testDescribeAttributeTypesReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendGet(self::URL);
 
@@ -20,7 +20,7 @@ class DescribeAttributeTypesCest
         $I->seeResponseIsJson();
     }
 
-    public function testDescribeAttributeTypes(ApiTester $I)
+    public function testDescribeAttributeTypes(ApiTester $I): void
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 

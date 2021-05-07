@@ -11,7 +11,7 @@ class RemoveEventTagCest
 
     private const URL = '/events/removeTag/%s/%s';
 
-    public function testRemoveTagReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testRemoveTagReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $eventId = 1;
         $tagId = 1;
@@ -24,7 +24,7 @@ class RemoveEventTagCest
         $I->seeResponseIsJson();
     }
 
-    public function testRemoveTag(ApiTester $I)
+    public function testRemoveTag(ApiTester $I): void
     {
         $orgId = 1;
         $eventId = 1;

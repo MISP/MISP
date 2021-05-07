@@ -11,7 +11,7 @@ class EditAttributeCest
 
     private const URL = '/attributes/edit/%s';
 
-    public function testEditReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testEditReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $eventId = 1;
         $attributeId = 1;
@@ -29,7 +29,7 @@ class EditAttributeCest
         $I->seeResponseIsJson();
     }
 
-    public function testEditByIDModifiesExpectedAttribute(ApiTester $I)
+    public function testEditByIDModifiesExpectedAttribute(ApiTester $I): void
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 
@@ -73,7 +73,7 @@ class EditAttributeCest
         $I->seeInDatabase('attributes', $fakeAttribute->toDatabase());
     }
 
-    public function testEditByUUIDModifiesExpectedAttribute(ApiTester $I)
+    public function testEditByUUIDModifiesExpectedAttribute(ApiTester $I): void
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 

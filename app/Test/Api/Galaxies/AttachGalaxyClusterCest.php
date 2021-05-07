@@ -8,13 +8,14 @@ use \Helper\Fixture\Data\GalaxyFixture;
 use \Helper\Fixture\Data\GalaxyClusterFixture;
 use \Helper\Fixture\Data\TagFixture;
 use \Helper\Fixture\Data\AttributeFixture;
+use \Codeception\Scenario;
 
 class AttachGalaxyClusterCest
 {
 
     private const URL = '/galaxies/attachCluster/%s/%s';
 
-    public function testAttachClusterReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testAttachClusterReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendPost(sprintf(self::URL, 1, 'event'));
 
@@ -25,7 +26,7 @@ class AttachGalaxyClusterCest
         $I->seeResponseIsJson();
     }
 
-    public function testAttachGalaxyClusterToEvent(ApiTester $I)
+    public function testAttachGalaxyClusterToEvent(ApiTester $I): void
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 
@@ -79,7 +80,7 @@ class AttachGalaxyClusterCest
         );
     }
 
-    public function testAttachGalaxyClusterToAttribute(ApiTester $I)
+    public function testAttachGalaxyClusterToAttribute(ApiTester $I): void
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 
@@ -143,7 +144,7 @@ class AttachGalaxyClusterCest
         );
     }
 
-    public function testAttachGalaxyClusterToTagCollection(ApiTester $I, $scenario)
+    public function testAttachGalaxyClusterToTagCollection(ApiTester $I, Scenario $scenario): void
     {
         $scenario->skip('TODO: missing TagCollectionFixture');
     }

@@ -11,7 +11,7 @@ class AddGalaxyClusterCest
 
     private const URL = '/galaxy_clusters/add/%s';
 
-    public function testAddReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testAddReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendPost(sprintf(self::URL, 1));
 
@@ -22,7 +22,7 @@ class AddGalaxyClusterCest
         $I->seeResponseIsJson();
     }
 
-    public function testAdd(ApiTester $I)
+    public function testAdd(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;

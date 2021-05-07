@@ -10,7 +10,7 @@ class DeleteGalaxyCest
 
     private const URL = '/galaxies/delete/%s';
 
-    public function testDeleteReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testDeleteReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendDelete(self::URL);
 
@@ -21,7 +21,7 @@ class DeleteGalaxyCest
         $I->seeResponseIsJson();
     }
 
-    public function testDelete(ApiTester $I)
+    public function testDelete(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;

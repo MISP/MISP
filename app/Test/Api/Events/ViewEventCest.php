@@ -8,7 +8,7 @@ class ViewEventCest
 
     private const URL = '/events/view/%s';
 
-    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $eventId = 1;
         $I->sendGet(sprintf(self::URL, $eventId));
@@ -20,7 +20,7 @@ class ViewEventCest
         $I->seeResponseIsJson();
     }
 
-    public function testViewReturnsExpectedEvent(ApiTester $I)
+    public function testViewReturnsExpectedEvent(ApiTester $I): void
     {
         $orgId = 1;
         $eventId = 1;

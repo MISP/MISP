@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Helper\Module;
 
 use GuzzleHttp\Psr7\Request;

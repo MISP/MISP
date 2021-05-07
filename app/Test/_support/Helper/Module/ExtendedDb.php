@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Helper\Module;
 
 class ExtendedDb extends \Codeception\Module\Db
@@ -7,7 +9,7 @@ class ExtendedDb extends \Codeception\Module\Db
     /**
      * Performs a lightweight cleanup by just running a custom sql file.
      */
-    protected function cleanUpDatabases()
+    protected function cleanUpDatabases(): void
     {
         foreach ($this->getDatabases() as $databaseKey => $databaseConfig) {
             if (!$databaseConfig['cleanup_queries']) {
@@ -18,7 +20,13 @@ class ExtendedDb extends \Codeception\Module\Db
         }
     }
 
-    private function _runCustomCleanupQuery($databaseKey, $databaseConfig)
+    /**
+     * @param string $databaseKey
+     * @param array<mixed> $databaseConfig
+     * 
+     * @return void
+     */
+    private function _runCustomCleanupQuery(string $databaseKey, array $databaseConfig): void
     {
         $databaseKey = empty($databaseKey) ?  self::DEFAULT_DATABASE : $databaseKey;
         $databaseConfig = empty($databaseConfig) ?  $this->config : $databaseConfig;

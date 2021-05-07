@@ -11,7 +11,7 @@ class UnpublishGalaxyClusterCest
 
     private const URL = '/galaxy_clusters/unpublish/%s';
 
-    public function testUnpublishReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testUnpublishReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendPost(sprintf(self::URL, 1));
 
@@ -22,7 +22,7 @@ class UnpublishGalaxyClusterCest
         $I->seeResponseIsJson();
     }
 
-    public function testUnpublish(ApiTester $I)
+    public function testUnpublish(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;

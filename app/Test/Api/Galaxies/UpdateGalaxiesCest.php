@@ -3,13 +3,14 @@
 declare(strict_types=1);
 
 use \Helper\Fixture\Data\UserFixture;
+use \Codeception\Scenario;
 
 class UpdateGalaxyCest
 {
 
     private const URL = '/galaxies/update';
 
-    public function testUpdateReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testUpdateReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendPost(self::URL);
 
@@ -20,7 +21,7 @@ class UpdateGalaxyCest
         $I->seeResponseIsJson();
     }
 
-    public function testUpdate(ApiTester $I, $scenario)
+    public function testUpdate(ApiTester $I, Scenario $scenario): void
     {
         $scenario->skip('Fix timeout problems.');
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);

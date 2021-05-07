@@ -37,22 +37,28 @@ class ApiTester extends \Codeception\Actor
         int $orgId = 1,
         int $userId = 1,
         int $roleId = UserFixture::ROLE_USER,
-        string $authkey_plain = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        UserFixture $fakeUser = null
     ) {
         $fakeOrg = OrganisationFixture::fake(['id' => $orgId]);
         $this->haveInDatabase('organisations', $fakeOrg->toDatabase());
 
-        $fakeUser = UserFixture::fake([
-            'id' => $userId,
-            'org_id' => $orgId,
-            'role_id' => $roleId,
-            'authkey' => $authkey_plain
-        ]);
+        if (!$fakeUser) {
+            $fakeUser = UserFixture::fake([
+                'id' => $userId,
+                'org_id' => $orgId,
+                'role_id' => $roleId,
+            ]);
+        }
         $this->haveInDatabase('users', $fakeUser->toDatabase());
 
-        $fakeAuthKey = AuthKeyFixture::fake(['user_id' => $userId, 'authkey' => $authkey_plain]);
+        $fakeAuthKey = AuthKeyFixture::fake(
+            [
+                'user_id' => $userId,
+                'authkey' => $fakeUser->getAuthKey()
+            ]
+        );
         $this->haveInDatabase('auth_keys', $fakeAuthKey->toDatabase());
 
-        $this->haveHttpHeader('Authorization', $authkey_plain);
+        $this->haveHttpHeader('Authorization', $fakeUser->getAuthKey());
     }
 }

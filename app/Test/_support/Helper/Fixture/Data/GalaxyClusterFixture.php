@@ -1,21 +1,32 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Helper\Fixture\Data;
 
 use \Helper\Fixture\AbstractFixture;
 use \Helper\Fixture\FixtureInterface;
+use \Helper\Fixture\Data\GalaxyElementFixture;
 
 class GalaxyClusterFixture extends AbstractFixture implements FixtureInterface
 {
     /** @var GalaxyElementFixture[]  */
     private $galaxyElements;
 
-    public function __construct(array $attributes, $galaxyElements)
+    /**
+     * @param array<mixed> $attributes
+     * @param array<GalaxyElementFixture> $galaxyElements
+     */
+    public function __construct(array $attributes, array $galaxyElements)
     {
         $this->galaxyElements = $galaxyElements;
         parent::__construct($attributes);
     }
 
+    /**
+     * @param array<mixed> $attributes
+     * @param array<GalaxyElementFixture> $galaxyElements
+     */
     public static function fake(array $attributes = [], array $galaxyElements = []): GalaxyClusterFixture
     {
         $faker = \Faker\Factory::create();
@@ -81,6 +92,9 @@ class GalaxyClusterFixture extends AbstractFixture implements FixtureInterface
         return $response;
     }
 
+    /**
+     * @return array<mixed>
+     */
     public function toExportResponse(): array
     {
         $response = $this->toResponse();

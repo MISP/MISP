@@ -1,0 +1,12 @@
+parameters:
+	level: max
+	paths:
+		- src
+		- tests
+	scanDirectories:
+		- Lib
+		- Model
+		- Test/_support/
+		- Test/_support/Helper/Fixture/
+		- Test/_support/Helper/Fixture/Data
+		- Test/_support/Helper/Module

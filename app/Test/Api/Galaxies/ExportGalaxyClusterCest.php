@@ -12,7 +12,7 @@ class ExportGalaxyClusterCest
 
     private const URL = '/galaxies/export/%s';
 
-    public function testExportReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testExportReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $galaxyId = 1;
         $I->sendPost(sprintf(self::URL, $galaxyId));
@@ -24,7 +24,7 @@ class ExportGalaxyClusterCest
         $I->seeResponseIsJson();
     }
 
-    public function testExport(ApiTester $I)
+    public function testExport(ApiTester $I): void
     {
         $orgId = 1;
         $I->haveAuthorizationKey($orgId, 1, UserFixture::ROLE_ADMIN);
@@ -88,7 +88,7 @@ class ExportGalaxyClusterCest
         $I->seeResponseContainsJson([['GalaxyCluster' => $fakeGalaxyCluster->toExportResponse()]]);
     }
 
-    public function testMispGalaxyFormatExport(ApiTester $I)
+    public function testMispGalaxyFormatExport(ApiTester $I): void
     {
         $orgId = 1;
         $I->haveAuthorizationKey($orgId, 1, UserFixture::ROLE_ADMIN);

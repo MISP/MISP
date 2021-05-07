@@ -11,7 +11,7 @@ class RestoreGalaxyClusterCest
 
     private const URL = '/galaxy_clusters/restore/%s';
 
-    public function testRestoreReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testRestoreReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendPost(sprintf(self::URL, 1));
 
@@ -22,7 +22,7 @@ class RestoreGalaxyClusterCest
         $I->seeResponseIsJson();
     }
 
-    public function testRestore(ApiTester $I)
+    public function testRestore(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;

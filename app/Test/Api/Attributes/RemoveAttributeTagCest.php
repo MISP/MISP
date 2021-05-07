@@ -12,7 +12,7 @@ class RemoveAttributeTagCest
 
     private const URL = '/attributes/removeTag/%s/%s';
 
-    public function testRemoveTagReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testRemoveTagReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $attributeId = 1;
         $tagId = 1;
@@ -26,7 +26,7 @@ class RemoveAttributeTagCest
         $I->seeResponseIsJson();
     }
 
-    public function testRemoveTag(ApiTester $I)
+    public function testRemoveTag(ApiTester $I): void
     {
         $I->haveAuthorizationKey(1, 1, UserFixture::ROLE_ADMIN);
 

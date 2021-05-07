@@ -1,17 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Helper\Module;
 
 use Exception;
+use \Codeception\Module\Cli;
 
 final class MispSettings extends \Codeception\Module implements \Codeception\Lib\Interfaces\DependsOnModule
 {
 
-    /** @var array */
+    /** @var array<mixed> */
     protected $config = [
         'docker' => false,
     ];
 
+    /** @var Cli */
     private $cliModule;
 
     public function _depends()
@@ -19,12 +23,12 @@ final class MispSettings extends \Codeception\Module implements \Codeception\Lib
         return ['Codeception\Module\Cli' => 'Cli is a mandatory dependency of MispSettings'];
     }
 
-    public function _inject(\Codeception\Module\Cli $cliModule)
+    public function _inject(Cli $cliModule): void
     {
         $this->cliModule = $cliModule;
     }
 
-    public function haveMispSetting($setting, $value)
+    public function haveMispSetting(string $setting, string $value): void
     {
         if (isset($this->config['docker'])) {
             if (!isset($this->config['docker_compose_file'])) {
@@ -41,7 +45,6 @@ final class MispSettings extends \Codeception\Module implements \Codeception\Lib
             // TODO: Support setting configs on local installations
             $cmd = sprintf(
                 "app/Console/cake Admin setSetting %s %s",
-                $this->config['docker_compose_file'],
                 $setting,
                 $value
             );

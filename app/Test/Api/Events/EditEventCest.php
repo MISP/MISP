@@ -10,7 +10,7 @@ class EditEventCest
 
     private const URL = '/events/edit/%s';
 
-    public function testEditReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testEditReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $eventId = 1;
         $I->sendPut(sprintf(self::URL, $eventId));
@@ -22,7 +22,7 @@ class EditEventCest
         $I->seeResponseIsJson();
     }
 
-    public function testEdit(ApiTester $I)
+    public function testEdit(ApiTester $I): void
     {
         $orgId = 1;
         $eventId = 1;

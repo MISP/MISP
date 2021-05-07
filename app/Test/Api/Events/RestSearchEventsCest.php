@@ -9,7 +9,7 @@ class RestSearchEventsCest
 
     private const URL = '/events/restSearch?returnFormat=json';
 
-    public function testIndexReturnsForbiddenWithoutAuthKey(ApiTester $I)
+    public function testIndexReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendPost(self::URL);
 
@@ -20,7 +20,7 @@ class RestSearchEventsCest
         $I->seeResponseIsJson();
     }
 
-    public function testRestSearchReturnsExpectedAttribute(ApiTester $I)
+    public function testRestSearchReturnsExpectedAttribute(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;
