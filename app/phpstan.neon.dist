@@ -1,8 +1,14 @@
 parameters:
 	level: max
 	paths:
-		- src
-		- tests
+		- Config
+		- Console
+		- Controller
+		- Model
+		- Plugin
+		- Test
+		- View
+		- webroot
 	scanDirectories:
 		- Lib
 		- Model
