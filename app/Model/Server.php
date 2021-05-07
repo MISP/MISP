@@ -5281,6 +5281,15 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'showEventReportCountOnIndex' => array(
+                    'level' => 1,
+                    'description' => __('When enabled, the aggregate number of event reports for the event becomes visible to the currently logged in user on the event index UI.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'disableUserSelfManagement' => array(
                     'level' => 1,
                     'description' => __('When enabled only Org and Site admins can edit a user\'s profile.'),

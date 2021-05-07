@@ -863,6 +863,10 @@ class EventsController extends AppController
             $possibleColumns[] = 'proposals';
         }
 
+        if (Configure::read('MISP.showEventReportCountOnIndex')) {
+            $possibleColumns[] = 'report_count';
+        }
+
         if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
             $possibleColumns[] = 'discussion';
         }
@@ -904,6 +908,10 @@ class EventsController extends AppController
 
         if (in_array('discussion', $columns, true)) {
             $events = $this->Event->attachDiscussionsCountToEvents($user, $events);
+        }
+
+        if (in_array('report_count', $columns, true)) {
+            $events = $this->Event->EventReport->attachReportCountsToEvents($user, $events);
         }
 
         return $events;
