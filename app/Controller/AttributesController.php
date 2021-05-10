@@ -2964,7 +2964,7 @@ class AttributesController extends AppController
             if ($attribute['Attribute']['disable_correlation']) {
                 $attribute['Attribute']['disable_correlation'] = 0;
                 $this->Attribute->save($attribute);
-                $this->Attribute->__afterSaveCorrelation($attribute['Attribute'], false, $attribute);
+                ClassRegistry::init('Correlation')->afterSaveCorrelation($attribute['Attribute'], false, $attribute);
             } else {
                 $attribute['Attribute']['disable_correlation'] = 1;
                 $this->Attribute->save($attribute);
