@@ -5,12 +5,12 @@ declare(strict_types=1);
 use \Helper\Fixture\Data\UserFixture;
 use \Helper\Fixture\Data\OrganisationFixture;
 
-class ViewOrganisationCest
+class IndexOrganisationsCest
 {
 
-    private const URL = '/organisations/view/%s';
+    private const URL = '/organisations';
 
-    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
+    public function testIndexReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendGet(self::URL);
 
@@ -21,11 +21,11 @@ class ViewOrganisationCest
         $I->seeResponseIsJson();
     }
 
-    public function testViewReturnsExpectedOrganisation(ApiTester $I): void
+    public function testIndexReturnsExpectedOrganisation(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;
-        $fakeOrg = OrganisationFixture::fake(['id' => $orgId]);
+        $fakeOrg = OrganisationFixture::fake(['id' => (string)$orgId]);
 
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN, null, $fakeOrg);
 
@@ -35,6 +35,6 @@ class ViewOrganisationCest
         $I->validateResponse();
 
         $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson(['Organisation' => $fakeOrg->toResponse()]);
+        $I->seeResponseContainsJson([['Organisation' => $fakeOrg->toResponse()]]);
     }
 }

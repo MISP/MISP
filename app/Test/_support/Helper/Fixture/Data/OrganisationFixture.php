@@ -30,7 +30,7 @@ class OrganisationFixture extends AbstractFixture implements FixtureInterface
             'contacts' => null,
             'local' => true,
             'restricted_to_domain' => [],
-            'landingpage' => null
+            // 'landingpage' => null
         ];
 
         return new OrganisationFixture(array_merge($defaults, $attributes));
