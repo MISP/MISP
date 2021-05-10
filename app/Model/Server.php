@@ -5236,6 +5236,24 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
+                'log_new_audit' => [
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('Enable new audit log system.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
+                'log_new_audit_compress' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Compress log changes by brotli algorithm. This will reduce log database size.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'delegation' => array(
                     'level' => 1,
                     'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
