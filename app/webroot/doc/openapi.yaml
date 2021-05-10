@@ -2996,7 +2996,31 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Organisation"
+            type: object
+            properties:
+              name:
+                $ref: "#/components/schemas/OrganisationName"
+              type:
+                $ref: "#/components/schemas/OrganisationType"
+              nationality:
+                type: string
+                nullable: true
+              sector:
+                type: string
+                nullable: true
+              contacts:
+                type: string
+                nullable: true
+              description:
+                type: string
+                nullable: true
+              local:
+                type: boolean
+                nullable: true
+              uuid:
+                type: string
+                nullable: true
+                format: uuid
 
   responses:
     AttributeResponse:
