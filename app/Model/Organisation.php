@@ -97,7 +97,7 @@ class Organisation extends AppModel
         'uuid' => '0',
         'contacts' => '',
         'local' => true,
-        'restricted_to_domain' => '',
+        'restricted_to_domain' => '[]',
         'landingpage' => null
     );
 
@@ -117,8 +117,6 @@ class Organisation extends AppModel
                 $this->data['Organisation']['restricted_to_domain'][$k] = trim($v);
             }
             $this->data['Organisation']['restricted_to_domain'] = json_encode($this->data['Organisation']['restricted_to_domain']);
-        } else {
-            $this->data['Organisation']['restricted_to_domain'] = '';
         }
         if (!isset($this->data['Organisation']['id'])) {
             $this->data['Organisation']['date_created'] = $date;
