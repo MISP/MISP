@@ -3553,19 +3553,13 @@ class Server extends AppModel
     {
         $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         $workers = $this->ResqueStatus->getWorkers();
-        if (function_exists('posix_getpwuid')) {
-            $currentUser = posix_getpwuid(posix_geteuid());
-            $currentUser = $currentUser['name'];
-        } else {
-            $currentUser = trim(shell_exec('whoami'));
-        }
         $killed = array();
         foreach ($workers as $pid => $worker) {
             if (!is_numeric($pid)) {
                 throw new MethodNotAllowedException('Non numeric PID found!');
             }
-            $pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false;
-            if ($worker['user'] == $currentUser && !$pidTest) {
+            $pidTest = file_exists('/proc/' . addslashes($pid));
+            if (!$pidTest) {
                 $this->ResqueStatus->removeWorker($pid);
                 $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
                 if (empty($killed[$worker['queue']])) {
@@ -4441,7 +4435,7 @@ class Server extends AppModel
                         'OR' => [
                             'Correlation.attribute_id = Attribute.id',
                         ]
-                        
+
                     ]
                 ]
             ],
@@ -5322,6 +5316,33 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => false,
                 ),
+                'event_alert_republish_ban' => array(
+                    'level' => 1,
+                    'description' => __('Enable this setting to start blocking alert e-mails for events that have already been published since a specified amount of time. This threshold is defined by MISP.event_alert_republish_ban_threshold'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
+                'event_alert_republish_ban_threshold' => array(
+                    'level' => 1,
+                    'description' => __('If the MISP.event_alert_republish_ban setting is set, this setting will control how long no alerting by email will be done. Expected format: integer, in minutes'),
+                    'value' => 5,
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => false,
+                ),
+                'event_alert_republish_ban_refresh_on_retry' => array(
+                    'level' => 1,
+                    'description' => __('If the MISP.event_alert_republish_ban setting is set, this setting will control if a ban time should be reset if emails are tried to be sent during the ban.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
                 'org_alert_threshold' => array(
                     'level' => 1,
                     'description' => __('Set a value to limit the number of email alerts that events can generate per creator organisation (for example, if an organisation pushes out 2000 events in one shot, only alert on the first 20).'),
@@ -5514,6 +5535,15 @@ class Server extends AppModel
                     'test' => 'testForPositiveInteger',
                     'type' => 'numeric',
                     'null' => true,
+                ],
+                'warning_for_all' => [
+                    'level' => 1,
+                    'description' => __('Enable warning list triggers regardless of the IDS flag value'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
                 ],
             ),
             'GnuPG' => array(
