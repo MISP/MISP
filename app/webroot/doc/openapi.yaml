@@ -1995,13 +1995,10 @@ components:
         local:
           type: boolean
         restricted_to_domain:
-          oneOf:
-            - type: array
-              items:
-                type: string
-                format: hostname
-            - type: string
-              nullable: true
+          type: array
+          items:
+            type: string
+            format: hostname
         landingpage:
           type: string
           nullable: true
@@ -3021,6 +3018,12 @@ components:
                 type: string
                 nullable: true
                 format: uuid
+              restricted_to_domain:
+                nullable: true
+                type: array
+                items:
+                  type: string
+                  format: hostname
 
   responses:
     AttributeResponse:

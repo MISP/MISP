@@ -30,7 +30,7 @@ class AddOrganisationCest
         $fakeOrg = OrganisationFixture::fake(
             [
                 'created_by' => (string)$userId,
-                'restricted_to_domain' => 'example.com'
+                'restricted_to_domain' => ['example.com']
             ]
         );
 

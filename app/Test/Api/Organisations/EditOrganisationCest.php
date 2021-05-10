@@ -49,9 +49,6 @@ class EditOrganisationCest
         ]);
 
         $I->seeResponseCodeIs(200);
-        $response = $fakeOrg->toResponse();
-        // unset($response['restricted_to_domain']);
-        // $I->seeResponseContainsJson(['Organisation' => $fakeOrg->toResponse()]);
-        $I->seeResponseContainsJson(['Organisation' => $response]);
+        $I->seeResponseContainsJson(['Organisation' => $fakeOrg->toResponse()]);
     }
 }

@@ -13,10 +13,10 @@ class Organisation extends AppModel
 
     public $actsAs = array(
         'Containable',
-        'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
-                'roleModel' => 'Organisation',
-                'roleKey' => 'organisation_id',
-                'change' => 'full'
+        'SysLogLogable.SysLogLogable' => array(    // TODO Audit, logable
+            'roleModel' => 'Organisation',
+            'roleKey' => 'organisation_id',
+            'change' => 'full'
         ),
     );
 
@@ -56,7 +56,7 @@ class Organisation extends AppModel
         'SharingGroupOrg' => array(
             'className' => 'SharingGroupOrg',
             'foreignKey' => 'org_id',
-            'dependent'=> true,
+            'dependent' => true,
         ),
         'SharingGroup' => array(
             'className' => 'SharingGroup',
@@ -73,15 +73,15 @@ class Organisation extends AppModel
     );
 
     public $organisationAssociations = array(
-            'Correlation' => array('table' => 'correlations', 'fields' => array('org_id')),
-            'Event' => array('table' => 'events', 'fields' => array('org_id', 'orgc_id')),
-            'Job' => array('table' => 'jobs', 'fields' => array('org_id')),
-            'Server' => array('table' => 'servers', 'fields' => array('org_id', 'remote_org_id')),
-            'ShadowAttribute' =>array('table' => 'shadow_attributes', 'fields' => array('org_id', 'event_org_id')),
-            'SharingGroup' => array('table' => 'sharing_groups', 'fields' => array('org_id')),
-            'SharingGroupOrg' => array('table' => 'sharing_group_orgs', 'fields' => array('org_id')),
-            'Thread' => array('table' => 'threads', 'fields' => array('org_id')),
-            'User' => array('table' => 'users', 'fields' => array('org_id'))
+        'Correlation' => array('table' => 'correlations', 'fields' => array('org_id')),
+        'Event' => array('table' => 'events', 'fields' => array('org_id', 'orgc_id')),
+        'Job' => array('table' => 'jobs', 'fields' => array('org_id')),
+        'Server' => array('table' => 'servers', 'fields' => array('org_id', 'remote_org_id')),
+        'ShadowAttribute' => array('table' => 'shadow_attributes', 'fields' => array('org_id', 'event_org_id')),
+        'SharingGroup' => array('table' => 'sharing_groups', 'fields' => array('org_id')),
+        'SharingGroupOrg' => array('table' => 'sharing_group_orgs', 'fields' => array('org_id')),
+        'Thread' => array('table' => 'threads', 'fields' => array('org_id')),
+        'User' => array('table' => 'users', 'fields' => array('org_id'))
     );
 
     public $genericMISPOrganisation = array(
@@ -111,10 +111,12 @@ class Organisation extends AppModel
         }
         $date = date('Y-m-d H:i:s');
         if (!empty($this->data['Organisation']['restricted_to_domain'])) {
-            $this->data['Organisation']['restricted_to_domain'] = str_replace("\r", '', $this->data['Organisation']['restricted_to_domain']);
-            $this->data['Organisation']['restricted_to_domain'] = explode("\n", $this->data['Organisation']['restricted_to_domain']);
-            foreach ($this->data['Organisation']['restricted_to_domain'] as $k => $v) {
-                $this->data['Organisation']['restricted_to_domain'][$k] = trim($v);
+            if (!is_array($this->data['Organisation']['restricted_to_domain'])) {
+                $this->data['Organisation']['restricted_to_domain'] = str_replace("\r", '', $this->data['Organisation']['restricted_to_domain']);
+                $this->data['Organisation']['restricted_to_domain'] = explode("\n", $this->data['Organisation']['restricted_to_domain']);
+                foreach ($this->data['Organisation']['restricted_to_domain'] as $k => $v) {
+                    $this->data['Organisation']['restricted_to_domain'][$k] = trim($v);
+                }
             }
             $this->data['Organisation']['restricted_to_domain'] = json_encode($this->data['Organisation']['restricted_to_domain']);
         }
@@ -158,7 +160,7 @@ class Organisation extends AppModel
                 foreach ($results[$k]['Organisation']['restricted_to_domain'] as $k2 => $v) {
                     $results[$k]['Organisation']['restricted_to_domain'][$k2] = trim($v);
                 }
-            } else if (isset($organisation['Organisation']['restricted_to_domain'])){
+            } else if (isset($organisation['Organisation']['restricted_to_domain'])) {
                 $results[$k]['Organisation']['restricted_to_domain'] = array();
             }
         }
@@ -181,25 +183,25 @@ class Organisation extends AppModel
         }
 
         $existingOrg = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => $conditions,
+            'recursive' => -1,
+            'conditions' => $conditions,
         ));
         if (empty($existingOrg)) {
             $date = date('Y-m-d H:i:s');
             $organisation = array(
-                    'name' => $name,
-                    'local' => 0,
-                    'created_by' => $user['id'],
-                    'date_modified' => $date,
-                    'date_created' => $date
+                'name' => $name,
+                'local' => 0,
+                'created_by' => $user['id'],
+                'date_modified' => $date,
+                'date_created' => $date
             );
             // If we have the UUID set, then we have only made sure that the org doesn't exist by UUID
             // We want to create a new organisation for pushed data, even if the same org name exists
             // Alter the name if the name is already taken by a random string
             if (isset($uuid)) {
                 $existingOrgByName = $this->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array('name' => $name),
+                    'recursive' => -1,
+                    'conditions' => array('name' => $name),
                 ));
                 if ($existingOrgByName) {
                     $organisation['name'] = $organisation['name'] . '_' . rand(0, 9999);
@@ -270,11 +272,11 @@ class Organisation extends AppModel
         ));
         $targetOrgId = $request['Organisation']['targetType'] == 0 ? $request['Organisation']['orgsLocal'] : $request['Organisation']['orgsExternal'];
         $targetOrg = $this->find(
-                'first',
+            'first',
             array(
-                        'recursive' => -1,
-                        'conditions' => array('Organisation.id' => $targetOrgId)
-                )
+                'recursive' => -1,
+                'conditions' => array('Organisation.id' => $targetOrgId)
+            )
         );
         if (empty($currentOrg) || empty($targetOrg)) {
             throw new MethodNotAllowedException('Something went wrong with the organisation merge. Organisation not found.');
@@ -303,14 +305,14 @@ class Organisation extends AppModel
         $backupFile->append($sql . PHP_EOL);
         $this->Log->create();
         $this->Log->save(array(
-                'org' => $user['Organisation']['name'],
-                'model' => 'Organisation',
-                'model_id' => $currentOrg['Organisation']['id'],
-                'email' => $user['email'],
-                'action' => 'merge',
-                'user_id' => $user['id'],
-                'title' => 'Starting merger of ' . $currentOrg['Organisation']['name'] . '(' . $currentOrg['Organisation']['id'] . ') into ' . $targetOrg['Organisation']['name'] . '(' . $targetOrg['Organisation']['name'] . ')',
-                'change' => '',
+            'org' => $user['Organisation']['name'],
+            'model' => 'Organisation',
+            'model_id' => $currentOrg['Organisation']['id'],
+            'email' => $user['email'],
+            'action' => 'merge',
+            'user_id' => $user['id'],
+            'title' => 'Starting merger of ' . $currentOrg['Organisation']['name'] . '(' . $currentOrg['Organisation']['id'] . ') into ' . $targetOrg['Organisation']['name'] . '(' . $targetOrg['Organisation']['name'] . ')',
+            'change' => '',
         ));
         $dataMoved = array('removed_org' => $currentOrg);
         $success = true;
@@ -340,25 +342,25 @@ class Organisation extends AppModel
                             }
                             $backupFile->append($sql . PHP_EOL);
                             $this->Log->save(array(
-                                    'org' => $user['Organisation']['name'],
-                                    'model' => 'Organisation',
-                                    'model_id' => $currentOrg['Organisation']['id'],
-                                    'email' => $user['email'],
-                                    'action' => 'merge',
-                                    'user_id' => $user['id'],
-                                    'title' => 'Update for ' . $model . '.' . $field . ' has completed successfully.',
-                                    'change' => '',
+                                'org' => $user['Organisation']['name'],
+                                'model' => 'Organisation',
+                                'model_id' => $currentOrg['Organisation']['id'],
+                                'email' => $user['email'],
+                                'action' => 'merge',
+                                'user_id' => $user['id'],
+                                'title' => 'Update for ' . $model . '.' . $field . ' has completed successfully.',
+                                'change' => '',
                             ));
                         } catch (Exception $e) {
                             $this->Log->save(array(
-                                    'org' => $user['Organisation']['name'],
-                                    'model' => 'Organisation',
-                                    'model_id' => $currentOrg['Organisation']['id'],
-                                    'email' => $user['email'],
-                                    'action' => 'merge',
-                                    'user_id' => $user['id'],
-                                    'title' => 'Update for ' . $model . '.' . $field . ' has failed.',
-                                    'change' => json_encode($e->getMessage()),
+                                'org' => $user['Organisation']['name'],
+                                'model' => 'Organisation',
+                                'model_id' => $currentOrg['Organisation']['id'],
+                                'email' => $user['email'],
+                                'action' => 'merge',
+                                'user_id' => $user['id'],
+                                'title' => 'Update for ' . $model . '.' . $field . ' has failed.',
+                                'change' => json_encode($e->getMessage()),
                             ));
                         }
                     }
@@ -471,7 +473,7 @@ class Organisation extends AppModel
                 'conditions' => $conditions
             ));
             if (empty($identifiedOrg)) {
-            $suggestedOrg = -1;
+                $suggestedOrg = -1;
             } else if (!empty($suggestedOrg) && $suggestedOrg[0] !== $identifiedOrg['Organisation']['id']) {
                 $suggestedOrg = false;
             } else {
