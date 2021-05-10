@@ -28,11 +28,23 @@ class OrganisationFixture extends AbstractFixture implements FixtureInterface
             'created_by' => '0',
             'uuid' => $faker->uuid,
             'contacts' => null,
-            'local' => '1',
-            'restricted_to_domain' => '',
+            'local' => true,
+            'restricted_to_domain' => [],
             'landingpage' => null
         ];
 
         return new OrganisationFixture(array_merge($defaults, $attributes));
+    }
+
+    public function toDatabase(): array
+    {
+        $row =  parent::toDatabase();
+
+        return array_merge(
+            $row,
+            [
+                'restricted_to_domain' => json_encode($this->attributes['restricted_to_domain'])
+            ]
+        );
     }
 }

@@ -23,23 +23,26 @@ class ApiTester extends \Codeception\Actor
 {
     use _generated\ApiTesterActions;
 
-    public function _beforeSuite($settings = array())
+    /**
+     * Define custom actions here
+     */
+
+    public function _beforeSuite(array $settings = array()): void
     {
         $this->haveMispSetting('Security.advanced_authkeys', '1');
         $this->haveMispSetting('MISP.live', '1');
     }
 
-    /**
-     * Define custom actions here
-     */
-
     public function haveAuthorizationKey(
         int $orgId = 1,
         int $userId = 1,
         int $roleId = UserFixture::ROLE_USER,
-        UserFixture $fakeUser = null
-    ) {
-        $fakeOrg = OrganisationFixture::fake(['id' => $orgId]);
+        UserFixture $fakeUser = null,
+        OrganisationFixture $fakeOrg = null
+    ): void {
+        if (!$fakeOrg) {
+            $fakeOrg = OrganisationFixture::fake(['id' => $orgId]);
+        }
         $this->haveInDatabase('organisations', $fakeOrg->toDatabase());
 
         if (!$fakeUser) {

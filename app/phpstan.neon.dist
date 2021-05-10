@@ -1,17 +1,19 @@
 parameters:
-	level: max
+	level: 6
+	checkMissingIterableValueType: false
+	checkGenericClassInNonGenericObjectType: false
 	paths:
 		- Config
 		- Console
 		- Controller
 		- Model
-		- Plugin
 		- Test
 		- View
 		- webroot
 	scanDirectories:
 		- Lib
 		- Model
+		- Plugin
 		- Test/_support/
 		- Test/_support/Helper/Fixture/
 		- Test/_support/Helper/Fixture/Data

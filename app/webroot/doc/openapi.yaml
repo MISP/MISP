@@ -49,25 +49,29 @@ servers:
   - url: /
 tags:
   - name: Attributes
-    description: Attributes in MISP can be network indicators (e.g. IP address), system indicators (e.g. a string in memory) or even bank account details.
+    description: A"ttributes in MISP can be network indicators (e.g. IP address), system indicators (e.g. a string in memory) or even bank account details."
     externalDocs:
       url: https://www.circl.lu/doc/misp/GLOSSARY.html#misp-attribute
   - name: Events
-    description: MISP events are encapsulations for contextually related information represented as attribute and object.
+    description: "MISP events are encapsulations for contextually related information represented as attribute and object."
     externalDocs:
       url: https://www.circl.lu/doc/misp/GLOSSARY.html#misp-event
   - name: Galaxies
-    description: Galaxies in MISP are a method used to express a large object called cluster that can be attached to MISP events or attributes.
+    description: "Galaxies in MISP are a method used to express a large object called cluster that can be attached to MISP events or attributes."
     externalDocs:
       url: https://www.circl.lu/doc/misp/galaxy/
   - name: GalaxyClusters
-    description: A galaxy cluster that can be attached to MISP events or attributes.
+    description: "A galaxy cluster that can be attached to MISP events or attributes."
     externalDocs:
       url: https://www.circl.lu/doc/misp/galaxy/
   - name: Users
-    description: As an admin (not to be confused with Org Admin), you can set up new accounts for users, edit user profiles, delete them, or just have a look at all the viewers' profiles.
+    description: "As an admin (not to be confused with Org Admin), you can set up new accounts for users, edit user profiles, delete them, or just have a look at all the viewers' profiles."
     externalDocs:
       url: https://www.circl.lu/doc/misp/administration/#users
+  - name: Organisations
+    description: "Each users belongs to an organisation. As admin, you can manage these organisations."
+    externalDocs:
+      url: https://www.circl.lu/doc/misp/administration/#organisations
 
 paths:
   /attributes/add/{eventId}:
@@ -827,6 +831,40 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/ExtendedUserResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /organisations:
+    get:
+      summary: "Get organisations."
+      operationId: getOrganisations
+      tags:
+        - Organisations
+      responses:
+        "200":
+          $ref: "#/components/responses/OrganisationListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /organisations/view/{organisationId}:
+    get:
+      summary: "Get organisations."
+      operationId: getOrganisations
+      tags:
+        - Organisations
+      parameters:
+        - $ref: "#/components/parameters/organisationIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/OrganisationResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
@@ -1856,6 +1894,83 @@ components:
       items:
         $ref: "#/components/schemas/UserListItem"
 
+    # Organisations
+    OrganisationId:
+      type: string
+      format: int32
+      maxLength: 10
+      example: "12345"
+
+    OrganisationName:
+      type: string
+      maxLength: 255
+      example: "ORGNAME"
+
+    OrganisationType:
+      type: string
+      nullable: true
+      maxLength: 255
+      example: "ADMIN"
+
+    Organisation:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/OrganisationId"
+        name:
+          $ref: "#/components/schemas/OrganisationName"
+        date_created:
+          $ref: "#/components/schemas/Timestamp"
+        date_modified:
+          $ref: "#/components/schemas/Timestamp"
+        description:
+          type: string
+        type:
+          $ref: "#/components/schemas/OrganisationType"
+        nationality:
+          type: string
+        sector:
+          type: string
+        created_by:
+          $ref: "#/components/schemas/UserId"
+        uuid:
+          type: string
+        contacts:
+          type: string
+          nullable: true
+        local:
+          type: boolean
+        restricted_to_domain:
+          oneOf:
+            - type: array
+              items:
+                type: string
+                format: hostname
+            - type: string
+              nullable: true
+        landingpage:
+          type: string
+          nullable: true
+        user_count:
+          type: string
+          nullable: true
+          format: int32
+          example: "3"
+        created_by_email:
+          nullable: true
+          type: string
+
+    OrganisationListItem:
+      type: object
+      properties:
+        Organisation:
+          $ref: "#/components/schemas/Organisation"
+
+    OrganisationList:
+      type: array
+      items:
+        $ref: "#/components/schemas/OrganisationListItem"
+
     # Roles
     RoleId:
       type: string
@@ -2041,56 +2156,6 @@ components:
     DisableCorrelationFlag:
       type: boolean
       default: false
-
-    OrganisationId:
-      type: string
-      format: int32
-      maxLength: 10
-      example: "12345"
-
-    OrganisationName:
-      type: string
-      maxLength: 255
-      example: "ORGNAME"
-
-    OrganisationType:
-      type: string
-      nullable: true
-      maxLength: 255
-      example: "ADMIN"
-
-    Organisation:
-      type: object
-      properties:
-        id:
-          $ref: "#/components/schemas/OrganisationId"
-        name:
-          $ref: "#/components/schemas/OrganisationName"
-        date_created:
-          $ref: "#/components/schemas/Timestamp"
-        date_modified:
-          $ref: "#/components/schemas/Timestamp"
-        description:
-          type: string
-        type:
-          $ref: "#/components/schemas/OrganisationType"
-        nationality:
-          type: string
-        sector:
-          type: string
-        created_by:
-          $ref: "#/components/schemas/UserId"
-        uuid:
-          type: string
-        contacts:
-          type: string
-        local:
-          type: boolean
-        restricted_to_domain:
-          type: string
-        landingpage:
-          nullable: true
-          type: string
 
     IsExportable:
       type: boolean
@@ -2347,6 +2412,16 @@ components:
       schema:
         oneOf:
           - $ref: "#/components/schemas/UserId"
+
+    organisationIdParameter:
+      name: organisationId
+      in: path
+      description: "UUID or numeric ID of the organisation"
+      required: true
+      schema:
+        oneOf:
+          - $ref: "#/components/schemas/OrganisationId"
+          - $ref: "#/components/schemas/UUID"
 
     attachTargetIdParameter:
       name: attachTargetId
@@ -3400,6 +3475,20 @@ components:
               url:
                 type: string
                 example: "/admin/users/delete/1"
+
+    OrganisationResponse:
+      description: "Organisation list response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Organisation"
+
+    OrganisationListResponse:
+      description: "Organisation list response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OrganisationList"
 
     ApiErrorResponse:
       description: "Unexpected API error"
