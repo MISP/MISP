@@ -55,5 +55,6 @@ class AddGalaxyClusterCest
 
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson(['GalaxyCluster' => $fakeGalaxyCluster->toResponse()]);
+        $I->seeInDatabase('galaxy_clusters', $fakeGalaxyCluster->toDatabase());
     }
 }
