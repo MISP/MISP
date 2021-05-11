@@ -468,7 +468,7 @@ class ShadowAttribute extends AppModel
             'first_seen' => $this->data['ShadowAttribute']['first_seen'],
             'last_seen' => $ls
         ]], 'ShadowAttribute');
-        if ($converted['ShadowAttribute']['first_seen'] >= $converted['ShadowAttribute']['last_seen']) {
+        if ($converted['ShadowAttribute']['first_seen'] > $converted['ShadowAttribute']['last_seen']) {
             return false;
         }
         return true;
