@@ -6,14 +6,15 @@ use \Helper\Fixture\Data\UserFixture;
 use \Helper\Fixture\Data\ServerFixture;
 use \Helper\Fixture\Data\OrganisationFixture;
 
-class AddServersCest
+class EditServersCest
 {
 
-    private const URL = '/servers/add';
+    private const URL = '/servers/edit/%s';
 
-    public function testIndexReturnsForbiddenWithoutAuthKey(ApiTester $I): void
+    public function testEditReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
-        $I->sendPost(self::URL);
+        $serverId = 1;
+        $I->sendPut(sprintf(self::URL, $serverId));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -22,7 +23,7 @@ class AddServersCest
         $I->seeResponseIsJson();
     }
 
-    public function testAdd(ApiTester $I): void
+    public function testEdit(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;
@@ -30,23 +31,23 @@ class AddServersCest
 
         $remoteOrgId = 2;
         $remoteOrg = OrganisationFixture::fake(['id' => $remoteOrgId]);
-        $I->haveInDatabase('organisations', $remoteOrg->toDatabase());
-
+        $serverId = 1;
         $fakeServer = ServerFixture::fake(
             [
+                'id' => (string)$serverId,
                 'org_id' => (string)$orgId,
                 'remote_org_id' => (string)$remoteOrgId
             ]
         );
+        $I->haveInDatabase('organisations', $remoteOrg->toDatabase());
+        $I->haveInDatabase('servers', $fakeServer->toDatabase());
 
-        $I->sendPost(self::URL, $fakeServer->toRequest());
+        $fakeServer->set(['name' => 'foobar', 'url' => 'http://foobar.local']);
+
+        $I->sendPut(sprintf(self::URL, $serverId), $fakeServer->toRequest());
 
         $I->validateRequest();
         $I->validateResponse();
-
-        $fakeServer->set([
-            'id' => $I->grabDataFromResponseByJsonPath('$..Server.id')[0],
-        ]);
 
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson(['Server' => $fakeServer->toResponse()]);

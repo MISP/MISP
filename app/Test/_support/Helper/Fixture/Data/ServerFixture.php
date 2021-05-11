@@ -19,7 +19,7 @@ class ServerFixture extends AbstractFixture implements FixtureInterface
         $defaults = [
             'id' => (string)$faker->numberBetween(1, 1000),
             'name' => $faker->text(),
-            'url' => $faker->url,
+            'url' => rtrim($faker->url, "/"),
             'authkey' => $faker->sha1,
             'org_id' => (string)$faker->numberBetween(1, 1000),
             'push' => false,
@@ -45,5 +45,13 @@ class ServerFixture extends AbstractFixture implements FixtureInterface
         ];
 
         return new ServerFixture(array_merge($defaults, $attributes));
+    }
+
+    public function toRequest(): array
+    {
+        $request = parent::toRequest();
+        unset($request['id']);
+
+        return $request;
     }
 }
