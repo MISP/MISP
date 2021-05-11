@@ -455,13 +455,13 @@ class ServersController extends AppController
             $this->redirect(array('controller' => 'servers', 'action' => 'index'));
         }
         if ($this->request->is('post') || $this->request->is('put')) {
-            if (empty(Configure::read('MISP.host_org_id'))) {
-                $this->request->data['Server']['internal'] = 0;
-            }
             if ($this->_isRest()) {
                 if (!isset($this->request->data['Server'])) {
                     $this->request->data = array('Server' => $this->request->data);
                 }
+            }
+            if (empty(Configure::read('MISP.host_org_id'))) {
+                $this->request->data['Server']['internal'] = 0;
             }
             if (isset($this->request->data['Server']['json'])) {
                 $json = json_decode($this->request->data['Server']['json'], true);
