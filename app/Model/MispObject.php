@@ -200,7 +200,7 @@ class MispObject extends AppModel
              'first_seen' => $this->data['Object']['first_seen'],
              'last_seen' => $ls
          ]], 'Object');
-         if ($converted['Object']['first_seen'] >= $converted['Object']['last_seen']) {
+         if ($converted['Object']['first_seen'] > $converted['Object']['last_seen']) {
              return false;
          }
          return true;
