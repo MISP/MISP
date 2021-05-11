@@ -97,7 +97,7 @@ class Organisation extends AppModel
         'uuid' => '0',
         'contacts' => '',
         'local' => true,
-        'restricted_to_domain' => '[]',
+        'restricted_to_domain' => [],
         'landingpage' => null
     );
 
