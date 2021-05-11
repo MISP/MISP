@@ -6299,21 +6299,13 @@ class Event extends AppModel
                 } else {
                     $failed_attributes++;
                     $lastAttributeError = $this->Attribute->validationErrors;
-                    $original_uuid = $this->Object->Attribute->find(
-                        'first',
-                        array(
-                            'conditions' => array(
-                                'Attribute.event_id' => $id,
-                                'Attribute.deleted' => 0,
-                                'Attribute.type' => $attribute['type'],
-                                'Attribute.value' => $attribute['value']
-                            ),
-                            'recursive' => -1,
-                            'fields' => array('Attribute.uuid')
-                        )
+                    $original_uuid = $this->__findOriginalUUID(
+                        $attribute['type'],
+                        $attribute['value'],
+                        $id
                     );
                     if (!empty($original_uuid)) {
-                        $recovered_uuids[$attribute['uuid']] = $original_uuid['Attribute']['uuid'];
+                        $recovered_uuids[$attribute['uuid']] = $original_uuid;
                     } else {
                         $failed[] = $attribute['uuid'];
                     }
@@ -6617,6 +6609,52 @@ class Event extends AppModel
             }
         }
         return 0;
+    }
+
+    private function __findOriginalUUID($attribute_type, $attribute_value, $event_id)
+    {
+        $original_uuid = $this->Object->Attribute->find(
+            'first',
+            array(
+                'conditions' => array(
+                    'Attribute.event_id' => $event_id,
+                    'Attribute.deleted' => 0,
+                    'Attribute.object_id' => 0,
+                    'Attribute.type' => $attribute_type,
+                    'Attribute.value' => $attribute_value
+                ),
+                'recursive' => -1,
+                'fields' => array('Attribute.uuid')
+            )
+        );
+        if (!empty($original_uuid)) {
+            return ['Attribute']['uuid'];
+        }
+        $original_uuid = $this->Object->find(
+            'first',
+            array(
+                'conditions' => array(
+                    'Attribute.event_id' => $event_id,
+                    'Attribute.deleted' => 0,
+                    'Attribute.type' => $attribute_type,
+                    'Attribute.value1' => $attribute_value,
+                    'Object.event_id' => $event_id
+                ),
+                'recursive' => -1,
+                'fields' => array('Object.uuid'),
+                'joins' => array(
+                    array(
+                        'table' => 'attributes',
+                        'alias' => 'Attribute',
+                        'type' => 'inner',
+                        'conditions' => array(
+                            'Attribute.object_id = Object.id'
+                        )
+                    )
+                )
+            )
+        );
+        return (!empty($original_uuid)) ? $original_uuid['Object']['uuid'] : $original_uuid;
     }
 
     private function __saveObjectAttribute($attribute, $default_comment, $event_id, $object_id, $user)
