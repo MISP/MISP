@@ -6436,53 +6436,53 @@ class Event extends AppModel
                     $this->Job->saveField('progress', (($current + $total_attributes) * 100 / $items_count));
                 }
             }
-        }
-        if (!empty($references)) {
-            $reference_errors = array();
-            foreach($references as $reference) {
-                $object_id = $reference['objectId'];
-                $reference = $reference['reference'];
-                if (in_array($reference['object_uuid'], $failed) || in_array($reference['referenced_uuid'], $failed)) {
-                    continue;
-                }
-                if (isset($recovered_uuids[$reference['object_uuid']])) {
-                    $reference['object_uuid'] = $recovered_uuids[$reference['object_uuid']];
-                }
-                if (isset($recovered_uuids[$reference['referenced_uuid']])) {
-                    $reference['referenced_uuid'] = $recovered_uuids[$reference['referenced_uuid']];
-                }
-                $current_reference = $this->Object->ObjectReference->find('all', array(
-                    'conditions' => array('ObjectReference.object_id' => $object_id,
-                                          'ObjectReference.referenced_uuid' => $reference['referenced_uuid'],
-                                          'ObjectReference.relationship_type' => $reference['relationship_type'],
-                                          'ObjectReference.event_id' => $id, 'ObjectReference.deleted' => 0),
-                    'recursive' => -1,
-                    'fields' => ('ObjectReference.uuid')
-                ));
-                if (!empty($current_reference)) {
-                    continue;
-                }
-                list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
-                        $reference['referenced_uuid'],
-                        array('Event' => array('id' => $id)),
-                        false,
-                        $user
-                );
-                if (!$referenced_id && !$referenced_uuid && !$referenced_type) {
-                    continue;
-                }
-                $reference = array(
-                    'event_id' => $id,
-                    'referenced_id' => $referenced_id,
-                    'referenced_uuid' => $referenced_uuid,
-                    'referenced_type' => $referenced_type,
-                    'object_id' => $object_id,
-                    'object_uuid' => $reference['object_uuid'],
-                    'relationship_type' => $reference['relationship_type']
-                );
-                $this->Object->ObjectReference->create();
-                if (!$this->Object->ObjectReference->save($reference)) {
-                    $reference_errors[] = $this->Object->ObjectReference->validationErrors;
+            if (!empty($references)) {
+                $reference_errors = array();
+                foreach($references as $reference) {
+                    $object_id = $reference['objectId'];
+                    $reference = $reference['reference'];
+                    if (in_array($reference['object_uuid'], $failed) || in_array($reference['referenced_uuid'], $failed)) {
+                        continue;
+                    }
+                    if (isset($recovered_uuids[$reference['object_uuid']])) {
+                        $reference['object_uuid'] = $recovered_uuids[$reference['object_uuid']];
+                    }
+                    if (isset($recovered_uuids[$reference['referenced_uuid']])) {
+                        $reference['referenced_uuid'] = $recovered_uuids[$reference['referenced_uuid']];
+                    }
+                    $current_reference = $this->Object->ObjectReference->find('all', array(
+                        'conditions' => array('ObjectReference.object_id' => $object_id,
+                                              'ObjectReference.referenced_uuid' => $reference['referenced_uuid'],
+                                              'ObjectReference.relationship_type' => $reference['relationship_type'],
+                                              'ObjectReference.event_id' => $id, 'ObjectReference.deleted' => 0),
+                        'recursive' => -1,
+                        'fields' => ('ObjectReference.uuid')
+                    ));
+                    if (!empty($current_reference)) {
+                        continue;
+                    }
+                    list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
+                            $reference['referenced_uuid'],
+                            array('Event' => array('id' => $id)),
+                            false,
+                            $user
+                    );
+                    if (!$referenced_id && !$referenced_uuid && !$referenced_type) {
+                        continue;
+                    }
+                    $reference = array(
+                        'event_id' => $id,
+                        'referenced_id' => $referenced_id,
+                        'referenced_uuid' => $referenced_uuid,
+                        'referenced_type' => $referenced_type,
+                        'object_id' => $object_id,
+                        'object_uuid' => $reference['object_uuid'],
+                        'relationship_type' => $reference['relationship_type']
+                    );
+                    $this->Object->ObjectReference->create();
+                    if (!$this->Object->ObjectReference->save($reference)) {
+                        $reference_errors[] = $this->Object->ObjectReference->validationErrors;
+                    }
                 }
             }
         }
