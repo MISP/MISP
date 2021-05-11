@@ -733,7 +733,7 @@ class Attribute extends AppModel
             'first_seen' => $this->data['Attribute']['first_seen'],
             'last_seen' => $ls
         ]], 'Attribute');
-        if ($converted['Attribute']['first_seen'] >= $converted['Attribute']['last_seen']) {
+        if ($converted['Attribute']['first_seen'] > $converted['Attribute']['last_seen']) {
             return false;
         }
         return true;
