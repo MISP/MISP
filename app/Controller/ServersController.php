@@ -785,7 +785,7 @@ class ServersController extends AppController
             if (!empty($error)) {
                 return $this->RestResponse->saveFailResponse('Servers', 'pull', false, $error, $this->response->type());
             } else {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'pull', $success, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'pull', $id, $this->response->type(), $success);
             }
         } else {
             if (!empty($error)) {

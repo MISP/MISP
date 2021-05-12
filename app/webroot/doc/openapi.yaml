@@ -1000,6 +1000,25 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /servers/pull/{serverId}/{pullTechnique}:
+    get:
+      summary: "Pull server."
+      operationId: pullServer
+      tags:
+        - Servers
+      parameters:
+        - $ref: "#/components/parameters/serverIdParameter"
+        - $ref: "#/components/parameters/pullTechniqueParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/PullServerResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -2164,12 +2183,12 @@ components:
         self_signed:
           type: boolean
         pull_rules:
-          description: "Stringified JSON rules for pulling data from this server."
+          description: "Stringified JSON rules for pulling events from this server."
           type: string
           example: '{"tags":{"OR":[],"NOT":[]},"orgs":{"OR":[],"NOT":[]},"url_params":""}'
         push_rules:
           type: string
-          description: "Stringified JSON rules for pushing data from this server."
+          description: "Stringified JSON rules for pushing events from this server."
           example: '{"tags":{"OR":[],"NOT":[]},"orgs":{"OR":[],"NOT":[]}}'
         cert_file:
           type: string
@@ -2678,6 +2697,18 @@ components:
         oneOf:
           - $ref: "#/components/schemas/ServerId"
           - $ref: "#/components/schemas/UUID"
+
+    pullTechniqueParameter:
+      name: pullTechnique
+      in: path
+      description: "Pull technique to be used for pulling events from this instance."
+      required: true
+      schema:
+        type: string
+        enum:
+          - "full"
+          - "incremental"
+          - "pull_relevant_clusters"
 
     attachTargetIdParameter:
       name: attachTargetId
@@ -3846,6 +3877,27 @@ components:
               url:
                 type: string
                 example: "/servers/delete/1"
+
+    PullServerResponse:
+      description: "Pull server response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "Pull queued for background execution. Job ID: 1"
+              message:
+                type: string
+                example: "Pull queued for background execution. Job ID: 1"
+              url:
+                type: string
+                example: "/servers/pull/1"
 
     ApiErrorResponse:
       description: "Unexpected API error"

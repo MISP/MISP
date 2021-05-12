@@ -24,7 +24,8 @@
         "codeception/module-cli": "^1.1",
         "fzaninotto/faker": "^1.9",
         "league/openapi-psr7-validator": "^0.15.2",
-        "phpstan/phpstan": "^0.12.85"
+        "phpstan/phpstan": "^0.12.85",
+        "wiremock-php/wiremock-php": "2.27.0"
     },
     "conflict": {
         "symfony/polyfill-php80": "*",

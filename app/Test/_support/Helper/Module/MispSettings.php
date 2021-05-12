@@ -35,7 +35,7 @@ final class MispSettings extends \Codeception\Module implements \Codeception\Lib
                 throw new Exception('Config key `docker_compose_file` must be set when running in docker mode.');
             } else {
                 $cmd = sprintf(
-                    'docker-compose -f %s exec misp bash -c "app/Console/cake Admin setSetting %s %s"',
+                    'docker-compose -f %s exec --user www-data misp bash -c "app/Console/cake Admin setSetting %s %s"',
                     $this->config['docker_compose_file'],
                     $setting,
                     $value
@@ -54,7 +54,11 @@ final class MispSettings extends \Codeception\Module implements \Codeception\Lib
         try {
             $this->cliModule->runShellCommand($cmd);
         } catch (Exception $ex) {
-            throw new Exception('Failed to set MISP setting', 0, $ex);
+            throw new Exception(
+                sprintf('Failed to set MISP setting: %s', $this->cliModule->grabShellOutput()),
+                0,
+                $ex
+            );
         }
     }
 }

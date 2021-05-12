@@ -29,10 +29,11 @@ suites:
                 - \Helper\Module\MispSettings:
                       depends: Cli
                       docker: true
-                      docker_compose_file: "../../docker-misp/docker-compose.yml"
+                      docker_compose_file: "/home/john/docker-misp/docker-compose.yml"
                 - \Helper\Module\OpenApiValidator:
                       depends: \Helper\Module\Api
                       openapi: "webroot/doc/openapi.yaml"
+                - \Helper\Module\WireMock
             config:
                 PhpBrowser:
                     url: https://localhost:8443

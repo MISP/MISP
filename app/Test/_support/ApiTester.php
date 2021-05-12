@@ -31,6 +31,7 @@ class ApiTester extends \Codeception\Actor
     {
         $this->haveMispSetting('Security.advanced_authkeys', '1');
         $this->haveMispSetting('MISP.live', '1');
+        $this->getWireMock()->resetToDefault();
     }
 
     public function haveAuthorizationKey(
