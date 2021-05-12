@@ -837,7 +837,7 @@ class ServersController extends AppController
                 }
             }
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', __('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1])), $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $id, $this->response->type(), __('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1])));
             } else {
                 $this->set('successes', $result[0]);
                 $this->set('fails', $result[1]);
@@ -864,7 +864,7 @@ class ServersController extends AppController
             $this->Job->saveField('process_id', $process_id);
             $message = sprintf(__('Push queued for background execution. Job ID: %s'), $jobId);
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $id, $this->response->type(), $message);
             }
             $this->Flash->success($message);
             $this->redirect(array('action' => 'index'));

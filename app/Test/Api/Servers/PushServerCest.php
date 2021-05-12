@@ -9,12 +9,12 @@ use \Helper\Fixture\Data\AttributeFixture;
 use \Helper\Fixture\Data\EventFixture;
 use \WireMock\Client\WireMock;
 
-class PullServerCest
+class PushServerCest
 {
 
-    private const URL = '/servers/pull/%s/%s';
+    private const URL = '/servers/push/%s/%s';
 
-    public function testPullReturnsForbiddenWithoutAuthKey(ApiTester $I): void
+    public function testPushReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $serverId = 1;
         $technique = 'full';
@@ -27,7 +27,7 @@ class PullServerCest
         $I->seeResponseIsJson();
     }
 
-    public function testPullCreatesJob(ApiTester $I): void
+    public function testPushCreatesJob(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;
@@ -63,13 +63,13 @@ class PullServerCest
         );
 
         $I->seeResponseMatchesJsonType([
-            'message' => 'string:regex(/Pull queued for background execution. Job ID: [\d]/)'
+            'message' => 'string:regex(/Push queued for background execution. Job ID: [\d]/)'
         ]);
 
         // TODO: Check job was created in Redis
     }
 
-    public function testFullPullWithoutJobs(ApiTester $I): void
+    public function testFullPushWithoutJobs(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;
@@ -85,14 +85,14 @@ class PullServerCest
                 'id' => $serverId,
                 'org_id' => $orgId,
                 'remote_org_id' => $remoteOrgId,
-                'pull' => true,
+                'push' => true,
                 'url' => 'http://wiremock:8080'
             ]
         );
         $I->haveInDatabase('servers', $fakeServer->toDatabase());
         $I->haveInDatabase('organisations', $remoteOrg->toDatabase());
 
-        $this->mockGetServerVersionRequest($I->getWireMock());
+        // $this->mockGetServerVersionRequest($I->getWireMock());
 
         $eventId = 1;
         $eventUuid = 'bb1fcb44-953a-4b76-acc9-98557ce69c66';
@@ -113,7 +113,9 @@ class PullServerCest
                 'deleted' => false
             ]
         );
-        $this->mockRemoteServerPullRequests($I->getWireMock(), $fakeEvent, $fakeAttribute);
+        $I->haveInDatabase('events', $fakeEvent->toDatabase());
+        $I->haveInDatabase('attributes', $fakeAttribute->toDatabase());
+        $this->mockRemoteServerPushRequests($I->getWireMock(), $fakeEvent);
 
         $I->sendGet(sprintf(self::URL, $serverId, $technique));
 
@@ -125,7 +127,7 @@ class PullServerCest
             [
                 'saved' => true,
                 'success' => true,
-                'message' => 'Pull completed. 1 events pulled, 0 events could not be pulled, 0 proposals pulled, 0 sightings pulled, 0 clusters pulled.'
+                'message' => 'Push complete. 1 events pushed, 0 events could not be pushed.'
             ]
         );
         $I->seeInDatabase('events', ['uuid' => $eventUuid]);
@@ -135,65 +137,23 @@ class PullServerCest
         $I->haveMispSetting('MISP.background_jobs', '1');
     }
 
-    private function mockGetServerVersionRequest(WireMock $wiremock, string $version = '2.4'): void
-    {
-        $wiremock->stubFor(
-            WireMock::get(WireMock::urlEqualTo('/servers/getVersion'))
-                ->willReturn(
-                    WireMock::aResponse()
-                        ->withHeader('Content-Type', 'application/json')
-                        ->withBody(
-                            (string)json_encode([
-                                'version' => $version,
-                                'perm_sync' => true,
-                                'perm_sighting' => true,
-                                'perm_galaxy_editor' => true,
-                                'request_encoding' => [
-                                    'gzip'
-                                ]
-                            ])
-                        )
-                )
-        );
-    }
-
-    private function mockRemoteServerPullRequests(
+    private function mockRemoteServerPushRequests(
         WireMock $wiremock,
-        EventFixture $event,
-        AttributeFixture $attribute
+        EventFixture $event
     ): void {
 
-        $wiremock->stubFor(WireMock::post(WireMock::urlEqualTo('/events/index'))
+        $wiremock->stubFor(WireMock::post(WireMock::urlEqualTo('/events/filterEventIdsForPush'))
             ->willReturn(WireMock::aResponse()
                 ->withHeader('Content-Type', 'application/json')
-                ->withBody((string)json_encode([$event->toResponse()]))));
+                ->withBody(
+                    (string)json_encode(
+                        [$event->toResponse()['uuid']]
+                    )
+                )));
 
-        $wiremock->stubFor(
-            WireMock::get(
-                WireMock::urlMatching(sprintf('/events/view/%s/deleted.*', $event->toResponse()['uuid']))
-            )->willReturn(WireMock::aResponse()
+        $wiremock->stubFor(WireMock::post(WireMock::urlEqualTo('/events'))
+            ->willReturn(WireMock::aResponse()
                 ->withHeader('Content-Type', 'application/json')
-                ->withBody((string)json_encode(
-                    [
-                        'Event' => array_merge(
-                            $event->toResponse(),
-                            [
-                                'Attribute' => $attribute->toResponse()
-                            ]
-                        )
-                    ]
-                )))
-        );
-
-        $wiremock->stubFor(
-            WireMock::get(
-                WireMock::urlMatching(
-                    '/shadow_attributes/index/all.*'
-                )
-            )
-                ->willReturn(WireMock::aResponse()
-                    ->withHeader('Content-Type', 'application/json')
-                    ->withBody((string)json_encode('[]')))
-        );
+                ->withBody('{}')));
     }
 }
