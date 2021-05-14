@@ -1038,6 +1038,22 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /servers/serverSettings:
+    get:
+      summary: "Get current instance settings and diagnostics."
+      operationId: getServerSettings
+      tags:
+        - Servers
+      responses:
+        "200":
+          $ref: "#/components/responses/ServerSettingsResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -2590,6 +2606,143 @@ components:
       type: string
       example: "filepath"
 
+    PhpServerSetting:
+      type: object
+      properties:
+        explanation:
+          type: string
+          example: "The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports"
+        recommended:
+          anyOf:
+            - type: integer
+              example: 300
+            - type: string
+        unit:
+          type: string
+          example: "seconds"
+        value:
+          anyOf:
+            - type: integer
+              example: 300
+            - type: string
+
+    ServerPackageVersion:
+      type: object
+      properties:
+        version:
+          type: string
+          example: "1.2.0.11"
+        expected:
+          type: string
+          example: ">1.2.0.9"
+        status:
+          type: integer
+          example: 1
+
+    DatabaseTableDiagnostics:
+      type: object
+      properties:
+        used:
+          type: string
+          example: "207.63MB"
+        reclaimable:
+          type: string
+          example: "5MB"
+        table:
+          type: string
+          example: "attributes"
+
+    MispSetting:
+      type: object
+      properties:
+        level:
+          type: integer
+          example: 0
+        value:
+          anyOf:
+            - type: string
+            - type: boolean
+            - type: number
+        errorMessage:
+          type: string
+          nullable: true
+          example: "The currently set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address)."
+        test:
+          nullable: true
+          anyOf:
+            - type: string
+              example: "testBaseURL"
+            - type: boolean
+        type:
+          type: string
+          example: "string"
+          enum:
+            - "string"
+            - "boolean"
+            - "numeric"
+        "null":
+          type: boolean
+          nullable: true
+        subGroup:
+          type: string
+          nullable: true
+          example: "Enrichment"
+        cli_only:
+          type: integer
+          nullable: true
+          example: 1
+        redacted:
+          type: boolean
+          nullable: true
+        optionsSource:
+          type: object
+          nullable: true
+        afterHook:
+          type: string
+          nullable: true
+          example: "cleanCacheFiles"
+        error:
+          type: integer
+          nullable: true
+          example: 1
+        tab:
+          type: string
+          example: "MISP"
+        setting:
+          type: string
+          example: "MISP.baseurl"
+        options:
+          nullable: true
+          anyOf:
+            - type: object
+            - type: array
+
+    Worker:
+      type: object
+      properties:
+        pid:
+          type: integer
+          example: 1233
+        user:
+          type: string
+          example: "www-data"
+        alive:
+          type: boolean
+        correct_user:
+          type: boolean
+        ok:
+          type: boolean
+
+    WorkersStatus:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        workers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Worker"
+
     ApiError:
       type: object
       required:
@@ -3949,6 +4102,313 @@ components:
               url:
                 type: string
                 example: "/servers/push/1"
+
+    ServerSettingsResponse:
+      description: "Server settings and diagnostics"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              version:
+                type: object
+                properties:
+                  current:
+                    type: string
+                    example: "v2.4.142"
+                  newest:
+                    type: string
+                    example: "v2.4.142"
+                  upToDate:
+                    type: string
+                    example: "same"
+              phpSettings:
+                type: object
+                properties:
+                  max_execution_time:
+                    $ref: "#/components/schemas/PhpServerSetting"
+                  memory_limit:
+                    $ref: "#/components/schemas/PhpServerSetting"
+                  upload_max_filesize:
+                    $ref: "#/components/schemas/PhpServerSetting"
+                  post_max_size:
+                    $ref: "#/components/schemas/PhpServerSetting"
+              gpgStatus:
+                type: string
+                example: "FAIL: Failed to load GnuPG"
+              proxyStatus:
+                type: string
+                example: "not configured (so not tested)"
+              zmqStatus:
+                type: integer
+                example: 1
+              stix:
+                type: object
+                properties:
+                  operational:
+                    type: integer
+                    example: 1
+                  stix:
+                    $ref: "#/components/schemas/ServerPackageVersion"
+                  cybox:
+                    $ref: "#/components/schemas/ServerPackageVersion"
+                  mixbox:
+                    $ref: "#/components/schemas/ServerPackageVersion"
+                  maec:
+                    $ref: "#/components/schemas/ServerPackageVersion"
+                  stix2:
+                    $ref: "#/components/schemas/ServerPackageVersion"
+                  pymisp:
+                    $ref: "#/components/schemas/ServerPackageVersion"
+              moduleStatus:
+                type: object
+                properties:
+                  Enrichment:
+                    type: integer
+                    example: 1
+                  Import:
+                    type: integer
+                    example: 1
+                  Export:
+                    type: integer
+                    example: 1
+                  Cortex:
+                    type: integer
+                    example: 1
+              writeableDirs:
+                type: object
+                example:
+                  "/tmp": 0
+                  "/var/www/MISP/app/tmp": 0
+                  "/var/www/MISP/app/files": 0
+                  "/var/www/MISP/app/files/scripts/tmp": 0
+              writeableFiles:
+                type: object
+                example:
+                  "/var/www/MISP/app/Config/config.php": 0
+                  "/var/www/MISP/.git/ORIG_HEAD": 2
+              readableFiles:
+                type: object
+                example:
+                  "/var/www/MISP/app/files/scripts/stixtest.py": 0
+              dbDiagnostics:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DatabaseTableDiagnostics"
+              dbSchemaDiagnostics:
+                type: object
+                properties:
+                  dataSource:
+                    type: string
+                    example: "Database/Mysql"
+                  actual_db_version:
+                    type: string
+                    example: "68"
+                  checked_table_column:
+                    type: array
+                    items:
+                      type: string
+                      example: "column_name"
+                  diagnostic:
+                    type: object
+                  diagnostic_index:
+                    type: array
+                    items:
+                      type: object
+                  expected_db_version:
+                    type: string
+                    example: "67"
+                  error:
+                    type: string
+                  update_locked:
+                    type: boolean
+                  remaining_lock_time:
+                    type: number
+                  update_fail_number_reached:
+                    type: boolean
+                  indexes:
+                    type: object
+                    example:
+                      "admin_settings":
+                        "id": true
+                        "setting": false
+                  columnPerTable:
+                    type: object
+                    example:
+                      "admin_settings":
+                        - "id"
+                        - "setting"
+                        - "value"
+              redisInfo:
+                type: object
+                example:
+                  "extensionVersion": "5.1.1"
+                  "connection": true,
+                  "redis_version": "5.0.7"
+                  "redis_git_sha1": 0,
+                  "redis_git_dirty": 0,
+                  "redis_build_id": "636cde3b5c7a3923"
+                  "redis_mode": "standalone"
+                  "os": "Linux 5.8.0-50-generic x86_64"
+                  "arch_bits": 64,
+                  "multiplexing_api": "epoll"
+                  "atomicvar_api": "atomic-builtin"
+                  "gcc_version": "9.2.1"
+                  "process_id": 1051,
+                  "run_id": "f894944d92c978df93a18821fb5ebe30dfd0b257"
+                  "tcp_port": 6379,
+                  "uptime_in_seconds": 327116,
+                  "uptime_in_days": 3,
+                  "hz": 10,
+                  "configured_hz": 10,
+                  "lru_clock": 10365184,
+                  "executable": "/usr/bin/redis-server"
+                  "config_file": "/etc/redis/redis.conf"
+                  "connected_clients": 18,
+                  "client_recent_max_input_buffer": 2,
+                  "client_recent_max_output_buffer": 0,
+                  "blocked_clients": 0,
+                  "used_memory": 1309488,
+                  "used_memory_human": "1.25M"
+                  "used_memory_rss": 5541888,
+                  "used_memory_rss_human": "5.29M"
+                  "used_memory_peak": 1410464,
+                  "used_memory_peak_human": "1.35M"
+                  "used_memory_peak_perc": "92.84%"
+                  "used_memory_overhead": 1200800,
+                  "used_memory_startup": 796232,
+                  "used_memory_dataset": 108688,
+                  "used_memory_dataset_perc": "21.18%"
+                  "allocator_allocated": 1480176,
+                  "allocator_active": 1896448,
+                  "allocator_resident": 5890048,
+                  "total_system_memory": 33406590976,
+                  "total_system_memory_human": "31.11G"
+                  "used_memory_lua": 41984,
+                  "used_memory_lua_human": "41.00K"
+                  "used_memory_scripts": 0,
+                  "used_memory_scripts_human": "0B"
+                  "number_of_cached_scripts": 0,
+                  "maxmemory": 0,
+                  "maxmemory_human": "0B"
+                  "maxmemory_policy": "noeviction"
+                  "allocator_frag_ratio": 1.28,
+                  "allocator_frag_bytes": 416272,
+                  "allocator_rss_ratio": 3.11,
+                  "allocator_rss_bytes": 3993600,
+                  "rss_overhead_ratio": 0.94,
+                  "rss_overhead_bytes": -348160,
+                  "mem_fragmentation_ratio": 4.24,
+                  "mem_fragmentation_bytes": 4233432,
+                  "mem_not_counted_for_evict": 0,
+                  "mem_replication_backlog": 0,
+                  "mem_clients_slaves": 0,
+                  "mem_clients_normal": 402912,
+                  "mem_aof_buffer": 0,
+                  "mem_allocator": "jemalloc-5.2.1"
+                  "active_defrag_running": 0,
+                  "lazyfree_pending_objects": 0,
+                  "loading": 0,
+                  "rdb_changes_since_last_save": 0,
+                  "rdb_bgsave_in_progress": 0,
+                  "rdb_last_save_time": 1620977919,
+                  "rdb_last_bgsave_status": "ok"
+                  "rdb_last_bgsave_time_sec": 0,
+                  "rdb_current_bgsave_time_sec": -1,
+                  "rdb_last_cow_size": 446464,
+                  "aof_enabled": 0,
+                  "aof_rewrite_in_progress": 0,
+                  "aof_rewrite_scheduled": 0,
+                  "aof_last_rewrite_time_sec": -1,
+                  "aof_current_rewrite_time_sec": -1,
+                  "aof_last_bgrewrite_status": "ok"
+                  "aof_last_write_status": "ok"
+                  "aof_last_cow_size": 0,
+                  "total_connections_received": 289,
+                  "total_commands_processed": 252747,
+                  "instantaneous_ops_per_sec": 7,
+                  "total_net_input_bytes": 12111506,
+                  "total_net_output_bytes": 1232466,
+                  "instantaneous_input_kbps": 0.36,
+                  "instantaneous_output_kbps": 0.03,
+                  "rejected_connections": 0,
+                  "sync_full": 0,
+                  "sync_partial_ok": 0,
+                  "sync_partial_err": 0,
+                  "expired_keys": 17,
+                  "expired_stale_perc": 0,
+                  "expired_time_cap_reached_count": 0,
+                  "evicted_keys": 0,
+                  "keyspace_hits": 70,
+                  "keyspace_misses": 62805,
+                  "pubsub_channels": 0,
+                  "pubsub_patterns": 0,
+                  "latest_fork_usec": 168,
+                  "migrate_cached_sockets": 0,
+                  "slave_expires_tracked_keys": 0,
+                  "active_defrag_hits": 0,
+                  "active_defrag_misses": 0,
+                  "active_defrag_key_hits": 0,
+                  "active_defrag_key_misses": 0,
+                  "role": "master"
+                  "connected_slaves": 0,
+                  "master_replid": "d5e7afcf4fd1a31e539a4eadd5caf2a7da6d121c"
+                  "master_replid2": 0,
+                  "master_repl_offset": 0,
+                  "second_repl_offset": -1,
+                  "repl_backlog_active": 0,
+                  "repl_backlog_size": 1048576,
+                  "repl_backlog_first_byte_offset": 0,
+                  "repl_backlog_histlen": 0,
+                  "used_cpu_sys": 195.014281,
+                  "used_cpu_user": 217.352183,
+                  "used_cpu_sys_children": 0.050885,
+                  "used_cpu_user_children": 0.076436,
+                  "cluster_enabled": 0,
+                  "db0": "keys=15,expires=0,avg_ttl=0"
+                  "db13": "keys=12,expires=4,avg_ttl=21265731140"
+              finalSettings:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MispSetting"
+              extensions:
+                type: object
+                properties:
+                  cli:
+                    type: object
+                    properties:
+                      phpversion:
+                        type: string
+                        example: "7.4.3"
+                  extensions:
+                    type: object
+                    example:
+                      "json":
+                        "web_version": "7.4.3"
+                        "web_version_outdated": false
+                        "cli_version": "7.4.3"
+                        "cli_version_outdated": false
+                        "required": true
+                        "info": null
+              workers:
+                type: object
+                properties:
+                  cache:
+                    $ref: "#/components/schemas/WorkersStatus"
+                  default:
+                    $ref: "#/components/schemas/WorkersStatus"
+                  email:
+                    $ref: "#/components/schemas/WorkersStatus"
+                  prio:
+                    $ref: "#/components/schemas/WorkersStatus"
+                  update:
+                    $ref: "#/components/schemas/WorkersStatus"
+                  scheduler:
+                    $ref: "#/components/schemas/WorkersStatus"
+                  proc_accessible:
+                    type: boolean
+                  controls:
+                    type: boolean
 
     ApiErrorResponse:
       description: "Unexpected API error"
