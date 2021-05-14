@@ -1,19 +1,24 @@
-<div class="allowedlist form">
-<?php echo $this->Form->create('Allowedlist');?>
-    <fieldset>
-        <legend><?php echo __('Add Signature Allowedlist');?></legend>
-    <?php
-        echo $this->Form->input('name', array(
-            'class' => 'input-xxlarge'
-        ));
-
-    ?>
-    </fieldset>
 <?php
-echo $this->Form->button(__('Add'), array('class' => 'btn btn-primary'));
-echo $this->Form->end();
+    $modelForForm = 'Allowedlist';
+    echo $this->element('genericElements/Form/genericForm', [
+        'form' => $this->Form,
+        'data' => [
+            'title' => $action == 'add' ? __('Add Signature Allowedlist') : __('Edit Signature Allowedlist'),
+            'model' => $modelForForm,
+            'fields' => [
+                [
+                    'field' => 'name',
+                    'class' => 'input-xxlarge',
+                ],
+            ],
+            'submit' => [
+                'action' => $this->request->params['action'],
+            ],
+        ]
+    ]);
 ?>
-</div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'allowedlist', 'menuItem' => 'add'));
+if (empty($ajax)) {
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'allowedlist', 'menuItem' => $action));
+}
 ?>

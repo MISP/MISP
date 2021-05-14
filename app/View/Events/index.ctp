@@ -30,6 +30,7 @@
             'sightings' => __('Sightings'),
             'proposals' => __('Proposals'),
             'discussion' => __('Posts'),
+            'report_count' => __('Report count')
         ];
 
         $columnsMenu = [];

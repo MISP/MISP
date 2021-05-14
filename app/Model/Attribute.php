@@ -23,6 +23,7 @@ class Attribute extends AppModel
     public $name = 'Attribute';             // TODO general
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',

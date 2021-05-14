@@ -5,7 +5,9 @@ App::uses('TmpFileTool', 'Tools');
 
 class Feed extends AppModel
 {
-    public $actsAs = array('SysLogLogable.SysLogLogable' => array(
+    public $actsAs = array(
+        'AuditLog',
+        'SysLogLogable.SysLogLogable' => array(
             'change' => 'full'
         ),
         'Trim',
@@ -548,7 +550,16 @@ class Feed extends AppModel
         return $sources;
     }
 
-    public function downloadFromFeed($actions, $feed, HttpSocket $HttpSocket = null, $user, $jobId = false)
+    /**
+     * @param array $actions
+     * @param array $feed
+     * @param HttpSocket|null $HttpSocket
+     * @param array $user
+     * @param int|false $jobId
+     * @return array
+     * @throws Exception
+     */
+    private function downloadFromFeed(array $actions, array $feed, HttpSocket $HttpSocket = null, array $user, $jobId = false)
     {
         $total = count($actions['add']) + count($actions['edit']);
         $currentItem = 0;
@@ -559,10 +570,12 @@ class Feed extends AppModel
         foreach ($actions['add'] as $uuid) {
             try {
                 $result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
-                if ($result !== 'blocked') {
+                if ($result === true) {
                     $results['add']['success'] = $uuid;
+                } else if ($result !== 'blocked') {
+                    $results['add']['fail'] = ['uuid' => $uuid, 'reason' => $result];
+                    $this->log("Could not add event '$uuid' from feed {$feed['Feed']['id']}: $result", LOG_WARNING);
                 }
-
             } catch (Exception $e) {
                 $this->logException("Could not add event '$uuid' from feed {$feed['Feed']['id']}.", $e);
                 $results['add']['fail'] = array('uuid' => $uuid, 'reason' => $e->getMessage());
@@ -577,8 +590,11 @@ class Feed extends AppModel
             $uuid = $editTarget['uuid'];
             try {
                 $result = $this->__updateEventFromFeed($HttpSocket, $feed, $uuid, $editTarget['id'], $user, $filterRules);
-                if ($result !== 'blocked') {
-                    $results['edit']['success'] = $uuid;
+                if ($result === true) {
+                    $results['add']['success'] = $uuid;
+                } else if ($result !== 'blocked') {
+                    $results['add']['fail'] = ['uuid' => $uuid, 'reason' => $result];
+                    $this->log("Could not edit event '$uuid' from feed {$feed['Feed']['id']}: $result", LOG_WARNING);
                 }
             } catch (Exception $e) {
                 $this->logException("Could not edit event '$uuid' from feed {$feed['Feed']['id']}.", $e);
@@ -586,7 +602,7 @@ class Feed extends AppModel
             }
 
             $this->__cleanupFile($feed, '/' . $uuid . '.json');
-            if ($currentItem % 10 == 0) {
+            if ($currentItem % 10 === 0) {
                 $this->jobProgress($jobId, null, 100 * (($currentItem + 1) / $total));
             }
             $currentItem++;
@@ -869,7 +885,7 @@ class Feed extends AppModel
      * @param HttpSocket|null $HttpSocket
      * @param array $feed
      * @param string $uuid
-     * @param $user
+     * @param array $user
      * @param array|bool $filterRules
      * @return array|bool|string
      * @throws Exception
@@ -879,7 +895,6 @@ class Feed extends AppModel
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         $event = $this->__prepareEvent($event, $feed, $filterRules);
         if (is_array($event)) {
-            $this->Event = ClassRegistry::init('Event');
             return $this->Event->_add($event, true, $user);
         } else {
             return $event;
@@ -937,13 +952,13 @@ class Feed extends AppModel
         }
 
         $HttpSocket = $this->isFeedLocal($this->data) ? null : $this->__setupHttpSocket($this->data);
-        if ($this->data['Feed']['source_format'] == 'misp') {
+        if ($this->data['Feed']['source_format'] === 'misp') {
             $this->jobProgress($jobId, 'Fetching event manifest.');
             try {
                 $actions = $this->getNewEventUuids($this->data, $HttpSocket);
             } catch (Exception $e) {
                 $this->logException("Could not get new event uuids for feed $feedId.", $e);
-                $this->jobProgress($jobId, 'Could not fetch event manifest. See log for more details.');
+                $this->jobProgress($jobId, 'Could not fetch event manifest. See error log for more details.');
                 return false;
             }
 
@@ -952,7 +967,7 @@ class Feed extends AppModel
             }
 
             $total = count($actions['add']) + count($actions['edit']);
-            $this->jobProgress($jobId, "Fetching $total events.");
+            $this->jobProgress($jobId, __("Fetching %s events.", $total));
             $result = $this->downloadFromFeed($actions, $this->data, $HttpSocket, $user, $jobId);
             $this->__cleanupFile($this->data, '/manifest.json');
         } else {

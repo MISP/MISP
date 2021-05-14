@@ -11,6 +11,7 @@ class Taxonomy extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
             'Containable',
     );
 

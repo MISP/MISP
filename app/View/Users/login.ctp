@@ -19,7 +19,7 @@
         <?php if (Configure::read('MISP.main_logo') && file_exists(APP . '/webroot/img/custom/' . Configure::read('MISP.main_logo'))): ?>
             <img src="<?php echo $baseurl?>/img/custom/<?php echo h(Configure::read('MISP.main_logo'));?>" style=" display:block; margin-left: auto; margin-right: auto;" />
         <?php else: ?>
-            <img src="<?php echo $baseurl?>/img/misp-logo.png" style="display:block; margin-left: auto; margin-right: auto;"/>
+            <img src="<?php echo $baseurl?>/img/misp-birthday-logo.svg" style="display:block; margin-left: auto; margin-right: auto;"/>
         <?php endif;?>
         </div>
         <?php
@@ -59,7 +59,7 @@
             }
             if (Configure::read('AadAuth') == true) {
                 echo '<div class="clear"></div><a class="btn btn-info" href="/users/login?AzureAD=enable">Login with AzureAD</a>';
-            }            
+            }
         ?>
     </td>
     <td style="width:250px;padding-left:50px">

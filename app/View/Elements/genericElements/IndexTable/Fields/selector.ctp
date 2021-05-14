@@ -13,7 +13,7 @@
         }
     }
     echo sprintf(
-        '<input class="select_attribute select" type="checkbox" data-rowid="%s" %s>',
+        '<input class="select_attribute select" ondblclick="event.stopPropagation();" type="checkbox" data-rowid="%s" %s>',
         h($k),
         empty($data) ? '' : implode(' ', $data)
     );

@@ -8,6 +8,7 @@ App::uses('AppModel', 'Model');
 class Post extends AppModel
 {
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'Post',
