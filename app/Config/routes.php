@@ -28,7 +28,7 @@
 	Router::connect('/', array('controller' => 'events', 'action' => 'index'));
 
 	// admin Paginator
-	Router::connect('/whitelists/admin_index/*', array('controller' => 'whitelists', 'action' => 'index', 'admin' => true));
+	Router::connect('/allowedlists/admin_index/*', array('controller' => 'allowedlists', 'action' => 'index', 'admin' => true));
 	Router::connect('/users/admin_index/*', array('controller' => 'users', 'action' => 'index', 'admin' => true));
 	Router::connect('/roles/admin_index/*', array('controller' => 'roles', 'action' => 'index', 'admin' => true));
 	Router::connect('/logs/admin_search/*', array('controller' => 'logs', 'action' => 'search', 'admin' => true));
