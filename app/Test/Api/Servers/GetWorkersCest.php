@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 use \Helper\Fixture\Data\UserFixture;
 
-class GetServerSettingsCest
+class GetWorkersCest
 {
 
-    private const URL = '/servers/serverSettings';
+    private const URL = '/servers/getWorkers';
 
-    public function testGetServerSettingsReturnsForbiddenWithoutAuthKey(ApiTester $I): void
+    public function testGetWorkersReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $I->sendGet(self::URL);
 
@@ -20,7 +20,7 @@ class GetServerSettingsCest
         $I->seeResponseIsJson();
     }
 
-    public function testGetServerSettings(ApiTester $I): void
+    public function testGetWorkers(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;
