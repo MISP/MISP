@@ -1038,6 +1038,38 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /servers/getVersion:
+    get:
+      summary: "Get current instance version."
+      operationId: getServerVersion
+      tags:
+        - Servers
+      responses:
+        "200":
+          $ref: "#/components/responses/ServerVersionResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /servers/getPyMISPVersion:
+    get:
+      summary: "Get current instance PyMISP version."
+      operationId: getPyMISPVersion
+      tags:
+        - Servers
+      responses:
+        "200":
+          $ref: "#/components/responses/ServerPyMISPVersionResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /servers/serverSettings:
     get:
       summary: "Get current instance settings and diagnostics."
@@ -1047,6 +1079,22 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/ServerSettingsResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /servers/getWorkers:
+    get:
+      summary: "Get workers."
+      operationId: getWorkers
+      tags:
+        - Servers
+      responses:
+        "200":
+          $ref: "#/components/responses/GetWorkersResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
@@ -1090,15 +1138,47 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /servers/getWorkers:
-    get:
-      summary: "Get workers."
-      operationId: getWorkers
+  /servers/killAllWorkers:
+    post:
+      summary: "Kill all workers"
+      operationId: killAllWorkers
       tags:
         - Servers
       responses:
         "200":
-          $ref: "#/components/responses/GetWorkersResponse"
+          $ref: "#/components/responses/KillAllWorkersResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /servers/restartWorkers:
+    post:
+      summary: "Restart workers"
+      operationId: restartWorkers
+      tags:
+        - Servers
+      responses:
+        "200":
+          $ref: "#/components/responses/RestartWorkersResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /servers/restartDeadWorkers:
+    post:
+      summary: "Restart deadworkers"
+      operationId: restartDeadWorkers
+      tags:
+        - Servers
+      responses:
+        "200":
+          $ref: "#/components/responses/RestartDeadWorkersResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
@@ -4243,6 +4323,41 @@ components:
                 type: string
                 example: "/servers/push/1"
 
+    ServerVersionResponse:
+      description: "Server version"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              version:
+                type: string
+                example: "2.4.142"
+              perm_sync:
+                type: boolean
+              perm_sighting:
+                type: boolean
+              perm_galaxy_editor:
+                type: boolean
+              request_encoding:
+                type: array
+                items:
+                  type: string
+                  enum:
+                    - "gzip"
+                    - "br"
+
+    ServerPyMISPVersionResponse:
+      description: "Server PyMISP version"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              version:
+                type: string
+                example: "2.4.142"
+
     ServerSettingsResponse:
       description: "Server settings and diagnostics"
       content:
@@ -4591,6 +4706,69 @@ components:
               url:
                 type: string
                 example: "/servers/startWorker/1234"
+
+    KillAllWorkersResponse:
+      description: "Kill all workers response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "Killing workers."
+              message:
+                type: string
+                example: "Killing workers."
+              url:
+                type: string
+                example: "/servers/killAllWorkers"
+
+    RestartWorkersResponse:
+      description: "Restart workers response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "Restarting workers."
+              message:
+                type: string
+                example: "Restarting workers."
+              url:
+                type: string
+                example: "/servers/restartWorkers"
+
+    RestartDeadWorkersResponse:
+      description: "Restart dead workers response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "Restarting workers."
+              message:
+                type: string
+                example: "Restarting workers."
+              url:
+                type: string
+                example: "/servers/restartDeadWorkers"
 
     GetWorkersResponse:
       description: "Stop worker response"

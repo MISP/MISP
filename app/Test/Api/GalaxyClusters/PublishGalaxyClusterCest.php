@@ -50,7 +50,7 @@ class PublishGalaxyClusterCest
 
         $I->seeResponseCodeIs(200);
         $I->seeResponseMatchesJsonType([
-            'message' => 'string:regex(/Publish job queued. Job ID: [\w]{32}/)'
+            'message' => 'string:regex(/^Publish job queued. Job ID: [\w]{32}$/)'
         ]);
     }
 }
