@@ -1186,6 +1186,70 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /servers/update:
+    post:
+      summary: "Update server."
+      operationId: updateServer
+      tags:
+        - Servers
+      responses:
+        "200":
+          $ref: "#/components/responses/UpdateServerResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /servers/cache:
+    post:
+      summary: "Cache server."
+      operationId: cacheServer
+      tags:
+        - Servers
+      responses:
+        "200":
+          $ref: "#/components/responses/CacheServerResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /servers/createSync:
+    post:
+      summary: "Create sync."
+      operationId: createSync
+      tags:
+        - Servers
+      responses:
+        "200":
+          $ref: "#/components/responses/CreateSyncResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /servers/getInstanceUUID:
+    get:
+      summary: "Get instance UUID."
+      operationId: "Get instance UUID"
+      tags:
+        - Servers
+      responses:
+        "200":
+          $ref: "#/components/responses/GetInstanceUUIDResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /servers/getSetting/{settingName}:
     get:
       summary: "Get setting by name."
@@ -1196,7 +1260,7 @@ paths:
         - $ref: "#/components/parameters/settingNameParameter"
       responses:
         "200":
-          $ref: "#/components/responses/GetSettingResponse"
+          $ref: "#/components/responses/GetServerSettingResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
@@ -1207,16 +1271,16 @@ paths:
   /servers/serverSettingsEdit/{settingName}:
     post:
       summary: "Edit setting."
-      operationId: "edit setting."
+      operationId: editSetting
       tags:
         - Servers
       parameters:
         - $ref: "#/components/parameters/settingNameParameter"
       requestBody:
-        $ref: "#/components/requestBodies/EditSettingRequest"
+        $ref: "#/components/requestBodies/EditServerSettingRequest"
       responses:
         "200":
-          $ref: "#/components/responses/EditSettingResponse"
+          $ref: "#/components/responses/EditServerSettingResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
@@ -2447,6 +2511,162 @@ components:
       items:
         $ref: "#/components/schemas/ServerListItem"
 
+    PhpServerSetting:
+      type: object
+      properties:
+        explanation:
+          type: string
+          example: "The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports"
+        recommended:
+          anyOf:
+            - type: integer
+              example: 300
+            - type: string
+        unit:
+          type: string
+          example: "seconds"
+        value:
+          anyOf:
+            - type: integer
+              example: 300
+            - type: string
+
+    ServerPackageVersion:
+      type: object
+      properties:
+        version:
+          type: string
+          example: "1.2.0.11"
+        expected:
+          type: string
+          example: ">1.2.0.9"
+        status:
+          type: integer
+          example: 1
+
+    DatabaseTableDiagnostics:
+      type: object
+      properties:
+        used:
+          type: string
+          example: "207.63MB"
+        reclaimable:
+          type: string
+          example: "5MB"
+        table:
+          type: string
+          example: "attributes"
+
+    MispSetting:
+      type: object
+      properties:
+        level:
+          type: integer
+          example: 0
+        value:
+          anyOf:
+            - type: string
+            - type: boolean
+            - type: number
+        errorMessage:
+          type: string
+          nullable: true
+          example: "The currently set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address)."
+        test:
+          nullable: true
+          anyOf:
+            - type: string
+              example: "testBaseURL"
+            - type: boolean
+        type:
+          type: string
+          example: "string"
+          enum:
+            - "string"
+            - "boolean"
+            - "numeric"
+        "null":
+          type: boolean
+          nullable: true
+        subGroup:
+          type: string
+          nullable: true
+          example: "Enrichment"
+        cli_only:
+          type: integer
+          nullable: true
+          example: 1
+        redacted:
+          type: boolean
+          nullable: true
+        optionsSource:
+          type: object
+          nullable: true
+        afterHook:
+          type: string
+          nullable: true
+          example: "cleanCacheFiles"
+        error:
+          type: integer
+          nullable: true
+          example: 1
+        tab:
+          type: string
+          example: "MISP"
+        setting:
+          type: string
+          example: "MISP.baseurl"
+        options:
+          nullable: true
+          anyOf:
+            - type: object
+            - type: array
+
+    Worker:
+      type: object
+      properties:
+        pid:
+          type: integer
+          example: 1233
+        user:
+          type: string
+          example: "www-data"
+        alive:
+          type: boolean
+        correct_user:
+          type: boolean
+        ok:
+          type: boolean
+
+    WorkersStatus:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        workers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Worker"
+        jobCount:
+          type: integer
+          nullable: true
+          example: 0
+
+    UpdateServerResultItem:
+      type: object
+      properties:
+        input:
+          type: string
+          example: "cd $(git rev-parse --show-toplevel) && git checkout app\/composer.json 2>&1"
+        output:
+          type: array
+          items:
+            type: string
+            example: "Updated 1 path from the index"
+        status:
+          type: integer
+          example: 0
+
     # Roles
     RoleId:
       type: string
@@ -2775,147 +2995,6 @@ components:
       nullable: true
       type: string
       example: "filepath"
-
-    PhpServerSetting:
-      type: object
-      properties:
-        explanation:
-          type: string
-          example: "The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports"
-        recommended:
-          anyOf:
-            - type: integer
-              example: 300
-            - type: string
-        unit:
-          type: string
-          example: "seconds"
-        value:
-          anyOf:
-            - type: integer
-              example: 300
-            - type: string
-
-    ServerPackageVersion:
-      type: object
-      properties:
-        version:
-          type: string
-          example: "1.2.0.11"
-        expected:
-          type: string
-          example: ">1.2.0.9"
-        status:
-          type: integer
-          example: 1
-
-    DatabaseTableDiagnostics:
-      type: object
-      properties:
-        used:
-          type: string
-          example: "207.63MB"
-        reclaimable:
-          type: string
-          example: "5MB"
-        table:
-          type: string
-          example: "attributes"
-
-    MispSetting:
-      type: object
-      properties:
-        level:
-          type: integer
-          example: 0
-        value:
-          anyOf:
-            - type: string
-            - type: boolean
-            - type: number
-        errorMessage:
-          type: string
-          nullable: true
-          example: "The currently set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address)."
-        test:
-          nullable: true
-          anyOf:
-            - type: string
-              example: "testBaseURL"
-            - type: boolean
-        type:
-          type: string
-          example: "string"
-          enum:
-            - "string"
-            - "boolean"
-            - "numeric"
-        "null":
-          type: boolean
-          nullable: true
-        subGroup:
-          type: string
-          nullable: true
-          example: "Enrichment"
-        cli_only:
-          type: integer
-          nullable: true
-          example: 1
-        redacted:
-          type: boolean
-          nullable: true
-        optionsSource:
-          type: object
-          nullable: true
-        afterHook:
-          type: string
-          nullable: true
-          example: "cleanCacheFiles"
-        error:
-          type: integer
-          nullable: true
-          example: 1
-        tab:
-          type: string
-          example: "MISP"
-        setting:
-          type: string
-          example: "MISP.baseurl"
-        options:
-          nullable: true
-          anyOf:
-            - type: object
-            - type: array
-
-    Worker:
-      type: object
-      properties:
-        pid:
-          type: integer
-          example: 1233
-        user:
-          type: string
-          example: "www-data"
-        alive:
-          type: boolean
-        correct_user:
-          type: boolean
-        ok:
-          type: boolean
-
-    WorkersStatus:
-      type: object
-      properties:
-        ok:
-          type: boolean
-        workers:
-          type: array
-          items:
-            $ref: "#/components/schemas/Worker"
-        jobCount:
-          type: integer
-          nullable: true
-          example: 0
 
     ApiError:
       type: object
@@ -3643,7 +3722,7 @@ components:
                   type: string
                   format: hostname
 
-    EditSettingRequest:
+    EditServerSettingRequest:
       content:
         application/json:
           schema:
@@ -4794,14 +4873,88 @@ components:
               controls:
                 type: boolean
 
-    GetSettingResponse:
+    UpdateServerResponse:
+      description: "Update server response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              results:
+                type: array
+                items:
+                  anyOf:
+                    - $ref: "#/components/schemas/UpdateServerResultItem"
+                    - type: string
+                      example: "Update failed, you are not on branch"
+
+    CacheServerResponse:
+      description: "Cache server response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "Server caching job initiated."
+              message:
+                type: string
+                example: "Server caching job initiated."
+              url:
+                type: string
+                example: "/servers/cache"
+
+    CreateSyncResponse:
+      description: "Create server sync"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Server:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    example: "https://misppriv.circl.lu"
+                  uuid:
+                    $ref: "#/components/schemas/UUID"
+                  authkey:
+                    type: string
+                    minLength: 40
+                    maxLength: 40
+                    example: "894c8d095180c7ea28789092e96ca6424199aa4f"
+                  Organisation:
+                    type: object
+                    properties:
+                      name:
+                        $ref: "#/components/schemas/OrganisationName"
+                      uuid:
+                        $ref: "#/components/schemas/UUID"
+
+    GetInstanceUUIDResponse:
+      description: "Get instance UUID response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+
+    GetServerSettingResponse:
       description: "Get setting response"
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/MispSetting"
 
-    EditSettingResponse:
+    EditServerSettingResponse:
       description: "Edit setting response"
       content:
         application/json:

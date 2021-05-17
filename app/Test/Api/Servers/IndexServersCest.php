@@ -36,8 +36,8 @@ class IndexServersCest
 
         $I->sendGet(self::URL);
 
-        // $I->validateRequest();
-        // $I->validateResponse();
+        $I->validateRequest();
+        $I->validateResponse();
 
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson([['Server' => $fakeServer->toResponse()]]);
