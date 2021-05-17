@@ -2,7 +2,7 @@
 App::uses('AppModel', 'Model');
 class SharingGroupOrg extends AppModel
 {
-    public $actsAs = array('Containable');
+    public $actsAs = array('AuditLog', 'Containable');
 
     public $belongsTo = array(
             'SharingGroup' => array(

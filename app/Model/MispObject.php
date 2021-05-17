@@ -15,6 +15,7 @@ class MispObject extends AppModel
     public $useTable = 'objects';
 
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                 'userModel' => 'User',
@@ -85,7 +86,33 @@ class MispObject extends AppModel
                 'required' => false,
                 'message' => array('Last seen value should be greater than first seen value')
             ),
-        )
+        ),
+        'name' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            ),
+        ),
+        'meta-category' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            ),
+        ),
+        'description' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            ),
+        ),
+        'template_uuid' => array(
+            'uuid' => array(
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ),
+        ),
+        'template_version' => array(
+            'numeric' => array(
+                'rule' => 'naturalNumber',
+            )
+        ),
     );
 
     private $__objectDuplicationCheckCache = [];
@@ -200,7 +227,7 @@ class MispObject extends AppModel
              'first_seen' => $this->data['Object']['first_seen'],
              'last_seen' => $ls
          ]], 'Object');
-         if ($converted['Object']['first_seen'] >= $converted['Object']['last_seen']) {
+         if ($converted['Object']['first_seen'] > $converted['Object']['last_seen']) {
              return false;
          }
          return true;

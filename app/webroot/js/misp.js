@@ -914,6 +914,23 @@ function multiSelectToggleFeeds(on, cache) {
     }).fail(xhrFailCallback);
 }
 
+function multiSelectToggleField(scope, action, fieldName, enabled) {
+    var selected = [];
+    $(".select").each(function() {
+        if ($(this).is(":checked")) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    });
+    $.get(baseurl + "/" + scope + "/" + action + "/" + fieldName + "/" + enabled, function(data) {
+        $('body').append($('<div id="temp"/>').html(data));
+        $('#temp form #UserUserIds').val(JSON.stringify(selected));
+        $('#temp form')[0].submit();
+    }).fail(xhrFailCallback);
+}
+
 function multiSelectDeleteEventBlocklist(on, cache) {
     var selected = [];
     $(".select").each(function() {

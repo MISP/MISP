@@ -20,6 +20,7 @@ class ShadowAttribute extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
@@ -468,7 +469,7 @@ class ShadowAttribute extends AppModel
             'first_seen' => $this->data['ShadowAttribute']['first_seen'],
             'last_seen' => $ls
         ]], 'ShadowAttribute');
-        if ($converted['ShadowAttribute']['first_seen'] >= $converted['ShadowAttribute']['last_seen']) {
+        if ($converted['ShadowAttribute']['first_seen'] > $converted['ShadowAttribute']['last_seen']) {
             return false;
         }
         return true;

@@ -6,7 +6,7 @@ App::uses('AppModel', 'Model');
  */
 class EventTag extends AppModel
 {
-    public $actsAs = array('Containable');
+    public $actsAs = array('AuditLog', 'Containable');
 
     public $validate = array(
         'event_id' => array(

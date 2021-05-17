@@ -7,6 +7,7 @@ class TagCollectionTag extends AppModel
     public $useTable = 'tag_collection_tags';
 
     public $actsAs = array(
+        'AuditLog',
             'Trim',
             'SysLogLogable.SysLogLogable' => array(
                     'roleModel' => 'Role',

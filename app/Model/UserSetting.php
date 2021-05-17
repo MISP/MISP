@@ -7,6 +7,7 @@ class UserSetting extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
             'SysLogLogable.SysLogLogable' => array(
                     'userModel' => 'User',
                     'userKey' => 'user_id',
