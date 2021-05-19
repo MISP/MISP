@@ -5,14 +5,15 @@ declare(strict_types=1);
 use \Helper\Fixture\Data\SharingGroupFixture;
 use \Helper\Fixture\Data\UserFixture;
 
-class IndexSharingGroupsCest
+class ViewSharingGroupsCest
 {
 
-    private const URL = '/sharing_groups';
+    private const URL = '/sharing_groups/view/%s';
 
     public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
-        $I->sendGet(self::URL);
+        $sharingGroupId = 1;
+        $I->sendGet(sprintf(self::URL, $sharingGroupId));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -36,16 +37,12 @@ class IndexSharingGroupsCest
         );
         $I->haveInDatabase('sharing_groups', $fakeSharingGroup->toDatabase());
 
-        $I->sendGet(self::URL);
+        $I->sendGet(sprintf(self::URL, $sharingGroupId));
 
         $I->validateRequest();
         $I->validateResponse();
 
         $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson([
-            'response' => [
-                ['SharingGroup' => $fakeSharingGroup->toSlimResponse()]
-            ]
-        ]);
+        $I->seeResponseContainsJson(['SharingGroup' => $fakeSharingGroup->toResponse()]);
     }
 }

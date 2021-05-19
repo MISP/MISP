@@ -26,8 +26,8 @@ class SharingGroupFixture extends AbstractFixture implements FixtureInterface
             'org_id' => (string)$faker->numberBetween(),
             'sync_user_id' => (string)$faker->numberBetween(),
             'active' => true,
-            'created' => $faker->date('Y-m-d'),
-            'modified' => $faker->date('Y-m-d'),
+            'created' => $faker->date('Y-m-d h:i:s', 'now'),
+            'modified' => $faker->date('Y-m-d h:i:s', 'now'),
             'local' => true,
             'roaming' => false
         ];
@@ -35,7 +35,7 @@ class SharingGroupFixture extends AbstractFixture implements FixtureInterface
         return new SharingGroupFixture(array_merge($defaults, $attributes));
     }
 
-    public function toResponse(): array
+    public function toSlimResponse(): array
     {
         $response = parent::toResponse();
 
