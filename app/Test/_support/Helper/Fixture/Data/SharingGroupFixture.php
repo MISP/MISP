@@ -50,4 +50,13 @@ class SharingGroupFixture extends AbstractFixture implements FixtureInterface
 
         return $response;
     }
+
+    public function toRequest(): array
+    {
+        $request = parent::toRequest();
+
+        unset($request['modified']);
+
+        return $request;
+    }
 }

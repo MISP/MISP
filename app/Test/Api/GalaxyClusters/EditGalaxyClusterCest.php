@@ -13,7 +13,7 @@ class EditGalaxyClusterCest
 
     public function testEditReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
-        $I->sendPost(sprintf(self::URL, 1));
+        $I->sendPut(sprintf(self::URL, 1));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -46,7 +46,7 @@ class EditGalaxyClusterCest
 
         $fakeGalaxyCluster->set(['value' => 'bar']);
 
-        $I->sendPost(sprintf(self::URL, $galaxyClusterId), $fakeGalaxyCluster->toRequest());
+        $I->sendPut(sprintf(self::URL, $galaxyClusterId), $fakeGalaxyCluster->toRequest());
 
         $fakeGalaxyCluster->set([
             'version' => $I->grabDataFromResponseByJsonPath('$..GalaxyCluster.version')[0],

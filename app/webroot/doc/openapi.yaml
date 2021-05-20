@@ -611,7 +611,7 @@ paths:
           $ref: "#/components/responses/ApiErrorResponse"
 
   /galaxy_clusters/edit/{galaxyClusterId}:
-    post:
+    put:
       summary: "Edit galaxy cluster."
       operationId: editGalaxyCluster
       tags:
@@ -1303,6 +1303,44 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/ServerResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /sharing_groups/add:
+    post:
+      summary: "Add a sharing group"
+      operationId: addSharingGroup
+      tags:
+        - Sharing Groups
+      requestBody:
+        $ref: "#/components/requestBodies/AddSharingGroupRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/SharingGroupResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /sharing_groups/edit/{sharingGroupId}:
+    post:
+      summary: "Edit a sharing group"
+      operationId: editSharingGroup
+      tags:
+        - Sharing Groups
+      parameters:
+        - $ref: "#/components/parameters/sharingGroupIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/EditSharingGroupRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/SharingGroupResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
@@ -2834,7 +2872,7 @@ components:
       type: string
       maxLength: 65535
 
-    SlimSharingGroup:
+    SlimSharingGroupNoId:
       type: object
       properties:
         id:
@@ -2856,9 +2894,17 @@ components:
           format: int32
           example: "6"
 
-    SharingGroup:
+    SlimSharingGroup:
       allOf:
-        - $ref: "#/components/schemas/SlimSharingGroup"
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/SharingGroupId"
+        - $ref: "#/components/schemas/SlimSharingGroupNoId"
+
+    SharingGroupNoId:
+      allOf:
+        - $ref: "#/components/schemas/SlimSharingGroupNoId"
         - type: object
           properties:
             organisation_uuid:
@@ -2875,6 +2921,14 @@ components:
               format: datetime
             roaming:
               type: boolean
+
+    SharingGroup:
+      allOf:
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/SharingGroupId"
+        - $ref: "#/components/schemas/SharingGroupNoId"
 
     SharingGroupOrganisation:
       type: object
@@ -3952,6 +4006,18 @@ components:
                 properties:
                   name:
                     $ref: "#/components/schemas/OrganisationName"
+
+    AddSharingGroupRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SharingGroupNoId"
+
+    EditSharingGroupRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SharingGroup"
 
   responses:
     AttributeResponse:

@@ -5,15 +5,15 @@ declare(strict_types=1);
 use \Helper\Fixture\Data\SharingGroupFixture;
 use \Helper\Fixture\Data\UserFixture;
 
-class ViewSharingGroupsCest
+class EditSharingGroupCest
 {
 
-    private const URL = '/sharing_groups/view/%s';
+    private const URL = '/sharing_groups/edit/%s';
 
-    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
+    public function testEditReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $sharingGroupId = 1;
-        $I->sendGet(sprintf(self::URL, $sharingGroupId));
+        $I->sendPost(sprintf(self::URL, $sharingGroupId));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -22,7 +22,7 @@ class ViewSharingGroupsCest
         $I->seeResponseIsJson();
     }
 
-    public function testViewReturnsExpectedSharingGroup(ApiTester $I): void
+    public function testEdit(ApiTester $I): void
     {
         $orgId = 1;
         $sharingGroupId = 1;
@@ -37,12 +37,21 @@ class ViewSharingGroupsCest
         );
         $I->haveInDatabase('sharing_groups', $fakeSharingGroup->toDatabase());
 
-        $I->sendGet(sprintf(self::URL, $sharingGroupId));
+        $fakeSharingGroup->set([
+            'name' => 'foobar',
+        ]);
+
+        $I->sendPost(sprintf(self::URL, $sharingGroupId), $fakeSharingGroup->toRequest());
 
         $I->validateRequest();
         $I->validateResponse();
 
+        $fakeSharingGroup->set([
+            'modified' => $I->grabDataFromResponseByJsonPath('$..SharingGroup.modified')[0],
+        ]);
+
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson(['SharingGroup' => $fakeSharingGroup->toResponse()]);
+        $I->seeInDatabase('sharing_groups', $fakeSharingGroup->toDatabase());
     }
 }
