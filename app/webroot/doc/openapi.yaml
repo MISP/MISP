@@ -80,6 +80,10 @@ tags:
     description: "Sharing groups in MISP are a more granular way to create re-usable distribution lists for events/attributes that allow users to include organisations from their own instance (local organisations) as well as organisations from directly, or indirectly connected instances (external organisations)."
     externalDocs:
       url: https://www.circl.lu/doc/misp/sharing/#sharing-groups
+  - name: Feeds
+    description: "Feeds are remote or local resources containing indicators that can be automatically imported into MISP at regular intervals. Feeds can be structured in [MISP format](https://www.circl.lu/doc/misp/GLOSSARY.html#misp-format), CSV format or even free-text format."
+    externalDocs:
+      url: https://www.circl.lu/doc/misp/managing-feeds/#feeds
 
 paths:
   /attributes/add/{eventId}:
@@ -1476,6 +1480,22 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /feeds:
+    get:
+      summary: "Get a list of feeds"
+      operationId: getFeeds
+      tags:
+        - Feeds
+      responses:
+        "200":
+          $ref: "#/components/responses/FeedListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -2850,6 +2870,110 @@ components:
         status:
           type: integer
           example: 0
+
+    # Feeds
+    FeedId:
+      type: string
+      format: int32
+      maxLength: 10
+      example: "3"
+
+    FeedName:
+      type: string
+      maxLength: 255
+      example: "CIRCL OSINT Feed"
+
+    FeedNoId:
+      type: object
+      properties:
+        name:
+          $ref: "#/components/schemas/FeedName"
+        provider:
+          type: string
+          example: "CIRCL"
+        url:
+          type: string
+          example: "https://www.circl.lu/doc/misp/feed-osint"
+        rules:
+          description: "Stringified JSON filter rules."
+          type: string
+          nullable: true
+          example: '{"tags":{"OR":[],"NOT":[]},"orgs":{"OR":[],"NOT":[]},"url_params":""}'
+        enabled:
+          type: boolean
+        distribution:
+          $ref: "#/components/schemas/DistributionLevelId"
+        sharing_group_id:
+          $ref: "#/components/schemas/SharingGroupId"
+        tag_id:
+          $ref: "#/components/schemas/TagId"
+        default:
+          type: boolean
+        source_format:
+          type: string
+          enum:
+            - "misp"
+            - "csv"
+            - "freetext"
+          example: "misp"
+        fixed_event:
+          description: "target_event option might be considered"
+          type: boolean
+        delta_merge:
+          description: "Merge attributes (only add new attribute, remove revoked attributes)"
+          type: boolean
+        event_id:
+          $ref: "#/components/schemas/EventId"
+        publish:
+          description: "The event will be published"
+          type: boolean
+        override_ids:
+          description: "The IDS flags will be set to Off for this feed"
+          type: boolean
+        settings:
+          type: string
+          nullable: true
+          example: '{"csv":{"value":"","delimiter":""},"common":{"excluderegex":""}}'
+        input_source:
+          description: "Specify whether the source (url field) is a directory (local) or an genuine url (network)."
+          type: string
+          enum:
+            - "local"
+            - "network"
+          example: "network"
+        delete_local_file:
+          description: "Remove file after ingestion"
+          type: boolean
+        lookup_visible:
+          description: "The lookup will not be visible in the feed correlation"
+          type: boolean
+        headers:
+          description: "Headers to be passed with the requests. All separated by \n"
+          type: string
+          nullable: true
+          example: |
+            X-Custom-Header-A: Foo
+            X-Custom-Header-B: Bar
+        caching_enabled:
+          description: "The feed is cached"
+          type: boolean
+        force_to_ids:
+          description: "The IDS flags will be set to On for this feed"
+          type: boolean
+        orgc_id:
+          $ref: "#/components/schemas/OrganisationId"
+        cache_timestamp:
+          anyOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: boolean
+
+    Feed:
+      allOf:
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/FeedId"
+        - $ref: "#/components/schemas/FeedNoId"
 
     # Roles
     RoleId:
@@ -5490,6 +5614,18 @@ components:
               url:
                 type: string
                 example: "/sharing_groups/removeServer"
+
+    FeedListResponse:
+      description: "Get feeds response"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                Feed:
+                  $ref: "#/components/schemas/Feed"
 
     ApiErrorResponse:
       description: "Unexpected API error"
