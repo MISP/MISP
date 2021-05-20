@@ -28,6 +28,8 @@ suites:
                           - "TRUNCATE misp.jobs;"
                           - "TRUNCATE misp.servers;"
                           - "TRUNCATE misp.sharing_groups;"
+                          - "TRUNCATE misp.sharing_group_orgs;"
+                          - "TRUNCATE misp.sharing_group_servers;"
                 - \Helper\Module\MispSettings:
                       depends: Cli
                       docker: true
