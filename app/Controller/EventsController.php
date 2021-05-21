@@ -760,6 +760,7 @@ class EventsController extends AppController
                                 $events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']];
                             }
                         }
+                        $events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
                     }
                     $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false);
                 }
