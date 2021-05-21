@@ -814,7 +814,7 @@ class FeedsController extends AppController
                     $this->set($alias, $currentModel->{$variable});
                 }
             }
-            $this->set('threatLevels', $this->Event->ThreatLevel->list());
+            $this->set('threatLevels', $this->Event->ThreatLevel->find('list'));
         } else {
             if ($event === 'blocked') {
                 throw new MethodNotAllowedException(__('This event is blocked by the Feed filters.'));

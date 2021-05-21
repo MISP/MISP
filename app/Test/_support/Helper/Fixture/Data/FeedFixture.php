@@ -26,14 +26,14 @@ class FeedFixture extends AbstractFixture implements FixtureInterface
             'distribution' => '3',
             'sharing_group_id' => '0',
             'tag_id' => '0',
-            'default' => true,
-            'source_format' => 'misp',
+            'default' => false,
+            'source_format' => '1',
             'fixed_event' => false,
             'delta_merge' => false,
             'event_id' => '0',
             'publish' => false,
             'override_ids' => false,
-            'settings' => null,
+            'settings' => '[]',
             'input_source' => 'network',
             'delete_local_file' => false,
             'lookup_visible' => false,
@@ -44,5 +44,13 @@ class FeedFixture extends AbstractFixture implements FixtureInterface
         ];
 
         return new FeedFixture(array_merge($defaults, $attributes));
+    }
+
+    public function toRequest(): array
+    {
+        $request = parent::toRequest();
+        unset($request['settings']);
+
+        return $request;
     }
 }
