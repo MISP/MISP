@@ -1532,6 +1532,26 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /feeds/edit/{feedId}:
+    put:
+      summary: "Edit a feed"
+      operationId: editFeed
+      tags:
+        - Feeds
+      parameters:
+        - $ref: "#/components/parameters/feedIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/EditFeedRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/FeedResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -4336,6 +4356,57 @@ components:
           schema:
             type: object
             properties:
+              name:
+                $ref: "#/components/schemas/FeedName"
+              provider:
+                $ref: "#/components/schemas/FeedProvider"
+              url:
+                $ref: "#/components/schemas/FeedUrl"
+              rules:
+                $ref: "#/components/schemas/FeedRules"
+              enabled:
+                $ref: "#/components/schemas/FeedEnabledFlag"
+              distribution:
+                $ref: "#/components/schemas/DistributionLevelId"
+              sharing_group_id:
+                $ref: "#/components/schemas/SharingGroupId"
+              tag_id:
+                $ref: "#/components/schemas/TagId"
+              source_format:
+                $ref: "#/components/schemas/FeedSourceFormat"
+              fixed_event:
+                $ref: "#/components/schemas/FeedFixedEvent"
+              delta_merge:
+                $ref: "#/components/schemas/FeedDeltaMergeFlag"
+              event_id:
+                $ref: "#/components/schemas/EventId"
+              publish:
+                $ref: "#/components/schemas/PublishedFlag"
+              override_ids:
+                $ref: "#/components/schemas/FeedOverrideIDSFlag"
+              input_source:
+                $ref: "#/components/schemas/FeedInputSource"
+              delete_local_file:
+                $ref: "#/components/schemas/FeedDeleteLocalFileFlag"
+              lookup_visible:
+                $ref: "#/components/schemas/FeedLookupVisibleFlag"
+              headers:
+                $ref: "#/components/schemas/FeedHeaders"
+              caching_enabled:
+                $ref: "#/components/schemas/FeedCachingEnabledFlag"
+              force_to_ids:
+                $ref: "#/components/schemas/FeedForceToIDSFlag"
+              orgc_id:
+                $ref: "#/components/schemas/OrganisationId"
+
+    EditFeedRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                $ref: "#/components/schemas/FeedId"
               name:
                 $ref: "#/components/schemas/FeedName"
               provider:
