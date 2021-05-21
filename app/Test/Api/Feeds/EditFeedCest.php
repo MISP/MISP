@@ -58,5 +58,6 @@ class EditFeedCest
 
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson(['Feed' => $fakeFeed->toResponse()]);
+        $I->seeInDatabase('feeds', $fakeFeed->toDatabase());
     }
 }

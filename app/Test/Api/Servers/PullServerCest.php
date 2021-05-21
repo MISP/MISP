@@ -43,7 +43,8 @@ class PullServerCest
                 'id' => $serverId,
                 'org_id' => $orgId,
                 'remote_org_id' => $remoteOrgId,
-                'pull' => true
+                'pull' => true,
+                'url' => 'http://wiremock:8080'
             ]
         );
         $I->haveInDatabase('servers', $fakeServer->toDatabase());
@@ -130,9 +131,6 @@ class PullServerCest
         );
         $I->seeInDatabase('events', ['uuid' => $eventUuid]);
         $I->seeInDatabase('attributes', ['uuid' => $attributeUuid]);
-
-        // reset setting
-        $I->haveMispSetting('MISP.background_jobs', '1');
     }
 
     private function mockGetServerVersionRequest(WireMock $wiremock, string $version = '2.4'): void

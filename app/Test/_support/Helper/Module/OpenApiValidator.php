@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Helper\Module;
 
 use \League\OpenAPIValidation\PSR7\ValidatorBuilder;
+use \League\OpenAPIValidation\PSR7\RequestValidator;
+use \League\OpenAPIValidation\PSR7\ResponseValidator;
 use \League\OpenAPIValidation\PSR7\OperationAddress;
 use \Helper\Module\Api;
 
@@ -16,6 +18,12 @@ final class OpenApiValidator extends \Codeception\Module implements \Codeception
 
     /** @var ValidatorBuilder */
     private $validator;
+
+    /** @var RequestValidator */
+    private $requestValidator;
+
+    /** @var ResponseValidator */
+    private $responseValidator;
 
     /** @var Api */
     private $restModule;
@@ -34,6 +42,8 @@ final class OpenApiValidator extends \Codeception\Module implements \Codeception
     public function _initialize(): void
     {
         $this->validator = (new ValidatorBuilder)->fromYamlFile($this->config['openapi']);
+        $this->requestValidator = $this->validator->getRequestValidator();
+        $this->responseValidator = $this->validator->getResponseValidator();
     }
 
     /**
@@ -43,8 +53,7 @@ final class OpenApiValidator extends \Codeception\Module implements \Codeception
      */
     public function validateRequest(): void
     {
-        $requestValidator = $this->validator->getRequestValidator();
-        $requestValidator->validate($this->restModule->getRequest());
+        $this->requestValidator->validate($this->restModule->getRequest());
     }
 
     /**
@@ -55,7 +64,6 @@ final class OpenApiValidator extends \Codeception\Module implements \Codeception
     public function validateResponse(): void
     {
         $address = new OperationAddress($this->restModule->getUrl(), $this->restModule->getMethod());
-        $responseValidator = $this->validator->getResponseValidator();
-        $responseValidator->validate($address, $this->restModule->getResponse());
+        $this->responseValidator->validate($address, $this->restModule->getResponse());
     }
 }
