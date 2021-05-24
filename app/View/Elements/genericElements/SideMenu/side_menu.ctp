@@ -440,6 +440,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => '/eventReports/edit/' . h($id),
                             'text' => __('Edit Event Report')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/admin/audit_logs/index/model:EventReport/model_id:' .  h($id),
+                            'text' => __('View report history'),
+                            'requirement' => Configure::read('MISP.log_new_audit') && $canAccess('auditLogs', 'admin_index'),
+                        ));
                     }
                     break;
 
