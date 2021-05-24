@@ -648,55 +648,52 @@ class Server extends AppModel
     /**
      * fetchCustomClusterIdsFromServer Fetch custom-published remote clusters' UUIDs and versions
      *
-     * @param  array $server
-     * @param  mixed $HttpSocket
-     * @param  array $conditions
-     * @return mixed The list of clusters or the error
+     * @param array $server
+     * @param HttpSocketExtended|null $HttpSocket
+     * @param array $conditions
+     * @return array The list of clusters
+     * @throws JsonException|HttpSocketHttpException|HttpSocketJsonException
      */
-    public function fetchCustomClusterIdsFromServer(array $server, $HttpSocket=null, array $conditions=array())
+    private function fetchCustomClusterIdsFromServer(array $server, HttpSocketExtended $HttpSocket=null, array $conditions=array())
     {
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/galaxy_clusters/restSearch';
-        $filterRules['published'] = 1;
-        $filterRules['minimal'] = 1;
-        $filterRules['custom'] = 1;
+        $filterRules = [
+            'published' => 1,
+            'minimal' => 1,
+            'custom' => 1,
+        ];
         $filterRules = array_merge($filterRules, $conditions);
-        try {
-            $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
-            if ($response->isOk()) {
-                $clusterArray = json_decode($response->body, true);
-                if (isset($clusterArray['response'])) {
-                    $clusterArray = $clusterArray['response'];
-                }
-                return $clusterArray;
-            }
-
-            if ($response->code == '403') {
-                return 403;
-            }
-        } catch (SocketException $e) {
-            return $e->getMessage();
+        $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
+        if (!$response->isOk()) {
+            throw new HttpSocketHttpException($response);
         }
 
-        // error, so return error message, since that is handled and everything is expecting an array
-        return __('Error: got response code %s', $response->code);
+        $clusterArray = $response->json();
+        if (isset($clusterArray['response'])) {
+            $clusterArray = $clusterArray['response'];
+        }
+        return $clusterArray;
     }
 
     /**
      * getElligibleClusterIdsFromServerForPull Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
      *
-     * @param  array $server
-     * @param  mixed $HttpSocket
-     * @param  bool  $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
-     * @param  array $elligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
-     * @param  array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
+     * @param array $server
+     * @param mixed $HttpSocket
+     * @param bool $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
+     * @param array $elligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
+     * @param array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
      * @return array List of cluster IDs to be pulled
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws JsonException
      */
     public function getElligibleClusterIdsFromServerForPull(array $server, $HttpSocket=null, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket=null, $conditions=$conditions);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket, $conditions=$conditions);
         if (!empty($clusterArray)) {
             foreach ($clusterArray as $cluster) {
                 if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
@@ -717,10 +714,20 @@ class Server extends AppModel
         return $clusterArray;
     }
 
-    // Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed
-    public function getElligibleClusterIdsFromServerForPush($server, $HttpSocket=null, $localClusters=array(), $conditions=array())
+    /**
+     * Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed.
+     * @param array $server
+     * @param HttpSocket|null $HttpSocket
+     * @param array $localClusters
+     * @param array $conditions
+     * @return array
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws JsonException
+     */
+    public function getElligibleClusterIdsFromServerForPush(array $server, $HttpSocket=null, $localClusters=array(), $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket=null, $conditions=$conditions);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket, $conditions=$conditions);
         $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
         if (!empty($localClusters)) {
             foreach ($localClusters as $k => $localCluster) {
@@ -1153,8 +1160,13 @@ class Server extends AppModel
             }
         }
         $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
-        $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($server, $HttpSocket=$HttpSocket, $localClusters=$clusters, $conditions=array('uuid' => $localClusterUUIDs));
-        foreach ($clustersToPush as $k => $cluster) {
+        try {
+            $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($server, $HttpSocket = $HttpSocket, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
+        } catch (Exception $e) {
+            $this->logException("Could not get eligible cluster IDs from server #{$server['Server']['id']} for push.", $e);
+            return [];
+        }
+        foreach ($clustersToPush as $cluster) {
             $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $HttpSocket, $user);
             if ($result === 'Success') {
                 $successes[] = __('GalaxyCluster %s', $cluster['GalaxyCluster']['uuid']);
