@@ -25,6 +25,7 @@ class AuditLogsController extends AppController
         'CorrelationExclusion',
         'Event',
         'EventBlocklist',
+        'EventReport',
         'Feed',
         'DecayingModel',
         'Object',
