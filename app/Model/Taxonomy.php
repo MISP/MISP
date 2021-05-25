@@ -174,7 +174,7 @@ class Taxonomy extends AppModel
         $taxonomy = $this->find('first', [
             'recursive' => -1,
             'contain' => array('TaxonomyPredicate' => array('TaxonomyEntry')),
-            'conditions' => is_numeric($id) ? ['Taxonomy.id' => $id] : ['Taxonomy.namespace' => $id],
+            'conditions' => is_numeric($id) ? ['Taxonomy.id' => $id] : ['LOWER(Taxonomy.namespace)' => mb_strtolower($id)],
         ]);
         if (empty($taxonomy)) {
             return false;
@@ -324,11 +324,11 @@ class Taxonomy extends AppModel
      */
     public function getTaxonomy($id, $filter = null)
     {
-        $this->Tag = ClassRegistry::init('Tag');
         $taxonomy = $this->__getTaxonomy($id, $filter);
         if (empty($taxonomy)) {
             return false;
         }
+        $this->Tag = ClassRegistry::init('Tag');
         $tagNames = array_column($taxonomy['entries'], 'tag');
         $tags = $this->Tag->getTagsByName($tagNames, false);
         if (isset($taxonomy['entries'])) {
