@@ -5,14 +5,15 @@ declare(strict_types=1);
 use \Helper\Fixture\Data\UserFixture;
 use \Helper\Fixture\Data\FeedFixture;
 
-class CacheFeedsCest
+class FetchFromFeedCest
 {
 
-    private const URL = '/feeds/cacheFeeds/%s';
+    private const URL = '/feeds/fetchFromFeed/%s';
 
-    public function testCacheFeedsReturnsForbiddenWithoutAuthKey(ApiTester $I): void
+    public function testFetchFromFeedReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
-        $I->sendPost(sprintf(self::URL, 'all'));
+        $feedId = 1;
+        $I->sendPost(sprintf(self::URL, $feedId));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -21,7 +22,7 @@ class CacheFeedsCest
         $I->seeResponseIsJson();
     }
 
-    public function testCacheFeeds(ApiTester $I): void
+    public function testFetchFromFeed(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;
@@ -32,12 +33,12 @@ class CacheFeedsCest
             [
                 'id' => (string)$feedId,
                 'orgc_id' => (string)$orgId,
-                'enabled' => false
+                'enabled' => true
             ]
         );
         $I->haveInDatabase('feeds', $fakeFeed->toDatabase());
 
-        $I->sendPost(sprintf(self::URL, 'all'));
+        $I->sendPost(sprintf(self::URL, $feedId));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -45,14 +46,9 @@ class CacheFeedsCest
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson(
             [
-                'saved' => true,
-                'success' => true,
-                'name' => 'Feed caching job initiated.',
-                'message' => 'Feed caching job initiated.',
-                'url' => '/feeds/cacheFeed'
+                'result' => 'Pull queued for background execution.'
             ]
         );
-
-        // TODO: cache job created in Redis
+        // TODO: fetch feed job created in Redis
     }
 }
