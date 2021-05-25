@@ -62,8 +62,8 @@ class TaxonomiesController extends AppController
         $urlparams = '';
         $passedArgs = array();
         App::uses('CustomPaginationTool', 'Tools');
-        $filter = isset($this->passedArgs['filter']) ? $this->passedArgs['filter'] : false;
-        $taxonomy = $this->Taxonomy->getTaxonomy($id, array('full' => true, 'filter' => $filter));
+        $filter = isset($this->passedArgs['filter']) ? $this->passedArgs['filter'] : null;
+        $taxonomy = $this->Taxonomy->getTaxonomy($id, $filter);
         if (empty($taxonomy)) {
             throw new NotFoundException(__('Taxonomy not found.'));
         }
