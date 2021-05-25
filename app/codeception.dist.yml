@@ -31,6 +31,9 @@ suites:
                           - "TRUNCATE misp.sharing_group_orgs;"
                           - "TRUNCATE misp.sharing_group_servers;"
                           - "TRUNCATE misp.feeds;"
+                          - "TRUNCATE misp.warninglists;"
+                          - "TRUNCATE misp.warninglist_entries;"
+                          - "TRUNCATE misp.warninglist_types;"
                 - \Helper\Module\MispSettings:
                       depends: Cli
                       docker: true
