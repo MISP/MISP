@@ -164,21 +164,21 @@ class Taxonomy extends AppModel
         return $this->validationErrors;
     }
 
+    /**
+     * @param int|string $id Taxonomy ID or namespace
+     * @param array $options
+     * @return array|false
+     */
     private function __getTaxonomy($id, $options = array('full' => false, 'filter' => false))
     {
-        $recursive = -1;
-        if ($options['full']) {
-            $recursive = 2;
-        }
-
         $filter = false;
         if (isset($options['filter'])) {
             $filter = $options['filter'];
         }
         $taxonomy_params = array(
-                'recursive' => -1,
-                'contain' => array('TaxonomyPredicate' => array('TaxonomyEntry')),
-                'conditions' => array('Taxonomy.id' => $id)
+            'recursive' => -1,
+            'contain' => array('TaxonomyPredicate' => array('TaxonomyEntry')),
+            'conditions' => is_numeric($id) ? ['Taxonomy.id' => $id] : ['Taxonomy.namespace' => $id],
         );
         $taxonomy = $this->find('first', $taxonomy_params);
         if (empty($taxonomy)) {
@@ -190,6 +190,9 @@ class Taxonomy extends AppModel
                 foreach ($predicate['TaxonomyEntry'] as $entry) {
                     $temp = array('tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value'] . '="' . $entry['value'] . '"');
                     $temp['expanded'] = (!empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value']) . ': ' . (!empty($entry['expanded']) ? $entry['expanded'] : $entry['value']);
+                    if (isset($entry['description']) && !empty($entry['description'])) {
+                        $temp['description'] = $entry['description'];
+                    }
                     if (isset($entry['colour']) && !empty($entry['colour'])) {
                         $temp['colour'] = $entry['colour'];
                     }
@@ -202,6 +205,9 @@ class Taxonomy extends AppModel
             } else {
                 $temp = array('tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value']);
                 $temp['expanded'] = !empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value'];
+                if (isset($predicate['description']) && !empty($predicate['description'])) {
+                    $temp['description'] = $predicate['description'];
+                }
                 if (isset($predicate['colour']) && !empty($predicate['colour'])) {
                     $temp['colour'] = $predicate['colour'];
                 }
