@@ -459,8 +459,15 @@ class FeedsController extends AppController
             $this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
         }
         if (!$this->Feed->data['Feed']['enabled']) {
-            $this->Flash->error(__('Feed is currently not enabled. Make sure you enable it.'));
-            $this->redirect(array('action' => 'index'));
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData(
+                    array('result' => __('Feed is currently not enabled. Make sure you enable it.')),
+                    $this->response->type()
+                );
+            } else {
+                $this->Flash->error(__('Feed is currently not enabled. Make sure you enable it.'));
+                $this->redirect(array('action' => 'index'));
+            }
         }
         if (Configure::read('MISP.background_jobs')) {
             $this->loadModel('Job');
