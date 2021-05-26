@@ -1,7 +1,9 @@
 <div class="misp-error-container">
 <h2><?php echo $name; ?></h2>
+<?php if (!empty($message)): ?>
 <p class="error">
-    <strong><?php echo __('Error'); ?>: </strong>
-    <?php printf(__('%s', true), "{$message}"); ?>
+    <strong><?= __('Error'); ?>:</strong>
+    <?= $message; ?>
 </p>
+<?php endif; ?>
 </div>
