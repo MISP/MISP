@@ -373,7 +373,7 @@ class SecurityAudit
             if ($diffDays > 300) {
                 $output['System'][] = [
                     'warning',
-                    __('Kernel build time was s days ago. This usually means that the system kernel is not updated.', $diffDays),
+                    __('Kernel build time was %s days ago. This usually means that the system kernel is not updated.', $diffDays),
                 ];
             }
         }
