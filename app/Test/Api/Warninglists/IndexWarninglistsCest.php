@@ -44,4 +44,31 @@ class IndexWarninglistsCest
             ]
         );
     }
+
+    public function testPostIndexReturnsExpectedWarninglist(ApiTester $I): void
+    {
+        $orgId = 1;
+        $userId = 1;
+        $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
+
+        $fakeWarninglistFoo = WarninglistFixture::fake(['name' => 'foo']);
+        $fakeWarninglistBar = WarninglistFixture::fake(['name' => 'bar']);
+        $I->haveInDatabase('warninglists', $fakeWarninglistFoo->toDatabase());
+        $I->haveInDatabase('warninglists', $fakeWarninglistBar->toDatabase());
+
+        $I->haveHttpHeader('Content-Type', 'application/x-www-form-urlencoded');
+        $I->sendPost(self::URL, ['value' => 'foo']);
+
+        $I->validateRequest();
+        $I->validateResponse();
+
+        $I->seeResponseCodeIs(200);
+        $I->seeResponseContainsJson(
+            [
+                'Warninglists' => [
+                    'Warninglist' => $fakeWarninglistFoo->toResponse()
+                ]
+            ]
+        );
+    }
 }
