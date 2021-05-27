@@ -1694,6 +1694,24 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /warninglists/view/{warninglistId}:
+    get:
+      summary: "Get warninglist by ID"
+      operationId: getWarninglistById
+      tags:
+        - Warninglists
+      parameters:
+        - $ref: "#/components/parameters/warninglistIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/WarninglistResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -3227,6 +3245,21 @@ components:
       maxLength: 10
       example: "3"
 
+    WarninglistEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: int32
+          example: "1234"
+        value:
+          type: string
+          example: "10.128.0.0/24"
+        warninglist_id:
+          type: string
+          format: int32
+          example: "1234"
+
     WarninglistNoId:
       type: object
       properties:
@@ -3258,6 +3291,10 @@ components:
           description: "List of comma separated warninglist types."
           type: string
           example: "domain, hostname, domain|ip, uri, url"
+        WarninglistEntry:
+          type: array
+          items:
+            $ref: "#/components/schemas/WarninglistEntry"
 
     Warninglist:
       allOf:
@@ -3851,8 +3888,7 @@ components:
       description: "Numeric ID of the user"
       required: true
       schema:
-        oneOf:
-          - $ref: "#/components/schemas/UserId"
+        $ref: "#/components/schemas/UserId"
 
     organisationIdParameter:
       name: organisationId
@@ -3949,6 +3985,14 @@ components:
         oneOf:
           - $ref: "#/components/schemas/FeedId"
           - $ref: "#/components/schemas/UUID"
+
+    warninglistIdParameter:
+      name: warninglistId
+      in: path
+      description: "Numeric ID of the warninglist"
+      required: true
+      schema:
+        $ref: "#/components/schemas/WarninglistId"
 
     cacheFeedsScopeParameter:
       name: cacheFeedsScope
@@ -6191,6 +6235,16 @@ components:
               success:
                 type: string
                 example: "1 warninglist(s) disabled"
+
+    WarninglistResponse:
+      description: "Get warninglists response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Warninglist:
+                $ref: "#/components/schemas/Warninglist"
 
     ApiErrorResponse:
       description: "Unexpected API error"
