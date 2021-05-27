@@ -1730,6 +1730,22 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /warninglists/update:
+    post:
+      summary: "Update warninglists"
+      operationId: updateWarninglists
+      tags:
+        - Warninglists
+      responses:
+        "200":
+          $ref: "#/components/responses/UpdateWarninglistsResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -6283,6 +6299,28 @@ components:
               "10.128.0.2":
                 - "id": "10"
                   "name": "List of known Wikimedia address ranges"
+
+    UpdateWarninglistsResponse:
+      description: "List of values matching warninglists response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                nullable: true
+                type: boolean
+              name:
+                type: string
+                example: "Successfully updated 1 warninglists."
+              message:
+                type: string
+                example: "Successfully updated 1 warninglists."
+              url:
+                type: string
+                example: /warninglists/update"
 
     ApiErrorResponse:
       description: "Unexpected API error"
