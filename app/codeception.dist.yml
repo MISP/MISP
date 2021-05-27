@@ -34,6 +34,11 @@ suites:
                           - "TRUNCATE misp.warninglists;"
                           - "TRUNCATE misp.warninglist_entries;"
                           - "TRUNCATE misp.warninglist_types;"
+                - Redis:
+                      host: "127.0.0.1"
+                      port: 63790
+                      database: 0
+                      cleanupBefore: "test"
                 - \Helper\Module\MispSettings:
                       depends: Cli
                       docker: true
