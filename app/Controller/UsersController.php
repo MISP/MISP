@@ -2450,6 +2450,7 @@ class UsersController extends AppController
                 throw new BadRequestException(__('We require at least the email field to be filled.'));
             }
             $this->User->set($requestObject);
+            unset($this->User->validate['email']['unique']);
             if (!$this->User->validates(array('fieldList' => $fieldToValidate))) {
                 $errors = $this->User->validationErrors;
                 $message = __('Request could not be created.');
