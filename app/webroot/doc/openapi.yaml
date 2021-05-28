@@ -2349,6 +2349,10 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/MicroTimestamp"
+        Attribute:
+          type: array
+          items:
+            $ref: "#/components/schemas/Attribute"
 
     # Galaxies
     GalaxyId:
