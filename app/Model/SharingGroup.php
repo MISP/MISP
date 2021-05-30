@@ -618,6 +618,7 @@ class SharingGroup extends AppModel
             if ($existingCaptureResult !== true) {
                 return $existingCaptureResult;
             }
+            $sg_id = $existingSG['SharingGroup']['id'];
             $forceUpdate = true;
         }
         unset($sg['Organisation']);
