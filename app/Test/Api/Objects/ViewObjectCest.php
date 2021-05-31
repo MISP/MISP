@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 use \Helper\Fixture\Data\UserFixture;
 use \Helper\Fixture\Data\EventFixture;
+use \Helper\Fixture\Data\ObjectFixture;
+use \Helper\Fixture\Data\AttributeFixture;
 
 class IndexObjectsCest
 {
 
-    private const URL = '/objects/add/%s/%s';
+    private const URL = '/objects/view/%s';
 
-    public function testAddReturnsForbiddenWithoutAuthKey(ApiTester $I): void
+    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
-        $eventId = 1;
-        $objectTemplateId = 1;
+        $objectId = 1;
 
-        $I->sendPost(sprintf(self::URL, $eventId, $objectTemplateId));
+        $I->sendGet(sprintf(self::URL, $objectId));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -24,7 +25,7 @@ class IndexObjectsCest
         $I->seeResponseIsJson();
     }
 
-    public function testAdd(ApiTester $I): void
+    public function testView(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;
@@ -33,6 +34,7 @@ class IndexObjectsCest
         $eventId = 1;
         $objectTemplateId = 999999;
         $objectTemplateUuid = '77212413-9cdc-44fe-a788-46fb20a8235d';
+        $objectId = 1;
         $fakeEvent = EventFixture::fake(
             [
                 'id' => $eventId,
@@ -66,49 +68,32 @@ class IndexObjectsCest
             'disable_correlation' => 1,
             'multiple' => 0,
         ]);
-
-        $I->sendPost(
-            sprintf(self::URL, $eventId, $objectTemplateId),
+        $fakeAttribute = AttributeFixture::fake(
             [
-                'Attribute' => [
-                    [
-                        'value' => 'test value',
-                        'type' => 'text',
-                        'object_relation' => 'test',
-                    ]
-                ]
+                'event_id' => (string)$eventId,
+                'value1' => 'test value',
+                'object_relation' => 'test',
+                'object_id' => $objectId
             ]
         );
+        $I->haveInDatabase('attributes', $fakeAttribute->toDatabase());
+        $fakeObject = ObjectFixture::fake(
+            [
+                'id' => (string)$objectId,
+                'event_id' => (string)$eventId,
+                'name' => 'test-object-template',
+                'template_uuid' => $objectTemplateUuid
+            ],
+            [$fakeAttribute]
+        );
+        $I->haveInDatabase('objects', $fakeObject->toDatabase());
+
+        $I->sendGet(sprintf(self::URL, $objectId));
 
         $I->validateRequest();
         $I->validateResponse();
 
         $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson(
-            [
-                'Object' => [
-                    'Attribute' => [
-                        'value1' => 'test value',
-                        'type' => 'text',
-                    ]
-                ]
-            ]
-        );
-        $I->seeInDatabase(
-            'objects',
-            [
-                'event_id' => $eventId,
-                'name' => 'test-object-template',
-                'template_uuid' => $objectTemplateUuid
-            ]
-        );
-        $I->seeInDatabase(
-            'attributes',
-            [
-                'event_id' => $eventId,
-                'value1' => 'test value',
-                'object_relation' => 'test'
-            ]
-        );
+        $I->seeResponseContainsJson(['Object' => $fakeObject->toResponse()]);
     }
 }
