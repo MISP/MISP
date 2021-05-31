@@ -7,7 +7,7 @@ use \Helper\Fixture\Data\EventFixture;
 use \Helper\Fixture\Data\ObjectFixture;
 use \Helper\Fixture\Data\AttributeFixture;
 
-class IndexObjectsCest
+class DeleteObjectCest
 {
 
     private const URL = '/objects/delete/%s/%s';

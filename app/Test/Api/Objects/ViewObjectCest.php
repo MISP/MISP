@@ -7,7 +7,7 @@ use \Helper\Fixture\Data\EventFixture;
 use \Helper\Fixture\Data\ObjectFixture;
 use \Helper\Fixture\Data\AttributeFixture;
 
-class IndexObjectsCest
+class ViewObjectCest
 {
 
     private const URL = '/objects/view/%s';
