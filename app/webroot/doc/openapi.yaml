@@ -1750,6 +1750,22 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /noticelists:
+    get:
+      summary: "Get a list of noticelists"
+      operationId: getNoticelists
+      tags:
+        - Noticelists
+      responses:
+        "200":
+          $ref: "#/components/responses/NoticelistListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /objects/add/{eventId}/{objectTemplateId}:
     post:
       summary: "Add an object to an event"
@@ -3441,13 +3457,13 @@ components:
           type: string
           example: "10.128.0.0/24"
         warninglist_id:
-          type: string
-          format: int32
-          example: "1234"
+          $ref: "#/components/schemas/WarninglistId"
 
-    WarninglistNoId:
+    Warninglist:
       type: object
       properties:
+        id:
+          $ref: "#/components/schemas/WarninglistId"
         name:
           type: string
           example: "List of known domains to know external IP"
@@ -3481,13 +3497,88 @@ components:
           items:
             $ref: "#/components/schemas/WarninglistEntry"
 
-    Warninglist:
-      allOf:
-        - type: object
+    # Noticelists
+    NoticelistId:
+      type: string
+      format: int32
+      maxLength: 10
+      example: "3"
+
+    NoticelistEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: int32
+          example: "1234"
+        noticelist_id:
+          $ref: "#/components/schemas/NoticelistId"
+        data:
+          type: object
           properties:
-            id:
-              $ref: "#/components/schemas/WarninglistId"
-        - $ref: "#/components/schemas/WarninglistNoId"
+            scope:
+              type: array
+              items:
+                type: string
+                example: "attribute"
+            field:
+              type: array
+              items:
+                type: string
+                example: "category"
+            value:
+              type: array
+              items:
+                type: string
+                example: "Person"
+            tags:
+              type: array
+              items:
+                $ref: "#/components/schemas/TagName"
+            message:
+              type: object
+              properties:
+                en:
+                  type: string
+                  example: "This attribute is likely to contain personal data and the data subject is likely to be directly identifiable."
+
+    Noticelist:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/NoticelistId"
+        name:
+          type: string
+          example: "List of known domains to know external IP"
+        type:
+          type: string
+          enum:
+            - "cidr"
+            - "hostname"
+            - "substring"
+            - "string"
+            - "regex"
+          example: "cidr"
+        description:
+          type: string
+        version:
+          type: string
+          format: int32
+          example: "10"
+        enabled:
+          type: boolean
+        warninglist_entry_count:
+          type: string
+          format: int32
+          example: "1234"
+        valid_attributes:
+          description: "List of comma separated warninglist types."
+          type: string
+          example: "domain, hostname, domain|ip, uri, url"
+        NoticelistEntry:
+          type: array
+          items:
+            $ref: "#/components/schemas/NoticelistEntry"
 
     # Roles
     RoleId:
@@ -6517,6 +6608,18 @@ components:
               url:
                 type: string
                 example: "/warninglists/update"
+
+    NoticelistListResponse:
+      description: "Get noticelists response"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                Noticelist:
+                  $ref: "#/components/schemas/Noticelist"
 
     ObjectResponse:
       description: "Object response"
