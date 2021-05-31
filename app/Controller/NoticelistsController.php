@@ -171,6 +171,10 @@ class NoticelistsController extends AppController
         if (empty($noticelist)) {
             throw new NotFoundException('Noticelist not found.');
         }
+        
+        $noticelist['Noticelist']['ref'] = json_decode($noticelist['Noticelist']['ref']);
+        $noticelist['Noticelist']['geographical_area'] = json_decode($noticelist['Noticelist']['geographical_area']);
+
         if ($this->_isRest()) {
             $noticelist['Noticelist']['NoticelistEntry'] = $noticelist['NoticelistEntry'];
             return $this->RestResponse->viewData($noticelist, $this->response->type());
