@@ -1798,7 +1798,23 @@ paths:
         $ref: "#/components/requestBodies/ToggleEnableNoticelistRequest"
       responses:
         "200":
-          $ref: "#/components/responses/NoticelistTogleEnableResponse"
+          $ref: "#/components/responses/NoticelistToggleEnableResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /noticelists/update:
+    post:
+      summary: "Update noticelists"
+      operationId: updateNoticelists
+      tags:
+        - Noticelists
+      responses:
+        "200":
+          $ref: "#/components/responses/UpdateNoticelistsResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
@@ -6693,7 +6709,7 @@ components:
               Noticelist:
                 $ref: "#/components/schemas/Noticelist"
 
-    NoticelistTogleEnableResponse:
+    NoticelistToggleEnableResponse:
       description: "Toggle enable noticelist response"
       content:
         application/json:
@@ -6704,7 +6720,28 @@ components:
                 type: boolean
               success:
                 type: string
-                example: Noticelist enabled
+                example: "Noticelist enabled"
+
+    UpdateNoticelistsResponse:
+      description: "Toggle enable noticelist response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "Successfully updated 1 noticelists."
+              message:
+                type: string
+                example: "Successfully updated 1 noticelists."
+              url:
+                type: string
+                example: "/noticelists/update"
 
     ObjectResponse:
       description: "Object response"
