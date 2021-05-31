@@ -1686,8 +1686,8 @@ paths:
 
   /warninglists/toggleEnable:
     post:
-      summary: "Search warninglists"
-      operationId: searchWarninglists
+      summary: "Enable/disable warninglists"
+      operationId: toggleEnableWarninglist
       tags:
         - Warninglists
       requestBody:
@@ -1781,6 +1781,24 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/NoticelistResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /noticelists/toggleEnable:
+    post:
+      summary: "Enable/disable noticelist"
+      operationId: toggleEnableNoticelist
+      tags:
+        - Noticelists
+      requestBody:
+        $ref: "#/components/requestBodies/ToggleEnableNoticelistRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/NoticelistTogleEnableResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
@@ -5069,6 +5087,20 @@ components:
               type: string
               example: "10.128.0.2"
 
+    ToggleEnableNoticelistRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Noticelist:
+                type: object
+                properties:
+                  data:
+                    description: "Id of the noticelist to enable/disable."
+                    type: integer
+                    example: 1
+
     AddObjectRequest:
       content:
         application/json:
@@ -6660,6 +6692,19 @@ components:
             properties:
               Noticelist:
                 $ref: "#/components/schemas/Noticelist"
+
+    NoticelistTogleEnableResponse:
+      description: "Toggle enable noticelist response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: string
+                example: Noticelist enabled
 
     ObjectResponse:
       description: "Object response"
