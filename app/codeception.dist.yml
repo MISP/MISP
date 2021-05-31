@@ -38,6 +38,7 @@ suites:
                           - "TRUNCATE misp.object_template_elements;"
                           - "TRUNCATE misp.noticelists;"
                           - "TRUNCATE misp.noticelist_entries;"
+                          - "TRUNCATE misp.sightings;"
                 - Redis:
                       host: "127.0.0.1"
                       port: 63790
