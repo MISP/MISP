@@ -2032,6 +2032,24 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /tags/search/{tagSearchTerm}:
+    get:
+      summary: "Search tag"
+      operationId: searchTag
+      tags:
+        - Tags
+      parameters:
+        - $ref: "#/components/parameters/tagSearchTermParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/SearchTagResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -3033,6 +3051,76 @@ components:
       format: int32
       maxLength: 10
       example: "12345"
+
+    ExtendedTag:
+      type: object
+      properties:
+        Tag:
+          $ref: "#/components/schemas/Tag"
+        Taxonomy:
+          $ref: "#/components/schemas/Taxonomy"
+        TaxonomyPredicate:
+          $ref: "#/components/schemas/TaxonomyPredicate"
+
+    # Taxonomies
+    TaxonomyId:
+      type: string
+      format: int32
+      maxLength: 10
+      example: "12345"
+
+    TaxonomyPredicateId:
+      type: string
+      format: int32
+      maxLength: 10
+      example: "12345"
+
+    Taxonomy:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/TaxonomyId"
+        namespace:
+          type: string
+          example: "tlp"
+        description:
+          type: string
+          example: "Disclosure is not limited.  Sources may use TLP:WHITE when information carries minimal or no foreseeable risk of misuse, in accordance with applicable rules and procedures for public release. Subject to standard copyright rules, TLP:WHITE information may be distributed without restriction."
+        version:
+          type: string
+          format: int32
+          example: "5"
+        enabled:
+          type: boolean
+        exclusive:
+          type: boolean
+        required:
+          type: boolean
+
+    TaxonomyPredicate:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/TaxonomyPredicateId"
+        taxonomy_id:
+          $ref: "#/components/schemas/TaxonomyId"
+        value:
+          type: string
+          example: "white"
+        expanded:
+          type: string
+          example: "(TLP:WHITE) Information can be shared publicly in accordance with the law."
+        colour:
+          type: string
+          example: "#ffffff"
+        description:
+          type: string
+          example: Disclosure is not limited.  Sources may use TLP:WHITE when information carries minimal or no foreseeable risk of misuse, in accordance with applicable rules and procedures for public release. Subject to standard copyright rules, TLP:WHITE information may be distributed without restriction.
+        exclusive:
+          type: boolean
+        numerical_value:
+          type: integer
+          nullable: true
 
     # Users
     UserId:
@@ -4371,6 +4459,15 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/TagId"
+
+    tagSearchTermParameter:
+      name: tagSearchTerm
+      in: path
+      description: Tag search term
+      required: true
+      schema:
+        type: string
+        example: "%tlp%"
 
     galaxyIdParameter:
       name: galaxyId
@@ -7074,6 +7171,15 @@ components:
             properties:
               Tag:
                 $ref: "#/components/schemas/Tag"
+
+    SearchTagResponse:
+      description: "Search tag response"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/ExtendedTag"
 
     ApiErrorResponse:
       description: "Unexpected API error"
