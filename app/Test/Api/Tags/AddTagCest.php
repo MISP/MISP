@@ -5,7 +5,7 @@ declare(strict_types=1);
 use \Helper\Fixture\Data\TagFixture;
 use \Helper\Fixture\Data\UserFixture;
 
-class ViewTagCest
+class AddTagCest
 {
 
     private const URL = '/tags/add';

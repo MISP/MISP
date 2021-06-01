@@ -7,7 +7,7 @@ use \Helper\Fixture\Data\EventFixture;
 use \Helper\Fixture\Data\UserFixture;
 use \Helper\Fixture\Data\AttributeFixture;
 
-class AddSightingCest
+class IndexSightingCest
 {
 
     private const URL = '/sightings/index/%s';
