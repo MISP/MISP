@@ -1902,6 +1902,24 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /sightings/add/{attributeId}:
+    post:
+      summary: "Add sighting of an attribute"
+      operationId: addSighting
+      tags:
+        - Sightings
+      parameters:
+        - $ref: "#/components/parameters/attributeIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/SightingResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -6845,13 +6863,20 @@ components:
                 example: "/objects/delete/1"
 
     SightingListResponse:
-      description: "Get noticelists response"
+      description: "Get sightings response"
       content:
         application/json:
           schema:
             type: array
             items:
               $ref: "#/components/schemas/Sighting"
+
+    SightingResponse:
+      description: "Add sighting response"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Sighting"
 
     ApiErrorResponse:
       description: "Unexpected API error"
