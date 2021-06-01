@@ -1994,6 +1994,24 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /tags/delete/{tagId}:
+    post:
+      summary: "Delete tag"
+      operationId: deleteTag
+      tags:
+        - Tags
+      parameters:
+        - $ref: "#/components/parameters/tagIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteTagResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -7003,6 +7021,23 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Tag"
+
+    DeleteTagResponse:
+      description: "Delete tag response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                example: "Tag deleted."
+              message:
+                type: string
+                example: "Tag deleted."
+              url:
+                type: string
+                example: "https://misppriv.circl.lu/tags/delete/1"
 
     ApiErrorResponse:
       description: "Unexpected API error"
