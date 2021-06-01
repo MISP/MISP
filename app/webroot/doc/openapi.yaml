@@ -2012,6 +2012,26 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /tags/edit/{tagId}:
+    post:
+      summary: "Edit tag"
+      operationId: editTag
+      tags:
+        - Tags
+      parameters:
+        - $ref: "#/components/parameters/tagIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/EditTagRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/EditTagResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -5327,6 +5347,12 @@ components:
           schema:
             $ref: "#/components/schemas/TagNoId"
 
+    EditTagRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TagNoId"
+
   responses:
     AttributeResponse:
       description: "An attribute"
@@ -7038,6 +7064,16 @@ components:
               url:
                 type: string
                 example: "https://misppriv.circl.lu/tags/delete/1"
+
+    EditTagResponse:
+      description: "Tag response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Tag:
+                $ref: "#/components/schemas/Tag"
 
     ApiErrorResponse:
       description: "Unexpected API error"
