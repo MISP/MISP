@@ -4,8 +4,8 @@ Sync-users are used to serve as the point of connection between instances.
 Typically, events pushed to an instance are created via a sync-user account residing on the remote instance.
 Events pulled from an instance are fetched using the remote's sync user account and are then saved locally.
 
-Special treatment may happen to sync-users if they are bound to a synchronisation server.
-This binding can be set when editing a user.
+If a sync-user is bound to a synchronisation server, the event index might be filtered based on the PUSH rules defined in the synchronisation server settings.
+The binding can be set when editing a user by linking it to an existing synchronisation server.
 
 ## Standard server connection without filtering rules
 
