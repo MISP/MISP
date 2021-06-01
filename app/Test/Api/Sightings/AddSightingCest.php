@@ -69,5 +69,6 @@ class AddSightingCest
 
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson(['Sighting' => $fakeSighting->toResponse()]);
+        $I->seeInDatabase('sightings', $fakeSighting->toDatabase());
     }
 }
