@@ -59,5 +59,5 @@ Events are retrieved from the database if the following condition is met:
 
 ## Synchronisation logic
 
-![MISP Sync diagrams: PUSH](./MISP Sync diagrams-PUSH.png)
-![MISP Sync diagrams: PULL](./MISP Sync diagrams-PULL.png)
+![MISP Sync diagrams: PUSH](sync-diagram-push.png)
+![MISP Sync diagrams: PULL](sync-diagram-pull.png)
