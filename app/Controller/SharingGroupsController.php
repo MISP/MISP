@@ -22,7 +22,7 @@ class SharingGroupsController extends AppController
         'order' => array(
             'SharingGroup.name' => 'ASC'
         ),
-        'fields' => array('SharingGroup.id', 'SharingGroup.uuid', 'SharingGroup.name', 'SharingGroup.description', 'SharingGroup.releasability', 'SharingGroup.local', 'SharingGroup.active'),
+        'fields' => array('SharingGroup.id', 'SharingGroup.uuid', 'SharingGroup.name', 'SharingGroup.description', 'SharingGroup.releasability', 'SharingGroup.local', 'SharingGroup.active', 'SharingGroup.roaming'),
         'contain' => array(
             'SharingGroupOrg' => array(
                 'Organisation' => array('fields' => array('Organisation.name', 'Organisation.id', 'Organisation.uuid'))
