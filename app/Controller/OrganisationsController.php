@@ -45,6 +45,8 @@ class OrganisationsController extends AppController
             $searchall = $this->passedArgs['all'];
         } elseif (isset($this->passedArgs['searchall'])) {
             $searchall = $this->passedArgs['searchall'];
+        } elseif (isset($this->passedArgs['quickFilter'])) {
+            $searchall = $this->passedArgs['quickFilter'];
         }
 
         if (isset($searchall) && !empty($searchall)) {
