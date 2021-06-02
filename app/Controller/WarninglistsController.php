@@ -337,6 +337,17 @@ class WarninglistsController extends AppController
         if (empty($warninglist)) {
             throw new NotFoundException(__('Warninglist not found.'));
         }
+        if ($this->IndexFilter->isCsv()) {
+            $csv = [];
+            foreach ($warninglist['WarninglistEntry'] as $entry) {
+                $line = $entry['value'];
+                if ($entry['comment']) {
+                    $line .= ';' . $entry['comment'];
+                }
+                $csv[] = $line;
+            }
+            return $this->RestResponse->viewData(implode("\n", $csv), 'csv');
+        }
         if ($this->_isRest()) {
             $warninglist['Warninglist']['WarninglistEntry'] = $warninglist['WarninglistEntry'];
             $warninglist['Warninglist']['WarninglistType'] = $warninglist['WarninglistType'];
