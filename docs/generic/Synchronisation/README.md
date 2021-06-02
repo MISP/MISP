@@ -24,11 +24,17 @@ Where `cond_distribution` is as follow:
 ```
 Event.distribution ∈ [1, 2, 3] ∨ (Event.distribution = 4 ∧ User ∈ Event.sharing_group_id)
 ```
+Or expressed otherwise:
+- The distribution level of the event must either be `This community only`, `Connected community` or `All communities`.
+- Or, if the distribution level is set to `sharing group`, the user requesting the event must be part of said sharing group
 
 Events are retrieved from the database if the following condition is met:
 ```
 cond_org ∨ (cond_distribution ∧ cond_unpublished_private)
 ```
+Or expressed otherwise:
+- The event belongs to the user requesting the event
+- Or, the user is authorised to view the event considering its distribution level and its publication state
 
 
 
@@ -51,13 +57,16 @@ Where `cond_distribution` is as follow:
 ```
 Event.distribution ∈ [1, 2, 3] ∨ (Event.distribution = 4 ∧ User ∈ Event.sharing_group_id)
 ```
+Which is the same as in the previous example.
 
 Events are retrieved from the database if the following condition is met:
 ```
 ( cond_org ∨ (cond_distribution ∧ cond_unpublished_private) ) ∧ cond_push_rule
 ```
+Which is almost the same as in the previous example.
+The only difference is that the previous conditions must be fulfilled and the `push_rule` described in the synchronisation link must be met.
 
 ## Synchronisation logic
 
-![MISP Sync diagrams: PUSH](sync-diagram-push.png)
-![MISP Sync diagrams: PULL](sync-diagram-pull.png)
+![MISP Sync diagrams: PUSH](sync-diagram-push-full.png)
+![MISP Sync diagrams: PULL](sync-diagram-pull-full.png)
