@@ -48,11 +48,11 @@ class WarninglistsController extends AppController
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData(['Warninglists' => $warninglists], $this->response->type());
-        } else {
-            $this->set('warninglists', $warninglists);
-            $this->set('passedArgsArray', $filters);
-            $this->set('possibleCategories', $this->Warninglist->categories());
         }
+
+        $this->set('warninglists', $warninglists);
+        $this->set('passedArgsArray', $filters);
+        $this->set('possibleCategories', $this->Warninglist->categories());
     }
 
     public function update()
@@ -340,12 +340,38 @@ class WarninglistsController extends AppController
         if ($this->_isRest()) {
             $warninglist['Warninglist']['WarninglistEntry'] = $warninglist['WarninglistEntry'];
             $warninglist['Warninglist']['WarninglistType'] = $warninglist['WarninglistType'];
-            $this->set('Warninglist', $warninglist['Warninglist']);
-            $this->set('_serialize', array('Warninglist'));
-        } else {
-            $this->set('warninglist', $warninglist);
-            $this->set('possibleCategories', $this->Warninglist->categories());
+            return $this->RestResponse->viewData($warninglist, $this->response->type());
         }
+
+        $this->set('warninglist', $warninglist);
+        $this->set('possibleCategories', $this->Warninglist->categories());
+    }
+
+    public function export($id = null)
+    {
+        if (empty($id)) {
+            throw new NotFoundException(__('Warninglist not found.'));
+        }
+        $warninglist = $this->Warninglist->find('first', [
+            'contain' => ['WarninglistType'],
+            'conditions' => ['id' => $id],
+        ]);
+        if (empty($warninglist)) {
+            throw new NotFoundException(__('Warninglist not found.'));
+        }
+        $matchingAttributes = array_column($warninglist['WarninglistType'], 'type');
+        $list = $this->Warninglist->WarninglistEntry->find('column', [
+            'conditions' => ['warninglist_id' => $warninglist['Warninglist']['id']],
+            'fields' => ['value'],
+        ]);
+        $output = [
+            'name' => $warninglist['Warninglist']['name'],
+            'version' => $warninglist['Warninglist']['version'],
+            'description' => $warninglist['Warninglist']['description'],
+            'matching_attributes' => $matchingAttributes,
+            'list' => $list,
+        ];
+        return $this->RestResponse->viewData($output, 'json');
     }
 
     public function delete($id)
