@@ -726,7 +726,6 @@ class Warninglist extends AppModel
                 }
             }
 
-            $this->regenerateWarninglistCaches($id);
         } catch (Exception $e) {
             if ($transactionBegun) {
                 $db->rollback();
@@ -735,6 +734,23 @@ class Warninglist extends AppModel
         }
 
         return $success;
+    }
+
+    public function afterSave($created, $options = array())
+    {
+        if (isset($this->data['Warninglist']['default']) && $this->data['Warninglist']['default'] == 0) {
+            $this->regenerateWarninglistCaches($this->data['Warninglist']['id']);
+        }
+
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_warninglist_notifications_enable');
+        if ($pubToZmq) {
+            $warninglist = $this->find('first', [
+                'conditions' => ['id' => $this->data['Warninglist']['id']],
+                'contains' => ['WarninglistEntry', 'WarninglistType'],
+            ]);
+            $pubSubTool = $this->getPubSubTool();
+            $pubSubTool->warninglist_save($warninglist, $created ? 'add' : 'edit');
+        }
     }
 
     /**
