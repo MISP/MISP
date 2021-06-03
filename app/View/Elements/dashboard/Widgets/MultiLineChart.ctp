@@ -58,6 +58,7 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
         margin: {top: 10, right: 20, bottom: 35, left: 40},
         animation_short_duration: 100,
         redraw_timeout: 300, // used after resize
+        enable_total: false
     };
     var offsetLeftMargin = 0;
     var container_id = "#chartContainer-<?= $seed ?>";
@@ -108,6 +109,7 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
         options.show_legend = __parseTextBoolean(options.show_legend);
         options.style.hideXAxis = __parseTextBoolean(options.style.hideXAxis);
         options.style.hideYAxis = __parseTextBoolean(options.style.hideYAxis);
+        options.enable_total = __parseTextBoolean(options.enable_total);
         options.max_datapoints = (options.max_datapoints === null || options.max_datapoints === "null") ? null : parseInt(options.max_datapoints);
         return options;
     }
@@ -355,13 +357,13 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
         data_nodes.push({
             name: "Total",
             values: totalValues,
-            disabled: true
+            disabled: !options.enable_total
         });
         labelDomain.unshift("Total");
         legend_labels = labelDomain.map(function(label) {
             return {
                 text: label,
-                disabled: label === "Total" ? true : false
+                disabled: label === "Total" ? !options.enable_total : false
             };
         });
         colors.domain(labelDomain);

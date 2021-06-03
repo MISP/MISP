@@ -11,6 +11,7 @@ class Taxonomy extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
             'Containable',
     );
 
@@ -387,6 +388,9 @@ class Taxonomy extends AppModel
         App::uses('ColourPaletteTool', 'Tools');
         $paletteTool = new ColourPaletteTool();
         $taxonomy = $this->__getTaxonomy($id, array('full' => true));
+        if (empty($taxonomy)) {
+            return false;
+        }
         $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
         $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
         foreach ($taxonomy['entries'] as $k => $entry) {

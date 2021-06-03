@@ -71,7 +71,8 @@
                         $this->element('ajaxTags', array(
                             'event' => $event,
                             'tags' => $event['Tag'],
-                            'tagAccess' => ($isSiteAdmin || $me['org_id'] == $event['Event']['orgc_id']),
+                            'tagAccess' => false,
+                            'localTagAccess' => false,
                             'static_tags_only' => 1
                         ))
                     )
@@ -176,7 +177,15 @@
                     }
                 ?>
                 <span class="bold"><?php echo __('UUID: ');?></span><span class="ObjectUUID"><?php echo h($object['uuid']); ?></span><br />
-                <span class="bold"><?php echo __('Meta Category: ');?></span><span class="ObjectMetaCategory"><?php echo h($object['meta-category']); ?></span>
+                <span class="bold"><?php echo __('Meta Category: ');?></span><span class="ObjectMetaCategory"><?php echo h($object['meta-category']); ?></span><br />
+                <?php
+                    if (!empty($object['first_seen'])) {
+                        echo '<span class="bold">First seen: </span><span class="ObjectFirstSeen">' . h($object['first_seen']) . '</span><br/>';
+                    }
+                    if (!empty($object['last_seen'])) {
+                        echo '<span class="bold">Last seen: </span><span class="ObjectLastSeen">' . h($object['last_seen']) . '</span><br/>';
+                    }
+                ?>
               </div>
               <span class="bold"><?php echo __('References: ')?></span>
               <?php

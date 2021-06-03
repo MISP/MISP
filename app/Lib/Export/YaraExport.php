@@ -1,8 +1,6 @@
 <?php
-
 App::uses('JsonExport', 'Export');
 App::uses('AppModel', 'Model');
-
 
 class YaraExport
 {
@@ -13,6 +11,7 @@ class YaraExport
     private $__MAX_n_attributes = 15000;
     private $__yara_file_gen = null;
     private $__yara_file_asis = null;
+    /** @var null|File */
     private $__curr_input_file = null;
     private $__scope = false;
     private $__curr_input_is_empty = true;
@@ -73,7 +72,13 @@ class YaraExport
                 $this->separator(); // calling separator since returning '' will prevent it
             }
             $jsonData = $this->__JsonExporter->handler($data, $options);
-            $this->__curr_input_file->append($jsonData);
+            if ($jsonData instanceof Generator) {
+                foreach ($jsonData as $part) {
+                    $this->__curr_input_file->append($part);
+                }
+            } else {
+                $this->__curr_input_file->append($jsonData);
+            }
             $this->__curr_input_is_empty = false;
         }
         $this->__n_attributes += $attr_count;

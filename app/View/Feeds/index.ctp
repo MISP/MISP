@@ -144,7 +144,8 @@
                 array(
                     'name' => __('Headers'),
                     'class' => 'shortish',
-                    'data_path' => 'Feed.headers'
+                    'data_path' => 'Feed.headers',
+                    'requirement' => $isSiteAdmin
                 ),
                 array(
                     'name' => __('Target'),

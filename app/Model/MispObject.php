@@ -15,6 +15,7 @@ class MispObject extends AppModel
     public $useTable = 'objects';
 
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                 'userModel' => 'User',
@@ -75,10 +76,43 @@ class MispObject extends AppModel
             'message' => array('Invalid ISO 8601 format')
         ),
         'last_seen' => array(
-            'rule' => array('datetimeOrNull'),
-            'required' => false,
-            'message' => array('Invalid ISO 8601 format')
-        )
+            'datetimeOrNull' => array(
+                'rule' => array('datetimeOrNull'),
+                'required' => false,
+                'message' => array('Invalid ISO 8601 format')
+            ),
+            'validateLastSeenValue' => array(
+                'rule' => array('validateLastSeenValue'),
+                'required' => false,
+                'message' => array('Last seen value should be greater than first seen value')
+            ),
+        ),
+        'name' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            ),
+        ),
+        'meta-category' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            ),
+        ),
+        'description' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            ),
+        ),
+        'template_uuid' => array(
+            'uuid' => array(
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ),
+        ),
+        'template_version' => array(
+            'numeric' => array(
+                'rule' => 'naturalNumber',
+            )
+        ),
     );
 
     private $__objectDuplicationCheckCache = [];
@@ -181,6 +215,22 @@ class MispObject extends AppModel
              $returnValue = false;
          }
          return $returnValue || is_null($seen);
+     }
+
+     public function validateLastSeenValue($fields)
+     {
+         $ls = $fields['last_seen'];
+         if (is_null($this->data['Object']['first_seen']) || is_null($ls)) {
+             return true;
+         }
+         $converted = $this->Attribute->ISODatetimeToUTC(['Object' => [
+             'first_seen' => $this->data['Object']['first_seen'],
+             'last_seen' => $ls
+         ]], 'Object');
+         if ($converted['Object']['first_seen'] > $converted['Object']['last_seen']) {
+             return false;
+         }
+         return true;
      }
 
     public function afterFind($results, $primary = false)
@@ -317,7 +367,7 @@ class MispObject extends AppModel
             }
             $newObjectAttributes[] = hash(
                 'sha256',
-                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] . $this->data['Attribute']['value'] = $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value'])
+                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value'])
             );
         }
         $newObjectAttributeCount = count($newObjectAttributes);
@@ -964,6 +1014,31 @@ class MispObject extends AppModel
     public function editObject($object, $eventId, $user, $log, $force = false, &$nothingToChange = false)
     {
         $object['event_id'] = $eventId;
+        if (isset($object['distribution']) && $object['distribution'] == 4) {
+            if (!empty($object['SharingGroup'])) {
+                $object['sharing_group_id'] = $this->SharingGroup->captureSG($object['SharingGroup'], $user);
+            } elseif (!empty($object['sharing_group_id'])) {
+                if (!$this->SharingGroup->checkIfAuthorised($user, $object['sharing_group_id'])) {
+                    unset($object['sharing_group_id']);
+                }
+            }
+            if (empty($object['sharing_group_id'])) {
+                $object_short = (isset($object['meta-category']) ? $object['meta-category'] : 'N/A') . '/' . (isset($object['name']) ? $object['name'] : 'N/A') . ' ' . (isset($object['uuid']) ? $object['uuid'] : 'N/A');
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $this->Log->save(array(
+                    'org' => $user['Organisation']['name'],
+                    'model' => 'MispObject',
+                    'model_id' => 0,
+                    'email' => $user['email'],
+                    'action' => 'edit',
+                    'user_id' => $user['id'],
+                    'title' => 'Object dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $object_short,
+                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object),
+                ));
+                return 'Invalid sharing group choice.';
+            }
+        }
         if (isset($object['uuid'])) {
             $existingObject = $this->find('first', array(
                 'recursive' => -1,
@@ -976,7 +1051,7 @@ class MispObject extends AppModel
                     $log->create();
                     $log->save(array(
                             'org' => $user['Organisation']['name'],
-                            'model' => 'Object',
+                            'model' => 'MispObject',
                             'model_id' => 0,
                             'email' => $user['email'],
                             'action' => 'edit',
@@ -1031,8 +1106,8 @@ class MispObject extends AppModel
                 'email' => $user['email'],
                 'action' => 'edit',
                 'user_id' => $user['id'],
-                'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $object['name'],
-                'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($attribute),
+                'title' => 'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['name'],
+                'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object),
             ));
             return $this->validationErrors;
         }

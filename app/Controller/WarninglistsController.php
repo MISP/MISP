@@ -283,6 +283,9 @@ class WarninglistsController extends AppController
                 throw new NotFoundException(__('No valid data received.'));
             }
             $data = $this->request->data;
+            if (is_array($data) && isset($data['Warninglist'])) {
+                $data = $data['Warninglist'];
+            }
             if (!is_array($data)) {
                 $data = array($data);
             }
@@ -301,9 +304,15 @@ class WarninglistsController extends AppController
                     }
                 }
             }
-            return $this->RestResponse->viewData($hits, $this->response->type());
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData($hits, $this->response->type());
+            }
+            $this->set('hits', $hits);
+            $this->set('data', $data);
         } else {
-            return $this->RestResponse->describe('Warninglists', 'checkValue', false, $this->response->type());
+            if ($this->_isRest()) {
+                return $this->RestResponse->describe('Warninglists', 'checkValue', false, $this->response->type());
+            }
         }
     }
 }

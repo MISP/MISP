@@ -82,8 +82,12 @@
             $contributorsContent = [];
             foreach ($contributors as $organisationId => $name) {
                 $org = ['Organisation' => ['id' => $organisationId, 'name' => $name]];
-                $link = $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($name);
-                $contributorsContent[] =  $this->OrgImg->getNameWithImg($org, $link);
+                if (Configure::read('MISP.log_new_audit')) {
+                    $link = $baseurl . "/audit_logs/eventIndex/" . h($event['Event']['id']) . '/' . h($organisationId);
+                } else {
+                    $link = $baseurl . "/logs/event_index/" . h($event['Event']['id']) . '/' . h($name);
+                }
+                $contributorsContent[] = $this->OrgImg->getNameWithImg($org, $link);
             }
             $table_data[] = array(
                 'key' => __('Contributors'),
@@ -105,7 +109,8 @@
                     array(
                         'event' => $event,
                         'tags' => $event['EventTag'],
-                        'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id']),
+                        'tagAccess' => ($isSiteAdmin || $mayModify),
+                        'localTagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id')),
                         'missingTaxonomies' => $missingTaxonomies,
                         'tagConflicts' => $tagConflicts
                     )
@@ -536,6 +541,7 @@
             'mayModify' => $mayModify,
             'isAclTagger' => $isAclTagger,
             'data' => $event['Galaxy'],
+            'event' => $event,
             'target_id' => $event['Event']['id'],
             'target_type' => 'event'
         ]); ?>
@@ -565,7 +571,7 @@
 <script type="text/javascript">
 var showContext = false;
 $(function () {
-    queryEventLock('<?php echo h($event['Event']['id']); ?>');
+    queryEventLock('<?= h($event['Event']['id']); ?>', <?= (int)$event['Event']['timestamp'] ?>);
     popoverStartup();
 
     $("th, td, dt, div, span, li").tooltip({

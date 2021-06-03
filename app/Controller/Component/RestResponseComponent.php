@@ -428,6 +428,16 @@ class RestResponseComponent extends Component
         return $result;
     }
 
+    public function getScopedApiInfo($user)
+    {
+        $api = $this->getAllApis($user);
+        $scopedApi = [];
+        foreach ($api as $apiEntry) {
+            $scopeApi[$apiEntry['controller']][] = $apiEntry;
+        }
+        return $scopeApi;
+    }
+
     /**
      * Use a relative path to check if the current api has a description
      * @param string $relative_path
@@ -600,11 +610,14 @@ class RestResponseComponent extends Component
     }
 
     /**
-     * Detect if request comes from automatic tool, like other MISP instance or PyMISP
+     * Detect if request comes from automatic tool (like other MISP instance or PyMISP) or AJAX
      * @return bool
      */
     public function isAutomaticTool()
     {
+        if ($this->Controller->request->is('ajax')) {
+            return true;
+        }
         $userAgent = CakeRequest::header('User-Agent');
         return $userAgent && (substr($userAgent, 0, 6) === 'PyMISP' || substr($userAgent, 0, 4) === 'MISP');
     }

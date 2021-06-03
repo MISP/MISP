@@ -124,7 +124,7 @@ class ServersController extends AppController
         }
 
         $this->loadModel('Event');
-        $this->set('threatLevels', $this->Event->ThreatLevel->list());
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
@@ -202,7 +202,7 @@ class ServersController extends AppController
                 $this->set($alias, $currentModel->{$variable});
             }
         }
-        $this->set('threatLevels', $this->Event->ThreatLevel->list());
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         $this->set('title_for_layout', __('Remote event preview'));
     }
 
@@ -455,13 +455,13 @@ class ServersController extends AppController
             $this->redirect(array('controller' => 'servers', 'action' => 'index'));
         }
         if ($this->request->is('post') || $this->request->is('put')) {
-            if (empty(Configure::read('MISP.host_org_id'))) {
-                $this->request->data['Server']['internal'] = 0;
-            }
             if ($this->_isRest()) {
                 if (!isset($this->request->data['Server'])) {
                     $this->request->data = array('Server' => $this->request->data);
                 }
+            }
+            if (empty(Configure::read('MISP.host_org_id'))) {
+                $this->request->data['Server']['internal'] = 0;
             }
             if (isset($this->request->data['Server']['json'])) {
                 $json = json_decode($this->request->data['Server']['json'], true);
@@ -2492,5 +2492,39 @@ misp.direct_call(relative_path, body)
             $allTags[] = array('id' => $id, 'name' => trim($name));
         }
         return $allTags;
+    }
+
+    public function removeOrphanedCorrelations()
+    {
+        $success = $this->Server->removeOrphanedCorrelations();
+        $message = __('Orphaned correlation removed');
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($message, $this->response->type());
+        } else {
+            $this->Flash->success($message);
+            $this->redirect(array('action' => 'serverSettings', 'diagnostics'));
+        }
+    }
+
+    public function queryAvailableSyncFilteringRules($serverID)
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This method can only be access via REST'));
+        }
+        $server = $this->Server->find('first', ['conditions' => ['Server.id' => $serverID]]);
+        if (!$server) {
+            throw new NotFoundException(__('Invalid server'));
+        }
+        $syncFilteringRules = $this->Server->queryAvailableSyncFilteringRules($server);
+        return $this->RestResponse->viewData($syncFilteringRules);
+    }
+
+    public function getAvailableSyncFilteringRules()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This method can only be access via REST'));
+        }
+        $syncFilteringRules = $this->Server->getAvailableSyncFilteringRules($this->Auth->user());
+        return $this->RestResponse->viewData($syncFilteringRules);
     }
 }

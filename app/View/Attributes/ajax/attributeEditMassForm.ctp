@@ -139,8 +139,7 @@ function syncMassEditFormAndSubmit(btn) {
     submitPopoverForm('<?php echo $id;?>', 'massEdit');
 }
 
-$(document).ready(function() {
-
+$(function() {
     $('#AttributeDistribution').change(function() {
         if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
         else $('#SGContainer').hide();
@@ -162,17 +161,18 @@ $(document).ready(function() {
     });
 
     $("input, label").on('mouseleave', function(e) {
-        $('#'+e.currentTarget.id).popover('destroy');
-    });
-
-    $("input, label").on('mouseover', function(e) {
-        var $e = $(e.target);
-        $('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'focus',
-            placement: 'right',
-            container: 'body',
-        }).popover('show');
+        if (e.currentTarget.id) {
+            $('#' + e.currentTarget.id).popover('destroy');
+        }
+    }).on('mouseover', function(e) {
+        if (e.currentTarget.id) {
+            $('#' + e.currentTarget.id).popover('destroy');
+            $('#' + e.currentTarget.id).popover({
+                trigger: 'focus',
+                placement: 'right',
+                container: 'body',
+            }).popover('show');
+        }
     });
 
     // workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.

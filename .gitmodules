@@ -30,10 +30,6 @@
 [submodule "app/files/noticelists"]
 	path = app/files/noticelists
 	url = https://github.com/MISP/misp-noticelist
-[submodule "Plugin/DebugKit"]
-	path = Plugin/DebugKit
-	url = https://github.com/cakephp/debug_kit.git
-	branch = 2.2
 [submodule "app/files/misp-decaying-models"]
 	path = app/files/misp-decaying-models
 	url = https://github.com/MISP/misp-decaying-models.git

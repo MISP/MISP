@@ -115,7 +115,7 @@
                         'requirement' =>
                             Configure::read('MISP.enableEventBlocklisting') !== false &&
                             !$isSiteAdmin && $hostOrgUser
-                    ),
+                    )
                 )
             ),
             array(
@@ -446,16 +446,30 @@
                         'url' => $baseurl . '/orgBlocklists',
                         'requirement' => Configure::read('MISP.enableOrgBlocklisting') !== false && $isSiteAdmin
                     ),
+                    [
+                        'type' => 'separator',
+                        'requirement' => $isSiteAdmin
+                    ],
+                    [
+                        'text' => __('Top Correlations'),
+                        'url' => $baseurl . '/correlations/top',
+                        'requirement' => $isSiteAdmin
+                    ]
                 )
             ),
             array(
                 'type' => 'root',
-                'text' => __('Audit'),
+                'text' => __('Logs'),
                 'requirement' => $isAclAudit,
                 'children' => array(
                     array(
                         'text' => __('List Logs'),
                         'url' => $baseurl . '/admin/logs/index'
+                    ),
+                    array(
+                        'text' => __('List Audit Logs'),
+                        'url' => $baseurl . '/admin/audit_logs/index',
+                        'requirement' => Configure::read('MISP.log_new_audit'),
                     ),
                     array(
                         'text' => __('Search Logs'),

@@ -9,6 +9,7 @@ App::uses('AppModel', 'Model');
 class SharingGroup extends AppModel
 {
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'SharingGroup',
@@ -145,7 +146,7 @@ class SharingGroup extends AppModel
         } else {
             $ids = array_unique(array_merge(
                 $this->SharingGroupServer->fetchAllAuthorised(),
-                $this->SharingGroupOrg->fetchAllAuthorised($user['Organisation']['id'])
+                $this->SharingGroupOrg->fetchAllAuthorised($user['org_id'])
             ));
         }
         if (!empty($ids)) {
@@ -725,7 +726,7 @@ class SharingGroup extends AppModel
             'created' => !isset($sg['created']) ? $date : $sg['created'],
             'modified' => !isset($sg['modified']) ? $date : $sg['modified'],
             'active' => !isset($sg['active']) ? 1 : $sg['active'],
-            'roaming' => !isset($sg['description']) ? false : $sg['description'],
+            'roaming' => !isset($sg['roaming']) ? false : $sg['roaming'],
             'local' => 0,
             'sync_user_id' => $user['id'],
             'org_id' => $user['Role']['perm_sync'] ? $this->__retrieveOrgIdFromCapturedSG($user, $sg) : $user['org_id']

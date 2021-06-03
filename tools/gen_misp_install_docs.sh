@@ -3,7 +3,7 @@
 set -e
 # set -x
 
-if [ -e "/usr/bin/virtualenv" ]; then
+if [ -e "$(which virtualenv)" ]; then
 	echo "Python virtualenv exists, continuing with mkdocs build"
 else
 	echo "NO virtualenv present, bye."
@@ -15,6 +15,8 @@ if [ -z "$VIRTUAL_ENV" ]; then
   virtualenv -p python3 mkdocs || echo "You probably have the main Python(3) binary running exclusively somewhere, make sure it is killed."
   ${PWD}/mkdocs/bin/pip install mkdocs==1.0.4 mkdocs-material==4.6.3 markdown-include python-markdown-comments gitchangelog git+https://github.com/ryneeverett/python-markdown-comments.git
 fi
+
+[[ -e "$(which gsed)" ]] && xSED="gsed" || xSED="sed"
 
 # Fixing ASCII aborration introduced in: https://github.com/MISP/MISP/commit/1b028ee15a3bd2f209102cd6204e6c4bb519be97
 ${PWD}/mkdocs/bin/gitchangelog |grep -v -e "  ,," -e "\.\.," > ../docs/Changelog.md
@@ -28,18 +30,18 @@ ${PWD}/gen_misp_changelog.py
 # This search and replace is sub-optimal. It replaces 3 "~"s beginning of the line 
 # and then just replaces the remaining 2 following tildes in the document. 
 # This might change the sense of some commit messages...
-sed -i "s/^\~\~\~/---/" ../docs/Changelog.md
-sed -i "s/^- \#/- \\\#/" ../docs/Changelog.md
-sed -i "s/\~\~/--/g" ../docs/Changelog.md
-sed -i "s/%%version%%/v2.4 aka 2.4 for ever/g" ../docs/Changelog.md
-sed -i "s/\(unreleased\)/current changelog/g" ../docs/Changelog.md
+${xSED} -i "s/^\~\~\~/---/" ../docs/Changelog.md
+${xSED} -i "s/^- \#/- \\\#/" ../docs/Changelog.md
+${xSED} -i "s/\~\~/--/g" ../docs/Changelog.md
+${xSED} -i "s/%%version%%/v2.4 aka 2.4 for ever/g" ../docs/Changelog.md
+${xSED} -i "s/\(unreleased\)/current changelog/g" ../docs/Changelog.md
 
 # Emojifying things
-sed -i "s/\/\!\\\/:warning:/g" ../docs/Changelog.md
-sed -i "s/WiP/:construction:/g" ../docs/Changelog.md
-sed -i "s/WIP/:construction:/g" ../docs/Changelog.md
-sed -i "s/Wip:/:construction:/g" ../docs/Changelog.md
-sed -i "s/\[security\]/:lock:/g" ../docs/Changelog.md
+${xSED} -i "s/\/\!\\\/:warning:/g" ../docs/Changelog.md
+${xSED} -i "s/WiP/:construction:/g" ../docs/Changelog.md
+${xSED} -i "s/WIP/:construction:/g" ../docs/Changelog.md
+${xSED} -i "s/Wip:/:construction:/g" ../docs/Changelog.md
+${xSED} -i "s/\[security\]/:lock:/g" ../docs/Changelog.md
 
 ## Other creative ways in sprinkling emoji goodness:
 ### Source: https://gist.github.com/pocotan001/68f96bf86891db316f20

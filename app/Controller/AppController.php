@@ -25,8 +25,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
-    private $__queryVersion = '127';
-    public $pyMispVersion = '2.4.140';
+    private $__queryVersion = '129';
+    public $pyMispVersion = '2.4.143';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -226,6 +226,10 @@ class AppController extends Controller
                     $this->Security->csrfCheck = false;
                 }
                 if ($this->__loginByAuthKey() === false || $this->Auth->user() === null) {
+                    if ($this->__loginByAuthKey() === null) {
+                        $this->loadModel('Log');
+                        $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed API authentication. No authkey was provided.");
+                    }
                     throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
                 }
             } elseif (!$this->Session->read(AuthComponent::$sessionKey)) {
@@ -804,7 +808,7 @@ class AppController extends Controller
      * Configure the debugMode view parameter
      */
     protected function _setupDebugMode() {
-        $this->set('debugMode', (Configure::read('debug') > 1) ? 'debugOn' : 'debugOff');
+        $this->set('debugMode', (Configure::read('debug') >= 1) ? 'debugOn' : 'debugOff');
     }
 
     /*
@@ -1555,6 +1559,9 @@ class AppController extends Controller
      */
     protected function _shouldLog($key)
     {
+        if (Configure::read('Security.log_each_individual_auth_fail')) {
+            return true;
+        }
         $redis = $this->User->setupRedis();
         if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {
             $redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);

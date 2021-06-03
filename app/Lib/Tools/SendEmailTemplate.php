@@ -81,7 +81,9 @@ class SendEmailTemplate
         $text = $View->render($this->viewName);
 
         // Template can change default subject.
-        $this->subject = $View->get('subject');
+        if ($View->get('subject')) {
+            $this->subject = $View->get('subject');
+        }
 
         return new CakeEmailBody($text, $html);
     }

@@ -13,20 +13,27 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
-#: View/Errors/error400.ctp:20
-#: View/Errors/error500.ctp:19
-#: View/Errors/missing_connection.ctp:4
+#: View/Errors/error400.ctp:7
+#: View/Errors/error500.ctp:4
+#: View/Errors/missing_connection.ctp:5
 #: View/Errors/missing_datasource_config.ctp:4
 #: View/Errors/pdo_error.ctp:4
 msgid "Error"
 msgstr ""
 
-#: View/Errors/error400.ctp:22
+#: View/Errors/error400.ctp:11
 msgid "The requested address %s was not found on this server."
 msgstr ""
 
-#: View/Errors/error500.ctp:20
-#: View/Errors/missing_connection.ctp:5
+#: View/Errors/error400.ctp:14
+msgid "You don't have permission to access %s."
+msgstr ""
+
+#: View/Errors/error500.ctp:5
+msgid "An Internal Error Has Occurred. Please try your action again. If the problem persists, please contact administrator."
+msgstr ""
+
+#: View/Errors/missing_connection.ctp:6
 #: View/Errors/missing_datasource_config.ctp:5
 #: View/Errors/pdo_error.ctp:5
 msgid "An Internal Error Has Occurred."

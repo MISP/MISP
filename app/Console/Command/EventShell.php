@@ -10,7 +10,7 @@ require_once 'AppShell.php';
  */
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation');
     public $tasks = array('ConfigLoad');
 
     public function getOptionParser()
@@ -96,7 +96,7 @@ class EventShell extends AppShell
             'job_input' => $id,
             'status' => 0,
             'retries' => 0,
-            //'org' => $jobOrg,
+            'org' => 0,
             'message' => 'Job created.',
         );
         $this->Job->save($data);
@@ -107,6 +107,26 @@ class EventShell extends AppShell
         $fieldList = array('published', 'id', 'info');
         $this->Event->save($event, array('fieldList' => $fieldList));
         // only allow form submit CSRF protection.
+        $this->Job->saveField('status', 1);
+        $this->Job->saveField('message', 'Job done.');
+    }
+
+    public function correlateValue()
+    {
+        $this->ConfigLoad->execute();
+        $value = $this->args[0];
+        $this->Job->create();
+        $data = array(
+            'worker' => 'default',
+            'job_type' => 'correlateValue',
+            'job_input' => $value,
+            'status' => 0,
+            'retries' => 0,
+            'org' => 0,
+            'message' => 'Job created.',
+        );
+        $this->Job->save($data);
+        $this->Correlation->correlateValue($value, $this->Job->id);
         $this->Job->saveField('status', 1);
         $this->Job->saveField('message', 'Job done.');
     }
@@ -425,6 +445,7 @@ class EventShell extends AppShell
         $inputData = $tempFile->read();
         $inputData = json_decode($inputData, true);
         $tempFile->delete();
+        Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processFreeTextData(
             $inputData['user'],
             $inputData['attributes'],
@@ -445,6 +466,7 @@ class EventShell extends AppShell
         $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
         $inputData = json_decode($tempFile->read(), true);
         $tempFile->delete();
+        Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processModuleResultsData(
             $inputData['user'],
             $inputData['misp_format'],
@@ -510,6 +532,23 @@ class EventShell extends AppShell
         if (empty($user)) {
             $this->error("User with ID $userId does not exists.");
         }
+        Configure::write('CurrentUserId', $user['id']); // for audit logging purposes
         return $user;
+    }
+
+    public function generateTopCorrelations()
+    {
+        $this->ConfigLoad->execute();
+        $jobId = $this->args[0];
+        $job = $this->Job->read(null, $jobId);
+        $job['Job']['progress'] = 1;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $job['Job']['message'] = __('Generating top correlations list.');
+        $this->Job->save($job);
+        $result = $this->Correlation->generateTopCorrelations($jobId);
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $job['Job']['message'] = __('Job done.');
+        $this->Job->save($job);
     }
 }
