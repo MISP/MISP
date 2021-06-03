@@ -20,6 +20,7 @@ class ShadowAttribute extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
@@ -142,9 +143,16 @@ class ShadowAttribute extends AppModel
             'message' => array('Invalid ISO 8601 format')
         ),
         'last_seen' => array(
-            'rule' => array('datetimeOrNull'),
-            'required' => false,
-            'message' => array('Invalid ISO 8601 format')
+            'datetimeOrNull' => array(
+                'rule' => array('datetimeOrNull'),
+                'required' => false,
+                'message' => array('Invalid ISO 8601 format')
+            ),
+            'validateLastSeenValue' => array(
+                'rule' => array('validateLastSeenValue'),
+                'required' => false,
+                'message' => array('Last seen value should be greater than first seen value')
+            ),
         )
     );
 
@@ -449,6 +457,22 @@ class ShadowAttribute extends AppModel
     public function datetimeOrNull($fields)
     {
         return $this->Attribute->datetimeOrNull($fields);
+    }
+
+    public function validateLastSeenValue($fields)
+    {
+        $ls = $fields['last_seen'];
+        if (is_null($this->data['ShadowAttribute']['first_seen']) || is_null($ls)) {
+            return true;
+        }
+        $converted = $this->Attribute->ISODatetimeToUTC(['ShadowAttribute' => [
+            'first_seen' => $this->data['ShadowAttribute']['first_seen'],
+            'last_seen' => $ls
+        ]], 'ShadowAttribute');
+        if ($converted['ShadowAttribute']['first_seen'] > $converted['ShadowAttribute']['last_seen']) {
+            return false;
+        }
+        return true;
     }
 
     public function setDeleted($id)

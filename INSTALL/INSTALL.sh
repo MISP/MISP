@@ -2250,6 +2250,7 @@ yumInstallCoreDeps7 () {
   PHP_INI="/etc/php.ini"
   sudo dnf install gcc git zip unzip \
                    mod_ssl \
+                   moreutils \
                    redis \
                    libxslt-devel zlib-devel ssdeep-devel -y
 
@@ -2291,6 +2292,7 @@ yumInstallCoreDeps8 () {
   sudo dnf install gcc git zip unzip \
                    httpd \
                    mod_ssl \
+                   moreutils \
                    redis \
                    mariadb \
                    mariadb-server \
@@ -3697,11 +3699,14 @@ x86_64-kali-2021.3
 x86_64-kali-2021.4
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
+armv7l-raspbian-buster
 armv7l-debian-jessie
 armv7l-debian-stretch
 armv7l-debian-buster
 armv7l-ubuntu-bionic
 armv7l-ubuntu-focal
+aarch64-ubuntu-focal
+aarch64-ubuntu-hirsute
 "
 
 # Check if we actually support this configuration
@@ -3753,8 +3758,8 @@ if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   exit
 fi
 
-# If Debian is detected, figure out which release it is and run the according scripts
-if [[ "${FLAVOUR}" == "debian" ]]; then
+# If Debian/Raspbian is detected, figure out which release it is and run the according scripts
+if [[ "${FLAVOUR}" == "debian" ]] || [[ "${FLAVOUR}" == "raspbian" ]]; then
   CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [[ "${CODE}" == "buster" ]]; then
     echo "Install on Debian testing fully supported."

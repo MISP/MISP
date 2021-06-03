@@ -125,6 +125,12 @@ class SecurityAudit
                 __('Passing user information to response headers is disabled. This can be useful for logging user info at the reverse proxy level. You can enable it by setting `Security.username_in_response_header` to `true`.'),
             ];
         }
+        if (!Configure::read('MISP.log_new_audit')) {
+            $output['Logging'][] = [
+                'hint',
+                __('New audit log stores more information, like used authkey ID or request ID that can help when analysing or correlating audit logs.'),
+            ];
+        }
 
         if (empty(Configure::read('MISP.attachment_scan_module'))) {
             $output['Attachment scanning'][] = ['hint', __('No module for scanning attachments for viruses is currently defined.')];
@@ -367,7 +373,7 @@ class SecurityAudit
             if ($diffDays > 300) {
                 $output['System'][] = [
                     'warning',
-                    __('Kernel build time was s days ago. This usually means that the system kernel is not updated.', $diffDays),
+                    __('Kernel build time was %s days ago. This usually means that the system kernel is not updated.', $diffDays),
                 ];
             }
         }

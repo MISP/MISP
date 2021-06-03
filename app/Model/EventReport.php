@@ -7,6 +7,7 @@ App::uses('AppModel', 'Model');
 class EventReport extends AppModel
 {
     public $actsAs = array(
+        'AuditLog',
         'Containable',
         'SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',
@@ -270,6 +271,44 @@ class EventReport extends AppModel
         }
         return $conditions;
     }
+
+    /**
+     * buildACLConditions Generate ACL conditions for viewing the report
+     *
+     * @param  array $user
+     * @param  array $events
+     * @return array
+     */
+    public function attachReportCountsToEvents(array $user, $events)
+    {
+        $conditions = array();
+        if (!$user['Role']['perm_site_admin']) {
+            $sgids = $this->Event->cacheSgids($user, true);
+        }
+        foreach ($events as $k => $event) {
+            $conditions = [
+                'AND' => [
+                    [
+                        'Event.id' => $event['Event']['id']
+                    ]
+                ]
+            ];
+            if (!$user['Role']['perm_site_admin'] && $event['Event']['org_id'] != $user['org_id']) {
+                $conditions['AND'][] = [
+                    'EventReport.distribution' => [1, 2, 3, 5],
+                    'AND '=> [
+                        'EventReport.distribution' => 4,
+                        'EventReport.sharing_group_id' => $sgids,
+                    ]
+                ];
+            }
+            $events[$k]['Event']['report_count'] = $this->find('count', [
+                'conditions' => $conditions
+            ]);
+        }
+        return $events;
+    }
+
 
     /**
      * fetchById Simple ACL-aware method to fetch a report by Id or UUID

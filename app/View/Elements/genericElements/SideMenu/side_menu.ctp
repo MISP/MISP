@@ -94,7 +94,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'eventLog',
-                        'url' => $baseurl . '/logs/event_index/' . $eventId,
+                        'url' => $baseurl . (Configure::read('MISP.log_new_audit') ? '/audit_logs/eventIndex/' : '/logs/event_index/') . $eventId,
                         'text' => __('View Event History')
                     ));
                     echo $divider;
@@ -440,6 +440,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => '/eventReports/edit/' . h($id),
                             'text' => __('Edit Event Report')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/admin/audit_logs/index/model:EventReport/model_id:' .  h($id),
+                            'text' => __('View report history'),
+                            'requirement' => Configure::read('MISP.log_new_audit') && $canAccess('auditLogs', 'admin_index'),
+                        ));
                     }
                     break;
 
@@ -519,6 +524,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'message' => __('Are you sure you want to update all warninglists?')
                         ));
                     }
+
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'check_value',
+                        'url' => $baseurl . '/warninglists/checkValue',
+                        'text' => __('Search in Warninglists')
+                    ));
                     break;
 
                 case 'noticelist':
@@ -560,7 +571,8 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     if ($menuItem == 'edit') {
                         echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/admin/allowedlists/edit' . h($id),
+                            'url' => $baseurl . '/admin/allowedlists/edit/' . h($id),
+                            'element_id' => 'edit',
                             'text' => __('Edit Allowedlist')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
@@ -1023,6 +1035,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/admin/logs/index',
                         'text' => __('List Logs')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'listAuditLogs',
+                        'url' => $baseurl . '/admin/audit_logs/index',
+                        'text' => __('List Audit Logs'),
+                        'requirement' => Configure::read('MISP.log_new_audit'),
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/admin/logs/search',

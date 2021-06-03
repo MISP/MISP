@@ -89,7 +89,8 @@ class AppModel extends Model
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-        63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false
+        63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
+        69 => false, 70 => false,
     );
 
     public $advanced_updates_description = array(
@@ -1577,6 +1578,30 @@ class AppModel extends Model
                 break;
             case 68:
                 $sqlArray[] = "ALTER TABLE `correlation_exclusions` ADD `comment` text DEFAULT NULL;";
+                break;
+            case 69:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `audit_logs` (
+                      `id` int(11) NOT NULL AUTO_INCREMENT,
+                      `created` datetime NOT NULL,
+                      `user_id` int(11) NOT NULL,
+                      `org_id` int(11) NOT NULL,
+                      `authkey_id` int(11) DEFAULT NULL,
+                      `ip` varbinary(16) DEFAULT NULL,
+                      `request_type` tinyint NOT NULL,
+                      `request_id` varchar(255) DEFAULT NULL,
+                      `action` varchar(20) NOT NULL,
+                      `model` varchar(80) NOT NULL,
+                      `model_id` int(11) NOT NULL,
+                      `model_title` text DEFAULT NULL,
+                      `event_id` int(11) NULL,
+                      `change` blob,
+                      PRIMARY KEY (`id`),
+                      INDEX `event_id` (`event_id`),
+                      INDEX `model_id` (`model_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 70:
+                $sqlArray[] = "ALTER TABLE `galaxies` ADD `enabled` tinyint(1) NOT NULL DEFAULT 1 AFTER `namespace`;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

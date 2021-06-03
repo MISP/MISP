@@ -7,6 +7,7 @@ class OrgBlocklist extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'userModel' => 'User',
                     'userKey' => 'user_id',

@@ -48,7 +48,7 @@ class IndexObjectsCest
             'uuid' => $objectTemplateUuid,
             'name' => 'test-object-template',
             'meta-category' => 'misc',
-            'description' => '',
+            'description' => 'foobar',
             'version' => 1,
             'requirements' => '{"required":["test"], "requiredOneOf":[]}',
             'fixed' => true,

@@ -1257,7 +1257,7 @@ class AttributesController extends AppController
         // tags to remove
         $tags = $this->Attribute->AttributeTag->getAttributesTags($attributes);
         $tagItemsRemove = array();
-        foreach ($tags as $k => $tag) {
+        foreach ($tags as $tag) {
             $tagName = $tag['name'];
             $tagItemsRemove[] = array(
                 'name' => $tagName,
@@ -1275,9 +1275,9 @@ class AttributesController extends AppController
         unset($tags);
 
         // clusters to remove
-        $clusters = $this->Attribute->AttributeTag->getAttributesClusters($attributes);
+        $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $attributes);
         $clusterItemsRemove = array();
-        foreach ($clusters as $k => $cluster) {
+        foreach ($clusters as $cluster) {
             $name = $cluster['value'];
             $optionName = $cluster['value'];
             $synom = $cluster['synonyms_string'] !== '' ? " ({$cluster['synonyms_string']})" : '';
@@ -1304,7 +1304,7 @@ class AttributesController extends AppController
             'conditions' => array('published' => true)
         ));
         $clusterItemsAdd = array();
-        foreach ($clusters as $k => $cluster) {
+        foreach ($clusters as $cluster) {
             $clusterItemsAdd[] = array(
                 'name' => $cluster['GalaxyCluster']['value'],
                 'value' => $cluster['GalaxyCluster']['id']
@@ -1346,6 +1346,7 @@ class AttributesController extends AppController
         $this->set('clusterItemsRemove', $clusterItemsRemove);
         $this->set('options', array( // set chosen (select picker) options
             'multiple' => -1,
+            'autofocus' => false,
             'disabledSubmitButton' => true,
             'flag_redraw_chosen' => true,
             'select_options' => array(
@@ -2963,7 +2964,7 @@ class AttributesController extends AppController
             if ($attribute['Attribute']['disable_correlation']) {
                 $attribute['Attribute']['disable_correlation'] = 0;
                 $this->Attribute->save($attribute);
-                $this->Attribute->__afterSaveCorrelation($attribute['Attribute'], false, $attribute);
+                ClassRegistry::init('Correlation')->afterSaveCorrelation($attribute['Attribute'], false, $attribute);
             } else {
                 $attribute['Attribute']['disable_correlation'] = 1;
                 $this->Attribute->save($attribute);

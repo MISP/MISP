@@ -15,6 +15,7 @@ class MispObject extends AppModel
     public $useTable = 'objects';
 
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                 'userModel' => 'User',
@@ -75,10 +76,43 @@ class MispObject extends AppModel
             'message' => array('Invalid ISO 8601 format')
         ),
         'last_seen' => array(
-            'rule' => array('datetimeOrNull'),
-            'required' => false,
-            'message' => array('Invalid ISO 8601 format')
-        )
+            'datetimeOrNull' => array(
+                'rule' => array('datetimeOrNull'),
+                'required' => false,
+                'message' => array('Invalid ISO 8601 format')
+            ),
+            'validateLastSeenValue' => array(
+                'rule' => array('validateLastSeenValue'),
+                'required' => false,
+                'message' => array('Last seen value should be greater than first seen value')
+            ),
+        ),
+        'name' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            ),
+        ),
+        'meta-category' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            ),
+        ),
+        'description' => array(
+            'stringNotEmpty' => array(
+                'rule' => array('stringNotEmpty')
+            ),
+        ),
+        'template_uuid' => array(
+            'uuid' => array(
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ),
+        ),
+        'template_version' => array(
+            'numeric' => array(
+                'rule' => 'naturalNumber',
+            )
+        ),
     );
 
     private $__objectDuplicationCheckCache = [];
@@ -181,6 +215,22 @@ class MispObject extends AppModel
              $returnValue = false;
          }
          return $returnValue || is_null($seen);
+     }
+
+     public function validateLastSeenValue($fields)
+     {
+         $ls = $fields['last_seen'];
+         if (is_null($this->data['Object']['first_seen']) || is_null($ls)) {
+             return true;
+         }
+         $converted = $this->Attribute->ISODatetimeToUTC(['Object' => [
+             'first_seen' => $this->data['Object']['first_seen'],
+             'last_seen' => $ls
+         ]], 'Object');
+         if ($converted['Object']['first_seen'] > $converted['Object']['last_seen']) {
+             return false;
+         }
+         return true;
      }
 
     public function afterFind($results, $primary = false)

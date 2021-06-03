@@ -23,6 +23,7 @@ class Attribute extends AppModel
     public $name = 'Attribute';             // TODO general
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
@@ -248,9 +249,16 @@ class Attribute extends AppModel
             'message' => array('Invalid ISO 8601 format')
         ),
         'last_seen' => array(
-            'rule' => array('datetimeOrNull'),
-            'required' => false,
-            'message' => array('Invalid ISO 8601 format')
+            'datetimeOrNull' => array(
+                'rule' => array('datetimeOrNull'),
+                'required' => false,
+                'message' => array('Invalid ISO 8601 format')
+            ),
+            'validateLastSeenValue' => array(
+                'rule' => array('validateLastSeenValue'),
+                'required' => false,
+                'message' => array('Last seen value should be greater than first seen value')
+            ),
         )
     );
 
@@ -713,6 +721,22 @@ class Attribute extends AppModel
             $returnValue = false;
         }
         return $returnValue || is_null($seen);
+    }
+
+    public function validateLastSeenValue($fields)
+    {
+        $ls = $fields['last_seen'];
+        if (is_null($this->data['Attribute']['first_seen']) || is_null($ls)) {
+            return true;
+        }
+        $converted = $this->ISODatetimeToUTC(['Attribute' => [
+            'first_seen' => $this->data['Attribute']['first_seen'],
+            'last_seen' => $ls
+        ]], 'Attribute');
+        if ($converted['Attribute']['first_seen'] > $converted['Attribute']['last_seen']) {
+            return false;
+        }
+        return true;
     }
 
     private $__hexHashLengths = array(
