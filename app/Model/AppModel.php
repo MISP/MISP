@@ -89,7 +89,8 @@ class AppModel extends Model
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-        63 => true, 64 => false, 65 => false, 66 => false
+        63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
+        69 => false, 70 => false,
     );
 
     public $advanced_updates_description = array(
@@ -1569,6 +1570,37 @@ class AppModel extends Model
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 66:
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` MODIFY COLUMN `tag_name` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT '';";
+                $indexArray[] = ['event_reports', 'event_id'];
+                break;
+            case 67:
+                $sqlArray[] = "ALTER TABLE `auth_keys` ADD `allowed_ips` text DEFAULT NULL;";
+                break;
+            case 68:
+                $sqlArray[] = "ALTER TABLE `correlation_exclusions` ADD `comment` text DEFAULT NULL;";
+                break;
+            case 69:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `audit_logs` (
+                      `id` int(11) NOT NULL AUTO_INCREMENT,
+                      `created` datetime NOT NULL,
+                      `user_id` int(11) NOT NULL,
+                      `org_id` int(11) NOT NULL,
+                      `authkey_id` int(11) DEFAULT NULL,
+                      `ip` varbinary(16) DEFAULT NULL,
+                      `request_type` tinyint NOT NULL,
+                      `request_id` varchar(255) DEFAULT NULL,
+                      `action` varchar(20) NOT NULL,
+                      `model` varchar(80) NOT NULL,
+                      `model_id` int(11) NOT NULL,
+                      `model_title` text DEFAULT NULL,
+                      `event_id` int(11) NULL,
+                      `change` blob,
+                      PRIMARY KEY (`id`),
+                      INDEX `event_id` (`event_id`),
+                      INDEX `model_id` (`model_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 70:
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `enabled` tinyint(1) NOT NULL DEFAULT 1 AFTER `namespace`;";
                 break;
             case 'fixNonEmptySharingGroupID':
@@ -1824,18 +1856,19 @@ class AppModel extends Model
         }
     }
 
-    private function __addIndex($table, $field, $length = false)
+    private function __addIndex($table, $field, $length = null, $unique = false)
     {
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         $dataSource = $dataSourceConfig['datasource'];
         $this->Log = ClassRegistry::init('Log');
+        $index = $unique ? 'UNIQUE INDEX' : 'INDEX';
         if ($dataSource == 'Database/Postgres') {
-            $addIndex = "CREATE INDEX idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
+            $addIndex = "CREATE $index idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
         } else {
             if (!$length) {
-                $addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`);";
+                $addIndex = "ALTER TABLE `" . $table . "` ADD $index `" . $field . "` (`" . $field . "`);";
             } else {
-                $addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`(" . $length . "));";
+                $addIndex = "ALTER TABLE `" . $table . "` ADD $index `" . $field . "` (`" . $field . "`(" . $length . "));";
             }
         }
         $result = true;
@@ -1844,7 +1877,7 @@ class AppModel extends Model
         try {
             $this->query($addIndex);
         } catch (Exception $e) {
-            $duplicate = (strpos($e->getMessage(), '1061') !== false);
+            $duplicate = strpos($e->getMessage(), '1061') !== false;
             $errorMessage = $e->getMessage();
             $result = false;
         }
@@ -2007,7 +2040,7 @@ class AppModel extends Model
                 }
             }
             $db_version = $db_version[0];
-            $updates = $this->__findUpgrades($db_version['AdminSetting']['value']);
+            $updates = $this->findUpgrades($db_version['AdminSetting']['value']);
             if ($processId) {
                 $job = $this->Job->find('first', array(
                     'conditions' => array('Job.id' => $processId)
@@ -2352,7 +2385,7 @@ class AppModel extends Model
         }
     }
 
-    private function __findUpgrades($db_version)
+    public function findUpgrades($db_version)
     {
         $updates = array();
         if (strpos($db_version, '.')) {
@@ -2722,26 +2755,26 @@ class AppModel extends Model
 
     /**
      * @param array $server
+     * @param string $model
      * @return array[]
      * @throws JsonException
      */
     protected function setupSyncRequest(array $server, $model = 'Server')
     {
         $version = implode('.', $this->checkMISPVersion());
+        $commit = $this->checkMIPSCommit();
         $request = array(
             'header' => array(
                 'Authorization' => $server[$model]['authkey'],
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
                 'MISP-version' => $version,
+                'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
             )
         );
-
-        $commit = $this->checkMIPSCommit();
         if ($commit) {
             $request['header']['commit'] = $commit;
         }
-        $request['header']['User-Agent'] = 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit);
         return $request;
     }
 
@@ -3029,6 +3062,34 @@ class AppModel extends Model
                 $this->Server->save($server);
             }
         }
+    }
+
+    /**
+     * Optimised version of CakePHP _findList method when just one or two fields are set from same model
+     * @param string $state
+     * @param array $query
+     * @param array $results
+     * @return array
+     */
+    protected function _findList($state, $query, $results = [])
+    {
+        if ($state === 'before') {
+            return parent::_findList($state, $query, $results);
+        }
+
+        if (empty($results)) {
+            return [];
+        }
+
+        if ($query['list']['groupPath'] === null) {
+            $keyPath = explode('.', $query['list']['keyPath']);
+            $valuePath = explode('.', $query['list']['valuePath']);
+            if ($keyPath[1] === $valuePath[1]) { // same model
+                return array_column(array_column($results, $keyPath[1]), $valuePath[2], $keyPath[2]);
+            }
+        }
+
+        return parent::_findList($state, $query, $results);
     }
 
     /**

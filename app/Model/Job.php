@@ -92,7 +92,7 @@ class Job extends AppModel
             }
         }
         try {
-            if ($this->save($jobData)) {
+            if ($this->save($jobData, ['atomic' => false])) {
                 return true;
             }
             $this->log("Could not save progress for job $jobId because of validation errors: " . json_encode($this->validationErrors), LOG_NOTICE);

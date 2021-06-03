@@ -39,6 +39,8 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
      *          'group_one' => 1,
      *       ),
      *      'DefaultOrg' => 'MY_ORG',
+     *      'DefaultRole' => false                   // set to a specific value if you wish to hard-set users created via ApacheShibbAuth
+     *      'BlockRoleModifications' => false        // set to true if you wish for the roles never to be updated during login. Especially *                                               // useful if you manually change roles in MISP
      * ),
      * @param CakeRequest $request The request that contains login information.
      * @param CakeResponse $response Unused response object.
@@ -72,6 +74,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
         $orgTag = Configure::read('ApacheShibbAuth.OrgTag');
         $groupTag = Configure::read('ApacheShibbAuth.GroupTag');
         $groupRoleMatching = Configure::read('ApacheShibbAuth.GroupRoleMatching');
+        $blockRoleModifications = Configure::check('ApacheShibbAuth.BlockRoleModifications') ? Configure::read('ApacheShibbAuth.BlockRoleModifications') : false;
 
         // Get user values
         if (!isset($_SERVER[$mailTag])) {
@@ -110,20 +113,25 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
             CakeLog::error('No role was assigned, no egroup matched the configuration.');
             return false; // Deny if the user is not in any egroup
         }
-
+        // if a default role is set, override the currently parsed out selection and use that instead.
+        $roleId = Configure::check('ApacheShibbAuth.DefaultRole') ? Configure::read('ApacheShibbAuth.DefaultRole') : $roleId;
+        if ($roleChanged) {
+            CakeLog::write('info', "User role $roleId assigned.");
+        }
         /** @var User $userModel */
         $userModel = ClassRegistry::init($this->settings['userModel']);
 
         if ($user) { // User already exists
             CakeLog::info( "User `$mispUsername` found in database.");
-            $user = $this->updateUserRole($roleChanged, $user, $roleId, $userModel);
+            if (!$blockRoleModifications) {
+                $user = $this->updateUserRole($roleChanged, $user, $roleId, $userModel);
+            }
             $user = $this->updateUserOrg($org, $user, $userModel);
-            CakeLog::info("User `$mispUsername` logged in.");
+            $userModel->extralog($user, 'login');
             return $user;
         }
 
         CakeLog::info("User `$mispUsername` not found in database.");
-
         // Insert user in database if not existent
         $userData = array('User' => array(
             'email' => $mispUsername,
@@ -137,8 +145,9 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
         // save user
         $userModel->save($userData);
         CakeLog::info("User `$mispUsername` saved in database.");
-        CakeLog::info("User `$mispUsername` logged in.");
-        return $this->_findUser($mispUsername);
+        $user = $this->_findUser($mispUsername);
+        $userModel->extralog($user, 'login');
+        return $user;
     }
 
     /**
@@ -199,7 +208,6 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
                         $roleId = $roleVal;
                         $roleChanged = true;
                     }
-                    CakeLog::write('info', "User role $roleId assigned.");
                 }
             }
             return array($roleChanged, $roleId);

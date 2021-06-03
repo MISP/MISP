@@ -85,6 +85,7 @@
                 )
             ),
             'metaFields' => array(
+                '<div id="notice_message" style="display: none;"></div>',
                 '<div id="bothSeenSliderContainer" style="height: 170px;"></div>'
             )
         )
@@ -151,7 +152,7 @@
                 }
             }
         });
-        
+
         <?php if (!$ajax): ?>
             $('#AttributeType').chosen();
             $('#AttributeCategory').chosen();

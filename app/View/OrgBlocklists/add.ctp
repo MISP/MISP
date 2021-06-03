@@ -2,7 +2,8 @@
 <?php echo $this->Form->create('OrgBlocklist');?>
     <fieldset>
         <legend><?php echo __('Add Organisation Blocklist Entries');?></legend>
-        <p><?php echo __('Simply paste a list of all the organisation UUIDs that you wish to block from being entered.');?></p>
+        <p><?php echo __('Blocklisting an organisation prevents the creation of any event by that organisation on this instance as well as syncing of that organisation\'s events to this instance. It does not prevent a local user of the blocklisted organisation from logging in and editing or viewing data.');?></p>
+        <p><?php echo __('Paste a list of all the organisation UUIDs that you want to add to the blocklist below (one per line).');?></p>
     <?php
         echo $this->Form->input('uuids', array(
                 'type' => 'textarea',

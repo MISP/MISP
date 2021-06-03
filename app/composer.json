@@ -15,7 +15,8 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^8",
-        "php-parallel-lint/php-parallel-lint": "^1.2"
+        "php-parallel-lint/php-parallel-lint": "^1.2",
+        "cakephp/debug_kit": "^2.2.0"
     },
     "suggest": {
         "ext-gd": "For creating image thumbnails",
@@ -29,7 +30,8 @@
         "ext-bcmath": "For faster validating IBAN numbers",
         "ext-rdkafka": "Required for publishing events to Kafka broker",
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
-        "aws/aws-sdk-php": "To upload samples to S3"
+        "aws/aws-sdk-php": "To upload samples to S3",
+        "jumbojett/openid-connect-php": "For OIDC authentication"
     },
     "config": {
         "vendor-dir": "Vendor",

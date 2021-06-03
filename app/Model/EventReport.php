@@ -7,6 +7,7 @@ App::uses('AppModel', 'Model');
 class EventReport extends AppModel
 {
     public $actsAs = array(
+        'AuditLog',
         'Containable',
         'SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',
@@ -234,7 +235,7 @@ class EventReport extends AppModel
     {
         $this->Event = ClassRegistry::init('Event');
         if (isset($report['EventReport']['distribution']) && $report['EventReport']['distribution'] == 4) {
-            $report['EventReport'] = $this->Event->__captureSGForElement($report['EventReport'], $user);
+            $report['EventReport'] = $this->Event->captureSGForElement($report['EventReport'], $user);
         }
         return $report;
     }
@@ -270,6 +271,44 @@ class EventReport extends AppModel
         }
         return $conditions;
     }
+
+    /**
+     * buildACLConditions Generate ACL conditions for viewing the report
+     *
+     * @param  array $user
+     * @param  array $events
+     * @return array
+     */
+    public function attachReportCountsToEvents(array $user, $events)
+    {
+        $conditions = array();
+        if (!$user['Role']['perm_site_admin']) {
+            $sgids = $this->Event->cacheSgids($user, true);
+        }
+        foreach ($events as $k => $event) {
+            $conditions = [
+                'AND' => [
+                    [
+                        'Event.id' => $event['Event']['id']
+                    ]
+                ]
+            ];
+            if (!$user['Role']['perm_site_admin'] && $event['Event']['org_id'] != $user['org_id']) {
+                $conditions['AND'][] = [
+                    'EventReport.distribution' => [1, 2, 3, 5],
+                    'AND '=> [
+                        'EventReport.distribution' => 4,
+                        'EventReport.sharing_group_id' => $sgids,
+                    ]
+                ];
+            }
+            $events[$k]['Event']['report_count'] = $this->find('count', [
+                'conditions' => $conditions
+            ]);
+        }
+        return $events;
+    }
+
 
     /**
      * fetchById Simple ACL-aware method to fetch a report by Id or UUID
@@ -463,15 +502,17 @@ class EventReport extends AppModel
         $objects = [];
         $templateConditions = [];
         foreach ($event['Object'] as $k => $object) {
-            foreach ($object['Attribute'] as &$objectAttribute) {
-                unset($objectAttribute['ShadowAttribute']);
-                $objectAttribute['object_uuid'] = $object['uuid'];
-                $attributes[$objectAttribute['uuid']] = $objectAttribute;
+            if (isset($object['Attribute'])) {
+                foreach ($object['Attribute'] as &$objectAttribute) {
+                    unset($objectAttribute['ShadowAttribute']);
+                    $objectAttribute['object_uuid'] = $object['uuid'];
+                    $attributes[$objectAttribute['uuid']] = $objectAttribute;
 
-                foreach ($objectAttribute['AttributeTag'] as $at) {
-                    $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                    foreach ($objectAttribute['AttributeTag'] as $at) {
+                        $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                    }
+                    $this->Event->Attribute->removeGalaxyClusterTags($objectAttribute);
                 }
-                $this->Event->Attribute->removeGalaxyClusterTags($objectAttribute);
             }
             $objects[$object['uuid']] = $object;
 
@@ -910,7 +951,7 @@ class EventReport extends AppModel
             if ($tagId === -1) {
                 $tagId = $this->EventTag->Tag->captureTag(['name' => $tagName], $user);
             }
-            $this->EventTag->attachTagToEvent($eventId, $tagId);
+            $this->EventTag->attachTagToEvent($eventId, ['id' => $tagId]);
         }
     }
 

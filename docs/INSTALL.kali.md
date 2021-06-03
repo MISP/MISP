@@ -1,8 +1,8 @@
 # INSTALLATION INSTRUCTIONS
-## for Kali Linux 2020.4
+## for Kali Linux 2021.1
 # 0/ Quick MISP Instance on Kali Linux - Status
 
-This has been tested by @SteveClement on 20210203
+This has been tested by @SteveClement on 20210331
 
 # 1/ Prepare Kali with a MISP User
 

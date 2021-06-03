@@ -3,7 +3,7 @@ App::uses('AppModel', 'Model');
 
 class News extends AppModel
 {
-    public $actsAs = array('Containable');
+    public $actsAs = array('AuditLog', 'Containable');
 
     public $validate = array(
         'message' => array(

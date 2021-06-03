@@ -70,9 +70,24 @@ class GalaxiesController extends AppController
             $force = 0;
         }
         $result = $this->Galaxy->update($force);
-        $message = 'Galaxies updated.';
+        $message = __('Galaxies updated.');
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Galaxy', 'update', false, $this->response->type(), $message);
+        } else {
+            $this->Flash->success($message);
+            $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+        }
+    }
+
+    public function wipe_default()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This action is only accessible via POST requests.');
+        }
+        $result = $this->Galaxy->GalaxyCluster->wipe_default();
+        $message = __('Default galaxy clusters dropped.');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Galaxy', 'wipe_default', false, $this->response->type(), $message);
         } else {
             $this->Flash->success($message);
             $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
@@ -614,8 +629,8 @@ class GalaxiesController extends AppController
         if (empty($clusters)) {
             throw new MethodNotAllowedException('Invalid Galaxy.');
         }
+        $this->Galaxy->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
         foreach ($clusters as $k => $cluster) {
-            $clusters[$k] = $this->Galaxy->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
             $clusters[$k] = $this->Galaxy->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
         }
         $galaxy = $this->Galaxy->find('first', array(
@@ -642,8 +657,7 @@ class GalaxiesController extends AppController
             'conditions' => array('Galaxy.id' => $galaxyId)
         ));
         App::uses('ClusterRelationsGraphTool', 'Tools');
-        $grapher = new ClusterRelationsGraphTool();
-        $grapher->construct($this->Auth->user(), $this->Galaxy->GalaxyCluster);
+        $grapher = new ClusterRelationsGraphTool($this->Auth->user(), $this->Galaxy->GalaxyCluster);
         $relations = $grapher->getNetwork($clusters);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($relations, $this->response->type());

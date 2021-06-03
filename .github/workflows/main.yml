@@ -27,6 +27,8 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
 
       # Stop mysql
       - name: Shutdown Ubuntu MySQL (SUDO)
@@ -57,19 +59,16 @@ jobs:
       - name: Initialize variables
         run: |
           echo "USER=`id -u -n`" >> $GITHUB_ENV
-          echo "HOST=`hostname`" >> $GITHUB_ENV
+          echo "HOST=localhost" >> $GITHUB_ENV
 
       # Runs a set of commands using the runners shell
       - name: Install deps
         env:
           php_version: ${{ matrix.php }}
         run: |
-              git submodule update --init --recursive
               sudo apt-get -y update
-              if [[ $php_version == "7.4" ]]; then
-                # Repo is missing for unknown reason
-                LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
-              fi
+              # Repo is missing for unknown reason
+              LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
               sudo apt-get -y install curl python3 python3-zmq python3-requests python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version libfuzzy-dev
               sudo pip3 install virtualenv # virtualenv must be instaled from pip and not from ubuntu pacckages
               sudo pip3 install --upgrade -r requirements.txt
@@ -204,6 +203,8 @@ jobs:
 
       - name: Test if apache is working
         run: |
+              sudo systemctl status apache2 --no-pager -l
+              sudo apache2ctl -S
               curl http://${HOST}
               sudo chmod -R 777 PyMISP
               pushd PyMISP
@@ -231,6 +232,7 @@ jobs:
               ./curl_tests_GH.sh $AUTH $HOST
               popd
 
+              sudo chmod -R g+ws `pwd`/app/tmp/logs
               pushd PyMISP
               poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport -E email
               poetry run python tests/testlive_comprehensive.py
@@ -248,3 +250,4 @@ jobs:
         if: ${{ always() }}
         run: |
               tail -n +1 `pwd`/app/tmp/logs/*
+              tail -n +1 /var/log/apache2/*.log

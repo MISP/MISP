@@ -4,6 +4,7 @@
      *
      * Simply pass a JSON with the following keys set:
      * - model: The model used to create the form (such as Attribute, Event)
+     * - description: text description of the form
      * - fields: an array with each element generating an input field
      *     - field is the actual field name (such as org_id, name, etc) which is required
      *     - optional fields: default, type, options, placeholder, label - these are passed directly to $this->Form->input(),
@@ -51,7 +52,7 @@
                     }
                     $params['class'] = $class;
                 } else {
-                    if (!empty($fieldData['type']) && $fieldData['type'] != 'checkbox') {
+                    if (!empty($fieldData['type']) && ($fieldData['type'] !== 'checkbox' && $fieldData['type'] !== 'radio')) {
                         $params['class'] = 'span6';
                     }
                 }
@@ -68,7 +69,16 @@
                 if (!empty($params['type']) && $params['type'] === 'dropdown') {
                     $params['type'] = 'select';
                 }
+                if (!empty($fieldData['description'])) {
+                    if (!isset($params['class'])) {
+                        $params['class'] = '';
+                    }
+                    $params['class'] .= ' input-with-description';
+                }
                 $temp = $this->Form->input($fieldData['field'], $params);
+                if (!empty($fieldData['description'])) {
+                    $temp .= sprintf('<small class="clear form-field-description apply_css_arrow">%s</small>', h($fieldData['description']));
+                }
                 $fieldsArrayForPersistence []= $modelForForm . Inflector::camelize($fieldData['field']);
                 if (!empty($fieldData['hidden'])) {
                     $temp = '<span class="hidden">' . $temp . '</span>';

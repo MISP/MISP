@@ -10,14 +10,9 @@ class ComplexTypeTool
             'types' => array('link', 'url')
         ),
         array(
-            'from' => '/(\[\.\]|\[dot\]|\(dot\)|\\\\\.)/',
+            'from' => '/(\[\.\]|\[dot\]|\(dot\))/',
             'to' => '.',
             'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
-        ),
-        array(
-            'from' => '/\.+/',
-            'to' => '.',
-            'types' => array('ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
         ),
         array(
             'from' => '/\[hxxp:\/\/\]/',
@@ -41,7 +36,7 @@ class ComplexTypeTool
     public static function refangValue($value, $type)
     {
         foreach (self::$__refangRegexTable as $regex) {
-            if (in_array($type, $regex['types'])) {
+            if (in_array($type, $regex['types'], true)) {
                 $value = preg_replace($regex['from'], $regex['to'], $value);
             }
         }
@@ -131,16 +126,6 @@ class ComplexTypeTool
         return array('type' => 'other', 'value' => $input);
     }
 
-    private function __returnOddElements($array)
-    {
-        foreach ($array as $k => $v) {
-            if ($k % 2 != 1) {
-                unset($array[$k]);
-            }
-        }
-        return array_values($array);
-    }
-
     /**
      * Parse a CSV file with the given settings
      * All lines starting with # are stripped
@@ -203,23 +188,21 @@ class ComplexTypeTool
 
     public function checkFreeText($input, $settings = array())
     {
-        $charactersToTrim = '\'",() ' . "\t\n\r\0\x0B"; // custom + default PHP trim
+        $charactersToTrim = '\'".,() ' . "\t\n\r\0\x0B"; // custom + default PHP trim
+        $input = str_replace("\xc2\xa0", ' ', $input); // non breaking space to normal space
+        $input = preg_replace('/\p{C}+/u', ' ', $input);
         $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
-        $quotedText = explode('"', $input);
-        foreach ($quotedText as $k => $temp) {
-            $temp = trim($temp);
-            if (empty($temp)) {
-                unset($quotedText[$k]);
-            } else {
-                $quotedText[$k] = $temp;
-            }
-        }
-        $iocArray = array_merge($iocArray, $this->__returnOddElements($quotedText));
-        $resultArray = array();
+
+         preg_match_all('/\"([^\"]*)\"/', $input, $matches);
+         foreach ($matches[1] as $match) {
+             if ($match !== '') {
+                 $iocArray[] = $match;
+             }
+         }
+
+        $resultArray = [];
         foreach ($iocArray as $ioc) {
-            $ioc = str_replace("\xc2\xa0", '', $ioc); // remove non breaking space
             $ioc = trim($ioc, $charactersToTrim);
-            $ioc = preg_replace('/\p{C}+/u', '', $ioc);
             if (empty($ioc)) {
                 continue;
             }
@@ -258,6 +241,16 @@ class ComplexTypeTool
      */
     private function __resolveType($raw_input)
     {
+        // Check if value is clean IP without doing expensive operations.
+        if (filter_var($raw_input, FILTER_VALIDATE_IP)) {
+            return [
+                'types' => ['ip-dst', 'ip-src', 'ip-src/ip-dst'],
+                'to_ids' => true,
+                'default_type' => 'ip-dst',
+                'value' => $raw_input,
+            ];
+        }
+
         $input = array('raw' => $raw_input);
 
         // Check hashes before refang and port extracting, it is not necessary for hashes. This speedups parsing

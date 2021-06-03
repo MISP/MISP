@@ -47,6 +47,9 @@ class OidcAuthenticate extends BaseAuthenticate
         if (property_exists($verifiedClaims, $roleProperty)) {
             $roles = $verifiedClaims->{$roleProperty};
         }
+        if (empty($roles)) {
+            $roles = $oidc->requestUserInfo($roleProperty);
+        }
 
         $this->settings['fields'] = ['username' => 'email'];
         $user = $this->_findUser($mispUsername);
@@ -63,18 +66,18 @@ class OidcAuthenticate extends BaseAuthenticate
         }
 
         if ($user) {
-            $this->log($mispUsername, 'Found in database.');
+            $this->log($mispUsername, "Found in database with ID {$user['id']}.");
 
             if ($user['org_id'] != $organisationId) {
                 $user['org_id'] = $organisationId;
                 $this->userModel()->updateField($user, 'org_id', $organisationId);
-                $this->log($mispUsername, "User organisation changed from ${user['org_id']} to $organisationId.");
+                $this->log($mispUsername, "User organisation changed from {$user['org_id']} to $organisationId.");
             }
 
             if ($user['role_id'] != $roleId) {
-                $user['role_id'] = $roleId;
                 $this->userModel()->updateField($user, 'role_id', $roleId);
-                $this->log($mispUsername, "User role changed from ${user['role_id']} to $roleId.");
+                $this->log($mispUsername, "User role changed from {$user['role_id']} to $roleId.");
+                $user['role_id'] = $roleId;
             }
 
             $this->log($mispUsername, 'Logged in.');
@@ -171,6 +174,7 @@ class OidcAuthenticate extends BaseAuthenticate
      */
     private function getUserRole(array $roles, $mispUsername)
     {
+        $this->log($mispUsername, 'Provided roles: ' . implode(', ', $roles));
         $roleMapper = $this->getConfig('role_mapper');
         if (!is_array($roleMapper)) {
             throw new RuntimeException("Config option `OidcAuth.role_mapper` must be array.");
@@ -181,26 +185,22 @@ class OidcAuthenticate extends BaseAuthenticate
         ]);
         $roleNameToId = array_change_key_case($roleNameToId); // normalize role names to lowercase
 
-        $userRole = null;
-        foreach ($roles as $role) {
-            if (isset($roleMapper[$role])) {
-                $roleId = $roleMapper[$role];
-                if (!is_numeric($roleId)) {
-                    $roleId = mb_strtolower($roleId);
-                    if (isset($roleNameToId[$roleId])) {
-                        $roleId = $roleNameToId[$roleId];
+        foreach ($roleMapper as $oidcRole => $mispRole) {
+            if (in_array($oidcRole, $roles, true)) {
+                if (!is_numeric($mispRole)) {
+                    $mispRole = mb_strtolower($mispRole);
+                    if (isset($roleNameToId[$mispRole])) {
+                        $mispRole = $roleNameToId[$mispRole];
                     } else {
-                        $this->log($mispUsername, "MISP Role with name `$roleId` not found, skipping.");
+                        $this->log($mispUsername, "MISP Role with name `$mispRole` not found, skipping.");
                         continue;
                     }
                 }
-                if ($userRole === null || $roleId < $userRole) { // role with lower ID wins
-                    $userRole = $roleId;
-                }
+                return $mispRole; // first match wins
             }
         }
 
-        return $userRole;
+        return null;
     }
 
     /**

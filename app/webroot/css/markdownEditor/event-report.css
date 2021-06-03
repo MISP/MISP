@@ -94,6 +94,13 @@ span.misp-element-wrapper.object {
     border: 1px solid #3465a4 !important;
 }
 
+h1 span.misp-element-wrapper,
+h2 span.misp-element-wrapper,
+h3 span.misp-element-wrapper,
+h4 span.misp-element-wrapper {
+    line-height: 1.2em;
+}
+
 .misp-element-wrapper.object .obj-type {
     display: inline-block;
     background-color: #3465a4 !important;

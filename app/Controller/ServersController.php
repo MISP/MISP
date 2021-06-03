@@ -35,8 +35,11 @@ class ServersController extends AppController
 
     public function beforeFilter()
     {
+        $this->Auth->allow(['cspReport']); // cspReport must work without authentication
+
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'getApiInfo';
+        $this->Security->unlockedActions[] = 'cspReport';
         // permit reuse of CSRF tokens on some pages.
         switch ($this->request->params['action']) {
             case 'push':
@@ -121,8 +124,7 @@ class ServersController extends AppController
         }
 
         $this->loadModel('Event');
-        $threat_levels = $this->Event->ThreatLevel->find('list', ['fields' => ['id', 'name']]);
-        $this->set('threatLevels', $threat_levels);
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
@@ -179,6 +181,7 @@ class ServersController extends AppController
 
         $this->loadModel('Event');
         $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
+        $this->__removeGalaxyClusterTags($event);
         $this->params->params['paging'] = array('Server' => $params);
         $this->set('event', $event);
         $this->set('server', $server);
@@ -199,9 +202,28 @@ class ServersController extends AppController
                 $this->set($alias, $currentModel->{$variable});
             }
         }
-        $threat_levels = $this->Event->ThreatLevel->find('list', ['fields' => ['id', 'name']]);
-        $this->set('threatLevels', $threat_levels);
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         $this->set('title_for_layout', __('Remote event preview'));
+    }
+
+    private function __removeGalaxyClusterTags(array &$event)
+    {
+        $galaxyTagIds = [];
+        foreach ($event['Galaxy'] as $galaxy) {
+            foreach ($galaxy['GalaxyCluster'] as $galaxyCluster) {
+                $galaxyTagIds[$galaxyCluster['tag_id']] = true;
+            }
+        }
+
+        if (empty($galaxyTagIds)) {
+            return;
+        }
+
+        foreach ($event['Tag'] as $k => $eventTag) {
+            if (isset($galaxyTagIds[$eventTag['id']])) {
+                unset($event['Tag'][$k]);
+            }
+        }
     }
 
     public function compareServers()
@@ -433,13 +455,13 @@ class ServersController extends AppController
             $this->redirect(array('controller' => 'servers', 'action' => 'index'));
         }
         if ($this->request->is('post') || $this->request->is('put')) {
-            if (empty(Configure::read('MISP.host_org_id'))) {
-                $this->request->data['Server']['internal'] = 0;
-            }
             if ($this->_isRest()) {
                 if (!isset($this->request->data['Server'])) {
                     $this->request->data = array('Server' => $this->request->data);
                 }
+            }
+            if (empty(Configure::read('MISP.host_org_id'))) {
+                $this->request->data['Server']['internal'] = 0;
             }
             if (isset($this->request->data['Server']['json'])) {
                 $json = json_decode($this->request->data['Server']['json'], true);
@@ -2035,7 +2057,8 @@ class ServersController extends AppController
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket($params);
         $view_data = array();
-        $temp_headers = explode("\n", $request['header']);
+
+        $temp_headers = empty($request['header']) ? [] : explode("\n", $request['header']);
         $request['header'] = array(
             'Authorization' => $this->Auth->user('authkey'),
             'Accept' => 'application/json',
@@ -2419,6 +2442,27 @@ misp.direct_call(relative_path, body)
         }
     }
 
+    public function cspReport()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This action expects a POST request.');
+        }
+
+        $report = $this->Server->jsonDecode($this->request->input());
+        if (!isset($report['csp-report'])) {
+            throw new RuntimeException("Invalid report");
+        }
+
+        $message = 'CSP reported violation';
+        $remoteIp = $this->_remoteIp();
+        if ($remoteIp) {
+            $message .= ' from IP ' . $remoteIp;
+        }
+        $this->log("$message: " . json_encode($report['csp-report'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        return new CakeResponse(['statusCodes' => 204]);
+    }
+
     public function viewDeprecatedFunctionUse()
     {
         $data = $this->Deprecation->getDeprecatedAccessList($this->Server);
@@ -2448,5 +2492,39 @@ misp.direct_call(relative_path, body)
             $allTags[] = array('id' => $id, 'name' => trim($name));
         }
         return $allTags;
+    }
+
+    public function removeOrphanedCorrelations()
+    {
+        $success = $this->Server->removeOrphanedCorrelations();
+        $message = __('Orphaned correlation removed');
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($message, $this->response->type());
+        } else {
+            $this->Flash->success($message);
+            $this->redirect(array('action' => 'serverSettings', 'diagnostics'));
+        }
+    }
+
+    public function queryAvailableSyncFilteringRules($serverID)
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This method can only be access via REST'));
+        }
+        $server = $this->Server->find('first', ['conditions' => ['Server.id' => $serverID]]);
+        if (!$server) {
+            throw new NotFoundException(__('Invalid server'));
+        }
+        $syncFilteringRules = $this->Server->queryAvailableSyncFilteringRules($server);
+        return $this->RestResponse->viewData($syncFilteringRules);
+    }
+
+    public function getAvailableSyncFilteringRules()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This method can only be access via REST'));
+        }
+        $syncFilteringRules = $this->Server->getAvailableSyncFilteringRules($this->Auth->user());
+        return $this->RestResponse->viewData($syncFilteringRules);
     }
 }

@@ -58,7 +58,7 @@
 #viewer-container {
     margin: 0 0;
     justify-content: center;
-    padding: 7px 15px;
+    padding: 10px 15px;
     overflow-y: auto;
     box-shadow: inset 0 2px 6px #eee;
 }

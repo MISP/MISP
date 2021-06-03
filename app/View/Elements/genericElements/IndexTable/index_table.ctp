@@ -35,14 +35,19 @@
             }
         }
     }
-    $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
+    $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : [];
+    if ($ajax && isset($containerId)) {
+        $paginationData['data-paginator'] = "#{$containerId}_content";
+    }
+    $this->Paginator->options($paginationData);
+    $skipPagination = (!empty($data['skip_pagination']) || !empty($data['stupid_pagination'])) ? 1 : 0;
     if (!$skipPagination) {
-        $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : array();
-        if ($ajax && isset($containerId)) {
-            $paginationData['data-paginator'] = "#{$containerId}_content";
-        }
-        $this->Paginator->options($paginationData);
         $paginatonLinks = $this->element('/genericElements/IndexTable/pagination_links');
+        echo $paginatonLinks;
+    }
+
+    if (!empty($data['stupid_pagination'])) {
+        $paginatonLinks = $this->element('/genericElements/IndexTable/stupid_pagination_links');
         echo $paginatonLinks;
     }
     $hasSearch = false;
@@ -60,19 +65,15 @@
     $options = isset($data['options']) ? $data['options'] : array();
     $actions = isset($data['actions']) ? $data['actions'] : array();
     $dblclickActionArray = isset($data['actions']) ? Hash::extract($data['actions'], '{n}[dbclickAction]') : array();
-    $dbclickAction = '';
     foreach ($data['data'] as $k => $data_row) {
         $primary = null;
         if (!empty($data['primary_id_path'])) {
             $primary = Hash::extract($data_row, $data['primary_id_path'])[0];
         }
-        if (!empty($dblclickActionArray)) {
-            $dbclickAction = sprintf("changeLocationFromIndexDblclick(%s)", $k);
-        }
         $rows .= sprintf(
             '<tr data-row-id="%s" %s %s>%s</tr>',
             h($k),
-            empty($dbclickAction) ? '' : 'ondblclick="' . $dbclickAction . '"',
+            empty($dblclickActionArray) ? '' : 'class="dblclickElement"',
             empty($primary) ? '' : 'data-primary-id="' . $primary . '"',
             $this->element(
                 '/genericElements/IndexTable/' . $row_element,

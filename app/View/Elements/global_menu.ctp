@@ -115,7 +115,7 @@
                         'requirement' =>
                             Configure::read('MISP.enableEventBlocklisting') !== false &&
                             !$isSiteAdmin && $hostOrgUser
-                    ),
+                    )
                 )
             ),
             array(
@@ -170,10 +170,11 @@
                         'text' => __('List Noticelists'),
                         'url' => $baseurl . '/noticelists/index'
                     ),
-                    [
+                    array(
                         'text' => __('List Correlation Exclusions'),
-                        'url' => $baseurl . '/correlation_exclusions/index'
-                    ]
+			'url' => $baseurl . '/correlation_exclusions/index',
+			'requirement' => $canAccess('correlation_exclusions', 'index'),
+                    )
                 )
             ),
             array(
@@ -336,6 +337,10 @@
                         'url' => $baseurl . '/admin/users/index'
                     ),
                     array(
+                        'text' => __('List Auth Keys'),
+                        'url' => $baseurl . '/auth_keys/index'
+                    ),
+                    array(
                         'text' => __('List User Settings'),
                         'url' => $baseurl . '/user_settings/index/user_id:all'
                     ),
@@ -441,16 +446,30 @@
                         'url' => $baseurl . '/orgBlocklists',
                         'requirement' => Configure::read('MISP.enableOrgBlocklisting') !== false && $isSiteAdmin
                     ),
+                    [
+                        'type' => 'separator',
+                        'requirement' => $isSiteAdmin
+                    ],
+                    [
+                        'text' => __('Top Correlations'),
+                        'url' => $baseurl . '/correlations/top',
+                        'requirement' => $isSiteAdmin
+                    ]
                 )
             ),
             array(
                 'type' => 'root',
-                'text' => __('Audit'),
+                'text' => __('Logs'),
                 'requirement' => $isAclAudit,
                 'children' => array(
                     array(
                         'text' => __('List Logs'),
                         'url' => $baseurl . '/admin/logs/index'
+                    ),
+                    array(
+                        'text' => __('List Audit Logs'),
+                        'url' => $baseurl . '/admin/audit_logs/index',
+                        'requirement' => Configure::read('MISP.log_new_audit'),
                     ),
                     array(
                         'text' => __('Search Logs'),
@@ -521,4 +540,3 @@
     </ul>
   </div>
 </div>
-<input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />

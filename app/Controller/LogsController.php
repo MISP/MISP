@@ -118,6 +118,8 @@ class LogsController extends AppController
             'deleted_proposals' => 1,
             'noSightings' => true,
             'noEventReports' => true,
+            'includeEventCorrelations' => false,
+            'excludeGalaxy' => true,
         ));
         if (empty($event)) {
             throw new NotFoundException('Invalid event.');
@@ -125,7 +127,7 @@ class LogsController extends AppController
         $event = $event[0];
         $attribute_ids = array();
         $object_ids = array();
-        $proposal_ids = array();
+        $proposal_ids = array_column($event['ShadowAttribute'], 'id');;
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $aa) {
                 $attribute_ids[] = $aa['id'];

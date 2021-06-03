@@ -25,8 +25,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
-    private $__queryVersion = '126';
-    public $pyMispVersion = '2.4.138';
+    private $__queryVersion = '129';
+    public $pyMispVersion = '2.4.143';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -94,26 +94,19 @@ class AppController extends Controller
     public function beforeFilter()
     {
         $this->_setupBaseurl();
-        $this->Auth->loginRedirect = $this->baseurl. '/users/routeafterlogin';
+        $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
 
         $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
         $this->Auth->logoutRedirect = $customLogout ?: ($this->baseurl . '/users/login');
 
         $this->__sessionMassage();
-        if (Configure::read('Security.allow_cors')) {
-            // Add CORS headers
-            $this->response->cors($this->request,
-                    explode(',', Configure::read('Security.cors_origins')),
-                    ['*'],
-                    ['Origin', 'Content-Type', 'Authorization', 'Accept']);
 
-            if ($this->request->is('options')) {
-                // Stop here!
-                // CORS only needs the headers
-                $this->response->send();
-                $this->_stop();
-            }
+        // If server is running behind reverse proxy, PHP will not recognize that user is accessing site by HTTPS connection.
+        // By setting `Security.force_https` to `true`, session cookie will be set as Secure and CSP headers will upgrade insecure requests.
+        if (Configure::read('Security.force_https')) {
+            $_SERVER['HTTPS'] = 'on';
         }
+        $this->__cors();
         if (Configure::read('Security.check_sec_fetch_site_header')) {
             $secFetchSite = $this->request->header('Sec-Fetch-Site');
             if ($secFetchSite !== false && $secFetchSite !== 'same-origin' && ($this->request->is('post') || $this->request->is('put') || $this->request->is('ajax'))) {
@@ -123,7 +116,10 @@ class AppController extends Controller
         if (Configure::read('Security.disable_browser_cache')) {
             $this->response->disableCache();
         }
-        $this->response->header('X-XSS-Protection', '1; mode=block');
+        if (!$this->_isRest()) {
+            $this->__contentSecurityPolicy();
+            $this->response->header('X-XSS-Protection', '1; mode=block');
+        }
 
         if (!empty($this->params['named']['sql'])) {
             $this->sql_dump = intval($this->params['named']['sql']);
@@ -230,6 +226,10 @@ class AppController extends Controller
                     $this->Security->csrfCheck = false;
                 }
                 if ($this->__loginByAuthKey() === false || $this->Auth->user() === null) {
+                    if ($this->__loginByAuthKey() === null) {
+                        $this->loadModel('Log');
+                        $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed API authentication. No authkey was provided.");
+                    }
                     throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
                 }
             } elseif (!$this->Session->read(AuthComponent::$sessionKey)) {
@@ -314,11 +314,11 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
-            $pre_auth_actions = array('login', 'register', 'getGpgPublicKey');
+            $preAuthActions = array('login', 'register', 'getGpgPublicKey');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
-                $pre_auth_actions[] = 'email_otp';
+                $preAuthActions[] = 'email_otp';
             }
-            if (!$this->_isControllerAction(['users' => $pre_auth_actions])) {
+            if (!$this->_isControllerAction(['users' => $preAuthActions, 'servers' => ['cspReport']])) {
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
@@ -443,22 +443,9 @@ class AppController extends Controller
                 } else {
                     // User not authenticated correctly
                     // reset the session information
-                    $redis = $this->User->setupRedis();
-                    // Do not log every fail, but just once per hour
-                    if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $authKeyToStore)) {
-                        $redis->setex('misp:auth_fail_throttling:' . $authKeyToStore, 3600, 1);
+                    if ($this->_shouldLog($authKeyToStore)) {
                         $this->loadModel('Log');
-                        $this->Log->create();
-                        $log = array(
-                            'org' => 'SYSTEM',
-                            'model' => 'User',
-                            'model_id' => 0,
-                            'email' => 'SYSTEM',
-                            'action' => 'auth_fail',
-                            'title' => "Failed authentication using API key ($authKeyToStore)",
-                            'change' => null,
-                        );
-                        $this->Log->save($log);
+                        $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using API key ($authKeyToStore)");
                     }
                     $this->Session->destroy();
                 }
@@ -545,8 +532,10 @@ class AppController extends Controller
         }
 
         if ($user['disabled']) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], 'Login attempt by disabled user.');
+            if ($this->_shouldLog('disabled:' . $user['id'])) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], 'Login attempt by disabled user.');
+            }
 
             $this->Auth->logout();
             if ($this->_isRest()) {
@@ -562,8 +551,30 @@ class AppController extends Controller
         if (isset($user['authkey_expiration']) && $user['authkey_expiration']) {
             $time = isset($_SERVER['REQUEST_TIME']) ? $_SERVER['REQUEST_TIME'] : time();
             if ($user['authkey_expiration'] < $time) {
+                if ($this->_shouldLog('expired:' . $user['authkey_id'])) {
+                    $this->Log = ClassRegistry::init('Log');
+                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt by expired auth key {$user['authkey_id']}.");
+                }
                 $this->Auth->logout();
                 throw new ForbiddenException('Auth key is expired');
+            }
+        }
+
+        if (!empty($user['allowed_ips'])) {
+            App::uses('CidrTool', 'Tools');
+            $cidrTool = new CidrTool($user['allowed_ips']);
+            $remoteIp = $this->_remoteIp();
+            if ($remoteIp === null) {
+                $this->Auth->logout();
+                throw new ForbiddenException('Auth key is limited to IP address, but IP address not found');
+            }
+            if (!$cidrTool->contains($remoteIp)) {
+                if ($this->_shouldLog('not_allowed_ip:' . $user['authkey_id'] . ':' . $remoteIp)) {
+                    $this->Log = ClassRegistry::init('Log');
+                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt from not allowed IP address for auth key {$user['authkey_id']}.");
+                }
+                $this->Auth->logout();
+                throw new ForbiddenException('It is not possible to use this Auth key from your IP address');
             }
         }
 
@@ -629,7 +640,7 @@ class AppController extends Controller
             return;
         }
 
-        $remoteAddress = trim($_SERVER['REMOTE_ADDR']);
+        $remoteAddress = $this->_remoteIp();
 
         $pipe = $redis->multi(Redis::PIPELINE);
         // keep for 30 days
@@ -677,10 +688,69 @@ class AppController extends Controller
                 $change .= PHP_EOL . 'Request body: ' . $payload;
             }
             $this->Log = ClassRegistry::init('Log');
-            try {
-                $this->Log->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
-            } catch (Exception $e) {
-                // When `MISP.log_skip_db_logs_completely` is enabled, Log::createLogEntry method throws exception
+            $this->Log->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
+        }
+    }
+
+    /**
+     * Generate Content-Security-Policy HTTP header
+     */
+    private function __contentSecurityPolicy()
+    {
+        $default = [
+            'default-src' => "'self' data: 'unsafe-inline' 'unsafe-eval'",
+            'style-src' => "'self' 'unsafe-inline'",
+            'object-src' => "'none'",
+            'frame-ancestors' => "'none'",
+            'worker-src' => "'none'",
+            'child-src' => "'none'",
+            'frame-src' => "'none'",
+            'base-uri' => "'self'",
+            'img-src' => "'self' data:",
+            'font-src' => "'self'",
+            'form-action' => "'self'",
+            'connect-src' => "'self'",
+            'manifest-src' => "'none'",
+            'report-uri' => '/servers/cspReport',
+        ];
+        if (env('HTTPS')) {
+            $default['upgrade-insecure-requests'] = null;
+        }
+        $custom = Configure::read('Security.csp');
+        if ($custom === false) {
+            return;
+        }
+        if (is_array($custom)) {
+            $default = $custom + $default;
+        }
+        $header = [];
+        foreach ($default as $key => $value) {
+            if ($value !== false) {
+                if ($value === null) {
+                    $header[] = $key;
+                } else {
+                    $header[] = "$key $value";
+                }
+            }
+        }
+        $headerName = Configure::read('Security.csp_enforce') ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only';
+        $this->response->header($headerName, implode('; ', $header));
+    }
+
+    private function __cors()
+    {
+        if (Configure::read('Security.allow_cors')) {
+            // Add CORS headers
+            $this->response->cors($this->request,
+                explode(',', Configure::read('Security.cors_origins')),
+                ['*'],
+                ['Origin', 'Content-Type', 'Authorization', 'Accept']);
+
+            if ($this->request->is('options')) {
+                // Stop here!
+                // CORS only needs the headers
+                $this->response->send();
+                $this->_stop();
             }
         }
     }
@@ -738,7 +808,7 @@ class AppController extends Controller
      * Configure the debugMode view parameter
      */
     protected function _setupDebugMode() {
-        $this->set('debugMode', (Configure::read('debug') > 1) ? 'debugOn' : 'debugOff');
+        $this->set('debugMode', (Configure::read('debug') >= 1) ? 'debugOn' : 'debugOff');
     }
 
     /*
@@ -1213,7 +1283,7 @@ class AppController extends Controller
 
     private function __sessionMassage()
     {
-        if (!empty(Configure::read('MISP.uuid'))) {
+        if (empty(Configure::read('Session.cookie')) && !empty(Configure::read('MISP.uuid'))) {
             Configure::write('Session.cookie', 'MISP-' . Configure::read('MISP.uuid'));
         }
         if (!empty(Configure::read('Session.cookieTimeout')) || !empty(Configure::read('Session.timeout'))) {
@@ -1347,6 +1417,18 @@ class AppController extends Controller
         }
         $elementCounter = 0;
         $renderView = false;
+        $responseType = empty($this->$scope->validFormats[$returnFormat][0]) ? 'json' : $this->$scope->validFormats[$returnFormat][0];
+        // halt execution if we were to query for items above the ID. Blocks the endless caching bug
+        if (!empty($filters['page']) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
+            if ($this->__cachingOverflow($filters, $scope)) {
+                $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
+                return $this->RestResponse->viewData('', $responseType, false, true, $filename, [
+                    'X-Result-Count' => 0,
+                    'X-Export-Module-Used' => $returnFormat,
+                    'X-Response-Format' => $responseType
+                ]);
+            }
+        }
         $final = $this->$scope->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
         if (!empty($renderView) && !empty($final)) {
             $this->layout = false;
@@ -1356,10 +1438,27 @@ class AppController extends Controller
             }
             $this->render('/Events/module_views/' . $renderView);
         } else {
-            $responseType = $this->$scope->validFormats[$returnFormat][0];
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
         }
+    }
+
+    /**
+     * Halt execution if we were to query for items above the ID. Blocks the endless caching bug.
+     *
+     * @param array $filters
+     * @param string $scope
+     * @return bool
+     */
+    private function __cachingOverflow($filters, $scope)
+    {
+        $offset = ($filters['page'] * (empty($filters['limit']) ? 60 : $filters['limit'])) + 1;
+        $max_id = $this->$scope->query(sprintf('SELECT max(id) as max_id from %s;', Inflector::tableize($scope)));
+        $max_id = intval($max_id[0][0]['max_id']);
+        if ($max_id < $offset) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -1377,10 +1476,10 @@ class AppController extends Controller
         if ($this->userRole['perm_site_admin']) {
             return true;
         }
-        if ($this->userRole['perm_modify_org'] && $event['Event']['orgc_id'] == $this->Auth->user('org_id')) {
+        if ($this->userRole['perm_modify_org'] && $event['Event']['orgc_id'] == $this->Auth->user()['org_id']) {
             return true;
         }
-        if ($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')) {
+        if ($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user()['id']) {
             return true;
         }
         return false;
@@ -1424,17 +1523,50 @@ class AppController extends Controller
             throw new RuntimeException("User with ID {$sessionUser['id']} not exists.");
         }
         if (isset($sessionUser['authkey_id'])) {
+            // Reload authkey
             $this->loadModel('AuthKey');
-            if (!$this->AuthKey->exists($sessionUser['authkey_id'])) {
+            $authKey = $this->AuthKey->find('first', [
+                'conditions' => ['id' => $sessionUser['authkey_id'], 'user_id' => $user['id']],
+                'fields' => ['id', 'expiration', 'allowed_ips'],
+                'recursive' => -1,
+            ]);
+            if (empty($authKey)) {
                 throw new RuntimeException("Auth key with ID {$sessionUser['authkey_id']} not exists.");
             }
+            $user['authkey_id'] = $authKey['AuthKey']['id'];
+            $user['authkey_expiration'] = $authKey['AuthKey']['expiration'];
+            $user['allowed_ips'] = $authKey['AuthKey']['allowed_ips'];
         }
-        foreach (['authkey_id', 'authkey_expiration', 'logged_by_authkey'] as $copy) {
-            if (isset($sessionUser[$copy])) {
-                $user[$copy] = $sessionUser[$copy];
-            }
+        if (isset($sessionUser['logged_by_authkey'])) {
+            $user['logged_by_authkey'] = $sessionUser['logged_by_authkey'];
         }
         $this->Auth->login($user);
         return $user;
+    }
+
+    /**
+     * @return string|null
+     */
+    protected function _remoteIp()
+    {
+        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
+        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : null;
+    }
+
+    /**
+     * @param string $key
+     * @return bool Returns true if the same log defined by $key was not stored in last hour
+     */
+    protected function _shouldLog($key)
+    {
+        if (Configure::read('Security.log_each_individual_auth_fail')) {
+            return true;
+        }
+        $redis = $this->User->setupRedis();
+        if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {
+            $redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
+            return true;
+        }
+        return false;
     }
 }

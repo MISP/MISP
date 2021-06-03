@@ -1,46 +1,45 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Job $Job
+ */
 class JobsController extends AppController
 {
     public $components = array('Security' ,'RequestHandler', 'Session');
 
     public $paginate = array(
-            'limit' => 20,
-            'order' => array(
-                    'Job.id' => 'desc'
-            ),
+        'limit' => 20,
+        'recursive' => 0,
+        'order' => array(
+            'Job.id' => 'desc'
+        ),
     );
 
     public function index($queue = false)
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         if (!Configure::read('MISP.background_jobs')) {
             throw new NotFoundException('Background jobs are not enabled on this instance.');
         }
         $this->loadModel('Server');
         $issueCount = 0;
         $workers = $this->Server->workerDiagnostics($issueCount);
-        $this->recursive = 0;
         $queues = array('email', 'default', 'cache', 'prio', 'update');
-        if ($queue && in_array($queue, $queues)) {
+        if ($queue && in_array($queue, $queues, true)) {
             $this->paginate['conditions'] = array('Job.worker' => $queue);
         }
         $jobs = $this->paginate();
         foreach ($jobs as &$job) {
             if ($job['Job']['process_id'] !== false) {
                 $job['Job']['job_status'] = $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id']));
-                $job['Job']['failed'] = false;
-                if ($job['Job']['status'] === 'Failed') {
-                    $job['Job']['failed'] = true;
-                }
+                $job['Job']['failed'] = $job['Job']['job_status'] === 'Failed';
             } else {
-                $job['Job']['status'] = 'Unknown';
+                $job['Job']['job_status'] = 'Unknown';
             }
-            $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'] ? true : false;
+            $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'];
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($jobs, $this->response->type());
         }
         $this->set('list', $jobs);
         $this->set('queue', $queue);
@@ -63,34 +62,32 @@ class JobsController extends AppController
         switch ($status) {
             case 1:
                 return 'Waiting';
-                break;
             case 2:
                 return 'Running';
-                break;
             case 3:
                 return 'Failed';
-                break;
             case 4:
                 return 'Completed';
-                break;
             default:
                 return 'Unknown';
-                break;
         }
     }
 
     public function getGenerateCorrelationProgress($id)
     {
-        if (!self::_isSiteAdmin()) {
-            throw new NotFoundException();
+        $job = $this->Job->find('first', [
+            'fields' => ['progress', 'process_id'],
+            'conditions' => ['id' => $id],
+            'recursive' => -1,
+        ]);
+        if (!$job) {
+            throw new NotFoundException("Job with ID `$id` not found");
         }
-        $progress = $this->Job->findById($id);
-        if (!$progress) {
-            $progress = 0;
-        } else {
-            $progress = $progress['Job']['progress'];
-        }
-        return new CakeResponse(array('body' => json_encode($progress), 'type' => 'json'));
+        $output = [
+            'job_status' => $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id'])),
+            'progress' => (int)$job['Job']['progress'],
+        ];
+        return $this->RestResponse->viewData($output, 'json');
     }
 
     public function getProgress($type)
@@ -152,11 +149,12 @@ class JobsController extends AppController
     public function clearJobs($type = 'completed')
     {
         if ($this->request->is('post')) {
-            $conditions = array('Job.progress' => 100);
-            $message = __('All completed jobs have been purged');
-            if ($type == 'all') {
+            if ($type === 'all') {
                 $conditions = array('Job.id !=' => 0);
                 $message = __('All jobs have been purged');
+            } else {
+                $conditions = array('Job.progress' => 100);
+                $message = __('All completed jobs have been purged');
             }
             $this->Job->deleteAll($conditions, false);
             $this->Flash->success($message);

@@ -5,7 +5,7 @@
         $fields = array();
         foreach ($field_names as $field_name) {
             if ($field_name == 'ref' || $field_name == 'geographical_area') {
-                $value = json_decode($noticelist['Noticelist'][$field_name]);
+                $value = $noticelist['Noticelist'][$field_name];
                 foreach ($value as $k => $v) {
                     if ($field_name == 'ref') {
                         $value[$k] = '<a href="' . h($v) . '">' . h($v) . '</a>';

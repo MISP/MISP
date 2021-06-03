@@ -21,9 +21,9 @@
 .fullscreen-btn-timeline {
 	float: right;
 	display: inline-block;
-	bottom: 33px;
+	bottom: 31px;
 	position: relative;
-	right: 3px;
+	right: 43px;
 	opacity: 0.7;
 	z-index: 1;
 	cursor: nesw-resize;

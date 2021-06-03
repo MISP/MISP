@@ -116,6 +116,7 @@ class DistributionGraphTool
             'noShadowAttributes' => true,
             'noEventReports' => true,
             'noSightings' => true,
+            'excludeGalaxy' => true,
             'includeEventCorrelations' => false,
             'extended' => $this->__extended_view,
         ));
