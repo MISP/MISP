@@ -49,11 +49,11 @@ servers:
   - url: /
 tags:
   - name: Attributes
-    description: A"ttributes in MISP can be network indicators (e.g. IP address), system indicators (e.g. a string in memory) or even bank account details."
+    description: "Attributes in MISP can be network indicators (e.g. IP address), system indicators (e.g. a string in memory) or even bank account details."
     externalDocs:
       url: https://www.circl.lu/doc/misp/GLOSSARY.html#misp-attribute
   - name: Events
-    description: "MISP events are encapsulations for contextually related information represented as attribute and object."
+    description: "MISP events are encapsulations for contextually related information represented as attributes and objects."
     externalDocs:
       url: https://www.circl.lu/doc/misp/GLOSSARY.html#misp-event
   - name: Galaxies
@@ -523,7 +523,7 @@ paths:
 
   /galaxies/update:
     post:
-      summary: "Force update the galaxies with the galaxy json definitions."
+      summary: "Force update the galaxies with the galaxy json definitions"
       operationId: updateGalaxies
       tags:
         - Galaxies
@@ -575,7 +575,7 @@ paths:
 
   /galaxies/export/{galaxyId}:
     post:
-      summary: "Export a galaxy clusters"
+      summary: "Export galaxy clusters"
       operationId: exportGalaxyClusters
       tags:
         - Galaxies
@@ -595,7 +595,7 @@ paths:
 
   /galaxies/attachCluster/{attachTargetId}/{attachTargetType}:
     post:
-      summary: "Attach the galaxy cluster tag a given entity."
+      summary: "Attach the galaxy cluster tag a given entity"
       operationId: attachGalaxyCluster
       tags:
         - Galaxies
@@ -616,7 +616,7 @@ paths:
 
   /galaxy_clusters/add/{galaxyId}:
     post:
-      summary: "Add galaxy cluster."
+      summary: "Add galaxy cluster"
       operationId: addGalaxyCluster
       tags:
         - GalaxyClusters
@@ -636,7 +636,7 @@ paths:
 
   /galaxy_clusters/edit/{galaxyClusterId}:
     put:
-      summary: "Edit galaxy cluster."
+      summary: "Edit galaxy cluster"
       operationId: editGalaxyCluster
       tags:
         - GalaxyClusters
@@ -656,7 +656,7 @@ paths:
 
   /galaxy_clusters/index/{galaxyId}:
     get:
-      summary: "Get galaxy clusters."
+      summary: "Get galaxy clusters"
       operationId: getGalaxyClusters
       tags:
         - GalaxyClusters
@@ -672,7 +672,7 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
     post:
-      summary: "Search galaxy clusters."
+      summary: "Search galaxy clusters"
       operationId: searchGalaxyClusters
       tags:
         - GalaxyClusters
@@ -692,7 +692,7 @@ paths:
 
   /galaxy_clusters/view/{galaxyClusterId}:
     get:
-      summary: "Get galaxy cluster by ID."
+      summary: "Get galaxy cluster by ID"
       operationId: getGalaxyClusterById
       tags:
         - GalaxyClusters
@@ -710,7 +710,7 @@ paths:
 
   /galaxy_clusters/publish/{galaxyClusterId}:
     post:
-      summary: "Publish galaxy cluster."
+      summary: "Publish galaxy cluster"
       operationId: publishGalaxyCluster
       tags:
         - GalaxyClusters
@@ -728,7 +728,7 @@ paths:
 
   /galaxy_clusters/unpublish/{galaxyClusterId}:
     post:
-      summary: "Unpublish galaxy cluster."
+      summary: "Unpublish galaxy cluster"
       operationId: unpublishGalaxyCluster
       tags:
         - GalaxyClusters
@@ -746,7 +746,7 @@ paths:
 
   /galaxy_clusters/delete/{galaxyClusterId}:
     post:
-      summary: "Delete galaxy cluster."
+      summary: "Delete galaxy cluster"
       operationId: deleteGalaxyCluster
       tags:
         - GalaxyClusters
@@ -764,7 +764,7 @@ paths:
 
   /galaxy_clusters/restore/{galaxyClusterId}:
     post:
-      summary: "Restore galaxy cluster."
+      summary: "Restore galaxy cluster"
       operationId: restoreGalaxyCluster
       tags:
         - GalaxyClusters
@@ -782,7 +782,7 @@ paths:
 
   /admin/users/add:
     post:
-      summary: "Add user."
+      summary: "Add user"
       operationId: addUser
       tags:
         - Users
@@ -800,7 +800,7 @@ paths:
 
   /admin/users/edit/{userId}:
     put:
-      summary: "Edit user."
+      summary: "Edit user"
       operationId: editUser
       tags:
         - Users
@@ -820,7 +820,7 @@ paths:
 
   /admin/users/delete/{userId}:
     delete:
-      summary: "Delete user."
+      summary: "Delete user"
       operationId: deleteUser
       tags:
         - Users
@@ -838,7 +838,7 @@ paths:
 
   /admin/users:
     get:
-      summary: "Get users."
+      summary: "Get users"
       operationId: getUsers
       tags:
         - Users
@@ -854,7 +854,7 @@ paths:
 
   /admin/users/view/{userId}:
     get:
-      summary: "Get user by ID."
+      summary: "Get user by ID"
       operationId: getUserById
       tags:
         - Users
@@ -872,7 +872,7 @@ paths:
 
   /admin/organisations/add:
     post:
-      summary: "Add organisation."
+      summary: "Add organisation"
       operationId: addOrganisation
       tags:
         - Organisations
@@ -890,7 +890,7 @@ paths:
 
   /admin/organisations/edit/{organisationId}:
     put:
-      summary: "Edit organisation."
+      summary: "Edit organisation"
       operationId: editOrganisation
       tags:
         - Organisations
@@ -910,7 +910,7 @@ paths:
 
   /admin/organisations/delete/{organisationId}:
     delete:
-      summary: "Delete organisation."
+      summary: "Delete organisation"
       operationId: deleteOrganisation
       tags:
         - Organisations
@@ -928,7 +928,7 @@ paths:
 
   /organisations:
     get:
-      summary: "Get organisations."
+      summary: "Get organisations"
       operationId: getOrganisations
       tags:
         - Organisations
@@ -944,7 +944,7 @@ paths:
 
   /organisations/view/{organisationId}:
     get:
-      summary: "Get organisation by ID."
+      summary: "Get organisation by ID"
       operationId: getOrganisationById
       tags:
         - Organisations
@@ -962,7 +962,7 @@ paths:
 
   /servers/add:
     post:
-      summary: "Add server."
+      summary: "Add server"
       operationId: addServer
       tags:
         - Servers
@@ -978,7 +978,7 @@ paths:
 
   /servers/edit/{serverId}:
     put:
-      summary: "Edit server."
+      summary: "Edit server"
       operationId: editServer
       tags:
         - Servers
@@ -996,7 +996,7 @@ paths:
 
   /servers/delete/{serverId}:
     post:
-      summary: "Delete server."
+      summary: "Delete server"
       operationId: deleteServer
       tags:
         - Servers
@@ -1014,7 +1014,7 @@ paths:
 
   /servers:
     get:
-      summary: "Get servers."
+      summary: "Get servers"
       operationId: getServers
       tags:
         - Servers
@@ -1030,7 +1030,7 @@ paths:
 
   /servers/pull/{serverId}/{pullTechnique}:
     get:
-      summary: "Pull server."
+      summary: "Pull server"
       operationId: pullServer
       tags:
         - Servers
@@ -1049,7 +1049,7 @@ paths:
 
   /servers/push/{serverId}/{pushTechnique}:
     get:
-      summary: "Push server."
+      summary: "Push server"
       operationId: pushServer
       tags:
         - Servers
@@ -1068,7 +1068,7 @@ paths:
 
   /servers/getVersion:
     get:
-      summary: "Get current instance version."
+      summary: "Get current instance version"
       operationId: getServerVersion
       tags:
         - Servers
@@ -1084,7 +1084,7 @@ paths:
 
   /servers/getPyMISPVersion:
     get:
-      summary: "Get current instance PyMISP version."
+      summary: "Get current instance PyMISP version"
       operationId: getPyMISPVersion
       tags:
         - Servers
@@ -1100,7 +1100,7 @@ paths:
 
   /servers/serverSettings:
     get:
-      summary: "Get current instance settings and diagnostics."
+      summary: "Get current instance settings and diagnostics"
       operationId: getServerSettings
       tags:
         - Servers
@@ -1116,7 +1116,7 @@ paths:
 
   /servers/getWorkers:
     get:
-      summary: "Get workers."
+      summary: "Get workers"
       operationId: getWorkers
       tags:
         - Servers
@@ -1132,7 +1132,7 @@ paths:
 
   /servers/startWorker/{workerType}:
     post:
-      summary: "Start worker."
+      summary: "Start worker"
       operationId: startWorker
       tags:
         - Servers
@@ -1150,7 +1150,7 @@ paths:
 
   /servers/stopWorker/{workerPid}:
     post:
-      summary: "Stop worker."
+      summary: "Stop worker"
       operationId: stopWorker
       tags:
         - Servers
@@ -1200,7 +1200,7 @@ paths:
 
   /servers/restartDeadWorkers:
     post:
-      summary: "Restart deadworkers"
+      summary: "Restart dead workers"
       operationId: restartDeadWorkers
       tags:
         - Servers
@@ -1216,7 +1216,7 @@ paths:
 
   /servers/update:
     post:
-      summary: "Update server."
+      summary: "Update server"
       operationId: updateServer
       tags:
         - Servers
@@ -1232,7 +1232,7 @@ paths:
 
   /servers/cache:
     post:
-      summary: "Cache server."
+      summary: "Cache server"
       operationId: cacheServer
       tags:
         - Servers
@@ -1248,7 +1248,7 @@ paths:
 
   /servers/createSync:
     post:
-      summary: "Create sync."
+      summary: "Create sync"
       operationId: createSync
       tags:
         - Servers
@@ -1264,7 +1264,7 @@ paths:
 
   /servers/getInstanceUUID:
     get:
-      summary: "Get instance UUID."
+      summary: "Get instance UUID"
       operationId: getServerUuid
       tags:
         - Servers
@@ -1280,7 +1280,7 @@ paths:
 
   /servers/getSetting/{settingName}:
     get:
-      summary: "Get server setting by name."
+      summary: "Get server setting by name"
       operationId: getServerSetting
       tags:
         - Servers
@@ -1298,7 +1298,7 @@ paths:
 
   /servers/serverSettingsEdit/{settingName}:
     post:
-      summary: "Edit server setting."
+      summary: "Edit server setting"
       operationId: editServerSetting
       tags:
         - Servers
@@ -1318,7 +1318,7 @@ paths:
 
   /servers/import:
     post:
-      summary: "Import server."
+      summary: "Import server"
       operationId: importServer
       tags:
         - Servers
@@ -1392,8 +1392,8 @@ paths:
 
   /sharing_groups:
     get:
-      summary: "Get a list of sharing groups."
-      operationId: getSharingGroups
+      summary: "Get a list of sharing groups"
+      operationId: getSharingGroup
       tags:
         - Sharing Groups
       responses:
@@ -1408,7 +1408,7 @@ paths:
 
   /sharing_groups/view/{sharingGroupId}:
     get:
-      summary: "Get a sharing groups by ID"
+      summary: "Get a sharing group by ID"
       operationId: getSharingGroupById
       tags:
         - Sharing Groups
@@ -4274,7 +4274,7 @@ components:
       type: integer
       format: int32
       nullable: true
-      minimum: 0
+      minimum: 1
 
     SortSearchField:
       description: Field to be used to sort the result
@@ -5056,7 +5056,7 @@ components:
           schema:
             type: object
             properties:
-              page:
+              value:
                 $ref: "#/components/schemas/GalaxyValueSearchFilter"
 
     ImportGalaxyClusterRequest:
@@ -5653,7 +5653,7 @@ components:
                 example: Tag could not be added.
 
     ExtendedEventListResponse:
-      description: "A list of events"
+      description: "A list of events with extended properties"
       headers:
         X-Result-Count:
           $ref: "#/components/headers/X-Result-Count"
