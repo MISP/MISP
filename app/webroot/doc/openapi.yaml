@@ -2096,8 +2096,7 @@ components:
           $ref: "#/components/schemas/ObjectId"
         object_relation:
           nullable: true
-          allOf:
-            - $ref: "#/components/schemas/ObjectRelation"
+          $ref: "#/components/schemas/NullableObjectRelation"
         category:
           $ref: "#/components/schemas/AttributeCategory"
         type:
@@ -2109,9 +2108,7 @@ components:
         uuid:
           $ref: "#/components/schemas/UUID"
         timestamp:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/Timestamp"
+          $ref: "#/components/schemas/NullableTimestamp"
         distribution:
           $ref: "#/components/schemas/DistributionLevelId"
         sharing_group_id:
@@ -2123,13 +2120,9 @@ components:
         disable_correlation:
           $ref: "#/components/schemas/DisableCorrelationFlag"
         first_seen:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/MicroTimestamp"
+          $ref: "#/components/schemas/NullableMicroTimestamp"
         last_seen:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/MicroTimestamp"
+          $ref: "#/components/schemas/NullableMicroTimestamp"
 
     Attribute:
       allOf:
@@ -2158,19 +2151,22 @@ components:
       items:
         $ref: "#/components/schemas/Attribute"
 
+    AttributeRestSearchListItem:
+      allOf:
+        - $ref: "#/components/schemas/ExtendedAttribute"
+        - type: object
+          properties:
+            Event:
+              $ref: "#/components/schemas/Event"
+            Object:
+              $ref: "#/components/schemas/Object"
+            Tag:
+              $ref: "#/components/schemas/TagList"
+
     AttributeRestSearchList:
       type: array
       items:
-        allOf:
-          - $ref: "#/components/schemas/ExtendedAttribute"
-          - type: object
-            properties:
-              Event:
-                $ref: "#/components/schemas/Event"
-              Object:
-                $ref: "#/components/schemas/Object"
-              Tag:
-                $ref: "#/components/schemas/TagList"
+        $ref: "#/components/schemas/AttributeRestSearchListItem"
 
     AttributeStatisticsResponse:
       description: Dictionary of attribute types/categories showing the ammount of occurences/percentage.
@@ -2405,9 +2401,7 @@ components:
         attribute_count:
           $ref: "#/components/schemas/EventAttributeCount"
         timestamp:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/Timestamp"
+          $ref: "#/components/schemas/NullableTimestamp"
         sharing_group_id:
           $ref: "#/components/schemas/SharingGroupId"
         proposal_email_lock:
@@ -2591,6 +2585,12 @@ components:
       maxLength: 255
       example: "sensor"
 
+    NullableObjectRelation:
+      nullable: true
+      type: string
+      maxLength: 255
+      example: "sensor"
+
     Object:
       type: object
       properties:
@@ -2621,13 +2621,9 @@ components:
         deleted:
           type: boolean
         first_seen:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/MicroTimestamp"
+          $ref: "#/components/schemas/NullableMicroTimestamp"
         last_seen:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/MicroTimestamp"
+          $ref: "#/components/schemas/NullableMicroTimestamp"
         Attribute:
           type: array
           items:
@@ -2980,6 +2976,17 @@ components:
       description: "Text search term to find a matching galaxy name, namespace, description, kill_chain_order or uuid."
       type: string
       example: "botnet"
+
+    ImportGalaxyClusterItem:
+      type: object
+      properties:
+        GalaxyCluster:
+          $ref: "#/components/schemas/GalaxyClusterNoId"
+        Galaxy:
+          type: object
+          properties:
+            uuid:
+              $ref: "#/components/schemas/UUID"
 
     # Tags
     TagId:
@@ -3831,6 +3838,22 @@ components:
           items:
             $ref: "#/components/schemas/WarninglistEntry"
 
+    WarninglistsIdFilter:
+      anyOf:
+        - $ref: "#/components/schemas/WarninglistId"
+        - type: array
+          items:
+            $ref: "#/components/schemas/WarninglistId"
+
+    WarninglistsNameFilter:
+      anyOf:
+        - type: string
+          example: "%search term%"
+        - type: array
+          items:
+            type: string
+            example: "%search term%"
+
     # Noticelists
     NoticelistId:
       type: string
@@ -4215,7 +4238,21 @@ components:
       default: "0"
       example: "1617875568"
 
+    NullableTimestamp:
+      nullable: true
+      type: string
+      format: int64
+      default: "0"
+      example: "1617875568"
+
     MicroTimestamp:
+      type: string
+      format: int64
+      default: null
+      example: "1581984000000000"
+
+    NullableMicroTimestamp:
+      nullable: true
       type: string
       format: int64
       default: null
@@ -5066,16 +5103,7 @@ components:
           schema:
             type: array
             items:
-              allOf:
-                - type: object
-                  properties:
-                    GalaxyCluster:
-                      $ref: "#/components/schemas/GalaxyClusterNoId"
-                    Galaxy:
-                      type: object
-                      properties:
-                        uuid:
-                          $ref: "#/components/schemas/UUID"
+              $ref: "#/components/schemas/ImportGalaxyClusterItem"
 
     ExportGalaxyClusterRequest:
       content:
@@ -5370,21 +5398,9 @@ components:
             type: object
             properties:
               id:
-                nullable: false
-                anyOf:
-                  - $ref: "#/components/schemas/WarninglistId"
-                  - type: array
-                    items:
-                      $ref: "#/components/schemas/WarninglistId"
+                $ref: "#/components/schemas/WarninglistsIdFilter"
               name:
-                nullable: false
-                anyOf:
-                  - type: string
-                    example: "%search term%"
-                  - type: array
-                    items:
-                      type: string
-                      example: "%search term%"
+                $ref: "#/components/schemas/WarninglistsNameFilter"
               enabled:
                 type: boolean
                 nullable: false
