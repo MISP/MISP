@@ -2993,19 +2993,19 @@ class Event extends AppModel
     {
         if (!empty($params['value'])) {
             $valueParts = explode('|', $params['value'], 2);
-            if (count($valueParts) == 2) {
-                $params[$options['filter']] = array_merge([$params[$options['filter']]], $valueParts);
-            }
             $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
-            $tmpConditions = $this->generic_add_filter([], $params[$options['filter']], $keys)['AND'][0];
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], $keys);
             // Allows searching for ['value1' => [full, part1], 'value2' => [full, part2]]
-            unset(
-                $tmpConditions['OR']['OR']['Attribute.value1'][2], // remove part2 from value1
-                $tmpConditions['OR']['OR']['Attribute.value2'][1]  // remove part1 from value2
-            );
-            $tmpConditions['OR']['OR']['Attribute.value1'] = array_values($tmpConditions['OR']['OR']['Attribute.value1']);
-            $tmpConditions['OR']['OR']['Attribute.value2'] = array_values($tmpConditions['OR']['OR']['Attribute.value2']);
-            $conditions['AND'][] = $tmpConditions;
+            if (count($valueParts) == 2) {
+                $convertedFilterVal1 = $this->convert_filters($valueParts[0]);
+                $convertedFilterVal2 = $this->convert_filters($valueParts[1]);
+                $conditionVal1 = $this->generic_add_filter([], $convertedFilterVal1, ['Attribute.value1'])['AND'][0]['OR'];
+                $conditionVal2 = $this->generic_add_filter([], $convertedFilterVal2, ['Attribute.value2'])['AND'][0]['OR'];
+                $tmpConditions = [
+                    'AND' => [$conditionVal1, $conditionVal2]
+                ];
+                $conditions['AND'][0]['OR']['OR']['AND'] = [$conditionVal1, $conditionVal2];
+            }
         }
         return $conditions;
     }
