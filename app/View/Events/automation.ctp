@@ -3,6 +3,7 @@
 ?>
 <div class="event index">
     <h2><?php echo __('Automation');?></h2>
+    <p class="bold"><?php echo __('Check out the OpenAPI spec of the MISP Automation API <a href="%s">here</a>.', $baseurl . '/servers/openapi');?></p>
     <p><?php echo __('Automation functionality is designed to automatically feed other tools and systems with the data in your MISP repository.
     To to make this functionality available for automated tools an authentication key is used.');?>
     <br /><?php echo __('You can use the <a href="' . $baseurl . '/servers/rest">REST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.');?>
