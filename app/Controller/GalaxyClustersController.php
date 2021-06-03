@@ -159,7 +159,7 @@ class GalaxyClustersController extends AppController
             $this->render('ajax/index');
         }
     }
-    
+
     /**
      * @param  mixed $id ID or UUID of the cluster
      */
@@ -177,6 +177,9 @@ class GalaxyClustersController extends AppController
         if (!empty($tag)) {
             $cluster['GalaxyCluster']['tag_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user());
             $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
+        }
+        if (Configure::read('Plugin.Cycat_enable')) {
+            $cluster = $this->GalaxyCluster->getCyCatRelations($cluster);
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($cluster, $this->response->type());
@@ -204,7 +207,7 @@ class GalaxyClustersController extends AppController
             }
         }
     }
-    
+
     /**
      * @param  mixed $galaxyId ID of the galaxy to which the cluster will be added
      */
@@ -329,7 +332,7 @@ class GalaxyClustersController extends AppController
         $this->set('sharingGroups', $sgs);
         $this->set('action', 'add');
     }
-    
+
     /**
      * @param  mixed $id ID or UUID of the cluster
      */
@@ -396,7 +399,7 @@ class GalaxyClustersController extends AppController
             if (empty($cluster['GalaxyCluster']['authors'])) {
                 $cluster['GalaxyCluster']['authors'] = [];
             } else if (is_array($cluster['GalaxyCluster']['authors'])) {
-                // This is as intended, move on 
+                // This is as intended, move on
             }else {
                 $decoded = json_decode($cluster['GalaxyCluster']['authors'], true);
                 if (is_null($decoded)) { // authors might be comma separated

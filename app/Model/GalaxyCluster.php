@@ -602,7 +602,7 @@ class GalaxyCluster extends AppModel
         $this->GalaxyClusterRelation->GalaxyClusterRelationTag->deleteAll(['GalaxyClusterRelationTag.galaxy_cluster_relation_id' => $relation_ids], false, false);
         $this->Log = ClassRegistry::init('Log');
         $this->Log->createLogEntry('SYSTEM', 'wipe_default', 'GalaxyCluster', 0, "Wiping default galaxy clusters");
-    
+
     }
 
     /**
@@ -2132,5 +2132,39 @@ class GalaxyCluster extends AppModel
             'contain' => ['Tag']
         ]);
         return empty($cluster['Tag']['id']) ? false : $cluster['Tag']['id'];
+    }
+
+    public function getCyCatRelations($cluster)
+    {
+        App::uses('SyncTool', 'Tools');
+        $cycatUrl = empty(Configure::read("Plugin.CyCat_url")) ? 'https://api.cycat.org': Configure::read("Plugin.CyCat_url");
+        $syncTool = new SyncTool();
+        if (empty($this->HttpSocket)) {
+            $this->HttpSocket = $syncTool->createHttpSocket();
+        }
+        $request = array(
+            'header' => array(
+                'Accept' => array('application/json'),
+                'MISP-version' => implode('.', $this->checkMISPVersion()),
+                'MISP-uuid' => Configure::read('MISP.uuid'),
+                'x-ground-truth' => 'Dogs are superior to cats'
+            )
+        );
+        $response = $this->HttpSocket->get($cycatUrl . '/lookup/' . $cluster['GalaxyCluster']['uuid'], array(), $request);
+        if ($response->code === '200') {
+            $response = $this->HttpSocket->get($cycatUrl . '/relationships/' . $cluster['GalaxyCluster']['uuid'], array(), $request);
+            if ($response->code === '200') {
+                $relations = json_decode($response->body);
+                if (!empty($relations)) {
+                    foreach ($relations as $relation) {
+                        $response = $this->HttpSocket->get($cycatUrl . '/lookup/' . $relation, array(), $request);
+                        if ($response->code === '200') {
+                            $cluster['CyCat'][$relation] = json_decode($response->body, true);
+                        }
+                    }
+                }
+            }
+        }
+        return $cluster;
     }
 }

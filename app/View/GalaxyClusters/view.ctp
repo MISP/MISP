@@ -80,6 +80,32 @@ $table_data[] = array('key' => __('Events'), 'html' => isset($cluster['GalaxyClu
                     ):
                     '<span>0</span>'
                 );
+if (!empty(Configure::read('Plugin.CyCat_enable'))) {
+    $cycatUrl = empty(Configure::read('Plugin.CyCat_url')) ? 'https://api.cycat.org' : Configure::read('Plugin.CyCat_url');
+    $cycatHtml = [];
+    foreach ($cluster['CyCat'] as $relationship_uuid => $relationship_data) {
+        $temp = '';
+        unset($relationship_data['raw']);
+        unset($relationship_data['_cycat_type']);
+        $relationship_data_massaged = [];
+        foreach ($relationship_data as $massagedKey => $massagedValue) {
+            $relationship_data_massaged[] = sprintf(
+                '%s%s: %s',
+                PHP_EOL . PHP_EOL,
+                h($massagedKey),
+                h($massagedValue)
+            );
+        }
+        $cycatHtml[] = sprintf(
+            '<a href="%s/lookup/%s" title="%s">%s</a>',
+            h($cycatUrl),
+            h($relationship_uuid),
+            implode($relationship_data_massaged),
+            h($relationship_uuid)
+        );
+    }
+    $table_data[] = array('key' => __('CyCat relationships'), 'html' => implode('<br />', $cycatHtml));
+}
 if (!empty($extendedFromHtml)) {
     $table_data[] = array('key' => __('Forked From'), 'html' => $extendedFromHtml);
 }
