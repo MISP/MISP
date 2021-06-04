@@ -6,6 +6,26 @@
             'top_bar' => array(
                 'children' => array(
                     array(
+                        'type' => 'simple',
+                        'children' => array(
+                            array(
+                                'url' => $baseurl . '/galaxies/index',
+                                'text' => __('All'),
+                                'active' => !isset($passedArgsArray['enabled']),
+                            ),
+                            array(
+                                'url' => $baseurl . '/galaxies/index/enabled:1',
+                                'text' => __('Enabled'),
+                                'active' => isset($passedArgsArray['enabled']) && $passedArgsArray['enabled'] === "1",
+                            ),
+                            array(
+                                'url' => $baseurl . '/galaxies/index/enabled:0',
+                                'text' => __('Disabled'),
+                                'active' => isset($passedArgsArray['enabled']) && $passedArgsArray['enabled'] === "0",
+                            )
+                        )
+                    ),
+                    array(
                         'type' => 'search',
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
@@ -52,7 +72,14 @@
                 array(
                     'name' => __('Description'),
                     'data_path' => 'Galaxy.description',
-                )
+                ),
+                array(
+                    'name' => __('Enabled'),
+                    'element' => 'boolean',
+                    'sort' => 'enabled',
+                    'class' => 'short',
+                    'data_path' => 'Galaxy.enabled',
+                ),
             ),
             'title' => __('Galaxy index'),
             'actions' => array(
@@ -63,6 +90,42 @@
                     ),
                     'icon' => 'eye',
                     'dbclickAction' => true
+                ),
+                array(
+                    'title' => __('Enable'),
+                    'icon' => 'play',
+                    'postLink' => true,
+                    'url' => $baseurl . '/galaxies/enable',
+                    'url_params_data_paths' => ['Galaxy.id'],
+                    'postLinkConfirm' => __('Are you sure you want to enable this galaxy library?'),
+                    'complex_requirement' => array(
+                        'function' => function ($row, $options) use ($isSiteAdmin) {
+                            return $isSiteAdmin && !$options['datapath']['enabled'];
+                        },
+                        'options' => array(
+                            'datapath' => array(
+                                'enabled' => 'Galaxy.enabled'
+                            )
+                        )
+                    ),
+                ),
+                array(
+                    'title' => __('Disable'),
+                    'icon' => 'stop',
+                    'postLink' => true,
+                    'url' => $baseurl . '/galaxies/disable',
+                    'url_params_data_paths' => ['Galaxy.id'],
+                    'postLinkConfirm' => __('Are you sure you want to disable this galaxy library?'),
+                    'complex_requirement' => array(
+                        'function' => function ($row, $options) use ($isSiteAdmin) {
+                            return $isSiteAdmin && $options['datapath']['enabled'];
+                        },
+                        'options' => array(
+                            'datapath' => array(
+                                'enabled' => 'Galaxy.enabled'
+                            )
+                        )
+                    ),
                 ),
                 array(
                     'url' => '/galaxies/delete',
