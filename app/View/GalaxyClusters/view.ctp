@@ -103,9 +103,16 @@ if (!empty($extendedByHtml)) {
         <div id="relations_container"></div>
     </div>
     <?php
+        $titleHTML = __('CyCat Relationships');
+        $titleHTML .= sprintf('<a href="%s" onclick="event.stopPropagation()" title="%s" target="_blank"><img src="%s" style="height: 2.5em"/></a>',
+            'https://cycat.org/',
+            __('CyCAT or the CYbersecurity Resource CATalogue aims at mapping and documenting, in a single formalism and catalogue all the available cybersecurity tools, rules, playbooks, processes and controls.'),
+            'https://cycat.org/images/favicon.ico'
+        );
         if (!empty(Configure::read('Plugin.CyCat_enable'))) {
             echo $this->element('/genericElements/accordion', [
                 'title' => 'CyCat Relationships',
+                'titleHTML' => $titleHTML,
                 'url' => '/galaxy_clusters/viewCyCatRelations/' . $cluster['GalaxyCluster']['id']
             ]);
         }
