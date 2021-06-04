@@ -1556,6 +1556,23 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                     }
                     break;
+
+                    case 'api':
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'openapi',
+                            'url' => $baseurl . '/servers/openapi',
+                            'text' => __('OpenAPI')
+                        ));
+                        if ($isAclAdd) {
+                            if ($canAccess('servers', 'rest')) {
+                                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                    'element_id' => 'rest',
+                                    'url' => $baseurl . '/servers/rest',
+                                    'text' => __('REST client')
+                                ));
+                            }
+                        }
+                    break;
             }
         ?>
     </ul>
