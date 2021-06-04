@@ -2136,6 +2136,10 @@ class GalaxyCluster extends AppModel
 
     public function getCyCatRelations($cluster)
     {
+        $CyCatRelations = [];
+        if (empty(Configure::read('Plugin.CyCat_enable'))) {
+            return $CyCatRelations;
+        }
         App::uses('SyncTool', 'Tools');
         $cycatUrl = empty(Configure::read("Plugin.CyCat_url")) ? 'https://api.cycat.org': Configure::read("Plugin.CyCat_url");
         $syncTool = new SyncTool();
@@ -2154,17 +2158,19 @@ class GalaxyCluster extends AppModel
         if ($response->code === '200') {
             $response = $this->HttpSocket->get($cycatUrl . '/relationships/' . $cluster['GalaxyCluster']['uuid'], array(), $request);
             if ($response->code === '200') {
-                $relations = json_decode($response->body);
-                if (!empty($relations)) {
-                    foreach ($relations as $relation) {
-                        $response = $this->HttpSocket->get($cycatUrl . '/lookup/' . $relation, array(), $request);
+                $relationUUIDs = json_decode($response->body);
+                if (!empty($relationUUIDs)) {
+                    foreach ($relationUUIDs as $relationUUID) {
+                        $response = $this->HttpSocket->get($cycatUrl . '/lookup/' . $relationUUID, array(), $request);
                         if ($response->code === '200') {
-                            $cluster['CyCat'][$relation] = json_decode($response->body, true);
+                            $lookupResult = json_decode($response->body, true);
+                            $lookupResult['uuid'] = $relationUUID;
+                            $CyCatRelations[$relationUUID] = $lookupResult;
                         }
                     }
                 }
             }
         }
-        return $cluster;
+        return $CyCatRelations;
     }
 }
