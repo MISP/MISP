@@ -1005,29 +1005,27 @@ class Event extends AppModel
     {
         if ($event['Event']['distribution'] == 4) {
             if (empty($event['SharingGroup']['SharingGroup']['roaming']) && empty($server['Server']['internal'])) {
-                $found = false;
-                if (isset($event['SharingGroup']['SharingGroupServer']) && !empty($event['SharingGroup']['SharingGroupServer'])) {
-                    foreach ($event['SharingGroup']['SharingGroupServer'] as $s) {
-                        foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
-                            if ($sgs['server_id'] == $server['Server']['id']) {
-                                $found = true;
-                            }
+                $serverFound = false;
+                if (!empty($event['SharingGroup']['SharingGroupServer'])) {
+                    foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
+                        if ($sgs['server_id'] == $server['Server']['id']) {
+                            $serverFound = true;
                         }
                     }
                 }
-                if (!$found) {
+                if (!$serverFound) {
                     return 403;
                 }
             }
-            $found = false;
-            if (isset($event['SharingGroup']['SharingGroupOrg']) && !empty($event['SharingGroup']['SharingGroupOrg'])) {
+            $orgFound = false;
+            if (!empty($event['SharingGroup']['SharingGroupOrg'])) {
                 foreach ($event['SharingGroup']['SharingGroupOrg'] as $org) {
                     if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) {
-                        $found = true;
+                        $orgFound = true;
                     }
                 }
             }
-            if (!$found) {
+            if (!$orgFound) {
                 return 403;
             }
         }

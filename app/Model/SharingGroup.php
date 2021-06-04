@@ -533,7 +533,7 @@ class SharingGroup extends AppModel
                     }
                 }
             }
-            if ($conditional === false && !$server['Server']['internal']) {
+            if ($conditional === false && empty($server['Server']['internal'])) {
                 return false;
             }
         }
