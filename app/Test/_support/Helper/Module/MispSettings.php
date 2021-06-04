@@ -53,6 +53,7 @@ final class MispSettings extends \Codeception\Module implements \Codeception\Lib
 
         try {
             $this->cliModule->runShellCommand($cmd);
+            sleep(2); // otherwise sometimes the config change does not reflect
         } catch (Exception $ex) {
             throw new Exception(
                 sprintf('Failed to set MISP setting: %s', $this->cliModule->grabShellOutput()),

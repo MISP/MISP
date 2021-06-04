@@ -31,8 +31,8 @@ class PullServerCest
     {
         $orgId = 1;
         $userId = 1;
-        $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
         $I->haveMispSetting('MISP.background_jobs', '1');
+        $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
 
         $serverId = 1;
         $technique = 'full';
@@ -74,8 +74,8 @@ class PullServerCest
     {
         $orgId = 1;
         $userId = 1;
-        $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
         $I->haveMispSetting('MISP.background_jobs', '0 --force');
+        $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
 
         $serverId = 1;
         $technique = 'full';
@@ -93,7 +93,7 @@ class PullServerCest
         $I->haveInDatabase('servers', $fakeServer->toDatabase());
         $I->haveInDatabase('organisations', $remoteOrg->toDatabase());
 
-        $this->mockGetServerVersionRequest($I->getWireMock());
+        $I->mockGetServerVersionRequest();
 
         $eventId = 1;
         $eventUuid = 'bb1fcb44-953a-4b76-acc9-98557ce69c66';
@@ -131,28 +131,6 @@ class PullServerCest
         );
         $I->seeInDatabase('events', ['uuid' => $eventUuid]);
         $I->seeInDatabase('attributes', ['uuid' => $attributeUuid]);
-    }
-
-    private function mockGetServerVersionRequest(WireMock $wiremock, string $version = '2.4'): void
-    {
-        $wiremock->stubFor(
-            WireMock::get(WireMock::urlEqualTo('/servers/getVersion'))
-                ->willReturn(
-                    WireMock::aResponse()
-                        ->withHeader('Content-Type', 'application/json')
-                        ->withBody(
-                            (string)json_encode([
-                                'version' => $version,
-                                'perm_sync' => true,
-                                'perm_sighting' => true,
-                                'perm_galaxy_editor' => true,
-                                'request_encoding' => [
-                                    'gzip'
-                                ]
-                            ])
-                        )
-                )
-        );
     }
 
     private function mockRemoteServerPullRequests(
