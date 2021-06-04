@@ -1012,7 +1012,20 @@ class Event extends AppModel
                     }
                 }
                 if (!$found) {
-                    return 403;
+                    if (!$server['Server']['internal']) {
+                        return 403;
+                    } else { // Consider the internal server to be part of the SharingGroupServer list if one of the remote org belong to the SharingGroupOrg list
+                        if (isset($event['SharingGroup']['SharingGroupOrg'])) {
+                            foreach ($event['SharingGroup']['SharingGroupOrg'] as $org) {
+                                if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) {
+                                    $found = true;
+                                }
+                            }
+                        }
+                        if (!$found) {
+                            return 403;
+                        }
+                    }
                 }
             } else if (empty($event['SharingGroup']['roaming'])) {
                 return 403;
