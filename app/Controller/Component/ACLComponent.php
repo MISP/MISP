@@ -348,6 +348,7 @@ class ACLComponent extends Component
                 'unpublish' => array('perm_galaxy_editor'),
                 'updateCluster' => array('perm_galaxy_editor'),
                 'view' => array('*'),
+                'viewCyCatRelations' => array('*'),
                 'viewGalaxyMatrix' => array('*'),
                 'viewRelations' => array('*'),
                 'viewRelationTree' => array('*'),

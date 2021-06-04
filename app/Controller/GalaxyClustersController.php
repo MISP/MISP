@@ -178,9 +178,6 @@ class GalaxyClustersController extends AppController
             $cluster['GalaxyCluster']['tag_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user());
             $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
         }
-        if (Configure::read('Plugin.Cycat_enable')) {
-            $cluster = $this->GalaxyCluster->getCyCatRelations($cluster);
-        }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($cluster, $this->response->type());
         } else {
@@ -775,6 +772,15 @@ class GalaxyClustersController extends AppController
         } else {
             throw new MethodNotAllowedException(__('This function can only be reached via POST.'));
         }
+    }
+
+    public function viewCyCatRelations($id)
+    {
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', true, false);
+        $CyCatRelations = $this->GalaxyCluster->getCyCatRelations($cluster);
+        $this->set('cluster', $cluster);
+        $this->set('CyCatRelations', $CyCatRelations);
+        $this->render('cluster_cycatrelations');
     }
 
     public function viewGalaxyMatrix($id)
