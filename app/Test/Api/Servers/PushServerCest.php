@@ -278,14 +278,6 @@ class PushServerCest
             ]
         );
         $I->haveInDatabase('sharing_groups', $fakeSharingGroup->toDatabase());
-        $I->haveInDatabase( // TODO: remove this fixture
-            'sharing_group_servers',
-            [
-                'sharing_group_id' => $sharingGroupId,
-                'server_id' => $serverId + 1,
-                'all_orgs' => 0
-            ]
-        );
         $I->haveInDatabase(
             'sharing_group_orgs',
             [
