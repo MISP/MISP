@@ -1282,7 +1282,7 @@ class EventsController extends AppController
         }
         $deleted = 0;
         if (isset($filters['deleted'])) {
-            $deleted = $filters['deleted'] == 2 ? 0 : 1;
+            $deleted = $filters['deleted'] > 0 ? 1 : 0;
         }
         $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('deleted', $deleted);
@@ -1625,7 +1625,9 @@ class EventsController extends AppController
             if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == 1) {
                 $conditions['deleted'] = array(0,1);
             } else {
-                if ($deleted == 1) { // both
+                if (is_array($deleted)) {
+                    $conditions['deleted'] = $deleted;
+                } else if ($deleted == 1) { // both
                     $conditions['deleted'] = [0, 1];
                 } elseif ($deleted == 0) { // not-deleted only
                     $conditions['deleted'] = 0;
