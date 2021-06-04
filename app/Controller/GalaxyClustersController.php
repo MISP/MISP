@@ -178,7 +178,7 @@ class GalaxyClustersController extends AppController
             $cluster['GalaxyCluster']['tag_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user());
             $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
         }
-        if (Configure::read('Plugin.Cycat_enable')) {
+        if (Configure::read('Plugin.CyCat_enable')) {
             $cluster = $this->GalaxyCluster->getCyCatRelations($cluster);
         }
         if ($this->_isRest()) {
