@@ -100,6 +100,7 @@ function removeRestClientHistoryItem(id) {
     var allValidApis;
     var fieldsConstraint;
     var querybuilderTool;
+    var debounceTimerUpdate;
 
     $('form').submit(function(e) {
         $('#querybuilder').remove();
@@ -141,20 +142,30 @@ function removeRestClientHistoryItem(id) {
         });
 
         $('#TemplateSelect').val($('#ServerUrl').val()).trigger("chosen:updated").trigger("change");
-        $('#ServerUrl').keyup(function() {
-            $('#TemplateSelect').val($(this).val()).trigger("chosen:updated").trigger("change");
+        $('#ServerUrl').keyup(function(e) {
+            var that = this
+            clearTimeout(debounceTimerUpdate);
+            var c = String.fromCharCode(e.keyCode);
+            var isWordCharacter = c.match(/\w/);
+            if (e.keyCode === undefined || isWordCharacter) {
+                debounceTimerUpdate = setTimeout(function() {
+                    $('#TemplateSelect').val($(that).val()).trigger("chosen:updated").trigger("change");
+                }, 200);
+            }
         });
 
-        $('#TemplateSelect').change(function() {
+        $('#TemplateSelect').change(function(e) {
             var selected_template = $('#TemplateSelect').val();
+            var previously_selected_template = $('#ServerUrl').data('urlWithoutParam')
             if (selected_template !== '' && allValidApis[selected_template] !== undefined) {
                 $('#template_description').show();
                 $('#ServerMethod').val('POST');
                 var server_url_changed = $('#ServerUrl').val() != allValidApis[selected_template].url;
                 $('#ServerUrl').val(allValidApis[selected_template].url);
                 $('#ServerUrl').data('urlWithoutParam', selected_template);
-                var body_value = $('#ServerBody').val();
-                var refreshBody = (body_value === '' || server_url_changed)
+                var body_value = cm.getValue();
+                var body_changed = allValidApis[previously_selected_template] !== undefined ? allValidApis[previously_selected_template].body != body_value : true;
+                var refreshBody = (body_value === '' || (server_url_changed && !body_changed))
                 if (refreshBody) {
                     $('#ServerBody').val(allValidApis[selected_template].body);
                     cm.setValue(allValidApis[selected_template].body)
@@ -225,13 +236,20 @@ function removeRestClientHistoryItem(id) {
 
 
 function updateQueryTool(url, isEmpty) {
+    if ($('#qb-div').css('display') == 'none') {
+        return
+    }
     var apiJson = allValidApis[url];
     var filtersJson = fieldsConstraint[url];
 
     isEmpty = isEmpty === undefined ? false : isEmpty;
     var body = cm.getValue();
     if (!isEmpty && body !== undefined && body.length > 0) {
-        body = JSON.parse(body);
+        try {
+            body = JSON.parse(body);
+        } catch(e) {
+            body = {};
+        }
     } else {
         body = {};
     }
@@ -420,7 +438,7 @@ function addHoverInfo(url) {
                     if(apiInfo !== undefined && apiInfo !== '') {
                         $('#infofield-'+field).popover({
                             trigger: 'hover',
-                            content: ''+field+':'+ apiInfo,
+                            content: field + ': ' + apiInfo,
                         });
                     } else { // no help, delete icon
                         $('#infofield-'+field).remove();
@@ -448,7 +466,7 @@ function findPropertyFromValue(token) {
 
 function findMatchingHints(str, allHints) {
     allHints = allHints.map(function(str) {
-        var strArray = typeof str === "object" ? str.value.split('&quot;') : str.split('&quot;')
+        var strArray = typeof str === "object" ? String(str.value).split('&quot;') : str.split('&quot;')
         return {
             text: strArray.join('\\\"'), // transforms quoted elements into escaped quote
             renderText: typeof str === "object" ? str.label : strArray.join('\"'),

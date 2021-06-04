@@ -9,9 +9,9 @@ if (isset($sightingsData['data'][$objectId])) {
         foreach ($typeData['orgs'] as $org => $orgData) {
             $extra = $org === $me['Organisation']['name'] ? ' class="bold"' : "";
             if ($type == 'expiration') {
-                $html .= '<span' . $extra . '>' . h($org) . '</span>: <span class="orange bold">' . date('Y-m-d H:i:s', $orgData['date']) . '</span><br>';
+                $html .= '<span' . $extra . '>' . h($org) . '</span>: <span class="orange bold">' . $this->Time->time($orgData['date']) . '</span><br>';
             } else {
-                $html .= '<span' . $extra . '>' . h($org) . '</span>: <span class="' . ($type === 'sighting' ? 'green' : 'red') . ' bold">' . h($orgData['count']) . ' (' . date('Y-m-d H:i:s', $orgData['date']) . ')</span><br>';
+                $html .= '<span' . $extra . '>' . h($org) . '</span>: <span class="' . ($type === 'sighting' ? 'green' : 'red') . ' bold">' . h($orgData['count']) . ' (' . $this->Time->time($orgData['date']) . ')</span><br>';
             }
         }
     }
@@ -24,13 +24,6 @@ if (isset($sightingsData['data'][$objectId])) {
 }
 ?>
 <td class="shortish">
-  <span id="sightingForm_<?= $objectId ?>">
-  <?php
-      echo $this->Form->create('Sighting', array('id' => 'Sighting_' . $objectId, 'url' => $baseurl . '/sightings/add/' . $objectId, 'style' => 'display:none;'));
-      echo $this->Form->input('type', array('label' => false, 'id' => 'Sighting_' . $objectId . '_type'));
-      echo $this->Form->end();
-  ?>
-  </span>
   <?php
     if ($isAclSighting):
   ?>

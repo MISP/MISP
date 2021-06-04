@@ -2,25 +2,32 @@
 
 class SyncTool
 {
-    // take a server as parameter and return a HttpSocket object using the ssl options defined in the server settings
-    public function setupHttpSocket($server = null, $timeout = false)
+    /**
+     * Take a server as parameter and return a HttpSocket object using the ssl options defined in the server settings
+     * @param array|null $server
+     * @param false $timeout
+     * @param string $model
+     * @return HttpSocketExtended
+     * @throws Exception
+     */
+    public function setupHttpSocket($server = null, $timeout = false, $model = 'Server')
     {
-        $params = array();
+        $params = ['compress' => true];
         if (!empty($server)) {
-            if ($server['Server']['cert_file']) {
-                $params['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server['Server']['id'] . '.pem';
+            if (!empty($server[$model]['cert_file'])) {
+                $params['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server[$model]['id'] . '.pem';
             }
-            if ($server['Server']['client_cert_file']) {
-                $params['ssl_local_cert'] = APP . "files" . DS . "certs" . DS . $server['Server']['id'] . '_client.pem';
+            if (!empty($server[$model]['client_cert_file'])) {
+                $params['ssl_local_cert'] = APP . "files" . DS . "certs" . DS . $server[$model]['id'] . '_client.pem';
             }
-            if ($server['Server']['self_signed']) {
+            if (!empty($server[$model]['self_signed'])) {
                 $params['ssl_allow_self_signed'] = true;
                 $params['ssl_verify_peer_name'] = false;
-                if (!isset($server['Server']['cert_file'])) {
+                if (!isset($server[$model]['cert_file'])) {
                     $params['ssl_verify_peer'] = false;
                 }
             }
-            if (!empty($server['Server']['skip_proxy'])) {
+            if (!empty($server[$model]['skip_proxy'])) {
                 $params['skip_proxy'] = 1;
             }
             if (!empty($timeout)) {
@@ -33,12 +40,12 @@ class SyncTool
 
     public function setupHttpSocketFeed($feed = null)
     {
-        return $this->setupHttpSocket();
+        return $this->createHttpSocket(['compress' => true]);
     }
 
     /**
      * @param array $params
-     * @return HttpSocket
+     * @return HttpSocketExtended
      * @throws Exception
      */
     public function createHttpSocket($params = array())
@@ -52,8 +59,8 @@ class SyncTool
             $params['ssl_cafile'] = $caPath;
         }
 
-        App::uses('HttpSocket', 'Network/Http');
-        $HttpSocket = new HttpSocket($params);
+        App::uses('HttpSocketExtended', 'Tools');
+        $HttpSocket = new HttpSocketExtended($params);
         $proxy = Configure::read('Proxy');
         if (empty($params['skip_proxy']) && isset($proxy['host']) && !empty($proxy['host'])) {
             $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
@@ -86,6 +93,35 @@ class SyncTool
     }
 
     /**
+     * @param array $server
+     * @return array|void
+     * @throws Exception
+     */
+    public static function getServerCaCertificateInfo(array $server)
+    {
+        if (!$server['Server']['cert_file']) {
+            return;
+        }
+
+        $caCertificate = new File(APP . "files" . DS . "certs" . DS . $server['Server']['id'] . '.pem');
+        if (!$caCertificate->exists()) {
+            throw new Exception("Certificate file '{$caCertificate->pwd()}' doesn't exists.");
+        }
+
+        $certificateContent = $caCertificate->read();
+        if ($certificateContent === false) {
+            throw new Exception("Could not read '{$caCertificate->pwd()}' file with certificate.");
+        }
+
+        $certificate = openssl_x509_read($certificateContent);
+        if (!$certificate) {
+            throw new Exception("Couldn't read certificate: " . openssl_error_string());
+        }
+
+        return self::parseCertificate($certificate);
+    }
+
+    /**
      * @param string $certificateContent PEM encoded certificate and private key.
      * @return array
      * @throws Exception
@@ -94,11 +130,11 @@ class SyncTool
     {
         $certificate = openssl_x509_read($certificateContent);
         if (!$certificate) {
-            throw new Exception("Could't parse certificate: " . openssl_error_string());
+            throw new Exception("Couldn't read certificate: " . openssl_error_string());
         }
         $privateKey = openssl_pkey_get_private($certificateContent);
         if (!$privateKey) {
-            throw new Exception("Could't get private key from certificate: " . openssl_error_string());
+            throw new Exception("Couldn't get private key from certificate: " . openssl_error_string());
         }
         $verify = openssl_x509_check_private_key($certificate, $privateKey);
         if (!$verify) {
@@ -116,7 +152,7 @@ class SyncTool
     {
         $parsed = openssl_x509_parse($certificate);
         if (!$parsed) {
-            throw new Exception("Could't get parse X.509 certificate: " . openssl_error_string());
+            throw new Exception("Couldn't get parse X.509 certificate: " . openssl_error_string());
         }
         $currentTime = new DateTime();
         $output = [

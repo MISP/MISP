@@ -1,27 +1,39 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Taxonomy $Taxonomy
+ */
 class TaxonomiesController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
 
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
-            'contain' => array(
-                'TaxonomyPredicate' => array(
-                    'fields' => array('TaxonomyPredicate.id'),
-                    'TaxonomyEntry' => array('fields' => array('TaxonomyEntry.id'))
-                )
-            ),
-            'order' => array(
-                    'Taxonomy.id' => 'DESC'
-            ),
+        'limit' => 60,
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'contain' => array(
+            'TaxonomyPredicate' => array(
+                'fields' => array('TaxonomyPredicate.id', 'TaxonomyPredicate.value'),
+                'TaxonomyEntry' => array('fields' => array('TaxonomyEntry.id', 'TaxonomyEntry.value'))
+            )
+        ),
+        'order' => array(
+                'Taxonomy.id' => 'DESC'
+        ),
     );
 
     public function index()
     {
         $this->paginate['recursive'] = -1;
+
+        if (!empty($this->passedArgs['value'])) {
+            $this->paginate['conditions']['id'] = $this->__search($this->passedArgs['value']);
+        }
+
+        if (isset($this->passedArgs['enabled'])) {
+            $this->paginate['conditions']['enabled'] = $this->passedArgs['enabled'] ? 1 : 0;
+        }
+
         if ($this->_isRest()) {
             $keepFields = array('conditions', 'contain', 'recursive', 'sort');
             $searchParams = array();
@@ -34,21 +46,15 @@ class TaxonomiesController extends AppController
         } else {
             $taxonomies = $this->paginate();
         }
-        $this->loadModel('Tag');
-        foreach ($taxonomies as $key => $taxonomy) {
-            $total = 0;
-            foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
-                $total += empty($predicate['TaxonomyEntry']) ? 1 : count($predicate['TaxonomyEntry']);
-            }
-            $taxonomies[$key]['total_count'] = $total;
-            $taxonomies[$key]['current_count'] = $this->Tag->find('count', array('conditions' => array('lower(Tag.name) LIKE ' => strtolower($taxonomy['Taxonomy']['namespace']) . ':%', 'hide_tag' => 0)));
-            unset($taxonomies[$key]['TaxonomyPredicate']);
-        }
+
+        $taxonomies = $this->__tagCount($taxonomies);
+
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($taxonomies, $this->response->type());
-        } else {
-            $this->set('taxonomies', $taxonomies);
         }
+
+        $this->set('taxonomies', $taxonomies);
+        $this->set('passedArgsArray', $this->passedArgs);
     }
 
     public function view($id)
@@ -69,18 +75,18 @@ class TaxonomiesController extends AppController
         }
         $this->loadModel('EventTag');
         $this->loadModel('AttributeTag');
+
+        $tagIds = array_column(array_column(array_column($taxonomy['entries'], 'existing_tag'), 'Tag'), 'id');
+        $eventCount = $this->EventTag->countForTags($tagIds, $this->Auth->user());
+        $attributeTags = $this->AttributeTag->countForTags($tagIds, $this->Auth->user());
+
         foreach ($taxonomy['entries'] as $key => $value) {
             $count = 0;
             $count_a = 0;
             if (!empty($value['existing_tag'])) {
-                foreach ($value['existing_tag'] as $et) {
-                    $count = $this->EventTag->find('count', array(
-                        'conditions' => array('EventTag.tag_id' => $et['id'])
-                    ));
-                    $count_a = $this->AttributeTag->find('count', array(
-                        'conditions' => array('AttributeTag.tag_id' => $et['id'])
-                    ));
-                }
+                $tagId = $value['existing_tag']['Tag']['id'];
+                $count = isset($eventCount[$tagId]) ? $eventCount[$tagId] : 0;
+                $count_a = isset($attributeTags[$tagId]) ? $attributeTags[$tagId] : 0;
             }
             $taxonomy['entries'][$key]['events'] = $count;
             $taxonomy['entries'][$key]['attributes'] = $count_a;
@@ -95,14 +101,15 @@ class TaxonomiesController extends AppController
         $params = $customPagination->applyRulesOnArray($taxonomy['entries'], $params, 'taxonomies');
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($taxonomy, $this->response->type());
-        } else {
-            $this->set('entries', $taxonomy['entries']);
-            $this->set('urlparams', $urlparams);
-            $this->set('passedArgs', json_encode($passedArgs));
-            $this->set('passedArgsArray', $passedArgs);
-            $this->set('taxonomy', $taxonomy['Taxonomy']);
-            $this->set('id', $id);
         }
+
+        $this->set('entries', $taxonomy['entries']);
+        $this->set('urlparams', $urlparams);
+        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgsArray', $passedArgs);
+        $this->set('taxonomy', $taxonomy['Taxonomy']);
+        $this->set('id', $id);
+        $this->set('title_for_layout', __('%s Taxonomy Library', h(strtoupper($taxonomy['Taxonomy']['namespace']))));
     }
 
     public function enable($id)
@@ -168,11 +175,21 @@ class TaxonomiesController extends AppController
         }
     }
 
+    public function import()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This endpoint requires a POST request.');
+        }
+        try {
+            $id = $this->Taxonomy->import($this->request->data);
+            return $this->view($id);
+        } catch (Exception $e) {
+            return $this->RestResponse->saveFailResponse('Taxonomy', 'import', false, $e->getMessage());
+        }
+    }
+
     public function update()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
-        }
         $result = $this->Taxonomy->update();
         $this->Log = ClassRegistry::init('Log');
         $fails = 0;
@@ -380,27 +397,18 @@ class TaxonomiesController extends AppController
 
     public function taxonomyMassConfirmation($id)
     {
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
-            throw new NotFoundException(__('You don\'t have permission to do that.'));
-        }
         $this->set('id', $id);
         $this->render('ajax/taxonomy_mass_confirmation');
     }
 
     public function taxonomyMassHide($id)
     {
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
-            throw new NotFoundException(__('You don\'t have permission to do that.'));
-        }
         $this->set('id', $id);
         $this->render('ajax/taxonomy_mass_hide');
     }
 
     public function taxonomyMassUnhide($id)
     {
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
-            throw new NotFoundException(__('You don\'t have permission to do that.'));
-        }
         $this->set('id', $id);
         $this->render('ajax/taxonomy_mass_unhide');
     }
@@ -410,7 +418,7 @@ class TaxonomiesController extends AppController
         if ($this->request->is('post')) {
             $result = $this->Taxonomy->delete($id, true);
             if ($result) {
-                $this->Flash->success(__('Taxonomy successfuly deleted.'));
+                $this->Flash->success(__('Taxonomy successfully deleted.'));
                 $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
             } else {
                 $this->Flash->error(__('Taxonomy could not be deleted.'));
@@ -443,12 +451,94 @@ class TaxonomiesController extends AppController
             } else {
                 return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleRequired', $id, $this->validationError, $this->response->type());
             }
-        } else {
-            $this->set('required', !$taxonomy['Taxonomy']['required']);
-            $this->set('id', $id);
-            $this->autoRender = false;
-            $this->layout = 'ajax';
-            $this->render('ajax/toggle_required');
         }
+
+        $this->set('required', !$taxonomy['Taxonomy']['required']);
+        $this->set('id', $id);
+        $this->autoRender = false;
+        $this->layout = 'ajax';
+        $this->render('ajax/toggle_required');
+    }
+
+    /**
+     * Attach tag counts.
+     * @param array $taxonomies
+     * @return array
+     */
+    private function __tagCount(array $taxonomies)
+    {
+        $tags = [];
+        foreach ($taxonomies as $taxonomyPos => $taxonomy) {
+            $total = 0;
+            foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
+                if (isset($predicate['TaxonomyEntry']) && !empty($predicate['TaxonomyEntry'])) {
+                    foreach ($predicate['TaxonomyEntry'] as $entry) {
+                        $tag = mb_strtolower($taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value'] . '="' . $entry['value'] . '"');
+                        $tags[$tag] = $taxonomyPos;
+                        $total++;
+                    }
+                } else {
+                    $tag = mb_strtolower($taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value']);
+                    $tags[$tag] = $taxonomyPos;
+                    $total++;
+                }
+            }
+            $taxonomies[$taxonomyPos]['total_count'] = $total;
+            $taxonomies[$taxonomyPos]['current_count'] = 0;
+            unset($taxonomies[$taxonomyPos]['TaxonomyPredicate']);
+        }
+
+        $this->loadModel('Tag');
+        $existingTags = $this->Tag->find('column', [
+            'fields' => ['Tag.name'],
+            'conditions' => [
+                'lower(Tag.name)' => array_keys($tags),
+                'hide_tag' => 0
+            ],
+        ]);
+
+        foreach ($existingTags as $existingTag) {
+            $existingTag = mb_strtolower($existingTag);
+            if (isset($tags[$existingTag])) {
+                $taxonomies[$tags[$existingTag]]['current_count']++;
+            }
+        }
+
+        return $taxonomies;
+    }
+
+    private function __search($value)
+    {
+        $value = mb_strtolower(trim($value));
+        $searchTerm = "%$value%";
+        $taxonomyPredicateIds = $this->Taxonomy->TaxonomyPredicate->TaxonomyEntry->find('column', [
+            'fields' => ['TaxonomyEntry.taxonomy_predicate_id'],
+            'conditions' => ['OR' => [
+                'LOWER(value) LIKE' => $searchTerm,
+                'LOWER(expanded) LIKE' => $searchTerm,
+            ]],
+            'unique' => true,
+        ]);
+
+        $taxonomyIds = $this->Taxonomy->TaxonomyPredicate->find('column', [
+            'fields' => ['TaxonomyPredicate.taxonomy_id'],
+            'conditions' => ['OR' => [
+                'id' => $taxonomyPredicateIds,
+                'LOWER(value) LIKE' => $searchTerm,
+                'LOWER(expanded) LIKE' => $searchTerm,
+            ]],
+            'unique' => true,
+        ]);
+
+        $taxonomyIds = $this->Taxonomy->find('column', [
+            'fields' => ['Taxonomy.id'],
+            'conditions' => ['OR' => [
+                'id' => $taxonomyIds,
+                'LOWER(namespace) LIKE' => $searchTerm,
+                'LOWER(description) LIKE' => $searchTerm,
+            ]],
+        ]);
+
+        return $taxonomyIds;
     }
 }

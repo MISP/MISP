@@ -2,7 +2,7 @@
 App::uses('AppModel', 'Model');
 class SharingGroupOrg extends AppModel
 {
-    public $actsAs = array('Containable');
+    public $actsAs = array('AuditLog', 'Containable');
 
     public $belongsTo = array(
             'SharingGroup' => array(
@@ -78,12 +78,11 @@ class SharingGroupOrg extends AppModel
      */
     public function fetchAllAuthorised($org_id)
     {
-        $sgs = $this->find('list', array(
+        $sgs = $this->find('column', array(
             'conditions' => array('org_id' => $org_id),
-            'recursive' => -1,
-            'fields' => array('sharing_group_id'),
+            'fields' => array('SharingGroupOrg.sharing_group_id'),
         ));
-        return array_values($sgs);
+        return $sgs;
     }
 
     // pass a sharing group ID and an organisation ID, returns true if it has a matching attached organisation object

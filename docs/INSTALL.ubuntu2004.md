@@ -1,31 +1,16 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 20.04-server
+## for Ubuntu 20.04.2.0-server
+
+{!generic/manual-install-notes.md!}
 
 ### -1/ Installer and Manual install instructions
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
-
-To install MISP on a fresh Ubuntu 20.04, all you need to do is the following:
-
-```bash
-# Please check the installer options first to make the best choice for your install
-wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-bash /tmp/INSTALL.sh
-
-# This will install MISP Core
-wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-bash /tmp/INSTALL.sh -c
-```
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
 
 ### 0/ MISP Ubuntu 20.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20200501
-
-!!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
-    Which explains why you will see the use of shell *functions* in various steps.
-    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210401 (works with **Ubuntu 19.04/20.04/21.04** too)
 
 !!! notice
     If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
@@ -37,7 +22,7 @@ bash /tmp/INSTALL.sh -c
 
 #### Install a minimal Ubuntu 20.04-server system with the software:
 - OpenSSH server
-- This guide assumes a user name of 'misp' with sudo working
+- This guide assumes a user name of 'misp' with sudo working but can be overwritten by setting the environment variable: *${MISP_USER}*
 
 #### Make sure your system is up2date
 ```bash
@@ -98,8 +83,6 @@ installCoreDeps () {
 
   # install Mitre's STIX and its dependencies by running the following commands:
   sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -qy
-
-  sudo apt install expect -qy
 }
 # <snippet-end 0_installCoreDeps.sh>
 
@@ -111,17 +94,20 @@ installDepsPhp74 () {
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   checkAptLock
   sudo apt install -qy \
-  libapache2-mod-php \
-  php php-cli \
-  php-dev \
-  php-json php-xml php-mysql php-opcache php-readline php-mbstring php-zip \
-  php-redis php-gnupg \
-  php-gd
+  libapache2-mod-php7.4 \
+  php7.4 php7.4-cli \
+  php7.4-dev \
+  php7.4-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip \
+  php7.4-redis php7.4-gnupg \
+  php7.4-intl php7.4-bcmath \
+  php7.4-gd
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 }
 # <snippet-end 0_installDepsPhp74.sh>
 ```
@@ -133,77 +119,83 @@ installDepsPhp74 () {
 installCore () {
   debug "Installing ${LBLUE}MISP${NC} core"
   # Download MISP using git in the /var/www/ directory.
-  sudo mkdir ${PATH_TO_MISP}
-  sudo chown ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
-  cd ${PATH_TO_MISP}
-  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}; done
-  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git submodule update --progress --init --recursive; done
-  # Make git ignore filesystem permission differences for submodules
-  ${SUDO_WWW} git submodule foreach --recursive git config core.filemode false
+  if [[ ! -d ${PATH_TO_MISP} ]]; then
+    sudo mkdir ${PATH_TO_MISP}
+    sudo chown ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
+    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}; done
+    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git -C ${PATH_TO_MISP} submodule update --progress --init --recursive; done
+    # Make git ignore filesystem permission differences for submodules
+    ${SUDO_WWW} git -C ${PATH_TO_MISP} submodule foreach --recursive git config core.filemode false
 
-  # Make git ignore filesystem permission differences
-  ${SUDO_WWW} git config core.filemode false
+    # Make git ignore filesystem permission differences
+    ${SUDO_WWW} git -C ${PATH_TO_MISP} config core.filemode false
 
-  # Create a python3 virtualenv
-  ${SUDO_WWW} virtualenv -p python3 ${PATH_TO_MISP}/venv
+    # Create a python3 virtualenv
+    ${SUDO_WWW} virtualenv -p python3 ${PATH_TO_MISP}/venv
 
-  # make pip happy
-  sudo mkdir /var/www/.cache/
-  sudo chown ${WWW_USER}:${WWW_USER} /var/www/.cache
+    # make pip happy
+    sudo mkdir /var/www/.cache/
+    sudo chown ${WWW_USER}:${WWW_USER} /var/www/.cache
 
-  cd ${PATH_TO_MISP}/app/files/scripts
-  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git; done
-  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/STIXProject/python-stix.git; done
-  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MAECProject/python-maec.git; done
-  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git; done
+    for dependency in CybOXProject/python-cybox STIXProject/python-stix MAECProject/python-maec CybOXProject/mixbox; do
+      false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/${dependency}.git ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}; done
+      ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/${dependency##*/} config core.filemode false
+      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}
+    done
 
-  cd ${PATH_TO_MISP}/app/files/scripts/mixbox
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
-  cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
-  cd ${PATH_TO_MISP}/app/files/scripts/python-stix
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
-  cd ${PATH_TO_MISP}/app/files/scripts/python-maec
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
-  # install STIX2.0 library to support STIX 2.0 export:
-  cd ${PATH_TO_MISP}/cti-python-stix2
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
+    debug "Install python-stix2"
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/cti-python-stix2
 
-  # install PyMISP
-  cd ${PATH_TO_MISP}/PyMISP
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
-  # FIXME: Remove libfaup etc once the egg has the library baked-in
-  sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
-  cd /tmp
-  false; while [[ $? -ne 0 ]]; do [[ ! -d "faup" ]] && ${SUDO_CMD} git clone git://github.com/stricaud/faup.git faup; done
-  false; while [[ $? -ne 0 ]]; do [[ ! -d "gtcaca" ]] && ${SUDO_CMD} git clone git://github.com/stricaud/gtcaca.git gtcaca; done
-  sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
-  cd gtcaca
-  ${SUDO_CMD} mkdir -p build
-  cd build
-  ${SUDO_CMD} cmake .. && ${SUDO_CMD} make
-  sudo make install
-  cd ../../faup
-  ${SUDO_CMD} mkdir -p build
-  cd build
-  ${SUDO_CMD} cmake .. && ${SUDO_CMD} make
-  sudo make install
-  sudo ldconfig
+    debug "Install PyMISP"
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/PyMISP
 
-  # install pydeep
-  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git; done
+    # FIXME: Remove libfaup etc once the egg has the library baked-in
+    sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+    cd /tmp
+    false; while [[ $? -ne 0 ]]; do [[ ! -d "faup" ]] && ${SUDO_CMD} git clone https://github.com/stricaud/faup.git faup; done
+    false; while [[ $? -ne 0 ]]; do [[ ! -d "gtcaca" ]] && ${SUDO_CMD} git clone https://github.com/stricaud/gtcaca.git gtcaca; done
+    sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+    cd gtcaca
+    ${SUDO_CMD} mkdir -p build
+    cd build
+    ${SUDO_CMD} cmake .. && ${SUDO_CMD} make
+    sudo make install
+    cd ../../faup
+    ${SUDO_CMD} mkdir -p build
+    cd build
+    ${SUDO_CMD} cmake .. && ${SUDO_CMD} make
+    sudo make install
+    sudo ldconfig
 
-  # install lief
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install lief
+    # install pydeep
+    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git; done
 
-  # install zmq needed by mispzmq
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install zmq redis
+    # install lief
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install lief
 
-  # install python-magic
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install python-magic
+    # install zmq needed by mispzmq
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install zmq redis
 
-  # install plyara
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install plyara
+    # install python-magic
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install python-magic
+
+    # install plyara
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install plyara
+  else
+    debug "Trying to git pull existing install"
+    ${SUDO_WWW} git pull -C ${PATH_TO_MISP}
+    false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git -C ${PATH_TO_MISP} submodule update --progress --init --recursive; done
+
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U setuptools pip lief zmq redis python-magic plyara
+    for dependency in CybOXProject/python-cybox STIXProject/python-stix MAECProject/python-maec CybOXProject/mixbox; do
+      false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/${dependency##*/} pull; done
+      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}
+    done
+
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/cti-python-stix2
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/PyMISP
+    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U git+https://github.com/kbandla/pydeep.git; done
+fi
 }
 # <snippet-end 1_mispCoreInstall.sh>
 ```
@@ -215,13 +207,10 @@ installCore () {
 # <snippet-begin 1_installCake.sh>
 installCake () {
   debug "Installing CakePHP"
-  # Once done, install CakeResque along with its dependencies 
-  # if you intend to use the built in background jobs:
-  cd ${PATH_TO_MISP}/app
   # Make composer cache happy
   # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
-  sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
-  ${SUDO_WWW} php composer.phar install
+  sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ;php composer.phar install"
 
   # Enable CakeResque with php-redis
   sudo phpenmod redis
@@ -261,51 +250,39 @@ permissions () {
 ```bash
 # <snippet-begin 1_prepareDB.sh>
 prepareDB () {
-  if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
+  if sudo test ! -e "/var/lib/mysql/mysql/"; then
+    #Make sure initial tables are created in MySQL
+    debug "Install mysql tables"
+    sudo mysql_install_db --user=mysql --basedir=/usr --datadir=/var/lib/mysql
+    sudo service mysql start
+  fi
+
+  if sudo test ! -e "/var/lib/mysql/misp/"; then
+    debug "Start mysql"
+    sudo service mysql start
+
     debug "Setting up database"
+    # Kill the anonymous users
+    sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'localhost'"
+    # Because our hostname varies we'll use some Bash magic here.
+    sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'$(hostname)'"
+    # Kill off the demo database
+    sudo mysql -h $DBHOST -e "DROP DATABASE IF EXISTS test"
+    # No root remote logins
+    sudo mysql -h $DBHOST -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+    # Make sure that NOBODY can access the server without a password
+    sudo mysqladmin -h $DBHOST -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
+    # Make our changes take effect
+    sudo mysql -h $DBHOST -e "FLUSH PRIVILEGES"
 
-    # FIXME: If user 'misp' exists, and has a different password, the below WILL fail.
-    # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-    if [[ "${PACKER}" == "1" ]]; then
-      pw="Password1234"
-    else
-      pw=${MISP_PASSWORD}
-    fi
-
-    expect -f - <<-EOF
-      set timeout 10
-
-      spawn sudo -k mysql_secure_installation
-      expect "*?assword*"
-      send -- "${pw}\r"
-      expect "Enter current password for root (enter for none):"
-      send -- "\r"
-      expect "Set root password?"
-      send -- "y\r"
-      expect "New password:"
-      send -- "${DBPASSWORD_ADMIN}\r"
-      expect "Re-enter new password:"
-      send -- "${DBPASSWORD_ADMIN}\r"
-      expect "Remove anonymous users?"
-      send -- "y\r"
-      expect "Disallow root login remotely?"
-      send -- "y\r"
-      expect "Remove test database and access to it?"
-      send -- "y\r"
-      expect "Reload privilege tables now?"
-      send -- "y\r"
-      expect eof
-EOF
-    sudo apt-get purge -y expect ; sudo apt autoremove -qy
-  fi 
-
-  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE DATABASE ${DBNAME};"
-  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
-  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT USAGE ON *.* to ${DBUSER_MISP}@localhost;"
-  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
-  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "FLUSH PRIVILEGES;"
-  # Import the empty MISP database from MYSQL.sql
-  ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u ${DBUSER_MISP} -p${DBPASSWORD_MISP} ${DBNAME}
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE DATABASE ${DBNAME};"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES;"
+    # Import the empty MISP database from MYSQL.sql
+    ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -h $DBHOST -u "${DBUSER_MISP}" -p"${DBPASSWORD_MISP}" ${DBNAME}
+  fi
 }
 # <snippet-end 1_prepareDB.sh>
 ```
@@ -515,6 +492,8 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 
 {!generic/misp-modules-debian.md!}
 
+{!generic/misp-modules-cake.md!}
+
 {!generic/INSTALL.done.md!}
 
 {!generic/recommended.actions.md!}
@@ -541,6 +520,8 @@ installKafka () {
 ```
 
 {!generic/misp-dashboard-debian.md!}
+
+{!generic/misp-dashboard-cake.md!}
 
 {!generic/viper-debian.md!}
 

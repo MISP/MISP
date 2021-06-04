@@ -12,10 +12,7 @@
         <ul>
             <?php
                 $this->Paginator->options(array(
-                        'url' => array($server['Server']['id'], $event['Event']['id']),
-                        'evalScripts' => true,
-                        'before' => '$(".progress").show()',
-                        'complete' => '$(".progress").hide()',
+                    'url' => array($server['Server']['id'], $event['Event']['id']),
                 ));
                     echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
                     echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
@@ -34,7 +31,6 @@
             </li>
         </ul>
     </div>
-<br />
 <div id="attributeList" class="attributeListContainer">
     <table class="table table-striped table-condensed">
         <tr>
@@ -79,10 +75,7 @@
         <ul>
         <?php
             $this->Paginator->options(array(
-                    'url' => array($server['Server']['id'], $event['Event']['id']),
-                    'evalScripts' => true,
-                    'before' => '$(".progress").show()',
-                    'complete' => '$(".progress").hide()',
+                'url' => array($server['Server']['id'], $event['Event']['id']),
             ));
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
             echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
@@ -105,7 +98,7 @@
     var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : $baseurl . '/servers/previewEvent/' . h($server['Server']['id']) . '/' . h($event['Event']['id']); ?>";
     var lastSelected = false;
     var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
-    $(document).ready(function() {
+    $(function() {
         <?php
             if ($focusedRow !== false):
         ?>
@@ -118,6 +111,3 @@
         });
     });
 </script>
-<?php
-    echo $this->Js->writeBuffer();
-?>

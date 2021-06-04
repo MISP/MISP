@@ -27,13 +27,6 @@
     <div class="pagination">
         <ul>
             <?php
-            $this->Paginator->options(array(
-                'update' => '.span12',
-                'evalScripts' => true,
-                'before' => '$(".progress").show()',
-                'complete' => '$(".progress").hide()',
-            ));
-
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
             echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
             echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
@@ -94,7 +87,7 @@
             <td class="short"><?php
                 if (isset($orgSearch) && $orgSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['org']), $orgSearchReplacePairs));
                 else echo (h($item['Log']['org'])); ?>&nbsp;</td>
-            <td class="short"><?php echo h($item['Log']['created']); ?>&nbsp;</td>
+            <td class="short"><?= $this->Time->time($item['Log']['created']) ?>&nbsp;</td>
             <td class="short"><?php
                 if (isset($modelSearch) && $modelSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['model']), $modelSearchReplacePairs));
                 else echo (h($item['Log']['model'])); ?>&nbsp;</td>

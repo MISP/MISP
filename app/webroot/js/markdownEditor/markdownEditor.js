@@ -40,7 +40,15 @@ $(document).ready(function() {
         initCodeMirror()
         toggleSaveButton(false)
     }
-    setMode(defaultMode)
+    var mode = defaultMode;
+    if (window.location.hash) {
+        // Switch to mode by using #[mode_name] in URL
+        var anchor = window.location.hash.substr(1);
+        if ((canEdit && (anchor === 'editor' || anchor === 'splitscreen')) || anchor === 'viewer' || anchor === 'raw') {
+            mode = anchor;
+        }
+    }
+    setMode(mode)
     if (canEdit) {
         setEditorData(originalRaw);
 
@@ -337,20 +345,20 @@ function setMode(mode) {
     $mardownViewerToolbar.find('button[data-togglemode="' + mode + '"]').addClass('btn-inverse')
     hideAll()
     $editorContainer.css('width', '');
-    if (mode == 'raw') {
+    if (mode === 'raw') {
         $rawContainer.show()
     }
-    if (mode == 'splitscreen') {
+    if (mode === 'splitscreen') {
         $resizableHandle.show()
         $splitContainer.addClass('split-actif')
     } else {
         $resizableHandle.hide()
         $splitContainer.removeClass('split-actif')
     }
-    if (mode == 'viewer' || mode == 'splitscreen') {
+    if (mode === 'viewer' || mode === 'splitscreen') {
         $viewerContainer.show()
     }
-    if (mode == 'editor' || mode == 'splitscreen') {
+    if (mode === 'editor' || mode === 'splitscreen') {
         $editorContainer.show({
             duration: 0,
             complete: function() {
@@ -633,14 +641,16 @@ function createRulesMenuItem(itemName, icon, ruleScope, ruleName) {
 
 function createMenuItem(itemName, icon, clickHandler) {
     return $('<li/>').append(
-            $('<a/>').attr('tabindex', '-1').attr('href', '#').click(clickHandler).append(
+            $('<a/>').attr('tabindex', '-1').attr('href', '#').click(function (event) {
+                event.preventDefault();
+                clickHandler();
+            }).append(
                 $('<span/>').addClass('icon').append(
                     icon instanceof jQuery ? icon : $('<i/>').addClass(icon)
                 ),
                 $('<span/>').text(' ' + itemName)
             )
-        )
-     
+    )
 }
 
 function createSubMenu(submenuConfig) {

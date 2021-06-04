@@ -10,16 +10,19 @@
 ############################################################
 #INSTALLATION INSTRUCTIONS                                #
 ##########################################################
-#------------------------- for Debian Flavored Linux Distributions
+#------------------------- for Linux Distributions
 #
 #-------------------------------------------------------|
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
-#    20200513: Ubuntu 20.04 tested and working. -- sCl
-#    20200412: Ubuntu 18.04.4 tested and working. -- sCl
-#    20190302: Ubuntu 18.04.2 tested and working. -- sCl
-#    20190208: Kali Linux tested and working. -- sCl
+#  20210406: CentOS 7.9        tested and working. -- sCl
+#  20210406: CentOS 8          tested and working. -- sCl
+#  20210406: CentOS Stream     tested and working. -- sCl
+#  20210406: Ubuntu 21.04      tested and working. -- sCl
+#  20210406: Ubuntu 20.04.2    tested and working. -- sCl
+#  20210406: Ubuntu 18.04.5    tested and working. -- sCl
+#  20210331: Kali Linux 2021.1 tested and working. -- sCl
 #
 #
 #-------------------------------------------------------------------------------------------------|
@@ -73,6 +76,7 @@
 ## 0_apt-upgrade.sh ##
 ## 0_sudoKeeper.sh ##
 ## 0_installCoreDeps.sh ##
+## 0_upgradePhp74.sh ##
 ## 0_installDepsPhp74.sh ##
 ## 0_installDepsPhp73.sh ##
 ## 0_installDepsPhp72.sh ##
@@ -88,22 +92,31 @@
 ## 2_logRotation.sh ##
 ## 2_backgroundWorkers.sh ##
 ## 3_misp-modules.sh ##
+## 3_misp-modules-cake.sh ##
 ## 4_misp-dashboard.sh ##
 ## 4_misp-dashboard-cake.sh ##
 ## 5_mail_to_misp.sh ##
 ## 6_ssdeep.sh ##
 ## 6_viper.sh ##
 
-## 0_RHEL_SCL.sh ##
+## 0_RHEL_register.sh ##
+## 0_RHEL7_SCL.sh ##
+## 0_RHEL8_SCL.sh ##
+## 0_RHEL7_EPEL.sh ##
 ## 0_CentOS_EPEL.sh ##
-## 0_RHEL_EPEL.sh ##
-## 0_yumInstallCoreDeps.sh ##
-## 1_mispCoreInstall_RHEL.sh ##
+## 0_EPEL_REMI.sh ##
+## 0_yumInstallCoreDeps7.sh ##
+## 0_yumInstallCoreDeps8.sh ##
+## 0_yumInstallHaveged.sh ##
+## 1_mispCoreInstall_RHEL7.sh ##
+## 1_mispCoreInstall_RHEL8.sh ##
 ## 1_installCake_RHEL.sh ##
 ## 1_prepareDB_RHEL.sh ##
-## 1_apacheConfig_RHEL.sh ##
+## 1_apacheConfig_RHEL7.sh ##
+## 1_apacheConfig_RHEL8.sh ##
 ## 1_firewall_RHEL.sh ##
-## 2_permissions_RHEL.sh ##
+## 2_permissions_RHEL7.sh ##
+## 2_permissions_RHEL8.sh ##
 ## 2_logRotation_RHEL.sh ##
 ## 2_configMISP_RHEL.sh ##
 ## 3_configWorkers_RHEL.sh ##
@@ -147,12 +160,12 @@ generateInstaller () {
   cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu2004.md INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md INSTALL.rhel7.md`; do
+  for f in `echo INSTALL.ubuntu2004.md INSTALL.ubuntu1804.md xINSTALL.debian10.md xINSTALL.tsurugi.md INSTALL.rhel7.md INSTALL.rhel8.md`; do
     xsnippet . ../../docs/${f}
   done
 
   # Pull out code snippets from generic Install Documents
-  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-modules-debian.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md misp-modules-centos.md`; do
+  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-dashboard-centos.md misp-dashboard-cake.md misp-modules-debian.md misp-modules-centos.md misp-modules-cake.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
     xsnippet . ../../docs/generic/${f}
   done
 
@@ -166,6 +179,7 @@ generateInstaller () {
   perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_upgradePhp74.sh ##/`cat 0_upgradePhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp74.sh ##/`cat 0_installDepsPhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.tpl.sh
@@ -181,6 +195,7 @@ generateInstaller () {
   perl -pe 's/^## 2_logRotation.sh ##/`cat 2_logRotation.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_backgroundWorkers.sh ##/`cat 2_backgroundWorkers.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_core-cake.sh ##/`cat 2_core-cake.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 3_misp-modules-cake.sh ##/`cat 3_misp-modules-cake.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 3_misp-modules.sh ##/`cat 3_misp-modules.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 4_misp-dashboard-cake.sh ##/`cat 4_misp-dashboard-cake.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.tpl.sh
@@ -188,15 +203,23 @@ generateInstaller () {
   perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.tpl.sh
 
-  perl -pe 's/^## 0_RHEL_SCL.sh ##/`cat 0_RHEL_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL_register.sh ##/`cat 0_RHEL_register.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_SCL.sh ##/`cat 0_RHEL7_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL8_SCL.sh ##/`cat 0_RHEL8_SCL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_CentOS_EPEL.sh ##/`cat 0_CentOS_EPEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 0_RHEL_EPEL.sh ##/`cat 0_RHEL_EPEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 0_yumInstallCoreDeps.sh ##/`cat 0_yumInstallCoreDeps.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 1_mispCoreInstall_RHEL.sh ##/`cat 1_mispCoreInstall_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_EPEL.sh ##/`cat 0_RHEL7_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallCoreDeps7.sh ##/`cat 0_yumInstallCoreDeps7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallCoreDeps8.sh ##/`cat 0_yumInstallCoreDeps8.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallHaveged.sh ##/`cat 0_yumInstallHaveged.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall_RHEL7.sh ##/`cat 1_mispCoreInstall_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall_RHEL8.sh ##/`cat 1_mispCoreInstall_RHEL8.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_EPEL_REMI.sh ##/`cat 0_EPEL_REMI.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_installCake_RHEL.sh ##/`cat 1_installCake_RHEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 2_permissions_RHEL.sh ##/`cat 2_permissions_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions_RHEL7.sh ##/`cat 2_permissions_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions_RHEL8.sh ##/`cat 2_permissions_RHEL8.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_prepareDB_RHEL.sh ##/`cat 1_prepareDB_RHEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 1_apacheConfig_RHEL.sh ##/`cat 1_apacheConfig_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig_RHEL7.sh ##/`cat 1_apacheConfig_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig_RHEL8.sh ##/`cat 1_apacheConfig_RHEL8.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_firewall_RHEL.sh ##/`cat 1_firewall_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_logRotation_RHEL.sh ##/`cat 2_logRotation_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_configMISP_RHEL.sh ##/`cat 2_configMISP_RHEL.sh`/ge' -i INSTALL.tpl.sh
@@ -284,10 +307,10 @@ installSupported () {
       # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
     elif [[ "$PHP_VER" == 7.3 ]]; then
-      # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
+      # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
     elif [[ "$PHP_VER" == 7.4 ]]; then
-      # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
+      # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
     elif [[ "$PHP_VER" == 7.0 ]]; then
       # Install PHP 7.0 Dependencies - functionLocation('generic/supportFunctions.md')
@@ -340,10 +363,6 @@ installSupported () {
   [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE
   progress 4
 
-  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT
-  progress 4
-
   # Disable spinner
   #(kill $SPIN_PID 2>&1) >/dev/null
 
@@ -359,6 +378,14 @@ installSupported () {
 
   # Install misp-modules - functionLocation('generic/misp-modules-debian.md')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
+  progress 4
+
+  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
+  [[ -n $CORE ]]      || [[ -n $ALL ]] && updateGOWNT
+  progress 4
+
+  # Install misp-modules - functionLocation('generic/misp-modules-cake.md')
+  [[ -n $MODULES ]]   || [[ -n $ALL ]] && modulesCAKE
   progress 4
 
   # Install Viper - functionLocation('generic/viper-debian.md')
@@ -389,7 +416,7 @@ installSupported () {
 
 # Main Kali Install function
 installMISPonKali () {
-  # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('')
+  # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('generic/supportFunctions.md')
   kaliUpgrade
 
   # Set locale if not set - functionLocation('generic/supportFunctions.md')
@@ -398,8 +425,8 @@ installMISPonKali () {
   # Set Base URL - functionLocation('generic/supportFunctions.md')
   setBaseURL
 
-  # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
-  installDepsPhp73
+  # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
+  installDepsPhp74
 
   # Set custom Kali only variables and tweaks
   space
@@ -417,12 +444,12 @@ installMISPonKali () {
   installCoreDeps
 
   debug "Enabling redis and gnupg modules"
-  sudo phpenmod -v 7.3 redis
-  sudo phpenmod -v 7.3 gnupg
+  sudo phpenmod -v 7.4 redis
+  sudo phpenmod -v 7.4 gnupg
 
   debug "Apache2 ops: dismod: status - dissite: 000-default enmod: ssl rewrite headers php7.3 ensite: default-ssl"
   sudo a2dismod status
-  sudo a2enmod ssl rewrite headers php7.3
+  sudo a2enmod ssl rewrite headers php7.4
   sudo a2dissite 000-default
   sudo a2ensite default-ssl
 
@@ -525,26 +552,18 @@ installMISPonKali () {
 
   debug "Setting up database"
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
-    echo "
-      set timeout 10
-      spawn sudo mysql_secure_installation
-      expect \"Enter current password for root (enter for none):\"
-      send -- \"\r\"
-      expect \"Set root password?\"
-      send -- \"y\r\"
-      expect \"New password:\"
-      send -- \"${DBPASSWORD_ADMIN}\r\"
-      expect \"Re-enter new password:\"
-      send -- \"${DBPASSWORD_ADMIN}\r\"
-      expect \"Remove anonymous users?\"
-      send -- \"y\r\"
-      expect \"Disallow root login remotely?\"
-      send -- \"y\r\"
-      expect \"Remove test database and access to it?\"
-      send -- \"y\r\"
-      expect \"Reload privilege tables now?\"
-      send -- \"y\r\"
-      expect eof" | expect -f -
+    # Kill the anonymous users
+    sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'localhost'"
+    # Because our hostname varies we'll use some Bash magic here.
+    sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'$(hostname)'"
+    # Kill off the demo database
+    sudo mysql -h $DBHOST -e "DROP DATABASE IF EXISTS test"
+    # No root remote logins
+    sudo mysql -h $DBHOST -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+    # Make sure that NOBODY can access the server without a password
+    sudo mysqladmin -h $DBHOST -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
+    # Make our changes take effect
+    sudo mysql -h $DBHOST -e "FLUSH PRIVILEGES"
 
     sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
     sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBUSER_MISP@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
@@ -633,6 +652,7 @@ installMISPonKali () {
 
   debug "Installing misp-modules"
   mispmodules
+  modulesCAKE
 
   ## FIXME: The current state of Viper is broken, disabling any use.
   ##debug "Installing Viper"
@@ -661,43 +681,80 @@ installMISPRHEL () {
     space
     echo "Proceeding with MISP core installation on RHEL ${dist_version}"
     space
- 
+
     id -u "${MISP_USER}" > /dev/null
     if [[ $? -eq 1 ]]; then
       debug "Creating MISP user"
-      sudo useradd -r "${MISP_USER}"
+      sudo useradd -G wheel -m "${MISP_USER}"
     fi 
-    
-    debug "Enabling Extras Repos (SCL)"
-    if [[ "${FLAVOUR}" == "rhel" ]]; then
-      sudo subscription-manager register --auto-attach
-      enableReposRHEL
-      enableEPEL
-    else # CentOS
-      centosEPEL
+
+    # Register system if RHEL
+    if [[ "${DISTRI}" =~ ^[rhel].* ]]; then
+      registerRHEL
     fi
 
-    debug "Installing System Dependencies"
-    yumInstallCoreDeps
+    debug "Enabling Extras Repos (SCL)"
+    if [[ "${DISTRI}" == "rhel7" ]]; then
+      enableReposRHEL7
+      enableEPEL
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps7
+      installEntropyRHEL
+      debug "Installing MISP code"
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Setting File permissions"
+      permissions_RHEL7
+      debug "Preparing Database"
+      prepareDB_RHEL
+      apacheConfig_RHEL7
+    fi
+
+    if [[ "${DISTRI}" == "fedora33" ]]; then
+      enableREMI_f33
+      yumInstallCoreDeps8
+      installEntropyRHEL
+      installCoreRHEL8
+      installCake_RHEL
+      permissions_RHEL8
+      prepareDB_RHEL
+      debug "Configuring Apache"
+      apacheConfig_RHEL8
+    fi
+
+    if [[ "${DIST_VER}" =~ ^[8].* ]]; then
+      enableEPEL_REMI_8
+      enableOptionalRHEL8
+      yumInstallCoreDeps8
+      installCoreRHEL8
+      installCake_RHEL
+      permissions_RHEL8
+      prepareDB_RHEL
+      apacheConfig_RHEL8
+    fi
+
+    if [[ "${DISTRI}" == "centos7" ]]; then
+      centosEPEL
+      debug "Installing MISP code"
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps7
+      installEntropyRHEL
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Setting File permissions"
+      permissions_RHEL7
+      debug "Preparing Database"
+      prepareDB_RHEL
+      debug "Configuring Apache"
+      apacheConfig_RHEL7
+    fi
 
     debug "Enabling Haveged for additional entropy"
     sudo yum install haveged -y
     sudo systemctl enable --now haveged.service
 
-    debug "Installing MISP code"
-    installCoreRHEL
-
-    debug "Install Cake PHP"
-    installCake_RHEL
-
-    debug "Setting File permissions"
-    permissions_RHEL
-
-    debug "Preparing Database"
-    prepareDB_RHEL
-
-    debug "Configuring Apache"
-    apacheConfig_RHEL
 
     debug "Setting up firewall"
     firewall_RHEL
@@ -726,6 +783,9 @@ installMISPRHEL () {
     space
 
     mispmodulesRHEL
+    # Another sleep to avoid RC
+    sleep 3
+    modulesCAKE
 
     echo "MISP modules installation finished."
   fi
@@ -790,22 +850,29 @@ fi
 SUPPORT_MAP="
 x86_64-centos-7
 x86_64-rhel-7
-x86_64-fedora-30
+x86_64-centos-8
+x86_64-rhel-8
+x86_64-fedora-33
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
 x86_64-ubuntu-focal
-x86_64-kali-2020.1
-x86_64-kali-2020.2
-x86_64-kali-2020.3
+x86_64-ubuntu-hirsute
 x86_64-kali-2020.4
+x86_64-kali-2021.1
+x86_64-kali-2021.2
+x86_64-kali-2021.3
+x86_64-kali-2021.4
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
+armv7l-raspbian-buster
 armv7l-debian-jessie
 armv7l-debian-stretch
 armv7l-debian-buster
 armv7l-ubuntu-bionic
 armv7l-ubuntu-focal
+aarch64-ubuntu-focal
+aarch64-ubuntu-hirsute
 "
 
 # Check if we actually support this configuration
@@ -825,10 +892,16 @@ if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   if [[ "${RELEASE}" == "18.04" ]]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installSupported && exit || exit
+    upgradeToPHP74
+    installSupported PHP="7.4" && exit || exit
   fi
   if [[ "${RELEASE}" == "20.04" ]]; then
     echo "Install on Ubuntu 20.04 LTS fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installSupported PHP="7.4" && exit || exit
+  fi
+  if [[ "${RELEASE}" == "21.04" ]]; then
+    echo "Install on Ubuntu 21.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP="7.4" && exit || exit
   fi
@@ -851,8 +924,8 @@ if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   exit
 fi
 
-# If Debian is detected, figure out which release it is and run the according scripts
-if [[ "${FLAVOUR}" == "debian" ]]; then
+# If Debian/Raspbian is detected, figure out which release it is and run the according scripts
+if [[ "${FLAVOUR}" == "debian" ]] || [[ "${FLAVOUR}" == "raspbian" ]]; then
   CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [[ "${CODE}" == "buster" ]]; then
     echo "Install on Debian testing fully supported."
@@ -898,7 +971,7 @@ if [[ "${FLAVOUR}" == "kali" ]]; then
 fi
 
 # If RHEL/CentOS is detected, run appropriate script
-if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
+if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]] || [[ "${FLAVOUR}" == "fedora" ]]; then
   installMISPRHEL
   echo "Installation done !"
   exit

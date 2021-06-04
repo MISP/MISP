@@ -31,7 +31,7 @@
             ],
             'fields' => [
                 [
-                    'name' => __('Id'),
+                    'name' => __('ID'),
                     'sort' => 'Tag.id',
                     'class' => 'short',
                     'data_path' => 'Tag.id',
@@ -45,10 +45,10 @@
                 ],
                 [
                     'name' => __('Hidden'),
-                    'sort' => 'Tag.hidden',
+                    'sort' => 'Tag.hide_tag',
                     'element' => 'boolean',
                     'class' => 'short',
-                    'data_path' => 'Tag.hidden',
+                    'data_path' => 'Tag.hide_tag',
                 ],
                 [
                     'name' => __('Name'),
@@ -83,7 +83,6 @@
                 ],
                 [
                     'name' => __('Tagged events'),
-                    'sort' => 'Tag.count',
                     'class' => 'short',
                     'element' => 'count',
                     'data_path' => 'Tag.count',
@@ -91,7 +90,6 @@
                 ],
                 [
                     'name' => __('Tagged attributes'),
-                    'sort' => 'Tag.attribute_count',
                     'class' => 'short',
                     'element' => 'count',
                     'data_path' => 'Tag.attribute_count',
@@ -132,7 +130,8 @@
                         'Tag.id'
                     ],
                     'icon' => 'edit',
-                    'title' => __('Edit')
+                    'title' => __('Edit'),
+                    'requirement' => $isSiteAdmin,
                 ],
                 [
                     'url' => $baseurl . '/tags/delete',
@@ -142,7 +141,8 @@
                     'postLink' => '',
                     'postLinkConfirm' => __('Are you sure you want to delete the Tag?'),
                     'icon' => 'trash',
-                    'title' => __('View graph')
+                    'title' => __('Delete tag'),
+                    'requirement' => $isSiteAdmin,
                 ],
             ]
         ]
@@ -163,7 +163,7 @@
 ?>
 <script type="text/javascript">
     var passedArgsArray = <?php echo $passedArgs; ?>;
-    $(document).ready(function() {
+    $(function() {
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();
         });

@@ -12,6 +12,11 @@
      *  - id: element ID for the input field - defaults to quickFilterField
      */
     if (!isset($data['requirement']) || $data['requirement']) {
+        $searchKey = empty($data['searchKey']) ? 'searchall' : $data['searchKey'];
+        // Set default value to current search term
+        if (empty($data['value']) && !empty($this->passedArgs[$searchKey])) {
+            $data['value'] = $this->passedArgs[$searchKey];
+        }
         $button = empty($data['button']) && empty($data['fa-icon']) ? '' : sprintf(
             '<button class="btn btn-small btn-inverse" %s id="quickFilterButton">%s%s</button>',
             empty($data['data']) ? '' : h($data['data']),
@@ -26,13 +31,12 @@
             empty($data['placeholder']) ? '' : h($data['placeholder']),
             empty($data['placeholder']) ? '' : h($data['placeholder']),
             empty($data['id']) ? 'quickFilterField' : h($data['id']),
-            empty($data['searchKey']) ? 'searchall' : h($data['searchKey']),
+            h($searchKey),
             empty($data['value']) ? '' : h($data['value'])
         );
         echo sprintf(
-            '<div class="btn-group pull-right"><div class="input-append" style="margin-bottom:0px;">%s%s</div></div>',
+            '<div class="btn-group pull-right"><div class="input-append" style="margin-bottom:0">%s%s</div></div>',
             $input,
             $button
         );
     }
-?>

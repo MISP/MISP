@@ -30,9 +30,9 @@
         ?>
         <div class="input clear">
             <button type="button" title="<?php echo __('Insert a quote - just paste your quote between the [quote][/quote] tags.');?>" class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()"><?php echo __('Quote');?></button>
-            <button type="button" title="Insert a l<?php echo __('');?>ink to an event - just enter the event ID between the [event][/event] tags." class="toggle btn btn-inverse qet" id = "event"  onclick="insertEvent()"><?php echo __('Event');?></button>
-            <button type="button" title="<?php echo __('Insert a link to a discussion thread - enter the thread\'s ID between the [thread][/thread] tags.');?>" class="toggle-right btn btn-inverse qet" id = "thread"  onclick="insertThread()"><?php echo __('Thread');?></button>
-            <button type="button" title="<?php echo __('Insert a link [link][/link] tags.');?>" class="toggle-right btn btn-inverse qet" id="link" onclick="insertLink()"><?php echo __('Link');?></button>
+            <button type="button" title="<?php echo __('Insert a link to an event - just enter the event ID between the [event][/event] tags.');?>" class="toggle btn btn-inverse qet" id = "event"  onclick="insertEvent()"><?php echo __('Event');?></button>
+            <button type="button" title="<?php echo __('Insert a link to a discussion thread - enter the thread\'s ID between the [thread][/thread] tags.');?>" class="toggle btn btn-inverse qet" id = "thread"  onclick="insertThread()"><?php echo __('Thread');?></button>
+            <button type="button" title="<?php echo __('Insert a link [link][/link] tags.');?>" class="toggle btn btn-inverse qet" id="link" onclick="insertLink()"><?php echo __('Link');?></button>
             <button type="button" title="<?php echo __('Insert a code [code][/code] tags.');?>" class="toggle-right btn btn-inverse qet" id="code" onclick="insertCode()"><?php echo __('Code');?></button>
         </div>
         <?php

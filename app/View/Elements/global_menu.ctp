@@ -3,11 +3,7 @@
         // New approach how to define menu requirements. It takes ACLs from ACLComponent.
         // TODO: Use for every menu item
         $canAccess = function ($controller, $action) use ($me, $aclComponent) {
-            $response = $aclComponent->checkAccess($me, $controller, $action, true);
-            if ($response === 404) {
-                throw new Exception("Invalid controller '$controller' specified for menu requirements.");
-            }
-            return $response === true;
+            return $aclComponent->canUserAccess($me, $controller, $action);
         };
 
         $menu = array(
@@ -39,7 +35,8 @@
                     ),
                     array(
                         'text' => __('REST client'),
-                        'url' => $baseurl . '/servers/rest'
+                        'url' => $baseurl . '/servers/rest',
+                        'requirement' => $canAccess('servers', 'rest'),
                     ),
                     array(
                         'type' => 'separator'
@@ -54,7 +51,8 @@
                     ),
                     array(
                         'url' => $baseurl . '/event_delegations/index/context:pending',
-                        'text' => __('View delegation requests')
+                        'text' => __('View delegation requests'),
+                        'requirement' => $canAccess('event_delegations', 'index'),
                     ),
                     array(
                         'type' => 'separator'
@@ -117,8 +115,13 @@
                         'requirement' =>
                             Configure::read('MISP.enableEventBlocklisting') !== false &&
                             !$isSiteAdmin && $hostOrgUser
-                    ),
+                    )
                 )
+            ),
+            array(
+                'type' => 'root',
+                'text' => __('Dashboard'),
+                'url' => $baseurl . '/dashboards'
             ),
             array(
                 'type' => 'root',
@@ -128,7 +131,11 @@
                     array(
                         'text' => __('List Galaxies'),
                         'url' => $baseurl . '/galaxies/index'
-                    )
+                    ),
+                    array(
+                        'text' => __('List Relationships'),
+                        'url' => $baseurl . '/galaxy_cluster_relations/index'
+                    ),
                 )
             ),
             array(
@@ -162,13 +169,17 @@
                     array(
                         'text' => __('List Noticelists'),
                         'url' => $baseurl . '/noticelists/index'
+                    ),
+                    array(
+                        'text' => __('List Correlation Exclusions'),
+			'url' => $baseurl . '/correlation_exclusions/index',
+			'requirement' => $canAccess('correlation_exclusions', 'index'),
                     )
                 )
             ),
             array(
                 'type' => 'root',
                 'text' => __('Global Actions'),
-                'url' => $baseurl . '/dashboards',
                 'children' => array(
                     array(
                         'text' => __('News'),
@@ -185,10 +196,6 @@
                     array(
                         'text' => __('Set Setting'),
                         'url' => $baseurl . '/user_settings/setSetting'
-                    ),
-                    array(
-                        'text' => __('Dashboard'),
-                        'url' => $baseurl . '/dashboards'
                     ),
                     array(
                         'text' => __('Organisations'),
@@ -308,6 +315,11 @@
                         'requirement' => $canAccess('communities', 'index'),
                     ),
                     array(
+                        'text' => __('Cerebrates'),
+                        'url' => $baseurl . '/cerebrates/index',
+                        'requirement' => $canAccess('cerebrates', 'index'),
+                    ),
+                    array(
                         'text' => __('Event ID translator'),
                         'url' => '/servers/idTranslator',
                         'requirement' => $canAccess('servers', 'idTranslator')
@@ -325,6 +337,10 @@
                         'url' => $baseurl . '/admin/users/index'
                     ),
                     array(
+                        'text' => __('List Auth Keys'),
+                        'url' => $baseurl . '/auth_keys/index'
+                    ),
+                    array(
                         'text' => __('List User Settings'),
                         'url' => $baseurl . '/user_settings/index/user_id:all'
                     ),
@@ -334,7 +350,8 @@
                     ),
                     array(
                         'text' => __('Add User'),
-                        'url' => $baseurl . '/admin/users/add'
+                        'url' => $baseurl . '/admin/users/add',
+                        'requirement' => $canAccess('users', 'admin_add'),
                     ),
                     array(
                         'text' => __('Contact Users'),
@@ -362,7 +379,7 @@
                     ),
                     array(
                         'text' => __('List Roles'),
-                        'url' => $baseurl . '/admin/roles/index'
+                        'url' => $baseurl . '/roles/index'
                     ),
                     array(
                         'text' => __('Add Roles'),
@@ -429,16 +446,30 @@
                         'url' => $baseurl . '/orgBlocklists',
                         'requirement' => Configure::read('MISP.enableOrgBlocklisting') !== false && $isSiteAdmin
                     ),
+                    [
+                        'type' => 'separator',
+                        'requirement' => $isSiteAdmin
+                    ],
+                    [
+                        'text' => __('Top Correlations'),
+                        'url' => $baseurl . '/correlations/top',
+                        'requirement' => $isSiteAdmin
+                    ]
                 )
             ),
             array(
                 'type' => 'root',
-                'text' => __('Audit'),
+                'text' => __('Logs'),
                 'requirement' => $isAclAudit,
                 'children' => array(
                     array(
                         'text' => __('List Logs'),
                         'url' => $baseurl . '/admin/logs/index'
+                    ),
+                    array(
+                        'text' => __('List Audit Logs'),
+                        'url' => $baseurl . '/admin/audit_logs/index',
+                        'requirement' => Configure::read('MISP.log_new_audit'),
                     ),
                     array(
                         'text' => __('Search Logs'),
@@ -455,8 +486,8 @@
                     '<span class="fas fa-star %s" id="setHomePage" title="%s" role="img" aria-label="%s" data-current-page="%s"></span>',
                     (!empty($homepage['path']) && $homepage['path'] === $this->here) ? 'orange' : '',
 		    __('Set the current page as your home page in MISP'),
-		    __('Set the current page as your home page in MISP'),		    
-                    $this->here
+		    __('Set the current page as your home page in MISP'),
+                    h($this->here)
                 )
             ),
             array(
@@ -509,5 +540,3 @@
     </ul>
   </div>
 </div>
-<input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />
-

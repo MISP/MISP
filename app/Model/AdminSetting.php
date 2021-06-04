@@ -6,6 +6,7 @@ class AdminSetting extends AppModel
     public $useTable = 'admin_settings';
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',
             'userKey' => 'user_id',
@@ -41,6 +42,23 @@ class AdminSetting extends AppModel
             return $setting_object['AdminSetting']['value'];
         } else {
             return false;
+        }
+    }
+
+
+
+    public function updatesDone($blocking = false)
+    {
+        if ($blocking) {
+            $continue = false;
+            while ($continue == false) {
+                $db_version = $this->find('first', array('conditions' => array('setting' => 'db_version')));
+                $continue = empty($this->findUpgrades($db_version['AdminSetting']['value']));
+            }
+            return true;
+        } else {
+            $db_version = $this->find('first', array('conditions' => array('setting' => 'db_version')));
+            return empty($this->findUpgrades($db_version['AdminSetting']['value']));
         }
     }
 }

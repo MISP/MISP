@@ -8,7 +8,7 @@
             ?>
     </ul>
     <?php if ($mayModify): ?>
-    <div id="AddTemplateElementDiv" role="button" tabindex="0" aria-label="<?php echo __('Add a new template element');?>" title="<?php echo __('Add a new template element');?>" class="addTemplateElement useCursorPointer" onClick="templateAddElementClicked(<?php echo $id; ?>);">+</div>
+    <div id="AddTemplateElementDiv" role="button" tabindex="0" aria-label="<?php echo __('Add a new template element');?>" title="<?php echo __('Add a new template element');?>" class="addTemplateElement useCursorPointer" onClick="templateAddElementClicked(<?php echo h($id); ?>);">+</div>
     <?php endif; ?>
 </div>
 <script type="text/javascript">

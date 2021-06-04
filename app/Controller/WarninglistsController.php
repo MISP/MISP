@@ -9,33 +9,43 @@ class WarninglistsController extends AppController
     public $components = array('Session', 'RequestHandler');
 
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
-            'contain' => array(
-                'WarninglistType'
-            ),
-            'order' => array(
-                'Warninglist.id' => 'DESC'
-            ),
+        'limit' => 60,
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
+        'contain' => array(
+            'WarninglistType'
+        ),
+        'order' => array(
+            'Warninglist.id' => 'DESC'
+        ),
+        'recursive' => -1,
     );
 
     public function index()
     {
-        $this->paginate['recursive'] = -1;
+        $filters = $this->IndexFilter->harvestParameters(['value', 'enabled']);
+        if (!empty($filters['value'])) {
+            $this->paginate['conditions'] = [
+                'OR' => [
+                    'LOWER(Warninglist.name) LIKE' => '%' . strtolower($filters['value']) . '%',
+                    'LOWER(Warninglist.description) LIKE' => '%' . strtolower($filters['value']) . '%',
+                    'LOWER(Warninglist.type)' => strtolower($filters['value']),
+                    ]
+                ];
+        }
+        if (isset($filters['enabled'])) {
+            $this->paginate['conditions'][] = ['Warninglist.enabled' => $filters['enabled']];
+        }
         $warninglists = $this->paginate();
         foreach ($warninglists as &$warninglist) {
-            $warninglist['Warninglist']['valid_attributes'] = array();
-            foreach ($warninglist['WarninglistType'] as $type) {
-                $warninglist['Warninglist']['valid_attributes'][] = $type['type'];
-            }
-            $warninglist['Warninglist']['valid_attributes'] = implode(', ', $warninglist['Warninglist']['valid_attributes']);
+            $validAttributes = array_column($warninglist['WarninglistType'], 'type');
+            $warninglist['Warninglist']['valid_attributes'] = implode(', ', $validAttributes);
             unset($warninglist['WarninglistType']);
         }
         if ($this->_isRest()) {
-            $this->set('Warninglists', $warninglists);
-            $this->set('_serialize', array('Warninglists'));
+            return $this->RestResponse->viewData(['Warninglists' => $warninglists], $this->response->type());
         } else {
             $this->set('warninglists', $warninglists);
+            $this->set('passedArgsArray', $filters);
         }
     }
 
@@ -273,6 +283,9 @@ class WarninglistsController extends AppController
                 throw new NotFoundException(__('No valid data received.'));
             }
             $data = $this->request->data;
+            if (is_array($data) && isset($data['Warninglist'])) {
+                $data = $data['Warninglist'];
+            }
             if (!is_array($data)) {
                 $data = array($data);
             }
@@ -291,9 +304,15 @@ class WarninglistsController extends AppController
                     }
                 }
             }
-            return $this->RestResponse->viewData($hits, $this->response->type());
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData($hits, $this->response->type());
+            }
+            $this->set('hits', $hits);
+            $this->set('data', $data);
         } else {
-            return $this->RestResponse->describe('Warninglists', 'checkValue', false, $this->response->type());
+            if ($this->_isRest()) {
+                return $this->RestResponse->describe('Warninglists', 'checkValue', false, $this->response->type());
+            }
         }
     }
 }

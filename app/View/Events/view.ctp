@@ -5,7 +5,7 @@
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
     echo $this->Html->script('doT');
     echo $this->Html->script('extendext');
-    echo $this->Html->script('moment-with-locales');
+    echo $this->Html->script('moment.min');
     echo $this->Html->css('query-builder.default');
     echo $this->Html->script('query-builder');
     echo $this->Html->css('attack_matrix');
@@ -15,7 +15,7 @@
     <?php
         if (Configure::read('MISP.showorg') || $isAdmin):
     ?>
-            <div style="float:right;"><?php echo $this->OrgImg->getOrgImg(array('name' => $event['Orgc']['name'], 'id' => $event['Orgc']['id'], 'size' => 48)); ?></div>
+            <div style="float:right;"><?= $this->OrgImg->getOrgLogo($event['Orgc'], 48); ?></div>
     <?php
         endif;
         $title = h($event['Event']['info']);
@@ -23,13 +23,18 @@
         $table_data[] = array('key' => __('Event ID'), 'value' => $event['Event']['id']);
         $table_data[] = array(
             'key' => 'UUID',
-            'html' => sprintf('<span class="quickSelect">%s</span> %s',
+            'html' => sprintf('<span class="quickSelect">%s</span>%s%s',
                 $event['Event']['uuid'],
-                sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px; margin-left: 0.3em" title="%s">+</a>',
+                $isAclAdd ? sprintf(' <a href="%s/events/add/extends:%s" style="color:black; font-size:15px;padding-left:2px" title="%s"><i class="fas fa-plus-square"></i></a>',
                     $baseurl,
                     $event['Event']['id'],
                     __('Extend this event')
-                )
+                ) : '',
+                $isSiteAdmin || $hostOrgUser ? sprintf(' <a href="%s/servers/idTranslator/%s" style="color:black; font-size:15px;padding-left:2px" title="%s"><i class="fas fa-server"></i></a>',
+                    $baseurl,
+                    $event['Event']['id'],
+                    __('Check this event on different servers')
+                ) : ''
             )
         );
         if (Configure::read('MISP.showorgalternate')) {
@@ -74,17 +79,19 @@
             }
         }
         if (!empty($contributors)) {
-            $contributorsContent = '';
+            $contributorsContent = [];
             foreach ($contributors as $organisationId => $name) {
-                $contributorsContent .= sprintf(
-                    '<a href="%s">%s</a>',
-                    $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($name),
-                    $this->OrgImg->getOrgImg(array('name' => $name, 'id' => $organisationId, 'size' => 24), true, true)
-                );
+                $org = ['Organisation' => ['id' => $organisationId, 'name' => $name]];
+                if (Configure::read('MISP.log_new_audit')) {
+                    $link = $baseurl . "/audit_logs/eventIndex/" . h($event['Event']['id']) . '/' . h($organisationId);
+                } else {
+                    $link = $baseurl . "/logs/event_index/" . h($event['Event']['id']) . '/' . h($name);
+                }
+                $contributorsContent[] = $this->OrgImg->getNameWithImg($org, $link);
             }
             $table_data[] = array(
                 'key' => __('Contributors'),
-                'html' => $contributorsContent
+                'html' => implode("<br>", $contributorsContent),
             );
         }
         if (isset($event['User']['email'])) {
@@ -102,8 +109,9 @@
                     array(
                         'event' => $event,
                         'tags' => $event['EventTag'],
-                        'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id']),
-                        'required_taxonomies' => $required_taxonomies,
+                        'tagAccess' => ($isSiteAdmin || $mayModify),
+                        'localTagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id')),
+                        'missingTaxonomies' => $missingTaxonomies,
                         'tagConflicts' => $tagConflicts
                     )
                 )
@@ -121,6 +129,25 @@
                 'value_class' => 'threat-level-' . strtolower($event['ThreatLevel']['name']),
             );
         }
+        $sharingGroupHtml = false;
+        $hideDistributionGraph = false;
+        if ($event['Event']['distribution'] == 4) {
+            if (!empty($event['SharingGroup'])) {
+                $sharingGroupHtml = sprintf(
+                    '<a href="%s%s">%s</a>',
+                    $baseurl . '/sharing_groups/view/',
+                    h($event['SharingGroup']['id']),
+                    h($event['SharingGroup']['name'])
+                );
+            } else {
+                $sharingGroupHtml = sprintf(
+                    '<span class="red bold">%s</span>: %s',
+                    __('Undisclosed sharing group'),
+                    __('your organisation is the local owner of this event, however it is not explicitly listed in the sharing group.')
+                );
+                $hideDistributionGraph = true;
+            }
+        }
         $table_data[] = array(
             'key' => __('Analysis'),
             'key_title' => $eventDescriptions['analysis']['desc'],
@@ -132,19 +159,19 @@
             'html' => sprintf(
                 '%s %s %s %s',
                 ($event['Event']['distribution'] == 4) ?
-                    sprintf('<a href="%s%s">%s</a>', $baseurl . '/sharing_groups/view/', h($event['SharingGroup']['id']), h($event['SharingGroup']['name'])) :
+                    $sharingGroupHtml :
                     h($distributionLevels[$event['Event']['distribution']]),
-                sprintf(
+                $hideDistributionGraph ? '' : sprintf(
                     '<span id="distribution_graph_bar" style="margin-left: 5px;" data-object-id="%s" data-object-context="event"></span>',
                     h($event['Event']['id'])
                 ),
-                sprintf(
+                $hideDistributionGraph ? '' : sprintf(
                     '<it class="%s" data-object-id="%s" data-object-context="event" data-shown="false"></it><div style="display: none">%s</div>',
                     'useCursorPointer fa fa-info-circle distribution_graph',
                     h($event['Event']['id']),
                     $this->element('view_event_distribution_graph')
                 ),
-                sprintf(
+                $hideDistributionGraph ? '' : sprintf(
                     '<it type="button" id="showAdvancedSharingButton" title="%s" class="%s" aria-hidden="true" style="margin-left: 5px;"></it>',
                     __('Toggle advanced sharing network viewer'),
                     'fa fa-share-alt useCursorPointer'
@@ -169,11 +196,11 @@
         );
         $table_data[] = array(
             'key' => __('First recorded change'),
-            'value' => (!$oldest_timestamp) ? '' : date('Y-m-d H:i:s', $oldest_timestamp)
+            'html' => !$oldest_timestamp ? '' : $this->Time->time($oldest_timestamp),
         );
         $table_data[] = array(
             'key' => __('Last change'),
-            'value' => date('Y-m-d H:i:s', $event['Event']['timestamp'])
+            'html' => $this->Time->time($event['Event']['timestamp']),
         );
         $table_data[] = array(
             'key' => __('Modification map'),
@@ -225,13 +252,14 @@
             'element' => '/Events/View/eventSightingValue',
             'element_params' => array(
                 'event' => $event,
+                'sightingsData' => isset($sightingsData['data']['all']) ? $sightingsData['data']['all'] : [],
             )
         );
-        if (!empty($sightingsData['csv']['event'])) {
+        if (isset($sightingsData['data']['all'])) {
             $table_data[] = array(
                 'key' => __('Activity'),
                 'element' => 'sparkline',
-                'element_params' => array('scope' => 'event', 'id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event'])
+                'element_params' => array('scope' => 'event', 'id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['all'])
             );
         }
         if (!empty($delegationRequest)) {
@@ -473,33 +501,33 @@
         </div>
     </div>
     <br />
-    <div class="toggleButtons">
-        <button class="btn btn-inverse toggle-left btn.active qet galaxy-toggle-button" id="pivots_toggle" data-toggle-type="pivots">
-            <span class="icon-minus icon-white" title="<?php echo __('Toggle pivot graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle pivot graph');?>" style="vertical-align:top;"></span><?php echo __('Pivots');?>
+    <div id="eventToggleButtons">
+        <button class="btn btn-inverse toggle-left qet" id="pivots_toggle" data-toggle-type="pivots">
+            <span class="fas fa-minus" title="<?php echo __('Toggle pivot graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle pivot graph');?>"></span><?php echo __('Pivots');?>
         </button>
-        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="galaxies_toggle" data-toggle-type="galaxies">
-            <span class="icon-minus icon-white" title="<?php echo __('Toggle galaxies');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle galaxies');?>" style="vertical-align:top;"></span><?php echo __('Galaxy');?>
+        <button class="btn btn-inverse toggle qet" id="galaxies_toggle" data-toggle-type="galaxies">
+            <span class="fas fa-minus" title="<?php echo __('Toggle galaxies');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle galaxies');?>"></span><?php echo __('Galaxy');?>
         </button>
-        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventgraph_toggle" data-toggle-type="eventgraph" onclick="enable_interactive_graph();">
-            <span class="icon-plus icon-white" title="<?php echo __('Toggle Event graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event graph');?>" style="vertical-align:top;"></span><?php echo __('Event graph');?>
+        <button class="btn btn-inverse toggle qet" id="eventgraph_toggle" data-toggle-type="eventgraph" onclick="enable_interactive_graph();">
+            <span class="fas fa-plus" title="<?php echo __('Toggle Event graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event graph');?>"></span><?php echo __('Event graph');?>
         </button>
-        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventtimeline_toggle" data-toggle-type="eventtimeline" onclick="enable_timeline();">
-            <span class="icon-plus icon-white" title="<?php echo __('Toggle Event timeline');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event timeline');?>" style="vertical-align:top;"></span><?php echo __('Event timeline');?>
+        <button class="btn btn-inverse toggle qet" id="eventtimeline_toggle" data-toggle-type="eventtimeline" onclick="enable_timeline();">
+            <span class="fas fa-plus" title="<?php echo __('Toggle Event timeline');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event timeline');?>"></span><?php echo __('Event timeline');?>
         </button>
-        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="correlationgraph_toggle" data-toggle-type="correlationgraph" onclick="enable_correlation_graph();">
-            <span class="icon-plus icon-white" title="<?php echo __('Toggle Correlation graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Correlation graph');?>" style="vertical-align:top;"></span><?php echo __('Correlation graph');?>
+        <button class="btn btn-inverse toggle qet" id="correlationgraph_toggle" data-toggle-type="correlationgraph" data-load-url="<?= $baseurl ?>/events/viewGraph/<?= h($event['Event']['id']) ?>">
+            <span class="fas fa-plus" title="<?php echo __('Toggle Correlation graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Correlation graph');?>"></span><?php echo __('Correlation graph');?>
         </button>
-        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attackmatrix_toggle" data-toggle-type="attackmatrix" onclick="enable_attack_matrix();">
-            <span class="icon-plus icon-white" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>" style="vertical-align:top;"></span><?php echo __('ATT&CK matrix');?>
+        <button class="btn btn-inverse toggle qet" id="attackmatrix_toggle" data-toggle-type="attackmatrix" data-load-url="<?= $baseurl; ?>/events/viewGalaxyMatrix/<?= h($event['Event']['id']) ?>/mitre-attack/event/1">
+            <span class="fas fa-plus" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>"></span><?php echo __('ATT&CK matrix');?>
         </button>
-        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventreport_toggle" data-toggle-type="eventreport">
-            <span class="icon-plus icon-white" title="<?php echo __('Toggle reports');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle reports');?>" style="vertical-align:top;"></span><?php echo __('Event reports');?>
+        <button class="btn btn-inverse toggle qet" id="eventreport_toggle" data-toggle-type="eventreport">
+            <span class="fas fa-plus" title="<?php echo __('Toggle reports');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle reports');?>"></span><?php echo __('Event reports');?>
         </button>
-        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
-            <span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>
+        <button class="btn btn-inverse toggle qet" id="attributes_toggle" data-toggle-type="attributes">
+            <span class="fas fa-minus" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>"></span><?php echo __('Attributes');?>
         </button>
-        <button class="btn btn-inverse toggle-right qet galaxy-toggle-button" id="discussions_toggle" data-toggle-type="discussions">
-            <span class="icon-minus icon-white" title="<?php echo __('Toggle discussions');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle discussions');?>" style="vertical-align:top;"></span><?php echo __('Discussion');?>
+        <button class="btn btn-inverse toggle-right qet" id="discussions_toggle" data-toggle-type="discussions">
+            <span class="fas fa-minus" title="<?php echo __('Toggle discussions');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle discussions');?>"></span><?php echo __('Discussion');?>
         </button>
     </div>
     <br />
@@ -507,9 +535,16 @@
     <div id="pivots_div">
         <?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
     </div>
-    <div id="galaxies_div" class="info_container">
-        <h4 class="blue"><?php echo __('Galaxies');?></h4>
-        <?php echo $this->element('galaxyQuickView', array('mayModify' => $mayModify, 'isAclTagger' => $isAclTagger, 'data' => $event['Galaxy'], 'target_id' => $event['Event']['id'], 'target_type' => 'event')); ?>
+    <div id="galaxies_div">
+        <span class="title-section"><?= __('Galaxies') ?></span>
+        <?= $this->element('galaxyQuickViewNew', [
+            'mayModify' => $mayModify,
+            'isAclTagger' => $isAclTagger,
+            'data' => $event['Galaxy'],
+            'event' => $event,
+            'target_id' => $event['Event']['id'],
+            'target_type' => 'event'
+        ]); ?>
     </div>
     <div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
         <?php echo $this->element('view_event_graph'); ?>
@@ -523,7 +558,9 @@
     </div>
     <div id="eventreport_div" style="display: none;">
         <span class="report-title-section"><?php echo __('Event Reports');?></span>
-        <div id="eventreport_index_div"></div>
+        <div id="eventreport_content"></div>
+    </div>
+    <div id="clusterrelation_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
     </div>
     <div id="attributes_div">
         <?php echo $this->element('eventattribute'); ?>
@@ -533,8 +570,8 @@
 </div>
 <script type="text/javascript">
 var showContext = false;
-$(document).ready(function () {
-    queryEventLock('<?php echo h($event['Event']['id']); ?>', '<?php echo h($me['org_id']); ?>');
+$(function () {
+    queryEventLock('<?= h($event['Event']['id']); ?>', <?= (int)$event['Event']['timestamp'] ?>);
     popoverStartup();
 
     $("th, td, dt, div, span, li").tooltip({
@@ -548,24 +585,10 @@ $(document).ready(function () {
     });
 
     $.get("<?php echo $baseurl; ?>/eventReports/index/event_id:<?= h($event['Event']['id']); ?>/index_for_event:1<?= $extended ? '/extended_event:1' : ''?>", function(data) {
-        $("#eventreport_index_div").html(data);
-        if ($('#eventreport_index_div table tbody > tr').length) { // open if contain a report
+        $("#eventreport_content").html(data);
+        if ($('#eventreport_content table tbody > tr').length) { // open if contain a report
             $('#eventreport_toggle').click()
         }
     });
 });
-
-function enable_correlation_graph() {
-    $.get("<?php echo $baseurl; ?>/events/viewGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
-        $("#correlationgraph_div").html(data);
-    });
-}
-
-function enable_attack_matrix() {
-    $.get("<?php echo $baseurl; ?>/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/mitre-attack/event/1", function(data) {
-        $("#attackmatrix_div").html(data);
-    });
-}
-
 </script>
-<input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />

@@ -4,7 +4,7 @@
 ?>
 <div id="graphContent" class="graphContent"></div>
 <script>
-    var myData = "<?php echo $tsv; ?>";
+    var myData = "<?php echo $csv; ?>";
 
     var colours = {
         'Sighting': 'blue',
@@ -20,7 +20,7 @@
         width = 980 - margin.left - margin.right,
         height = 300 - margin.top - margin.bottom;
 
-    var parseDate = d3.time.format("%Y%m%d").parse;
+    var parseDate = d3.time.format("%Y-%m-%d").parse;
 
     var x = d3.time.scale()
         .range([0, width]);
@@ -53,14 +53,14 @@
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    var data = d3.tsv.parse(myData);
+    var data = d3.csv.parse(myData);
 
     color.domain(d3.keys(data[0]).filter(function(key) {
-        return key !== "date";
+        return key !== "Date";
     }));
 
     data.forEach(function(d) {
-        d.date = parseDate(d.date);
+        d.Date = parseDate(d.Date);
     });
 
     var sightings = color.domain().map(function(name) {
@@ -68,7 +68,7 @@
             name: name,
             values: data.map(function(d) {
                 return {
-                    date: d.date,
+                    date: d.Date,
                     count: +d[name]
                 };
             })
@@ -76,7 +76,7 @@
     });
 
     x.domain(d3.extent(data, function(d) {
-        return d.date;
+        return d.Date;
     }));
 
     y.domain([

@@ -34,7 +34,7 @@
         }
         $dataFields = implode(' ', $dataFields);
         echo sprintf(
-            '<a class="btn btn-small %s %s" %s href="%s" %s %s %s %s %s>%s%s%s</a>',
+            '<a class="btn btn-small %s %s" %s href="%s" %s %s %s %s %s>%s%s%s %s</a>',
             empty($data['class']) ? '' : h($data['class']),
             empty($data['active']) ? 'btn-inverse' : 'btn-primary',   // Change the default class for highlighted/active toggles here
             empty($data['id']) ? '' : 'id="' . h($data['id']) . '"',
@@ -50,7 +50,8 @@
                 $data['fa-icon']
             ),  // this has to be sanitised beforehand!
             empty($data['html']) ? '' : $data['html'],  // this has to be sanitised beforehand!
-            empty($data['text']) ? '' : h($data['text'])
+            empty($data['text']) ? '' : h($data['text']),
+            empty($data['badge']) ? '' : sprintf('<span class="badge badge-%s">%s</span>', empty($data['badge']['type']) ? 'info' : $data['badge']['type'], h($data['badge']['text']))
         );
     }
 ?>

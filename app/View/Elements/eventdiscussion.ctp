@@ -29,13 +29,9 @@
                             <div>
                                 <table style="width:100%">
                                     <tr>
-                                        <td>
-            <?php
-                                            echo __('Date: ') . h($post['date_created']);
-            ?>
-                                        </td>
+                                        <td><?= __('Date: ') . h($post['date_created']) ?></td>
                                         <td style="text-align:right">
-                                            <a href="#top" class="whitelink">Top</a> |
+                                            <a href="#top" class="whitelink"><?= __('Top') ?></a> |
                                             <a href="#message_<?php echo h($post['id']); ?>" class="whitelink">#<?php echo h($post['id'])?></a>
                                         </td>
                                     </tr>
@@ -46,8 +42,8 @@
                         <tr>
                             <td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidLeft">
                                 <?php
-                                if (isset($post['org_name'])) {
-                                    echo $this->OrgImg->getOrgImg(array('name' => $post['org_name'], 'size' => 48));
+                                if (isset($post['org_id'])) {
+                                    echo $this->OrgImg->getOrgLogo(['id' => $post['org_id'], 'name' => $post['org_name'], 'uuid' => $post['org_uuid']], 48);
                                 } else {
                                     echo __('Deactivated user');
                                 }
@@ -70,7 +66,7 @@
             <?php
                                     }
                                     if ($post['date_created'] != $post['date_modified']) {
-                                        echo '<span style="font-style:italic">' . __('Message edited at ') . h($post['date_modified']) . '<span>';
+                                        echo '<span style="font-style:italic">' . __('Message edited at %s', h($post['date_modified'])) . '<span>';
                                     }
             ?>
                             </td>
@@ -90,14 +86,14 @@
                                                 echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete this post?'));
                                             } else {
             ?>
-                                                <a href="<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title="<?php echo __('Reply');?>" aria-label="<?php echo __('Reply');?>"></a>
+                                                <a href="<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="fas fa-comment" title="<?php echo __('Reply');?>" aria-label="<?php echo __('Reply');?>"></a>
             <?php
                                             }
                                         } else {
                                             echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit')));
                                             echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete this post?'));
             ?>
-                                                <a href="<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title="<?php echo __('Reply');?>" aria-label="<?php echo __('Reply');?>"></a>
+                                                <a href="<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="fas fa-comment" title="<?php echo __('Reply');?>" aria-label="<?php echo __('Reply');?>"></a>
             <?php
 
                                         }

@@ -1,10 +1,11 @@
 <?php
     if ($ajax) {
+        $submit = isset($ajaxSubmit) ? $ajaxSubmit : '$(\'.genericForm\').submit();';
         echo sprintf(
             '%s%s',
             sprintf(
                 '<button id="submitButton" class="btn btn-primary" onClick="%s">%s</button>',
-                $ajaxSubmit,
+                $submit,
                 __('Submit')
             ),
             sprintf(

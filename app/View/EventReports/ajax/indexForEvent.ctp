@@ -4,9 +4,7 @@
     <?php endif; ?>
     <?php
         echo $this->element('/genericElements/IndexTable/index_table', array(
-            'paginatorOptions' => array(
-                'update' => '#eventreport_index_div',
-            ),
+            'containerId' => 'eventreport',
             'data' => array(
                 'data' => $reports,
                 'top_bar' => array(
@@ -27,9 +25,18 @@
                                     'onClickParams' => [$baseurl . '/eventReports/importReportFromUrl/' . h($event_id)],
                                     'active' => true,
                                     'text' => __('Import from URL'),
-                                    'title' => __('Content for this URL will be downloaded and converted to Mardown'),
+                                    'title' => __('Content for this URL will be downloaded and converted to Markdown'),
                                     'fa-icon' => 'link',
                                     'requirement' => $canModify && $importModuleEnabled,
+                                ),
+                                array(
+                                    'onClick' => 'openGenericModal',
+                                    'onClickParams' => [$baseurl . '/eventReports/reportFromEvent/' . h($event_id)],
+                                    'active' => true,
+                                    'text' => __('Generate report from Event'),
+                                    'title' => __('Based on filters, create a report summarizing the event'),
+                                    'fa-icon' => 'list-alt',
+                                    'requirement' => $canModify,
                                 ),
                             )
                         ),
@@ -156,7 +163,7 @@
 
         $('#eventReportSelectors a.btn').click(function(e) {
             e.preventDefault()
-            $("#eventreport_index_div").empty()
+            $("#eventreport_content").empty()
                 .append(
                     $('<div></div>')
                         .css({'text-align': 'center', 'font-size': 'large', 'margin': '5px 0'})
@@ -164,7 +171,7 @@
                 )
             var url = $(this).attr('href')
             $.get(url, function(data) {
-                $("#eventreport_index_div").html(data);
+                $("#eventreport_content").html(data);
             });
         });
     })
@@ -174,7 +181,7 @@
         $.ajax({
             dataType: "html",
             beforeSend: function() {
-                $("#eventreport_index_div").empty()
+                $("#eventreport_content").empty()
                 .append(
                     $('<div></div>')
                         .css({'text-align': 'center', 'font-size': 'large', 'margin': '5px 0'})
@@ -182,10 +189,10 @@
                 )
             },
             success:function (data) {
-                $("#eventreport_index_div").html(data);
+                $("#eventreport_content").html(data);
             },
             error: function (jqXHR, textStatus, errorThrown) {
-                $("#eventreport_index_div").empty().text('<?= __('Failed to load Event report table')?>')
+                $("#eventreport_content").empty().text('<?= __('Failed to load Event report table')?>')
                 showMessage('fail', textStatus + ": " + errorThrown);
             },
             url:url

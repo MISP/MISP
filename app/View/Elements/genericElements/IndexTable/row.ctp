@@ -28,6 +28,9 @@
                     )
                 );
             }
+            if (!empty($field['decorator'])) {
+                $valueField = $field['decorator']($valueField);
+            }
             $rowHtml .= sprintf(
                 '<td%s%s%s%s%s%s%s>%s</td>',
                 (empty($field['id'])) ? '' : sprintf('id="%s"', $field['id']),
@@ -57,5 +60,4 @@
             )
         );
     }
-    echo ($rowHtml);
-?>
+    echo $rowHtml;

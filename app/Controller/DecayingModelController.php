@@ -638,8 +638,6 @@ class DecayingModelController extends AppController
             );
             $attributes = $this->paginate($this->User->Event->Attribute);
 
-            // attach sightings and massage tags
-            $sightingsData = array();
             if (!empty($options['overrideLimit'])) {
                 $overrideLimit = true;
             } else {
@@ -651,17 +649,13 @@ class DecayingModelController extends AppController
             $eventTags = array();
             foreach ($attributes as $k => $attribute) {
                 $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
-                $attributes[$k]['Attribute'] = $this->User->Event->massageTags($attributes[$k]['Attribute'], 'Attribute');
+                $attributes[$k]['Attribute'] = $this->User->Event->massageTags($this->Auth->user(), $attributes[$k]['Attribute'], 'Attribute');
                 unset($attributes[$k]['AttributeTag']);
                 foreach ($attributes[$k]['Attribute']['AttributeTag'] as $k2 => $attributeTag) {
                     if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
                         unset($attributes[$k]['Attribute']['AttributeTag'][$k2]);
                     }
                 }
-                $sightingsData = array_merge(
-                    $sightingsData,
-                    $this->Sighting->attachToEvent($attribute, $this->Auth->user(), $attributes[$k]['Attribute']['id'], $extraConditions = false)
-                );
                 if (!empty($params['includeEventTags'])) {
                     $tagConditions = array('EventTag.event_id' => $attribute['Event']['id']);
                     if (empty($params['includeAllTags'])) {
@@ -694,8 +688,7 @@ class DecayingModelController extends AppController
                     }
                 }
             }
-            $sightingsData = $this->User->Event->getSightingData(array('Sighting' => $sightingsData));
-            $this->set('sightingsData', $sightingsData);
+            $this->set('sightingsData', $this->Sighting->attributesStatistics($attributes, $this->Auth->user()));
             $this->set('attributes', $attributes);
             $this->set('attrDescriptions', $this->User->Event->Attribute->fieldDescriptions);
             $this->set('typeDefinitions', $this->User->Event->Attribute->typeDefinitions);

@@ -4,6 +4,7 @@
      *
      * Simply pass a JSON with the following keys set:
      * - model: The model used to create the form (such as Attribute, Event)
+     * - description: text description of the form
      * - fields: an array with each element generating an input field
      *     - field is the actual field name (such as org_id, name, etc) which is required
      *     - optional fields: default, type, options, placeholder, label - these are passed directly to $this->Form->input(),
@@ -17,10 +18,13 @@
         h($data['model']);
     $fieldsString = '';
     $simpleFieldAllowedlist = array(
-        'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required'
+        'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'checked', 'multiple', 'selected', 'legend',
+        'disabled',
     );
     $fieldsArrayForPersistence = array();
-    $formCreate = $this->Form->create($modelForForm);
+    $formOptions = isset($formOptions) ? $formOptions : array();
+    $formOptions = array_merge(['class' => 'genericForm'], $formOptions);
+    $formCreate = $this->Form->create($modelForForm, $formOptions);
     if (!empty($data['fields'])) {
         foreach ($data['fields'] as $fieldData) {
             if (isset($fieldData['requirements']) && !$fieldData['requirements']) {
@@ -48,14 +52,33 @@
                     }
                     $params['class'] = $class;
                 } else {
-                    $params['class'] = '';
+                    if (!empty($fieldData['type']) && ($fieldData['type'] !== 'checkbox' && $fieldData['type'] !== 'radio')) {
+                        $params['class'] = 'span6';
+                    }
                 }
                 foreach ($simpleFieldAllowedlist as $f) {
                     if (!empty($fieldData[$f])) {
                         $params[$f] = $fieldData[$f];
                     }
                 }
+                if (!empty($fieldData['picker']) && isset($fieldData['picker']['function'])) {
+                    $fieldData['picker']['text'] = isset($fieldData['picker']['text']) ? $fieldData['picker']['text'] : __('Picker');
+                    $params['div'] = 'input text input-append';
+                    $params['after'] = sprintf('<button type="button" class="btn" onclick="%s.call(this);">%s</button>', $fieldData['picker']['function'], __($fieldData['picker']['text']));
+                }
+                if (!empty($params['type']) && $params['type'] === 'dropdown') {
+                    $params['type'] = 'select';
+                }
+                if (!empty($fieldData['description'])) {
+                    if (!isset($params['class'])) {
+                        $params['class'] = '';
+                    }
+                    $params['class'] .= ' input-with-description';
+                }
                 $temp = $this->Form->input($fieldData['field'], $params);
+                if (!empty($fieldData['description'])) {
+                    $temp .= sprintf('<small class="clear form-field-description apply_css_arrow">%s</small>', h($fieldData['description']));
+                }
                 $fieldsArrayForPersistence []= $modelForForm . Inflector::camelize($fieldData['field']);
                 if (!empty($fieldData['hidden'])) {
                     $temp = '<span class="hidden">' . $temp . '</span>';
@@ -116,7 +139,7 @@
         );
     } else {
         echo sprintf(
-            '<div class="%s">%s<fieldset><legend>%s</legend>%s<div class="clear" style="padding-bottom:10px;">%s</div>%s</fieldset>%s%s%s</div>',
+            '<div class="%s">%s<fieldset><legend>%s</legend>%s<div class="clear">%s</div>%s</fieldset>%s%s%s</div>',
             empty($data['skip_side_menu']) ? 'form' : 'menuless-form',
             $formCreate,
             empty($data['title']) ? h(Inflector::humanize($this->request->params['action'])) . ' ' . $modelForForm : h($data['title']),
@@ -131,7 +154,7 @@
 ?>
 <script type="text/javascript">
     var fieldsArray = <?php echo json_encode($fieldsArrayForPersistence); ?>;
-    $(document).ready(function() {
+    $(function() {
         popoverStartup();
     });
 </script>

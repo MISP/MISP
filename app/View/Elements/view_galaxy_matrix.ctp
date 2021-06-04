@@ -36,11 +36,8 @@
 *
 *
 */
-?>
-
-<?php
-    echo $this->Html->script('attack_matrix');
-    echo $this->Html->css('attack_matrix');
+echo $this->Html->script('attack_matrix');
+echo $this->Html->css('attack_matrix');
 ?>
 <?php
     $clusetersNamesMapping = array(); // used to map name with id for the chosen select
@@ -88,7 +85,7 @@ foreach($tabs as $tabName => $column):
         <span id="matrix-heatmap-maxval"><?php echo h($maxScore); ?></span>
     </div>
     <?php endif; ?>
-    <label style="display: inline-block; margin-left: 30px;"><input type="checkbox" id="checkbox_attackMatrix_showAll" checked><span class="fa fa-filter"><?php echo __('Show all');?></span></label>
+    <label style="display: inline-block; margin-left: 30px;"><input type="checkbox" id="checkbox_attackMatrix_showAll" checked><i class="fa fa-filter"></i><?= __('Show all') ?></label>
 </div>
 
 <?php if (isset($eventId)): ?>
@@ -102,9 +99,9 @@ foreach($tabs as $tabName => $column):
             empty($local) ? '0' : '1'
         );
 
-
         echo $this->Form->create('Galaxy', array('url' => $url, 'style' => 'margin:0px;'));
         echo $this->Form->input('target_ids', array('type' => 'text'));
+        echo $this->Form->input('attribute_ids', array('style' => 'display:none;', 'label' => false));
         echo $this->Form->end();
     ?>
 </div>

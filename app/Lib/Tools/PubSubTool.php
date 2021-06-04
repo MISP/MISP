@@ -258,7 +258,7 @@ class PubSubTool
         // Because setting file contains secrets, it should be readable just by owner. But because in Travis test,
         // config file is created under one user and then changed under other user, file must be readable and writable
         // also by group.
-        chmod($settingsFile->pwd(), 0660);
+        @chmod($settingsFile->pwd(), 0660); // hide error if current user is not file owner
         if (!$settingsFile->write(json_encode($settings))) {
             throw new Exception("Could not write zmq config file '$settingFilePath'.");
         }
@@ -273,6 +273,7 @@ class PubSubTool
             'redis_password' => '',
             'redis_database' => '1',
             'redis_namespace' => 'mispq',
+            'host' => '127.0.0.1',
             'port' => '50000',
             'username' => null,
             'password' => null,

@@ -1,3 +1,6 @@
+<?php
+    $api_key = empty(Configure::read('Security.advanced_authkeys')) ? $me['authkey'] : 'YOUR_API_KEY';
+?>
 <div class="event index">
     <h2><?php echo __('Automation');?></h2>
     <p><?php echo __('Automation functionality is designed to automatically feed other tools and systems with the data in your MISP repository.
@@ -8,15 +11,26 @@
     </p>
     <span>
         <?php
-            echo __(
-                'Your current key is: <code>%s</code>. You can %s this key.',
-                $me['authkey'],
-                $this->Form->postLink(
-                    __('reset'),
-                    array('controller' => 'users', 'action' => 'resetauthkey', 'me'),
-                    array('div' => false)
-                )
-            );
+            if (empty(Configure::read('Security.advanced_authkeys'))) {
+                echo __(
+                    'Your current key is: <code>%s</code>. You can %s this key.',
+                    $me['authkey'],
+                    $this->Form->postLink(
+                        __('reset'),
+                        array('controller' => 'users', 'action' => 'resetauthkey', 'me'),
+                        array('div' => false)
+                    )
+                );
+            } else {
+                echo __(
+                    'You can view and manage your API keys under your profile, found %s',
+                    sprintf(
+                        '<a href="%s/users/view/me">%s</a>',
+                        $baseurl,
+                        __('here')
+                    )
+                );
+            }
         ?>
     </span>
     <?php
@@ -73,7 +87,7 @@
         $headers = array(
             'Accept: application/json',
             'Content-type: application/json',
-            'Authorization: ' . $me['authkey']
+            'Authorization: ' . $api_key
         );
         $headers = implode("\n", $headers);
         $body = json_encode(
@@ -85,6 +99,44 @@
         echo sprintf('<p>%s</p>URL:<pre>%s</pre>Headers:<pre>%s</pre>Body:<pre class="red">%s</pre>', $description, $url, $headers, $body);
     ?>
 
+<?php
+        $data = array(
+            'title' => __('Galaxy Cluster Search'),
+            'description' => array(
+                __('It is possible to search the database for galaxy clustesrs based on a list of criteria.'),
+                __('To return an cluster or a list of clusters in the JSON format, use the following syntax'),
+                __('Whilst a list of parameters is provided below, it isn\'t necessarily exhaustive')
+            ),
+            'parameters' => array(
+                'limit' => __('Limit the number of results returned, depending on the scope (for example 10 clusters).'),
+                'page' => __('If a limit is set, sets the page to be returned. page 3, limit 100 will return records 201->300).'),
+                'id' => __('Specify the exact local ID the be returned'),
+                'uuid' => __('Specify the exact local UUID the be returned'),
+                'galaxy_id' => __('Specify the exact local ID of the galaxy containing all the clusters the be returned'),
+                'galaxy_uuid' => __('Specify the exact local UUID of the galaxy containing all the clusters the be returned'),
+                'published' => __('Specify the publication state of the clusters to be returned'),
+                'value' => __('Specify the value of the clusters to be returned'),
+                'extends_uuid' => __('Specify the UUID of the cluster that was forked by the returned clusters'),
+                'extends_version' => __('Specify the version of the cluster that was forked by the returned clusters'),
+                'version' => __('Specify the version to be returned'),
+                'distribution' => __('Specify the distribution to be returned'),
+                'org_id' => __('Specify the org_id to get all clusters belonging to this organisation.'),
+                'orgc_id' => __('Specify the orgc_id to get all clusters that were created by this organisation.'),
+                'tag_name' => __('Specify the tag name of the cluster to be returned'),
+                'custom' => __('Specify if custom, default or both clusters should be returned'),
+                'minimal' => __('Only return the UUID and the version of the returned clusters'),
+            ),
+            'url' => array(
+                $baseurl . '/galaxy_clusters/restSearch',
+            )
+        );
+        echo sprintf('<h3>%s</h3>', $data['title']);
+        echo sprintf('<p>%s</p>', implode(" ", $data['description']));
+        echo sprintf("<pre>%s</pre>", implode("\n", $data['url']));
+        foreach ($data['parameters'] as $k => $v) {
+            echo sprintf('<span class="bold">%s</span>: %s<br />', $k, $v);
+        }
+    ?>
     <h3><?php echo __('CSV specific parameters for the restSearch APIs');?></h3>
     <p>
         <b>requested_attributes</b>: <?php echo __("CSV only, select the fields that you wish to include in the CSV export. By setting event level fields additionally, includeContext is not required to get event metadata.");?><br />
@@ -130,7 +182,7 @@
     <p>JSON:</p>
     <pre><?php
         echo 'Headers' . PHP_EOL;
-        echo 'Authorization: ' . h($me['authkey']) . PHP_EOL;
+        echo 'Authorization: ' . h($api_key) . PHP_EOL;
         echo 'Accept: application/json' . PHP_EOL;
         echo 'Content-type: application/json';
     ?></pre>
@@ -138,7 +190,7 @@
     <p>XML:</p>
     <pre><?php
         echo 'Headers' . PHP_EOL;
-        echo 'Authorization: ' . h($me['authkey']) . PHP_EOL;
+        echo 'Authorization: ' . h($api_key) . PHP_EOL;
         echo 'Accept: application/json' . PHP_EOL;
         echo 'Content-type: application/json';
     ?></pre>
@@ -303,7 +355,7 @@
     <b>URL</b>: <?php echo $baseurl.'/events/index'; ?><br />
     <b>Headers</b>:<br />
     <pre><?php
-        echo 'Authorization: ' . $me['authkey'] . PHP_EOL;
+        echo 'Authorization: ' . $api_key . PHP_EOL;
         echo 'Accept: application/json' . PHP_EOL;
         echo 'Content-type: application/json';
     ?></pre>

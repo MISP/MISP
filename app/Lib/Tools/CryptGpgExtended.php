@@ -73,7 +73,8 @@ class CryptGpgExtended extends Crypt_GPG
     }
 
     /**
-     * Return key info without importing it.
+     * Return key info without importing it when GPG supports --import-options show-only, otherwise just import and
+     * then return details.
      *
      * @param string $key
      * @return Crypt_GPG_Key[]
@@ -82,6 +83,18 @@ class CryptGpgExtended extends Crypt_GPG
      */
     public function keyInfo($key)
     {
+        $version = $this->engine->getVersion();
+        if (version_compare($version, '2.1.23', 'le')) {
+            $importResult = $this->importKey($key);
+            $keys = [];
+            foreach ($importResult['fingerprints'] as $fingerprint) {
+                foreach ($this->getKeys($fingerprint) as $key) {
+                    $keys[] = $key;
+                }
+            }
+            return $keys;
+        }
+
         $input = $this->_prepareInput($key, false, false);
 
         $output = '';
@@ -134,6 +147,8 @@ class CryptGpgExtended extends Crypt_GPG
         // add last key
         if ($key !== null) {
             $keys[] = $key;
+        } else {
+            throw new Crypt_GPG_Exception("Key data provided, but gpg process output could not be parsed: $output");
         }
 
         return $keys;

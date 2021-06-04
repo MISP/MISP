@@ -153,7 +153,7 @@
             echo '<div class="tab-content">';
             foreach ($query_formats as $format => $formatName) {
                 if (!empty(${$format})) {
-                    echo sprintf('<div class="tab-pane" id="%s"><pre>%s</pre></div>', 'tab' . $format, ${$format});
+                    echo sprintf('<div class="tab-pane" id="%s"><pre>%s</pre></div>', 'tab' . $format, h(${$format}));
                 }
             }
             echo '</div>';
@@ -192,7 +192,7 @@
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'rest'));
     echo $this->element('genericElements/assetLoader', array(
         'js' => array(
-            'moment-with-locales',
+            'moment.min',
             'extendext',
             'doT',
             'query-builder',

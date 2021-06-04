@@ -1,9 +1,12 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property Event $Event
+ */
 class EventTag extends AppModel
 {
-    public $actsAs = array('Containable');
+    public $actsAs = array('AuditLog', 'Containable');
 
     public $validate = array(
         'event_id' => array(
@@ -82,25 +85,25 @@ class EventTag extends AppModel
     public function handleEventTag($event_id, $tag, &$nothingToChange = false)
     {
         if (empty($tag['deleted'])) {
-            $result = $this->attachTagToEvent($event_id, $tag['id'], $nothingToChange);
+            $result = $this->attachTagToEvent($event_id, $tag, $nothingToChange);
         } else {
             $result = $this->detachTagFromEvent($event_id, $tag['id'], $nothingToChange);
         }
         return $result;
     }
 
-    public function attachTagToEvent($event_id, $tag_id, &$nothingToChange = false)
+    public function attachTagToEvent($event_id, $tag, &$nothingToChange = false)
     {
         $existingAssociation = $this->find('first', array(
             'recursive' => -1,
             'conditions' => array(
-                'tag_id' => $tag_id,
+                'tag_id' => $tag['id'],
                 'event_id' => $event_id
             )
         ));
         if (empty($existingAssociation)) {
             $this->create();
-            if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag_id))) {
+            if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag['id'], 'local' => !empty($tag['local'])))) {
                 return false;
             }
         } else {
@@ -157,12 +160,39 @@ class EventTag extends AppModel
         return $tags;
     }
 
-    public function countForTag($tag_id, $user)
+    /**
+     * @param int $tagId
+     * @param array $user
+     * @return int
+     */
+    public function countForTag($tagId, array $user)
     {
-        return $this->find('count', array(
+        $count = $this->countForTags([$tagId], $user);
+        return isset($count[$tagId]) ? (int)$count[$tagId] : 0;
+    }
+
+    /**
+     * @param array $tagIds
+     * @param array $user
+     * @return array Key is tag ID, value is event count that user can see
+     */
+    public function countForTags(array $tagIds, array $user)
+    {
+        if (empty($tagIds)) {
+            return [];
+        }
+        $conditions = $this->Event->createEventConditions($user);
+        $conditions['AND']['EventTag.tag_id'] = $tagIds;
+        $this->virtualFields['event_count'] = 'COUNT(EventTag.id)';
+        $counts = $this->find('list', [
             'recursive' => -1,
-            'conditions' => array('EventTag.tag_id' => $tag_id)
-        ));
+            'contain' => ['Event'],
+            'fields' => ['EventTag.tag_id', 'event_count'],
+            'conditions' => $conditions,
+            'group' => ['EventTag.tag_id'],
+        ]);
+        unset($this->virtualFields['event_count']);
+        return $counts;
     }
 
     public function getTagScores($eventId=0, $allowedTags=array(), $propagateToAttribute=false)

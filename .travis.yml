@@ -92,8 +92,8 @@ install:
     - sudo chmod -R 770 `pwd`/.gnupg
     # Get authkey
     - sudo usermod -a -G www-data $USER
-    - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
     - sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
+    - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.timeout" 600'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.cookieTimeout" 3600'
@@ -148,6 +148,10 @@ before_script:
 script:
     - ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
     - ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
+    - ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
+    # Ensure the perms
+    - sudo chown -R $USER:www-data `pwd`/app/Config
+    - sudo chmod -R 770 `pwd`/app/Config
     - pushd tests
     - ./curl_tests.sh $AUTH
     - popd

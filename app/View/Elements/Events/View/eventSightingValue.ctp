@@ -1,23 +1,22 @@
 <?php
-$ownOrgSightingsCount = 0;
-if (isset($event['Sighting'])) {
-    $meOrgId = $this->get('me')['org_id'];
-    foreach ($event['Sighting'] as $sighting) {
-        if (isset($sighting['org_id']) && $sighting['org_id'] == $meOrgId) {
-            ++$ownOrgSightingsCount;
-        }
-    }
+$userOrgName = $this->get('me')['Organisation']['name'];
+
+$totalCount = 0;
+$ownCount = 0;
+foreach ($sightingsData as $data) {
+    $totalCount += $data['count'];
+    $ownCount += isset($data['orgs'][$userOrgName]['count']) ? $data['orgs'][$userOrgName]['count'] : 0;
 }
 
 echo sprintf(
     '%s (%s) %s %s',
     sprintf(
         '<span id="eventSightingCount" class="bold sightingsCounter">%s</span>',
-        count($event['Sighting'])
+        $totalCount
     ),
     sprintf(
         '<span id="eventOwnSightingCount" class="green bold sightingsCounter">%s</span>',
-        $ownOrgSightingsCount
+        $ownCount
     ),
     (Configure::read('Plugin.Sightings_policy')) ? '' : __('- restricted to own organisation only.'),
     sprintf(

@@ -83,7 +83,8 @@
             );
         }
 
-        echo sprintf('<label class="checkbox"><input id="dbSchemaDiagnosticCheckbox" type="checkbox">%s</label>', __('Reveal benign deltas'));
+        echo sprintf('<label class="checkbox"><input id="dbSchemaDiagnosticCheckbox" type="checkbox">%s</label>', __('Debug mode: Reveal benign deltas'));
+        echo sprintf('<span style="margin-left: 1em;">%s</span>', __('Most of the time, these benign deltas are artifacts coming from a different database version or RDBMS system used by this instance and thus, can be ignored.'));
 
         $table = sprintf('%s%s%s', 
             '<table id="dbSchemaDiagnosticTable" class="table table-bordered table-condensed">',

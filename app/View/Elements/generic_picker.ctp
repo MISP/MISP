@@ -17,12 +17,14 @@
             'disable_search_threshold' => 10,
             'allow_single_deselect' => true,
         ),
-        'multiple' => 0,
+        'multiple' => 'multiple',
         'select_threshold' => 7, // threshold above which pills will be replace by a select (unused if multiple is > 1)
         'functionName' => '', // function to be called on submit
         'submitButtonText' => 'Submit',
         'disabledSubmitButton' => false, // wether to not draw the submit button
-        'flag_redraw_chosen' => false // should chosen picker be redraw at drawing time
+        'flag_redraw_chosen' => false, // should chosen picker be redraw at drawing time
+        'redraw_debounce_time' => 200,
+        'autofocus' => true,
     );
     /**
     * Supported default option in <Option> fields:
@@ -52,6 +54,12 @@
     $option_templates = array();
     $options_additionalData = array();
 ?>
+
+<style>
+.popover[data-dismissid] {
+    max-width: 60%;
+}
+</style>
 
 <script>
 function execAndClose(elem, alreadyExecuted) {
@@ -92,11 +100,34 @@ function setupChosen(id, redrawChosen) {
     // hack to add template into the div
     var $chosenContainer = $elem.parent().find('.chosen-container');
     $elem.on('chosen:searchdone chosen:picked keyup change', function(e) {
-        redrawChosenWithTemplate($elem, $chosenContainer, e.type)
+        redrawChosenWithTemplateDebounced(true, $elem, $chosenContainer, e.type)
     });
 
     if (redrawChosen) {
-        redrawChosenWithTemplate($elem, $chosenContainer);
+        redrawChosenWithTemplateDebounced(false, $elem, $chosenContainer);
+    }
+
+    if ($elem.prop('multiple')) {
+        $elem.filter('[autofocus]').trigger('chosen:open');
+    } else {
+        $elem.filter('[autofocus]').trigger('chosen:activate');
+    }
+}
+
+var debounceTimer;
+function redrawChosenWithTemplateDebounced(useDebounce, $select, $chosenContainer, eventType) {
+    if (useDebounce) {
+        clearTimeout(debounceTimer);
+        var timerValue = <?= $defaults['redraw_debounce_time'] ?>;
+        var resultCount = $select.data('chosen').search_results.children().length;
+        if (resultCount <= 20) {
+            timerValue = 0
+        }
+        debounceTimer = setTimeout(function() {
+            redrawChosenWithTemplate($select, $chosenContainer, eventType);
+        }, timerValue);
+    } else {
+        redrawChosenWithTemplate($select, $chosenContainer, eventType);
     }
 }
 
@@ -107,11 +138,12 @@ function redrawChosenWithTemplate($select, $chosenContainer, eventType) {
     } else {
         $chosenContainer.find('.generic-picker-wrapper-warning-text').hide(0)
         var $matches;
-        if (eventType == 'chosen:picked' || eventType == 'change') {
+        if (eventType === 'chosen:picked' || eventType === 'change') {
             $matches = $chosenContainer.find('.chosen-single > span, .search-choice > span');
         } else {
             $matches = $chosenContainer.find('.chosen-results .active-result');
         }
+        var templates = options_templates[$select.attr('id')];
         $matches.each(function() {
             var $item = $(this);
             var index = $item.data('option-array-index');
@@ -125,8 +157,7 @@ function redrawChosenWithTemplate($select, $chosenContainer, eventType) {
                     return temp === text;
                 });
             }
-            var template = options_templates[$select.attr('id')][$option.val()];
-            var res = "";
+            var template = templates[$option.val()];
             if (template !== undefined && template !== '') {
                 $item.html(template);
             }
@@ -194,11 +225,20 @@ function submitFunction(clicked, callback) {
     } else {
         additionalData = {};
     }
-    additionalDataOption = options_additionalData[$select.attr('id')][selected];
+    additionalDataOption = options_additionalData[$select.attr('id')];
     if (additionalData !== undefined) {
-        $.extend(additionalData, additionalDataOption);
-        execAndClose(clicked);
-        callback(selected, additionalData);
+        additionalData['itemOptions'] = additionalDataOption;
+        // callback function defined in the controller can be overridden in the JS
+        var dismissId = $clicked.closest('.popover[data-dismissid]').data('dismissid');
+        var callingButton = $('button[data-dismissid="' + dismissId + '"]');
+        if (callingButton.data('popover-no-submit') && callingButton.data('popover-callback-function') !== undefined) {
+            callbackFunction = callingButton.data('popover-callback-function');
+            execAndClose(clicked);
+            callbackFunction(selected, additionalData);
+        } else {
+            execAndClose(clicked);
+            callback(selected, additionalData);
+        }
     }
 }
 </script>
@@ -213,10 +253,10 @@ function submitFunction(clicked, callback) {
     $flag_addPills = false;
     ?>
     <?php if ($use_select): ?>
-        <select id="<?php echo $select_id; ?>" style="height: 100px; margin-bottom: 0px;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>>
+        <select id="<?php echo $select_id; ?>"<?= $defaults['autofocus'] ? ' autofocus' : '' ?> style="height: 100px; margin-bottom: 0px;" <?= $this->GenericPicker->add_select_params($defaults); ?>>
             <option></option>
             <?php
-                foreach ($items as $k => $param) {
+                foreach ($items as $param) {
                     if (isset($param['isPill']) && $param['isPill']) {
                         $flag_addPills = true;
                         continue;
@@ -241,7 +281,7 @@ function submitFunction(clicked, callback) {
         <?php if ($flag_addPills): // add forced pills ?>
             <ul class="nav nav-pills">
                 <?php
-                foreach ($items as $k => $param) {
+                foreach ($items as $param) {
                     if (isset($param['isPill']) && $param['isPill']) {
                         echo $this->GenericPicker->add_pill($param, $defaults);
                         if (isset($param['additionalData'])) {
@@ -255,16 +295,16 @@ function submitFunction(clicked, callback) {
         <?php endif; ?>
 
         <script>
-            $(document).ready(function() {
+            $(function() {
                 setupChosen("<?php echo $select_id; ?>", <?php echo ($defaults['flag_redraw_chosen'] === true ? 'true' : 'false') ?>);
             });
         </script>
 
     <?php elseif (count($items) > 0): ?>
         <ul class="nav nav-pills">
-            <select id="<?php echo $select_id; ?>" style="display: none;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>></select>
+            <select id="<?php echo $select_id; ?>"<?= $defaults['autofocus'] ? ' autofocus' : '' ?> style="display: none;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>></select>
             <?php
-            foreach ($items as $k => $param) {
+            foreach ($items as $param) {
                 echo $this->GenericPicker->add_pill($param, $defaults);
                 if (isset($param['additionalData'])) {
                     $additionalData = $param['additionalData'];
@@ -282,9 +322,10 @@ function submitFunction(clicked, callback) {
     <script>
         if (options_templates === undefined) {
             var options_templates = {};
-            var options_additionalData = {}
+            var options_additionalData = {};
         }
-        options_templates['<?php echo $select_id; ?>'] = <?php echo json_encode($option_templates); ?>;
-        options_additionalData['<?php echo $select_id; ?>'] = <?php echo json_encode($options_additionalData); ?>;
+        // Keep as string, it is faster than parsing as JS
+        options_templates['<?php echo $select_id; ?>'] = JSON.parse('<?= addslashes(json_encode($option_templates, JSON_UNESCAPED_UNICODE)); ?>');
+        options_additionalData['<?php echo $select_id; ?>'] = JSON.parse('<?= addslashes(json_encode($options_additionalData, JSON_UNESCAPED_UNICODE)); ?>');
     </script>
 </div>

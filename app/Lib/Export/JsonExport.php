@@ -5,6 +5,11 @@ class JsonExport
 	private $__converter = false;
 	public $non_restrictive_export = true;
 
+    /**
+     * @param $data
+     * @param array $options
+     * @return false|Generator|string
+     */
     public function handler($data, $options = array())
     {
 		if ($options['scope'] === 'Attribute') {
@@ -15,15 +20,23 @@ class JsonExport
             return $this->__objectHandler($data, $options);
 		} else if($options['scope'] === 'Sighting') {
 			return $this->__sightingsHandler($data, $options);
+		} else if($options['scope'] === 'GalaxyCluster') {
+			return $this->__galaxyClusterHandler($data, $options);
 		}
     }
 
-	private function __eventHandler($event, $options = array()) {
+    /**
+     * @param array $event
+     * @param array $options
+     * @return Generator
+     */
+	private function __eventHandler($event, $options = array())
+    {
 		if ($this->__converter === false) {
 			App::uses('JSONConverterTool', 'Tools');
 			$this->__converter = new JSONConverterTool();
 		}
-		return json_encode($this->__converter->convert($event, false, true));
+		return $this->__converter->streamConvert($event);
 	}
 
     private function __objectHandler($object, $options = array()) {
@@ -44,7 +57,6 @@ class JsonExport
 		$tagTypes = array('AttributeTag', 'EventTag');
 		foreach($tagTypes as $tagType) {
 			if (isset($attribute[$tagType])) {
-				$attributeTags = array();
 				foreach ($attribute[$tagType] as $tk => $tag) {
 					if ($tagType === 'EventTag') {
 						$attribute[$tagType][$tk]['Tag']['inherited'] = 1;
@@ -59,10 +71,14 @@ class JsonExport
 		return json_encode($attribute);
 	}
 
-        private function __sightingsHandler($sighting, $options = array())
-        {
-            return json_encode($sighting);
-        }
+    private function __sightingsHandler($sighting, $options = array())
+    {
+        return json_encode($sighting);
+    }
+    private function __galaxyClusterHandler($cluster, $options = array())
+    {
+        return json_encode($cluster);
+    }
 
     public function header($options = array())
     {
@@ -80,12 +96,10 @@ class JsonExport
 		} else {
 			return ']}' . PHP_EOL;
 		}
-
     }
 
     public function separator()
     {
         return ',';
     }
-
 }

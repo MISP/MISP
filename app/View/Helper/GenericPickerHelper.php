@@ -14,6 +14,7 @@ class GenericPickerHelper extends AppHelper {
         }
 
         $select_html = '';
+        // No " in the HTML attributes because this function is sanitized, leading to a double wrapping of "
         foreach ($options['select_options'] as $option => $value) {
             $select_html .= sprintf('%s=%s ', h($option), h($value));
         }
@@ -28,9 +29,9 @@ class GenericPickerHelper extends AppHelper {
         $option_html = '<option';
 
         if (isset($param['value'])) {
-            $option_html .= sprintf(' value=%s',  h($param['value']));
+            $option_html .= ' value="' . h($param['value']) . '"';
         } else {
-            $option_html .= sprintf(' value=%s', h($param['name']));
+            $option_html .= ' value="' . h($param['name']) . '"';
         }
 
         if (isset($param['disabled']) && $param['disabled']) {
@@ -39,27 +40,23 @@ class GenericPickerHelper extends AppHelper {
             $option_html .= ' selected';
         }
 
-        $option_html .= '>';
-
-        $option_html .= h($param['name']);
-        $option_html .= '</option>';
+        $option_html .= '>' . h($param['name']) . '</option>';
         return $option_html;
     }
 
-    function add_link_params($param, $defaults=array()) {
+    function add_link_params($param, $defaults=array(), $ignoreFunction=false) {
         $param_html = ' ';
-        if (isset($param['functionName'])) {
+        if (!$ignoreFunction && isset($param['functionName'])) {
             $param_html .= sprintf('onclick="execAndClose(this, %s)" ', h($param['functionName']));
         } else { // fallback to default submit function
-            if ($defaults['functionName'] !== '') {
+            if (!$ignoreFunction && $defaults['functionName'] !== '') {
                 $param_html .= 'onclick="submitFunction(this, ' . h($defaults['functionName']) . ')" ';
                 $param_html .= sprintf('onclick="submitFunction(this, %s)" ', h($defaults['functionName']));
             } else {
-                $param_html .= sprintf('data-endpoint="%s" onclick="fetchRequestedData(this)" ', h($param['value']));
+                $param_html .= sprintf('data-endpoint="%s" onclick="fetchRequestedData(this); event.stopPropagation(); return false;" ', h($param['value']));;
             }
         }
 
-        $additionalData = json_encode(array());
         foreach ($param as $paramName => $paramValue) {
             if ($paramName === 'value') {
                 $param_html .= sprintf('value="%s" ', h($paramValue));
@@ -88,6 +85,12 @@ class GenericPickerHelper extends AppHelper {
         }
         if (isset($param['isMatrix']) && $param['isMatrix']) {
             $span = '<span style="position: absolute; font-size: 8px; top: 2px;" class="fa fa-th" title="' . __('Start the galaxy matrix picker') . '"></span>';
+            $pill_html .= $span;
+            $span = sprintf(
+                '<button class="btn btn-mini" style="float: right; display: inline-block; margin-left: 16px; margin-top: -4px; margin-right: -5px;" %s>%s</button>',
+                $this->add_link_params($param, $defaults, true),
+                '<span class="fa fa-list" title="' . __('Use the picker instead') . '"></span>'
+            );
             $pill_html .= $span;
         }
         $pill_html .= '</a>';

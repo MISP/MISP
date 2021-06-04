@@ -1,6 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property TaxonomyPredicate $TaxonomyPredicate
+ */
 class Taxonomy extends AppModel
 {
     public $useTable = 'taxonomies';
@@ -8,6 +11,7 @@ class Taxonomy extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
             'Containable',
     );
 
@@ -24,19 +28,19 @@ class Taxonomy extends AppModel
     );
 
     public $hasMany = array(
-            'TaxonomyPredicate' => array(
-                'dependent' => true
-            )
+        'TaxonomyPredicate' => array(
+            'dependent' => true
+        )
     );
-
-    public function beforeValidate($options = array())
-    {
-        parent::beforeValidate();
-        return true;
-    }
 
     public function update()
     {
+        $existing = $this->find('all', array(
+            'recursive' => -1,
+            'fields' => array('version', 'enabled', 'namespace')
+        ));
+        $existing = array_column(array_column($existing, 'Taxonomy'), null, 'namespace');
+
         $directories = glob(APP . 'files' . DS . 'taxonomies' . DS . '*', GLOB_ONLYDIR);
         $updated = array();
         foreach ($directories as $dir) {
@@ -49,9 +53,9 @@ class Taxonomy extends AppModel
             if (!$file->exists()) {
                 continue;
             }
-            $vocab = json_decode($file->read(), true);
-            $file->close();
-            if ($vocab === null) {
+            try {
+                $vocab = $this->jsonDecode($file->read());
+            } catch (Exception $e) {
                 $updated['fails'][] = array('namespace' => $dir, 'fail' => "File machinetag.json is not valid JSON.");
                 continue;
             }
@@ -71,17 +75,13 @@ class Taxonomy extends AppModel
             if (!isset($vocab['version'])) {
                 $vocab['version'] = 1;
             }
-            $current = $this->find('first', array(
-                'conditions' => array('namespace' => $vocab['namespace']),
-                'recursive' => -1,
-                'fields' => array('version', 'enabled', 'namespace')
-            ));
-            if (empty($current) || $vocab['version'] > $current['Taxonomy']['version']) {
+            if (!isset($existing[$vocab['namespace']]) || $vocab['version'] > $existing[$vocab['namespace']]['version']) {
+                $current = isset($existing[$vocab['namespace']]) ? $existing[$vocab['namespace']] : [];
                 $result = $this->__updateVocab($vocab, $current);
                 if (is_numeric($result)) {
                     $updated['success'][$result] = array('namespace' => $vocab['namespace'], 'new' => $vocab['version']);
                     if (!empty($current)) {
-                        $updated['success'][$result]['old'] = $current['Taxonomy']['version'];
+                        $updated['success'][$result]['old'] = $current['version'];
                     }
                 } else {
                     $updated['fails'][] = array('namespace' => $vocab['namespace'], 'fail' => json_encode($result));
@@ -91,17 +91,56 @@ class Taxonomy extends AppModel
         return $updated;
     }
 
-    private function __updateVocab($vocab, $current, $skipUpdateFields = array())
+    /**
+     * @param array $vocab
+     * @return int Taxonomy ID
+     * @throws Exception
+     */
+    public function import(array $vocab)
+    {
+        foreach (['namespace', 'description', 'predicates'] as $requiredField) {
+            if (!isset($vocab[$requiredField])) {
+                throw new Exception("Required field '$requiredField' not provided.");
+            }
+        }
+        if (!is_array($vocab['predicates'])) {
+            throw new Exception("Field 'predicates' must be array.");
+        }
+        if (isset($vocab['values']) && !is_array($vocab['values'])) {
+            throw new Exception("Field 'values' must be array.");
+        }
+        if (!isset($vocab['version'])) {
+            $vocab['version'] = 1;
+        }
+        $current = $this->find('first', array(
+            'conditions' => array('namespace' => $vocab['namespace']),
+            'recursive' => -1,
+            'fields' => array('version', 'enabled', 'namespace')
+        ));
+        $current = empty($current) ? [] : $current['Taxonomy'];
+        $result = $this->__updateVocab($vocab, $current);
+        if (is_array($result)) {
+            throw new Exception('Could not save taxonomy because of validation errors: ' . json_encode($result));
+        }
+        return (int)$result;
+    }
+
+    private function __updateVocab(array $vocab, array $current)
     {
         $enabled = 0;
-        $taxonomy = array();
         if (!empty($current)) {
-            if ($current['Taxonomy']['enabled']) {
+            if ($current['enabled']) {
                 $enabled = 1;
             }
-            $this->deleteAll(array('Taxonomy.namespace' => $current['Taxonomy']['namespace']));
+            $this->deleteAll(['Taxonomy.namespace' => $current['namespace']]);
         }
-        $taxonomy['Taxonomy'] = array('namespace' => $vocab['namespace'], 'description' => $vocab['description'], 'version' => $vocab['version'], 'exclusive' => !empty($vocab['exclusive']), 'enabled' => $enabled);
+        $taxonomy = ['Taxonomy' => [
+            'namespace' => $vocab['namespace'],
+            'description' => $vocab['description'],
+            'version' => $vocab['version'],
+            'exclusive' => !empty($vocab['exclusive']),
+            'enabled' => $enabled,
+        ]];
         $predicateLookup = array();
         foreach ($vocab['predicates'] as $k => $predicate) {
             $taxonomy['Taxonomy']['TaxonomyPredicate'][$k] = $predicate;
@@ -109,16 +148,17 @@ class Taxonomy extends AppModel
         }
         if (!empty($vocab['values'])) {
             foreach ($vocab['values'] as $value) {
-                if (empty($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'])) {
-                    $taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'] = $value['entry'];
+                $predicatePosition = $predicateLookup[$value['predicate']];
+                if (empty($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicatePosition]['TaxonomyEntry'])) {
+                    $taxonomy['Taxonomy']['TaxonomyPredicate'][$predicatePosition]['TaxonomyEntry'] = $value['entry'];
                 } else {
-                    $taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'] = array_merge($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'], $value['entry']);
+                    $taxonomy['Taxonomy']['TaxonomyPredicate'][$predicatePosition]['TaxonomyEntry'] = array_merge($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicatePosition]['TaxonomyEntry'], $value['entry']);
                 }
             }
         }
-        $result = $this->saveAssociated($taxonomy, array('deep' => true));
+        $result = $this->saveAssociated($taxonomy, ['deep' => true]);
         if ($result) {
-            $this->__updateTags($this->id, $skipUpdateFields);
+            $this->__updateTags($this->id);
             return $this->id;
         }
         return $this->validationErrors;
@@ -175,7 +215,7 @@ class Taxonomy extends AppModel
         if ($filter) {
             $namespaceLength = strlen($taxonomy['Taxonomy']['namespace']);
             foreach ($entries as $k => $entry) {
-                if (strpos(substr(strtoupper($entry['tag']), $namespaceLength), strtoupper($filter)) === false) {
+                if (strpos(substr(mb_strtolower($entry['tag']), $namespaceLength), mb_strtolower($filter)) === false) {
                     unset($entries[$k]);
                 }
             }
@@ -186,11 +226,10 @@ class Taxonomy extends AppModel
 
     // returns all tags associated to a taxonomy
     // returns all tags not associated to a taxonomy if $inverse is true
-    public function getAllTaxonomyTags($inverse = false, $user = false, $full = false)
+    public function getAllTaxonomyTags($inverse = false, $user = false, $full = false, $hideUnselectable = true)
     {
         $this->Tag = ClassRegistry::init('Tag');
-        $taxonomyIdList = $this->find('list', array('fields' => array('id')));
-        $taxonomyIdList = array_keys($taxonomyIdList);
+        $taxonomyIdList = $this->find('column', array('fields' => array('Taxonomy.id')));
         $allTaxonomyTags = array();
         foreach ($taxonomyIdList as $taxonomy) {
             $allTaxonomyTags = array_merge($allTaxonomyTags, array_keys($this->getTaxonomyTags($taxonomy, true)));
@@ -202,7 +241,7 @@ class Taxonomy extends AppModel
                 $conditions[] = array('Tag.user_id' => array(0, $user['id']));
             }
         }
-        if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
+        if (Configure::read('MISP.incoming_tags_disabled_by_default') || $hideUnselectable) {
             $conditions['Tag.hide_tag'] = 0;
         }
         if ($full) {
@@ -284,8 +323,8 @@ class Taxonomy extends AppModel
             if (empty($taxonomy)) {
                 return false;
             }
-            $tag_names = Hash::extract($taxonomy, 'entries.{n}.tag');
-            $tags = $this->Tag->getTagsByName($tag_names, false);
+            $tagNames = array_column($taxonomy['entries'], 'tag');
+            $tags = $this->Tag->getTagsByName($tagNames, false);
             if (isset($taxonomy['entries'])) {
                 foreach ($taxonomy['entries'] as $key => $temp) {
                     if (isset($tags[strtoupper($temp['tag'])])) {
@@ -307,13 +346,12 @@ class Taxonomy extends AppModel
 
     private function __updateTags($id, $skipUpdateFields = array())
     {
-        $this->Tag = ClassRegistry::init('Tag');
         App::uses('ColourPaletteTool', 'Tools');
         $paletteTool = new ColourPaletteTool();
         $taxonomy = $this->__getTaxonomy($id, array('full' => true));
         $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
         $this->Tag = ClassRegistry::init('Tag');
-        $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
+        $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace'], false);
         foreach ($taxonomy['entries'] as $k => $entry) {
             if (isset($tags[strtoupper($entry['tag'])])) {
                 $temp = $tags[strtoupper($entry['tag'])];
@@ -350,6 +388,9 @@ class Taxonomy extends AppModel
         App::uses('ColourPaletteTool', 'Tools');
         $paletteTool = new ColourPaletteTool();
         $taxonomy = $this->__getTaxonomy($id, array('full' => true));
+        if (empty($taxonomy)) {
+            return false;
+        }
         $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
         $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
         foreach ($taxonomy['entries'] as $k => $entry) {
@@ -501,12 +542,14 @@ class Taxonomy extends AppModel
         return $taxonomies;
     }
 
-    public function getTaxonomyForTag($tagName, $metaOnly = false, $fullTaxonomy = False)
+    public function getTaxonomyForTag($tagName, $metaOnly = false, $fullTaxonomy = false)
     {
-        if (preg_match('/^[^:="]+:[^:="]+="[^:="]+"$/i', $tagName)) {
-            $temp = explode(':', $tagName);
-            $pieces = array_merge(array($temp[0]), explode('=', $temp[1]));
-            $pieces[2] = trim($pieces[2], '"');
+        $splits = $this->splitTagToComponents($tagName);
+        if ($splits === null) {
+            return false; // not taxonomy tag
+        }
+
+        if (isset($splits['value'])) {
             $contain = array(
                 'TaxonomyPredicate' => array(
                     'TaxonomyEntry' => array()
@@ -514,32 +557,15 @@ class Taxonomy extends AppModel
             );
             if (!$fullTaxonomy) {
                 $contain['TaxonomyPredicate']['conditions'] = array(
-                    'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
+                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate']),
                 );
                 $contain['TaxonomyPredicate']['TaxonomyEntry']['conditions'] = array(
-                    'LOWER(TaxonomyEntry.value)' => strtolower($pieces[2])
+                    'LOWER(TaxonomyEntry.value)' => mb_strtolower($splits['value']),
                 );
             }
             $taxonomy = $this->find('first', array(
                 'recursive' => -1,
-                'conditions' => array('LOWER(Taxonomy.namespace)' => strtolower($pieces[0])),
-                'contain' => $contain
-            ));
-            if ($metaOnly && !empty($taxonomy)) {
-                return array('Taxonomy' => $taxonomy['Taxonomy']);
-            }
-            return $taxonomy;
-        } elseif (preg_match('/^[^:="]+:[^:="]+$/i', $tagName)) {
-            $pieces = explode(':', $tagName);
-            $contain = array('TaxonomyPredicate' => array());
-            if (!$fullTaxonomy) {
-                $contain['TaxonomyPredicate']['conditions'] = array(
-                    'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
-                );
-            }
-            $taxonomy = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('LOWER(Taxonomy.namespace)' => strtolower($pieces[0])),
+                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
                 'contain' => $contain
             ));
             if ($metaOnly && !empty($taxonomy)) {
@@ -547,20 +573,39 @@ class Taxonomy extends AppModel
             }
             return $taxonomy;
         } else {
-            return false;
+            $contain = array('TaxonomyPredicate' => array());
+            if (!$fullTaxonomy) {
+                $contain['TaxonomyPredicate']['conditions'] = array(
+                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate'])
+                );
+            }
+            $taxonomy = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
+                'contain' => $contain
+            ));
+            if ($metaOnly && !empty($taxonomy)) {
+                return array('Taxonomy' => $taxonomy['Taxonomy']);
+            }
+            return $taxonomy;
         }
     }
 
-    // Remove the value for triple component tags or the predicate for double components tags
+    /**
+     * Remove the value for triple component tags or the predicate for double components tags
+     * @param string $tagName
+     * @return string
+     */
     public function stripLastTagComponent($tagName)
     {
-        $shortenedTag = '';
-        if (preg_match('/^[^:="]+:[^:="]+="[^:="]+"$/i', $tagName)) {
-            $shortenedTag = explode('=', $tagName)[0];
-        } elseif (preg_match('/^[^:="]+:[^:="]+$/i', $tagName)) {
-            $shortenedTag = explode(':', $tagName)[0];
+        $splits = $this->splitTagToComponents($tagName);
+        if ($splits === null) {
+            return '';
         }
-        return $shortenedTag;
+        if (isset($splits['value'])) {
+            return $splits['namespace'] . ':' . $splits['predicate'];
+        }
+        return $splits['namespace'];
     }
 
     public function checkIfNewTagIsAllowedByTaxonomy($newTagName, $tagNameList=array())
@@ -643,5 +688,25 @@ class Taxonomy extends AppModel
             }
         }
         return $conflictingTaxonomy;
+    }
+
+    /**
+     * @param string $tag
+     * @return array|null
+     */
+    public function splitTagToComponents($tag)
+    {
+        preg_match('/^([^:="]+):([^:="]+)(="([^:="]+)")?$/i', $tag, $matches);
+        if (empty($matches)) {
+            return null; // tag is not in taxonomy format
+        }
+        $splits = [
+            'namespace' => $matches[1],
+            'predicate' => $matches[2],
+        ];
+        if (isset($matches[4])) {
+            $splits['value'] = $matches[4];
+        }
+        return $splits;
     }
 }

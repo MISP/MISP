@@ -1,7 +1,9 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Thread $Thread
+ */
 class ThreadsController extends AppController
 {
     public $components = array(
@@ -94,16 +96,16 @@ class ThreadsController extends AppController
         }
         if ($thread_id) {
             $this->paginate = array(
-                    'limit' => 10,
-                    'conditions' => array('Post.thread_id' => $thread_id),
-                    'contain' => array(
-                            'User' => array(
-                                    'fields' => array('User.email', 'User.id'),
-                                    'Organisation' => array(
-                                            'fields' => array('id', 'name')
-                                    ),
-                            ),
+                'limit' => 10,
+                'conditions' => array('Post.thread_id' => $thread_id),
+                'contain' => array(
+                    'User' => array(
+                        'fields' => array('User.email', 'User.id'),
+                        'Organisation' => array(
+                            'fields' => array('id', 'uuid', 'name')
+                        ),
                     ),
+                ),
             );
             if ($this->_isRest()) {
                 $posts = $this->Thread->Post->find('all', array(
@@ -114,7 +116,14 @@ class ThreadsController extends AppController
                 $posts = $this->paginate('Post');
             }
             foreach ($posts as $k => $post) {
-                $posts[$k]['Post']['org_name'] = empty($post['User']['id']) ? 'Deactivated user' : $post['User']['Organisation']['name'];
+                if (!empty($post['User']['id'])) {
+                    $posts[$k]['Post']['org_id'] = $post['User']['Organisation']['id'];
+                    $posts[$k]['Post']['org_uuid'] = $post['User']['Organisation']['uuid'];
+                    $posts[$k]['Post']['org_name'] = $post['User']['Organisation']['name'];
+                } else {
+                    $posts[$k]['Post']['org_name'] = 'Deactivated user'; // to keep BC
+                }
+
                 if ($this->_isSiteAdmin() || $this->Auth->user('org_id') == $post['User']['org_id']) {
                     $posts[$k]['Post']['user_email'] = empty($post['User']['id']) ? 'Unavailable' : $post['User']['email'];
                 }

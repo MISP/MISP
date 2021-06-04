@@ -8,7 +8,7 @@
     ?>
 </div>
 <script type="text/javascript">
-    $(document).ready(function() {
+    $(function() {
         if (<?= $config['autoRefreshDelay'] ? 'true' : 'false' ?>) {
             setTimeout( function(){
                 updateDashboardWidget("#widget_<?= h($widget_id) ?>")},

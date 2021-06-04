@@ -1,6 +1,10 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property EventTag $EventTag
+ * @property AttributeTag $AttributeTag
+ */
 class Tag extends AppModel
 {
     public $useTable = 'tags';
@@ -8,6 +12,7 @@ class Tag extends AppModel
     public $displayField = 'name';
 
     public $actsAs = array(
+        'AuditLog',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'Tag',
                     'roleKey' => 'tag_id',
@@ -55,7 +60,10 @@ class Tag extends AppModel
         ),
         'TagCollectionTag' => array(
             'dependent' => true
-        )
+        ),
+        'GalaxyClusterRelationTag' => array(
+            'dependent' => true
+        ),
     );
 
     public $belongsTo = array(
@@ -69,6 +77,8 @@ class Tag extends AppModel
         )
     );
 
+    public $reGalaxy = '/misp-galaxy:[^:="]+="[^:="]+/i';
+    public $reCustomGalaxy = '/misp-galaxy:[^:="]+="[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"/i';
     private $tagOverrides = false;
 
     public function beforeValidate($options = array())
@@ -86,6 +96,11 @@ class Tag extends AppModel
         if (!isset($this->data['Tag']['exportable'])) {
             $this->data['Tag']['exportable'] = 1;
         }
+        if (isset($this->data['Tag']['name']) && strlen($this->data['Tag']['name']) >= 255) {
+            $this->data['Tag']['name'] = substr($this->data['Tag']['name'], 0, 255);
+        }
+        $this->data['Tag']['is_galaxy'] = preg_match($this->reGalaxy, $this->data['Tag']['name']);
+        $this->data['Tag']['is_custom_galaxy'] = preg_match($this->reCustomGalaxy, $this->data['Tag']['name']);
         return true;
     }
 
@@ -167,8 +182,8 @@ class Tag extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $conditions['Tag.org_id'] = array(0, $user['User']['org_id']);
-            $conditions['Tag.user_id'] = array(0, $user['User']['id']);
+            $conditions['Tag.org_id'] = array(0, $user['org_id']);
+            $conditions['Tag.user_id'] = array(0, $user['id']);
             $conditions['Tag.hide_tag'] = 0;
         }
         return $this->find('all', array('conditions' => $conditions, 'recursive' => -1));
@@ -456,13 +471,12 @@ class Tag extends AppModel
 
     public function getTagsByName($tag_names, $containTagConnectors = true)
     {
-        $contain = array('EventTag', 'AttributeTag');
         $tag_params = array(
-                'recursive' => -1,
-                'conditions' => array('name' => $tag_names)
+            'recursive' => -1,
+            'conditions' => array('name' => $tag_names)
         );
         if ($containTagConnectors) {
-            $tag_params['contain'] = $contain;
+            $tag_params['contain'] = array('EventTag', 'AttributeTag');
         }
         $tags_temp = $this->find('all', $tag_params);
         $tags = array();
@@ -472,16 +486,19 @@ class Tag extends AppModel
         return $tags;
     }
 
+    /**
+     * @param string $namespace
+     * @param bool $containTagConnectors
+     * @return array Uppercase tag name in key
+     */
     public function getTagsForNamespace($namespace, $containTagConnectors = true)
     {
-
-        $contain = array('EventTag', 'AttributeTag');
         $tag_params = array(
-                'recursive' => -1,
-                'conditions' => array('UPPER(name) LIKE' => strtoupper($namespace) . '%'),
+            'recursive' => -1,
+            'conditions' => array('LOWER(name) LIKE' => strtolower($namespace) . '%'),
         );
         if ($containTagConnectors) {
-            $tag_params['contain'] = $contain;
+            $tag_params['contain'] = array('EventTag', 'AttributeTag');
         }
         $tags_temp = $this->find('all', $tag_params);
         $tags = array();
@@ -504,13 +521,11 @@ class Tag extends AppModel
             }
             $id = $tag['Tag']['id'];
         }
-        $event_ids = $this->EventTag->find('list', array(
-            'recursive' => -1,
+        $event_ids = $this->EventTag->find('column', array(
             'conditions' => array('EventTag.tag_id' => $id),
-            'fields'  => array('EventTag.event_id', 'EventTag.event_id'),
-            'order' => array('EventTag.event_id')
+            'fields'  => array('EventTag.event_id'),
         ));
-        $params = array('conditions' => array('Event.id' => array_values($event_ids)));
+        $params = array('conditions' => array('Event.id' => $event_ids));
         $events = $this->EventTag->Event->fetchSimpleEvents($user, $params, true);
         foreach ($events as $k => $event) {
             $event['Event']['Orgc'] = $event['Orgc'];

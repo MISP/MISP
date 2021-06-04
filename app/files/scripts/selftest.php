@@ -1,8 +1,6 @@
 <?php
-$extensions = array('redis', 'gd', 'ssdeep', 'zip', 'intl');
-$results = array();
-$results['phpversion'] = phpversion();
-foreach ($extensions as $extension) {
-    $results['extensions'][$extension] = extension_loaded($extension);
+$results = ['phpversion' => phpversion()];
+foreach (json_decode($argv[1], true) as $extension) {
+    $results['extensions'][$extension] = phpversion($extension);
 }
 echo json_encode($results);

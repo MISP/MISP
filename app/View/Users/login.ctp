@@ -19,7 +19,7 @@
         <?php if (Configure::read('MISP.main_logo') && file_exists(APP . '/webroot/img/custom/' . Configure::read('MISP.main_logo'))): ?>
             <img src="<?php echo $baseurl?>/img/custom/<?php echo h(Configure::read('MISP.main_logo'));?>" style=" display:block; margin-left: auto; margin-right: auto;" />
         <?php else: ?>
-            <img src="<?php echo $baseurl?>/img/misp-logo.png" style="display:block; margin-left: auto; margin-right: auto;"/>
+            <img src="<?php echo $baseurl?>/img/misp-birthday-logo.svg" style="display:block; margin-left: auto; margin-right: auto;"/>
         <?php endif;?>
         </div>
         <?php
@@ -32,6 +32,7 @@
                 </div>
         <?php
             endif;
+            if ($formLoginEnabled):
             echo $this->Form->create('User');
         ?>
         <legend><?php echo __('Login');?></legend>
@@ -52,8 +53,12 @@
             <?= $this->Form->button(__('Login'), array('class' => 'btn btn-primary')); ?>
         <?php
             echo $this->Form->end();
+            endif;
             if (Configure::read('ApacheShibbAuth') == true) {
                 echo '<div class="clear"></div><a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>';
+            }
+            if (Configure::read('AadAuth') == true) {
+                echo '<div class="clear"></div><a class="btn btn-info" href="/users/login?AzureAD=enable">Login with AzureAD</a>';
             }
         ?>
     </td>
@@ -65,7 +70,7 @@
 </div>
 
 <script>
-$(document).ready(function() {
+$(function() {
     $('#UserLoginForm').submit(function(event) {
         event.preventDefault()
         submitLoginForm()

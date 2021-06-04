@@ -29,16 +29,10 @@
     <div class="pagination">
         <ul>
         <?php
-        $this->Paginator->options(array(
-            'update' => '.span12',
-            'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
-        ));
-
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $paginator = $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $paginator .= $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+            $paginator .= $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+            echo $paginator;
         ?>
         </ul>
     </div>
@@ -98,6 +92,7 @@
             if (!empty($attribute['Attribute']['RelatedAttribute'])) {
                 $event['RelatedAttribute'] = array($attribute['Attribute']['id'] => $attribute['Attribute']['RelatedAttribute']);
             }
+            $attribute['Attribute']['objectType'] = 'attribute';
             echo $this->element('/Events/View/row_attribute', array(
                 'object' => $attribute['Attribute'],
                 'k' => $k,
@@ -115,6 +110,13 @@
         }
     ?>
     </table>
+    <?php
+    // Generate form for adding sighting just once, generation for every attribute is surprisingly too slow
+    echo $this->Form->create('Sighting', ['id' => 'SightingForm', 'url' => $baseurl . '/sightings/add/', 'style' => 'display:none;']);
+    echo $this->Form->input('id', ['label' => false, 'type' => 'number']);
+    echo $this->Form->input('type', ['label' => false]);
+    echo $this->Form->end();
+    ?>
     <p>
     <?php
     echo $this->Paginator->counter(array(
@@ -124,24 +126,18 @@
     </p>
     <div class="pagination">
         <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
+        <?=  $paginator ?>
         </ul>
     </div>
 </div>
 <?php
-if ($isSearch == 1){
+if ($isSearch == 1) {
     $class = 'searchAttributes2';
 } else {
     $class = 'listAttributes';
 }
 ?>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $class));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $class)); ?>
 <script type="text/javascript">
 // tooltips
 $(function () {

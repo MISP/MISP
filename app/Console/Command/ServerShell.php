@@ -14,6 +14,26 @@ class ServerShell extends AppShell
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
     public $tasks = array('ConfigLoad');
 
+    public function list()
+    {
+        $this->ConfigLoad->execute();
+        $res = ['servers'=>[]];
+        $servers = $this->Server->find('all', [
+            'fields' => ['Server.id', 'Server.name', 'Server.url'],
+            'recursive' => 0
+        ]);
+        foreach ($servers as $server) {
+            echo sprintf(
+                '%sServer #%s :: %s :: %s',
+                PHP_EOL,
+                $server['Server']['id'],
+                $server['Server']['name'],
+                $server['Server']['url']
+            );
+        }
+        echo PHP_EOL;
+    }
+
     public function listServers()
     {
         $this->ConfigLoad->execute();
@@ -126,7 +146,7 @@ class ServerShell extends AppShell
         try {
             $result = $this->Server->pull($user, $serverId, $technique, $server, $jobId, $force);
             if (is_array($result)) {
-                $message = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled.', count($result[0]), count($result[1]), $result[2], $result[3]);
+                $message = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
                 $this->Job->saveStatus($jobId, true, $message);
             } else {
                 $message = __('ERROR: %s', $result);
@@ -189,6 +209,33 @@ class ServerShell extends AppShell
             $message = 'Job(s) started at ' . date('d/m/Y - H:i:s') . '.';
             $this->Task->saveField('message', $message);
             echo $message . PHP_EOL;
+        }
+    }
+
+    public function pushAll()
+    {
+        $this->ConfigLoad->execute();
+
+        $userId = $this->args[0];
+        $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die('User ID do not match an existing user.' . PHP_EOL);
+        }
+
+        $servers = $this->Server->find('all', array(
+            'conditions' => array('Server.push' => 1),
+            'recursive' => -1,
+            'order' => 'Server.priority',
+            'fields' => array('Server.name', 'Server.id'),
+        ));
+
+        foreach ($servers as $server) {
+            $jobId = CakeResque::enqueue(
+                'default',
+                'ServerShell',
+                array('push', $userId, $server['Server']['id'], $technique)
+            );
+            $this->out("Enqueued pushing from {$server['Server']['name']} server as job $jobId");
         }
     }
 
@@ -298,6 +345,34 @@ class ServerShell extends AppShell
             $this->Job->saveStatus($jobId, true, $message);
         }
         echo $message . PHP_EOL;
+    }
+
+    public function cacheServerAll()
+    {
+        $this->ConfigLoad->execute();
+
+        $userId = $this->args[0];
+        $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die('User ID do not match an existing user.' . PHP_EOL);
+        }
+
+        $servers = $this->Server->find('all', array(
+            'conditions' => array('Server.pull' => 1),
+            'recursive' => -1,
+            'order' => 'Server.priority',
+            'fields' => array('Server.name', 'Server.id'),
+        ));
+
+        foreach ($servers as $server) {
+            $jobId = CakeResque::enqueue(
+                'default',
+                'ServerShell',
+                array('cacheServer', $userId, $server['Server']['id'])
+            );
+            $this->out("Enqueued cacheServer from {$server['Server']['name']} server as job $jobId");
+        }
+
     }
 
     public function cacheFeed()

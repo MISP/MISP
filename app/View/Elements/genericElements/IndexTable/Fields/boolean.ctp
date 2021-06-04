@@ -43,9 +43,19 @@
         }
         $rules_raw = implode('<br />', $rules_raw);
     }
+
+    $classes = ['fa'];
+    $classes[] = !empty(Hash::extract($row, $field['data_path'])[0]) ? 'fa-check' : 'fa-times';
+
+    if (!empty($field['colors'])) {
+        $classes[] = !empty(Hash::extract($row, $field['data_path'])[0]) ? 'green' : 'grey';
+    } else {
+        $classes[] = 'black';
+    }
+
     echo sprintf(
-        '<i class="black fa fa-%s" role="img" aria-label="%s"></i>%s',
-        (!empty(Hash::extract($row, $field['data_path'])[0])) ? 'check' : 'times',
+        '<i class="%s" role="img" aria-label="%s"></i>%s',
+        implode(' ', $classes),
         (!empty(Hash::extract($row, $field['data_path'])[0])) ? __('Yes') : __('No'),	
         empty($rules_raw) ? '' :
         sprintf(
@@ -55,4 +65,4 @@
             __('Rules')
         )
     );
-?>
+

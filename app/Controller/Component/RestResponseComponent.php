@@ -1,5 +1,8 @@
 <?php
 
+/**
+ * @property ACLComponent $ACL
+ */
 class RestResponseComponent extends Component
 {
     public $components = array('ACL');
@@ -45,7 +48,15 @@ class RestResponseComponent extends Component
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'),
                 'params' => array()
-            )
+            ),
+            'addTag' => array(
+                'description' => "Add a tag or a tag collection to an attribute.",
+                'mandatory' => array('attribute', 'tag')
+            ),
+            'removeTag' => array(
+                'description' => "Remove a tag from an attribute.",
+                'mandatory' => array('attribute', 'tag')
+            ),
         ),
         'Community' => array(
             'requestAccess' => array(
@@ -77,7 +88,15 @@ class RestResponseComponent extends Component
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'excludeLocalTags', 'threat_level_id'),
                 'params' => array()
-            )
+            ),
+            'addTag' => array(
+                'description' => "Add a tag or a tag collection to an event.",
+                'mandatory' => array('event', 'tag')
+            ),
+            'removeTag' => array(
+                'description' => "Remove a tag from an event.",
+                'mandatory' => array('event', 'tag')
+            ),
         ),
         'EventGraph' => array(
             'add' => array(
@@ -119,6 +138,39 @@ class RestResponseComponent extends Component
                 'http_method' => 'GET'
             )
         ),
+        'GalaxyCluster' => array(
+            'add' => array(
+                'description' => "POST a MISP GalaxyCluster JSON to this API to create a GalaxyCluster. Contained objects can also be included (such as relations, elements, tags, etc).",
+                'mandatory' => array('value', 'description'),
+                'optional' => array('distribution', 'sharing_group_id', 'uuid', 'version', 'extends_uuid', 'extends_version', 'elements', 'GalaxyClusterRelation'),
+                'params' => array('galaxy_id')
+            ),
+            'edit' => array(
+                'description' => "POST a MISP GalaxyCluster JSON to this API to edit a GalaxyCluster",
+                'mandatory' => array('value', 'description'),
+                'optional' => array('distribution', 'sharing_group_id', 'uuid', 'version', 'extends_uuid', 'extends_version', 'elements'),
+                'params' => array('cluster_id')
+            ),
+            'restSearch' => array(
+                'description' => "Search MISP using a list of filter parameters and return the data in the selected format. This API allows pagination via the page and limit parameters.",
+                'optional' => array('page', 'limit', 'id', 'uuid', 'galaxy_id', 'galaxy_uuid', 'version', 'distribution', 'org_id', 'orgc_id', 'tag_name', 'custom', 'minimal', 'published', 'value', 'extends_uuid'),
+                'params' => array()
+            ),
+        ),
+        'GalaxyClusterRelation' => array(
+            'add' => array(
+                'description' => "POST a MISP GalaxyClusterRelation JSON to this API to create a GalaxyCluster relation. Contained objects can also be included (such as tags).",
+                'mandatory' => array('galaxy_cluster_uuid', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type'),
+                'optional' => array('distribution', 'sharing_group_id', 'tags'),
+                'params' => array()
+            ),
+            'edit' => array(
+                'description' => "POST a MISP GalaxyClusterRelation JSON to this API to edit a GalaxyCluster relation. Contained objects can also be included (such as tags).",
+                'mandatory' => array('galaxy_cluster_uuid', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type'),
+                'optional' => array('distribution', 'sharing_group_id', 'tags'),
+                'params' => array('relation_id')
+            ),
+        ),
         'Log' => array(
             'admin_index' => array(
                 'description' => "POST a filter object to receive a JSON with the log entries matching the query. A simple get request will return the entire DB. You can use the filter parameters as url parameters with a GET request such as: https://path.to.my.misp/admin/logs/page:1/limit:200 - to run substring queries simply append/prepend/encapsulate the search term with %. All restSearch rules apply.",
@@ -153,6 +205,7 @@ class RestResponseComponent extends Component
                     'perm_site_admin',
                     'perm_regexp_access',
                     'perm_tagger',
+                    'perm_galaxy_editor',
                     'perm_template',
                     'perm_sharing_group',
                     'perm_tag_editor',
@@ -173,6 +226,7 @@ class RestResponseComponent extends Component
                     'perm_site_admin',
                     'perm_regexp_access',
                     'perm_tagger',
+                    'perm_galaxy_editor',
                     'perm_template',
                     'perm_sharing_group',
                     'perm_tag_editor',
@@ -203,9 +257,9 @@ class RestResponseComponent extends Component
                 'optional' => array('type', 'source', 'timestamp', 'date', 'time')
             ),
             'restSearch' => array(
-                'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id MUST be provided if context is set.",
+                'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id or uuid MUST be provided if context is set.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
+                'optional' => array('id', 'uuid', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
                 'params' => array('context')
             ),
         ),
@@ -232,10 +286,9 @@ class RestResponseComponent extends Component
                 'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
                 'params' => array('tag_id')
             ),
-            'removeTag' => array(
-                'description' => "POST a request object in JSON format to this API to create detach a tag from an event. #FIXME Function does not exists",
-                'mandatory' => array('event', 'tag'),
-                'params' => array('tag_id')
+            'removeTagFromObject' => array(
+                'description' => "Untag an event or attribute. Tag can be the id or the name.",
+                'mandatory' => array('uuid', 'tag')
             ),
             'attachTagToObject' => array(
                 'description' => "Attach a Tag to an object, refenced by an UUID. Tag can either be a tag id or a tag name.",
@@ -308,9 +361,10 @@ class RestResponseComponent extends Component
         $this->__setup();
         $result = array();
         foreach ($this->__scopedFieldsConstraint as $controller => $actions) {
-            $controller = Inflector::tableize($controller);
+            // EventGraph controller has different rule
+            $controller = $controller === 'EventGraph' ? 'event_graph' : Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
-                if ($this->ACL->checkAccess($user, $controller, $action, true) === true) {
+                if ($this->ACL->canUserAccess($user, $controller, $action)) {
                     $admin_routing = '';
                     if (substr($action, 0, 6) === 'admin_') {
                         $action = substr($action, 6);
@@ -329,9 +383,10 @@ class RestResponseComponent extends Component
         $this->__setup();
         $result = array();
         foreach ($this->__descriptions as $controller => $actions) {
-            $controller = Inflector::tableize($controller);
+            // EventGraph controller has different rule
+            $controller = $controller === 'EventGraph' ? 'event_graph' : Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
-                if ($this->ACL->checkAccess($user, $controller, $action, true) === true) {
+                if ($this->ACL->canUserAccess($user, $controller, $action)) {
                     $admin_routing = '';
                     if (substr($action, 0, 6) === 'admin_') {
                         $action = substr($action, 6);
@@ -373,7 +428,21 @@ class RestResponseComponent extends Component
         return $result;
     }
 
-    // use a relative path to check if the current api has a description
+    public function getScopedApiInfo($user)
+    {
+        $api = $this->getAllApis($user);
+        $scopedApi = [];
+        foreach ($api as $apiEntry) {
+            $scopeApi[$apiEntry['controller']][] = $apiEntry;
+        }
+        return $scopeApi;
+    }
+
+    /**
+     * Use a relative path to check if the current api has a description
+     * @param string $relative_path
+     * @return array
+     */
     public function getApiInfo($relative_path)
     {
         $this->__setup();
@@ -383,7 +452,7 @@ class RestResponseComponent extends Component
         if (count($relative_path) >= 2) {
             if ($relative_path[0] == 'admin') {
                 if (count($relative_path) < 3) {
-                    return '[]';
+                    return [];
                 }
                 $admin = true;
                 $relative_path = array_slice($relative_path, 1);
@@ -393,16 +462,10 @@ class RestResponseComponent extends Component
                 $relative_path[1] = 'admin_' . $relative_path[1];
             }
             if (isset($this->__descriptions[$relative_path[0]][$relative_path[1]])) {
-                $temp = $this->__descriptions[$relative_path[0]][$relative_path[1]];
-            } else {
-                $temp = array();
+                return $this->__descriptions[$relative_path[0]][$relative_path[1]];
             }
-            if (empty($temp)) {
-                return '[]';
-            }
-            return json_encode(array('api_info' => $temp), JSON_PRETTY_PRINT);
         }
-        return '[]';
+        return [];
     }
 
     public function saveFailResponse($controller, $action, $id = false, $validationErrors, $format = false, $data = null)
@@ -481,11 +544,12 @@ class RestResponseComponent extends Component
             } else {
                 $type = $format;
             }
+            $dumpSql = !empty($this->Controller->sql_dump) && Configure::read('debug') > 1;
             if (!$raw) {
                 if (is_string($response)) {
                     $response = array('message' => $response);
                 }
-                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                if ($dumpSql) {
                     $this->Log = ClassRegistry::init('Log');
                     if ($this->Controller->sql_dump === 2) {
                         $response = array('sql_dump' => $this->Log->getDataSource()->getLog(false, false));
@@ -493,9 +557,11 @@ class RestResponseComponent extends Component
                         $response['sql_dump'] = $this->Log->getDataSource()->getLog(false, false);
                     }
                 }
-                $response = json_encode($response, JSON_PRETTY_PRINT);
+                // Do not pretty print response for automatic tools
+                $flags = $this->isAutomaticTool() ? JSON_UNESCAPED_UNICODE : JSON_PRETTY_PRINT;
+                $response = json_encode($response, $flags);
             } else {
-                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                if ($dumpSql) {
                     $this->Log = ClassRegistry::init('Log');
                     if ($this->Controller->sql_dump === 2) {
                         $response = json_encode(array('sql_dump' => $this->Log->getDataSource()->getLog(false, false)));
@@ -509,13 +575,24 @@ class RestResponseComponent extends Component
                 }
             }
         }
-        $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+
+        App::uses('TmpFileTool', 'Tools');
+        if ($response instanceof TmpFileTool) {
+            App::uses('CakeResponseTmp', 'Tools');
+            $cakeResponse = new CakeResponseTmp(['status' => $code, 'type' => $type]);
+            $cakeResponse->file($response);
+        } else {
+            $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+        }
 
         if (Configure::read('Security.allow_cors')) {
             $headers["Access-Control-Allow-Headers"] =  "Origin, Content-Type, Authorization, Accept";
             $headers["Access-Control-Allow-Methods"] = "*";
             $headers["Access-Control-Allow-Origin"] = explode(',', Configure::read('Security.cors_origins'));
             $headers["Access-Control-Expose-Headers"] = ["X-Result-Count"];
+        }
+        if (Configure::read('Security.disable_browser_cache')) {
+            $cakeResponse->disableCache();
         }
         if (!empty($this->headers)) {
             $cakeResponse->header($this->headers);
@@ -530,6 +607,19 @@ class RestResponseComponent extends Component
             $cakeResponse->download($download);
         }
         return $cakeResponse;
+    }
+
+    /**
+     * Detect if request comes from automatic tool (like other MISP instance or PyMISP) or AJAX
+     * @return bool
+     */
+    public function isAutomaticTool()
+    {
+        if ($this->Controller->request->is('ajax')) {
+            return true;
+        }
+        $userAgent = CakeRequest::header('User-Agent');
+        return $userAgent && (substr($userAgent, 0, 6) === 'PyMISP' || substr($userAgent, 0, 4) === 'MISP');
     }
 
     private function __generateURL($action, $controller, $id)
@@ -882,6 +972,13 @@ class RestResponseComponent extends Component
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('Should the warning list be enforced. Adds `blocked` field for matching attributes')
             ),
+            'event' => array(
+                'input' => 'number',
+                'type' => 'integer',
+                'operators' => array('equal', 'not_equal'),
+		'validation' => array('min' => 0, 'step' => 1),
+		'help' => __('Event id')
+            ),
             'event_id' => array(
                 'input' => 'number',
                 'type' => 'integer',
@@ -974,7 +1071,13 @@ class RestResponseComponent extends Component
                     'autoclose' => true
                 ),
                 'help' => __('The date from which the event was published')
-             ),
+            ),
+            'galaxy_cluster_uuid' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => __('Source galaxy cluster UUID')
+            ),
             'gpgkey' => array(
                 'input' => 'text',
                 'type' => 'string',
@@ -1287,6 +1390,11 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' )
             ),
+            'perm_galaxy_editor' => array(
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => array(1 => 'True', 0 => 'False' )
+            ),
             'perm_template' => array(
                 'input' => 'radio',
                 'type' => 'integer',
@@ -1344,6 +1452,18 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('Allow the upload of sightings to the server')
+            ),
+            'referenced_galaxy_cluster_uuid' => array(
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => array('equal'),
+                'help' => __('Destination galaxy cluster UUID')
+                ),
+            'referenced_galaxy_cluster_type' => array(
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => array('equal'),
+                'help' => __('The type of the relation. Example: `is`, `related-to`, ...')
             ),
             'releasability' => array(
                 'input' => 'text',
@@ -1586,12 +1706,6 @@ class RestResponseComponent extends Component
                 'operators' => array('equal'),
                 'help' => __('Not supported (warninglist->checkvalues) expect an array')
             ),
-            'event' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal'),
-                'help' => __('Not supported (removeTag)')
-            ),
             'push_rules' => array(
                 'input' => 'text',
                 'type' => 'string',
@@ -1716,6 +1830,9 @@ class RestResponseComponent extends Component
                                     case "last_seen":
                                         $this->__overwriteSeen($scope, $action, $fieldsConstraint[$field]);
                                         break;
+                                    case "attribute":
+                                        $this->__overwriteAttribute($scope, $action, $fieldsConstraint[$field]);
+                                        break;
                                     default:
                                         break;
                                 }
@@ -1733,8 +1850,6 @@ class RestResponseComponent extends Component
     private function __overwriteReturnFormat($scope, $action, &$field) {
         switch($scope) {
             case "Attribute":
-                $field['values'] = array_keys(ClassRegistry::init($scope)->validFormats);
-                break;
             case "Event":
                 $field['values'] = array_keys(ClassRegistry::init($scope)->validFormats);
                 break;
@@ -1778,25 +1893,34 @@ class RestResponseComponent extends Component
             $field['values'][] = array('label' => h($model_name), 'value' => $i);
         }
     }
-    private function __overwriteTags($scope, $action, &$field) {
-        $this->{$scope} = ClassRegistry::init("Tag");
-        $tags = $this->{$scope}->find('list', array(
-            'recursive' => -1,
-            'fields' => array('name')
-        ));
-        foreach($tags as $i => $tag) {
-            $tagname = htmlspecialchars($tag);
-            $tags[$tagname] = $tagname;
-            unset($tags[$i]);
+
+    private function __overwriteTags($scope, $action, &$field)
+    {
+        static $values;
+        if ($values === null) {
+            $tagModel = ClassRegistry::init("Tag");
+            $tags = $tagModel->find('column', array(
+                'fields' => array('Tag.name')
+            ));
+            $values = [];
+            foreach ($tags as $tag) {
+                $tagname = htmlspecialchars($tag);
+                $values[$tagname] = $tagname;
+            }
         }
-        $field['values'] = $tags;
+        $field['values'] = $values;
 
         if ($action == 'attachTagToObject') {
             $field['help'] = __('Also supports array of tags');
         }
     }
+    private function __overwriteAttribute($scope, $action, &$field){
+        if ($action == 'addTag' || $action == 'removeTag') {
+            $field['help'] = __('Attribute id');
+        }
+    }
     private function __overwriteNationality($scope, $action, &$field) {
-        $field['values'] = ClassRegistry::init("Organisation")->countries;
+        $field['values'] = ClassRegistry::init("Organisation")->getCountries();
     }
     private function __overwriteAction($scope, $action, &$field) {
         $field['values'] = array_keys(ClassRegistry::init("Log")->actionDefinitions);
@@ -1804,10 +1928,12 @@ class RestResponseComponent extends Component
     private function __overwriteRoleId($scope, $action, &$field) {
         $this->{$scope} = ClassRegistry::init("Role");
         $roles = $this->{$scope}->find('list', array(
-            'recursive' => -1,
-            'fields' => array('name')
+            'fields' => array('id', 'name')
         ));
-        $field['values'] = $roles;
+        $field['values'] = [];
+        foreach ($roles as $id => $name) {
+            $field['values'][] = ['label' => $name, 'value' => $id];
+        }
     }
     private function __overwriteSeen($scope, $action, &$field) {
         if ($action == 'restSearch') {

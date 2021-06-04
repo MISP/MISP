@@ -124,7 +124,7 @@ class EventDelegationsController extends AppController
                     'order' => array('lower(name) ASC')
             ));
             $distribution = $this->EventDelegation->Event->distributionLevels;
-            $sgs = $this->EventDelegation->Event->SharingGroup->fetchAllAuthorised($this->Auth->User, 'name', true);
+            $sgs = $this->EventDelegation->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true);
             if (empty($sgs)) {
                 unset($distribution[4]);
             }

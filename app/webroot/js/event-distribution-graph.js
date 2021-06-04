@@ -1,9 +1,9 @@
-var scope_id = $('#eventdistri_graph').data('event-id');
-var event_distribution = $('#eventdistri_graph').data('event-distribution');
-var event_distribution_text = $('#eventdistri_graph').data('event-distribution-text');
-var extended_text = $('#eventdistri_graph').data('extended') == 1 ? true : false;
+var $eventDistriGraph = $('#eventdistri_graph');
+var scope_id = $eventDistriGraph.data('event-id');
+var event_distribution = $eventDistriGraph.data('event-distribution');
+var event_distribution_text = $eventDistriGraph.data('event-distribution-text');
+var extended_text = $eventDistriGraph.data('extended') == 1 ? true : false;
 var spanOffset_orig = 15; // due to padding
-var payload = {};
 var distribution_chart;
 var distributionData;
 
@@ -386,13 +386,9 @@ function construct_piechart(data) {
 
 function fetchDistributionData(callback) {
     $.ajax({
-        url: baseurl + "/events/"+"getDistributionGraph"+"/"+scope_id+"/event.json",
-        dataType: 'json',
-        type: 'post',
-        contentType: 'application/json',
-        data: JSON.stringify( payload ),
-        processData: false,
-        beforeSend: function (XMLHttpRequest) {
+        url: baseurl + "/events/getDistributionGraph/"+scope_id+"/event.json",
+        type: 'get',
+        beforeSend: function () {
             $(".loadingPopover").show();
         },
         success: function( data, textStatus, jQxhr ){
@@ -451,6 +447,7 @@ $(document).ready(function() {
         drawBarChart(data);
         $('#showAdvancedSharingButton').distributionNetwork({
             event_distribution: event_distribution,
+            event_distribution_name: event_distribution_text,
             distributionData: data,
             scope_id: scope_id
         });

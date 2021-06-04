@@ -19,6 +19,8 @@ var relationship_type_mapping = {
    'followed-by': 'after',
    'preceding-by': 'before',
 }
+var shortcut_text = "<b>ALT+Mouse_Wheel</b> Zoom IN/OUT"
+    + "\n<b>CTRL</b> Multi select"
 var options = {
     template: function (item, element, data) {
         switch(item.group) {
@@ -66,11 +68,11 @@ var options = {
     onMove: function(item, callback) {
         var newStart = moment(item.start.toISOString());
         var newEnd = (item.end !== undefined && item.end !== null) ? moment(item.end.toISOString()) : null;
-        var c1 = item.first_seen !== null ? !item.first_seen.isSame(newStart) : true;
-        var c2 = item.last_seen !== null ? !item.last_seen.isSame(newEnd) && item.seen_enabled : true;
-        if (c1) {
+        var fsChanged = item.first_seen !== null ? !item.first_seen.isSame(newStart) : true;
+        var lsChanged = item.last_seen !== null ? !item.last_seen.isSame(newEnd) && item.seen_enabled : false;
+        if (fsChanged) {
             if (item.first_seen === null) {
-                if (!c2) {
+                if (!lsChanged) {
                     update_seen(item, 'first', newStart, true, undefined);
                 } else {
                     update_seen(
@@ -92,14 +94,14 @@ var options = {
                     );
                 }
             } else {
-                update_seen(item, 'first', newStart, false, function() {
-                    if (c2) {
+                update_seen(item, 'first', newStart, !lsChanged, function() {
+                    if (lsChanged) {
                         update_seen(item, 'last', newEnd, true, undefined);
                     }
                 });
             }
         }
-        if (c2 && !c1) {
+        if (lsChanged && !fsChanged) {
           update_seen(item, 'last', newEnd, true, undefined);
         }
     }
@@ -304,7 +306,7 @@ function fetch_form_and_submit(itemType, item, seenType, value, reflect, callbac
                         if (contain_seen_attribute(item)) {
                             reflect_change(true, itemType, item.id, item);
                         } else {
-                            reflect_change(false, itemType, item.id, item);
+                            reflect_change(true, itemType, item.id, item);
                         }
                     }
                     form.remove()
@@ -459,13 +461,12 @@ function reload_timeline() {
                     }
                     adjust_text_length(item);
                 }
-                itemIds[item.attribute_id] = item.content;
                 if (selectedScope == 'sightings') {
+                    itemIds[item.attribute_id] = item.content;
                     item.group = item.attribute_id;
                     item.content = '';
                 }
             }
-            items_timeline.add(data.items);
             handle_not_seen_enabled($('#checkbox_timeline_display_hide_not_seen_enabled').prop('checked'), false)
             if (selectedScope == 'sightings') {
                 var groups = Object.keys(itemIds).map(function(id) {
@@ -475,8 +476,9 @@ function reload_timeline() {
                 eventTimeline.setOptions({selectable: false});
             } else {
                 eventTimeline.setOptions({selectable: true});
-                eventTimeline.setGroups([]);
+                eventTimeline.setGroups(null);
             }
+            items_timeline.add(data.items);
         },
         error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );
@@ -511,13 +513,13 @@ function enable_timeline() {
         },
         success: function( data, textStatus, jQxhr ){
             if (data.items.length > hardThreshold) {
-                $('#eventtimeline_div').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: To much data to show</div>');
+                $('#eventtimeline_div').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: Too much data to show</div>');
                 timeline_disabled = true;
                 return;
             } else if (data.items.length > softThreshold) {
                 var res = confirm('You are about to draw a lot ('+data.items.length+') of items in the timeline. Do you wish to continue?');
                 if (!res) {
-                    $('#eventtimeline_div').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: To much data to show</div>');
+                    $('#eventtimeline_div').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: Too much data to show</div>');
                     timeline_disabled = true;
                     return;
                 }
@@ -566,6 +568,15 @@ function enable_timeline() {
                 var id = mapping_text_to_id.get(value);
                 eventTimeline.focus(id);
                 $("#timeline-typeahead").blur();
+            });
+            $('.timeline-help').popover({
+                container: 'body',
+                title: 'Shortcuts',
+                content: shortcut_text,
+                placement: 'left',
+                trigger: 'hover',
+                template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content preWarp"></div></div>',
+                html: true,
             });
         },
         error: function( jqXhr, textStatus, errorThrown ){
@@ -627,6 +638,15 @@ function handle_not_seen_enabled(hide, include_hidden) {
     }
 }
 
+function setVisibleWindow() {
+    var startDate = $('#checkbox_timeline_display_daterange_start').val()
+    var endDate = $('#checkbox_timeline_display_daterange_end').val()
+    var currentWindow = eventTimeline.getWindow()
+    startDate = startDate === '' ? currentWindow.start : startDate
+    endDate = endDate === '' ? currentWindow.end : endDate
+    eventTimeline.setWindow(startDate, endDate);
+}
+
 $('#fullscreen-btn-timeline').click(function() {
     var timeline_div = $('#eventtimeline_div');
     var fullscreen_enabled = !timeline_div.data('fullscreen');
@@ -673,8 +693,8 @@ function init_popover() {
     });
     menu_display_timeline.add_slider({
         id: 'slider_timeline_display_max_char_num',
-        label: "Charater to show",
-        title: "Maximum number of charater to display in the label",
+        label: "Characters to show",
+        title: "Maximum number of characters to display in the label",
         min: 8,
         max: 2048,
         value: max_displayed_char_timeline,
@@ -690,7 +710,7 @@ function init_popover() {
     menu_display_timeline.add_checkbox({
         id: 'checkbox_timeline_display_hide_not_seen_enabled',
         label: "Hide first seen not set",
-        title: "Hide items that does not have first seen sets",
+        title: "Hide items that do not have first seen set",
         event: function(value) {
             handle_not_seen_enabled(value)
         }
@@ -704,5 +724,30 @@ function init_popover() {
             reload_timeline()
         },
         checked: true
+    });
+    menu_display_timeline.add_datepicker({
+        id: 'checkbox_timeline_display_daterange_start',
+        label: "Start date",
+        title: "Start date of the window",
+        event: function(value) {
+            setVisibleWindow()
+        },
+    });
+    menu_display_timeline.add_datepicker({
+        id: 'checkbox_timeline_display_daterange_end',
+        label: "End date",
+        title: "End date of the window",
+        event: function(value) {
+            setVisibleWindow()
+        },
+    });
+    menu_display_timeline.add_button({
+        id: 'checkbox_timeline_display_fit',
+        type: "primary",
+        label: "Fit all visible items",
+        title: "Fit all visible items in the window",
+        event: function(value) {
+            eventTimeline.fit()
+        }
     });
 }

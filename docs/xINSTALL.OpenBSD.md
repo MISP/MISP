@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for OpenBSD 6.7-amd64
+## for OpenBSD 6.8-amd64
 
 !!! warning
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
@@ -86,7 +86,7 @@ doas pkg_add -v mariadb-server
 #### Install misc dependencies
 
 ```bash
-doas pkg_add -v curl git python--%3.7 redis libmagic autoconf--%2.69 automake--%1.16 libtool unzip--iconv
+doas pkg_add -v curl git python--%3.8 redis libmagic autoconf--%2.69 automake--%1.16 libtool unzip--iconv
 ```
 
 ```bash
@@ -229,8 +229,8 @@ doas rcctl enable httpd
 #### Install Python virtualenv
 ```bash
 doas pkg_add -v py3-virtualenv py3-pip
-doas ln -sf /usr/local/bin/pip3.7 /usr/local/bin/pip
-doas ln -s /usr/local/bin/python3.7 /usr/local/bin/python
+doas ln -sf /usr/local/bin/pip3.8 /usr/local/bin/pip
+doas ln -s /usr/local/bin/python3.8 /usr/local/bin/python
 doas mkdir /usr/local/virtualenvs
 doas virtualenv-3 /usr/local/virtualenvs/MISP
 ```
@@ -247,13 +247,8 @@ doas pkg_add -v fcgi-cgi fcgi
 ```
 
 #### php7 ports
-!!! notice
-    php-5.6 is marked as end-of-life starting December 2018, use php 7.0 instead.
-    Option 2.
-    If on OpenBSD 6.3, upgrade to 6.7 to make your life much easier.
-
 ```
-doas pkg_add -v php-mysqli--%7.4 php-pcntl--%7.4 php-pdo_mysql--%7.4 php-apache--%7.4 pecl74-redis php-gd--%7.4 php-zip--%7.4
+doas pkg_add -v php-mysqli--%7.4 php-pcntl--%7.4 php-pdo_mysql--%7.4 php-apache--%7.4 pecl74-redis php-gd--%7.4 php-zip--%7.4 php-bcmath--%7.4 php-intl--%7.4
 ```
 
 #### /etc/php-7.4.ini 
@@ -352,16 +347,20 @@ false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MAECPro
 false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git; done
 
 cd /var/www/htdocs/MISP/app/files/scripts/python-cybox
+$SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 cd /var/www/htdocs/MISP/app/files/scripts/python-stix
+$SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 cd /var/www/htdocs/MISP/app/files/scripts/python-maec
+$SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 # install mixbox to accommodate the new STIX dependencies:
 cd /var/www/htdocs/MISP/app/files/scripts/mixbox
+$SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 # install PyMISP
@@ -611,6 +610,7 @@ cd /usr/local/src/
 doas chown ${MISP_USER} /usr/local/src
 doas -u misp git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
+$SUDO_WWW git config core.filemode false
 # pip3 install
 doas /usr/local/virtualenvs/MISP/bin/pip install -I -r REQUIREMENTS
 doas /usr/local/virtualenvs/MISP/bin/pip install -I .
@@ -841,6 +841,7 @@ doas mkdir misp-dashboard
 doas chown www:www misp-dashboard
 ${SUDO_WWW} git clone https://github.com/MISP/misp-dashboard.git
 cd misp-dashboard
+$SUDO_WWW git config core.filemode false
 #/!\ Made on Linux, the next script will fail
 #doas /var/www/misp-dashboard/install_dependencies.sh
 doas virtualenv -ppython3 /usr/local/virtualenvs/DASHENV

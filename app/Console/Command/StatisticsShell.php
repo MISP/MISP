@@ -1,7 +1,7 @@
 <?php
 class StatisticsShell extends AppShell {
 
-    public $uses = array('Event', 'User', 'Organisation', 'Log');
+    public $uses = array('Event', 'User', 'Organisation', 'Log', 'Correlation');
 
     public function contributors()
     {
@@ -250,5 +250,29 @@ class StatisticsShell extends AppShell {
             echo __('%s: %s %s%s', $year, $count - $previous, $prognosis, PHP_EOL);
         }
         echo str_repeat('-', 63) . PHP_EOL;
+    }
+
+    // (R)etrieval (o)f (m)ember (m)etrics (e)valuation (l)ist (f)or (s)tatistics
+    public function rommelfs()
+    {
+        $this->out(json_encode([
+            'events' => $this->Event->find('count'),
+            'attributes' => $this->Event->Attribute->find('count',
+                ['conditions' => ['Attribute.deleted' => 0], 'recursive' => -1]
+            ),
+            'objects' => $this->Event->Object->find('count',
+                ['conditions' => ['Object.deleted' => 0], 'recursive' => -1]
+            ),
+            'correlations' => $this->Correlation->find('count') / 2,
+            'users' => $this->User->find('count',
+                ['conditions' => ['User.disabled' => 0], 'recursive' => -1]
+            ),
+            'local_organisations' => $this->Organisation->find('count',
+                ['conditions' => ['Organisation.local' => 1], 'recursive' => -1]
+            ),
+            'external_organisations' => $this->Organisation->find('count',
+                ['conditions' => ['Organisation.local' => 0], 'recursive' => -1]
+            )
+        ], JSON_PRETTY_PRINT));
     }
 }
