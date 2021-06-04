@@ -1004,30 +1004,30 @@ class Event extends AppModel
     private function __prepareForPushToServer($event, $server)
     {
         if ($event['Event']['distribution'] == 4) {
-            if (!empty($event['SharingGroup']['SharingGroupServer'])) {
+            if (empty($event['SharingGroup']['SharingGroup']['roaming']) && empty($server['Server']['internal'])) {
                 $found = false;
-                foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
-                    if ($sgs['server_id'] == $server['Server']['id']) {
-                        $found = true;
+                if (isset($event['SharingGroup']['SharingGroupServer']) && !empty($event['SharingGroup']['SharingGroupServer'])) {
+                    foreach ($event['SharingGroup']['SharingGroupServer'] as $s) {
+                        foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
+                            if ($sgs['server_id'] == $server['Server']['id']) {
+                                $found = true;
+                            }
+                        }
                     }
                 }
                 if (!$found) {
-                    if (!$server['Server']['internal']) {
-                        return 403;
-                    } else { // Consider the internal server to be part of the SharingGroupServer list if one of the remote org belong to the SharingGroupOrg list
-                        if (isset($event['SharingGroup']['SharingGroupOrg'])) {
-                            foreach ($event['SharingGroup']['SharingGroupOrg'] as $org) {
-                                if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) {
-                                    $found = true;
-                                }
-                            }
-                        }
-                        if (!$found) {
-                            return 403;
-                        }
+                    return 403;
+                }
+            }
+            $found = false;
+            if (isset($event['SharingGroup']['SharingGroupOrg']) && !empty($event['SharingGroup']['SharingGroupOrg'])) {
+                foreach ($event['SharingGroup']['SharingGroupOrg'] as $org) {
+                    if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) {
+                        $found = true;
                     }
                 }
-            } else if (empty($event['SharingGroup']['roaming'])) {
+            }
+            if (!$found) {
                 return 403;
             }
         }
