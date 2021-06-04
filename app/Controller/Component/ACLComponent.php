@@ -536,7 +536,7 @@ class ACLComponent extends Component
                     'resetRemoteAuthKey' => array(),
                     'removeOrphanedCorrelations' => array('perm_site_admin'),
                     'rest' => array('perm_auth'),
-                    'openapi' => array(),
+                    'openapi' => array('*'),
                     'restartDeadWorkers' => array(),
                     'restartWorkers' => array(),
                     'serverSettings' => array(),

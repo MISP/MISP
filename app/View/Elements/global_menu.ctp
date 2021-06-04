@@ -34,11 +34,6 @@
                         'url' => $baseurl . '/attributes/search'
                     ),
                     array(
-                        'text' => __('REST client'),
-                        'url' => $baseurl . '/servers/rest',
-                        'requirement' => $canAccess('servers', 'rest'),
-                    ),
-                    array(
                         'type' => 'separator'
                     ),
                     array(

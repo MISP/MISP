@@ -2528,6 +2528,6 @@ misp.direct_call(relative_path, body)
         return $this->RestResponse->viewData($syncFilteringRules);
     }
 
-    public function openapi(): void {
+    public function openapi() {
 	}
 }
