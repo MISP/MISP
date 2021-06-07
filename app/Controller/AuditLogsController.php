@@ -25,6 +25,7 @@ class AuditLogsController extends AppController
         'CorrelationExclusion',
         'Event',
         'EventBlocklist',
+        'EventReport',
         'Feed',
         'DecayingModel',
         'Object',
@@ -490,18 +491,6 @@ class AuditLogsController extends AppController
             $events = array_column(array_column($events, 'Event'), null, 'id');
         }
 
-        $existingObjects = [];
-        foreach (['User', 'Organisation', 'Galaxy', 'GalaxyCluster', 'Warninglist', 'AuthKey', 'ObjectTemplate', 'Role'] as $modelName) {
-            if (isset($models[$modelName])) {
-                $this->loadModel($modelName);
-                $data = $this->{$modelName}->find('column', [
-                    'conditions' => ['id' => array_unique($models[$modelName])],
-                    'fields' => ['id'],
-                ]);
-                $existingObjects[$modelName] = array_flip($data);
-            }
-        }
-
         $links = [
             'ObjectTemplate' => 'objectTemplates',
             'AuthKey' => 'auth_keys',
@@ -511,7 +500,20 @@ class AuditLogsController extends AppController
             'Warninglist' => 'warninglists',
             'User' => 'admin/user',
             'Role' => 'roles',
+            'EventReport' => 'eventReports',
         ];
+
+        $existingObjects = [];
+        foreach ($links as $modelName => $foo) {
+            if (isset($models[$modelName])) {
+                $this->loadModel($modelName);
+                $data = $this->{$modelName}->find('column', [
+                    'conditions' => ['id' => array_unique($models[$modelName])],
+                    'fields' => ['id'],
+                ]);
+                $existingObjects[$modelName] = array_flip($data);
+            }
+        }
 
         foreach ($auditLogs as $k => $auditLog) {
             $auditLog = $auditLog['AuditLog'];
