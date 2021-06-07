@@ -440,6 +440,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => '/eventReports/edit/' . h($id),
                             'text' => __('Edit Event Report')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/admin/audit_logs/index/model:EventReport/model_id:' .  h($id),
+                            'text' => __('View report history'),
+                            'requirement' => Configure::read('MISP.log_new_audit') && $canAccess('auditLogs', 'admin_index'),
+                        ));
                     }
                     break;
 
@@ -1550,6 +1555,23 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('List SightingDB connections')
                         ));
                     }
+                    break;
+
+                    case 'api':
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'openapi',
+                            'url' => $baseurl . '/servers/openapi',
+                            'text' => __('OpenAPI')
+                        ));
+                        if ($isAclAdd) {
+                            if ($canAccess('servers', 'rest')) {
+                                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                    'element_id' => 'rest',
+                                    'url' => $baseurl . '/servers/rest',
+                                    'text' => __('REST client')
+                                ));
+                            }
+                        }
                     break;
             }
         ?>
