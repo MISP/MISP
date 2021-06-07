@@ -5073,17 +5073,25 @@ function saveDashboardState() {
             dashBoardSettings.push(temp);
         }
     });
-    $.ajax({
-        data: {value: dashBoardSettings},
-        success:function (data, textStatus) {
-            showMessage('success', 'Dashboard settings saved.');
-        },
-        error: function (jqXHR, textStatus, errorThrown) {
-            showMessage('fail', textStatus + ": " + errorThrown);
-        },
-        type: "post",
-        url: baseurl + '/dashboards/updateSettings',
-    });
+    var url = baseurl + '/dashboards/updateSettings'
+    fetchFormDataAjax(url, function(formData) {
+        var $formContainer = $(formData)
+        $formContainer.find('#DashboardValue').val(JSON.stringify(dashBoardSettings))
+        var $theForm = $formContainer.find('form')
+        xhr({
+            data: $theForm.serialize(),
+            success:function (data) {
+                showMessage('success', 'Dashboard settings saved.');
+            },
+            error:function(jqXHR, textStatus, errorThrown) {
+                showMessage('fail', textStatus + ": " + errorThrown);
+            },
+            beforeSend:function() {
+            },
+            type:"post",
+            url: $theForm.attr('action')
+        });
+    })
 }
 
 function updateDashboardWidget(element) {

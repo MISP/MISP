@@ -12,7 +12,7 @@ class DashboardsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        $this->Security->unlockedActions = array_merge(array('renderWidget', 'updateSettings', 'getForm'), $this->Security->unlockedActions);
+        $this->Security->unlockedActions = array_merge(array('renderWidget', 'getForm'), $this->Security->unlockedActions);
     }
 
     public $paginate = array(
@@ -113,14 +113,14 @@ class DashboardsController extends AppController
     {
         if ($this->request->is('post')) {
             $this->UserSetting = ClassRegistry::init('UserSetting');
-            if (!isset($this->request->data['value'])) {
+            if (!isset($this->request->data['Dashboard']['value'])) {
                 throw new InvalidArgumentException(__('No setting data found.'));
             }
             $data = array(
                 'UserSetting' => array(
                     'user_id' => $this->Auth->user('id'),
                     'setting' => 'dashboard',
-                    'value' => $this->request->data['value']
+                    'value' => $this->request->data['Dashboard']['value']
                 )
             );
             $result = $this->UserSetting->setSetting($this->Auth->user(), $data);
