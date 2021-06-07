@@ -1004,17 +1004,28 @@ class Event extends AppModel
     private function __prepareForPushToServer($event, $server)
     {
         if ($event['Event']['distribution'] == 4) {
-            if (!empty($event['SharingGroup']['SharingGroupServer'])) {
-                $found = false;
-                foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
-                    if ($sgs['server_id'] == $server['Server']['id']) {
-                        $found = true;
+            if (empty($event['SharingGroup']['SharingGroup']['roaming']) && empty($server['Server']['internal'])) {
+                $serverFound = false;
+                if (!empty($event['SharingGroup']['SharingGroupServer'])) {
+                    foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
+                        if ($sgs['server_id'] == $server['Server']['id']) {
+                            $serverFound = true;
+                        }
                     }
                 }
-                if (!$found) {
+                if (!$serverFound) {
                     return 403;
                 }
-            } else if (empty($event['SharingGroup']['roaming'])) {
+            }
+            $orgFound = false;
+            if (!empty($event['SharingGroup']['SharingGroupOrg'])) {
+                foreach ($event['SharingGroup']['SharingGroupOrg'] as $org) {
+                    if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) {
+                        $orgFound = true;
+                    }
+                }
+            }
+            if (!$orgFound) {
                 return 403;
             }
         }

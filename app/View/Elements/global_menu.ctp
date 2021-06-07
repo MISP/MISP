@@ -34,11 +34,6 @@
                         'url' => $baseurl . '/attributes/search'
                     ),
                     array(
-                        'text' => __('REST client'),
-                        'url' => $baseurl . '/servers/rest',
-                        'requirement' => $canAccess('servers', 'rest'),
-                    ),
-                    array(
                         'type' => 'separator'
                     ),
                     array(
@@ -475,8 +470,8 @@
                         'text' => __('Search Logs'),
                         'url' => $baseurl . '/admin/logs/search'
                     )
-                ),
-            ),
+                )
+                    ),
             array(
                 'type' => 'root',
                 'text' => __('API'),
@@ -490,7 +485,7 @@
                         'url' => $baseurl . '/servers/rest',
                         'requirement' => $canAccess('servers', 'rest')
                     )
-                ),
+                )
             )
         );
         $menu_right = array(

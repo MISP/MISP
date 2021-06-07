@@ -1,4 +1,7 @@
 <?php
+    if (!empty($this->passedArgs['correlation'])) {
+        $attributeFilter = 'correlation';
+    }
     $simple_filter_data = array(
         array(
             'id' => 'filter_all',
@@ -32,8 +35,8 @@
         'title' => __('Only show correlating attributes'),
         'text' => __('Correlation'),
         'active' => $attributeFilter == 'correlation',
-        'onClick' => 'filterAttributes',
-        'onClickParams' => array('correlation', $event['Event']['id'])
+        'onClick' => 'toggleBoolFilter',
+        'onClickParams' => array($urlHere, 'correlation'),
     );
     $simple_filter_data[] = array(
         'id' => 'filter_warning',
