@@ -243,10 +243,10 @@ COPY public.objects (id, name, "meta-category", description, template_uuid, temp
 
 
 --
--- Data for Name: org_blacklists; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: org_blocklists; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.org_blacklists (id, org_uuid, created, org_name, comment) FROM stdin;
+COPY public.org_blocklists (id, org_uuid, created, org_name, comment) FROM stdin;
 1	58d38339-7b24-4386-b4b4-4c0f950d210f	2018-11-27 06:22:00+00	Setec Astrononomy	default example
 2	58d38326-eda8-443a-9fa8-4e12950d210f	2018-11-27 06:22:00+00	Acme Finance	default example
 \.
@@ -800,10 +800,10 @@ SELECT pg_catalog.setval('public.objects_id_seq', 1, true);
 
 
 --
--- Name: org_blacklists_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: org_blocklists_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.org_blacklists_id_seq', 2, true);
+SELECT pg_catalog.setval('public.org_blocklists_id_seq', 2, true);
 
 
 --
