@@ -5075,23 +5075,21 @@ function saveDashboardState() {
     });
     var url = baseurl + '/dashboards/updateSettings'
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #DashboardValue').val(JSON.stringify(dashBoardSettings));
+        var $formContainer = $(formData)
+        $formContainer.find('#DashboardValue').val(JSON.stringify(dashBoardSettings))
+        var $theForm = $formContainer.find('form')
         xhr({
-            data: $('#temp form').serialize(),
+            data: $theForm.serialize(),
             success:function (data) {
                 showMessage('success', 'Dashboard settings saved.');
             },
             error:function(jqXHR, textStatus, errorThrown) {
                 showMessage('fail', textStatus + ": " + errorThrown);
             },
-            complete:function() {
-                $('#temp').remove();
-            },
             beforeSend:function() {
             },
             type:"post",
-            url: $('#temp form').attr('action')
+            url: $theForm.attr('action')
         });
     })
 }
