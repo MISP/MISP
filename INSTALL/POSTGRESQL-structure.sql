@@ -967,10 +967,10 @@ ALTER SEQUENCE public.objects_id_seq OWNED BY public.objects.id;
 
 
 --
--- Name: org_blocklists; Type: TABLE; Schema: public; Owner: -
+-- Name: org_blacklists; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.org_blocklists (
+CREATE TABLE public.org_blacklists (
     id bigint NOT NULL,
     org_uuid character varying(40) NOT NULL,
     created timestamp with time zone NOT NULL,
@@ -980,10 +980,10 @@ CREATE TABLE public.org_blocklists (
 
 
 --
--- Name: org_blocklists_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: org_blacklists_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.org_blocklists_id_seq
+CREATE SEQUENCE public.org_blacklists_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -992,10 +992,10 @@ CREATE SEQUENCE public.org_blocklists_id_seq
 
 
 --
--- Name: org_blocklists_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: org_blacklists_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.org_blocklists_id_seq OWNED BY public.org_blocklists.id;
+ALTER SEQUENCE public.org_blacklists_id_seq OWNED BY public.org_blacklists.id;
 
 
 --
@@ -2213,10 +2213,10 @@ ALTER TABLE ONLY public.objects ALTER COLUMN id SET DEFAULT nextval('public.obje
 
 
 --
--- Name: org_blocklists id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: org_blacklists id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.org_blocklists ALTER COLUMN id SET DEFAULT nextval('public.org_blocklists_id_seq'::regclass);
+ALTER TABLE ONLY public.org_blacklists ALTER COLUMN id SET DEFAULT nextval('public.org_blacklists_id_seq'::regclass);
 
 
 --
@@ -2647,10 +2647,10 @@ ALTER TABLE ONLY public.organisations
 
 
 --
--- Name: org_blocklists idx_20940_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: org_blacklists idx_20940_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.org_blocklists
+ALTER TABLE ONLY public.org_blacklists
     ADD CONSTRAINT idx_20940_primary PRIMARY KEY (id);
 
 
