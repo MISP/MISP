@@ -80,32 +80,6 @@ $table_data[] = array('key' => __('Events'), 'html' => isset($cluster['GalaxyClu
                     ):
                     '<span>0</span>'
                 );
-if (!empty(Configure::read('Plugin.CyCat_enable'))) {
-    $cycatUrl = empty(Configure::read('Plugin.CyCat_url')) ? 'https://api.cycat.org' : Configure::read('Plugin.CyCat_url');
-    $cycatHtml = [];
-    foreach ($cluster['CyCat'] as $relationship_uuid => $relationship_data) {
-        $temp = '';
-        unset($relationship_data['raw']);
-        unset($relationship_data['_cycat_type']);
-        $relationship_data_massaged = [];
-        foreach ($relationship_data as $massagedKey => $massagedValue) {
-            $relationship_data_massaged[] = sprintf(
-                '%s%s: %s',
-                PHP_EOL . PHP_EOL,
-                h($massagedKey),
-                h($massagedValue)
-            );
-        }
-        $cycatHtml[] = sprintf(
-            '<a href="%s/lookup/%s" title="%s">%s</a>',
-            h($cycatUrl),
-            h($relationship_uuid),
-            implode($relationship_data_massaged),
-            h($relationship_uuid)
-        );
-    }
-    $table_data[] = array('key' => __('CyCat relationships'), 'html' => implode('<br />', $cycatHtml));
-}
 if (!empty($extendedFromHtml)) {
     $table_data[] = array('key' => __('Forked From'), 'html' => $extendedFromHtml);
 }
@@ -128,6 +102,21 @@ if (!empty($extendedByHtml)) {
     <div class="row-fuild">
         <div id="relations_container"></div>
     </div>
+    <?php
+        if (!empty(Configure::read('Plugin.CyCat_enable'))) {
+            $titleHTML = __('CyCat Relationships');
+            $titleHTML .= sprintf('<a href="%s" onclick="event.stopPropagation()" title="%s" target="_blank"><img src="%s" style="height: 2.5em"/></a>',
+                'https://cycat.org/',
+                __('CyCAT or the CYbersecurity Resource CATalogue aims at mapping and documenting, in a single formalism and catalogue all the available cybersecurity tools, rules, playbooks, processes and controls.'),
+                $baseurl . '/img/CyCat.ico'
+            );
+            echo $this->element('/genericElements/accordion', [
+                'title' => 'CyCat Relationships',
+                'titleHTML' => $titleHTML,
+                'url' => '/galaxy_clusters/viewCyCatRelations/' . $cluster['GalaxyCluster']['id']
+            ]);
+        }
+    ?>
     <div id="elements_content"></div>
 </div>
 <?= $this->element('genericElements/assetLoader', array(

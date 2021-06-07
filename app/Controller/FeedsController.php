@@ -202,9 +202,6 @@ class FeedsController extends AppController
         $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
         $tags[0] = 'None';
         $this->set('tags', $tags);
-        if (!isset($this->request->data['Feed']['fixed_event'])) {
-            $this->request->data['Feed']['fixed_event'] = 1;
-        }
         $this->set('orgs', $this->Event->Orgc->find('list', array(
             'fields' => array('id', 'name'),
             'order' => 'LOWER(name)'
@@ -220,6 +217,9 @@ class FeedsController extends AppController
                         $this->request->data['Feed']['source_format'] = 1;
                     }
                 }
+            }
+            if (!isset($this->request->data['Feed']['fixed_event'])) {
+                $this->request->data['Feed']['fixed_event'] = 1;
             }
             $error = false;
             if (isset($this->request->data['Feed']['pull_rules'])) {
