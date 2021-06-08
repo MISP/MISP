@@ -571,7 +571,7 @@ class AppController extends Controller
             if (!$cidrTool->contains($remoteIp)) {
                 if ($this->_shouldLog('not_allowed_ip:' . $user['authkey_id'] . ':' . $remoteIp)) {
                     $this->Log = ClassRegistry::init('Log');
-                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt from not allowed IP address for auth key {$user['authkey_id']}.");
+                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt from not allowed IP address {$remoteIp} for auth key {$user['authkey_id']}.");
                 }
                 $this->Auth->logout();
                 throw new ForbiddenException('It is not possible to use this Auth key from your IP address');
