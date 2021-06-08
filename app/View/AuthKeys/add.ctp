@@ -28,6 +28,11 @@ echo $this->element('genericElements/Form/genericForm', [
                 'class' => 'datepicker span6',
                 'placeholder' => "YYYY-MM-DD",
                 'type' => 'text'
+            ],
+            [
+                'field' => 'read_only',
+                'label' => __('Read only (it will be not possible to do any change operation with this token)'),
+                'type' => 'checkbox',
             ]
         ],
         'submit' => [
