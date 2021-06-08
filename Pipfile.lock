@@ -33,7 +33,6 @@
             "hashes": [
                 "sha256:2bbf76fd432960138b3ef6dda3dde0544f27cbf8546c458e60baf371917ba9ee",
                 "sha256:50b1e4f8446b06f41be7dd6338db18e0990601dce795c2b1686458aa7e8fa7d8"
-            ],
             "version": "==2021.5.30"
         },
         "cffi": {
@@ -491,7 +490,11 @@
                 "sha256:753a0374df26658f99d826cfe40394a686d05985786d946fbe4165b5148f5a7c",
                 "sha256:a7acd0977125325f516bda9735fa7142b909a8d01e8b2e4c8108d0984e6e0098"
             ],
+<<<<<<< HEAD
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4'",
+=======
             "index": "pypi",
+>>>>>>> develop
             "version": "==1.26.5"
         },
         "weakrefmethod": {
