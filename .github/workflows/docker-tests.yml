@@ -24,6 +24,7 @@ jobs:
         uses: php-actions/composer@v6
         with:
           args: --working-dir=app/
+          php_version: 7.2
       - name: Checkout coolacid/docker-misp
         uses: actions/checkout@v2
         with:
