@@ -136,6 +136,14 @@ class PubSubTool
         return $this->pushToRedis(':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
     }
 
+    public function warninglist_save(array $warninglist, $action = false)
+    {
+        if (!empty($action)) {
+            $warninglist['action'] = $action;
+        }
+        return $this->pushToRedis(':data:misp_json_warninglist', json_encode($warninglist, JSON_PRETTY_PRINT));
+    }
+
     public function modified($data, $type, $action = false)
     {
         if (!empty($action)) {
