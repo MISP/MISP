@@ -48,7 +48,7 @@ suites:
                 - \Helper\Module\MispSettings:
                       depends: Cli
                       docker: true
-                      docker_compose_file: "/home/john/docker-misp/docker-compose.yml"
+                      docker_compose_file: "/home/runner/work/MISP/MISP/docker-misp/docker-compose.yml"
                 - \Helper\Module\OpenApiValidator:
                       depends: \Helper\Module\Api
                       openapi: "webroot/doc/openapi.yaml"

@@ -1,0 +1,24 @@
+version: '3'
+services:
+  db:
+    ports:
+      - "33060:3306"
+
+  redis:
+    ports:
+      - "63790:6379"
+
+  misp:
+    ports:
+      - "8000:80"
+      - "8443:443"
+    environment:
+      - "HOSTNAME=https://localhost:8443"
+    volumes:
+      - "/home/runner/work/MISP/MISP/app/:/var/www/MISP/app/"
+      
+  wiremock:
+    image: rodolpheche/wiremock
+    command: "--verbose"
+    ports:
+      - "8080:8080"
