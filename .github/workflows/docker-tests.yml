@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  test-api-dockerized:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,10 +37,11 @@ jobs:
       - name: Sleep
         uses: jakejarvis/wait-action@master
         with:
-          time: '60s'
+          time: '30s'
       - name: Check running containers
         run: docker ps
       - name: Run API test suite
         run: |
+          sudo chown -R $USER:$USER /home/runner/work/MISP/MISP/app/Test/_output/
           cd app/
           make test
