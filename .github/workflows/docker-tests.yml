@@ -45,3 +45,5 @@ jobs:
           sudo chown -R $USER:$USER /home/runner/work/MISP/MISP/app/Test/_output/
           cd app/
           make test
+          tail -n 100 /home/runner/work/MISP/MISP/app/tail -n 200 tmp/logs/debug.log
+          tail -n 100 /home/runner/work/MISP/MISP/app/tail -n 200 tmp/logs/error.log
