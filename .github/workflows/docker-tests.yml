@@ -32,13 +32,15 @@ jobs:
         with:
           repository: coolacid/docker-misp
           path: docker-misp
-      - name: Build the stack
+      - name: Start MISP docker containers
+        run: docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml -f /home/runner/work/MISP/MISP/app/Test/docker/docker-compose.tests.yml up -d
+      - name: Sleep
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '60s'
+      - name: Check running containers
+        run: docker ps
+      - name: Run API test suite
         run: |
-          ls -la
-          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml -f /home/runner/work/MISP/MISP/app/Test/docker/docker-compose.tests.yml up -d
-      - name: Run API tests
-        run: |
-          docker ps
-          ls -la
           cd app/
           make test
