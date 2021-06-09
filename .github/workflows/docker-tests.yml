@@ -22,13 +22,17 @@ jobs:
           submodules: "recursive"
       - name: Install PHP dependencies
         uses: php-actions/composer@v6
+        with:
+          command: composer install -d app/
       - name: Checkout coolacid/docker-misp
         uses: actions/checkout@v2
         with:
           repository: coolacid/docker-misp
           path: coolacid/docker-misp
       - name: Build the stack
-        run: docker-compose -f misp-docker/docker-compose.yml up -d
+        run: |
+          ls -la
+          docker-compose -f misp-docker/docker-compose.yml up -d
       - name: Run API tests
         run: |
           cd app
