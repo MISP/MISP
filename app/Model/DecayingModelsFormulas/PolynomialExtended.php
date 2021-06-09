@@ -18,7 +18,7 @@ class PolynomialExtended extends Polynomial
         } else {
             $retention_taxonomy_id = $retention_taxonomy_id['Taxonomy']['id'];
         }
-        $taxonomy = $this->Taxonomy->getTaxonomy($retention_taxonomy_id, array('full' => true));
+        $taxonomy = $this->Taxonomy->getTaxonomy($retention_taxonomy_id);
         $this->retention_taxonomy = array();
         foreach ($taxonomy['entries'] as $k => $entry) {
             $this->retention_taxonomy[$entry['tag']] = $entry['numerical_value'];
