@@ -189,7 +189,7 @@ function triggerEventFilteringTool(hide) {
                 "id": "distribution",
                 "label": "Distribution",
                 "values": {
-                    0: "Your orginisation only",
+                    0: "Your organisation only",
                     1: "This community only",
                     2: "Connected community",
                     3: "All communities",

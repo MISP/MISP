@@ -3628,6 +3628,13 @@ class Attribute extends AppModel
         if (!empty($parentEvent)) {
             $params['parentEvent'] = $parentEvent;
         }
+        if (!empty($attribute['SharingGroup'])) {
+            $attribute['sharing_group_id'] = $this->SharingGroup->captureSG($attribute['SharingGroup'], $user);
+        } elseif (!empty($attribute['sharing_group_id'])) {
+            if (!$this->SharingGroup->checkIfAuthorised($user, $attribute['sharing_group_id'])) {
+                unset($attribute['sharing_group_id']);
+            }
+        }
         if (!$this->save($attribute, $params)) {
             $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
             $log->create();
