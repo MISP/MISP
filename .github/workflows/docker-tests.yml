@@ -20,10 +20,12 @@ jobs:
         with:
           ref: "add-codeception-api-tests"
           submodules: "recursive"
+      - name: Change dir
+        run: cd app/
       - name: Install PHP dependencies
         uses: php-actions/composer@v6
-        with:
-          command: composer install -d app/
+      - name: Change dir
+        run: cd ..
       - name: Checkout coolacid/docker-misp
         uses: actions/checkout@v2
         with:
@@ -35,5 +37,5 @@ jobs:
           docker-compose -f misp-docker/docker-compose.yml up -d
       - name: Run API tests
         run: |
-          cd app
+          cd app/
           make test
