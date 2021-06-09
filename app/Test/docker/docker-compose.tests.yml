@@ -9,11 +9,6 @@ services:
       - "63790:6379"
 
   misp:
-    ports:
-      - "8000:80"
-      - "8443:443"
-    environment:
-      - "HOSTNAME=https://localhost:8443"
     volumes:
       - "/home/runner/work/MISP/MISP/app/:/var/www/MISP/app/"
       

@@ -5,7 +5,7 @@ suites:
         modules:
             enabled:
                 - \Helper\Module\Api:
-                      url: https://localhost:8443
+                      url: https://localhost
                       depends: PhpBrowser
                 - \Helper\Module\ExtendedDb:
                       depends: Db
@@ -55,7 +55,7 @@ suites:
                 - \Helper\Module\WireMock
             config:
                 PhpBrowser:
-                    url: https://localhost:8443
+                    url: https://localhost
                     headers:
                         Accept: application/json
                         Content-Type: application/json
