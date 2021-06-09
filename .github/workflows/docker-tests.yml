@@ -23,8 +23,9 @@ jobs:
       - name: Install PHP dependencies
         uses: php-actions/composer@v6
         with:
-          args: --working-dir=app/
           php_version: 7.2
+          version: 2
+          args: --working-dir=app/
       - name: Checkout coolacid/docker-misp
         uses: actions/checkout@v2
         with:
