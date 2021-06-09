@@ -325,10 +325,19 @@ class Taxonomy extends AppModel
             }
             $tagNames = array_column($taxonomy['entries'], 'tag');
             $tags = $this->Tag->getTagsByName($tagNames, false);
+            $filterActive = false;
+            if (isset($options['enabled'])) {
+                $filterActive = true;
+                $enabledTag = isset($options['enabled']) ? $options['enabled'] : null;
+            }
             if (isset($taxonomy['entries'])) {
                 foreach ($taxonomy['entries'] as $key => $temp) {
                     if (isset($tags[strtoupper($temp['tag'])])) {
                         $existingTag = $tags[strtoupper($temp['tag'])];
+                        if ($filterActive && $options['enabled'] == $existingTag['Tag']['hide_tag']) {
+                            unset($taxonomy['entries'][$key]);
+                            continue;
+                        }
                         $taxonomy['entries'][$key]['existing_tag'] = $existingTag;
                         // numerical_value is overridden at tag level. Propagate the override further up
                         if (isset($existingTag['Tag']['original_numerical_value'])) {
@@ -336,7 +345,11 @@ class Taxonomy extends AppModel
                             $taxonomy['entries'][$key]['numerical_value'] = $existingTag['Tag']['numerical_value'];
                         }
                     } else {
-                        $taxonomy['entries'][$key]['existing_tag'] = false;
+                        if ($filterActive) {
+                            unset($taxonomy['entries'][$key]);
+                        } else {
+                            $taxonomy['entries'][$key]['existing_tag'] = false;
+                        }
                     }
                 }
             }
