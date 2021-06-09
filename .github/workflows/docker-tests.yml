@@ -35,7 +35,7 @@ jobs:
       - name: Build the stack
         run: |
           ls -la
-          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml up -d
+          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml -f /home/runner/work/MISP/MISP/app/Test/docker/docker-compose.tests.yml up -d
       - name: Run API tests
         run: |
           docker ps
