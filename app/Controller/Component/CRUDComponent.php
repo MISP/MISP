@@ -85,9 +85,15 @@ class CRUDComponent extends Component
             } else {
                 $data = $input;
             }
+            if (isset($params['beforeSave'])) {
+                $data = $params['beforeSave']($data);
+            }
             /** @var Model $model */
             $model = $this->Controller->{$modelName};
             if ($model->save($data)) {
+                if (isset($params['afterSave'])) {
+                    $params['afterSave']($data);
+                }
                 $data = $model->find('first', [
                     'recursive' => -1,
                     'conditions' => [
@@ -161,9 +167,15 @@ class CRUDComponent extends Component
         if (!empty($params['conditions'])) {
             $query['conditions']['AND'][] = $params['conditions'];
         }
+        if (!empty($params['contain'])) {
+            $query['contain'] = $params['contain'];
+        }
         /** @var Model $model */
         $model = $this->Controller->{$modelName};
         $data = $model->find('first', $query);
+        if (empty($data)) {
+            throw new NotFoundException(__('Invalid %s.', $modelName));
+        }
         if (isset($params['afterFind'])) {
             $data = $params['afterFind']($data);
         }
@@ -190,6 +202,9 @@ class CRUDComponent extends Component
                 $data = $params['beforeSave']($data);
             }
             if ($model->save($data)) {
+                if (isset($params['afterSave'])) {
+                    $params['afterSave']($data);
+                }
                 $message = __('%s updated.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');

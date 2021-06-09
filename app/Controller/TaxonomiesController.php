@@ -69,17 +69,11 @@ class TaxonomiesController extends AppController
         }
 
         $this->set('taxonomy', $taxonomy['Taxonomy']);
-        $this->set('id', $id);
+        $this->set('id', $taxonomy['Taxonomy']['id']);
     }
 
     public function taxonomy_tags($id)
     {
-        if (isset($this->passedArgs['pages'])) {
-            $currentPage = $this->passedArgs['pages'];
-        } else {
-            $currentPage = 1;
-        }
-        $this->set('page', $currentPage);
         $urlparams = '';
         App::uses('CustomPaginationTool', 'Tools');
         $filter = isset($this->passedArgs['filter']) ? $this->passedArgs['filter'] : false;
@@ -121,12 +115,20 @@ class TaxonomiesController extends AppController
             return $this->RestResponse->viewData($taxonomy, $this->response->type());
         }
 
+        if (isset($this->passedArgs['pages'])) {
+            $currentPage = $this->passedArgs['pages'];
+        } else {
+            $currentPage = 1;
+        }
+        $this->set('page', $currentPage);
+
         $this->set('entries', $taxonomy['entries']);
         $this->set('urlparams', $urlparams);
         $this->set('passedArgs', json_encode($this->passedArgs));
         $this->set('passedArgsArray', $this->passedArgs);
         $this->set('taxonomy', $taxonomy['Taxonomy']);
-        $this->set('id', $id);
+        $this->set('id', $taxonomy['Taxonomy']['id']);
+        $this->set('title_for_layout', __('%s Taxonomy Library', h(strtoupper($taxonomy['Taxonomy']['namespace']))));
         $this->render('ajax/taxonomy_tags');
     }
 

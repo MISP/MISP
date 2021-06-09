@@ -164,6 +164,11 @@ class Taxonomy extends AppModel
         return $this->validationErrors;
     }
 
+    /**
+     * @param int|string $id Taxonomy ID or namespace
+     * @param string|null $options
+     * @return array|false
+     */
     private function __getTaxonomy($id, $options = array('full' => false, 'filter' => false))
     {
         $recursive = -1;
@@ -190,6 +195,9 @@ class Taxonomy extends AppModel
                 foreach ($predicate['TaxonomyEntry'] as $entry) {
                     $temp = array('tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value'] . '="' . $entry['value'] . '"');
                     $temp['expanded'] = (!empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value']) . ': ' . (!empty($entry['expanded']) ? $entry['expanded'] : $entry['value']);
+                    if (isset($entry['description']) && !empty($entry['description'])) {
+                        $temp['description'] = $entry['description'];
+                    }
                     if (isset($entry['colour']) && !empty($entry['colour'])) {
                         $temp['colour'] = $entry['colour'];
                     }
@@ -202,6 +210,9 @@ class Taxonomy extends AppModel
             } else {
                 $temp = array('tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value']);
                 $temp['expanded'] = !empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value'];
+                if (isset($predicate['description']) && !empty($predicate['description'])) {
+                    $temp['description'] = $predicate['description'];
+                }
                 if (isset($predicate['colour']) && !empty($predicate['colour'])) {
                     $temp['colour'] = $predicate['colour'];
                 }
@@ -213,9 +224,10 @@ class Taxonomy extends AppModel
         }
         $taxonomy = array('Taxonomy' => $taxonomy['Taxonomy']);
         if ($filter) {
+            $filter = mb_strtolower($filter);
             $namespaceLength = strlen($taxonomy['Taxonomy']['namespace']);
             foreach ($entries as $k => $entry) {
-                if (strpos(substr(mb_strtolower($entry['tag']), $namespaceLength), mb_strtolower($filter)) === false) {
+                if (strpos(substr(mb_strtolower($entry['tag']), $namespaceLength), $filter) === false) {
                     unset($entries[$k]);
                 }
             }
@@ -315,14 +327,20 @@ class Taxonomy extends AppModel
         return $entries;
     }
 
+    /**
+     * @param int|string $id Taxonomy ID or namespace
+     * @param array|null $options
+     * @return array|false
+     */
     public function getTaxonomy($id, $options = array('full' => true))
     {
+        $taxonomy = $this->__getTaxonomy($id, $options);
+        if (empty($taxonomy)) {
+            return false;
+        }
         $this->Tag = ClassRegistry::init('Tag');
         $taxonomy = $this->__getTaxonomy($id, $options);
         if (isset($options['full']) && $options['full']) {
-            if (empty($taxonomy)) {
-                return false;
-            }
             $tagNames = array_column($taxonomy['entries'], 'tag');
             $tags = $this->Tag->getTagsByName($tagNames, false);
             $filterActive = false;
