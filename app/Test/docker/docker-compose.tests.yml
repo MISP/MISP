@@ -8,9 +8,9 @@ services:
     ports:
       - "63790:6379"
 
-  # misp:
-  #   volumes:
-  #     - "/home/runner/work/MISP/MISP/app/:/var/www/MISP/app/"
+  misp:
+    volumes:
+      - "/home/runner/work/MISP/MISP/app/:/var/www/MISP/app/"
   #     - "./server-configs/:/var/www/MISP/app/Config/"
   #     - "./logs/:/var/www/MISP/app/tmp/logs/"
   #     - "./files/:/var/www/MISP/app/files"
