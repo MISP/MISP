@@ -24,7 +24,6 @@ jobs:
       - name: Set permissions
         run: |
           sudo chown -R www-data:www-data /home/runner/work/MISP/MISP/app
-          sudo chmod 755 -R /home/runner/work/MISP/MISP/app
       - name: Checkout coolacid/docker-misp
         uses: actions/checkout@v2
         with:
@@ -43,7 +42,7 @@ jobs:
           sudo update-ca-certificates
       - name: Turn MISP live
         run: |
-          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "/var/www/MISP/app/Console/cake Live 1"
+          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec -T misp bash -c "/var/www/MISP/app/Console/cake Live 1"
       - name: Run API test suite
         # continue-on-error: true
         run: |
