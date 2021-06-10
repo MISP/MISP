@@ -53,15 +53,13 @@ jobs:
       - name: Turn MISP live
         continue-on-error: true
         run: |
-          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec --user www-data misp bash -cT "/var/www/MISP/app/Console/cake Admin setSetting MISP.live 1"
+          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec --user www-data misp bash -cT "/var/www/MISP/app/Console/cake Live 1"
       - name: Run API test suite
         continue-on-error: true
         run: |
           sudo chown -R $USER:$USER /home/runner/work/MISP/MISP/app/Test/_output/
           cd app/
-          # make test
-          Vendor/bin/codecept build
-          Vendor/bin/codecept run Test/Api/Attributes/IndexAttributesCest.php
+          make test
       - name: Debug logs
         run: |
           docker ps
