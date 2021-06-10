@@ -13,6 +13,11 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install curl openssl
+          openssl version
       - name: Checkout
         uses: actions/checkout@v2
         with:
@@ -23,7 +28,7 @@ jobs:
         with:
           php_version: 7.2
           version: 2
-          php_extensions: pcntl
+          php_extensions: pcntl curl
           args: --working-dir=app/
       - name: Checkout coolacid/docker-misp
         uses: actions/checkout@v2
@@ -35,10 +40,18 @@ jobs:
       - name: Sleep
         uses: jakejarvis/wait-action@master
         with:
-          time: '30s'
+          time: '60s'
+      - name: Add Docker MISP CA to trusted certificates
+        continue-on-error: true
+        run: |
+          sudo cp /home/runner/work/MISP/MISP/docker-misp/ssl/cert.pem /usr/local/share/ca-certificates/docker-misp.crt
+          sudo chmod 644 /usr/local/share/ca-certificates/docker-misp.crt
+          sudo update-ca-certificates
+          openssl s_client -connect localhost:443 -CApath /etc/ssl/certs
       - name: Check running containers
         run: docker ps
       - name: Run API test suite
+        continue-on-error: true
         run: |
           sudo chown -R $USER:$USER /home/runner/work/MISP/MISP/app/Test/_output/
           cd app/
@@ -47,5 +60,8 @@ jobs:
           Vendor/bin/codecept run Test/Api/Attributes/IndexAttributesCest.php
       - name: Debug logs
         run: |
+          docker ps
+          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml logs misp
+          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec misp bash -c "tail -n 100 /var/www/MISP/app/tmp/logs/error.log"
           tail -n 200 /home/runner/work/MISP/MISP/app/tmp/logs/debug.log
           tail -n 200 /home/runner/work/MISP/MISP/app/tmp/logs/error.log
