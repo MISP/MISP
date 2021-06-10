@@ -10,11 +10,7 @@ jobs:
   test-api-dockerized:
     runs-on: ubuntu-latest
     steps:
-      - name: Install dependencies
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install curl openssl
-      - name: Checkout
+      - name: Checkout MISP project
         uses: actions/checkout@v2
         with:
           ref: 'add-codeception-api-tests'
@@ -38,7 +34,6 @@ jobs:
         with:
           time: '60s'
       - name: Add Docker MISP CA to trusted certificates
-        continue-on-error: true
         run: |
           sudo cp /home/runner/work/MISP/MISP/docker-misp/ssl/cert.pem /usr/local/share/ca-certificates/docker-misp.crt
           sudo chmod 644 /usr/local/share/ca-certificates/docker-misp.crt
