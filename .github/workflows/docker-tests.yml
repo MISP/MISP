@@ -37,15 +37,15 @@ jobs:
           sudo cp /home/runner/work/MISP/MISP/docker-misp/ssl/cert.pem /usr/local/share/ca-certificates/docker-misp.crt
           sudo chmod 644 /usr/local/share/ca-certificates/docker-misp.crt
           sudo update-ca-certificates
-      - name: Check running containers
-        run: docker ps
+      - name: Set permissions
+        run: |
+          sudo chown -R $USER:$USER /home/runner/work/MISP/MISP/app/
       - name: Turn MISP live
         run: |
           docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "/var/www/MISP/app/Console/cake Live 1"
       - name: Run API test suite
         # continue-on-error: true
         run: |
-          sudo chown -R $USER:$USER /home/runner/work/MISP/MISP/app/Test/_output/
           cd app/
           make test
       # - name: Debug logs
