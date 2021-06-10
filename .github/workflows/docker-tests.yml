@@ -23,7 +23,8 @@ jobs:
           args: --working-dir=app/
       - name: Set permissions
         run: |
-          sudo chown -R www-data:www-data app/
+          sudo chown -R www-data:www-data /home/runner/work/MISP/MISP/app
+          chmod 755 -R /home/runner/work/MISP/MISP/app
       - name: Checkout coolacid/docker-misp
         uses: actions/checkout@v2
         with:
