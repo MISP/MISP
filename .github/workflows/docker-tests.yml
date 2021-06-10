@@ -17,6 +17,7 @@ jobs:
         run: |
           sudo apt-get -y update
           sudo apt-get -y install curl 
+          openssl version
       - name: Checkout
         uses: actions/checkout@v2
         with:
@@ -42,9 +43,10 @@ jobs:
           time: '30s'
       - name: Add Docker MISP CA to trusted certificates
         run: |
-          sudo cp /home/runner/work/MISP/MISP/docker-misp/ssl/cert.pem /etc/ssl/certs/docker-misp.pem
-          sudo chmod 644 /etc/ssl/certs/docker-misp.pem
+          sudo cp /home/runner/work/MISP/MISP/docker-misp/ssl/cert.pem /usr/local/share/ca-certificates/docker-misp.crt
+          sudo chmod 644 /usr/local/share/ca-certificates/docker-misp.crt
           sudo update-ca-certificates
+          openssl s_client -connect localhost:443 -CApath /etc/ssl/certs
       - name: Check running containers
         run: docker ps
       - name: Run API test suite
