@@ -161,7 +161,7 @@ class CRUDComponent extends Component
         $query = isset($params['get']) ? $params['get'] : [
             'recursive' => -1,
             'conditions' => [
-                'id' => $id
+                $modelName . '.id' => $id
             ],
         ];
         if (!empty($params['conditions'])) {
