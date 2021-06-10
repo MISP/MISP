@@ -36,6 +36,11 @@ jobs:
         uses: jakejarvis/wait-action@master
         with:
           time: '30s'
+      - name: Add Docker MISP CA to trusted certificates
+        run: |
+          cp /home/runner/work/MISP/MISP/docker-misp/ssl/cert.pem /usr/local/share/ca-certificates/docker-misp.pem
+          chmod 644 /usr/local/share/ca-certificates/docker-misp.pem
+          sudo update-ca-certificates
       - name: Check running containers
         run: docker ps
       - name: Run API test suite
