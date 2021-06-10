@@ -21,9 +21,6 @@ jobs:
           version: 2
           php_extensions: pcntl curl
           args: --working-dir=app/
-      - name: Set permissions
-        run: |
-          sudo chown -R www-data:www-data /home/runner/work/MISP/MISP/app
       - name: Checkout coolacid/docker-misp
         uses: actions/checkout@v2
         with:
