@@ -40,7 +40,7 @@ jobs:
       - name: Sleep
         uses: jakejarvis/wait-action@master
         with:
-          time: '30s'
+          time: '60s'
       - name: Add Docker MISP CA to trusted certificates
         run: |
           sudo cp /home/runner/work/MISP/MISP/docker-misp/ssl/cert.pem /usr/local/share/ca-certificates/docker-misp.crt
