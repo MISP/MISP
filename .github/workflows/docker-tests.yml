@@ -21,6 +21,9 @@ jobs:
           version: 2
           php_extensions: pcntl curl
           args: --working-dir=app/
+      - name: Set permissions
+        run: |
+          sudo chown -R www-data:www-data app/
       - name: Checkout coolacid/docker-misp
         uses: actions/checkout@v2
         with:
@@ -37,9 +40,6 @@ jobs:
           sudo cp /home/runner/work/MISP/MISP/docker-misp/ssl/cert.pem /usr/local/share/ca-certificates/docker-misp.crt
           sudo chmod 644 /usr/local/share/ca-certificates/docker-misp.crt
           sudo update-ca-certificates
-      - name: Set permissions
-        run: |
-          sudo chown -R $USER:$USER /home/runner/work/MISP/MISP/app/
       - name: Turn MISP live
         run: |
           docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "/var/www/MISP/app/Console/cake Live 1"
