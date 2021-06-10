@@ -42,6 +42,7 @@ jobs:
         with:
           time: '60s'
       - name: Add Docker MISP CA to trusted certificates
+        continue-on-error: true
         run: |
           sudo cp /home/runner/work/MISP/MISP/docker-misp/ssl/cert.pem /usr/local/share/ca-certificates/docker-misp.crt
           sudo chmod 644 /usr/local/share/ca-certificates/docker-misp.crt
@@ -50,6 +51,7 @@ jobs:
       - name: Check running containers
         run: docker ps
       - name: Run API test suite
+        continue-on-error: true
         run: |
           sudo chown -R $USER:$USER /home/runner/work/MISP/MISP/app/Test/_output/
           cd app/
