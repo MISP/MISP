@@ -39,10 +39,11 @@ jobs:
           sudo update-ca-certificates
       - name: Turn MISP live
         run: |
-          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec -T misp bash -c "/var/www/MISP/app/Console/cake Live 1"
+          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "/var/www/MISP/app/Console/cake Live 1"
       - name: Run API test suite
         # continue-on-error: true
         run: |
+          sudo chown -R $USER:$USER /home/runner/work/MISP/MISP/app/Test/_output/
           cd app/
           make test
       # - name: Debug logs
