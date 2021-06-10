@@ -40,7 +40,7 @@ jobs:
       - name: Wait 30s for containers to spin up
         uses: jakejarvis/wait-action@master
         with:
-          time: '30s'
+          time: '60s'
       #- name: Add Docker MISP CA to trusted certificates
       #  continue-on-error: true
       #  run: |
