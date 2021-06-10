@@ -58,5 +58,8 @@ jobs:
           Vendor/bin/codecept run Test/Api/Attributes/IndexAttributesCest.php
       - name: Debug logs
         run: |
+          docker ps
+          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml logs misp
+          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec misp bash -c "tail -n 100 /var/www/MISP/app/tmp/logs/error.log"
           tail -n 200 /home/runner/work/MISP/MISP/app/tmp/logs/debug.log
           tail -n 200 /home/runner/work/MISP/MISP/app/tmp/logs/error.log
