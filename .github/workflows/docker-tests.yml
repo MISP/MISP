@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get -y update
-          sudo apt-get -y install curl 
+          sudo apt-get -y install curl openssl
           openssl version
       - name: Checkout
         uses: actions/checkout@v2
