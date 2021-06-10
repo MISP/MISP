@@ -1,4 +1,4 @@
-# Data visibility for Sync-users
+# Data visibility for Sync-users and MISP synchronisation
 
 Sync-users are used to serve as the point of connection between instances.
 Typically, events pushed to an instance are created via a sync-user account residing on the remote instance.
