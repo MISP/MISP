@@ -51,7 +51,8 @@ jobs:
       - name: Check running containers
         run: docker ps
       - name: Turn MISP live
-        run: docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec misp bash -c "app/Console/cake Live 1"
+        continue-on-error: true
+        run: docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec misp bash -c "/var/www/MISP/app/Console/cake Live 1"
       - name: Run API test suite
         continue-on-error: true
         run: |
