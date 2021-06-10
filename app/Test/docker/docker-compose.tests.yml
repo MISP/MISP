@@ -11,6 +11,10 @@ services:
   misp:
     volumes:
       - "/home/runner/work/MISP/MISP/app/:/var/www/MISP/app/"
+      - "./server-configs/:/var/www/MISP/app/Config/"
+      - "./logs/:/var/www/MISP/app/tmp/logs/"
+      - "./files/:/var/www/MISP/app/files"
+      - "./ssl/:/etc/nginx/certs"
       
   wiremock:
     image: rodolpheche/wiremock
