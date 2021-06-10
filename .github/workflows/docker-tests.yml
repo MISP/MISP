@@ -52,7 +52,8 @@ jobs:
         run: docker ps
       - name: Turn MISP live
         continue-on-error: true
-        run: docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec misp bash -c "/var/www/MISP/app/Console/cake Live 1"
+        run: |
+          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec misp bash -c "/var/www/MISP/app/Console/cake Live 1"
       - name: Run API test suite
         continue-on-error: true
         run: |
