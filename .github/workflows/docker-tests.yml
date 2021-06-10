@@ -21,8 +21,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: "add-codeception-api-tests"
-          submodules: "recursive"
+          ref: 'add-codeception-api-tests'
+          submodules: 'recursive'
       - name: Install PHP dependencies
         uses: php-actions/composer@v6
         with:
@@ -50,6 +50,8 @@ jobs:
           openssl s_client -connect localhost:443 -CApath /etc/ssl/certs
       - name: Check running containers
         run: docker ps
+      - name: Turn MISP live
+        run: docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec misp bash -c "app/Console/cake Live 1"
       - name: Run API test suite
         continue-on-error: true
         run: |
