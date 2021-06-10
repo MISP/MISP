@@ -155,11 +155,14 @@ class CRUDComponent extends Component
         $query = isset($params['get']) ? $params['get'] : [
             'recursive' => -1,
             'conditions' => [
-                'id' => $id
+                $modelName . '.id' => $id
             ],
         ];
         if (!empty($params['conditions'])) {
             $query['conditions']['AND'][] = $params['conditions'];
+        }
+        if (!empty($params['contain'])) {
+            $query['contain'] = $params['contain'];
         }
         /** @var Model $model */
         $model = $this->Controller->{$modelName};

@@ -83,6 +83,7 @@ class AuthKeysController extends AppController
                 return $authKey;
             },
             'fields' => ['comment', 'allowed_ips', 'expiration'],
+            'contain' => ['User.id', 'User.org_id']
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
