@@ -12,8 +12,8 @@ jobs:
     steps:
       - name: Checkout MISP project
         uses: actions/checkout@v2
-      - name: Checkout MISP submodules
-        run: git submodule update --init --recursive
+        with:
+          submodules: recursive
       - name: Install PHP dependencies
         uses: php-actions/composer@v6
         with:
