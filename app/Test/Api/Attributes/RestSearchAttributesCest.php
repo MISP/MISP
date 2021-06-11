@@ -37,10 +37,17 @@ class RestSearchAttributesCest
         $I->haveInDatabase('events', $fakeEvent->toDatabase());
 
         $fakeAttributeFoo = AttributeFixture::fake([
+            'id' => 1001,
             'event_id' => $eventId,
             'value1' => 'foo'
         ]);
-        $fakeAttributeBar = AttributeFixture::fake(['event_id' => $eventId, 'value1' => 'bar']);
+        $fakeAttributeBar = AttributeFixture::fake(
+            [
+                'id' => 1002,
+                'event_id' => $eventId,
+                'value1' => 'bar'
+            ]
+        );
         $I->haveInDatabase('attributes', $fakeAttributeFoo->toDatabase());
         $I->haveInDatabase('attributes', $fakeAttributeBar->toDatabase());
 
