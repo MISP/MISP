@@ -32,11 +32,6 @@ jobs:
         uses: jakejarvis/wait-action@master
         with:
           time: '90s'
-      - name: Add Docker MISP cert to trusted certificates
-        run: |
-          sudo cp /home/runner/work/MISP/MISP/docker-misp/ssl/cert.pem /usr/local/share/ca-certificates/docker-misp.crt
-          sudo chmod 644 /usr/local/share/ca-certificates/docker-misp.crt
-          sudo update-ca-certificates
       - name: Turn MISP live
         run: |
           docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "/var/www/MISP/app/Console/cake Live 1"
