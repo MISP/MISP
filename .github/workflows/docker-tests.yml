@@ -26,9 +26,6 @@ jobs:
         with:
           repository: coolacid/docker-misp
           path: docker-misp
-      - uses: satackey/action-docker-layer-caching@v0.0.11
-        # Ignore the failure of a step and avoid terminating the job.
-        continue-on-error: true
       - name: Start MISP docker containers
         run: docker-compose -f docker-misp/docker-compose.yml -f app/Test/docker/docker-compose.tests.yml up --build -d
       - name: Wait 90s for containers to spin up
