@@ -5226,6 +5226,17 @@
                 "extra": ""
             },
             {
+                "column_name": "remove_missing_tags",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
                 "column_name": "pull_rules",
                 "is_nullable": "NO",
                 "data_type": "text",
@@ -8169,5 +8180,5 @@
             "id": true
         }
     },
-    "db_version": "70"
+    "db_version": "71"
 }

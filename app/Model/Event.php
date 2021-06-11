@@ -4031,6 +4031,7 @@ class Event extends AppModel
                     'Server.unpublish_event',
                     'Server.publish_without_email',
                     'Server.internal',
+                    'Server.remove_missing_tags'
                 )
             ));
         } else {
@@ -4129,7 +4130,7 @@ class Event extends AppModel
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 foreach ($data['Event']['Attribute'] as $k => $attribute) {
                     $nothingToChange = false;
-                    $result = $this->Attribute->editAttribute($attribute, $this->id, $user, 0, $this->Log, $force, $nothingToChange);
+                    $result = $this->Attribute->editAttribute($attribute, $this->id, $user, 0, $this->Log, $force, $nothingToChange, $server);
                     if ($result !== true) {
                         $validationErrors['Attribute'][] = $result;
                     }
