@@ -12,8 +12,8 @@ jobs:
     steps:
       - name: Checkout MISP project
         uses: actions/checkout@v2
-      - name: Checkout MISP submodules
-        run: git submodule update --init --recursive
+        with:
+          submodules: recursive
       - name: Install PHP dependencies
         uses: php-actions/composer@v6
         with:
@@ -27,27 +27,27 @@ jobs:
           repository: coolacid/docker-misp
           path: docker-misp
       - name: Start MISP docker containers
-        run: docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml -f /home/runner/work/MISP/MISP/app/Test/docker/docker-compose.tests.yml up -d
-      - name: Wait 60s for containers to spin up
+        run: docker-compose -f docker-misp/docker-compose.yml -f app/Test/docker/docker-compose.tests.yml up -d
+      - name: Wait 30s for containers to spin up
         uses: jakejarvis/wait-action@master
         with:
-          time: '60s'
+          time: "30s"
       - name: Add Docker MISP cert to trusted certificates
         run: |
-          sudo cp /home/runner/work/MISP/MISP/docker-misp/ssl/cert.pem /usr/local/share/ca-certificates/docker-misp.crt
+          sudo cp docker-misp/ssl/cert.pem /usr/local/share/ca-certificates/docker-misp.crt
           sudo chmod 644 /usr/local/share/ca-certificates/docker-misp.crt
           sudo update-ca-certificates
       - name: Turn MISP live
         run: |
-          docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "/var/www/MISP/app/Console/cake Live 1"
+          docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Live 1"
       - name: Run API test suite
         # continue-on-error: true
         run: |
-          sudo chown -R $USER:$USER /home/runner/work/MISP/MISP/app/Test/_output/
+          sudo chown -R $USER:$USER app/Test/_output/
           cd app/
           make test
       # - name: Debug logs
       #   run: |
       #     docker ps
       #     docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml logs misp
-      #     docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "tail -n 100 /var/www/MISP/app/tmp/logs/error.log"
+      #     docker-compose -f /home/runner/work/MISP/MISP/docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "tail -n 100 app/tmp/logs/error.log"
