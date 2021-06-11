@@ -31,7 +31,7 @@ jobs:
       - name: Wait 90s for containers to spin up
         uses: jakejarvis/wait-action@master
         with:
-          time: '90s'
+          time: '120s'
       - name: Turn MISP live
         run: |
           docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Live 1"
