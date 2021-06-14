@@ -62,6 +62,7 @@ class AddSightingCest
         $fakeSighting->set([
             'id' => $I->grabDataFromResponseByJsonPath('$..Sighting.id')[0],
             'uuid' => $I->grabDataFromResponseByJsonPath('$..Sighting.uuid')[0],
+            'date_sighting' => $I->grabDataFromResponseByJsonPath('$..Sighting.date_sighting')[0],
         ]);
 
         $I->validateRequest();

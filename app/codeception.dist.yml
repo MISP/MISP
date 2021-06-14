@@ -5,7 +5,7 @@ suites:
         modules:
             enabled:
                 - \Helper\Module\Api:
-                      url: https://localhost:8443
+                      url: https://localhost
                       depends: PhpBrowser
                 - \Helper\Module\ExtendedDb:
                       depends: Db
@@ -22,9 +22,9 @@ suites:
                           - "TRUNCATE misp.tags;"
                           - "TRUNCATE misp.attribute_tags;"
                           - "TRUNCATE misp.event_tags;"
-                          - "TRUNCATE misp.galaxies;"
                           - "TRUNCATE misp.galaxy_clusters;"
                           - "TRUNCATE misp.galaxy_elements;"
+                          - "TRUNCATE misp.galaxies;"
                           - "TRUNCATE misp.jobs;"
                           - "TRUNCATE misp.servers;"
                           - "TRUNCATE misp.sharing_groups;"
@@ -34,6 +34,7 @@ suites:
                           - "TRUNCATE misp.warninglists;"
                           - "TRUNCATE misp.warninglist_entries;"
                           - "TRUNCATE misp.warninglist_types;"
+                          - "TRUNCATE misp.objects;"
                           - "TRUNCATE misp.object_templates;"
                           - "TRUNCATE misp.object_template_elements;"
                           - "TRUNCATE misp.noticelists;"
@@ -48,14 +49,14 @@ suites:
                 - \Helper\Module\MispSettings:
                       depends: Cli
                       docker: true
-                      docker_compose_file: "/home/john/docker-misp/docker-compose.yml"
+                      docker_compose_file: "/home/runner/work/MISP/MISP/docker-misp/docker-compose.yml"
                 - \Helper\Module\OpenApiValidator:
                       depends: \Helper\Module\Api
                       openapi: "webroot/doc/openapi.yaml"
                 - \Helper\Module\WireMock
             config:
                 PhpBrowser:
-                    url: https://localhost:8443
+                    url: https://localhost
                     headers:
                         Accept: application/json
                         Content-Type: application/json

@@ -1,0 +1,28 @@
+version: '3'
+services:
+  db:
+    ports:
+      - "33060:3306"
+
+  redis:
+    ports:
+      - "63790:6379"
+
+  misp:
+    volumes:
+      - "/home/runner/work/MISP/MISP/app/Console:/var/www/MISP/app/Console"
+      - "/home/runner/work/MISP/MISP/app/Controller:/var/www/MISP/app/Controller"
+      - "/home/runner/work/MISP/MISP/app/View:/var/www/MISP/app/View"
+      - "/home/runner/work/MISP/MISP/app/Model:/var/www/MISP/app/Model"
+      - "/home/runner/work/MISP/MISP/app/webroot:/var/www/MISP/app/webroot"
+      - "/home/runner/work/MISP/MISP/app/Locale:/var/www/MISP/app/Locale"
+      - "/home/runner/work/MISP/MISP/app/Lib/Dashboard:/var/www/MISP/app/Lib/Dashboard"
+      - "/home/runner/work/MISP/MISP/app/Lib/EventReport:/var/www/MISP/app/Lib/EventReport"
+      - "/home/runner/work/MISP/MISP/app/Lib/Export:/var/www/MISP/app/Lib/Export"
+      - "/home/runner/work/MISP/MISP/app/Lib/Tools:/var/www/MISP/app/Lib/Tools"
+      
+  wiremock:
+    image: rodolpheche/wiremock
+    command: "--verbose"
+    ports:
+      - "8080:8080"

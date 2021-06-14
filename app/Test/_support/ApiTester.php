@@ -29,7 +29,6 @@ class ApiTester extends \Codeception\Actor
 
     public function _beforeSuite(array $settings = array()): void
     {
-        die('before suite');
         $this->haveMispSetting('Security.advanced_authkeys', '1');
         $this->haveMispSetting('MISP.live', '1');
     }

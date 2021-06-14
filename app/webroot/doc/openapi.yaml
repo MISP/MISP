@@ -46,7 +46,7 @@ info:
     * [GitHub project FAQ](https://github.com/MISP/MISP/wiki/Frequently-Asked-Questions)
 
 servers:
-  - url: /
+  - url: https://misp.local
 tags:
   - name: Attributes
     description: "Attributes in MISP can be network indicators (e.g. IP address), system indicators (e.g. a string in memory) or even bank account details."
@@ -3605,7 +3605,13 @@ components:
           nullable: true
           anyOf:
             - type: object
+            - type: string
             - type: array
+              items:
+                type: string
+            - type: array
+              items:
+                type: object
 
     Worker:
       type: object
@@ -6191,10 +6197,13 @@ components:
                 type: string
                 example: "2.4.142"
               perm_sync:
+                nullable: true
                 type: boolean
               perm_sighting:
+                nullable: true
                 type: boolean
               perm_galaxy_editor:
+                nullable: true
                 type: boolean
               request_encoding:
                 type: array
@@ -6328,6 +6337,7 @@ components:
                     example: "Database/Mysql"
                   actual_db_version:
                     type: string
+                    format: int32
                     example: "68"
                   checked_table_column:
                     type: array
@@ -6337,18 +6347,28 @@ components:
                   diagnostic:
                     type: object
                   diagnostic_index:
-                    type: array
-                    items:
-                      type: object
+                    anyOf:
+                      - type: object
+                        example:
+                          "event_reports":
+                            "event_id":
+                              "message": "Column `event_id` is indexed but should not"
+                              "sql": "DROP INDEX `event_id` ON event_reports;"
+                      - type: array
+                        items: 
+                          type: object
+                        example: []
                   expected_db_version:
                     type: string
-                    example: "67"
+                    format: int32
+                    example: "70"
                   error:
                     type: string
                   update_locked:
                     type: boolean
                   remaining_lock_time:
                     type: number
+                    example: 0
                   update_fail_number_reached:
                     type: boolean
                   indexes:

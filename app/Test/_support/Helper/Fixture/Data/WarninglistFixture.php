@@ -22,8 +22,7 @@ class WarninglistFixture extends AbstractFixture implements FixtureInterface
             'type' => 'cidr',
             'description' => $faker->text(200),
             'version' => (string)$faker->numberBetween(),
-            'enabled' => false,
-            'warninglist_entry_count' => (string)$faker->numberBetween()
+            'enabled' => false
         ];
 
         return new WarninglistFixture(array_merge($defaults, $attributes));
