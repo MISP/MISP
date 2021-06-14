@@ -9,6 +9,7 @@ on:
 jobs:
   test-api-dockerized:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout MISP project
         uses: actions/checkout@v2
@@ -31,7 +32,7 @@ jobs:
       - name: Wait for containers to spin up
         continue-on-error: true
         run: |
-          docker-compose -f docker-misp/docker-compose.yml logs -f misp | sed "/Start Workers...finished/ q0"
+          awk '/Start Workers...finished/{exit}0' < <(docker-compose -f docker-misp/docker-compose.yml logs -f misp)
       - name: Turn MISP live
         run: |
           docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Live 1"
