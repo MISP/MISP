@@ -319,6 +319,12 @@ class Role extends AppModel
                 'readonlyenabled' => false,
                 'title' => __('Allow users to publish data to Kafka via the publish event to Kafka button.'),
             ),
+            'perm_warninglist' => array(
+                'id' => 'RolePermWarninglist',
+                'text' => 'Warninglist Editor',
+                'readonlyenabled' => false,
+                'title' => __('Allow to manage warninglists.'),
+            )
         );
     }
 }
