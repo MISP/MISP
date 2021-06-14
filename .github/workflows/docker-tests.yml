@@ -29,7 +29,9 @@ jobs:
       - name: Start MISP docker containers
         run: docker-compose -f docker-misp/docker-compose.yml -f app/Test/docker/docker-compose.tests.yml up --build -d
       - name: Wait for containers to spin up
-        run: docker-compose -f docker-misp/docker-compose.yml logs -f misp | sed '/Start Workers...finished/ q'
+        continue-on-error: true
+        run: |
+          docker-compose -f docker-misp/docker-compose.yml logs -f misp | sed "/Start Workers...finished/ q0"
       - name: Turn MISP live
         run: |
           docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Live 1"
@@ -37,7 +39,7 @@ jobs:
         # continue-on-error: true
         run: |
           sudo chown -R $USER:$USER app/Test/_output/
-          cd app/
+          pushd app
           make test
       # - name: Debug logs
       #   run: |
