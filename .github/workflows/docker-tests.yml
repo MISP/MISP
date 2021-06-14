@@ -28,10 +28,8 @@ jobs:
           path: docker-misp
       - name: Start MISP docker containers
         run: docker-compose -f docker-misp/docker-compose.yml -f app/Test/docker/docker-compose.tests.yml up --build -d
-      - name: Wait 90s for containers to spin up
-        uses: jakejarvis/wait-action@master
-        with:
-          time: '120s'
+      - name: Wait for containers to spin up
+        run: docker-compose -f docker-misp/docker-compose.yml logs -f misp | sed '/Start Workers...finished/ q'
       - name: Turn MISP live
         run: |
           docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Live 1"
