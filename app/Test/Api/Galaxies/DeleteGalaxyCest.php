@@ -12,7 +12,8 @@ class DeleteGalaxyCest
 
     public function testDeleteReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
-        $I->sendDelete(self::URL);
+        $galaxyId = 1;
+        $I->sendDelete(sprintf(self::URL, $galaxyId));
 
         $I->validateRequest();
         $I->validateResponse();

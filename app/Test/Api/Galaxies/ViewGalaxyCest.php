@@ -13,7 +13,8 @@ class ViewGalaxyCest
 
     public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
-        $I->sendGet(self::URL);
+        $galaxyId = 1;
+        $I->sendGet(sprintf(self::URL, $galaxyId));
 
         $I->validateRequest();
         $I->validateResponse();

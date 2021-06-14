@@ -12,7 +12,8 @@ class ViewOrganisationCest
 
     public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
-        $I->sendGet(self::URL);
+        $organisationId = 1;
+        $I->sendGet(sprintf(self::URL, $organisationId));
 
         $I->validateRequest();
         $I->validateResponse();

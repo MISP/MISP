@@ -2078,7 +2078,7 @@ components:
     # Attributes
     AttributeId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2118,7 +2118,6 @@ components:
         object_id:
           $ref: "#/components/schemas/ObjectId"
         object_relation:
-          nullable: true
           $ref: "#/components/schemas/NullableObjectRelation"
         category:
           $ref: "#/components/schemas/AttributeCategory"
@@ -2163,10 +2162,8 @@ components:
             data:
               $ref: "#/components/schemas/AttributeAttachment"
             event_uuid:
-              nullable: true
               $ref: "#/components/schemas/UUID"
             decay_score:
-              nullable: true
               $ref: "#/components/schemas/DecayScoreList"
 
     AttributeList:
@@ -2267,7 +2264,7 @@ components:
       properties:
         id:
           type: string
-          format: int32
+          pattern: '^\d+$'
           maxLength: 10
           example: "12345"
         name:
@@ -2281,7 +2278,7 @@ components:
       properties:
         id:
           type: string
-          format: int32
+          pattern: '^\d+$'
           maxLength: 10
           example: "12345"
         uuid:
@@ -2349,7 +2346,7 @@ components:
     # Events
     EventId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2360,7 +2357,7 @@ components:
 
     EventAttributeCount:
       type: string
-      format: int64
+      pattern: '^\d+$'
       example: "321"
 
     EventProposalEmailLock:
@@ -2378,7 +2375,7 @@ components:
 
     EventTagId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2417,6 +2414,9 @@ components:
           $ref: "#/components/schemas/OrganisationId"
         uuid:
           $ref: "#/components/schemas/UUID"
+        date:
+          type: string
+          example: "1991-01-15"
         published:
           $ref: "#/components/schemas/PublishedFlag"
         analysis:
@@ -2441,6 +2441,9 @@ components:
           $ref: "#/components/schemas/DisableCorrelationFlag"
         extends_uuid:
           $ref: "#/components/schemas/ExtendsUUID"
+        event_creator_email:
+          type: string
+          format: email
 
     Event:
       allOf:
@@ -2455,6 +2458,8 @@ components:
         - $ref: "#/components/schemas/Event"
         - type: object
           properties:
+            Feed:
+              $ref: "#/components/schemas/Feed"
             Org:
               $ref: "#/components/schemas/EventOrganisation"
             Orgc:
@@ -2470,11 +2475,20 @@ components:
                 properties:
                   Event:
                     $ref: "#/components/schemas/ExtendedEvent"
-            EventTag:
-              $ref: "#/components/schemas/EventTagList"
-      required:
-        - Org
-        - Orgc
+            Galaxy:
+              type: array
+              items:
+                $ref: "#/components/schemas/Galaxy"
+            Object:
+              type: array
+              items:
+                $ref: "#/components/schemas/Object"
+            EventReport:
+              type: array
+              items:
+                $ref: "#/components/schemas/EventReport"
+            Tag:
+              $ref: "#/components/schemas/TagList"
 
     CreatedEvent:
       type: object
@@ -2583,7 +2597,7 @@ components:
     # Objects
     ObjectId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2600,7 +2614,7 @@ components:
 
     ObjectTemplateVersion:
       type: string
-      format: int32
+      pattern: '^\d+$'
       example: "1"
 
     ObjectRelation:
@@ -2671,14 +2685,14 @@ components:
 
     ObjectTemplateId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
     # Sightings
     SightingId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2716,7 +2730,7 @@ components:
     # Galaxies
     GalaxyId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2778,7 +2792,7 @@ components:
 
     GalaxyClusterId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2816,7 +2830,7 @@ components:
 
     GalaxyElementId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2846,9 +2860,6 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/GalaxyElement"
-
-    GalaxyClusterRelation:
-      type: object # TODO describe
 
     GalaxyClusterRelationList:
       type: array
@@ -2920,8 +2931,6 @@ components:
           properties:
             Galaxy:
               $ref: "#/components/schemas/Galaxy"
-            GalaxyElement:
-              $ref: "#/components/schemas/GalaxyElementList"
             GalaxyClusterRelation:
               $ref: "#/components/schemas/GalaxyClusterRelationList"
             Org:
@@ -2961,7 +2970,6 @@ components:
             - type: boolean
             - $ref: "#/components/schemas/GalaxyClusterVersion"
         uuid:
-          description: "Collection UUID."
           $ref: "#/components/schemas/UUID"
         source:
           $ref: "#/components/schemas/GalaxyClusterSource"
@@ -2973,7 +2981,6 @@ components:
               description:
                 $ref: "#/components/schemas/GalaxyClusterDescription"
               uuid:
-                description: "Galaxy Cluster UUID."
                 $ref: "#/components/schemas/UUID"
               value:
                 $ref: "#/components/schemas/GalaxyClusterValue"
@@ -3014,7 +3021,7 @@ components:
     # Tags
     TagId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -3031,7 +3038,7 @@ components:
     TagNumericalValue:
       type: string
       nullable: true
-      format: int32
+      pattern: '^\d+$'
       example: "12345"
 
     HideTagFlag:
@@ -3078,7 +3085,7 @@ components:
 
     TagCollectionId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -3095,13 +3102,13 @@ components:
     # Taxonomies
     TaxonomyId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
     TaxonomyPredicateId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -3118,7 +3125,7 @@ components:
           example: "Disclosure is not limited.  Sources may use TLP:WHITE when information carries minimal or no foreseeable risk of misuse, in accordance with applicable rules and procedures for public release. Subject to standard copyright rules, TLP:WHITE information may be distributed without restriction."
         version:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "5"
         enabled:
           type: boolean
@@ -3155,7 +3162,7 @@ components:
     # Users
     UserId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -3170,19 +3177,19 @@ components:
           properties:
             x:
               type: string
-              format: int32
+              pattern: '^\d+$'
               example: "0"
             y:
               type: string
-              format: int32
+              pattern: '^\d+$'
               example: "0"
             width:
               type: string
-              format: int32
+              pattern: '^\d+$'
               example: "2"
             height:
               type: string
-              format: int32
+              pattern: '^\d+$'
               example: "2"
 
     UserSetting:
@@ -3196,8 +3203,6 @@ components:
     UserNoId:
       type: object
       properties:
-        id:
-          $ref: "#/components/schemas/UserId"
         org_id:
           $ref: "#/components/schemas/OrganisationId"
         server_id:
@@ -3224,7 +3229,7 @@ components:
           nullable: true
         nids_sid:
           type: string
-          format: int32
+          pattern: '^\d+$'
           maxLength: 10
           example: "4000000"
         termsaccepted:
@@ -3236,7 +3241,6 @@ components:
         change_pw:
           description: "Password change required."
           type: string
-          format: int32
           enum:
             - "0"
             - "1"
@@ -3302,7 +3306,7 @@ components:
     # Organisations
     OrganisationId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -3323,9 +3327,11 @@ components:
         name:
           $ref: "#/components/schemas/OrganisationName"
         date_created:
-          $ref: "#/components/schemas/Timestamp"
+          type: string
+          example: "2021-06-14 14:29:19"
         date_modified:
-          $ref: "#/components/schemas/Timestamp"
+          type: string
+          example: "2021-06-14 14:29:19"
         description:
           type: string
         type:
@@ -3354,7 +3360,7 @@ components:
         user_count:
           type: string
           nullable: true
-          format: int32
+          pattern: '^\d+$'
           example: "3"
         created_by_email:
           nullable: true
@@ -3382,7 +3388,7 @@ components:
     # Servers
     ServerId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -3416,13 +3422,13 @@ components:
         lastpulledid:
           type: string
           nullable: true
-          format: int32
+          pattern: '^\d+$'
           maxLength: 10
           example: "12345"
         lastpushedid:
           type: string
           nullable: true
-          format: int32
+          pattern: '^\d+$'
           maxLength: 10
           example: "12345"
         organization:
@@ -3463,7 +3469,7 @@ components:
         priority:
           type: string
           nullable: true
-          format: int32
+          pattern: '^\d+$'
           maxLength: 10
           example: "1"
         cache_timestamp:
@@ -3513,6 +3519,7 @@ components:
         value:
           anyOf:
             - type: integer
+              format: int32
               example: 300
             - type: string
 
@@ -3527,6 +3534,8 @@ components:
           example: ">1.2.0.9"
         status:
           type: integer
+          format: int32
+          minimum: 0
           example: 1
 
     DatabaseTableDiagnostics:
@@ -3553,6 +3562,7 @@ components:
             - type: string
             - type: boolean
             - type: number
+
         errorMessage:
           type: string
           nullable: true
@@ -3661,7 +3671,7 @@ components:
     # Feeds
     FeedId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "3"
 
@@ -3812,7 +3822,7 @@ components:
     # Warninglists
     WarninglistId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "3"
 
@@ -3821,7 +3831,7 @@ components:
       properties:
         id:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "1234"
         value:
           type: string
@@ -3850,13 +3860,13 @@ components:
           type: string
         version:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "10"
         enabled:
           type: boolean
         warninglist_entry_count:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "1234"
         valid_attributes:
           description: "List of comma separated warninglist types."
@@ -3886,7 +3896,7 @@ components:
     # Noticelists
     NoticelistId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "3"
 
@@ -3895,7 +3905,7 @@ components:
       properties:
         id:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "1234"
         noticelist_id:
           $ref: "#/components/schemas/NoticelistId"
@@ -3949,13 +3959,13 @@ components:
           type: string
         version:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "10"
         enabled:
           type: boolean
         warninglist_entry_count:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "1234"
         valid_attributes:
           description: "List of comma separated warninglist types."
@@ -3969,7 +3979,7 @@ components:
     # Roles
     RoleId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "3"
 
@@ -4032,21 +4042,21 @@ components:
         memory_limit:
           type: string
           nullable: true
-          format: int32
+          pattern: '^\d+$|^$'
         max_execution_time:
           type: string
           nullable: true
-          format: int32
+          pattern: '^\d+$|^$'
         restricted_to_site_admin:
           type: boolean
         enforce_rate_limit:
           type: boolean
         rate_limit_count:
           type: string
-          format: int32
+          pattern: '^\d+$'
         permission:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "3"
         permission_description:
           type: string
@@ -4056,14 +4066,14 @@ components:
     SharingGroupId:
       type: string
       nullable: true
-      format: int32
+      pattern: '^\d+$|^$'
       maxLength: 10
       example: "1"
 
     SharingGroupOrganisationId:
       type: string
       nullable: true
-      format: int32
+      pattern: '^\d+$|^$'
       maxLength: 10
       example: "1"
 
@@ -4084,8 +4094,6 @@ components:
     SlimSharingGroupNoId:
       type: object
       properties:
-        id:
-          $ref: "#/components/schemas/SharingGroupId"
         uuid:
           $ref: "#/components/schemas/UUID"
         name:
@@ -4100,7 +4108,7 @@ components:
           type: boolean
         org_count:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "6"
 
     SlimSharingGroup:
@@ -4213,7 +4221,6 @@ components:
 
     DistributionLevelId:
       type: string
-      format: int32
       enum: ["0", "1", "2", "3", "4", "5"]
       description: >
         Who will be able to see this event once it becomes published and eventually when it becomes pulled:
@@ -4226,7 +4233,6 @@ components:
 
     ThreatLevelId:
       type: string
-      format: int32
       enum: ["1", "2", "3", "4"]
       description: >
         Represents the threat level.
@@ -4237,7 +4243,6 @@ components:
 
     AnalysisLevelId:
       type: string
-      format: int32
       enum: ["0", "1", "2"]
       description: >
         Represents the analysis maturity level.
@@ -4263,27 +4268,26 @@ components:
 
     Timestamp:
       type: string
-      format: int64
+      pattern: '^\d+$'
       default: "0"
       example: "1617875568"
 
     NullableTimestamp:
       nullable: true
       type: string
-      format: int64
+      pattern: '^\d+$|^$'
       default: "0"
       example: "1617875568"
 
     MicroTimestamp:
       type: string
-      format: int64
-      default: null
+      pattern: '^\d+$'
       example: "1581984000000000"
 
     NullableMicroTimestamp:
       nullable: true
       type: string
-      format: int64
+      pattern: '^\d+$|^$'
       default: null
       example: "1581984000000000"
 
@@ -4462,6 +4466,7 @@ components:
         url:
           type: string
           example: "/attributes"
+      additionalProperties: false
 
     UnauthorizedApiError:
       type: object
@@ -4479,6 +4484,7 @@ components:
         url:
           type: string
           example: "/attributes"
+      additionalProperties: false
 
     NotFoundApiError:
       type: object
@@ -4496,6 +4502,7 @@ components:
         url:
           type: string
           example: "/attributes/1234"
+      additionalProperties: false
 
   parameters:
     eventIdParameter:
@@ -4639,7 +4646,7 @@ components:
       required: true
       schema:
         type: string
-        format: int32
+        pattern: '^\d+$'
 
     settingNameParameter:
       name: settingName
@@ -4762,7 +4769,6 @@ components:
       description: "`0` to show attribute count, `1` for showing percentages"
       schema:
         type: integer
-        default: 0
 
     objectIdParameter:
       name: objectId
@@ -4775,7 +4781,7 @@ components:
           - $ref: "#/components/schemas/UUID"
 
     hardDeleteParameter:
-      name: objectId
+      name: hardDelete
       in: path
       description: "`1` for hard delete the entity, `0` for soft deletion."
       required: true
@@ -4826,7 +4832,6 @@ components:
       content:
         application/json:
           schema:
-            type: object
             $ref: "#/components/schemas/Attribute"
 
     RestSearchAttributesRequest:
@@ -4881,7 +4886,6 @@ components:
               deleted:
                 $ref: "#/components/schemas/SoftDeletedFlag"
               event_timestamp:
-                description: "The timestamp at which the event was last modified"
                 $ref: "#/components/schemas/Timestamp"
               threat_level_id:
                 $ref: "#/components/schemas/ThreatLevelId"
@@ -5001,10 +5005,7 @@ components:
                 nullable: true
                 example: "Phishing campaing"
               tag:
-                description: "Filter events by matching the event tags with a given tag name"
-                nullable: true
                 $ref: "#/components/schemas/TagName"
-                example: "tlp:white"
               tags:
                 description: "Filter events by matching *any* of the event tags of a given list of tag names"
                 type: array
@@ -5111,7 +5112,6 @@ components:
               to_ids:
                 $ref: "#/components/schemas/ToIDS"
               deleted:
-                description: "Include deleted elements"
                 $ref: "#/components/schemas/SoftDeletedFlag"
               excludeLocalTags:
                 $ref: "#/components/schemas/ExcludeLocalTagsRestSearchFilter"
@@ -5716,9 +5716,7 @@ components:
       content:
         application/json:
           schema:
-            oneOf:
-              - $ref: "#/components/schemas/ExtendedEventList"
-              - $ref: "#/components/schemas/SlimEventList"
+            $ref: "#/components/schemas/ExtendedEventList"
 
     ExtendedEventResponse:
       description: "An event with extended properties"
@@ -5765,7 +5763,7 @@ components:
                 example: "https://misp.local/events/alert/1"
               id:
                 type: string
-                format: int32
+                pattern: '^\d+$'
 
     UnpublishEventResponse:
       description: "Unpublish event response"
@@ -6337,7 +6335,7 @@ components:
                     example: "Database/Mysql"
                   actual_db_version:
                     type: string
-                    format: int32
+                    pattern: '^\d+$'
                     example: "68"
                   checked_table_column:
                     type: array
@@ -6355,12 +6353,12 @@ components:
                               "message": "Column `event_id` is indexed but should not"
                               "sql": "DROP INDEX `event_id` ON event_reports;"
                       - type: array
-                        items: 
+                        items:
                           type: object
                         example: []
                   expected_db_version:
                     type: string
-                    format: int32
+                    pattern: '^\d+$'
                     example: "70"
                   error:
                     type: string
