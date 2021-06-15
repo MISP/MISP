@@ -39,7 +39,7 @@ class ApiTester extends \Codeception\Actor
         int $roleId = UserFixture::ROLE_USER,
         UserFixture $fakeUser = null,
         OrganisationFixture $fakeOrg = null
-    ): void {
+    ): string {
         if (!$fakeOrg) {
             $fakeOrg = OrganisationFixture::fake(['id' => $orgId]);
         }
@@ -54,14 +54,18 @@ class ApiTester extends \Codeception\Actor
         }
         $this->haveInDatabase('users', $fakeUser->toDatabase());
 
+        $rawAuthKey = $fakeUser->getAuthKey();
+
         $fakeAuthKey = AuthKeyFixture::fake(
             [
                 'user_id' => $userId,
-                'authkey' => $fakeUser->getAuthKey()
+                'authkey' => $rawAuthKey
             ]
         );
         $this->haveInDatabase('auth_keys', $fakeAuthKey->toDatabase());
 
-        $this->haveHttpHeader('Authorization', $fakeUser->getAuthKey());
+        $this->haveHttpHeader('Authorization', $rawAuthKey);
+
+        return $rawAuthKey;
     }
 }

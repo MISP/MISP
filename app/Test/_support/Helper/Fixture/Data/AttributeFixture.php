@@ -42,6 +42,8 @@ class AttributeFixture extends AbstractFixture implements FixtureInterface
 
     public function toRequest(): array
     {
+        $value = !empty($this->attributes['value2']) ? $this->attributes['value1'] . '|' . $this->attributes['value2'] : $this->attributes['value1'];
+
         return [
             'id' => $this->attributes['id'],
             'event_id' => $this->attributes['event_id'],
@@ -49,7 +51,7 @@ class AttributeFixture extends AbstractFixture implements FixtureInterface
             'object_relation' => $this->attributes['object_relation'],
             'category' => $this->attributes['category'],
             'type' => $this->attributes['type'],
-            'value' => $this->attributes['value1'],
+            'value' => $value,
             'to_ids' => $this->attributes['to_ids'],
             'uuid' => $this->attributes['uuid'],
             'timestamp' => $this->attributes['timestamp'],
@@ -65,6 +67,7 @@ class AttributeFixture extends AbstractFixture implements FixtureInterface
 
     public function toResponse(): array
     {
+        $value = $value = !empty($this->attributes['value2']) ? $this->attributes['value1'] . '|' . $this->attributes['value2'] : $this->attributes['value1'];
         return [
             'id' => $this->attributes['id'],
             'event_id' => $this->attributes['event_id'],
@@ -72,7 +75,7 @@ class AttributeFixture extends AbstractFixture implements FixtureInterface
             'object_relation' => $this->attributes['object_relation'],
             'category' => $this->attributes['category'],
             'type' => $this->attributes['type'],
-            'value' => $this->attributes['value1'],
+            'value' => $value,
             'to_ids' => $this->attributes['to_ids'],
             'uuid' => $this->attributes['uuid'],
             'timestamp' => $this->attributes['timestamp'],
