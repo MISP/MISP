@@ -205,6 +205,10 @@ class Attribute extends AppModel
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty')
             ),
+            'stringControlCharacters' => array(
+                'rule' => array('stringNotControlCharacters'),
+                'message' => 'Value provided consists purely of control characters and is therefore considered to be empty.'
+            ),
             'validComposite' => array(
                 'rule' => array('validComposite'),
                 'message' => 'Composite type found but the value not in the composite (value1|value2) format.'
@@ -620,6 +624,19 @@ class Attribute extends AppModel
         $compositeTypes = $this->getCompositeTypes();
         if (in_array($this->data['Attribute']['type'], $compositeTypes, true)) {
             if (substr_count($fields['value'], '|') !== 1) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public function stringNotControlCharacters($fields)
+    {
+        if (ctype_cntrl($this->data['Attribute']['value1'])) {
+            return false;
+        }
+        if (in_array($this->data['Attribute']['type'], $compositeTypes, true)) {
+            if (ctype_cntrl($this->data['Attribute']['value2'])) {
                 return false;
             }
         }
