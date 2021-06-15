@@ -632,13 +632,8 @@ class Attribute extends AppModel
 
     public function stringNotControlCharacters($fields)
     {
-        if (ctype_cntrl($this->data['Attribute']['value1'])) {
+        if (ctype_cntrl($this->data['Attribute']['value'])) {
             return false;
-        }
-        if (in_array($this->data['Attribute']['type'], $compositeTypes, true)) {
-            if (ctype_cntrl($this->data['Attribute']['value2'])) {
-                return false;
-            }
         }
         return true;
     }
