@@ -2133,6 +2133,9 @@ class Server extends AppModel
         if (!empty($setting)) {
             $setting['name'] = $setting_name;
         }
+        if (!empty($setting['optionsSource'])) {
+            $setting['options'] = $setting['optionsSource']();
+        }
         return $setting;
     }
 
@@ -4925,6 +4928,15 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'null' => true,
                     'test' => 'testDisableEmail',
+                    'type' => 'boolean',
+                ),
+                'publish_alerts_summary_only' => array(
+                    'level' => 1,
+                    'description' => __('Only send a summary of the publish alert, rather than the full contents of the event.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'null' => true,
+                    'test' => 'testBool',
                     'type' => 'boolean',
                 ),
                 'contact' => array(
