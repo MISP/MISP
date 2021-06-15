@@ -635,6 +635,12 @@ class Attribute extends AppModel
         if (ctype_cntrl($this->data['Attribute']['value'])) {
             return false;
         }
+        if (in_array($this->data['Attribute']['type'], $this->getCompositeTypes())) {
+            $values = explode('|', $this->data['Attribute']['value']);
+            if (ctype_cntrl($values[0]) || ctype_cntrl($values[1])) {
+                return false;
+            }
+        }
         return true;
     }
 
