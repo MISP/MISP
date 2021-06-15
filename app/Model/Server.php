@@ -2133,6 +2133,9 @@ class Server extends AppModel
         if (!empty($setting)) {
             $setting['name'] = $setting_name;
         }
+        if (!empty($setting['optionsSource'])) {
+            $setting['options'] = $setting['optionsSource']();
+        }
         return $setting;
     }
 
