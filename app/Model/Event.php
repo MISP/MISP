@@ -3319,7 +3319,11 @@ class Event extends AppModel
         $subjMarkingString = $this->getEmailSubjectMarkForEvent($event);
         $subject = "[" . Configure::read('MISP.org') . " MISP] Event {$event['Event']['id']} - $subject$threatLevel" . strtoupper($subjMarkingString);
 
-        $template = new SendEmailTemplate('alert');
+        if (!empty(Configure::read('MISP.publish_alerts_summary_only'))) {
+            $template = new SendEmailTemplate('alert_light');
+        } else {
+            $template = new SendEmailTemplate('alert');
+        }
         $template->set('event', $event);
         $template->set('user', $user);
         $template->set('oldPublishTimestamp', $oldpublish);
