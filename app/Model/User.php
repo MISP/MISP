@@ -65,13 +65,10 @@ class User extends AppModel
             ),
         ),
         'email' => array(
-            'email' => array(
-                'rule' => array('email'),
-                'message' => 'Please enter a valid email address.',
-                //'allowEmpty' => false,
+            'emailValidation' => array(
+                'rule' => array('validateEmail'),
+                'message' => 'Please nter a valid email address.',
                 'required' => true,
-                //'last' => false, // Stop validation after this rule
-                //'on' => 'create', // Limit validation to 'create' or 'update' operations
             ),
             'unique' => array(
                 'rule' => 'isUnique',
@@ -384,6 +381,16 @@ class User extends AppModel
             return false;
         }
         return true;
+    }
+
+    public function validateEmail($check)
+    {
+        $localPartReg = '[\p{L}0-9!#$%&\'*+\/=?^_`{|}~-]+(?:\.[\p{L}0-9!#$%&\'*+\/=?^_`{|}~-]+)*@';
+        $domainReg = '[a-z0-9_\-\.]+';
+        $fullReg = sprintf('/^%s%s$/ui', $localPartReg, $domainReg);
+        $check = array_values($check);
+        $check = $check[0];
+        return preg_match($fullReg, $check, $matches) ? true : false;
     }
 
     /*
