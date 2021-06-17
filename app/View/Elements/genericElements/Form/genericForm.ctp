@@ -57,7 +57,7 @@
                     }
                 }
                 foreach ($simpleFieldAllowedlist as $f) {
-                    if (!empty($fieldData[$f])) {
+                    if (isset($fieldData[$f])) {
                         $params[$f] = $fieldData[$f];
                     }
                 }
