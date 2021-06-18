@@ -1785,7 +1785,7 @@ class UsersController extends AppController
             // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
             $userForSendMail = $this->User->getUserById($user_id);
             $body = str_replace('\n', PHP_EOL, $body);
-            $result = $this->User->sendEmail($userForSendMail, $body, false, "[MISP] Email OTP");
+            $result = $this->User->sendEmail($userForSendMail, $body, false, "[MISP " . Configure::read('MISP.org') . "] Email OTP");
 
             if ($result) {
                 $this->Flash->success(__("An email containing a OTP has been sent."));
@@ -2450,6 +2450,7 @@ class UsersController extends AppController
                 throw new BadRequestException(__('We require at least the email field to be filled.'));
             }
             $this->User->set($requestObject);
+            unset($this->User->validate['email']['unique']);
             if (!$this->User->validates(array('fieldList' => $fieldToValidate))) {
                 $errors = $this->User->validationErrors;
                 $message = __('Request could not be created.');

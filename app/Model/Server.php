@@ -165,7 +165,10 @@ class Server extends AppModel
                 'data' => array(
                     'PullAll' => 'MISP/app/Console/cake Server pullAll [user_id] [full|update]',
                     'Pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
+                    'PushAll' => 'MISP/app/Console/cake Server pushAll [user_id]',
                     'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
+                    'Cache server' => 'MISP/app/Console/cake server cacheServer [user_id] [server_id]',
+                    'Cache all servers' => 'MISP/app/Console/cake server cacheServerAll [user_id]',
                     'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',
@@ -2639,7 +2642,7 @@ class Server extends AppModel
         $dataSource = $this->getDataSource()->config['datasource'];
         if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
             $sql = sprintf(
-                'select TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE from information_schema.tables where table_schema = %s group by TABLE_NAME;',
+                'select TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE from information_schema.tables where table_schema = %s group by TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE;',
                 "'" . $this->getDataSource()->config['database'] . "'"
             );
             $sqlResult = $this->query($sql);
@@ -4924,6 +4927,15 @@ class Server extends AppModel
                     'test' => 'testDisableEmail',
                     'type' => 'boolean',
                 ),
+                'publish_alerts_summary_only' => array(
+                    'level' => 1,
+                    'description' => __('Only send a summary of the publish alert, rather than the full contents of the event.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'null' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
                 'contact' => array(
                     'level' => 1,
                     'description' => __('The e-mail address that MISP should include as a contact address for the instance\'s support team.'),
@@ -7013,7 +7025,25 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
-                )
+                ),
+                'CyCat_enable' => [
+                    'level' => 1,
+                    'description' => __('Enable lookups for additional relations via CyCat.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
+                'CyCat_url' => [
+                    'level' => 2,
+                    'description' => __('URL to use for CyCat lookups, if enabled.'),
+                    'value' => 'https://api.cycat.org',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ]
             ),
             'debug' => array(
                 'level' => 0,

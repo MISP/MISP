@@ -533,7 +533,7 @@ class SharingGroup extends AppModel
                     }
                 }
             }
-            if ($conditional === false) {
+            if ($conditional === false && empty($server['Server']['internal'])) {
                 return false;
             }
         }
@@ -618,6 +618,7 @@ class SharingGroup extends AppModel
             if ($existingCaptureResult !== true) {
                 return $existingCaptureResult;
             }
+            $sg_id = $existingSG['SharingGroup']['id'];
             $forceUpdate = true;
         }
         unset($sg['Organisation']);
@@ -838,7 +839,7 @@ class SharingGroup extends AppModel
                     $temp = $this->SharingGroupOrg->find('first', array(
                         'recursive' => -1,
                         'conditions' => array(
-                            'sharing_group_id' => $existingSG['SharingGroup']['id'],
+                            'sharing_group_id' => $sg_id,
                             'org_id' => $sg['SharingGroupOrg'][$k]['org_id']
                         ),
                     ));
@@ -891,7 +892,7 @@ class SharingGroup extends AppModel
                         $temp = $this->SharingGroupServer->find('first', array(
                             'recursive' => -1,
                             'conditions' => array(
-                                'sharing_group_id' => $existingSG['SharingGroup']['id'],
+                                'sharing_group_id' => $sg_id,
                                 'server_id' => $sg['SharingGroupServer'][$k]['server_id']
                             ),
                         ));

@@ -10,7 +10,8 @@ mixbox = "*"
 cybox = "*"
 stix = "*"
 maec = "*"
-
-pymisp = {git = "https://github.com/MISP/PyMISP.git", ref = "a68bd80ab9dceaee9674bd9a2b0bffc4f387fcdc", extras=["fileobjects"]}
+pymisp = {path = "./PyMISP", extras=["fileobjects"]}
 stix2 = {git = "https://github.com/MISP/cti-python-stix2", ref = "61e9fc0748691f6b768acf47c18ef01b5dc0a854"}
 pydeep = {git = "https://github.com/kbandla/pydeep.git"}
+python-dateutil = "*"
+urllib3 = ">=1.26.5"

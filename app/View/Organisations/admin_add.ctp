@@ -72,7 +72,7 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'contacts',
                 'type' => 'textarea',
-                'label' => __('Type of organisation'),
+                'label' => __('Contact details'),
                 'placeholder' => __('You can add some contact details for the organisation here, if applicable.'),
                 'class' => 'input-xxlarge',
             ],

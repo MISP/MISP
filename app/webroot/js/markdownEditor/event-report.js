@@ -362,6 +362,7 @@ function MISPElementSuggestionRule(state) {
     var blockTokens = state.tokens
     var tokens, blockToken, currentToken
     var indexOfAllLines, lineOffset, absoluteLine, relativeIndex
+    var tokenMap
     var i, j, l
     for (i = 0, l = blockTokens.length; i < l; i++) {
         blockToken = blockTokens[i]
@@ -380,7 +381,8 @@ function MISPElementSuggestionRule(state) {
                 blockToken.indexOfAllLines = indexOfAllLines
             }
             lineOffset = getLineNumInArrayList(currentToken.content.indexes.start, blockToken.indexOfAllLines.bMarks)
-            var absoluteLine = blockToken.map[0] + lineOffset
+            tokenMap = findBackClosestStartLine(blockTokens, i)
+            var absoluteLine = tokenMap[0] + lineOffset
             var relativeIndex = currentToken.content.indexes.start - blockToken.indexOfAllLines.bMarks[lineOffset]
             state.tokens[i].children[j].content.indexes.lineStart = absoluteLine
             state.tokens[i].children[j].content.indexes.start = relativeIndex
@@ -2111,6 +2113,20 @@ function getLineNumInArrayList(index, arrayToSearchInto) {
         }
     }
     return 0
+}
+
+function findBackClosestStartLine(tokens, i) {
+    if (tokens[i].map !== null) {
+        return tokens[i].map
+    }
+    var token
+    for (var j = i-1; j >= 0; j--) {
+        token = tokens[j]
+        if (token.map !== null) {
+            return token.map
+        }
+    }
+    return null
 }
 
 function parseDestinationValue(str, pos, max) {

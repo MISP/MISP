@@ -51,6 +51,7 @@ class AuthKeysController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('title_for_layout', __('Auth Keys'));
+        $this->set('advancedEnabled', !empty(Configure::read('Security.advanced_authkeys')));
         $this->set('keyUsageEnabled', $keyUsageEnabled);
         $this->set('menuData', [
             'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
@@ -82,6 +83,7 @@ class AuthKeysController extends AppController
                 return $authKey;
             },
             'fields' => ['comment', 'allowed_ips', 'expiration'],
+            'contain' => ['User.id', 'User.org_id']
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;

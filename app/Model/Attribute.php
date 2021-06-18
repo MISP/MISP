@@ -205,6 +205,10 @@ class Attribute extends AppModel
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty')
             ),
+            'stringControlCharacters' => array(
+                'rule' => array('stringNotControlCharacters'),
+                'message' => 'Value provided consists purely of control characters and is therefore considered to be empty.'
+            ),
             'validComposite' => array(
                 'rule' => array('validComposite'),
                 'message' => 'Composite type found but the value not in the composite (value1|value2) format.'
@@ -620,6 +624,23 @@ class Attribute extends AppModel
         $compositeTypes = $this->getCompositeTypes();
         if (in_array($this->data['Attribute']['type'], $compositeTypes, true)) {
             if (substr_count($fields['value'], '|') !== 1) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public function stringNotControlCharacters($fields)
+    {
+        if (ctype_cntrl($this->data['Attribute']['value'])) {
+            return false;
+        }
+        if (in_array($this->data['Attribute']['type'], $this->getCompositeTypes())) {
+            $values = explode('|', $this->data['Attribute']['value']);
+            if (ctype_cntrl($values[0])) {
+                return false;
+            }
+            if (!empty($values[1]) && ctype_cntrl($values[1])) {
                 return false;
             }
         }
@@ -3627,6 +3648,13 @@ class Attribute extends AppModel
         );
         if (!empty($parentEvent)) {
             $params['parentEvent'] = $parentEvent;
+        }
+        if (!empty($attribute['SharingGroup'])) {
+            $attribute['sharing_group_id'] = $this->SharingGroup->captureSG($attribute['SharingGroup'], $user);
+        } elseif (!empty($attribute['sharing_group_id'])) {
+            if (!$this->SharingGroup->checkIfAuthorised($user, $attribute['sharing_group_id'])) {
+                unset($attribute['sharing_group_id']);
+            }
         }
         if (!$this->save($attribute, $params)) {
             $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
