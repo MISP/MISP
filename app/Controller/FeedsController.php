@@ -155,6 +155,7 @@ class FeedsController extends AppController
 
         $otherFeeds = $this->Feed->getAllCachingEnabledFeeds($feedId, true);
         $this->set('other_feeds', $otherFeeds);
+        $this->set('feedId', $feedId);
     }
 
     public function feedCoverage($feedId)
@@ -443,6 +444,7 @@ class FeedsController extends AppController
         ]);
 
         $this->set('edit', true);
+        $this->set('feedId', $feedId);
         $this->render('add');
     }
 

@@ -23,70 +23,81 @@
     );
     $fieldsArrayForPersistence = array();
     $formOptions = isset($formOptions) ? $formOptions : array();
-    $formOptions = array_merge(['class' => 'genericForm'], $formOptions);
+    $formRandomValue = Security::randomBytes(8);
+    $formOptions = array_merge(['id' => 'form-' . $formRandomValue, 'class' => 'genericForm'], $formOptions);
     $formCreate = $this->Form->create($modelForForm, $formOptions);
     if (!empty($data['fields'])) {
         foreach ($data['fields'] as $fieldData) {
             if (isset($fieldData['requirements']) && !$fieldData['requirements']) {
                 continue;
             }
-            if (is_array($fieldData)) {
-                if (empty($fieldData['label'])) {
-                    $fieldData['label'] = Inflector::humanize($fieldData['field']);
-                }
-                if (!empty($fieldDesc[$fieldData['field']])) {
-                    $fieldData['label'] .= $this->element(
-                        'genericElements/Form/formInfo', array(
-                            'field' => $fieldData,
-                            'fieldDesc' => $fieldDesc[$fieldData['field']],
-                            'modelForForm' => $modelForForm
-                        )
-                    );
-                }
-                $params = array();
-                if (!empty($fieldData['class'])) {
-                    if (is_array($fieldData['class'])) {
-                        $class = implode(' ', $fieldData['class']);
-                    } else {
-                        $class = $fieldData['class'];
-                    }
-                    $params['class'] = $class;
-                } else {
-                    if (!empty($fieldData['type']) && ($fieldData['type'] !== 'checkbox' && $fieldData['type'] !== 'radio')) {
-                        $params['class'] = 'span6';
-                    }
-                }
-                foreach ($simpleFieldAllowedlist as $f) {
-                    if (isset($fieldData[$f])) {
-                        $params[$f] = $fieldData[$f];
-                    }
-                }
-                if (!empty($fieldData['picker']) && isset($fieldData['picker']['function'])) {
-                    $fieldData['picker']['text'] = isset($fieldData['picker']['text']) ? $fieldData['picker']['text'] : __('Picker');
-                    $params['div'] = 'input text input-append';
-                    $params['after'] = sprintf('<button type="button" class="btn" onclick="%s.call(this);">%s</button>', $fieldData['picker']['function'], __($fieldData['picker']['text']));
-                }
-                if (!empty($params['type']) && $params['type'] === 'dropdown') {
-                    $params['type'] = 'select';
-                }
-                if (!empty($fieldData['description'])) {
-                    if (!isset($params['class'])) {
-                        $params['class'] = '';
-                    }
-                    $params['class'] .= ' input-with-description';
-                }
-                $temp = $this->Form->input($fieldData['field'], $params);
-                if (!empty($fieldData['description'])) {
-                    $temp .= sprintf('<small class="clear form-field-description apply_css_arrow">%s</small>', h($fieldData['description']));
-                }
-                $fieldsArrayForPersistence[] = $modelForForm . Inflector::camelize($fieldData['field']);
-                if (!empty($fieldData['hidden'])) {
-                    $temp = '<span class="hidden">' . $temp . '</span>';
-                }
-                $fieldsString .= $temp;
-            } else {
-                $fieldsString .= $fieldData;
-            }
+            $fieldsString .= $this->element(
+                'genericElements/Form/fieldScaffold', [
+                    'fieldData' => $fieldData,
+                    'form' => $this->Form,
+                    'simpleFieldWhitelist' => $simpleFieldAllowedlist
+                ]
+            );
+
+            // previous form fields generation logic
+            // if (is_array($fieldData)) {
+            //     if (empty($fieldData['label'])) {
+            //         $fieldData['label'] = Inflector::humanize($fieldData['field']);
+            //     }
+            //     if (!empty($fieldDesc[$fieldData['field']])) {
+            //         $fieldData['label'] .= $this->element(
+            //             'genericElements/Form/formInfo', array(
+            //                 'field' => $fieldData,
+            //                 'fieldDesc' => $fieldDesc[$fieldData['field']],
+            //                 'modelForForm' => $modelForForm
+            //             )
+            //         );
+            //     }
+            //     $params = array();
+            //     if (!empty($fieldData['class'])) {
+            //         if (is_array($fieldData['class'])) {
+            //             $class = implode(' ', $fieldData['class']);
+            //         } else {
+            //             $class = $fieldData['class'];
+            //         }
+            //         $params['class'] = $class;
+            //     } else {
+            //         if (!empty($fieldData['type']) && ($fieldData['type'] !== 'checkbox' && $fieldData['type'] !== 'radio')) {
+            //             $params['class'] = 'span6';
+            //         }
+            //     }
+            //     foreach ($simpleFieldAllowedlist as $f) {
+            //         if (!empty($fieldData[$f])) {
+            //             $params[$f] = $fieldData[$f];
+            //         }
+            //     }
+            //     if (!empty($fieldData['picker']) && isset($fieldData['picker']['function'])) {
+            //         $fieldData['picker']['text'] = isset($fieldData['picker']['text']) ? $fieldData['picker']['text'] : __('Picker');
+            //         $params['div'] = 'input text input-append';
+            //         $params['after'] = sprintf('<button type="button" class="btn" onclick="%s.call(this);">%s</button>', $fieldData['picker']['function'], __($fieldData['picker']['text']));
+            //     }
+            //     if (!empty($params['type']) && $params['type'] === 'dropdown') {
+            //         $params['type'] = 'select';
+            //     }
+            //     if (!empty($fieldData['description'])) {
+            //         if (!isset($params['class'])) {
+            //             $params['class'] = '';
+            //         }
+            //         $params['class'] .= ' input-with-description';
+            //     }
+            //     $temp = $this->Form->input($fieldData['field'], $params);
+            //     if (!empty($fieldData['description'])) {
+            //         $temp .= sprintf('<small class="clear form-field-description apply_css_arrow">%s</small>', h($fieldData['description']));
+            //     }
+            //     $fieldsArrayForPersistence[] = $modelForForm . Inflector::camelize($fieldData['field']);
+            //     if (!empty($fieldData['hidden'])) {
+            //         $temp = '<span class="hidden">' . $temp . '</span>';
+            //     }
+            //     $fieldsString .= $temp;
+            // } else {
+            //     $fieldsString .= $fieldData;
+            // }
+
             if (empty($fieldData['stayInLine'])) {
                 $fieldsString .= '<div class="clear"></div>';
             }
@@ -98,7 +109,7 @@
             $metaFieldString .= $metaField;
         }
     }
-    $submitButtonData = array('model' => $modelForForm);
+    $submitButtonData = array('model' => $modelForForm, 'formRandomValue' => $formRandomValue);
     if (!empty($data['submit'])) {
         $submitButtonData = array_merge($submitButtonData, $data['submit']);
     }

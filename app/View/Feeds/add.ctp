@@ -1,8 +1,10 @@
 <?php
+$modelForForm = 'Feeds';
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
         'title' => isset($edit) ? __('Edit MISP feed') : __('Add MISP feed'),
         'description' => __('Add a new MISP feed source.'),
+        'model' => 'Feeds',
         'fields' => [
             [
                 'field' => 'enabled',
@@ -71,6 +73,11 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'dropdown',
                 'searchable' => 1
             ],
+            [
+                'field' => 'rules',
+                'label' => __('Filter rules'),
+                'type' => 'pullRules'
+            ],
         ],
         'submit' => [
             'action' => $this->request->params['action'],
@@ -78,6 +85,9 @@ echo $this->element('genericElements/Form/genericForm', [
         ]
     ]
 ]);
+?>
+
+<?php
 if (!$ajax) {
     echo $this->element('/genericElements/SideMenu/side_menu', $menuData);
 }
