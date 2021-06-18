@@ -7324,9 +7324,25 @@ components:
         enum:
           - json
           - xml
+          - csv
+          - text
           - download
           - stix
           - stix2
+          - stix-json
+          - attack
+          - attack-sightings
+          - cache
+          - count
+          - hashes
+          - netfilter
+          - opendata
+          - openioc
+          - rpz
+          - snort
+          - suricata
+          - yara
+          - yara-json
 
     X-Response-Format:
       description: Response format
@@ -7335,9 +7351,26 @@ components:
         enum:
           - json
           - xml
+          - csv
+          - text
           - download
           - stix
           - stix2
+          - stix-json
+          - attack
+          - attack-sightings
+          - cache
+          - count
+          - hashes
+          - netfilter
+          - opendata
+          - openioc
+          - rpz
+          - snort
+          - suricata
+          - yara
+          - yara-json
+
 
 security:
   - ApiKeyAuth: []
