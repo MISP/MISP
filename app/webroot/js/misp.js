@@ -3744,7 +3744,7 @@ function checkUserPasswordEnabled() {
 }
 
 function checkUserExternalAuth() {
-    if ($('#UserExternalAuthRequired').is(':checked')) {
+    if (!$('#UserExternalAuthRequired').length || $('#UserExternalAuthRequired').is(':checked')) {
         $('#externalAuthDiv').show();
         $('#passwordDivDiv').hide();
     } else {
