@@ -4,7 +4,7 @@ echo $this->element('genericElements/Form/genericForm', [
     'data' => [
         'title' => isset($edit) ? __('Edit MISP feed') : __('Add MISP feed'),
         'description' => __('Add a new MISP feed source.'),
-        'model' => 'Feeds',
+        'model' => 'Feed',
         'fields' => [
             [
                 'field' => 'enabled',
@@ -69,7 +69,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'field' => 'tag_id',
                 'label' => __('Default Tag'),
                 'options' => $dropdownData['tags'],
-                'selected' => isset($feed['Feed']['tag_id']) ? $feed['Feed']['tag_id'] : 0,
+                'selected' => isset($feed['Feed']['tag_id']) ? $feed['Feed']['tag_id'] : '0',
                 'type' => 'dropdown',
                 'searchable' => 1
             ],

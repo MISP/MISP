@@ -18,13 +18,24 @@
         h($data['model']);
     $fieldsString = '';
     $simpleFieldAllowedlist = array(
-        'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'checked', 'multiple', 'selected', 'legend',
+        'default', 
+        'type', 
+        'options', 
+        'placeholder', 
+        'label', 
+        'empty', 
+        'rows', 
+        'div', 
+        'required', 
+        'checked', 
+        'multiple', 
+        'selected', 
+        'legend',
         'disabled',
     );
     $fieldsArrayForPersistence = array();
     $formOptions = isset($formOptions) ? $formOptions : array();
-    $formRandomValue = Security::randomBytes(8);
-    $formOptions = array_merge(['id' => 'form-' . $formRandomValue, 'class' => 'genericForm'], $formOptions);
+    // $formOptions = array_merge(['class' => 'genericForm'], $formOptions);
     $formCreate = $this->Form->create($modelForForm, $formOptions);
     if (!empty($data['fields'])) {
         foreach ($data['fields'] as $fieldData) {
@@ -109,7 +120,7 @@
             $metaFieldString .= $metaField;
         }
     }
-    $submitButtonData = array('model' => $modelForForm, 'formRandomValue' => $formRandomValue);
+    $submitButtonData = array('model' => $modelForForm);
     if (!empty($data['submit'])) {
         $submitButtonData = array_merge($submitButtonData, $data['submit']);
     }
@@ -139,8 +150,8 @@
                     $formCreate,
                     $ajaxFlashMessage,
                     $fieldsString,
-                    $formEnd,
-                    $metaFieldString
+                    $metaFieldString,
+                    $formEnd
                 )
             ),
             sprintf(
@@ -157,9 +168,9 @@
             $ajaxFlashMessage,
             empty($data['description']) ? '' : $data['description'],
             $fieldsString,
-            $formEnd,
             $metaFieldString,
-            $this->element('genericElements/Form/submitButton', $submitButtonData)
+            $this->element('genericElements/Form/submitButton', $submitButtonData),
+            $formEnd
         );
     }
 ?>

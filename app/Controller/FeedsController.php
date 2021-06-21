@@ -332,7 +332,6 @@ class FeedsController extends AppController
                 'distribution',
                 'sharing_group_id',
                 'tag_id',
-                'fixed_event',
                 'event_id',
                 'publish',
                 'delta_merge',

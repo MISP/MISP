@@ -1,4 +1,3 @@
 <?php
-    $params['div'] = false;
-    echo $this->FormFieldMassage->prepareFormElement($this->Form, $params, $fieldData);
-?>
+$params['div'] = false;
+echo $this->Form->input($fieldData['field'], $params);
