@@ -358,6 +358,34 @@ class WarninglistsController extends AppController
         $this->set('possibleCategories', $this->Warninglist->categories());
     }
 
+    public function import()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This function only accepts POST requests.'));
+        }
+
+        if (empty($this->request->data)) {
+            throw new BadRequestException(__('No valid data received.'));
+        }
+
+        foreach (['name', 'type', 'version', 'description', 'matching_attributes', 'list'] as $filed) {
+            if (!isset($this->request->data[$filed])) {
+                throw new BadRequestException(__('No valid data received: field `%s` is missing.', $filed));
+            }
+        }
+
+        if (!is_array($this->request->data['list'])) {
+            throw new BadRequestException(__('No valid data received: `list` field is not array'));
+        }
+
+        $id = $this->Warninglist->import($this->request->data);
+        if (is_int($id)) {
+            return $this->RestResponse->saveSuccessResponse('Warninglist', 'import', $id, false, __('Warninglist imported'));
+        } else {
+            return $this->RestResponse->saveFailResponse('Warninglist', 'import', false, $id);
+        }
+    }
+
     public function export($id = null)
     {
         if (empty($id)) {
@@ -377,6 +405,7 @@ class WarninglistsController extends AppController
         ]);
         $output = [
             'name' => $warninglist['Warninglist']['name'],
+            'type' => $warninglist['Warninglist']['type'],
             'version' => $warninglist['Warninglist']['version'],
             'description' => $warninglist['Warninglist']['description'],
             'matching_attributes' => $matchingAttributes,

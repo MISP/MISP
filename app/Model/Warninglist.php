@@ -17,7 +17,7 @@ class Warninglist extends AppModel
 
     public $actsAs = array(
         'AuditLog',
-            'Containable',
+        'Containable',
     );
 
     public $validate = array(
@@ -212,7 +212,7 @@ class Warninglist extends AppModel
         $existingWarninglist = $this->find('all', [
             'fields' => ['id', 'name', 'version', 'enabled'],
             'recursive' => -1,
-            'condition' => ['default' => 1],
+            'conditions' => ['default' => 1],
         ]);
         $existingWarninglist = array_column(array_column($existingWarninglist, 'Warninglist'), null, 'name');
 
@@ -264,7 +264,37 @@ class Warninglist extends AppModel
         return $result;
     }
 
-    private function __updateList(array $list, array $current)
+    /**
+     * Import single warninglist
+     * @param array $list
+     * @return array|int|string
+     * @throws Exception
+     */
+    public function import(array $list)
+    {
+        $existingWarninglist = $this->find('first', [
+            'fields' => ['id', 'name', 'version', 'enabled', 'default'],
+            'recursive' => -1,
+            'conditions' => ['name' => $list['name']],
+        ]);
+
+        if ($existingWarninglist && $existingWarninglist['Warninglist']['default']) {
+            throw new Exception('It is not possible to modify default warninglist.');
+        }
+
+        $id = $this->__updateList($list, $existingWarninglist ? $existingWarninglist['Warninglist']: [], false);
+        $this->regenerateWarninglistCaches($id);
+        return $id;
+    }
+
+    /**
+     * @param array $list
+     * @param array $current
+     * @param bool $default
+     * @return array|int|string
+     * @throws Exception
+     */
+    private function __updateList(array $list, array $current, $default = true)
     {
         $list['enabled'] = 0;
         $warninglist = array();
@@ -272,45 +302,61 @@ class Warninglist extends AppModel
             if ($current['enabled']) {
                 $list['enabled'] = 1;
             }
-            $list['id'] = $current['id']; // keep list ID
+            $warninglist['Warninglist']['id'] = $current['id']; // keep list ID
             $this->quickDelete($current['id']);
         }
         $fieldsToSave = array('name', 'version', 'description', 'type', 'enabled');
         foreach ($fieldsToSave as $fieldToSave) {
             $warninglist['Warninglist'][$fieldToSave] = $list[$fieldToSave];
         }
+        if (!$default) {
+            $warninglist['Warninglist']['default'] = 0;
+        }
         $this->create();
-        if ($this->save($warninglist)) {
-            $db = $this->getDataSource();
-            $values = array();
-            $warninglistId = (int)$this->id;
-            foreach ($list['list'] as $value) {
-                if (!empty($value)) {
-                    $values[] = array('value' => $value, 'warninglist_id' => $warninglistId);
-                }
-            }
-            unset($list['list']);
-            $result = true;
-            foreach (array_chunk($values, 500) as $chunk) {
-                $result = $db->insertMulti('warninglist_entries', array('value', 'warninglist_id'), $chunk);
-            }
-            if (!$result) {
-                return 'Could not insert values.';
-            }
-            if (!empty($list['matching_attributes'])) {
-                $values = array();
-                foreach ($list['matching_attributes'] as $type) {
-                    $values[] = array('type' => $type, 'warninglist_id' => $warninglistId);
-                }
-                $this->WarninglistType->saveMany($values);
-            } else {
-                $this->WarninglistType->create();
-                $this->WarninglistType->save(array('WarninglistType' => array('type' => 'ALL', 'warninglist_id' => $warninglistId)));
-            }
-            return $warninglistId;
-        } else {
+        if (!$this->save($warninglist)) {
             return $this->validationErrors;
         }
+
+        $db = $this->getDataSource();
+        $values = array();
+        $warninglistId = (int)$this->id;
+
+        $keys = array_keys($list['list']);
+        if ($keys === array_keys($keys)) {
+            foreach ($list['list'] as $value) {
+                if (!empty($value)) {
+                    $values[] = ['value' => $value, 'warninglist_id' => $warninglistId];
+                }
+            }
+            $result = true;
+            foreach (array_chunk($values, 500) as $chunk) {
+                $result = $db->insertMulti('warninglist_entries', ['value', 'warninglist_id'], $chunk);
+            }
+        } else { // import warninglist with comments
+            foreach ($list['list'] as $value => $comment) {
+                if (!empty($value)) {
+                    $values[] = ['value' => $value, 'comment' => $comment, 'warninglist_id' => $warninglistId];
+                }
+            }
+            $result = true;
+            foreach (array_chunk($values, 500) as $chunk) {
+                $result = $db->insertMulti('warninglist_entries', ['value', 'comment', 'warninglist_id'], $chunk);
+            }
+        }
+        if (!$result) {
+            return 'Could not insert values.';
+        }
+        if (!empty($list['matching_attributes'])) {
+            $values = array();
+            foreach ($list['matching_attributes'] as $type) {
+                $values[] = array('type' => $type, 'warninglist_id' => $warninglistId);
+            }
+            $this->WarninglistType->saveMany($values);
+        } else {
+            $this->WarninglistType->create();
+            $this->WarninglistType->save(array('WarninglistType' => array('type' => 'ALL', 'warninglist_id' => $warninglistId)));
+        }
+        return $warninglistId;
     }
 
     /**

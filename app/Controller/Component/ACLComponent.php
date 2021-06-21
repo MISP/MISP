@@ -745,6 +745,7 @@ class ACLComponent extends Component
                 'edit' => ['perm_warninglist'],
                 'add' => ['perm_warninglist'],
                 'export' => ['*'],
+                'import' => ['perm_warninglist'],
             ),
             'allowedlists' => array(
                     'admin_add' => array('perm_regexp_access'),

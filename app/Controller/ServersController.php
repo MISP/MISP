@@ -2009,9 +2009,7 @@ class ServersController extends AppController
     {
         App::uses('SyncTool', 'Tools');
         $params = array();
-        $this->loadModel('RestClientHistory');
-        $this->RestClientHistory->create();
-        $date = new DateTime();
+
         $logHeaders = $request['header'];
         if (!empty(Configure::read('Security.advanced_authkeys'))) {
             $logHeaders = explode("\n", $request['header']);
@@ -2022,11 +2020,20 @@ class ServersController extends AppController
             }
             $logHeaders = implode("\n", $logHeaders);
         }
+
+        if (empty($request['body'])) {
+            $historyBody = '';
+        } else if (strlen($request['body']) > 65535) {
+            $historyBody = ''; // body is too long to save into history table
+        } else {
+            $historyBody = $request['body'];
+        }
+
         $rest_history_item = array(
             'org_id' => $this->Auth->user('org_id'),
             'user_id' => $this->Auth->user('id'),
             'headers' => $logHeaders,
-            'body' => empty($request['body']) ? '' : $request['body'],
+            'body' => $historyBody,
             'url' => $request['url'],
             'http_method' => $request['method'],
             'use_full_path' => empty($request['use_full_path']) ? false : $request['use_full_path'],
@@ -2034,7 +2041,7 @@ class ServersController extends AppController
             'skip_ssl' => $request['skip_ssl_validation'],
             'bookmark' => $request['bookmark'],
             'bookmark_name' => $request['name'],
-            'timestamp' => $date->getTimestamp()
+            'timestamp' => time(),
         );
         if (!empty($request['url'])) {
             if (empty($request['use_full_path']) || empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
@@ -2056,7 +2063,6 @@ class ServersController extends AppController
         $params['timeout'] = 300;
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket($params);
-        $view_data = array();
 
         $temp_headers = empty($request['header']) ? [] : explode("\n", $request['header']);
         $request['header'] = array(
@@ -2108,24 +2114,30 @@ class ServersController extends AppController
         } else {
             return false;
         }
-        $view_data['duration'] = microtime(true) - $start;
-        $view_data['duration'] = round($view_data['duration'] * 1000, 2) . ' ms';
-        $view_data['url'] = $url;
-        $view_data['code'] =  $response->code;
-        $view_data['headers'] = $response->headers;
+        $viewData = [
+            'duration' => round((microtime(true) - $start) * 1000, 2) . ' ms',
+            'url' => $url,
+            'code' => $response->code,
+            'headers' => $response->headers,
+        ];
+
         if (!empty($request['show_result'])) {
-            $view_data['data'] = $response->body;
+            $viewData['data'] = $response->body;
         } else {
             if ($response->isOk()) {
-                $view_data['data'] = 'Success.';
+                $viewData['data'] = 'Success.';
             } else {
-                $view_data['data'] = 'Something went wrong.';
+                $viewData['data'] = 'Something went wrong.';
             }
         }
         $rest_history_item['outcome'] = $response->code;
+
+        $this->loadModel('RestClientHistory');
+        $this->RestClientHistory->create();
         $this->RestClientHistory->save($rest_history_item);
         $this->RestClientHistory->cleanup($this->Auth->user('id'));
-        return $view_data;
+
+        return $viewData;
     }
 
     private function __generatePythonScript($request, $url)
