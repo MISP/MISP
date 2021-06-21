@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: 2.4.142
+  version: 2.4.144
   title: MISP Automation API
   description: |
 
@@ -60,7 +60,7 @@ tags:
     description: "Galaxies in MISP are a method used to express a large object called cluster that can be attached to MISP events or attributes."
     externalDocs:
       url: https://www.circl.lu/doc/misp/galaxy/
-  - name: GalaxyClusters
+  - name: Galaxy Clusters
     description: "A galaxy cluster that can be attached to MISP events or attributes."
     externalDocs:
       url: https://www.circl.lu/doc/misp/galaxy/
@@ -106,6 +106,24 @@ tags:
       url: https://www.circl.lu/doc/misp/noticelists/
 
 paths:
+  /attributes/restSearch:
+    post:
+      summary: "[restSearch] Get a filtered and paginated list of attributes"
+      description: |
+        **This is the recommended endpoint for searching attributes.**
+      operationId: restSearchAttributes
+      tags:
+        - Attributes
+      requestBody:
+        $ref: "#/components/requestBodies/RestSearchAttributesRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AttributesRestSearchResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /attributes/add/{eventId}:
     post:
       summary: "Add an attribute"
@@ -248,27 +266,9 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /attributes/restSearch:
-    post:
-      summary: "Get a filtered and paginated list of attributes"
-      operationId: restSearchAttributes
-      tags:
-        - Attributes
-      parameters:
-        - $ref: "#/components/parameters/returnFormatParameter"
-      requestBody:
-        $ref: "#/components/requestBodies/RestSearchAttributesRequest"
-      responses:
-        "200":
-          $ref: "#/components/responses/AttributesRestSearchResponse"
-        "403":
-          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
-        default:
-          $ref: "#/components/responses/ApiErrorResponse"
-
   /attributes/attributeStatistics/{context}/{percentage}:
     get:
-      summary: "Get a filtered and paginated list of attributes"
+      summary: "Get the count of attributes per category"
       operationId: getAttributeStatistics
       tags:
         - Attributes
@@ -292,6 +292,24 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/DescribeAttributeTypesResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /events/restSearch:
+    post:
+      summary: "[restSearch] Get a filtered and paginated list of events"
+      operationId: restSearchEvents
+      description: |
+        **This is the recommended endpoint for searching events.**
+      tags:
+        - Events
+      requestBody:
+        $ref: "#/components/requestBodies/RestSearchEventsRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/EventsRestSearchResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         default:
@@ -388,24 +406,6 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/ExtendedEventResponse"
-        "403":
-          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
-        default:
-          $ref: "#/components/responses/ApiErrorResponse"
-
-  /events/restSearch:
-    post:
-      summary: "Get a filtered and paginated list of events"
-      operationId: restSearchEvents
-      tags:
-        - Events
-      parameters:
-        - $ref: "#/components/parameters/returnFormatParameter"
-      requestBody:
-        $ref: "#/components/requestBodies/RestSearchEventsRequest"
-      responses:
-        "200":
-          $ref: "#/components/responses/EventsRestSearchResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         default:
@@ -619,7 +619,7 @@ paths:
       summary: "Add galaxy cluster"
       operationId: addGalaxyCluster
       tags:
-        - GalaxyClusters
+        - Galaxy Clusters
       parameters:
         - $ref: "#/components/parameters/galaxyIdParameter"
       requestBody:
@@ -639,7 +639,7 @@ paths:
       summary: "Edit galaxy cluster"
       operationId: editGalaxyCluster
       tags:
-        - GalaxyClusters
+        - Galaxy Clusters
       parameters:
         - $ref: "#/components/parameters/galaxyClusterIdParameter"
       requestBody:
@@ -659,7 +659,7 @@ paths:
       summary: "Get galaxy clusters"
       operationId: getGalaxyClusters
       tags:
-        - GalaxyClusters
+        - Galaxy Clusters
       parameters:
         - $ref: "#/components/parameters/galaxyIdParameter"
       responses:
@@ -675,7 +675,7 @@ paths:
       summary: "Search galaxy clusters"
       operationId: searchGalaxyClusters
       tags:
-        - GalaxyClusters
+        - Galaxy Clusters
       parameters:
         - $ref: "#/components/parameters/galaxyIdParameter"
       requestBody:
@@ -695,7 +695,7 @@ paths:
       summary: "Get galaxy cluster by ID"
       operationId: getGalaxyClusterById
       tags:
-        - GalaxyClusters
+        - Galaxy Clusters
       parameters:
         - $ref: "#/components/parameters/galaxyClusterIdParameter"
       responses:
@@ -713,7 +713,7 @@ paths:
       summary: "Publish galaxy cluster"
       operationId: publishGalaxyCluster
       tags:
-        - GalaxyClusters
+        - Galaxy Clusters
       parameters:
         - $ref: "#/components/parameters/galaxyClusterIdParameter"
       responses:
@@ -731,7 +731,7 @@ paths:
       summary: "Unpublish galaxy cluster"
       operationId: unpublishGalaxyCluster
       tags:
-        - GalaxyClusters
+        - Galaxy Clusters
       parameters:
         - $ref: "#/components/parameters/galaxyClusterIdParameter"
       responses:
@@ -749,7 +749,7 @@ paths:
       summary: "Delete galaxy cluster"
       operationId: deleteGalaxyCluster
       tags:
-        - GalaxyClusters
+        - Galaxy Clusters
       parameters:
         - $ref: "#/components/parameters/galaxyClusterIdParameter"
       responses:
@@ -767,7 +767,7 @@ paths:
       summary: "Restore galaxy cluster"
       operationId: restoreGalaxyCluster
       tags:
-        - GalaxyClusters
+        - Galaxy Clusters
       parameters:
         - $ref: "#/components/parameters/galaxyClusterIdParameter"
       responses:
@@ -4432,6 +4432,52 @@ components:
     ModelOverridesRestSearchFilter:
       $ref: "#/components/schemas/DecayingModelParameters"
 
+    EventsRestSearchReturnFormat:
+      description: "Format of the response payload"
+      type: string
+      enum:
+          - json
+          - xml
+          - csv
+          - text
+          - stix
+          - stix2
+          - stix-json
+          - attack
+          - attack-sightings
+          - cache
+          - count
+          - hashes
+          - netfilter
+          - opendata
+          - openioc
+          - rpz
+          - snort
+          - suricata
+          - yara
+          - yara-json
+
+    AttributesRestSearchReturnFormat:
+      description: "Format of the response payload"
+      type: string
+      enum:
+          - json
+          - xml
+          - csv
+          - text
+          - hashes
+          - cache
+          - count
+          - netfilter
+          - opendata
+          - openioc
+          - rpz
+          - snort
+          - suricata
+          - text
+          - yara
+          - yara-json
+
     ObjectRelationRestSearchFilter:
       description: "Filter by the attribute object relation value"
       nullable: true
@@ -4719,20 +4765,6 @@ components:
           - "attribute"
           - "tag_collection"
 
-    returnFormatParameter:
-      name: returnFormat
-      in: query
-      description: Return type of the restSearch query.
-      required: true
-      schema:
-        type: string
-        enum:
-          - json
-          - xml
-          - download
-          - stix
-          - stix2
-
     attributeStatisticsContextParameter:
       name: context
       in: path
@@ -4926,6 +4958,9 @@ components:
                 description: "Should the decayed elements by excluded"
                 type: boolean
                 default: false
+              returnFormat:
+                $ref: "#/components/schemas/AttributesRestSearchReturnFormat"
+
 
     AddEventRequest:
       required: true
@@ -5115,6 +5150,8 @@ components:
                 $ref: "#/components/schemas/ObjectRelationRestSearchFilter"
               threat_level_id:
                 $ref: "#/components/schemas/ThreatLevelId"
+              returnFormat:
+                $ref: "#/components/schemas/EventsRestSearchReturnFormat"
 
     SearchGalaxyRequest:
       required: true
@@ -7287,9 +7324,25 @@ components:
         enum:
           - json
           - xml
+          - csv
+          - text
           - download
           - stix
           - stix2
+          - stix-json
+          - attack
+          - attack-sightings
+          - cache
+          - count
+          - hashes
+          - netfilter
+          - opendata
+          - openioc
+          - rpz
+          - snort
+          - suricata
+          - yara
+          - yara-json
 
     X-Response-Format:
       description: Response format
@@ -7298,9 +7351,26 @@ components:
         enum:
           - json
           - xml
+          - csv
+          - text
           - download
           - stix
           - stix2
+          - stix-json
+          - attack
+          - attack-sightings
+          - cache
+          - count
+          - hashes
+          - netfilter
+          - opendata
+          - openioc
+          - rpz
+          - snort
+          - suricata
+          - yara
+          - yara-json
+
 
 security:
   - ApiKeyAuth: []
