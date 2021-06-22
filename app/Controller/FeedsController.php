@@ -327,6 +327,7 @@ class FeedsController extends AppController
                 'provider',
                 'enabled',
                 'caching_enabled',
+                'pull_rules',
                 'rules',
                 'url',
                 'distribution',
@@ -442,7 +443,6 @@ class FeedsController extends AppController
             'menuItem' => 'edit',
         ]);
 
-        $this->set('edit', true);
         $this->set('feedId', $feedId);
         $this->render('add');
     }

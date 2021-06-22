@@ -1,5 +1,6 @@
 <?php
 $modelForForm = 'Feeds';
+$edit = $this->request->params['action'] === 'edit' ? true : false;
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
         'title' => isset($edit) ? __('Edit MISP feed') : __('Add MISP feed'),
@@ -62,21 +63,24 @@ echo $this->element('genericElements/Form/genericForm', [
                 'field' => 'distribution',
                 'label' => __('Distribution'),
                 'options' => $dropdownData['distributionLevels'],
-                'selected' => isset($feed['Feed']['distribution']) ? $feed['Feed']['distribution'] : 3,
+                'selected' => isset($entity['Feed']['distribution']) ? $entity['Feed']['distribution'] : 3,
                 'type' => 'dropdown'
             ],
             [
                 'field' => 'tag_id',
                 'label' => __('Default Tag'),
                 'options' => $dropdownData['tags'],
-                'selected' => isset($feed['Feed']['tag_id']) ? $feed['Feed']['tag_id'] : '0',
+                'selected' => isset($entity['Feed']['tag_id']) ? $entity['Feed']['tag_id'] : '0',
                 'type' => 'dropdown',
                 'searchable' => 1
             ],
             [
                 'field' => 'rules',
                 'label' => __('Filter rules'),
-                'type' => 'pullRules'
+                'type' => 'pullRules',
+                'tags' => $dropdownData['tags'],
+                'orgs' => $dropdownData['orgs'],
+                'pull_rules' => $entity['Feed']['rules']
             ],
         ],
         'submit' => [

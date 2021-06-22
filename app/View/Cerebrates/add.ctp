@@ -1,4 +1,5 @@
 <?php
+$modelForForm = 'Cerebrates';
 $edit = $this->request->params['action'] === 'edit' ? true : false;
 $fields = [
     [
@@ -40,6 +41,7 @@ $fields = [
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
         'description' => false,
+        'model' => 'Cerebrate',
         'title' => $edit ? __('Edit Cerebrate connection') : __('Add Cerebrate connection'),
         'fields' => $fields,
         'submit' => [
@@ -52,4 +54,3 @@ echo $this->element('genericElements/Form/genericForm', [
 if (!$ajax) {
     echo $this->element('/genericElements/SideMenu/side_menu', $menuData);
 }
-?>
