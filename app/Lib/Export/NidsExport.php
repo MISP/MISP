@@ -16,11 +16,14 @@ class NidsExport
 				'fields' => array('threat_level_id')
 			)
 		),
-		'flatten' => 1
+		#'flatten' => 1
 	);
 
 	public function handler($data, $options = array())
 	{
+	
+		//NOTES: Here the scope "Object" should be probably checked
+	
 		$continue = empty($format);
 		$this->checkWhitelist = false;
 		if ($options['scope'] === 'Attribute') {
@@ -38,15 +41,16 @@ class NidsExport
 				$this->__convertFromEventFormat($data['Attribute'], $data, $options, $continue);
 			}
 			if (!empty($data['Object'])) {
-				foreach ($data['Object'] as $object) {
-					$this->__convertFromEventFormat($object['Attribute'], $data, $options, $continue);
-				}
+				#foreach ($data['Object'] as $object) {
+					$this->__convertFromEventFormatObject($data['Object'], $data, $options, $continue);
+				#}
 			}
 		}
 		return '';
 	}
 
 	private function __convertFromEventFormat($attributes, $event, $options = array(), $continue = false) {
+		
 		$rearranged = array();
 		foreach ($attributes as $attribute) {
 			$attributeTag = array();
@@ -65,6 +69,44 @@ class NidsExport
 			$options['user']['nids_sid'],
 			$options['returnFormat'],
 			$continue
+		);
+		return true;
+
+	}
+	
+	private function __convertFromEventFormatObject($objects, $event, $options = array(), $continue = false) {
+		
+		#CakeLog::debug("ConvertFromEventFormatObject");
+            	#CakeLog::debug(json_encode($event));
+		
+		$rearranged = array();
+		foreach ($objects as $object) {
+			
+			$objectTag = array();
+			
+			foreach($object['Attribute'] as $attribute) {
+			
+				if (!empty($attribute['AttributeTag'])) {
+					$objectTag = array_merge($objectTag, $attribute['AttributeTag']);
+					unset($attribute['AttributeTag']);
+				}
+				
+			}
+			
+			$rearranged[] = array(
+				'Attribute' => $object,		//NOTES: Using 'Attribute' instead of 'Object' to comply with function export
+				'AttributeTag' => $objectTag,		//NOTES: Using 'AttributeTag' instead of 'ObjectTag' to comply with function export
+				'Event' => $event['Event']
+			);
+		
+		}
+		
+		$this->export(
+			$rearranged,
+			$options['user']['nids_sid'],
+			$options['returnFormat'],
+			$continue
+		
 		);
 		return true;
 
@@ -142,67 +184,134 @@ class NidsExport
 
             $sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
             $sid++;
-            switch ($item['Attribute']['type']) {
-                // LATER nids - test all the snort attributes
-                // LATER nids - add the tag keyword in the rules to capture network traffic
-                // LATER nids - sanitize every $attribute['value'] to not conflict with snort
-                case 'ip-dst':
-                    $this->ipDstRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'ip-src':
-                    $this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'ip-dst|port':
-                    $this->ipDstRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'ip-src|port':
-                    $this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'email':
-                    $this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
-                    $this->emailDstRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'email-src':
-                    $this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'email-dst':
-                    $this->emailDstRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'email-subject':
-                    $this->emailSubjectRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'email-attachment':
-                    $this->emailAttachmentRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'domain':
-                    $this->domainRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'domain|ip':
-                    $this->domainIpRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'hostname':
-                    $this->hostnameRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'url':
-                    $this->urlRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'user-agent':
-                    $this->userAgentRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'ja3-fingerprint-md5':
-                    $this->ja3Rule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'ja3s-fingerprint-md5': // Atribute type doesn't exists yet (2020-12-10) but ready when created.
-                    $this->ja3sRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'snort':
-                    $this->snortRule($ruleFormat, $item['Attribute'], $sid, $ruleFormatMsg, $ruleFormatReference);
-                    // no break
-                default:
-                    break;
-            }
+            
+            if(!empty($item['Attribute']['type'])) {	//NOTES: Item is an 'Attribute'
+            
+		    switch ($item['Attribute']['type']) {
+		        // LATER nids - test all the snort attributes
+		        // LATER nids - add the tag keyword in the rules to capture network traffic
+		        // LATER nids - sanitize every $attribute['value'] to not conflict with snort
+		        case 'ip-dst':
+		            $this->ipDstRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'ip-src':
+		            $this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'ip-dst|port':
+		            $this->ipDstRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'ip-src|port':
+		            $this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'email':
+		            $this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
+		            $this->emailDstRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'email-src':
+		            $this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'email-dst':
+		            $this->emailDstRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'email-subject':
+		            $this->emailSubjectRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'email-attachment':
+		            $this->emailAttachmentRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'domain':
+		            $this->domainRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'domain|ip':
+		            $this->domainIpRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'hostname':
+		            $this->hostnameRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'url':
+		            $this->urlRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'user-agent':
+		            $this->userAgentRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'ja3-fingerprint-md5':
+		            $this->ja3Rule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'ja3s-fingerprint-md5': // Atribute type doesn't exists yet (2020-12-10) but ready when created.
+		            $this->ja3sRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        case 'snort':
+		            $this->snortRule($ruleFormat, $item['Attribute'], $sid, $ruleFormatMsg, $ruleFormatReference);
+		            // no break
+		        default:
+		            break;
+		    }
+	      
+	      } else if(!empty($item['Attribute']['name'])) {	//NOTES: Item is an 'Object'
+	      
+	      	   switch ($item['Attribute']['name']) {
+		        case 'network-connection':
+		            $this->networkConnectionRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
+		        default:
+		            break;
+		    }
+	      
+	      }
+	      
         }
         return $this->rules;
+    }
+    
+    public function networkConnectionRule($ruleFormat, $object, &$sid)
+    {
+    
+    	$attributes = NidsExport::getObjectAttributes($object);
+        
+        if(!array_key_exists('layer4-protocol', $attributes)){
+        	$attributes['layer4-protocol'] = 'IP';	// If layer-4 protocol is unknown, we roll-back to layer-3 ('IP')
+        }
+        if(!array_key_exists('ip-src', $attributes)){
+        	$attributes['ip-src'] = '$HOME_NET';	// If ip-src is unknown, we roll-back to $HOME_NET
+        }
+        if(!array_key_exists('ip-dst', $attributes)){
+        	$attributes['ip-dst'] = '$HOME_NET';	// If ip-dst is unknown, we roll-back to $HOME_NET
+        }
+        if(!array_key_exists('src-port', $attributes)){
+        	$attributes['src-port'] = 'any';	// If src-port is unknown, we roll-back to 'any'
+        }
+        if(!array_key_exists('dst-port', $attributes)){
+        	$attributes['dst-port'] = 'any';	// If dst-port is unknown, we roll-back to 'any'
+        }
+
+	$this->rules[] = sprintf(
+            $ruleFormat,
+            false,
+            $attributes['layer4-protocol'],				// proto
+            $attributes['ip-src'],					// src_ip
+            $attributes['src-port'],					// src_port
+            '->',							// direction
+            $attributes['ip-dst'],					// dst_ip
+            $attributes['dst-port'],					// dst_port
+            'Network connection between ' . $attributes['ip-src'] . ' and ' . $attributes['ip-dst'],		// msg
+            '',							// rule_content
+            '',							// tag
+            $sid,							// sid
+            1								// rev
+            );
+        
+    }
+    
+    public static function getObjectAttributes($object)
+    {
+     	
+     	$attributes = array();
+        
+        foreach ($object['Attribute'] as $attribute) {
+        	$attributes[$attribute['object_relation']] = $attribute['value'];
+        }
+        
+        return $attributes;
     }
 
     public function domainIpRule($ruleFormat, $attribute, &$sid)
