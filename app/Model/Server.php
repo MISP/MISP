@@ -53,7 +53,7 @@ class Server extends AppModel
     public $validate = array(
         'url' => array(
             'url' => array(
-                'rule' => array('url'),
+                'rule' => array('validateURL'),
                 'message' => 'Please enter a valid base-url.'
             )
         ),
@@ -1681,6 +1681,13 @@ class Server extends AppModel
             $proto = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
         }
         return $proto;
+    }
+
+    public function validateURL($check)
+    {
+        $check = array_values($check);
+        $check = $check[0];
+        return $this->testURL($check);
     }
 
     public function testBaseURL($value)
@@ -4183,12 +4190,12 @@ class Server extends AppModel
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         while ($continue) {
             $i++;
-            $pipe = $redis->multi(Redis::PIPELINE);
             $chunk_size = 50000;
             $data = $this->__getCachedAttributes($server, $HttpSocket, $chunk_size, $i);
             if (empty(trim($data))) {
                 $continue = false;
             } else {
+                $pipe = $redis->multi(Redis::PIPELINE);
                 $data = explode(PHP_EOL, trim($data));
                 foreach ($data as $entry) {
                     list($value, $uuid) = explode(',', $entry);
@@ -4202,11 +4209,11 @@ class Server extends AppModel
                         $redis->sAdd('misp:server_cache:event_uuid_lookup:' . $value, $server['Server']['id'] . '/' . $uuid);
                     }
                 }
+                $pipe->exec();
+                if ($jobId) {
+                    $job->saveField('message', 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+                }
             }
-            if ($jobId) {
-                $job->saveField('message', 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
-            }
-            $pipe->exec();
         }
         $redis->set('misp:server_cache_timestamp:' . $server['Server']['id'], time());
         return true;

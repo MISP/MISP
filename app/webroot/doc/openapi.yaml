@@ -114,8 +114,6 @@ paths:
       operationId: restSearchAttributes
       tags:
         - Attributes
-      parameters:
-        - $ref: "#/components/parameters/returnFormatParameter"
       requestBody:
         $ref: "#/components/requestBodies/RestSearchAttributesRequest"
       responses:
@@ -307,8 +305,6 @@ paths:
         **This is the recommended endpoint for searching events.**
       tags:
         - Events
-      parameters:
-        - $ref: "#/components/parameters/returnFormatParameter"
       requestBody:
         $ref: "#/components/requestBodies/RestSearchEventsRequest"
       responses:
@@ -4436,6 +4432,52 @@ components:
     ModelOverridesRestSearchFilter:
       $ref: "#/components/schemas/DecayingModelParameters"
 
+    EventsRestSearchReturnFormat:
+      description: "Format of the response payload"
+      type: string
+      enum:
+          - json
+          - xml
+          - csv
+          - text
+          - stix
+          - stix2
+          - stix-json
+          - attack
+          - attack-sightings
+          - cache
+          - count
+          - hashes
+          - netfilter
+          - opendata
+          - openioc
+          - rpz
+          - snort
+          - suricata
+          - yara
+          - yara-json
+
+    AttributesRestSearchReturnFormat:
+      description: "Format of the response payload"
+      type: string
+      enum:
+          - json
+          - xml
+          - csv
+          - text
+          - hashes
+          - cache
+          - count
+          - netfilter
+          - opendata
+          - openioc
+          - rpz
+          - snort
+          - suricata
+          - text
+          - yara
+          - yara-json
+
     ObjectRelationRestSearchFilter:
       description: "Filter by the attribute object relation value"
       nullable: true
@@ -4723,20 +4765,6 @@ components:
           - "attribute"
           - "tag_collection"
 
-    returnFormatParameter:
-      name: returnFormat
-      in: query
-      description: Return type of the restSearch query.
-      required: true
-      schema:
-        type: string
-        enum:
-          - json
-          - xml
-          - download
-          - stix
-          - stix2
-
     attributeStatisticsContextParameter:
       name: context
       in: path
@@ -4930,6 +4958,9 @@ components:
                 description: "Should the decayed elements by excluded"
                 type: boolean
                 default: false
+              returnFormat:
+                $ref: "#/components/schemas/AttributesRestSearchReturnFormat"
+
 
     AddEventRequest:
       required: true
@@ -5119,6 +5150,8 @@ components:
                 $ref: "#/components/schemas/ObjectRelationRestSearchFilter"
               threat_level_id:
                 $ref: "#/components/schemas/ThreatLevelId"
+              returnFormat:
+                $ref: "#/components/schemas/EventsRestSearchReturnFormat"
 
     SearchGalaxyRequest:
       required: true
@@ -7291,9 +7324,25 @@ components:
         enum:
           - json
           - xml
+          - csv
+          - text
           - download
           - stix
           - stix2
+          - stix-json
+          - attack
+          - attack-sightings
+          - cache
+          - count
+          - hashes
+          - netfilter
+          - opendata
+          - openioc
+          - rpz
+          - snort
+          - suricata
+          - yara
+          - yara-json
 
     X-Response-Format:
       description: Response format
@@ -7302,9 +7351,26 @@ components:
         enum:
           - json
           - xml
+          - csv
+          - text
           - download
           - stix
           - stix2
+          - stix-json
+          - attack
+          - attack-sightings
+          - cache
+          - count
+          - hashes
+          - netfilter
+          - opendata
+          - openioc
+          - rpz
+          - snort
+          - suricata
+          - yara
+          - yara-json
+
 
 security:
   - ApiKeyAuth: []
