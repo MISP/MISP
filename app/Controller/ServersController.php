@@ -298,6 +298,8 @@ class ServersController extends AppController
             }
             if (!$fail) {
                 if ($this->_isRest()) {
+                    $defaultPushRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []]]);
+                    $defaultPullRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []], "url_params" => ""]);
                     $defaults = array(
                         'push' => 0,
                         'pull' => 0,
@@ -306,8 +308,8 @@ class ServersController extends AppController
                         'pull_galaxy_clusters' => 0,
                         'caching_enabled' => 0,
                         'json' => '[]',
-                        'push_rules' => '[]',
-                        'pull_rules' => '[]',
+                        'push_rules' => $defaultPushRules,
+                        'pull_rules' => $defaultPullRules,
                         'self_signed' => 0
                     );
                     foreach ($defaults as $default => $dvalue) {
@@ -375,10 +377,10 @@ class ServersController extends AppController
                     }
                     $this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
                     if (empty($this->request->data['Server']['push_rules'])) {
-                        $this->request->data['Server']['push_rules'] = '[]';
+                        $this->request->data['Server']['push_rules'] = $defaultPushRules;
                     }
                     if (empty($this->request->data['Server']['pull_rules'])) {
-                        $this->request->data['Server']['pull_rules'] = '[]';
+                        $this->request->data['Server']['pull_rules'] = $defaultPullRules;
                     }
                     if ($this->Server->save($this->request->data)) {
                         if (isset($this->request->data['Server']['submitted_cert'])) {
