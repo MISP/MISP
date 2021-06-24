@@ -48,7 +48,8 @@ if (!empty($data['fields'])) {
             [
                 'fieldData' => $fieldData,
                 'form' => $this->Form,
-                'simpleFieldWhitelist' => $simpleFieldAllowedlist
+                'simpleFieldWhitelist' => $simpleFieldAllowedlist,
+                'modelForForm' => $modelForForm
             ]
         );
 

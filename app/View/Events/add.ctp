@@ -24,25 +24,30 @@
                     'class' => 'input',
                     'options' => $distributionLevels,
                     'default' => isset($event['Event']['distribution']) ? $event['Event']['distribution'] : $initialDistribution,
-                    'stayInLine' => 1
+                    'stayInLine' => 1,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'sharing_group_id',
                     'class' => 'input',
                     'options' => $sharingGroups,
-                    'label' => __("Sharing Group")
+                    'label' => __("Sharing Group"),
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'threat_level_id',
                     'class' => 'input',
                     'options' => $threatLevels,
                     'label' => __("Threat Level"),
-                    'stayInLine' => 1
+                    'stayInLine' => 1,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'analysis',
                     'class' => 'input',
-                    'options' => $analysisLevels
+                    'options' => $analysisLevels,
+                    'stayInLine' => 1,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'info',

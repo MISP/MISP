@@ -32,12 +32,14 @@
                     'field' => 'distribution',
                     'options' => $distributionLevels,
                     'default' => isset($cluster['GalaxyCluster']['distribution']) ? $cluster['GalaxyCluster']['distribution'] : $initialDistribution,
-                    'stayInLine' => 1
+                    'stayInLine' => 1,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'sharing_group_id',
                     'options' => $sharingGroups,
-                    'label' => __("Sharing Group")
+                    'label' => __("Sharing Group"),
+                    'type' => 'dropdown'
                 ),
                 !isset($forkedClusterMeta) ? '' : sprintf('<div id="fork_galaxy_preview" class="panel-container fork-cluster-preview"><h5>%s %s</h5>%s</div>',
                     __('Forked Cluster data'),

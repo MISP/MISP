@@ -19,16 +19,18 @@ echo $this->element('genericElements/Form/genericForm', array(
                 'field' => 'type',
                 'class' => 'input',
                 'options' => $possibleTypes,
+                'type' => 'dropdown'
             ),
             array(
                 'field' => 'category',
                 'class' => 'input',
                 'options' => $possibleCategories,
+                'type' => 'dropdown'
             ),
             array(
                 'label' => __('Accepted attribute types'),
                 'field' => 'matching_attributes',
-                'type' => 'select',
+                'type' => 'dropdown',
                 'multiple' => 'multiple',
             ),
             array(

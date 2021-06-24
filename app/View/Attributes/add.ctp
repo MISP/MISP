@@ -17,26 +17,30 @@
                     'class' => 'input',
                     'empty' => __('(choose one)'),
                     'options' => $categories,
-                    'stayInLine' => 1
+                    'stayInLine' => 1,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'type',
                     'class' => 'input',
                     'empty' => __('(choose category first)'),
-                    'options' => $types
+                    'options' => $types,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'distribution',
                     'class' => 'input',
                     'options' => $distributionLevels,
                     'default' => isset($attribute['Attribute']['distribution']) ? $attribute['Attribute']['distribution'] : $initialDistribution,
-                    'stayInLine' => 1
+                    'stayInLine' => 1,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'sharing_group_id',
                     'class' => 'input',
                     'options' => $sharingGroups,
-                    'label' => __("Sharing Group")
+                    'label' => __("Sharing Group"),
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field'=> 'value',

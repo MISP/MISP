@@ -17,10 +17,10 @@ $fields = [
     [
         'field' => 'org_id',
         'label' => 'Owner Organisation',
-        'type' => 'select',
         'options' => $dropdownData['org_id'],
         'class' => 'span6',
-        'searchable' => 1
+        'searchable' => 1,
+        'type' => 'dropdown'
     ],
     [
         'field' => 'description',

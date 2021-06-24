@@ -1,11 +1,9 @@
 <?php
-$modelForForm = 'Feeds';
 $edit = $this->request->params['action'] === 'edit' ? true : false;
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
         'title' => $edit ? __('Edit MISP feed') : __('Add MISP feed'),
         'description' => __('Add a new MISP feed source.'),
-        'model' => 'Feed',
         'fields' => [
             [
                 'field' => 'enabled',
