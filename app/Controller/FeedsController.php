@@ -204,7 +204,7 @@ class FeedsController extends AppController
                         $feed['Feed']['source_format'] = 'freetext';
                     }
                     if (empty($feed['Feed']['fixed_event'])) {
-                        $feed['Feed']['source_format'] = 1;
+                        $feed['Feed']['source_format'] = '1';
                     }
                 }
 
@@ -212,18 +212,18 @@ class FeedsController extends AppController
                     $feed['Feed']['rules'] = $feed['Feed']['pull_rules'];
                 }
                 if (!isset($feed['Feed']['distribution'])) {
-                    $feed['Feed']['distribution'] = 0;
+                    $feed['Feed']['distribution'] = '0';
                 }
                 if ($feed['Feed']['distribution'] != 4) {
-                    $feed['Feed']['sharing_group_id'] = 0;
+                    $feed['Feed']['sharing_group_id'] = '0';
                 }
-                $feed['Feed']['default'] = 0;
+                $feed['Feed']['default'] = '0';
                 if (!isset($feed['Feed']['source_format'])) {
                     $feed['Feed']['source_format'] = 'freetext';
                 }
                 if (!empty($feed['Feed']['source_format']) && ($feed['Feed']['source_format'] == 'misp')) {
                     if (!empty($feed['Feed']['orgc_id'])) {
-                        $feed['Feed']['orgc_id'] = 0;
+                        $feed['Feed']['orgc_id'] = '0';
                     }
                 }
                 if ($feed['Feed']['source_format'] == 'freetext') {
@@ -346,7 +346,7 @@ class FeedsController extends AppController
                 'orgc_id'
             ],
             'beforeSave' => function (array $feed) use ($feedId) {
-                if (!empty($feed['Feed']['settings'])) {
+                if (!empty($feed['Feed']['settings']) && !is_array($feed['Feed']['settings'])) {
                     $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
                 }
 
@@ -354,12 +354,12 @@ class FeedsController extends AppController
                     $feed['Feed']['rules'] = $feed['Feed']['pull_rules'];
                 }
                 if (isset($feed['Feed']['distribution']) && $feed['Feed']['distribution'] != 4) {
-                    $feed['Feed']['sharing_group_id'] = 0;
+                    $feed['Feed']['sharing_group_id'] = '0';
                 }
                 $feed['Feed']['id'] = $feedId;
                 if (!empty($feed['Feed']['source_format']) && ($feed['Feed']['source_format'] == 'misp')) {
                     if (!empty($feed['Feed']['orgc_id'])) {
-                        $feed['Feed']['orgc_id'] = 0;
+                        $feed['Feed']['orgc_id'] = '0';
                     }
                 }
                 if (!empty($feed['Feed']['source_format']) && ($feed['Feed']['source_format'] == 'freetext' || $feed['Feed']['source_format'] == 'csv')) {
@@ -369,7 +369,7 @@ class FeedsController extends AppController
                         } else if (!empty($feed['Feed']['event_id'])) {
                             $feed['Feed']['event_id'] = $feed['Feed']['event_id'];
                         } else {
-                            $feed['Feed']['event_id'] = 0;
+                            $feed['Feed']['event_id'] = '0';
                         }
                     }
                 }
