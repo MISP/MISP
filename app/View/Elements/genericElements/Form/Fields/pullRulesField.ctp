@@ -1,3 +1,4 @@
+<?php echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false)); ?>
 <b><?php echo __('Filter rules'); ?>:</b><br />
 <span id="pull_tags_OR" style="display:none;"><?php echo __('Events with the following tags allowed'); ?>: <span id="pull_tags_OR_text" style="color:green;"></span><br /></span>
 <span id="pull_tags_NOT" style="display:none;"><?php echo __('Events with the following tags blocked'); ?>: <span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
@@ -8,9 +9,7 @@
 <div id="hiddenRuleForms">
     <?php
     $pullRules = json_decode($fieldData['pull_rules'], true);
-    $pullRules['url_params'] = json_decode($fieldData['pull_rules'], true);
-
-    echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
+    $pullRules['url_params'] = json_decode($pullRules['url_params'], true);
 
     $modalData = [
         'data' => [
@@ -41,23 +40,13 @@
 </div>
 
 <script type="text/javascript">
-    var rules = {
-        "pull": {
-            "tags": {
-                "OR": [],
-                "NOT": []
-            },
-            "orgs": {
-                "OR": [],
-                "NOT": []
-            }
-        }
-    };
+    var rules = {};
     var validOptions = ['pull'];
     var validFields = ['tags', 'orgs'];
     var modelContext = '<?= $this->Form->defaultModel ?>';
 
     $(document).ready(function() {
+        rules = convertServerFilterRules(rules);
         $("#pull_modify").click(function() {
             $('#genericModal.pull-rule-modal').modal()
                 .on('shown', function() {

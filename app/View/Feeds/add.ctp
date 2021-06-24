@@ -3,7 +3,7 @@ $modelForForm = 'Feeds';
 $edit = $this->request->params['action'] === 'edit' ? true : false;
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
-        'title' => isset($edit) ? __('Edit MISP feed') : __('Add MISP feed'),
+        'title' => $edit ? __('Edit MISP feed') : __('Add MISP feed'),
         'description' => __('Add a new MISP feed source.'),
         'model' => 'Feed',
         'fields' => [
@@ -80,7 +80,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'pullRules',
                 'tags' => $dropdownData['tags'],
                 'orgs' => $dropdownData['orgs'],
-                'pull_rules' => $entity['Feed']['rules']
+                'pull_rules' => $edit ? $entity['Feed']['rules'] : $defaultPullRules
             ],
         ],
         'submit' => [

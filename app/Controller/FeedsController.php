@@ -307,7 +307,7 @@ class FeedsController extends AppController
             'inputSources' => $inputSources
         ];
         $this->set(compact('dropdownData'));
-
+        $this->set('defaultPullRules', json_encode(Feed::DEFAULT_FEED_PULL_RULES));
         $this->set('menuData', array('menuList' => 'feeds', 'menuItem' => 'add'));
     }
 
@@ -444,6 +444,7 @@ class FeedsController extends AppController
         ]);
 
         $this->set('feedId', $feedId);
+        $this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
         $this->render('add');
     }
 
