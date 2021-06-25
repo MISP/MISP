@@ -43,7 +43,7 @@
     var rules = {};
     var validOptions = ['pull'];
     var validFields = ['tags', 'orgs'];
-    var modelContext = '<?= $this->Form->defaultModel ?>';
+    var modelContext = '<?= h($this->Form->defaultModel) ?>';
 
     $(document).ready(function() {
         rules = convertServerFilterRules(rules);
