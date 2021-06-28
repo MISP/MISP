@@ -72,12 +72,14 @@
                 array(
                     'field' => 'first_seen',
                     'type' => 'text',
-                    'hidden' => true
+                    'hidden' => true,
+                    'required' => false
                 ),
                 array(
                     'field' => 'last_seen',
                     'type' => 'text',
-                    'hidden' => true
+                    'hidden' => true,
+                    'required' => false
                 ),
             ),
             'submit' => array(
