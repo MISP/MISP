@@ -102,7 +102,7 @@ class IndexFilterComponent extends Component
 
     public function isCsv()
     {
-
+        return $this->Controller->request->header('Accept') === 'text/csv' || $this->Controller->RequestHandler->prefers() === 'csv';
     }
 
     public function isXml()

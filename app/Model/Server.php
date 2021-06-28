@@ -53,7 +53,7 @@ class Server extends AppModel
     public $validate = array(
         'url' => array(
             'url' => array(
-                'rule' => array('url'),
+                'rule' => array('validateURL'),
                 'message' => 'Please enter a valid base-url.'
             )
         ),
@@ -1683,6 +1683,13 @@ class Server extends AppModel
         return $proto;
     }
 
+    public function validateURL($check)
+    {
+        $check = array_values($check);
+        $check = $check[0];
+        return $this->testURL($check);
+    }
+
     public function testBaseURL($value)
     {
         // only run this check via the GUI, via the CLI it won't work
@@ -2132,6 +2139,9 @@ class Server extends AppModel
         }
         if (!empty($setting)) {
             $setting['name'] = $setting_name;
+        }
+        if (!empty($setting['optionsSource'])) {
+            $setting['options'] = $setting['optionsSource']();
         }
         return $setting;
     }
@@ -6621,6 +6631,14 @@ class Server extends AppModel
                 'ZeroMQ_audit_notifications_enable' => array(
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of log entries to the ZMQ pubsub feed. Keep in mind, this can get pretty verbose depending on your logging settings.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ZeroMQ_warninglist_notifications_enable' =>  array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of new/modified warninglist to the ZMQ pubsub feed.'),
                     'value' => false,
                     'errorMessage' => '',
                     'test' => 'testBool',
