@@ -1805,6 +1805,7 @@ class ServersController extends AppController
         $versionArray = $this->Server->checkMISPVersion();
         $response = [
             'version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'],
+            'pymisp_recommended_version' => $this->pyMispVersion,
             'perm_sync' => $this->userRole['perm_sync'],
             'perm_sighting' => $this->userRole['perm_sighting'],
             'perm_galaxy_editor' => $this->userRole['perm_galaxy_editor'],
@@ -1813,6 +1814,9 @@ class ServersController extends AppController
         return $this->RestResponse->viewData($response, $this->response->type());
     }
 
+    /**
+     * @deprecated Use field `pymisp_recommended_version` from getVersion instead
+     */
     public function getPyMISPVersion()
     {
         $this->set('response', array('version' => $this->pyMispVersion));

@@ -18,6 +18,7 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @property CRUDComponent $CRUD
  * @property IndexFilterComponent $IndexFilter
  * @property RateLimitComponent $RateLimit
+ * @property CompressedRequestHandlerComponent $CompressedRequestHandler
  */
 class AppController extends Controller
 {
