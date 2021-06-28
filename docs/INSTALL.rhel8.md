@@ -1,7 +1,7 @@
-# INSTALLATION INSTRUCTIONS for RHEL 8.x, CentOS8/Stream
+# INSTALLATION INSTRUCTIONS for RHEL 8.x, CentOS8/Stream/Rocky8.4
 -------------------------
 
-### -2/ RHEL8/CentOS8/CentOS_Stream/Fedora33 - status
+### -2/ RHEL8/CentOS8/CentOS_Stream/Rocky8.4/Fedora33 - status
 -------------------------
 !!! notice
     Tested fully working without SELinux by [@SteveClement](https://twitter.com/SteveClement) on 20210401
@@ -24,6 +24,7 @@
 
 !!! notice
     Maintenance for CentOS 8 will end on: December 31st, 2021 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
+    Consider using [Rocky Linux](https://rockylinux.org/)
     CentOS 8 [NetInstallURL](http://mirrorlist.centos.org/?release=8&arch=x86_64&repo=BaseOS)
 
 {!generic/manual-install-notes.md!}
@@ -120,8 +121,7 @@ enableEPEL_REMI_8 () {
   sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
   sudo dnf install dnf-utils -y
   sudo dnf module enable php:remi-7.4 -y
-  [[ ${DISTRI} == "centos8stream" ]] && sudo dnf config-manager --set-enabled powertools
-  [[ ${DISTRI} == "centos8" ]] && sudo dnf config-manager --set-enabled powertools
+  ([[ ${DISTRI} == "centos8stream" ]] || [[ ${DISTRI} == "centos8" ]] || [[ ${DISTRI} == "rocky8.4" ]]) && sudo dnf config-manager --set-enabled powertools
 }
 
 enableREMI_f33 () {
@@ -273,8 +273,7 @@ installCoreRHEL8 () {
   $SUDO_WWW git config core.filemode false
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
-  [[ ${DISTRI} == 'centos8stream' ]] && sudo dnf install cmake -y && CMAKE_BIN='cmake'
-  [[ ${DISTRI} == 'centos8' ]] && sudo dnf install cmake -y && CMAKE_BIN='cmake'
+  ([[ ${DISTRI} == 'centos8stream' ]] || [[ ${DISTRI} == 'centos8' ]] || [[ ${DISTRI} == 'rocky8.4' ]]) && sudo dnf install cmake -y && CMAKE_BIN='cmake'
 
   UMASK=$(umask)
   umask 0022
