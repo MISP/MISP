@@ -11,7 +11,8 @@
                     'field' => 'org_id',
                     'class' => 'org-id-picker-hidden-field',
                     'type' => 'text',
-                    'hidden' => true
+                    'hidden' => true,
+                    'required' => false
                 ),
                 array(
                     'field' => 'date',
@@ -32,7 +33,8 @@
                     'class' => 'input',
                     'options' => $sharingGroups,
                     'label' => __("Sharing Group"),
-                    'type' => 'dropdown'
+                    'type' => 'dropdown',
+                    'required' => false
                 ),
                 array(
                     'field' => 'threat_level_id',
