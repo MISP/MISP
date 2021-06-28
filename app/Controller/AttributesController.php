@@ -2571,8 +2571,7 @@ class AttributesController extends AppController
         foreach ($this->Attribute->categoryDefinitions as $cat => $data) {
             $result['category_type_mappings'][$cat] = $data['types'];
         }
-        $this->set('result', $result);
-        $this->set('_serialize', array('result'));
+        return $this->RestResponse->viewData(['result' => $result], 'json');
     }
 
     public function attributeStatistics($type = 'type', $percentage = false)
@@ -2597,12 +2596,7 @@ class AttributesController extends AppController
             }
         }
         ksort($results);
-        $this->autoRender = false;
-        $this->layout = false;
-        $this->set('data', $results);
-        $this->set('flags', JSON_PRETTY_PRINT);
-        $this->response->type('json');
-        $this->render('/Servers/json/simple');
+        return $this->RestResponse->viewData($results, 'json');
     }
 
     public function addTag($id = false, $tag_id = false)
