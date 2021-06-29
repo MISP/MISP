@@ -1520,17 +1520,7 @@ class AppController extends Controller
         if (isset($sessionUser['authkey_id'])) {
             // Reload authkey
             $this->loadModel('AuthKey');
-            $authKey = $this->AuthKey->find('first', [
-                'conditions' => ['id' => $sessionUser['authkey_id'], 'user_id' => $user['id']],
-                'fields' => ['id', 'expiration', 'allowed_ips'],
-                'recursive' => -1,
-            ]);
-            if (empty($authKey)) {
-                throw new RuntimeException("Auth key with ID {$sessionUser['authkey_id']} not exists.");
-            }
-            $user['authkey_id'] = $authKey['AuthKey']['id'];
-            $user['authkey_expiration'] = $authKey['AuthKey']['expiration'];
-            $user['allowed_ips'] = $authKey['AuthKey']['allowed_ips'];
+            $user = $this->AuthKey->updateUserData($user, $sessionUser['authkey_id']);
         }
         if (isset($sessionUser['logged_by_authkey'])) {
             $user['logged_by_authkey'] = $sessionUser['logged_by_authkey'];

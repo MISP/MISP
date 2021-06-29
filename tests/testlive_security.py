@@ -5,7 +5,7 @@ import time
 import json
 import datetime
 import unittest
-from typing import Union, List
+from typing import Union, List, Optional
 import urllib3  # type: ignore
 import logging
 import uuid
@@ -585,6 +585,87 @@ class TestSecurity(unittest.TestCase):
 
             # Try to login
             PyMISP(url, auth_key["authkey_raw"])
+
+            self.__delete_advanced_authkey(auth_key["id"])
+
+    def test_advanced_authkeys_read_only_false(self):
+        with self.__setting("Security.advanced_authkeys", True):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id, {
+                "read_only": 0,
+            })
+            self.assertFalse(auth_key["read_only"])
+
+            # Try to login
+            logged_in = self.__login_by_advanced_authkey(auth_key)
+
+            # Create new event should not be possible with read only key
+            event = logged_in.add_event(self.__generate_event())
+            check_response(event)
+
+            self.__delete_advanced_authkey(auth_key["id"])
+
+    def test_advanced_authkeys_read_only(self):
+        with self.__setting("Security.advanced_authkeys", True):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id, {
+                "read_only": 1,
+            })
+            self.assertTrue(auth_key["read_only"])
+
+            # Try to login
+            logged_in = self.__login_by_advanced_authkey(auth_key)
+
+            # Create new event should not be possible with read only key
+            event = logged_in.add_event(self.__generate_event())
+            with self.assertRaises(Exception):
+                check_response(event)
+
+            self.__delete_advanced_authkey(auth_key["id"])
+
+    def test_advanced_authkeys_read_only_edit_self(self):
+        with self.__setting("Security.advanced_authkeys", True):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id, {
+                "read_only": 1,
+            })
+            self.assertTrue(auth_key["read_only"])
+
+            # Try to login
+            logged_in = self.__login_by_advanced_authkey(auth_key)
+
+            # Edit current auth key and set it to not read_only should be not possible
+            with self.assertRaises(Exception):
+                send(logged_in, "POST", f'authKeys/edit/{auth_key["id"]}', {"read_only": 0})
+
+            self.__delete_advanced_authkey(auth_key["id"])
+
+    def test_advanced_authkeys_read_only_create_new_authkey(self):
+        with self.__setting("Security.advanced_authkeys", True):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id, {
+                "read_only": 1,
+            })
+            self.assertTrue(auth_key["read_only"])
+
+            # Try to login
+            logged_in = self.__login_by_advanced_authkey(auth_key)
+
+            # Create new auth key should be not possible
+            with self.assertRaises(Exception):
+                send(logged_in, "POST", f'authKeys/add/{logged_in._current_user.id}')
+
+            self.__delete_advanced_authkey(auth_key["id"])
+
+    def test_advanced_authkeys_read_only_reset_authkey(self):
+        with self.__setting("Security.advanced_authkeys", True):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id, {
+                "read_only": 1,
+            })
+            self.assertTrue(auth_key["read_only"])
+
+            # Try to login
+            logged_in = self.__login_by_advanced_authkey(auth_key)
+
+            # Create new auth key should be not possible
+            with self.assertRaises(Exception):
+                send(logged_in, "POST", "users/resetauthkey/me")
 
             self.__delete_advanced_authkey(auth_key["id"])
 
@@ -1424,8 +1505,16 @@ class TestSecurity(unittest.TestCase):
             self.assertEqual(int(role_id), int(user.role_id))
         return user
 
-    def __create_advanced_authkey(self, user_id: int, data=None):
-        return send(self.admin_misp_connector, "POST", f'authKeys/add/{user_id}', data=data)["AuthKey"]
+    def __create_advanced_authkey(self, user_id: int, data: Optional[dict] = None) -> dict:
+        auth_key = send(self.admin_misp_connector, "POST", f'authKeys/add/{user_id}', data=data)["AuthKey"]
+        # it is not possible to call `assertEqual`, because we use this method in `setUpClass` method
+        assert user_id == auth_key["user_id"], "Key was created for different user"
+        return auth_key
+
+    def __login_by_advanced_authkey(self, auth_key: dict) -> PyMISP:
+        logged_in = PyMISP(url, auth_key["authkey_raw"])
+        self.assertEqual(logged_in._current_user.id, auth_key["user_id"], "Logged in by different user")
+        return logged_in
 
     def __delete_advanced_authkey(self, key_id: int):
         return send(self.admin_misp_connector, "POST", f'authKeys/delete/{key_id}')
