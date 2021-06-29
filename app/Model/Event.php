@@ -9,6 +9,8 @@ App::uses('SendEmailTemplate', 'Tools');
 /**
  * @property User $User
  * @property Attribute $Attribute
+ * @property MispObject $Object
+ * @property EventReport $EventReport
  * @property ShadowAttribute $ShadowAttribute
  * @property EventTag $EventTag
  * @property SharingGroup $SharingGroup
@@ -6302,9 +6304,11 @@ class Event extends AppModel
                 }
             }
         }
+
         if (!empty($resolved_data['Attribute'])) {
             $total_attributes = count($resolved_data['Attribute']);
-            foreach ($resolved_data['Attribute'] as $a => $attribute) {
+            $processedAttributes = 0;
+            foreach ($resolved_data['Attribute'] as $attribute) {
                 $this->Attribute->create();
                 if (empty($attribute['comment'])) {
                     $attribute['comment'] = $default_comment;
@@ -6338,19 +6342,21 @@ class Event extends AppModel
                     }
                 }
                 if ($jobId) {
-                    $current = ($a + 1);
-                    $this->Job->saveField('message', 'Attribute ' . $current . '/' . $total_attributes);
-                    $this->Job->saveField('progress', ($current * 100 / $items_count));
+                    $processedAttributes++;
+                    $this->Job->saveField('message', 'Attribute ' . $processedAttributes . '/' . $total_attributes);
+                    $this->Job->saveField('progress', ($processedAttributes * 100 / $items_count));
                 }
             }
         } else {
             $total_attributes = 0;
         }
+
         if (!empty($resolved_data['Object'])) {
             $initial_object_id = isset($resolved_data['initialObject']) ? $resolved_data['initialObject']['Object']['id'] : "0";
             $total_objects = count($resolved_data['Object']);
+            $processedObjects = 0;
             $references = array();
-            foreach ($resolved_data['Object'] as $o => $object) {
+            foreach ($resolved_data['Object'] as $object) {
                 if (isset($object['meta_category']) && !isset($object['meta-category'])) {
                     $object['meta-category'] = $object['meta_category'];
                     unset($object['meta_category']);
@@ -6393,7 +6399,7 @@ class Event extends AppModel
                     }
                     if (!empty($object['ObjectReference'])) {
                         foreach ($object['ObjectReference'] as $object_reference) {
-                            array_push($references, array('objectId' => $initial_object_id, 'reference' => $object_reference));
+                            $references[] = array('objectId' => $initial_object_id, 'reference' => $object_reference);
                         }
                     }
                     $saved_objects++;
@@ -6444,24 +6450,25 @@ class Event extends AppModel
                         }
                     }
                     if (!empty($object['ObjectReference'])) {
-                        foreach($object['ObjectReference'] as $object_reference) {
-                            array_push($references, array('objectId' => $object_id, 'reference' => $object_reference));
+                        foreach ($object['ObjectReference'] as $object_reference) {
+                            $references[] = array('objectId' => $object_id, 'reference' => $object_reference);
                         }
                     }
                 }
                 if ($jobId) {
-                    $current = ($o + 1);
-                    $this->Job->saveField('message', 'Object ' . $current . '/' . $total_objects);
-                    $this->Job->saveField('progress', (($current + $total_attributes) * 100 / $items_count));
+                    $processedObjects++;
+                    $this->Job->saveField('message', 'Object ' . $processedObjects . '/' . $total_objects);
+                    $this->Job->saveField('progress', (($processedObjects + $total_attributes) * 100 / $items_count));
                 }
             }
+
             if (!empty($references)) {
                 $reference_errors = array();
-                foreach($references as $reference) {
+                foreach ($references as $reference) {
                     $object_id = $reference['objectId'];
                     $reference = $reference['reference'];
-                    if (in_array($reference['object_uuid'], $failed) || in_array($reference['referenced_uuid'], $failed)) {
-                        continue;
+                    if (in_array($reference['object_uuid'], $failed)) {
+                        continue; // if object that contains reference couldn't be added, skip
                     }
                     if (isset($recovered_uuids[$reference['object_uuid']])) {
                         $reference['object_uuid'] = $recovered_uuids[$reference['object_uuid']];
@@ -6469,22 +6476,25 @@ class Event extends AppModel
                     if (isset($recovered_uuids[$reference['referenced_uuid']])) {
                         $reference['referenced_uuid'] = $recovered_uuids[$reference['referenced_uuid']];
                     }
-                    $current_reference = $this->Object->ObjectReference->find('all', array(
-                        'conditions' => array('ObjectReference.object_id' => $object_id,
-                                              'ObjectReference.referenced_uuid' => $reference['referenced_uuid'],
-                                              'ObjectReference.relationship_type' => $reference['relationship_type'],
-                                              'ObjectReference.event_id' => $id, 'ObjectReference.deleted' => 0),
+                    $current_reference = $this->Object->ObjectReference->find('first', array(
+                        'conditions' => [
+                            'ObjectReference.object_id' => $object_id,
+                            'ObjectReference.referenced_uuid' => $reference['referenced_uuid'],
+                            'ObjectReference.relationship_type' => $reference['relationship_type'],
+                            'ObjectReference.event_id' => $id,
+                            'ObjectReference.deleted' => 0,
+                        ],
                         'recursive' => -1,
-                        'fields' => ('ObjectReference.uuid')
+                        'fields' => ['ObjectReference.id'],
                     ));
                     if (!empty($current_reference)) {
-                        continue;
+                        continue; // Reference already exists, skip.
                     }
                     list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
-                            $reference['referenced_uuid'],
-                            array('Event' => array('id' => $id)),
-                            false,
-                            $user
+                        $reference['referenced_uuid'],
+                        array('Event' => array('id' => $id)),
+                        false,
+                        $user
                     );
                     if (!$referenced_id && !$referenced_uuid && !$referenced_type) {
                         continue;
@@ -6505,6 +6515,7 @@ class Event extends AppModel
                 }
             }
         }
+
         if (!empty($resolved_data['EventReport'])) {
             $total_reports = count($resolved_data['EventReport']);
             foreach ($resolved_data['EventReport'] as $i => $report) {
@@ -6522,9 +6533,8 @@ class Event extends AppModel
                     $this->Job->saveField('progress', ($current * 100 / $items_count));
                 }
             }
-        } else {
-            $total_reports = 0;
         }
+
         if ($saved_attributes > 0 || $saved_objects > 0 || $saved_reports > 0) {
             $event = $this->find('first', array(
                     'conditions' => array('Event.id' => $id),
@@ -6533,8 +6543,7 @@ class Event extends AppModel
             if ($event['Event']['published'] == 1) {
                 $event['Event']['published'] = 0;
             }
-            $date = new DateTime();
-            $event['Event']['timestamp'] = $date->getTimestamp();
+            $event['Event']['timestamp'] = time();
             $this->save($event);
         }
         if ($event_level) {

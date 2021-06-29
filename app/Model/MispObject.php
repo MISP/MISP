@@ -6,6 +6,7 @@ App::uses('TmpFileTool', 'Tools');
  * @property Event $Event
  * @property SharingGroup $SharingGroup
  * @property Attribute $Attribute
+ * @property ObjectReference $ObjectReference
  */
 class MispObject extends AppModel
 {

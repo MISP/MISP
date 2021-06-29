@@ -2415,11 +2415,13 @@ class EventsController extends AppController
             $this->set('distributions', $distributions);
             $this->set('sgs', $sgs);
             $this->set('event', $event);
+            $this->set('title_for_layout', __('Event merge results'));
             $this->set('title', __('Event merge results'));
             $this->set('importComment', 'Merged from event ' . $source_id);
             $this->render('resolved_misp_format');
         } else {
             $this->set('target_event', $target_event);
+            $this->set('title_for_layout', __('Merge data from event'));
         }
     }
 
@@ -3750,7 +3752,8 @@ class EventsController extends AppController
             $this->set('mapping', $typeCategoryMapping);
             $this->set('resultArray', $resultArray);
             $this->set('importComment', '');
-            $this->set('title', 'Freetext Import Results');
+            $this->set('title_for_layout', __('Freetext Import Results'));
+            $this->set('title', __('Freetext Import Results'));
             $this->loadModel('Warninglist');
             $this->set('missingTldLists', $this->Warninglist->missingTldLists());
             $this->render('resolved_attributes');
@@ -4899,7 +4902,7 @@ class EventsController extends AppController
             $options = array();
             foreach ($enabledModules['modules'] as $temp) {
                 if ($temp['name'] == $module) {
-                    $format = (!empty($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
+                    $format = !empty($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
                             $options[$conf] = Configure::read('Plugin.' . $type . '_' . $module . '_' . $conf);
@@ -4915,6 +4918,8 @@ class EventsController extends AppController
             }
             $this->set('distributions', $distributions);
             $this->set('sgs', $sgs);
+            $this->set('title_for_layout', __('Enrichment Results'));
+            $this->set('title', __('Enrichment Results'));
             if ($format == 'misp_standard') {
                 $this->__queryEnrichment($attribute, $module, $options, $type);
             } else {
@@ -4964,7 +4969,8 @@ class EventsController extends AppController
             }
             $this->set('event', $event);
             $this->set('menuItem', 'enrichmentResults');
-            $this->set('title', 'Enrichment Results');
+            $this->set('title_for_layout', __('Enrichment Results'));
+            $this->set('title', __('Enrichment Results'));
             $this->render('resolved_misp_format');
         }
     }
@@ -5023,7 +5029,6 @@ class EventsController extends AppController
         $this->set('resultArray', $resultArray);
         $this->set('typeDefinitions', $this->Event->Attribute->typeDefinitions);
         $this->set('typeCategoryMapping', $typeCategoryMapping);
-        $this->set('title', 'Enrichment Results');
         $this->set('importComment', $importComment);
         $this->render('resolved_attributes');
     }
@@ -5208,7 +5213,8 @@ class EventsController extends AppController
                     }
                     $this->set('distributions', $distributions);
                     $this->set('sgs', $sgs);
-                    $this->set('title', 'Import Results');
+                    $this->set('title', __('Import Results'));
+                    $this->set('title_for_layout', __('Import Results'));
                     $this->set('importComment', $importComment);
                     $this->render($render_name);
                 }
