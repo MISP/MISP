@@ -4940,7 +4940,7 @@ class EventsController extends AppController
         }
         $result = $this->Module->queryModuleServer($data, false, $type);
         if (!$result) {
-            throw new MethodNotAllowedException(__('%s service not reachable.', $type));
+            throw new InternalErrorException(__('%s service not reachable.', $type));
         }
         if (isset($result['error'])) {
             $this->Flash->error($result['error']);
@@ -4986,7 +4986,7 @@ class EventsController extends AppController
         }
         $result = $this->Module->queryModuleServer($data, false, $type);
         if (!$result) {
-            throw new MethodNotAllowedException(__('%s service not reachable.', $type));
+            throw new InternalErrorException(__('%s service not reachable.', $type));
         }
         if (isset($result['error'])) {
             $this->Flash->error($result['error']);
@@ -5163,7 +5163,7 @@ class EventsController extends AppController
                     }
                     $result = $this->Module->queryModuleServer($modulePayload, false, $moduleFamily = 'Import');
                     if (!$result) {
-                        throw new Exception(__('Import service not reachable.'));
+                        throw new InternalErrorException(__('Import service not reachable.'));
                     }
                     if (isset($result['error'])) {
                         $this->Flash->error($result['error']);
