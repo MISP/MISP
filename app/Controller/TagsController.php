@@ -700,12 +700,7 @@ class TagsController extends AppController
             }
         }
         $results = array('tags' => $tags, 'taxonomies' => $taxonomies);
-        $this->autoRender = false;
-        $this->layout = false;
-        $this->set('data', $results);
-        $this->set('flags', JSON_PRETTY_PRINT);
-        $this->response->type('json');
-        $this->render('/Servers/json/simple');
+        return $this->RestResponse->viewData($results, 'json');
     }
 
     private function __findObjectByUuid($object_uuid, &$type, $scope = 'modify')
