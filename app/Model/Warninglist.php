@@ -320,29 +320,29 @@ class Warninglist extends AppModel
         }
 
         $db = $this->getDataSource();
-        $values = array();
         $warninglistId = (int)$this->id;
+        $result = true;
 
         $keys = array_keys($list['list']);
         if ($keys === array_keys($keys)) {
-            foreach ($list['list'] as $value) {
-                if (!empty($value)) {
-                    $values[] = ['value' => $value, 'warninglist_id' => $warninglistId];
+            foreach (array_chunk($list['list'], 500) as $chunk) {
+                $valuesToInsert = [];
+                foreach ($chunk as $value) {
+                    if (!empty($value)) {
+                        $valuesToInsert[] = ['value' => $value, 'warninglist_id' => $warninglistId];
+                    }
                 }
-            }
-            $result = true;
-            foreach (array_chunk($values, 500) as $chunk) {
-                $result = $db->insertMulti('warninglist_entries', ['value', 'warninglist_id'], $chunk);
+                $result = $db->insertMulti('warninglist_entries', ['value', 'warninglist_id'], $valuesToInsert);
             }
         } else { // import warninglist with comments
-            foreach ($list['list'] as $value => $comment) {
-                if (!empty($value)) {
-                    $values[] = ['value' => $value, 'comment' => $comment, 'warninglist_id' => $warninglistId];
+            foreach (array_chunk($list['list'], 500, true) as $chunk) {
+                $valuesToInsert = [];
+                foreach ($chunk as $value => $comment) {
+                    if (!empty($value)) {
+                        $valuesToInsert[] = ['value' => $value, 'comment' => $comment, 'warninglist_id' => $warninglistId];
+                    }
                 }
-            }
-            $result = true;
-            foreach (array_chunk($values, 500) as $chunk) {
-                $result = $db->insertMulti('warninglist_entries', ['value', 'comment', 'warninglist_id'], $chunk);
+                $result = $db->insertMulti('warninglist_entries', ['value', 'comment', 'warninglist_id'], $valuesToInsert);
             }
         }
         if (!$result) {
