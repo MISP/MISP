@@ -1004,7 +1004,7 @@ class Event extends AppModel
     private function __prepareForPushToServer($event, $server)
     {
         if ($event['Event']['distribution'] == 4) {
-            if (empty($event['SharingGroup']['SharingGroup']['roaming']) && empty($server['Server']['internal'])) {
+            if (empty($event['SharingGroup']['roaming']) && empty($server['Server']['internal'])) {
                 $serverFound = false;
                 if (!empty($event['SharingGroup']['SharingGroupServer'])) {
                     foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
