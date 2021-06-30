@@ -251,11 +251,13 @@ class Warninglist extends AppModel
     public function quickDelete($id)
     {
         $result = $this->WarninglistEntry->deleteAll(
-            array('WarninglistEntry.warninglist_id' => $id)
+            array('WarninglistEntry.warninglist_id' => $id),
+            false
         );
         if ($result) {
             $result = $this->WarninglistType->deleteAll(
-                array('WarninglistType.warninglist_id' => $id)
+                array('WarninglistType.warninglist_id' => $id),
+                false
             );
         }
         if ($result) {
