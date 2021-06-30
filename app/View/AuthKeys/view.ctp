@@ -64,6 +64,11 @@ echo $this->element('genericElements/SingleViews/single_view', [
             'type' => 'expiration'
         ],
         [
+            'key' => __('Read only'),
+            'path' => 'AuthKey.read_only',
+            'type' => 'boolean'
+        ],
+        [
             'key' => __('Key usage'),
             'type' => 'sparkline',
             'path' => 'AuthKey.id',

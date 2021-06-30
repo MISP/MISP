@@ -619,6 +619,17 @@
                 "extra": ""
             },
             {
+                "column_name": "read_only",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
                 "column_name": "user_id",
                 "is_nullable": "NO",
                 "data_type": "int",
@@ -8191,5 +8202,5 @@
             "id": true
         }
     },
-    "db_version": "71"
+    "db_version": "72"
 }
