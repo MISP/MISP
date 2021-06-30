@@ -4250,9 +4250,8 @@ class Server extends AppModel
 
     public function updateJSON()
     {
-        $toUpdate = array('Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate');
         $results = array();
-        foreach ($toUpdate as $target) {
+        foreach (['Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate', 'ObjectRelationship'] as $target) {
             $this->$target = ClassRegistry::init($target);
             $result = $this->$target->update();
             $results[$target] = $result === false ? false : true;

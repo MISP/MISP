@@ -46,13 +46,13 @@ class ObjectRelationship extends AppModel
         $relationsFile = APP . 'files/misp-objects/relationships/definition.json';
         if (file_exists($relationsFile)) {
             $file = new File($relationsFile);
-            $relations = json_decode($file->read(), true);
+            $relations = $this->jsonDecode($file->read());
             if (!isset($relations['version'])) {
                 $relations['version'] = 1;
             }
             $this->deleteAll(array('version <' => $relations['version']));
-            foreach ($relations['values'] as $k => $relation) {
-                $relation['format'] = json_encode($relation['format'], true);
+            foreach ($relations['values'] as $relation) {
+                $relation['format'] = json_encode($relation['format']);
                 $relation['version'] = $relations['version'];
                 $this->create();
                 $this->save($relation);
