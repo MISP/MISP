@@ -285,7 +285,9 @@ class Warninglist extends AppModel
         }
 
         $id = $this->__updateList($list, $existingWarninglist ? $existingWarninglist['Warninglist']: [], false);
-        $this->regenerateWarninglistCaches($id);
+        if (is_int($id)) {
+            $this->regenerateWarninglistCaches($id);
+        }
         return $id;
     }
 
@@ -348,16 +350,16 @@ class Warninglist extends AppModel
         if (!$result) {
             return 'Could not insert values.';
         }
-        if (!empty($list['matching_attributes'])) {
-            $values = array();
-            foreach ($list['matching_attributes'] as $type) {
-                $values[] = array('type' => $type, 'warninglist_id' => $warninglistId);
-            }
-            $this->WarninglistType->saveMany($values);
-        } else {
-            $this->WarninglistType->create();
-            $this->WarninglistType->save(array('WarninglistType' => array('type' => 'ALL', 'warninglist_id' => $warninglistId)));
+
+        if (empty($list['matching_attributes'])) {
+            $list['matching_attributes'] = ['ALL'];
         }
+        $values = array();
+        foreach ($list['matching_attributes'] as $type) {
+            $values[] = array('type' => $type, 'warninglist_id' => $warninglistId);
+        }
+        $this->WarninglistType->saveMany($values);
+
         return $warninglistId;
     }
 
