@@ -1,5 +1,5 @@
 <div class="warninglist view">
-    <h2><?= __('Search in Warninglists') ?></h2>
+    <h2><?= __('Search in enabled Warninglists') ?></h2>
     <?php
         echo $this->Form->create('Warninglist');
         echo sprintf('<div class="input-append">%s%s</div>',
