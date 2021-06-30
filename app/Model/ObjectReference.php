@@ -1,7 +1,9 @@
 <?php
-
 App::uses('AppModel', 'Model');
 
+/**
+ * @property MispObject $Object
+ */
 class ObjectReference extends AppModel
 {
     public $actsAs = array(

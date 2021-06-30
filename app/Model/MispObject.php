@@ -493,7 +493,7 @@ class MispObject extends AppModel
         ];
     }
 
-    public function fetchObjectSimple($user, $options = array())
+    public function fetchObjectSimple(array $user, $options = array())
     {
         $params = array(
             'conditions' => $this->buildConditions($user),

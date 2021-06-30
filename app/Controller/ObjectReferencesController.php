@@ -155,21 +155,8 @@ class ObjectReferencesController extends AppController
 
     public function delete($id, $hard = false)
     {
-        if (Validation::uuid($id)) {
-            $temp = $this->ObjectReference->find('first', array(
-                'recursive' => -1,
-                'fields' => array('ObjectReference.id'),
-                'conditions' => array('ObjectReference.uuid' => $id)
-            ));
-            if (empty($temp)) {
-                throw new NotFoundException('Invalid object reference');
-            }
-            $id = $temp['ObjectReference']['id'];
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid object reference'));
-        }
         $objectReference = $this->ObjectReference->find('first', array(
-            'conditions' => array('ObjectReference.id' => $id),
+            'conditions' => Validation::uuid($id) ? ['ObjectReference.uuid' => $id] : ['ObjectReference.id' => $id],
             'recursive' => -1,
             'contain' => array('Object' => array('Event'))
         ));
@@ -179,6 +166,7 @@ class ObjectReferencesController extends AppController
         if (!$this->__canModifyEvent($objectReference['Object'])) {
             throw new ForbiddenException(__('Invalid object reference.'));
         }
+        $id = $objectReference['ObjectReference']['id'];
         if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
             $result = $this->ObjectReference->smartDelete($objectReference['ObjectReference']['id'], $hard);
             if ($result === true) {
@@ -207,30 +195,20 @@ class ObjectReferencesController extends AppController
 
     public function view($id)
     {
-        if (Validation::uuid($id)) {
-            $temp = $this->ObjectReference->find('first', array(
-                'recursive' => -1,
-                'fields' => array('ObjectReference.id'),
-                'conditions' => array('ObjectReference.uuid' => $id)
-            ));
-            if (empty($temp)) {
-                throw new NotFoundException('Invalid object reference');
-            }
-            $id = $temp['ObjectReference']['id'];
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid object reference'));
-        }
         $objectReference = $this->ObjectReference->find('first', array(
-            'conditions' => array('ObjectReference.id' => $id),
+            'conditions' => Validation::uuid($id) ? ['ObjectReference.uuid' => $id] : ['ObjectReference.id' => $id],
             'recursive' => -1,
         ));
         if (empty($objectReference)) {
             throw new NotFoundException(__('Invalid object reference.'));
         }
-        $event = $this->ObjectReference->Object->Event->fetchSimpleEvent($this->Auth->user(), $objectReference['ObjectReference']['event_id'], ['contain' => ['Orgc']]);
-        if (!$event) {
-            throw new NotFoundException(__('Invalid event'));
+        // Check if user can view object that contains this reference
+        $object = $this->ObjectReference->Object->find($this->Auth->user(), [
+            'conditions' => $objectReference['ObjectReference']['object_id'],
+        ]);
+        if (!$object) {
+            throw new NotFoundException(__('Invalid object reference.'));
         }
-        return $this->RestResponse->viewData($objectReference, 'application/json');
+        return $this->RestResponse->viewData($objectReference, 'json');
     }
 }
