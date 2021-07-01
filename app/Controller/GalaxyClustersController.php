@@ -323,6 +323,7 @@ class GalaxyClustersController extends AppController
                 }
             }
         }
+        $this->set('galaxy', ['Galaxy' => ['id' => $galaxyId]]);
         $this->set('galaxy_id', $galaxyId);
         $this->set('distributionLevels', $distributionLevels);
         $this->set('initialDistribution', $initialDistribution);
