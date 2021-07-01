@@ -8,7 +8,7 @@
             }, $data));
         } else {
             if (count($data) > 0) {
-                $data = $data[0];
+                $data = h($data[0]);
             } else {
                 $data = '';
             }

@@ -18,6 +18,7 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @property CRUDComponent $CRUD
  * @property IndexFilterComponent $IndexFilter
  * @property RateLimitComponent $RateLimit
+ * @property CompressedRequestHandlerComponent $CompressedRequestHandler
  */
 class AppController extends Controller
 {
@@ -787,16 +788,11 @@ class AppController extends Controller
 
     public function queryACL($debugType = 'findMissingFunctionNames', $content = false)
     {
-        $this->autoRender = false;
-        $this->layout = false;
         $validCommands = array('printAllFunctionNames', 'findMissingFunctionNames', 'printRoleAccess');
         if (!in_array($debugType, $validCommands)) {
             throw new MethodNotAllowedException('Invalid function call.');
         }
-        $this->set('data', $this->ACL->$debugType($content));
-        $this->set('flags', JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
-        $this->response->type('json');
-        $this->render('/Servers/json/simple');
+        return $this->RestResponse->viewData($this->ACL->$debugType($content), 'json');
     }
 
     /*
@@ -1523,17 +1519,7 @@ class AppController extends Controller
         if (isset($sessionUser['authkey_id'])) {
             // Reload authkey
             $this->loadModel('AuthKey');
-            $authKey = $this->AuthKey->find('first', [
-                'conditions' => ['id' => $sessionUser['authkey_id'], 'user_id' => $user['id']],
-                'fields' => ['id', 'expiration', 'allowed_ips'],
-                'recursive' => -1,
-            ]);
-            if (empty($authKey)) {
-                throw new RuntimeException("Auth key with ID {$sessionUser['authkey_id']} not exists.");
-            }
-            $user['authkey_id'] = $authKey['AuthKey']['id'];
-            $user['authkey_expiration'] = $authKey['AuthKey']['expiration'];
-            $user['allowed_ips'] = $authKey['AuthKey']['allowed_ips'];
+            $user = $this->AuthKey->updateUserData($user, $sessionUser['authkey_id']);
         }
         if (isset($sessionUser['logged_by_authkey'])) {
             $user['logged_by_authkey'] = $sessionUser['logged_by_authkey'];
