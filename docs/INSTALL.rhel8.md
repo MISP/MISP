@@ -126,7 +126,7 @@ enableEPEL_REMI_8 () {
 
 enableREMI_fedora () {
   [[ "${DISTRI%??}" == "fedora" ]] && sudo dnf install http://rpms.remirepo.net/fedora/remi-release-${DISTRI:6}.rpm -y
-  [[ dnf list installed mod_lua ]] && sudo dnf remove mod_lua -y
+  dnf list installed mod_lua && sudo dnf remove mod_lua -y
   sudo dnf install dnf-utils -y
   sudo dnf module enable php:remi-7.4 -y
 }
