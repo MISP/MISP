@@ -2547,13 +2547,6 @@ class EventsController extends AppController
 
     public function delete($id = null)
     {
-        if (Validation::uuid($id)) {
-            $temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $id)));
-            if (empty($temp)) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            $id = $temp['Event']['id'];
-        }
         if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
             if (isset($this->request->data['id'])) {
                 $this->request->data['Event'] = $this->request->data;
@@ -2561,54 +2554,48 @@ class EventsController extends AppController
             if (!isset($id) && isset($this->request->data['Event']['id'])) {
                 $idList = $this->request->data['Event']['id'];
                 if (!is_array($idList)) {
-                    if (is_numeric($idList)) {
+                    if (is_numeric($idList) || Validation::uuid($idList)) {
                         $idList = array($idList);
                     } else {
-                        $idList = json_decode($idList, true);
+                        $idList = $this->Event->jsonDecode($idList);
                     }
                 }
-                if (!is_array($idList) || empty($idList)) {
+                if (empty($idList)) {
                     throw new NotFoundException(__('Invalid input.'));
                 }
             } else {
                 $idList = array($id);
             }
+
             $fails = array();
             $successes = array();
             foreach ($idList as $eid) {
-                if (!is_numeric($eid)) {
-                    continue;
-                }
                 $event = $this->Event->find('first', array(
-                    'conditions' => array('Event.id' => $eid),
+                    'conditions' => Validation::uuid($eid) ? ['Event.uuid' => $eid] : ['Event.id' => $eid],
                     'fields' => array('Event.orgc_id', 'Event.id', 'Event.user_id'),
                     'recursive' => -1
                 ));
                 if (empty($event)) {
-                    $fails[] = $eid;
+                    $fails[] = $eid; // event not found
+                    continue;
+                }
+                if (!$this->__canModifyEvent($event)) {
+                    $fails[] = $eid; // user don't have permission to delete this event
+                    continue;
+                }
+                $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
+                if ($this->Event->quickDelete($event)) {
+                    $successes[] = $eid;
                 } else {
-                    if (!$this->__canModifyEvent($event)) {
-                        $fails[] = $eid;
-                        continue;
-                    }
-                    $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
-                    if ($this->Event->quickDelete($event)) {
-                        $successes[] = $eid;
-                    } else {
-                        $fails[] = $eid;
-                    }
+                    $fails[] = $eid;
                 }
             }
-            $message = '';
-            if (count($idList) == 1) {
-                if (!empty($successes)) {
-                    $message = 'Event deleted.';
-                } else {
-                    $message = 'Event was not deleted.';
-                }
+            if (count($idList) === 1) {
+                $message = empty($successes) ?  __('Event was not deleted.') : __('Event deleted.');
             } else {
+                $message = '';
                 if (!empty($successes)) {
-                    $message .= count($successes) . ' event(s) deleted.';
+                    $message .= __n('%s event deleted.', '%s events deleted.', count($successes), count($successes));
                 }
                 if (!empty($fails)) {
                     $message .= count($fails) . ' event(s) could not be deleted due to insufficient privileges or the event not being found.';
