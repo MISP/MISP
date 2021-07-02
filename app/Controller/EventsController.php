@@ -3676,9 +3676,6 @@ class EventsController extends AppController
      */
     public function freeTextImport($id, $adhereToWarninglists = false, $returnMetaAttributes = false)
     {
-        if (!$this->userRole['perm_add']) {
-            throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
-        }
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
             throw new MethodNotAllowedException(__('Invalid event.'));
@@ -3801,9 +3798,6 @@ class EventsController extends AppController
 
     public function saveFreeText($id)
     {
-        if (!$this->userRole['perm_add']) {
-            throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
-        }
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This endpoint requires a POST request.');
         }
@@ -3973,9 +3967,6 @@ class EventsController extends AppController
 
     public function exportChoice($id)
     {
-        if (!is_numeric($id)) {
-            throw new MethodNotAllowedException(__('Invalid ID'));
-        }
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
             throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
@@ -4114,9 +4105,6 @@ class EventsController extends AppController
     public function importChoice($id = false, $scope = 'event')
     {
         if ($scope == 'event') {
-            if (!is_numeric($id)) {
-                throw new MethodNotAllowedException(__('Invalid ID'));
-            }
             $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
             if (empty($event)) {
                 throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
@@ -4153,7 +4141,7 @@ class EventsController extends AppController
             $this->loadModel('Module');
             $modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
             if (is_array($modules) && !empty($modules)) {
-                foreach ($modules['modules'] as $k => $module) {
+                foreach ($modules['modules'] as $module) {
                     $imports[$module['name']] = array(
                             'url' => $this->baseurl . '/events/importModule/' . $module['name'] . '/' . $id,
                             'text' => Inflector::humanize($module['name']),
@@ -4423,7 +4411,7 @@ class EventsController extends AppController
             'metadata' => true,
         ));
         if (empty($event)) {
-            throw new MethodNotAllowedException(__('Invalid Event.'));
+            throw new NotFoundException(__('Invalid Event.'));
         }
 
         $this->set('event', $event[0]);
