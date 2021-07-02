@@ -4502,16 +4502,14 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function getDistributionGraph($id, $type = 'event')
     {
         $extended = isset($this->params['named']['extended']) ? 1 : 0;
         $json = $this->genDistributionGraph($id, $type, $extended);
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function getEventGraphReferences($id, $type = 'event')
@@ -4535,8 +4533,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function getEventGraphTags($id, $type = 'event')
@@ -4560,8 +4557,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function getEventGraphGeneric($id, $type = 'event')
@@ -4590,8 +4586,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function getReferenceData($uuid, $type = 'reference')
@@ -4611,8 +4606,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function getObjectTemplate($type = 'templates')
@@ -4633,8 +4627,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function viewGalaxyMatrix($scope_id, $galaxy_id, $scope='event', $disable_picking=false)
@@ -4745,35 +4738,34 @@ class EventsController extends AppController
         $this->Galaxy->sortMatrixByScore($tabs, $scores);
         if ($this->_isRest()) {
             $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
-            $this->response->type('json');
-            return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
-        } else {
-            if (!$this->request->is('ajax')) {
-                throw new MethodNotAllowedException(__('Invalid method.'));
-            }
-
-            App::uses('ColourGradientTool', 'Tools');
-            $gradientTool = new ColourGradientTool();
-            $colours = $gradientTool->createGradientFromValues($scores);
-            $this->set('eventId', $eventId);
-            $this->set('target_type', $scope);
-            $this->set('columnOrders', $killChainOrders);
-            $this->set('tabs', $tabs);
-            $this->set('scores', $scores);
-            $this->set('maxScore', $maxScore);
-            if (!empty($colours)) {
-                $this->set('colours', $colours['mapping']);
-                $this->set('interpolation', $colours['interpolation']);
-            }
-            $this->set('pickingMode', !$disable_picking);
-            $this->set('target_id', $scope_id);
-            if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
-                $this->set('defaultTabName', 'mitre-attack');
-                $this->set('removeTrailling', 2);
-            }
-
-            $this->render('/Elements/view_galaxy_matrix');
+            return $this->RestResponse->viewData($json, 'json');
         }
+
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('Invalid method.'));
+        }
+
+        App::uses('ColourGradientTool', 'Tools');
+        $gradientTool = new ColourGradientTool();
+        $colours = $gradientTool->createGradientFromValues($scores);
+        $this->set('eventId', $eventId);
+        $this->set('target_type', $scope);
+        $this->set('columnOrders', $killChainOrders);
+        $this->set('tabs', $tabs);
+        $this->set('scores', $scores);
+        $this->set('maxScore', $maxScore);
+        if (!empty($colours)) {
+            $this->set('colours', $colours['mapping']);
+            $this->set('interpolation', $colours['interpolation']);
+        }
+        $this->set('pickingMode', !$disable_picking);
+        $this->set('target_id', $scope_id);
+        if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
+            $this->set('defaultTabName', 'mitre-attack');
+            $this->set('removeTrailling', 2);
+        }
+
+        $this->render('/Elements/view_galaxy_matrix');
     }
 
     // Displays all the cluster relations for the provided event
