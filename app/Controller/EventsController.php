@@ -53,8 +53,6 @@ class EventsController extends AppController
         'galaxyAttachedAttributes' => ''
     );
 
-    public $helpers = array('Js' => array('Jquery'));
-
     public $paginationFunctions = array('index', 'proposalEventIndex');
 
     public function beforeFilter()

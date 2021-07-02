@@ -26,8 +26,6 @@ class UsersController extends AppController
         )
     );
 
-    public $helpers = array('Js' => array('Jquery'));
-
     public $toggleableFields = ['disabled', 'autoalert'];
 
     public function beforeFilter()
