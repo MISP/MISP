@@ -26,7 +26,7 @@ class PublishEventCest
     {
         $orgId = 1;
         $eventId = 1;
-
+        $I->haveMispSetting('MISP.background_jobs', '0 --force');
         $I->haveAuthorizationKey($orgId, 1, UserFixture::ROLE_ADMIN);
         $fakeEvent = EventFixture::fake(
             [
@@ -47,7 +47,7 @@ class PublishEventCest
         $I->seeResponseContainsJson(
             [
                 'name' => 'Publish',
-                'message' => 'Job queued'
+                'message' => 'Event published without alerts'
             ]
         );
         $I->seeInDatabase('events', ['id' => $eventId, 'published' => true]);

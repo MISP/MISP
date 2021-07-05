@@ -25,6 +25,7 @@ class CacheFeedsCest
     {
         $orgId = 1;
         $userId = 1;
+        $I->haveMispSetting('MISP.background_jobs', '0 --force');
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
 
         $feedId = 1;
@@ -47,12 +48,10 @@ class CacheFeedsCest
             [
                 'saved' => true,
                 'success' => true,
-                'name' => 'Feed caching job initiated.',
-                'message' => 'Feed caching job initiated.',
+                'name' => 'Caching the feeds has successfully completed.',
+                'message' => 'Caching the feeds has successfully completed.',
                 'url' => '/feeds/cacheFeed'
             ]
         );
-
-        // TODO: cache job created in Redis
     }
 }

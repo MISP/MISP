@@ -26,6 +26,7 @@ class PublishGalaxyClusterCest
     {
         $orgId = 1;
         $userId = 1;
+        $I->haveMispSetting('MISP.background_jobs', '0 --force');
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
 
         $galaxyId = 1;
@@ -49,8 +50,12 @@ class PublishGalaxyClusterCest
         $I->validateResponse();
 
         $I->seeResponseCodeIs(200);
-        $I->seeResponseMatchesJsonType([
-            'message' => 'string:regex(/^Publish job queued. Job ID: [\w]{32}$/)'
+        $I->seeResponseContainsJson([
+            'saved' => true,
+            'success' => true,
+            'name' => 'GalaxyCluster published',
+            'message' => 'GalaxyCluster published',
+            'url' => '/galaxy_clusters/publish/1'
         ]);
     }
 }

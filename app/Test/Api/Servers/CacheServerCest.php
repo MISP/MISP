@@ -24,6 +24,7 @@ class CacheServerCest
     {
         $orgId = 1;
         $userId = 1;
+        $I->haveMispSetting('MISP.background_jobs', '0 --force');
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
 
         $I->sendPost(self::URL);
@@ -36,8 +37,8 @@ class CacheServerCest
             [
                 'saved' => true,
                 'success' => true,
-                'name' => "Server caching job initiated.",
-                'message' => "Server caching job initiated.",
+                'name' => 'Caching the servers has successfully completed.',
+                'message' => 'Caching the servers has successfully completed.',
                 'url' => self::URL
             ]
         );

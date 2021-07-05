@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use \Helper\Fixture\Data\UserFixture;
 use \Helper\Fixture\Data\FeedFixture;
+use \WireMock\Client\WireMock;
 
 class FetchFromFeedCest
 {
@@ -26,6 +27,7 @@ class FetchFromFeedCest
     {
         $orgId = 1;
         $userId = 1;
+        $I->haveMispSetting('MISP.background_jobs', '0 --force');
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
 
         $feedId = 1;
@@ -33,10 +35,17 @@ class FetchFromFeedCest
             [
                 'id' => (string)$feedId,
                 'orgc_id' => (string)$orgId,
-                'enabled' => true
+                'enabled' => true,
+                'url' => 'http://wiremock:8080/fetch-feed',
+                'source_format' => 'misp'
             ]
         );
         $I->haveInDatabase('feeds', $fakeFeed->toDatabase());
+
+        $I->getWireMock()->stubFor(WireMock::get(WireMock::urlEqualTo('/fetch-feed/manifest.json'))
+            ->willReturn(WireMock::aResponse()
+                ->withHeader('Content-Type', 'application/json')
+                ->withBody('{}')));
 
         $I->sendPost(sprintf(self::URL, $feedId));
 
@@ -46,9 +55,8 @@ class FetchFromFeedCest
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson(
             [
-                'result' => 'Pull queued for background execution.'
+                'result' => 'Fetching the feed has successfully completed.'
             ]
         );
-        // TODO: fetch feed job created in Redis
     }
 }

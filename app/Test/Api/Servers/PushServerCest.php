@@ -134,17 +134,14 @@ class PushServerCest
         );
         $I->seeInDatabase('events', ['uuid' => $eventUuid]);
         $I->seeInDatabase('attributes', ['uuid' => $attributeUuid]);
-
-        // reset setting
-        $I->haveMispSetting('MISP.background_jobs', '1');
     }
 
     public function testServerInSharingGroupFullPushWithoutJobs(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;
-        $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
         $I->haveMispSetting('MISP.background_jobs', '0 --force');
+        $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
 
         $serverId = 1;
         $technique = 'full';
@@ -234,9 +231,6 @@ class PushServerCest
         );
         $I->seeInDatabase('events', ['uuid' => $eventUuid]);
         $I->seeInDatabase('attributes', ['uuid' => $attributeUuid]);
-
-        // reset setting
-        $I->haveMispSetting('MISP.background_jobs', '1');
     }
 
     public function testServerNotInSharingGroupSameOrgUuidFullPushWithoutJobs(ApiTester $I): void
@@ -326,9 +320,6 @@ class PushServerCest
         );
         $I->seeInDatabase('events', ['uuid' => $eventUuid]);
         $I->seeInDatabase('attributes', ['uuid' => $attributeUuid]);
-
-        // reset setting
-        $I->haveMispSetting('MISP.background_jobs', '1');
     }
 
     private function mockRemoteServerPushRequests(

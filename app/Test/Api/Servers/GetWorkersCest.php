@@ -24,6 +24,7 @@ class GetWorkersCest
     {
         $orgId = 1;
         $userId = 1;
+        $I->haveMispSetting('MISP.background_jobs', '1');
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
 
         $I->sendGet(self::URL);
