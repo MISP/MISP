@@ -22,6 +22,7 @@ import os
 import re
 import sys
 import uuid
+import traceback
 import misp2stix2_mapping
 from datetime import datetime
 from stix2.base import STIXJSONEncoder
@@ -38,7 +39,8 @@ _MISP_event_tags = ['Threat-Report', 'misp:tool="misp2stix2"']
 _time_fields = {'indicator': ('valid_from', 'valid_until'),
                 'observed-data': ('first_observed', 'last_observed')}
 
-class StixBuilder():
+
+class StixBuilder:
     def __init__(self):
         self.orgs = []
         self.galaxies = []
@@ -60,7 +62,7 @@ class StixBuilder():
                 f.write(json.dumps(stix_packages, cls=STIXJSONEncoder))
             print(json.dumps({'success': 1}))
         except Exception as e:
-            print(json.dumps({'error': e.__str__()}))
+            print(json.dumps({'error': e.__str__(), 'traceback': ''.join(traceback.format_tb(e.__traceback__))}))
 
     @staticmethod
     def _get_event(events):
@@ -1852,6 +1854,7 @@ def main(args):
     stix_builder = StixBuilder()
     stix_builder.loadEvent(args)
     stix_builder.buildEvent()
+
 
 if __name__ == "__main__":
     main(sys.argv)
