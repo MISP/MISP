@@ -2415,11 +2415,13 @@ class EventsController extends AppController
             $this->set('distributions', $distributions);
             $this->set('sgs', $sgs);
             $this->set('event', $event);
+            $this->set('title_for_layout', __('Event merge results'));
             $this->set('title', __('Event merge results'));
             $this->set('importComment', 'Merged from event ' . $source_id);
             $this->render('resolved_misp_format');
         } else {
             $this->set('target_event', $target_event);
+            $this->set('title_for_layout', __('Merge data from event'));
         }
     }
 
@@ -3674,9 +3676,6 @@ class EventsController extends AppController
      */
     public function freeTextImport($id, $adhereToWarninglists = false, $returnMetaAttributes = false)
     {
-        if (!$this->userRole['perm_add']) {
-            throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
-        }
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
             throw new MethodNotAllowedException(__('Invalid event.'));
@@ -3750,7 +3749,8 @@ class EventsController extends AppController
             $this->set('mapping', $typeCategoryMapping);
             $this->set('resultArray', $resultArray);
             $this->set('importComment', '');
-            $this->set('title', 'Freetext Import Results');
+            $this->set('title_for_layout', __('Freetext Import Results'));
+            $this->set('title', __('Freetext Import Results'));
             $this->loadModel('Warninglist');
             $this->set('missingTldLists', $this->Warninglist->missingTldLists());
             $this->render('resolved_attributes');
@@ -3798,9 +3798,6 @@ class EventsController extends AppController
 
     public function saveFreeText($id)
     {
-        if (!$this->userRole['perm_add']) {
-            throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
-        }
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This endpoint requires a POST request.');
         }
@@ -3970,9 +3967,6 @@ class EventsController extends AppController
 
     public function exportChoice($id)
     {
-        if (!is_numeric($id)) {
-            throw new MethodNotAllowedException(__('Invalid ID'));
-        }
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
             throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
@@ -4111,9 +4105,6 @@ class EventsController extends AppController
     public function importChoice($id = false, $scope = 'event')
     {
         if ($scope == 'event') {
-            if (!is_numeric($id)) {
-                throw new MethodNotAllowedException(__('Invalid ID'));
-            }
             $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
             if (empty($event)) {
                 throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
@@ -4150,7 +4141,7 @@ class EventsController extends AppController
             $this->loadModel('Module');
             $modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
             if (is_array($modules) && !empty($modules)) {
-                foreach ($modules['modules'] as $k => $module) {
+                foreach ($modules['modules'] as $module) {
                     $imports[$module['name']] = array(
                             'url' => $this->baseurl . '/events/importModule/' . $module['name'] . '/' . $id,
                             'text' => Inflector::humanize($module['name']),
@@ -4420,7 +4411,7 @@ class EventsController extends AppController
             'metadata' => true,
         ));
         if (empty($event)) {
-            throw new MethodNotAllowedException(__('Invalid Event.'));
+            throw new NotFoundException(__('Invalid Event.'));
         }
 
         $this->set('event', $event[0]);
@@ -4511,16 +4502,14 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function getDistributionGraph($id, $type = 'event')
     {
         $extended = isset($this->params['named']['extended']) ? 1 : 0;
         $json = $this->genDistributionGraph($id, $type, $extended);
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function getEventGraphReferences($id, $type = 'event')
@@ -4544,8 +4533,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function getEventGraphTags($id, $type = 'event')
@@ -4569,8 +4557,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function getEventGraphGeneric($id, $type = 'event')
@@ -4599,8 +4586,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function getReferenceData($uuid, $type = 'reference')
@@ -4620,8 +4606,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function getObjectTemplate($type = 'templates')
@@ -4642,8 +4627,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
     public function viewGalaxyMatrix($scope_id, $galaxy_id, $scope='event', $disable_picking=false)
@@ -4754,35 +4738,34 @@ class EventsController extends AppController
         $this->Galaxy->sortMatrixByScore($tabs, $scores);
         if ($this->_isRest()) {
             $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
-            $this->response->type('json');
-            return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
-        } else {
-            if (!$this->request->is('ajax')) {
-                throw new MethodNotAllowedException(__('Invalid method.'));
-            }
-
-            App::uses('ColourGradientTool', 'Tools');
-            $gradientTool = new ColourGradientTool();
-            $colours = $gradientTool->createGradientFromValues($scores);
-            $this->set('eventId', $eventId);
-            $this->set('target_type', $scope);
-            $this->set('columnOrders', $killChainOrders);
-            $this->set('tabs', $tabs);
-            $this->set('scores', $scores);
-            $this->set('maxScore', $maxScore);
-            if (!empty($colours)) {
-                $this->set('colours', $colours['mapping']);
-                $this->set('interpolation', $colours['interpolation']);
-            }
-            $this->set('pickingMode', !$disable_picking);
-            $this->set('target_id', $scope_id);
-            if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
-                $this->set('defaultTabName', 'mitre-attack');
-                $this->set('removeTrailling', 2);
-            }
-
-            $this->render('/Elements/view_galaxy_matrix');
+            return $this->RestResponse->viewData($json, 'json');
         }
+
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('Invalid method.'));
+        }
+
+        App::uses('ColourGradientTool', 'Tools');
+        $gradientTool = new ColourGradientTool();
+        $colours = $gradientTool->createGradientFromValues($scores);
+        $this->set('eventId', $eventId);
+        $this->set('target_type', $scope);
+        $this->set('columnOrders', $killChainOrders);
+        $this->set('tabs', $tabs);
+        $this->set('scores', $scores);
+        $this->set('maxScore', $maxScore);
+        if (!empty($colours)) {
+            $this->set('colours', $colours['mapping']);
+            $this->set('interpolation', $colours['interpolation']);
+        }
+        $this->set('pickingMode', !$disable_picking);
+        $this->set('target_id', $scope_id);
+        if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
+            $this->set('defaultTabName', 'mitre-attack');
+            $this->set('removeTrailling', 2);
+        }
+
+        $this->render('/Elements/view_galaxy_matrix');
     }
 
     // Displays all the cluster relations for the provided event
@@ -4899,7 +4882,7 @@ class EventsController extends AppController
             $options = array();
             foreach ($enabledModules['modules'] as $temp) {
                 if ($temp['name'] == $module) {
-                    $format = (!empty($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
+                    $format = !empty($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
                             $options[$conf] = Configure::read('Plugin.' . $type . '_' . $module . '_' . $conf);
@@ -4915,6 +4898,8 @@ class EventsController extends AppController
             }
             $this->set('distributions', $distributions);
             $this->set('sgs', $sgs);
+            $this->set('title_for_layout', __('Enrichment Results'));
+            $this->set('title', __('Enrichment Results'));
             if ($format == 'misp_standard') {
                 $this->__queryEnrichment($attribute, $module, $options, $type);
             } else {
@@ -4935,7 +4920,7 @@ class EventsController extends AppController
         }
         $result = $this->Module->queryModuleServer($data, false, $type);
         if (!$result) {
-            throw new MethodNotAllowedException(__('%s service not reachable.', $type));
+            throw new InternalErrorException(__('%s service not reachable.', $type));
         }
         if (isset($result['error'])) {
             $this->Flash->error($result['error']);
@@ -4964,7 +4949,8 @@ class EventsController extends AppController
             }
             $this->set('event', $event);
             $this->set('menuItem', 'enrichmentResults');
-            $this->set('title', 'Enrichment Results');
+            $this->set('title_for_layout', __('Enrichment Results'));
+            $this->set('title', __('Enrichment Results'));
             $this->render('resolved_misp_format');
         }
     }
@@ -4980,7 +4966,7 @@ class EventsController extends AppController
         }
         $result = $this->Module->queryModuleServer($data, false, $type);
         if (!$result) {
-            throw new MethodNotAllowedException(__('%s service not reachable.', $type));
+            throw new InternalErrorException(__('%s service not reachable.', $type));
         }
         if (isset($result['error'])) {
             $this->Flash->error($result['error']);
@@ -5023,7 +5009,6 @@ class EventsController extends AppController
         $this->set('resultArray', $resultArray);
         $this->set('typeDefinitions', $this->Event->Attribute->typeDefinitions);
         $this->set('typeCategoryMapping', $typeCategoryMapping);
-        $this->set('title', 'Enrichment Results');
         $this->set('importComment', $importComment);
         $this->render('resolved_attributes');
     }
@@ -5158,7 +5143,7 @@ class EventsController extends AppController
                     }
                     $result = $this->Module->queryModuleServer($modulePayload, false, $moduleFamily = 'Import');
                     if (!$result) {
-                        throw new Exception(__('Import service not reachable.'));
+                        throw new InternalErrorException(__('Import service not reachable.'));
                     }
                     if (isset($result['error'])) {
                         $this->Flash->error($result['error']);
@@ -5208,7 +5193,8 @@ class EventsController extends AppController
                     }
                     $this->set('distributions', $distributions);
                     $this->set('sgs', $sgs);
-                    $this->set('title', 'Import Results');
+                    $this->set('title', __('Import Results'));
+                    $this->set('title_for_layout', __('Import Results'));
                     $this->set('importComment', $importComment);
                     $this->render($render_name);
                 }

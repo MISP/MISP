@@ -197,7 +197,7 @@
               <?php
                     foreach ($object['ObjectReference'] as $reference) {
                         echo '&nbsp;&nbsp;<span class="ObjectReference">';
-                        echo '<span class="Relationship">' . h($reference['relationship_type']) . ' </span>';
+                        echo '<span class="Relationship">' . h($reference['relationship_type']) . '</span> ';
                         $referenced_uuid = $reference['referenced_uuid'];
                         foreach ($event['Object'] as $object_reference) {
                             if ($referenced_uuid === $object_reference['uuid']) {

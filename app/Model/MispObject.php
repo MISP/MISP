@@ -6,6 +6,7 @@ App::uses('TmpFileTool', 'Tools');
  * @property Event $Event
  * @property SharingGroup $SharingGroup
  * @property Attribute $Attribute
+ * @property ObjectReference $ObjectReference
  */
 class MispObject extends AppModel
 {
@@ -492,7 +493,7 @@ class MispObject extends AppModel
         ];
     }
 
-    public function fetchObjectSimple($user, $options = array())
+    public function fetchObjectSimple(array $user, $options = array())
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
