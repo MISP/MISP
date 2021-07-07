@@ -2733,65 +2733,43 @@ class EventsController extends AppController
     // Publishes the event without sending an alert email
     public function publish($id = null)
     {
-        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
-        $this->Event->id = $id;
-        // update the event and set the from field to the current instance's organisation from the bootstrap. We also need to save id and info for the logs.
-        $this->Event->recursive = -1;
-        $event = $this->Event->read(null, $id);
-        if (!$this->_isSiteAdmin()) {
-            if (!$this->userRole['perm_publish'] || $this->Auth->user('org_id') !== $this->Event->data['Event']['orgc_id']) {
-                throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
-            }
-        }
-        $this->Event->insertLock($this->Auth->user(), $id);
-        $success = true;
-        $message = '';
-        $errors = array();
+        $event = $this->__prepareForPublish($id);
+
         // only allow form submit CSRF protection.
         if ($this->request->is('post') || $this->request->is('put')) {
-            if (!$this->_isRest()) {
-                $publishable = $this->Event->checkIfPublishable($id);
-                if ($publishable !== true) {
-                    $this->Flash->error(__('Could not publish event - no tag for required taxonomies missing: %s', implode(', ', $publishable)));
-                    $this->redirect(array('action' => 'view', $id));
-                }
-            }
+            $errors = array();
             // Performs all the actions required to publish an event
-            $result = $this->Event->publishRouter($id, null, $this->Auth->user());
+            $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
             if (!Configure::read('MISP.background_jobs')) {
                 if (!is_array($result)) {
                     // redirect to the view event page
-                    $message = 'Event published without alerts';
+                    $message = __('Event published without alerts');
                 } else {
                     $lastResult = array_pop($result);
                     $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
                     $errors['failed_servers'] = $result;
-                    $message = sprintf('Event published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString);
+                    $message = __('Event published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString);
                 }
             } else {
                 // update the DB to set the published flag
                 // for background jobs, this should be done already
-                $fieldList = array('published', 'id', 'info', 'publish_timestamp');
                 $event['Event']['published'] = 1;
                 $event['Event']['publish_timestamp'] = time();
-                $this->Event->save($event, array('fieldList' => $fieldList));
+                $this->Event->save($event, true, ['id', 'published', 'publish_timestamp', 'info']); // info field is required because of SysLogLogableBehavior
                 $message = 'Job queued';
             }
             if ($this->_isRest()) {
-                $this->set('name', 'Publish');
-                $this->set('message', $message);
                 if (!empty($errors)) {
-                    $this->set('errors', $errors);
+                    return $this->RestResponse->saveFailResponse('Events', 'publish', $event['Event']['id'], $errors);
+                } else {
+                    return $this->RestResponse->saveSuccessResponse('Events', 'publish', $event['Event']['id'], false, $message);
                 }
-                $this->set('url', $this->baseurl . '/events/alert/' . $id);
-                $this->set('id', $id);
-                $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
             } else {
                 $this->Flash->success($message);
-                $this->redirect(array('action' => 'view', $id));
+                $this->redirect(array('action' => 'view', $event['Event']['id']));
             }
         } else {
-            $this->set('id', $id);
+            $this->set('id', $event['Event']['id']);
             $this->set('type', 'publish');
             $this->render('ajax/eventPublishConfirmationForm');
         }
@@ -2801,34 +2779,16 @@ class EventsController extends AppController
     // Users with a GnuPG key will get the mail encrypted, other users will get the mail unencrypted
     public function alert($id = null)
     {
-        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
-        $this->Event->id = $id;
-        $this->Event->recursive = 0;
-        if (!$this->Event->exists()) {
-            throw new NotFoundException(__('Invalid event'));
-        }
-        $this->Event->recursive = -1;
-        $this->Event->read(null, $id);
-        if (!$this->_isSiteAdmin()) {
-            if (!$this->userRole['perm_publish'] || $this->Auth->user('org_id') !== $this->Event->data['Event']['orgc_id']) {
-                throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
-            }
-        }
-        $errors = array();
+        $event = $this->__prepareForPublish($id);
+
         // only allow form submit CSRF protection
         if ($this->request->is('post') || $this->request->is('put')) {
-            if (!$this->_isRest()) {
-                $publishable = $this->Event->checkIfPublishable($id);
-                if ($publishable !== true) {
-                    $this->Flash->error(__('Could not publish event - no tag for required taxonomies missing: %s', implode(', ', $publishable)));
-                    $this->redirect(array('action' => 'view', $id));
-                }
-            }
+            $errors = array();
             // send out the email
-            $emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user(), $this->Event->data['Event']['publish_timestamp']);
+            $emailResult = $this->Event->sendAlertEmailRouter($event['Event']['id'], $this->Auth->user(), $event['Event']['publish_timestamp']);
             if (is_bool($emailResult) && $emailResult == true) {
                 // Performs all the actions required to publish an event
-                $result = $this->Event->publishRouter($id, null, $this->Auth->user());
+                $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
                 if (!is_array($result)) {
                     // redirect to the view event page
                     if (Configure::read('MISP.background_jobs')) {
@@ -2840,50 +2800,80 @@ class EventsController extends AppController
                     $lastResult = array_pop($result);
                     $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
                     $errors['failed_servers'] = $result;
-                    $failed = 1;
-                    $message = sprintf('Not published given no connection to %s but email sent to all participants.', $resultString);
+                    $message = __('Not published given no connection to %s but email sent to all participants.', $resultString);
                 }
             } elseif (!is_bool($emailResult)) {
                 // Performs all the actions required to publish an event
-                $result = $this->Event->publishRouter($id, null, $this->Auth->user());
+                $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
                 if (!is_array($result)) {
                     // redirect to the view event page
-                    $message = 'Published but no email sent given GnuPG is not configured.';
+                    $message = __('Published but no email sent given GnuPG is not configured.');
                     $errors['GnuPG'] = 'GnuPG not set up.';
                 } else {
                     $lastResult = array_pop($result);
                     $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
                     $errors['failed_servers'] = $result;
                     $errors['GnuPG'] = 'GnuPG not set up.';
-                    $failed = 1;
-                    $message = sprintf('Not published given no connection to %s but no email sent given GnuPG is not configured.', $resultString);
+                    $message = __('Not published given no connection to %s but no email sent given GnuPG is not configured.', $resultString);
                 }
             } else {
                 $message = 'Sending of email failed';
                 $errors['email'] = 'The sending of emails failed.';
             }
             if ($this->_isRest()) {
-                $this->set('name', 'Alert');
-                $this->set('message', $message);
                 if (!empty($errors)) {
-                    $this->set('errors', $errors);
+                    return $this->RestResponse->saveFailResponse('Events', 'alert', $event['Event']['id'], $errors);
+                } else {
+                    return $this->RestResponse->saveSuccessResponse('Events', 'alert', $event['Event']['id'], false, $message);
                 }
-                $this->set('url', $this->baseurl . '/events/alert/' . $id);
-                $this->set('id', $id);
-                $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
             } else {
-                if (!empty($failed)) {
+                if (isset($errors['failed_servers'])) {
                     $this->Flash->error($message);
                 } else {
                     $this->Flash->success($message);
                 }
-                $this->redirect(array('action' => 'view', $id));
+                $this->redirect(array('action' => 'view', $event['Event']['id']));
             }
         } else {
-            $this->set('id', $id);
+            $this->set('id', $event['Event']['id']);
             $this->set('type', 'alert');
             $this->render('ajax/eventPublishConfirmationForm');
         }
+    }
+
+    /**
+     * @param int|string $id Event ID or UUID
+     * @return array
+     */
+    private function __prepareForPublish($id)
+    {
+        if (empty($id)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $event = $this->Event->find('first', [
+            'conditions' => Validation::uuid($id) ? ['Event.uuid' => $id] : ['Event.id' => $id],
+            'recursive' => -1,
+            'fields' => ['id', 'info', 'publish_timestamp', 'orgc_id'],
+        ]);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) {
+            throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
+        }
+        if (!$this->_isRest()) {
+            $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
+
+            if ($this->request->is('post') || $this->request->is('put')) {
+                $publishable = $this->Event->checkIfPublishable($event['Event']['id']);
+                if ($publishable !== true) {
+                    $this->Flash->error(__('Could not publish event - no tag for required taxonomies missing: %s', implode(', ', $publishable)));
+                    $this->redirect(['action' => 'view', $event['Event']['id']]);
+                }
+            }
+        }
+
+        return $event;
     }
 
     // Send out an contact email to the person who posted the event.
