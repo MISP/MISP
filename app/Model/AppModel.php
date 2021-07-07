@@ -90,7 +90,7 @@ class AppModel extends Model
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
-        69 => false, 70 => false, 71 => false
+        69 => false, 70 => false, 71 => true, 72 => true, 73 => false
     );
 
     public $advanced_updates_description = array(
@@ -1604,6 +1604,14 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `enabled` tinyint(1) NOT NULL DEFAULT 1 AFTER `namespace`;";
                 break;
             case 71:
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_warninglist` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `warninglist_entries` ADD `comment` text DEFAULT NULL;";
+                $sqlArray[] = "ALTER TABLE `warninglists` ADD `default` tinyint(1) NOT NULL DEFAULT 1, ADD `category` varchar(20) NOT NULL DEFAULT 'false_positive', DROP COLUMN `warninglist_entry_count`";
+                break;
+            case 72:
+                $sqlArray[] = "ALTER TABLE `auth_keys` ADD `read_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `expiration`;";
+                break;
+            case 73:
                 $sqlArray[] = "ALTER TABLE `servers` ADD `remove_missing_tags` tinyint(1) NOT NULL DEFAULT 0 AFTER `skip_proxy`;";
                 break;
             case 'fixNonEmptySharingGroupID':

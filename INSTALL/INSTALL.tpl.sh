@@ -711,8 +711,8 @@ installMISPRHEL () {
       apacheConfig_RHEL7
     fi
 
-    if [[ "${DISTRI}" == "fedora33" ]]; then
-      enableREMI_f33
+    if [[ "${DISTRI%??}" == "fedora" ]]; then
+      enableREMI_fedora
       yumInstallCoreDeps8
       installEntropyRHEL
       installCoreRHEL8

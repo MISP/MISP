@@ -1,13 +1,14 @@
 <?php
     $data = $warninglist['Warninglist'];
-    $types = array_column($warninglist['WarninglistType'], 'type');
+    $types = implode(', ', array_column($warninglist['WarninglistType'], 'type'));
     $table_data = array(
         array('key' => __('ID'), 'value' => $data['id']),
         array('key' => __('Name'), 'value' => $data['name']),
         array('key' => __('Description'), 'value' => $data['description']),
         array('key' => __('Version'), 'value' => $data['version']),
+        array('key' => __('Category'), 'value' => $possibleCategories[$data['category']]),
         array('key' => __('Type'), 'value' => $data['type']),
-        array('key' => __('Accepted attribute types'), 'value' => implode(', ', $types)),
+        array('key' => __('Accepted attribute types'), 'value' => $types),
         array(
             'key' => __('Enabled'),
             'boolean' => $data['enabled'],
@@ -21,15 +22,29 @@
             )
         ),
     );
+
+    $values = [];
+    foreach ($warninglist['WarninglistEntry'] as $entry) {
+        $value = h($entry['value']);
+        if ($entry['comment']) {
+            $value .= ' <span style="color: gray"># ' . h($entry['comment']) . '</span>';
+        }
+        $values[] = $value;
+    }
+
     echo sprintf(
         '<div class="warninglist view"><div class="row-fluid"><div class="span8" style="margin:0;">%s</div></div><h4>%s</h4>%s</div>',
         sprintf(
             '<h2>%s</h2>%s',
-            h(strtoupper($warninglist['Warninglist']['name'])),
+            h(mb_strtoupper($warninglist['Warninglist']['name'])),
             $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
         ),
         __('Values'),
-        implode('<br>', array_column($warninglist['WarninglistEntry'], 'value'))
+        implode('<br>', $values)
     );
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'warninglist', 'menuItem' => 'view'));
-
+    echo $this->element('/genericElements/SideMenu/side_menu', [
+        'menuList' => 'warninglist',
+        'menuItem' => 'view',
+        'id' => $data['id'],
+        'isDefault' => $data['default'] == 1,
+    ]);

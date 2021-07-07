@@ -619,6 +619,17 @@
                 "extra": ""
             },
             {
+                "column_name": "read_only",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
                 "column_name": "user_id",
                 "is_nullable": "NO",
                 "data_type": "int",
@@ -7621,6 +7632,17 @@
                 "extra": ""
             },
             {
+                "column_name": "category",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "20",
+                "numeric_precision": null,
+                "collation_name": "utf8_general_ci",
+                "column_type": "varchar(20)",
+                "column_default": "false_positive",
+                "extra": ""
+            },
+            {
                 "column_name": "description",
                 "is_nullable": "NO",
                 "data_type": "text",
@@ -7654,14 +7676,14 @@
                 "extra": ""
             },
             {
-                "column_name": "warninglist_entry_count",
+                "column_name": "default",
                 "is_nullable": "NO",
-                "data_type": "int",
+                "data_type": "tinyint",
                 "character_maximum_length": null,
-                "numeric_precision": "10",
+                "numeric_precision": "3",
                 "collation_name": null,
-                "column_type": "int(11) unsigned",
-                "column_default": "0",
+                "column_type": "tinyint(1)",
+                "column_default": "1",
                 "extra": ""
             }
         ],
@@ -7680,6 +7702,17 @@
             {
                 "column_name": "value",
                 "is_nullable": "NO",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "comment",
+                "is_nullable": "YES",
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
@@ -8180,5 +8213,5 @@
             "id": true
         }
     },
-    "db_version": "71"
+    "db_version": "73"
 }

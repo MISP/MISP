@@ -53,7 +53,7 @@ class Server extends AppModel
     public $validate = array(
         'url' => array(
             'url' => array(
-                'rule' => array('url'),
+                'rule' => array('validateURL'),
                 'message' => 'Please enter a valid base-url.'
             )
         ),
@@ -1683,6 +1683,13 @@ class Server extends AppModel
         return $proto;
     }
 
+    public function validateURL($check)
+    {
+        $check = array_values($check);
+        $check = $check[0];
+        return $this->testURL($check);
+    }
+
     public function testBaseURL($value)
     {
         // only run this check via the GUI, via the CLI it won't work
@@ -2132,6 +2139,9 @@ class Server extends AppModel
         }
         if (!empty($setting)) {
             $setting['name'] = $setting_name;
+        }
+        if (!empty($setting['optionsSource'])) {
+            $setting['options'] = $setting['optionsSource']();
         }
         return $setting;
     }
@@ -4180,12 +4190,12 @@ class Server extends AppModel
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         while ($continue) {
             $i++;
-            $pipe = $redis->multi(Redis::PIPELINE);
             $chunk_size = 50000;
             $data = $this->__getCachedAttributes($server, $HttpSocket, $chunk_size, $i);
             if (empty(trim($data))) {
                 $continue = false;
             } else {
+                $pipe = $redis->multi(Redis::PIPELINE);
                 $data = explode(PHP_EOL, trim($data));
                 foreach ($data as $entry) {
                     list($value, $uuid) = explode(',', $entry);
@@ -4199,11 +4209,11 @@ class Server extends AppModel
                         $redis->sAdd('misp:server_cache:event_uuid_lookup:' . $value, $server['Server']['id'] . '/' . $uuid);
                     }
                 }
+                $pipe->exec();
+                if ($jobId) {
+                    $job->saveField('message', 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+                }
             }
-            if ($jobId) {
-                $job->saveField('message', 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
-            }
-            $pipe->exec();
         }
         $redis->set('misp:server_cache_timestamp:' . $server['Server']['id'], time());
         return true;
@@ -4925,6 +4935,15 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'null' => true,
                     'test' => 'testDisableEmail',
+                    'type' => 'boolean',
+                ),
+                'publish_alerts_summary_only' => array(
+                    'level' => 1,
+                    'description' => __('Only send a summary of the publish alert, rather than the full contents of the event.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'null' => true,
+                    'test' => 'testBool',
                     'type' => 'boolean',
                 ),
                 'contact' => array(
@@ -6612,6 +6631,14 @@ class Server extends AppModel
                 'ZeroMQ_audit_notifications_enable' => array(
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of log entries to the ZMQ pubsub feed. Keep in mind, this can get pretty verbose depending on your logging settings.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ZeroMQ_warninglist_notifications_enable' =>  array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of new/modified warninglist to the ZMQ pubsub feed.'),
                     'value' => false,
                     'errorMessage' => '',
                     'test' => 'testBool',

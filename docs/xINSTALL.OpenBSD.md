@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for OpenBSD 6.8-amd64
+## for OpenBSD 6.9-amd64
 
 !!! warning
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
@@ -25,7 +25,7 @@
 
 ```bash
 export AUTOMAKE_VERSION=1.16
-export AUTOCONF_VERSION=2.69
+export AUTOCONF_VERSION=2.71
 ```
 
 ### 1/ Minimal OpenBSD install
@@ -86,7 +86,7 @@ doas pkg_add -v mariadb-server
 #### Install misc dependencies
 
 ```bash
-doas pkg_add -v curl git python--%3.8 redis libmagic autoconf--%2.69 automake--%1.16 libtool unzip--iconv
+doas pkg_add -v curl git python--%3.8 redis libmagic autoconf--%2.71 automake--%1.16 libtool unzip--iconv rust
 ```
 
 ```bash
@@ -232,7 +232,7 @@ doas pkg_add -v py3-virtualenv py3-pip
 doas ln -sf /usr/local/bin/pip3.8 /usr/local/bin/pip
 doas ln -s /usr/local/bin/python3.8 /usr/local/bin/python
 doas mkdir /usr/local/virtualenvs
-doas virtualenv-3 /usr/local/virtualenvs/MISP
+doas /usr/local/bin/virtualenv /usr/local/virtualenvs/MISP
 ```
 
 #### Install ssdeep
@@ -338,7 +338,7 @@ ${SUDO_WWW} git submodule foreach --recursive git config core.filemode false
 ${SUDO_WWW} git config core.filemode false
 
 doas pkg_add -v py3-pip libxml libxslt py3-jsonschema
-doas /usr/local/virtualenvs/MISP/bin/pip install -U pip
+doas /usr/local/virtualenvs/MISP/bin/pip install -U pip setuptools setuptools-rust
 
 cd /var/www/htdocs/MISP/app/files/scripts
 false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git; done
@@ -502,6 +502,7 @@ LoadModule rewrite_module /usr/local/lib/apache2/mod_rewrite.so
 LoadModule ssl_module /usr/local/lib/apache2/mod_ssl.so
 LoadModule proxy_module /usr/local/lib/apache2/mod_proxy.so
 LoadModule proxy_fcgi_module /usr/local/lib/apache2/mod_proxy_fcgi.so
+LoadModule socache_shmcb_module /usr/local/lib/apache2/socache_shmcb_module.so
 Listen 443
 DirectoryIndex index.php
 ```

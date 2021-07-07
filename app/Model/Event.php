@@ -1004,7 +1004,7 @@ class Event extends AppModel
     private function __prepareForPushToServer($event, $server)
     {
         if ($event['Event']['distribution'] == 4) {
-            if (empty($event['SharingGroup']['SharingGroup']['roaming']) && empty($server['Server']['internal'])) {
+            if (empty($event['SharingGroup']['roaming']) && empty($server['Server']['internal'])) {
                 $serverFound = false;
                 if (!empty($event['SharingGroup']['SharingGroupServer'])) {
                     foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
@@ -3319,7 +3319,11 @@ class Event extends AppModel
         $subjMarkingString = $this->getEmailSubjectMarkForEvent($event);
         $subject = "[" . Configure::read('MISP.org') . " MISP] Event {$event['Event']['id']} - $subject$threatLevel" . strtoupper($subjMarkingString);
 
-        $template = new SendEmailTemplate('alert');
+        if (!empty(Configure::read('MISP.publish_alerts_summary_only'))) {
+            $template = new SendEmailTemplate('alert_light');
+        } else {
+            $template = new SendEmailTemplate('alert');
+        }
         $template->set('event', $event);
         $template->set('user', $user);
         $template->set('oldPublishTimestamp', $oldpublish);

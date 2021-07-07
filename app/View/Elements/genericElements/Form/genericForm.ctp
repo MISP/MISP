@@ -79,7 +79,7 @@
                 if (!empty($fieldData['description'])) {
                     $temp .= sprintf('<small class="clear form-field-description apply_css_arrow">%s</small>', h($fieldData['description']));
                 }
-                $fieldsArrayForPersistence []= $modelForForm . Inflector::camelize($fieldData['field']);
+                $fieldsArrayForPersistence[] = $modelForForm . Inflector::camelize($fieldData['field']);
                 if (!empty($fieldData['hidden'])) {
                     $temp = '<span class="hidden">' . $temp . '</span>';
                 }
