@@ -26,7 +26,8 @@
         "league/openapi-psr7-validator": "^0.15.2",
         "phpstan/phpstan": "^0.12.85",
         "wiremock-php/wiremock-php": "2.27.0",
-        "codeception/module-redis": "^1.1"
+        "codeception/module-redis": "^1.1",
+        "codeception/module-asserts": "^1.3"
     },
     "conflict": {
         "symfony/polyfill-php80": "*",

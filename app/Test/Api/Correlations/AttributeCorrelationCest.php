@@ -7,7 +7,7 @@ use \Helper\Fixture\Data\EventFixture;
 
 class AttributeCorrelationCest
 {
-    public function testAttributeCorrelationIsAdded(ApiTester $I): void
+    public function testSimpleAttributeCorrelationIsAdded(ApiTester $I): void
     {
         $attributeAId = 10;
         $eventAId = 1;
@@ -212,7 +212,7 @@ class AttributeCorrelationCest
         $I->assertEquals(2, $I->grabNumRecords('correlations'));
     }
 
-    public function testSimpleValue1AndCompositeValue2AttributesCorrelate(ApiTester $I): void
+    public function testSimpleAttributeValue1AndCompositeAttributeValue2Correlate(ApiTester $I): void
     {
         $attributeAId = 10;
         $eventAId = 1;
@@ -280,7 +280,7 @@ class AttributeCorrelationCest
         $I->assertEquals(2, $I->grabNumRecords('correlations'));
     }
 
-    public function testSimpleValue1AndCompositeValue1AttributesCorrelate(ApiTester $I): void
+    public function testSimpleAttributeValue1AndCompositeAttributeValue1Correlate(ApiTester $I): void
     {
         $attributeAId = 10;
         $eventAId = 1;
@@ -435,5 +435,142 @@ class AttributeCorrelationCest
             ]
         );
         $I->assertEquals(4, $I->grabNumRecords('correlations'));
+    }
+
+    public function testSimpleCIDRAttributeAndSimpleIPAttributeCorrelate(ApiTester $I): void
+    {
+        $attributeAId = 10;
+        $eventAId = 1;
+        $eventBId = 2;
+        $orgId = 10;
+        $userId = 10;
+
+        $I->haveMispSetting('MISP.enable_advanced_correlations', '1');
+        $I->haveAuthorizationKey($orgId, $userId);
+        $fakeEventA = EventFixture::fake(['id' => $eventAId, 'org_id' => $orgId, 'user_id' => $userId]);
+        $fakeEventB = EventFixture::fake(['id' => $eventBId, 'org_id' => $orgId, 'user_id' => $userId]);
+        $I->haveInDatabase('events', $fakeEventA->toDatabase());
+        $I->haveInDatabase('events', $fakeEventB->toDatabase());
+
+        $fakeAttributeA = AttributeFixture::fake(
+            [
+                'id' => (string)$attributeAId,
+                'event_id' => (string)$eventAId,
+                'category' => 'Network activity',
+                'type' => 'ip-dst',
+                'value1' => '8.8.8.8'
+            ]
+        );
+        $fakeAttributeB = AttributeFixture::fake(
+            [
+                'event_id' => (string)$eventBId,
+                'category' => 'Network activity',
+                'type' => 'ip-dst',
+                'value1' => '8.8.8.0/24'
+            ]
+        );
+        $I->haveInDatabase('attributes', $fakeAttributeA->toDatabase());
+
+        $I->sendPost(
+            sprintf('/attributes/add/%s', $eventBId),
+            $fakeAttributeB->toRequest()
+        );
+
+        $I->validateRequest();
+        $I->validateResponse();
+
+        $attributeBId = $I->grabDataFromResponseByJsonPath('$..Attribute.id')[0];
+
+        $I->seeResponseCodeIs(200);
+        $I->seeInDatabase(
+            'correlations',
+            [
+                'event_id' => $eventAId,
+                'attribute_id' => $attributeAId,
+                '1_event_id' => $eventBId,
+                '1_attribute_id' => $attributeBId,
+                'value' => '8.8.8.8'
+            ]
+        );
+        $I->seeInDatabase(
+            'correlations',
+            [
+                'event_id' => $eventBId,
+                'attribute_id' => $attributeBId,
+                '1_event_id' => $eventAId,
+                '1_attribute_id' => $attributeAId,
+                'value' => '8.8.8.0/24'
+            ]
+        );
+        $I->assertEquals(2, $I->grabNumRecords('correlations'));
+    }
+
+    public function testCompositeAttributeValue2AndSimpleAttributeValue1CidrCorrelate(ApiTester $I): void
+    {
+        $attributeAId = 10;
+        $eventAId = 1;
+        $eventBId = 2;
+        $orgId = 10;
+        $userId = 10;
+
+        $I->haveMispSetting('MISP.enable_advanced_correlations', '1');
+        $I->haveAuthorizationKey($orgId, $userId);
+        $fakeEventA = EventFixture::fake(['id' => $eventAId, 'org_id' => $orgId, 'user_id' => $userId]);
+        $fakeEventB = EventFixture::fake(['id' => $eventBId, 'org_id' => $orgId, 'user_id' => $userId]);
+        $I->haveInDatabase('events', $fakeEventA->toDatabase());
+        $I->haveInDatabase('events', $fakeEventB->toDatabase());
+
+        $fakeAttributeA = AttributeFixture::fake(
+            [
+                'id' => (string)$attributeAId,
+                'event_id' => (string)$eventAId,
+                'category' => 'Network activity',
+                'type' => 'domain|ip',
+                'value1' => 'example.com',
+                'value2' => '8.8.8.8'
+            ]
+        );
+        $fakeAttributeB = AttributeFixture::fake(
+            [
+                'event_id' => (string)$eventBId,
+                'category' => 'Network activity',
+                'type' => 'ip-dst',
+                'value1' => '8.8.8.0/24'
+            ]
+        );
+        $I->haveInDatabase('attributes', $fakeAttributeA->toDatabase());
+
+        $I->sendPost(
+            sprintf('/attributes/add/%s', $eventBId),
+            $fakeAttributeB->toRequest()
+        );
+
+        $I->validateRequest();
+        $I->validateResponse();
+
+        $attributeBId = $I->grabDataFromResponseByJsonPath('$..Attribute.id')[0];
+
+        $I->seeResponseCodeIs(200);
+        $I->seeInDatabase(
+            'correlations',
+            [
+                'event_id' => $eventAId,
+                'attribute_id' => $attributeAId,
+                '1_event_id' => $eventBId,
+                '1_attribute_id' => $attributeBId,
+                'value' => '8.8.8.8'
+            ]
+        );
+        $I->seeInDatabase(
+            'correlations',
+            [
+                'event_id' => $eventBId,
+                'attribute_id' => $attributeBId,
+                '1_event_id' => $eventAId,
+                '1_attribute_id' => $attributeAId,
+                'value' => '8.8.8.0/24'
+            ]
+        );
+        $I->assertEquals(2, $I->grabNumRecords('correlations'));
     }
 }

@@ -4,6 +4,7 @@ suites:
         path: .
         modules:
             enabled:
+                - Asserts
                 - \Helper\Module\Api:
                       url: https://localhost
                       depends: PhpBrowser
