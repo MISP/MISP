@@ -948,7 +948,7 @@ class TagsController extends AppController
         $local = $existingAssociation[$objectType . 'Tag']['local'];
         $result = $this->$objectType->$connectorObject->delete($existingAssociation[$connectorObject]['id']);
         if ($result) {
-            $message = sprintf(__('%s tag %s (%s) successfully detached to %s (%s)'), $local ? __('Local') : __('Global'), $existingTag['Tag']['name'], $existingTag['Tag']['id'], $objectType, $object[$objectType]['id']);
+            $message = sprintf(__('%s tag %s (%s) successfully removed from %s(%s).'), $local ? __('Local') : __('Global'), $existingTag['Tag']['name'], $existingTag['Tag']['id'], $objectType, $object[$objectType]['id']);
             if (!$local) {
                 $tempObject = $this->$objectType->find('first', array(
                     'recursive' => -1,
