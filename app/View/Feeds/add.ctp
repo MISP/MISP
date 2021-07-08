@@ -68,7 +68,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'label' => __('Creator organisation'),
                 'options' => $dropdownData['orgs'],
                 'type' => 'dropdown',
-                'div' => ['id' => 'OrgcDiv', 'style' => 'display:none'],
+                'div' => ['id' => 'OrgcDiv', 'style' => 'display:none', 'class' => 'optionalField'],
                 'class' => 'form-control span6'
             ],
             [
@@ -76,14 +76,14 @@ echo $this->element('genericElements/Form/genericForm', [
                 'label' => __('Target Event'),
                 'options' => ['New Event Each Pull', 'Fixed Event'],
                 'type' => 'dropdown',
-                'div' => ['id' => 'TargetDiv', 'style' => 'display:none'],
+                'div' => ['id' => 'TargetDiv', 'style' => 'display:none', 'class' => 'optionalField'],
                 'class' => 'form-control span6'
             ],
             [
                 'field' => 'target_event',
                 'label' => __('Target Event ID'),
                 'placeholder' => __('Leave blank unless you want to reuse an existing event.'),
-                'div' => ['id' => 'TargetEventDiv', 'style' => 'display:none'],
+                'div' => ['id' => 'TargetEventDiv', 'style' => 'display:none', 'class' => 'optionalField'],
                 'class' => 'form-control span6'
             ],
             [
@@ -91,7 +91,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'label' => __('Value field(s) in the CSV'),
                 'title' => __('Select one or several fields that should be parsed by the CSV parser and converted into MISP attributes'),
                 'placeholder' => __('2,3,4 (column position separated by commas)'),
-                'div' => ['id' => 'settingsCsvValueDiv', 'style' => 'display:none'],
+                'div' => ['id' => 'settingsCsvValueDiv', 'style' => 'display:none', 'class' => 'optionalField'],
                 'class' => 'form-control span6'
             ],
             [
@@ -99,7 +99,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'label' => __('Delimiter'),
                 'title' => __('Set the default CSV delimiter (default = ",")'),
                 'placeholder' => ',',
-                'div' => ['id' => 'settingsCsvDelimiterDiv', 'style' => 'display:none'],
+                'div' => ['id' => 'settingsCsvDelimiterDiv', 'style' => 'display:none', 'class' => 'optionalField'],
                 'class' => 'form-control span6',
                 'value' => isset($entity['Feed']['settings']['csv']['delimiter']) ? $entity['Feed']['settings']['csv']['delimiter'] : ','
             ],
@@ -107,7 +107,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'field' => 'Feed.settings.common.excluderegex',
                 'label' => __('Exclusion Regex'),
                 'placeholder' => __('Leave blank unless you want to reuse an existing event.'),
-                'div' => ['id' => 'settingsCommonExcluderegexDiv', 'style' => 'display:none'],
+                'div' => ['id' => 'settingsCommonExcluderegexDiv', 'style' => 'display:none', 'class' => 'optionalField'],
                 'placeholder' => __('Regex pattern, for example: "/^https://myfeedurl/i'),
                 'class' => 'form-control span6'
             ],
@@ -116,21 +116,21 @@ echo $this->element('genericElements/Form/genericForm', [
                 'label' => __('Auto Publish'),
                 'title' => __('Publish events directly after pulling the feed - if you would like to review the event before publishing uncheck this'),
                 'type' => 'checkbox',
-                'div' => ['id' => 'PublishDiv', 'style' => 'display:none']
+                'div' => ['id' => 'PublishDiv', 'style' => 'display:none', 'class' => 'input checkbox optionalField']
             ],
             [
                 'field' => 'override_ids',
                 'label' => __('Override IDS Flag'),
                 'title' => __('If checked, the IDS flags will always be set to off when pulling from this feed'),
                 'type' => 'checkbox',
-                'div' => ['id' => 'OverrideIdsDiv', 'style' => 'display:none']
+                'div' => ['id' => 'OverrideIdsDiv', 'style' => 'display:none', 'class' => 'input checkbox optionalField']
             ],
             [
                 'field' => 'delta_merge',
                 'label' => __('Delta Merge'),
                 'title' => __('Merge attributes (only add new attributes, remove revoked attributes)'),
                 'type' => 'checkbox',
-                'div' => ['id' => 'DeltaMergeDiv', 'style' => 'display:none']
+                'div' => ['id' => 'DeltaMergeDiv', 'style' => 'display:none', 'class' => 'input checkbox optionalField']
             ],
             [
                 'field' => 'distribution',

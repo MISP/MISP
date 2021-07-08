@@ -7,25 +7,21 @@
             'model' => $modelForForm,
             'fields' => array(
                 array(
-                    'field' => 'event_id',
-                    'class' => 'org-id-picker-hidden-field',
-                    'type' => 'text',
-                    'hidden' => true
-                ),
-                array(
                     'field' => 'category',
                     'class' => 'input',
                     'empty' => __('(choose one)'),
                     'options' => $categories,
                     'stayInLine' => 1,
-                    'type' => 'dropdown'
+                    'type' => 'dropdown',
+                    'required' => false
                 ),
                 array(
                     'field' => 'type',
                     'class' => 'input',
                     'empty' => __('(choose category first)'),
                     'options' => $types,
-                    'type' => 'dropdown'
+                    'type' => 'dropdown',
+                    'required' => false
                 ),
                 array(
                     'field' => 'distribution',
