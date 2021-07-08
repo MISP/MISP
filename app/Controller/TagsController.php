@@ -854,16 +854,16 @@ class TagsController extends AppController
             }
             $result = $this->$objectType->$connectorObject->save($data);
             if ($result) {
-                $tempObject = $this->$objectType->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array($objectType . '.id' => $object[$objectType]['id'])
-                ));
-                $date = new DateTime();
-                $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
-                $this->$objectType->save($tempObject);
                 if ($local) {
                     $message = 'Local tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
                 } else {
+                    $tempObject = $this->$objectType->find('first', array(
+                        'recursive' => -1,
+                        'conditions' => array($objectType . '.id' => $object[$objectType]['id'])
+                    ));
+                    $date = new DateTime();
+                    $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
+                    $this->$objectType->save($tempObject);
                     if ($objectType === 'Attribute') {
                         $this->$objectType->Event->unpublishEvent($object['Event']['id']);
                     } elseif ($objectType === 'Event') {
@@ -945,12 +945,28 @@ class TagsController extends AppController
                 }
             }
         }
+        $local = $existingAssociation[$objectType . 'Tag']['local'];
         $result = $this->$objectType->$connectorObject->delete($existingAssociation[$connectorObject]['id']);
         if ($result) {
-            $message = 'Tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully removed from ' . $objectType . '(' . $object[$objectType]['id'] . ').';
+            $message = sprintf(__('%s tag %s (%s) successfully detached to %s (%s)'), $local ? __('Local') : __('Global'), $existingTag['Tag']['name'], $existingTag['Tag']['id'], $objectType, $object[$objectType]['id']);
+            if (!$local) {
+                $tempObject = $this->$objectType->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array($objectType . '.id' => $object[$objectType]['id'])
+                ));
+                $date = new DateTime();
+                $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
+                $this->$objectType->save($tempObject);
+                if ($objectType === 'Attribute') {
+                    $this->$objectType->Event->unpublishEvent($object['Event']['id']);
+                } elseif ($objectType === 'Event') {
+                    $this->Event->unpublishEvent($object['Event']['id']);
+                }
+            }
             return $this->RestResponse->saveSuccessResponse('Tags', 'removeTagFromObject', false, $this->response->type(), $message);
         } else {
-            return $this->RestResponse->saveFailResponse('Tags', 'removeTagFromObject', false, 'Failed to remove tag from object.', $this->response->type());
+            $message = __('Failed to remove tag from object.');
+            return $this->RestResponse->saveFailResponse('Tags', 'removeTagFromObject', false, $message, $this->response->type());
         }
     }
 
