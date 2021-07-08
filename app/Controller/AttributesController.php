@@ -750,6 +750,7 @@ class AttributesController extends AppController
             // check which attribute is newer
             if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
                 $this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
+                $this->request->data['Attribute']['event_id'] = $existingAttribute['Attribute']['event_id'];
                 $dateObj = new DateTime();
                 $skipTimeCheck = false;
                 if (!isset($this->request->data['Attribute']['timestamp'])) {
