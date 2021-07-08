@@ -57,6 +57,9 @@
                             window[initFun]()
                         }
                     })
+                    if (typeof window['cm'] === "object") {
+                        window['cm'].refresh()
+                    }
                 })
                 .on('hidden', function() {
                     var $containers = $(this).find('.rules-widget-container')
