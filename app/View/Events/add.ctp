@@ -48,7 +48,6 @@
                     'field' => 'analysis',
                     'class' => 'input',
                     'options' => $analysisLevels,
-                    'stayInLine' => 1,
                     'type' => 'dropdown'
                 ),
                 array(

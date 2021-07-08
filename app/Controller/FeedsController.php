@@ -345,6 +345,11 @@ class FeedsController extends AppController
                 'headers',
                 'orgc_id'
             ],
+            'afterFind' => function (array $feed) {
+                $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+
+                return $feed;
+            },
             'beforeSave' => function (array $feed) use ($feedId) {
                 if (!empty($feed['Feed']['settings']) && !is_array($feed['Feed']['settings'])) {
                     $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
