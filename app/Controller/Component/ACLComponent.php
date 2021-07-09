@@ -651,6 +651,7 @@ class ACLComponent extends Component
                     'toggleRequired' => array('perm_site_admin'),
                     'update' => array(),
                     'import' => [],
+                    'export' => ['*'],
                     'view' => array('*'),
                     'unhideTag' => array('perm_tagger'),
                     'hideTag' => array('perm_tagger'),
