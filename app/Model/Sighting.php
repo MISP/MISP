@@ -127,7 +127,7 @@ class Sighting extends AppModel
 
     /**
      * @param array $sightings
-     * @param int $attributeId
+     * @param int|null $attributeId
      * @param int $eventId
      * @param array $user
      * @return bool
@@ -141,10 +141,32 @@ class Sighting extends AppModel
         // Fetch existing organisations in bulk
         $existingOrganisations = $this->existingOrganisations($sightings);
 
+        if ($attributeId === null) {
+            // If attribute ID is not set, check real ID and also check if user can access that attribute
+            $attributes = $this->Attribute->fetchAttributesSimple($user, [
+                'conditions' => [
+                    'Attribute.uuid' => array_column($sightings, 'attribute_uuid'),
+                    'Attribute.event_id' => $eventId,
+                ],
+                'fields' => ['Attribute.id', 'Attribute.uuid'],
+            ]);
+            $attributes = array_column(array_column($attributes, 'Attribute'), 'id', 'uuid');
+        }
+
         $toSave = [];
         foreach ($sightings as $sighting) {
             if (isset($existingSighting[$sighting['uuid']])) {
                 continue; // already exists, skip
+            }
+
+            if ($attributeId === null) {
+                if (isset($attributes[$sighting['attribute_uuid']])) {
+                    $sighting['attribute_id'] = $attributes[$sighting['attribute_uuid']];
+                } else {
+                    continue; // attribute not exists ar user don't have permission to access it
+                }
+            } else {
+                $sighting['attribute_id'] = $attributeId;
             }
 
             $orgId = 0;
@@ -161,7 +183,6 @@ class Sighting extends AppModel
 
             $sighting['org_id'] = $orgId;
             $sighting['event_id'] = $eventId;
-            $sighting['attribute_id'] = $attributeId;
             $toSave[] = $sighting;
         }
 
@@ -529,6 +550,42 @@ class Sighting extends AppModel
     /**
      * @param array $event
      * @param array $user
+     * @param array $sightingsUuidsToPush
+     * @return Generator<array>
+     */
+    public function fetchUuidsForEventToPush(array $event, array $user, array $sightingsUuidsToPush = [])
+    {
+        $conditions = $this->createConditions($user, $event);
+        if ($conditions === false) {
+            return null;
+        }
+        $conditions['Sighting.event_id'] = $event['Event']['id'];
+        if (!empty($sightingsUuidsToPush)) {
+            $conditions['Sighting.uuid'] = $sightingsUuidsToPush;
+        }
+
+        while (true) {
+            $uuids = $this->find('column', [
+                'conditions' => $conditions,
+                'fields' => ['Sighting.uuid'],
+                'limit' => 250000,
+                'order' => ['Sighting.uuid'],
+            ]);
+            $count = count($uuids);
+            if ($count === 0) {
+                return null;
+            }
+            yield $uuids;
+            if ($count !== 250000) {
+                return;
+            }
+            $conditions['Sighting.uuid >'] = $uuids[$count - 1];
+        }
+    }
+
+    /**
+     * @param array $event Just 'Event' object is enough
+     * @param array $user
      * @param array|int|null $attribute Attribute model or attribute ID
      * @param array|bool $extraConditions
      * @param bool $forSync
@@ -536,7 +593,12 @@ class Sighting extends AppModel
      */
     public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false, $forSync = false)
     {
-        $conditions = array('Sighting.event_id' => $event['Event']['id']);
+        $conditions = $this->createConditions($user, $event);
+        if ($conditions === false) {
+            return [];
+        }
+
+        $conditions['Sighting.event_id'] = $event['Event']['id'];
         if (isset($attribute['Attribute']['id'])) {
             $conditions['Sighting.attribute_id'] = $attribute['Attribute']['id'];
         } elseif (is_numeric($attribute)) {
@@ -548,19 +610,6 @@ class Sighting extends AppModel
             ]);
         }
 
-        $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
-        if (!$ownEvent) {
-            $sightingsPolicy = $this->sightingsPolicy();
-            if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
-                $conditions['Sighting.org_id'] = $user['org_id'];
-            } elseif ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
-                if (!$this->isReporter($event['Event']['id'], $user['org_id'])) {
-                    return array();
-                }
-            } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
-                $conditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
-            }
-        }
         if ($extraConditions !== false) {
             $conditions['AND'] = $extraConditions;
         }
@@ -672,7 +721,7 @@ class Sighting extends AppModel
             }
             ++$sightingsAdded;
             if ($publish) {
-                $this->Event->publishRouter($sighting['event_id'], null, $user, 'sightings');
+                $this->Event->publishSightingsRouter($sighting['event_id'],  $user);
             }
         }
         return $sightingsAdded;
@@ -1044,7 +1093,8 @@ class Sighting extends AppModel
         }
 
         if ($this->saveMany($toSave)) {
-            $this->Event->publishRouter($event['Event']['id'], $passAlong, $user, 'sightings');
+            $existingUuids = array_column($toSave, 'uuid');
+            $this->Event->publishSightingsRouter($event['Event']['id'], $user, $passAlong, $existingUuids);
             return count($toSave);
         } else {
             return 0;
@@ -1194,5 +1244,28 @@ class Sighting extends AppModel
         } else {
             return "to_char(date(to_timestamp(Sighting.date_sighting)), 'YYYY-MM-DD')"; // PostgreSQL
         }
+    }
+
+    /**
+     * @param array $user
+     * @param array $event
+     * @return array|false
+     */
+    private function createConditions(array $user, array $event)
+    {
+        $sightingsPolicy = $this->sightingsPolicy();
+        $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
+        if (!$ownEvent) {
+            if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+                return ['Sighting.org_id' => $user['org_id']];
+            } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+                if (!$this->isReporter($event['Event']['id'], $user['org_id'])) {
+                    return false;
+                }
+            } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                return ['Sighting.org_id' => [$user['org_id'], Configure::read('MISP.host_org_id')]];
+            }
+        }
+        return [];
     }
 }
