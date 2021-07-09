@@ -1804,6 +1804,7 @@ class ServersController extends AppController
             'perm_sighting' => $this->userRole['perm_sighting'],
             'perm_galaxy_editor' => $this->userRole['perm_galaxy_editor'],
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
+            'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
         ];
         return $this->RestResponse->viewData($response, $this->response->type());
     }

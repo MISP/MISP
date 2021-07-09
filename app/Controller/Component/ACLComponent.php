@@ -594,6 +594,7 @@ class ACLComponent extends Component
                     'quickDelete' => array('perm_sighting'),
                     'viewSightings' => array('*'),
                     'bulkSaveSightings' => array('OR' => array('perm_sync', 'perm_sighting')),
+                    'filterSightingUuidsForPush' => ['perm_sync'],
                     'quickAdd' => array('perm_sighting')
             ),
             'sightingdb' => array(
