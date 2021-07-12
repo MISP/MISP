@@ -2064,7 +2064,7 @@ class GalaxyCluster extends AppModel
         return $cluster;
     }
 
-    public function attachClusterToRelations($user, $cluster)
+    public function attachClusterToRelations($user, $cluster, $both=true)
     {
         if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
             foreach ($cluster['GalaxyCluster']['GalaxyClusterRelation'] as $k => $relation) {
@@ -2075,12 +2075,14 @@ class GalaxyCluster extends AppModel
                 }
             }
         }
-        if (!empty($cluster['GalaxyCluster']['TargetingClusterRelation'])) {
-            foreach ($cluster['GalaxyCluster']['TargetingClusterRelation'] as $k => $relation) {
-                $conditions = array('conditions' => array('GalaxyCluster.uuid' => $relation['galaxy_cluster_uuid']));
-                $relatedCluster = $this->fetchGalaxyClusters($user, $conditions, false);
-                if (!empty($relatedCluster)) {
-                    $cluster['GalaxyCluster']['TargetingClusterRelation'][$k]['GalaxyCluster'] = $relatedCluster[0]['GalaxyCluster'];
+        if ($both) {
+            if (!empty($cluster['GalaxyCluster']['TargetingClusterRelation'])) {
+                foreach ($cluster['GalaxyCluster']['TargetingClusterRelation'] as $k => $relation) {
+                    $conditions = array('conditions' => array('GalaxyCluster.uuid' => $relation['galaxy_cluster_uuid']));
+                    $relatedCluster = $this->fetchGalaxyClusters($user, $conditions, false);
+                    if (!empty($relatedCluster)) {
+                        $cluster['GalaxyCluster']['TargetingClusterRelation'][$k]['GalaxyCluster'] = $relatedCluster[0]['GalaxyCluster'];
+                    }
                 }
             }
         }
