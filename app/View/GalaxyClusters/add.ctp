@@ -25,6 +25,7 @@
                 array(
                     'field' => 'value',
                     'label' => __('Name'),
+                    'class' => 'span6',
                     'type' => 'text',
                     'stayInLine' => true
                 ),
@@ -78,8 +79,8 @@
                     'field' => 'elements',
                     'label' => __("Galaxy Cluster Elements"),
                     'type' => 'textarea',
-                    'class' => 'input span6',
-                    'div' => 'input clear',
+                    'class' => 'span6',
+                    'div' => 'input clear input-append',
                     'picker' => array(
                         'text' => __('Toggle UI'),
                         'function' => 'initClusterElementUI'

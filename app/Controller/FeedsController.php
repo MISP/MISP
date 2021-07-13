@@ -199,7 +199,7 @@ class FeedsController extends AppController
     {
         $params = [
             'beforeSave' => function (array $feed) {
-                if ($this->_isRest()) {
+                if ($this->IndexFilter->isRest()) {
                     if (empty($feed['Feed']['source_format'])) {
                         $feed['Feed']['source_format'] = 'freetext';
                     }
@@ -238,15 +238,16 @@ class FeedsController extends AppController
                 } else {
                     if (!empty($feed['Feed']['settings']['common']['excluderegex']) && !$this->__checkRegex($feed['Feed']['settings']['common']['excluderegex'])) {
                         $regexErrorMessage = __('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');
-                        if (!$this->_isRest()) {
+                        if (!$this->IndexFilter->isRest()) {
                             $this->Flash->error($regexErrorMessage);
-                            return true;
                         } else {
-                            return new CakeResponse(array(
-                                'body' => json_encode(array('saved' => false, 'errors' => $regexErrorMessage)),
-                                'status' => 200,
-                                'type' => 'json'
-                            ));
+                            return $this->RestResponse->saveFailResponse(
+                                'Feeds',
+                                'add',
+                                false,
+                                $regexErrorMessage,
+                                $this->response->type()
+                            );
                         }
                     }
                 }
@@ -387,15 +388,17 @@ class FeedsController extends AppController
                 } else {
                     if (!empty($feed['Feed']['settings']['common']['excluderegex']) && !$this->__checkRegex($feed['Feed']['settings']['common']['excluderegex'])) {
                         $regexErrorMessage = __('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');
-                        if (!$this->_isRest()) {
+                        if (!$this->IndexFilter->isRest()) {
                             $this->Flash->error($regexErrorMessage);
                             return true;
                         } else {
-                            return new CakeResponse(array(
-                                'body' => json_encode(array('saved' => false, 'errors' => $regexErrorMessage)),
-                                'status' => 200,
-                                'type' => 'json'
-                            ));
+                            return $this->RestResponse->saveFailResponse(
+                                'Feeds',
+                                'edit',
+                                false,
+                                $regexErrorMessage,
+                                $this->response->type()
+                            );
                         }
                     }
                 }
@@ -449,7 +452,9 @@ class FeedsController extends AppController
         ]);
 
         $this->set('feedId', $feedId);
-        $this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
+        if(!empty($this->request->data['Feed']['rules'])){
+            $this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
+        }
         $this->render('add');
     }
 

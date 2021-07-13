@@ -4,6 +4,7 @@ echo $this->element('genericElements/Form/genericForm', [
     'data' => [
         'title' => $edit ? __('Edit MISP feed') : __('Add MISP Feed'),
         'description' => __('Add a new MISP feed source.'),
+        'notice' => !empty(Configure::read('Security.disable_local_feed_access')) ? __('Warning: local feeds are currently disabled by policy, to re-enable the feature, set the Security.disable_local_feed_access flag to false in the server settings. This setting can only be set via the CLI.') : '',
         'fields' => [
             [
                 'field' => 'enabled',

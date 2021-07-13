@@ -19,7 +19,6 @@ $fields = [
         'label' => 'Owner Organisation',
         'options' => $dropdownData['org_id'],
         'class' => 'span6',
-        'searchable' => 1,
         'type' => 'dropdown'
     ],
     [
