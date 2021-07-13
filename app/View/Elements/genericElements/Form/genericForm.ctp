@@ -32,6 +32,7 @@ $simpleFieldAllowedlist = array(
     'selected',
     'legend',
     'disabled',
+    'description'
 );
 $fieldsArrayForPersistence = array();
 $formOptions = isset($formOptions) ? $formOptions : array();
@@ -49,7 +50,8 @@ if (!empty($data['fields'])) {
                 'fieldData' => $fieldData,
                 'form' => $this->Form,
                 'simpleFieldAllowlist' => $simpleFieldAllowedlist,
-                'modelForForm' => $modelForForm
+                'modelForForm' => $modelForForm,
+                'fieldDesc' => empty($fieldDesc) ? [] : $fieldDesc
             ]
         );
 

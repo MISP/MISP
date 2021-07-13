@@ -1,6 +1,10 @@
 <?php
 
 echo $this->Form->input($fieldData['field'], $params);
+if (!empty($params['description'])) {
+    echo sprintf('<small class="clear form-field-description apply_css_arrow">%s</small>', h($params['description']));
+}
+
 ?>
 <div style="clear: both;">
     <span id="basicAuthFormEnable" class="btn btn-inverse quick-popover" style="line-height:10px; padding: 4px 4px;"><?php echo __('Add Basic Auth'); ?></span>
