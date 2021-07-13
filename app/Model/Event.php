@@ -3323,7 +3323,7 @@ class Event extends AppModel
     {
         // fetch the event as user that requested more information. So if creators will reply to that email, no data
         // that requestor could not access would be leaked.
-        $event = $this->fetchEvent($this->User->rearrangeToAuthForm($user), [
+        $event = $this->fetchEvent($user, [
             'eventid' => $id,
             'includeAllTags' => true,
             'includeEventCorrelations' => true,
@@ -3369,8 +3369,10 @@ class Event extends AppModel
         $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event $id - " . strtoupper($tplColorString);
         $result = true;
         foreach ($orgMembers as $eventReporter) {
-            $body = $this->prepareContactAlertEmail($user, $eventReporter, $message, $event);
-            $result = $this->User->sendEmail($eventReporter, $body, false, $subject, $user) && $result;
+            $requestor = !empty($user['User']) ? $user : ['User' => $user];
+            $reporterForEmailTemplate = !empty($eventReporter['User']) ? $eventReporter['User'] : $eventReporter;
+            $body = $this->prepareContactAlertEmail($requestor, $reporterForEmailTemplate, $message, $event);
+            $result = $this->User->sendEmail($eventReporter, $body, false, $subject, ['User' => $user]) && $result;
         }
         return $result;
     }
@@ -3388,7 +3390,7 @@ class Event extends AppModel
         $template->set('event', $event);
         $template->set('requestor', $user);
         $template->set('message', $message);
-        $template->set('user', $this->User->rearrangeToAuthForm($eventReporter));
+        $template->set('user', $eventReporter);
         $template->set('baseurl', $this->__getAnnounceBaseurl());
         $template->set('distributionLevels', $this->distributionLevels);
         $template->set('analysisLevels', $this->analysisLevels);
@@ -4771,7 +4773,7 @@ class Event extends AppModel
             $job->saveField('process_id', $process_id);
             return true;
         } else {
-            return $this->sendContactEmail($id, $message, $creator_only, array('User' => $user));
+            return $this->sendContactEmail($id, $message, $creator_only, $user);
         }
     }
 
