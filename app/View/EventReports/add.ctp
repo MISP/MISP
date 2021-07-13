@@ -28,7 +28,8 @@
                 ),
                 array(
                     'field' => 'content',
-                    'class' => 'textarea input span6'
+                    'class' => 'span6',
+                    'type' => 'textarea'
                 ),
                 array(
                     'field' => 'event_id',

@@ -51,7 +51,7 @@ if (!empty($data['fields'])) {
                 'form' => $this->Form,
                 'simpleFieldAllowlist' => $simpleFieldAllowedlist,
                 'modelForForm' => $modelForForm,
-                'fieldDesc' => empty($fieldDesc) ? [] : $fieldDesc
+                'fieldDesc' => empty($fieldDesc)? [] : $fieldDesc
             ]
         );
 

@@ -8,7 +8,8 @@ echo $this->element('genericElements/Form/genericForm', [
                 'field' => 'user_id',
                 'label' => __('User'),
                 'options' => $dropdownData['user'],
-                'type' => 'dropdown'
+                'type' => 'dropdown',
+                'class' => 'span6'
             ],
             [
                 'field' => 'comment',
