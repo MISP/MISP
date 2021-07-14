@@ -8,13 +8,6 @@
             'model' => $modelForForm,
             'fields' => array(
                 array(
-                    'field' => 'org_id',
-                    'class' => 'org-id-picker-hidden-field',
-                    'type' => 'text',
-                    'hidden' => true,
-                    'required' => false
-                ),
-                array(
                     'field' => 'date',
                     'class' => 'datepicker',
                     'type' => 'text',
