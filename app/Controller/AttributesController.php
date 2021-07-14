@@ -750,6 +750,7 @@ class AttributesController extends AppController
             // check which attribute is newer
             if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
                 $this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
+                $this->request->data['Attribute']['event_id'] = $existingAttribute['Attribute']['event_id'];
                 $dateObj = new DateTime();
                 $skipTimeCheck = false;
                 if (!isset($this->request->data['Attribute']['timestamp'])) {
@@ -2571,8 +2572,7 @@ class AttributesController extends AppController
         foreach ($this->Attribute->categoryDefinitions as $cat => $data) {
             $result['category_type_mappings'][$cat] = $data['types'];
         }
-        $this->set('result', $result);
-        $this->set('_serialize', array('result'));
+        return $this->RestResponse->viewData(['result' => $result], 'json');
     }
 
     public function attributeStatistics($type = 'type', $percentage = false)
@@ -2597,12 +2597,7 @@ class AttributesController extends AppController
             }
         }
         ksort($results);
-        $this->autoRender = false;
-        $this->layout = false;
-        $this->set('data', $results);
-        $this->set('flags', JSON_PRETTY_PRINT);
-        $this->response->type('json');
-        $this->render('/Servers/json/simple');
+        return $this->RestResponse->viewData($results, 'json');
     }
 
     public function addTag($id = false, $tag_id = false)

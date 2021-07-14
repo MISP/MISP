@@ -558,7 +558,7 @@ class RestResponseComponent extends Component
                     }
                 }
                 // Do not pretty print response for automatic tools
-                $flags = $this->isAutomaticTool() ? JSON_UNESCAPED_UNICODE : JSON_PRETTY_PRINT;
+                $flags = $this->isAutomaticTool() ? JSON_UNESCAPED_UNICODE : (JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
                 $response = json_encode($response, $flags);
             } else {
                 if ($dumpSql) {

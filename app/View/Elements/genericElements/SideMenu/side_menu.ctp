@@ -1378,7 +1378,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Import Galaxy Clusters')
                         ));
                     }
-                    if ($menuItem === 'view' || $menuItem === 'export' || $menuItem === 'view_cluster') {
+                    if ($menuItem === 'view' || $menuItem === 'export' || $menuItem === 'view_cluster' || $menuItem === 'add_cluster') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'export',
                             'url' => $baseurl . '/galaxies/export/' . h($galaxy['Galaxy']['id']),

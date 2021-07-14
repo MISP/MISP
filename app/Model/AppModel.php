@@ -90,7 +90,7 @@ class AppModel extends Model
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
-        69 => false, 70 => false, 71 => true,
+        69 => false, 70 => false, 71 => true, 72 => true,
     );
 
     public $advanced_updates_description = array(
@@ -1608,6 +1608,9 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `warninglist_entries` ADD `comment` text DEFAULT NULL;";
                 $sqlArray[] = "ALTER TABLE `warninglists` ADD `default` tinyint(1) NOT NULL DEFAULT 1, ADD `category` varchar(20) NOT NULL DEFAULT 'false_positive', DROP COLUMN `warninglist_entry_count`";
                 break;
+            case 72:
+                $sqlArray[] = "ALTER TABLE `auth_keys` ADD `read_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `expiration`;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -3103,12 +3106,12 @@ class AppModel extends Model
      * @param $query
      * @param array $results
      * @return array
-     * @throws Exception
+     * @throws InvalidArgumentException
      */
     protected function _findColumn($state, $query, $results = array())
     {
         if ($state === 'before') {
-            if (count($query['fields']) === 1) {
+            if (isset($query['fields']) && count($query['fields']) === 1) {
                 if (strpos($query['fields'][0], '.') === false) {
                     $query['fields'][0] = $this->alias . '.' . $query['fields'][0];
                 }
@@ -3119,8 +3122,10 @@ class AppModel extends Model
                 } else {
                     $query['fields'] = array($query['fields'][0]);
                 }
+            } else if (!isset($query['fields'])) {
+                throw new InvalidArgumentException("This method requires `fields` option defined.");
             } else {
-                throw new Exception("Invalid number of column, expected one, " . count($query['fields']) . " given");
+                throw new InvalidArgumentException("Invalid number of column, expected one, " . count($query['fields']) . " given");
             }
 
             if (!isset($query['recursive'])) {

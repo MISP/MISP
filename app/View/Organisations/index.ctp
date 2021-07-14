@@ -65,7 +65,8 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'name' => __('Name'),
                 'sort' => 'name',
-                'data_path' => 'Organisation.name',
+                'data_path' => 'Organisation',
+                'element' => 'org'
             ],
             [
                 'name' => __('UUID'),

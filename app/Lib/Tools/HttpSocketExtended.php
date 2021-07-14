@@ -79,6 +79,8 @@ class HttpSocketResponseExtended extends HttpSocketResponse
 
 /**
  * Supports response compression and also decodes response as JSON
+ * @method HttpSocketResponseExtended get($uri = null, $query = array(), $request = array())
+ * @method HttpSocketResponseExtended post($uri = null, $data = array(), $request = array())
  */
 class HttpSocketExtended extends HttpSocket
 {
