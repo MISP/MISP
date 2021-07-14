@@ -351,7 +351,7 @@ class MispObject extends AppModel
         }
     }
 
-    public function checkForDuplicateObjects($object, $eventId)
+    public function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectID)
     {
         $newObjectAttributes = array();
         $existingObjectAttributes = array();
@@ -366,9 +366,12 @@ class MispObject extends AppModel
                     $attribute['value'] = $attribute['value'] . '|' . md5(base64_decode($attribute['data']));
                 }
             }
+            $attributeValueAfterModification = $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value']);
+            $attributeValueAfterModification = $this->Attribute->runRegexp($attribute['type'], $attributeValueAfterModification);
+
             $newObjectAttributes[] = hash(
                 'sha256',
-                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value'])
+                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $attributeValueAfterModification
             );
         }
         $newObjectAttributeCount = count($newObjectAttributes);
@@ -376,6 +379,7 @@ class MispObject extends AppModel
             foreach ($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']] as $previousNewObject) {
                 if ($newObjectAttributeCount === count($previousNewObject)) {
                     if (empty(array_diff($previousNewObject, $newObjectAttributes))) {
+                        $duplicatedObjectID = $previousNewObject['Object']['id'];
                         return true;
                     }
                 }
@@ -407,6 +411,7 @@ class MispObject extends AppModel
                     );
                 }
                 if (empty(array_diff($temp, $newObjectAttributes))) {
+                    $duplicatedObjectID = $existingObject['Object']['id'];
                     return true;
                 }
             }
@@ -416,13 +421,6 @@ class MispObject extends AppModel
 
     public function saveObject($object, $eventId, $template = false, $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
     {
-        if ($breakOnDuplicate) {
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId);
-            if ($duplicate) {
-                return array('value' => array('Duplicate object found. Since breakOnDuplicate is set the object will not be added.'));
-            }
-        }
-        $this->create();
         $templateFields = array(
             'name' => 'name',
             'meta-category' => 'meta-category',
@@ -442,6 +440,14 @@ class MispObject extends AppModel
             }
         }
         $object['Object']['event_id'] = $eventId;
+        if ($breakOnDuplicate) {
+            $duplicatedObjectID = null;
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID);
+            if ($duplicate) {
+                return array('value' => array(__('Duplicate object found (id: %s). Since breakOnDuplicate is set the object will not be added.', $duplicatedObjectID)));
+            }
+        }
+        $this->create();
         $result = false;
         if ($this->save($object)) {
             $result = $this->id;
@@ -961,7 +967,8 @@ class MispObject extends AppModel
             $object = array('Object' => $object);
         }
         if (!empty($object['Object']['breakOnDuplicate']) || $breakOnDuplicate) {
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId);
+            $duplicatedObjectID = null;
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID);
             if ($duplicate) {
                 $log->create();
                 $log->save(array(
@@ -971,7 +978,7 @@ class MispObject extends AppModel
                         'email' => $user['email'],
                         'action' => 'add',
                         'user_id' => $user['id'],
-                        'title' => 'Object dropped due to it being a duplicate and breakOnDuplicate being requested for Event ' . $eventId,
+                        'title' => __('Object dropped due to it being a duplicate (ID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectID, $eventId),
                         'change' => 'Duplicate object found.',
                 ));
                 return true;
