@@ -24,6 +24,7 @@
         'disabledSubmitButton' => false, // wether to not draw the submit button
         'flag_redraw_chosen' => false, // should chosen picker be redraw at drawing time
         'redraw_debounce_time' => 200,
+        'autofocus' => true,
     );
     /**
     * Supported default option in <Option> fields:
@@ -252,7 +253,7 @@ function submitFunction(clicked, callback) {
     $flag_addPills = false;
     ?>
     <?php if ($use_select): ?>
-        <select id="<?php echo $select_id; ?>" autofocus style="height: 100px; margin-bottom: 0px;" <?= $this->GenericPicker->add_select_params($defaults); ?>>
+        <select id="<?php echo $select_id; ?>"<?= $defaults['autofocus'] ? ' autofocus' : '' ?> style="height: 100px; margin-bottom: 0px;" <?= $this->GenericPicker->add_select_params($defaults); ?>>
             <option></option>
             <?php
                 foreach ($items as $param) {
@@ -301,7 +302,7 @@ function submitFunction(clicked, callback) {
 
     <?php elseif (count($items) > 0): ?>
         <ul class="nav nav-pills">
-            <select id="<?php echo $select_id; ?>" autofocus style="display: none;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>></select>
+            <select id="<?php echo $select_id; ?>"<?= $defaults['autofocus'] ? ' autofocus' : '' ?> style="display: none;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>></select>
             <?php
             foreach ($items as $param) {
                 echo $this->GenericPicker->add_pill($param, $defaults);

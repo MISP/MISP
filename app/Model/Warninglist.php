@@ -8,17 +8,27 @@ App::uses('CidrTool', 'Tools');
  */
 class Warninglist extends AppModel
 {
+    const CATEGORY_FALSE_POSITIVE = 'false_positive',
+        CATEGORY_KNOWN = 'known';
+
     public $useTable = 'warninglists';
 
     public $recursive = -1;
 
     public $actsAs = array(
-            'Containable',
+        'AuditLog',
+        'Containable',
     );
 
     public $validate = array(
         'name' => array(
-            'rule' => array('valueNotEmpty'),
+            'notEmpty' => [
+                'rule' => 'valueNotEmpty',
+            ],
+            'unique' => [
+                'rule' => 'isUnique',
+                'message' => 'Warninglist with same name already exists.'
+            ],
         ),
         'description' => array(
             'rule' => array('valueNotEmpty'),
@@ -26,6 +36,12 @@ class Warninglist extends AppModel
         'version' => array(
             'rule' => array('numeric'),
         ),
+        'type' => [
+            'rule' => ['inList', ['cidr', 'hostname', 'string', 'substring', 'regex']],
+        ],
+        'category' => [
+            'rule' => ['inList', ['false_positive', 'known']],
+        ],
     );
 
     public $hasMany = array(
@@ -53,6 +69,31 @@ class Warninglist extends AppModel
     {
         parent::__construct($id, $table, $ds);
         $this->showForAll = Configure::read('MISP.warning_for_all');
+    }
+
+    public function beforeValidate($options = array())
+    {
+        if (isset($this->data['WarninglistEntry'])) {
+            if ($this->data['Warninglist']['type'] === 'cidr') {
+                foreach ($this->data['WarninglistEntry'] as $entry) {
+                    if (!CidrTool::validate($entry['value'])) {
+                        $this->validationErrors['entries'][] = __('`%s` is not valid CIDR', $entry['value']);
+                    }
+                }
+            } else if ($this->data['Warninglist']['type'] === 'regex') {
+                foreach ($this->data['WarninglistEntry'] as $entry) {
+                    if (@preg_match($entry['value'], '') === false) {
+                        $this->validationErrors['entries'][] = __('`%s` is not valid regular expression', $entry['value']);
+                    }
+                }
+            }
+
+            if (!empty($this->validationErrors['entries'])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -88,10 +129,10 @@ class Warninglist extends AppModel
             return $eventWarnings;
         }
 
-        $warninglistIdToName = [];
+        $warninglists = [];
         $enabledTypes = [];
         foreach ($enabledWarninglists as $warninglist) {
-            $warninglistIdToName[$warninglist['Warninglist']['id']] = $warninglist['Warninglist']['name'];
+            $warninglists[$warninglist['Warninglist']['id']] = $warninglist['Warninglist'];
             foreach ($warninglist['types'] as $type) {
                 $enabledTypes[$type] = true;
             }
@@ -127,9 +168,10 @@ class Warninglist extends AppModel
                             'value' => $match['value'],
                             'match' => $match['match'],
                             'warninglist_id' => $warninglistId,
-                            'warninglist_name' => $warninglistIdToName[$warninglistId],
+                            'warninglist_name' => $warninglists[$warninglistId]['name'],
+                            'warninglist_category' => $warninglists[$warninglistId]['category'],
                         ];
-                        $eventWarnings[$warninglistId] = $warninglistIdToName[$warninglistId];
+                        $eventWarnings[$warninglistId] = $warninglists[$warninglistId]['name'];
 
                         $store[$warninglistId] = [$match['value'], $match['match']];
                     }
@@ -145,9 +187,10 @@ class Warninglist extends AppModel
                         'value' => $matched[0],
                         'match' => $matched[1],
                         'warninglist_id' => $warninglistId,
-                        'warninglist_name' => $warninglistIdToName[$warninglistId],
+                        'warninglist_name' => $warninglists[$warninglistId]['name'],
+                        'warninglist_category' => $warninglists[$warninglistId]['category'],
                     ];
-                    $eventWarnings[$warninglistId] = $warninglistIdToName[$warninglistId];
+                    $eventWarnings[$warninglistId] = $warninglists[$warninglistId]['name'];
                 }
             }
         }
@@ -165,9 +208,11 @@ class Warninglist extends AppModel
 
     public function update()
     {
+        // Existing default warninglists
         $existingWarninglist = $this->find('all', [
             'fields' => ['id', 'name', 'version', 'enabled'],
             'recursive' => -1,
+            'conditions' => ['default' => 1],
         ]);
         $existingWarninglist = array_column(array_column($existingWarninglist, 'Warninglist'), null, 'name');
 
@@ -219,7 +264,37 @@ class Warninglist extends AppModel
         return $result;
     }
 
-    private function __updateList(array $list, array $current)
+    /**
+     * Import single warninglist
+     * @param array $list
+     * @return array|int|string
+     * @throws Exception
+     */
+    public function import(array $list)
+    {
+        $existingWarninglist = $this->find('first', [
+            'fields' => ['id', 'name', 'version', 'enabled', 'default'],
+            'recursive' => -1,
+            'conditions' => ['name' => $list['name']],
+        ]);
+
+        if ($existingWarninglist && $existingWarninglist['Warninglist']['default']) {
+            throw new Exception('It is not possible to modify default warninglist.');
+        }
+
+        $id = $this->__updateList($list, $existingWarninglist ? $existingWarninglist['Warninglist']: [], false);
+        $this->regenerateWarninglistCaches($id);
+        return $id;
+    }
+
+    /**
+     * @param array $list
+     * @param array $current
+     * @param bool $default
+     * @return array|int|string
+     * @throws Exception
+     */
+    private function __updateList(array $list, array $current, $default = true)
     {
         $list['enabled'] = 0;
         $warninglist = array();
@@ -227,46 +302,61 @@ class Warninglist extends AppModel
             if ($current['enabled']) {
                 $list['enabled'] = 1;
             }
+            $warninglist['Warninglist']['id'] = $current['id']; // keep list ID
             $this->quickDelete($current['id']);
         }
         $fieldsToSave = array('name', 'version', 'description', 'type', 'enabled');
         foreach ($fieldsToSave as $fieldToSave) {
             $warninglist['Warninglist'][$fieldToSave] = $list[$fieldToSave];
         }
+        if (!$default) {
+            $warninglist['Warninglist']['default'] = 0;
+        }
         $this->create();
-        if ($this->save($warninglist)) {
-            $db = $this->getDataSource();
-            $values = array();
-            $warninglistId = (int)$this->id;
-            foreach ($list['list'] as $value) {
-                if (!empty($value)) {
-                    $values[] = array('value' => $value, 'warninglist_id' => $warninglistId);
-                }
-            }
-            unset($list['list']);
-            $count = count($values);
-            foreach (array_chunk($values, 500) as $chunk) {
-                $result = $db->insertMulti('warninglist_entries', array('value', 'warninglist_id'), $chunk);
-            }
-            if ($result) {
-                $this->saveField('warninglist_entry_count', $count);
-            } else {
-                return 'Could not insert values.';
-            }
-            if (!empty($list['matching_attributes'])) {
-                $values = array();
-                foreach ($list['matching_attributes'] as $type) {
-                    $values[] = array('type' => $type, 'warninglist_id' => $warninglistId);
-                }
-                $this->WarninglistType->saveMany($values);
-            } else {
-                $this->WarninglistType->create();
-                $this->WarninglistType->save(array('WarninglistType' => array('type' => 'ALL', 'warninglist_id' => $warninglistId)));
-            }
-            return $warninglistId;
-        } else {
+        if (!$this->save($warninglist)) {
             return $this->validationErrors;
         }
+
+        $db = $this->getDataSource();
+        $values = array();
+        $warninglistId = (int)$this->id;
+
+        $keys = array_keys($list['list']);
+        if ($keys === array_keys($keys)) {
+            foreach ($list['list'] as $value) {
+                if (!empty($value)) {
+                    $values[] = ['value' => $value, 'warninglist_id' => $warninglistId];
+                }
+            }
+            $result = true;
+            foreach (array_chunk($values, 500) as $chunk) {
+                $result = $db->insertMulti('warninglist_entries', ['value', 'warninglist_id'], $chunk);
+            }
+        } else { // import warninglist with comments
+            foreach ($list['list'] as $value => $comment) {
+                if (!empty($value)) {
+                    $values[] = ['value' => $value, 'comment' => $comment, 'warninglist_id' => $warninglistId];
+                }
+            }
+            $result = true;
+            foreach (array_chunk($values, 500) as $chunk) {
+                $result = $db->insertMulti('warninglist_entries', ['value', 'comment', 'warninglist_id'], $chunk);
+            }
+        }
+        if (!$result) {
+            return 'Could not insert values.';
+        }
+        if (!empty($list['matching_attributes'])) {
+            $values = array();
+            foreach ($list['matching_attributes'] as $type) {
+                $values[] = array('type' => $type, 'warninglist_id' => $warninglistId);
+            }
+            $this->WarninglistType->saveMany($values);
+        } else {
+            $this->WarninglistType->create();
+            $this->WarninglistType->save(array('WarninglistType' => array('type' => 'ALL', 'warninglist_id' => $warninglistId)));
+        }
+        return $warninglistId;
     }
 
     /**
@@ -299,7 +389,7 @@ class Warninglist extends AppModel
         $warninglists = $this->find('all', array(
             'contain' => array('WarninglistType'),
             'conditions' => array('enabled' => 1),
-            'fields' => ['id', 'name', 'type'],
+            'fields' => ['id', 'name', 'type', 'category'],
         ));
         $this->cacheWarninglists($warninglists);
 
@@ -364,9 +454,9 @@ class Warninglist extends AppModel
             }
         } else {
             $warninglists = $this->find('all', array(
-                'contain' => array('WarninglistType'),
-                'conditions' => array('enabled' => 1),
-                'fields' => ['id', 'name', 'type'],
+                'contain' => ['WarninglistType'],
+                'conditions' => ['enabled' => 1],
+                'fields' => ['id', 'name', 'type', 'category'],
             ));
             $this->cacheWarninglists($warninglists);
         }
@@ -456,8 +546,9 @@ class Warninglist extends AppModel
                         $object['warnings'][] = array(
                             'match' => $result[0],
                             'value' => $result[1],
-                            'warninglist_name' => $list['Warninglist']['name'],
                             'warninglist_id' => $list['Warninglist']['id'],
+                            'warninglist_name' => $list['Warninglist']['name'],
+                            'warninglist_category' => $list['Warninglist']['category'],
                         );
                     }
                 }
@@ -632,5 +723,109 @@ class Warninglist extends AppModel
             }
         }
         return $missingTldLists;
+    }
+
+    /**
+     * @param null $data
+     * @param bool $validate
+     * @param array $fieldList
+     * @return array|bool|mixed|null
+     * @throws Exception
+     */
+    public function save($data = null, $validate = true, $fieldList = array())
+    {
+        $db = $this->getDataSource();
+        $transactionBegun = $db->begin();
+
+        $success = parent::save($data, $validate, $fieldList);
+
+        $db = $this->getDataSource();
+
+        try {
+            $id = (int)$this->id;
+            if (isset($data['WarninglistEntry'])) {
+                $this->WarninglistEntry->deleteAll(['warninglist_id' => $id]);
+                $entriesToInsert = [];
+                foreach ($data['WarninglistEntry'] as &$entry) {
+                    $entriesToInsert[] = [$entry['value'], isset($entry['comment']) ? $entry['comment'] : null, $id];
+                }
+                $db->insertMulti(
+                    $this->WarninglistEntry->table,
+                    ['value', 'comment', 'warninglist_id'],
+                    $entriesToInsert
+                );
+            }
+
+            if (isset($data['WarninglistType'])) {
+                $this->WarninglistType->deleteAll(['warninglist_id' => $id]);
+                foreach ($data['WarninglistType'] as &$entry) {
+                    $entry['warninglist_id'] = $id;
+                }
+                $this->WarninglistType->saveMany($data['WarninglistType']);
+            }
+
+            if ($transactionBegun) {
+                if ($success) {
+                    $db->commit();
+                } else {
+                    $db->rollback();
+                }
+            }
+
+        } catch (Exception $e) {
+            if ($transactionBegun) {
+                $db->rollback();
+            }
+            throw $e;
+        }
+
+        return $success;
+    }
+
+    public function afterSave($created, $options = array())
+    {
+        if (isset($this->data['Warninglist']['default']) && $this->data['Warninglist']['default'] == 0) {
+            $this->regenerateWarninglistCaches($this->data['Warninglist']['id']);
+        }
+
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_warninglist_notifications_enable');
+        if ($pubToZmq) {
+            $warninglist = $this->find('first', [
+                'conditions' => ['id' => $this->data['Warninglist']['id']],
+                'contains' => ['WarninglistEntry', 'WarninglistType'],
+            ]);
+            $pubSubTool = $this->getPubSubTool();
+            $pubSubTool->warninglist_save($warninglist, $created ? 'add' : 'edit');
+        }
+    }
+
+    /**
+     * @param string $input
+     * @return array
+     */
+    public function parseFreetext($input)
+    {
+        $input = trim($input);
+        if (empty($input)) {
+            return [];
+        }
+
+        $entries = [];
+        foreach (explode("\n", trim($input)) as $entry) {
+            $valueAndComment = explode("#", $entry, 2);
+            $entries[] = [
+                'value' => trim($valueAndComment[0]),
+                'comment' => count($valueAndComment) === 2 ? trim($valueAndComment[1]) : null,
+            ];
+        }
+        return $entries;
+    }
+
+    public function categories()
+    {
+        return [
+            self::CATEGORY_FALSE_POSITIVE => __('False positive'),
+            self::CATEGORY_KNOWN => __('Known identifier'),
+        ];
     }
 }

@@ -68,16 +68,19 @@
                     'data_path' => 'Warninglist.description',
                 ),
                 array(
+                    'name' => __('Category'),
+                    'sort' => 'category',
+                    'class' => 'short',
+                    'element' => 'custom',
+                    'function' => function (array $row) use ($possibleCategories) {
+                        return $possibleCategories[$row['Warninglist']['category']];
+                    }
+                ),
+                array(
                     'name' => __('Type'),
                     'sort' => 'type',
                     'class' => 'short',
                     'data_path' => 'Warninglist.type',
-                ),
-                array(
-                    'name' => __('Valid attributes'),
-                    'class' => 'short',
-                    'sort' => 'Warninglist.valid_attributes',
-                    'data_path' => 'Warninglist.valid_attributes',
                 ),
                 array(
                     'name' => __('Entries'),
@@ -86,7 +89,15 @@
                     'data_path' => 'Warninglist.warninglist_entry_count',
                 ),
                 array(
+                    'name' => __('Default'),
+                    'sort' => 'default',
+                    'class' => 'short',
+                    'element' => 'boolean',
+                    'data_path' => 'Warninglist.default',
+                ),
+                array(
                     'name' => __('Enabled'),
+                    'sort' => 'enabled',
                     'class' => 'short',
                     'element' => 'boolean',
                     'data_path' => 'Warninglist.enabled',
@@ -129,18 +140,36 @@
                     ),
                 ),
                 array(
+                    'url' => $baseurl . '/warninglists/edit',
+                    'url_params_data_paths' => array(
+                        'Warninglist.id'
+                    ),
+                    'title' => __('Edit'),
+                    'icon' => 'edit',
+                    'complex_requirement' => [
+                        'function' => function($row) use ($me) {
+                            return $row['Warninglist']['default'] == 0 && ($me['Role']['perm_warninglist'] || $me['Role']['perm_site_admin']);
+                        }
+                    ]
+                ),
+                array(
                     'url' => $baseurl . '/warninglists/view',
                     'url_params_data_paths' => array(
                         'Warninglist.id'
                     ),
+                    'title' => __('View'),
                     'icon' => 'eye',
                     'dbclickAction' => true
                 ),
                 array(
                     'title' => __('Delete'),
+                    'url' => $baseurl . '/warninglists/delete',
+                    'url_params_data_paths' => array(
+                        'Warninglist.id'
+                    ),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to delete the entry?'),
                     'icon' => 'trash',
-                    'onclick' => 'simplePopup(\'' . $baseurl . '/warninglists/delete/[onclick_params_data_path]\');',
-                    'onclick_params_data_path' => 'Warninglist.id',
                     'requirement' => $me['Role']['perm_site_admin'],
                 ),
             )
@@ -149,7 +178,6 @@
     echo '</div>';
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'warninglist', 'menuItem' => 'index'));
 ?>
-
 <script type="text/javascript">
     $(function() {
         $('#quickFilterButton').click(function() {

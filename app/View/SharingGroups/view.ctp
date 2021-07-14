@@ -1,5 +1,5 @@
 <div class="roles view">
-<h2><?= __('Sharing Group %s', $sg['SharingGroup']['name']);?></h2>
+<h2><?= __('Sharing Group %s', h($sg['SharingGroup']['name']));?></h2>
 <div class="row-fluid"><div class="span8" style="margin:0">
 <?php
 $tableData = [

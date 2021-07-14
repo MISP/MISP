@@ -94,6 +94,15 @@ EOT;
         $this->assertEquals('ip-dst', $results[0]['default_type']);
     }
 
+    public function testCheckFreeTextIpv4Bracket(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('we also saw an IP address (8.8.8.8).');
+        $this->assertCount(1, $results);
+        $this->assertEquals('8.8.8.8', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+    }
+
     public function testCheckFreeTextIpv4WithPort(): void
     {
         $complexTypeTool = new ComplexTypeTool();
@@ -497,6 +506,24 @@ EOT;
         }
     }
 
+    public function testCheckFreeTextNonBreakableSpace(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText("127.0.0.1\xc2\xa0127.0.0.2");
+        $this->assertCount(2, $results);
+        $this->assertEquals('127.0.0.1', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextQuoted(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('="127.0.0.1",="127.0.0.2","","1"');
+        $this->assertCount(2, $results);
+        $this->assertEquals('127.0.0.1', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+    }
+
     public function testCheckFreeTextRemoveDuplicates(): void
     {
         $complexTypeTool = new ComplexTypeTool();
@@ -516,8 +543,16 @@ EOT;
     public function testRefangValueDot(): void
     {
         $complexTypeTool = new ComplexTypeTool();
-        foreach (['127.0.0.1', '127[.]0.0.1', '127[.]0[.]0[.]1', '127[dot]0[dot]0[dot]1', '127(dot)0(dot)0(dot)1', '127\.0.0.1'] as $test) {
+        foreach (['127.0.0.1', '127[.]0.0.1', '127[.]0[.]0[.]1', '127[dot]0[dot]0[dot]1', '127(dot)0(dot)0(dot)1'] as $test) {
             $this->assertEquals('127.0.0.1', $complexTypeTool->refangValue($test, 'ip-src'));
         }
+    }
+
+    // see #7214
+    public function testRefangKeepBackslashes(): void
+    {
+        $text = 'http://googlechromeupdater.twilightparadox.com/html?DVXNSTHORF=fd6f240590734406be3bd35ca3622ea0;GRIBOOZ0LN=a3bf23855b0b40dda08f709fabb60d32;\..\..\..\./mshtml,RunHTMLApplication';
+        $complexTypeTool = new ComplexTypeTool();
+        $this->assertEquals($text, $complexTypeTool->refangValue($text, 'url'));
     }
 }

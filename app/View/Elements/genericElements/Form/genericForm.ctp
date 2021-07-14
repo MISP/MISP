@@ -69,8 +69,17 @@
                 if (!empty($params['type']) && $params['type'] === 'dropdown') {
                     $params['type'] = 'select';
                 }
+                if (!empty($fieldData['description'])) {
+                    if (!isset($params['class'])) {
+                        $params['class'] = '';
+                    }
+                    $params['class'] .= ' input-with-description';
+                }
                 $temp = $this->Form->input($fieldData['field'], $params);
-                $fieldsArrayForPersistence []= $modelForForm . Inflector::camelize($fieldData['field']);
+                if (!empty($fieldData['description'])) {
+                    $temp .= sprintf('<small class="clear form-field-description apply_css_arrow">%s</small>', h($fieldData['description']));
+                }
+                $fieldsArrayForPersistence[] = $modelForForm . Inflector::camelize($fieldData['field']);
                 if (!empty($fieldData['hidden'])) {
                     $temp = '<span class="hidden">' . $temp . '</span>';
                 }

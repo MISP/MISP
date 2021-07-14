@@ -22,6 +22,7 @@
             break;
     }
     $full = $isAclTagger && $tagAccess && empty($static_tags_only);
+    $fullLocal = $isAclTagger && $localTagAccess && empty($static_tags_only);
     $host_org_editor = (int)$me['org_id'] === Configure::read('MISP.host_org_id') && $isAclTagger && empty($static_tags_only);
     $tagData = "";
     foreach ($tags as $tag) {
@@ -85,7 +86,7 @@
             );
         }
         $span_delete = '';
-        if ($full) {
+        if ($full || ($fullLocal && $tag['Tag']['local'])) {
             $span_delete = sprintf(
                 '<span class="%s" title="%s" role="%s" tabindex="%s" aria-label="%s" onClick="%s">x</span>',
                 'black-white tag useCursorPointer noPrint',
@@ -121,7 +122,7 @@
             '<i class="fas fa-globe-americas"></i> +'
         );
     }
-    if ($host_org_editor || $full) {
+    if ($full || $fullLocal) {
         $buttonData[] = sprintf(
             '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" style="%s" onClick="%s">%s</button>',
             __('Add a local tag'),

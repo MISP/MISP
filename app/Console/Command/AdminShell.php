@@ -169,15 +169,37 @@ class AdminShell extends AppShell
         }
     }
 
-    # FIXME: Make Taxonomy->update() return a status string on API if successful
     public function updateTaxonomies()
     {
         $this->ConfigLoad->execute();
         $result = $this->Taxonomy->update();
-        if ($result) {
-            echo 'Taxonomies updated' . PHP_EOL;
-        } else {
-            echo 'Could not update Taxonomies' . PHP_EOL;
+        $successes = count(!empty($result['success']) ? $result['success'] : []);
+        $fails = count(!empty($result['fails']) ? $result['fails'] : []);
+        $message = '';
+        if ($successes == 0 && $fails == 0) {
+            $message = __('All taxonomies are up to date already.');
+        } elseif ($successes == 0 && $fails > 0) {
+            $message = __('Could not update any of the taxonomies.');
+        } elseif ($successes > 0 ) {
+            $message = __('Successfully updated %s taxonomies.', $successes);
+            if ($fails != 0) {
+                $message .= __(' However, could not update %s taxonomies.', $fails);
+            }
+        }
+        echo $message . PHP_EOL;
+    }
+
+    public function enableTaxonomyTags()
+    {
+        if (empty($this->args[0]) || !is_numeric($this->args[0])) {
+            echo 'Usage: ' . APP . '/cake ' . 'Admin enableTaxonomyTags [taxonomy_id]' . PHP_EOL;
+	} else {
+            $result = $this->Taxonomy->addTags(intval($this->args[0]));
+	    if ($result) {
+                echo 'Taxonomy tags enabled' . PHP_EOL;
+	    } else {
+                echo 'Could not enable taxonomy tags' . PHP_EOL;
+            }
         }
     }
 
@@ -324,7 +346,7 @@ class AdminShell extends AppShell
                 echo 'Invalid setting "' . $setting_name . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
                 exit(1);
             }
-            $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value);
+            $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value, $this->params['force']);
             if ($result === true) {
                 echo 'Setting "' . $setting_name . '" changed to ' . $value . PHP_EOL;
             } else {
@@ -468,6 +490,7 @@ class AdminShell extends AppShell
     {
         $this->ConfigLoad->execute();
         $parser = parent::getOptionParser();
+        
         $parser->addSubcommand('updateJSON', array(
             'help' => __('Update the JSON definitions of MISP.'),
             'parser' => array(
@@ -476,6 +499,14 @@ class AdminShell extends AppShell
                 )
             )
         ));
+
+        $parser->addOption('force', array(
+            'short' => 'f',
+            'help' => 'Force the command.',
+            'default' => false,
+            'boolean' => true
+        ));
+
         return $parser;
     }
 
@@ -677,5 +708,12 @@ class AdminShell extends AppShell
         $blocking = !empty($this->args[0]);
         $done = $this->AdminSetting->updatesDone($blocking);
         $this->out($done ? 'True' : 'False');
+    }
+
+    public function wipeDefaultClusters()
+    {
+        $this->loadModel('GalaxyCluster');
+        $this->out('Dropping default galaxy clusters. This process might take some time...');
+        $this->GalaxyCluster->wipe_default();
     }
 }

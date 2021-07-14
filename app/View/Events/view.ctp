@@ -82,8 +82,12 @@
             $contributorsContent = [];
             foreach ($contributors as $organisationId => $name) {
                 $org = ['Organisation' => ['id' => $organisationId, 'name' => $name]];
-                $link = $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($name);
-                $contributorsContent[] =  $this->OrgImg->getNameWithImg($org, $link);
+                if (Configure::read('MISP.log_new_audit')) {
+                    $link = $baseurl . "/audit_logs/eventIndex/" . h($event['Event']['id']) . '/' . h($organisationId);
+                } else {
+                    $link = $baseurl . "/logs/event_index/" . h($event['Event']['id']) . '/' . h($name);
+                }
+                $contributorsContent[] = $this->OrgImg->getNameWithImg($org, $link);
             }
             $table_data[] = array(
                 'key' => __('Contributors'),
@@ -105,7 +109,8 @@
                     array(
                         'event' => $event,
                         'tags' => $event['EventTag'],
-                        'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id']),
+                        'tagAccess' => ($isSiteAdmin || $mayModify),
+                        'localTagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id')),
                         'missingTaxonomies' => $missingTaxonomies,
                         'tagConflicts' => $tagConflicts
                     )
@@ -530,9 +535,16 @@
     <div id="pivots_div">
         <?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
     </div>
-    <div id="galaxies_div" class="info_container">
-        <h4 class="blue"><?php echo __('Galaxies');?></h4>
-        <?php echo $this->element('galaxyQuickView', array('mayModify' => $mayModify, 'isAclTagger' => $isAclTagger, 'data' => $event['Galaxy'], 'target_id' => $event['Event']['id'], 'target_type' => 'event')); ?>
+    <div id="galaxies_div">
+        <span class="title-section"><?= __('Galaxies') ?></span>
+        <?= $this->element('galaxyQuickViewNew', [
+            'mayModify' => $mayModify,
+            'isAclTagger' => $isAclTagger,
+            'data' => $event['Galaxy'],
+            'event' => $event,
+            'target_id' => $event['Event']['id'],
+            'target_type' => 'event'
+        ]); ?>
     </div>
     <div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
         <?php echo $this->element('view_event_graph'); ?>
@@ -559,7 +571,7 @@
 <script type="text/javascript">
 var showContext = false;
 $(function () {
-    queryEventLock('<?php echo h($event['Event']['id']); ?>');
+    queryEventLock('<?= h($event['Event']['id']); ?>', <?= (int)$event['Event']['timestamp'] ?>);
     popoverStartup();
 
     $("th, td, dt, div, span, li").tooltip({
@@ -580,4 +592,3 @@ $(function () {
     });
 });
 </script>
-<input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />

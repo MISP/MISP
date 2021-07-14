@@ -26,7 +26,7 @@
 ##
 
 # This makes use of the standard variables used by the installer
-eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | grep -v \`\`\`)"
+eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | awk '/^# <snippet-begin/,0' | grep -v \`\`\`)"
 MISPvars > /dev/null 2>&1
 
 LUSER_ID="$(id -u)"
@@ -37,14 +37,13 @@ if [[ "${LUSER_ID}" > "0" ]]; then
   exit
 fi
 
-FILE=./misp-wipe.conf
-SQL=./misp-wipe.sql
+FILE=${CWD}./misp-wipe.conf
+SQL=${CWD}./misp-wipe.sql
 
 # Source configuration file
-if [ -f $FILE ];
-then
-   echo "File $FILE exists."
-   . $FILE
+if [[ -f ${FILE} ]]; then
+   echo "File ${FILE} exists."
+   . ${FILE}
 else
         echo "Config File $FILE does not exist. Please enter values manually"
         ## MySQL stuff
@@ -57,18 +56,19 @@ fi
 
 # Fill in any missing values with defaults
 
-# MISP path
+# MISP path, abort when not set and autodetect fails
+([[ -z ${PATH_TO_MISP} ]] && PTM=$(locate MISP/app/webroot/index.php) ; [[ $(echo ${PTM} |sed 's/\/app\/webroot\/index\.php//'| wc -l) > 1 ]] && echo "More then 1 MISP install found: ${PTM} - abort." && exit -1)
 PATH_TO_MISP=${PATH_TO_MISP:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
 # database.php
-MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php)
-MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php)
-MISPDB=$(grep -o -P "(?<='database' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php)
-DB_Port=$(grep -o -P "(?<='port' => ).*(?=,)" $PATH_TO_MISP/app/Config/database.php)
-MISPDBHost=$(grep -o -P "(?<='host' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php)
+MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" ${PATH_TO_MISP}/app/Config/database.php)
+MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" ${PATH_TO_MISP}/app/Config/database.php)
+MISPDB=$(grep -o -P "(?<='database' => ').*(?=')" ${PATH_TO_MISP}/app/Config/database.php)
+DB_Port=$(grep -o -P "(?<='port' => ).*(?=,)" ${PATH_TO_MISP}/app/Config/database.php)
+MISPDBHost=$(grep -o -P "(?<='host' => ').*(?=')" ${PATH_TO_MISP}/app/Config/database.php)
 
 echo "Clearing data model cache files"
-rm -f $PATH_TO_MISP/app/tmp/cache/models/myapp_*
-rm -f $PATH_TO_MISP/app/tmp/cache/persistent/myapp_*
+rm -f ${PATH_TO_MISP}/app/tmp/cache/models/myapp_*
+rm -f ${PATH_TO_MISP}/app/tmp/cache/persistent/myapp_*
 
 echo "Wiping MySQL tables"
 echo "Removes all users and organizations, except default (id=1)"

@@ -13,6 +13,7 @@ class GalaxyCluster extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
@@ -459,14 +460,14 @@ class GalaxyCluster extends AppModel
             $job = ClassRegistry::init('Job');
             $job->create();
             $data = array(
-                    'worker' => $this->Event->__getPrioWorkerIfPossible(),
-                    'job_type' => 'publish_galaxy_clusters',
-                    'job_input' => 'Cluster ID: ' . $clusterId,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => $message
+                'worker' => 'prio',
+                'job_type' => 'publish_galaxy_clusters',
+                'job_input' => 'Cluster ID: ' . $clusterId,
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
+                'message' => $message
             );
             $job->save($data);
             $jobId = $job->id;
@@ -574,6 +575,37 @@ class GalaxyCluster extends AppModel
     }
 
     /**
+     * wipe_default Delete all default galaxy clusters and their associations.
+     *  Relying on the cake's recursive deletion for the associations adds an non-negligible overhead.
+     *  Same for cake's before/afterDelete callbacks. We do it by hand to speed up the process
+     *
+     */
+    public function wipe_default()
+    {
+        $clusters = $this->find('all', [
+            'conditions' => ['default' => true],
+            'fields' => ['id', 'uuid']
+        ]);
+        $cluster_ids = Hash::extract($clusters, '{n}.GalaxyCluster.id');
+        $cluster_uuids = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
+        $relation_ids = $this->GalaxyClusterRelation->find('list', [
+            'conditions' => ['galaxy_cluster_id' => $cluster_ids],
+            'fields' => ['id']
+        ]);
+        $this->deleteAll(['GalaxyCluster.default' => true], false, false);
+        $this->GalaxyElement->deleteAll(['GalaxyElement.galaxy_cluster_id' => $cluster_ids], false, false);
+        $this->GalaxyClusterRelation->deleteAll(['GalaxyClusterRelation.galaxy_cluster_id' => $cluster_ids], false, false);
+        $this->GalaxyClusterRelation->updateAll(
+            ['GalaxyClusterRelation.referenced_galaxy_cluster_id' => 0],
+            ['GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $cluster_uuids] // For all default clusters being referenced
+        );
+        $this->GalaxyClusterRelation->GalaxyClusterRelationTag->deleteAll(['GalaxyClusterRelationTag.galaxy_cluster_relation_id' => $relation_ids], false, false);
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->createLogEntry('SYSTEM', 'wipe_default', 'GalaxyCluster', 0, "Wiping default galaxy clusters");
+
+    }
+
+    /**
      * uploadClusterToServersRouter Upload the cluster to all remote servers
      *
      * @param  int $clusterId
@@ -663,15 +695,17 @@ class GalaxyCluster extends AppModel
             }
             $modelsToUnset = array('GalaxyClusterRelation', 'TargetingClusterRelation');
             foreach ($modelsToUnset as $modelName) {
-                foreach ($cluster['GalaxyCluster'][$modelName] as $i => $relation) {
-                    unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['id']);
-                    unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['galaxy_cluster_id']);
-                    unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['referenced_galaxy_cluster_id']);
-                    if (isset($relation['Tag'])) {
-                        foreach ($relation['Tag'] as $j => $tags) {
-                            unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['id']);
-                            unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['org_id']);
-                            unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['user_id']);
+                if (!empty($cluster['GalaxyCluster'][$modelName])) {
+                    foreach ($cluster['GalaxyCluster'][$modelName] as $i => $relation) {
+                        unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['id']);
+                        unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['galaxy_cluster_id']);
+                        unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['referenced_galaxy_cluster_id']);
+                        if (isset($relation['Tag'])) {
+                            foreach ($relation['Tag'] as $j => $tags) {
+                                unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['id']);
+                                unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['org_id']);
+                                unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['user_id']);
+                            }
                         }
                     }
                 }
@@ -832,11 +866,30 @@ class GalaxyCluster extends AppModel
         return $element;
     }
 
-    public function attachExtendByInfo($user, $cluster)
+    /**
+     * @param array $user
+     * @param array $clusters
+     * @return void
+     */
+    public function attachExtendByInfo(array $user, array &$clusters)
     {
-        $extensions = $this->fetchGalaxyClusters($user, array('conditions' => array('extends_uuid' => $cluster['GalaxyCluster']['uuid'])));
-        $cluster['GalaxyCluster']['extended_by'] = $extensions;
-        return $cluster;
+        if (empty($clusters)) {
+            return;
+        }
+
+        $clusterUuids = array_column(array_column($clusters, 'GalaxyCluster'), 'uuid');
+        $extensions = $this->fetchGalaxyClusters($user, [
+            'conditions' => ['extends_uuid' => $clusterUuids],
+        ]);
+        foreach ($clusters as &$cluster) {
+            $extendedBy = [];
+            foreach ($extensions as $extension) {
+                if ($cluster['GalaxyCluster']['uuid'] === $extension['GalaxyCluster']['extends_uuid']) {
+                    $extendedBy[] = $extension;
+                }
+            }
+            $cluster['GalaxyCluster']['extended_by'] = $extendedBy;
+        }
     }
 
     public function attachExtendFromInfo($user, $cluster)
@@ -858,7 +911,9 @@ class GalaxyCluster extends AppModel
     public function getTags($galaxyType, $clusterValue = false, $user)
     {
         $this->Event = ClassRegistry::init('Event');
-        $event_ids = $this->Event->fetchEventIds($user, false, false, false, true);
+        $event_ids = $this->Event->fetchEventIds($user, [
+            'list' => true
+        ]);
         $tags = $this->Event->EventTag->Tag->find('list', array(
                 'conditions' => array('name LIKE' => 'misp-galaxy:' . $galaxyType . '="' . ($clusterValue ? $clusterValue : '%') .'"'),
                 'fields' => array('name', 'id'),
@@ -896,7 +951,7 @@ class GalaxyCluster extends AppModel
             if (!$isGalaxyTag) {
                 return null;
             }
-            $conditions = array('LOWER(GalaxyCluster.tag_name)' => strtolower($name));
+            $conditions = array('GalaxyCluster.tag_name' => $name);
         }
         $cluster = $this->fetchGalaxyClusters($user, array(
             'conditions' => $conditions,
@@ -924,7 +979,7 @@ class GalaxyCluster extends AppModel
         if (count(array_filter($namesOrIds, 'is_numeric')) === count($namesOrIds)) { // all elements are numeric
             $conditions = array('GalaxyCluster.id' => $namesOrIds);
         } else {
-            $conditions = array('LOWER(GalaxyCluster.tag_name)' => array_map('strtolower', $namesOrIds));
+            $conditions = array('GalaxyCluster.tag_name' => $namesOrIds);
         }
 
         $options = ['conditions' => $conditions];
@@ -1451,7 +1506,7 @@ class GalaxyCluster extends AppModel
         foreach ($events as $event) {
             foreach ($event['EventTag'] as $eventTag) {
                 if ($eventTag['Tag']['is_galaxy']) {
-                    $clusterTagNames[$eventTag['Tag']['id']] = strtolower($eventTag['Tag']['name']);
+                    $clusterTagNames[$eventTag['Tag']['id']] = $eventTag['Tag']['name'];
                 }
             }
         }
@@ -1461,7 +1516,7 @@ class GalaxyCluster extends AppModel
         }
 
         $options = [
-            'conditions' => ['LOWER(GalaxyCluster.tag_name)' => $clusterTagNames],
+            'conditions' => ['GalaxyCluster.tag_name' => $clusterTagNames],
             'contain' => ['Galaxy', 'GalaxyElement'],
         ];
         $clusters = $this->fetchGalaxyClusters($user, $options);
@@ -2077,5 +2132,45 @@ class GalaxyCluster extends AppModel
             'contain' => ['Tag']
         ]);
         return empty($cluster['Tag']['id']) ? false : $cluster['Tag']['id'];
+    }
+
+    public function getCyCatRelations($cluster)
+    {
+        $CyCatRelations = [];
+        if (empty(Configure::read('Plugin.CyCat_enable'))) {
+            return $CyCatRelations;
+        }
+        App::uses('SyncTool', 'Tools');
+        $cycatUrl = empty(Configure::read("Plugin.CyCat_url")) ? 'https://api.cycat.org': Configure::read("Plugin.CyCat_url");
+        $syncTool = new SyncTool();
+        if (empty($this->HttpSocket)) {
+            $this->HttpSocket = $syncTool->createHttpSocket();
+        }
+        $request = array(
+            'header' => array(
+                'Accept' => array('application/json'),
+                'MISP-version' => implode('.', $this->checkMISPVersion()),
+                'MISP-uuid' => Configure::read('MISP.uuid'),
+                'x-ground-truth' => 'Dogs are superior to cats'
+            )
+        );
+        $response = $this->HttpSocket->get($cycatUrl . '/lookup/' . $cluster['GalaxyCluster']['uuid'], array(), $request);
+        if ($response->code === '200') {
+            $response = $this->HttpSocket->get($cycatUrl . '/relationships/' . $cluster['GalaxyCluster']['uuid'], array(), $request);
+            if ($response->code === '200') {
+                $relationUUIDs = json_decode($response->body);
+                if (!empty($relationUUIDs)) {
+                    foreach ($relationUUIDs as $relationUUID) {
+                        $response = $this->HttpSocket->get($cycatUrl . '/lookup/' . $relationUUID, array(), $request);
+                        if ($response->code === '200') {
+                            $lookupResult = json_decode($response->body, true);
+                            $lookupResult['uuid'] = $relationUUID;
+                            $CyCatRelations[$relationUUID] = $lookupResult;
+                        }
+                    }
+                }
+            }
+        }
+        return $CyCatRelations;
     }
 }

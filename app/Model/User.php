@@ -9,6 +9,7 @@ App::uses('SendEmail', 'Tools');
  * @property Log $Log
  * @property Organisation $Organisation
  * @property Role $Role
+ * @property UserSetting $UserSetting
  */
 class User extends AppModel
 {
@@ -64,13 +65,10 @@ class User extends AppModel
             ),
         ),
         'email' => array(
-            'email' => array(
-                'rule' => array('email'),
-                'message' => 'Please enter a valid email address.',
-                //'allowEmpty' => false,
+            'emailValidation' => array(
+                'rule' => array('validateEmail'),
+                'message' => 'Please nter a valid email address.',
                 'required' => true,
-                //'last' => false, // Stop validation after this rule
-                //'on' => 'create', // Limit validation to 'create' or 'update' operations
             ),
             'unique' => array(
                 'rule' => 'isUnique',
@@ -215,6 +213,7 @@ class User extends AppModel
     );
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',
             'userKey' => 'user_id',
@@ -382,6 +381,16 @@ class User extends AppModel
             return false;
         }
         return true;
+    }
+
+    public function validateEmail($check)
+    {
+        $localPartReg = '[\p{L}0-9!#$%&\'*+\/=?^_`{|}~-]+(?:\.[\p{L}0-9!#$%&\'*+\/=?^_`{|}~-]+)*@';
+        $domainReg = '[a-z0-9_\-\.]+';
+        $fullReg = sprintf('/^%s%s$/ui', $localPartReg, $domainReg);
+        $check = array_values($check);
+        $check = $check[0];
+        return preg_match($fullReg, $check, $matches) ? true : false;
     }
 
     /*
@@ -757,7 +766,7 @@ class User extends AppModel
             'conditions' => $conditions,
             'recursive' => -1,
             'fields' => array('id', 'email', 'gpgkey', 'certif_public', 'org_id', 'disabled'),
-            'contain' => ['Role' => ['fields' => ['perm_site_admin', 'perm_audit']], 'Organisation' => ['fields' => ['id']]],
+            'contain' => ['Role' => ['fields' => ['perm_site_admin', 'perm_audit']], 'Organisation' => ['fields' => ['id', 'name']]],
         ));
         foreach ($users as $k => $user) {
             $user = $user['User'];
@@ -786,7 +795,7 @@ class User extends AppModel
      * the remaining two parameters are the e-mail subject and a secondary user object which will be used as the replyto address if set. If it is set and an encryption key for the replyTo user exists, then his/her public key will also be attached
      *
      * @param array $user
-     * @param string $body
+     * @param SendEmailTemplate|string $body
      * @param string|false $bodyNoEnc
      * @param string $subject
      * @param array|false $replyToUser
@@ -800,13 +809,13 @@ class User extends AppModel
             return true;
         }
 
-        $this->Log = ClassRegistry::init('Log');
+        $this->loadLog();
         $replyToLog = $replyToUser ? ' from ' . $replyToUser['User']['email'] : '';
 
         $gpg = $this->initializeGpg();
         $sendEmail = new SendEmail($gpg);
         try {
-            $encrypted = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc ?: null, $replyToUser ?: array());
+            $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
 
         } catch (SendEmailException $e) {
             $this->logException("Exception during sending e-mail", $e);
@@ -823,9 +832,9 @@ class User extends AppModel
             return false;
         }
 
-        $logTitle = $encrypted ? 'Encrypted email' : 'Email';
+        $logTitle = $result['encrypted'] ? 'Encrypted email' : 'Email';
         // Intentional two spaces to pass test :)
-        $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $subject . '".';
+        $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $result['subject'] . '".';
 
         $this->Log->create();
         $this->Log->save(array(
@@ -941,6 +950,7 @@ class User extends AppModel
         }
         $body = str_replace('$password', $password, $body);
         $body = str_replace('$username', $user['User']['email'], $body);
+        $body = str_replace('\n', PHP_EOL, $body);
         $result = $this->sendEmail($user, $body, false, $subject);
         if ($result) {
             $this->id = $user['User']['id'];
@@ -1027,16 +1037,15 @@ class User extends AppModel
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $job->create();
-            $eventModel = ClassRegistry::init('Event');
             $data = array(
-                    'worker' => $eventModel->__getPrioWorkerIfPossible(),
-                    'job_type' => __('reset_all_sync_api_keys'),
-                    'job_input' => __('Reseting all API keys'),
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Issuing new API keys to all sync users.',
+                'worker' => 'prio',
+                'job_type' => __('reset_all_sync_api_keys'),
+                'job_input' => __('Reseting all API keys'),
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
+                'message' => 'Issuing new API keys to all sync users.',
             );
             $job->save($data);
             $jobId = $job->id;
@@ -1106,7 +1115,7 @@ class User extends AppModel
         return $results;
     }
 
-    public function resetauthkey($user, $id, $alert = false)
+    public function resetauthkey($user, $id, $alert = false, $keyId = null)
     {
         $this->id = $id;
         if (!$id || !$this->exists($id)) {
@@ -1123,8 +1132,7 @@ class User extends AppModel
             $this->extralog(
                     $user,
                     'reset_auth_key',
-                    sprintf(
-                        __('Authentication key for user %s (%s) updated.'),
+                    __('Authentication key for user %s (%s) updated.',
                         $updatedUser['User']['id'],
                         $updatedUser['User']['email']
                     ),
@@ -1133,7 +1141,7 @@ class User extends AppModel
             );
         } else {
             $this->AuthKey = ClassRegistry::init('AuthKey');
-            $newkey = $this->AuthKey->resetauthkey($id);
+            $newkey = $this->AuthKey->resetAuthKey($id, $keyId);
         }
         if ($alert) {
             $baseurl = Configure::read('MISP.external_baseurl');

@@ -1,24 +1,20 @@
 <?php
-    $mayModify = (
-        ($isAclModify && $object['Event']['orgc_id'] == $me['org_id'])
-    );
-    if ($scope == 'event') {
-        echo sprintf('<h4 class="blue">%s</h4>', __('Galaxies'));
-        $element = 'galaxyQuickView';
-    } else if ($scope == 'attribute') {
-        $element = 'galaxyQuickViewMini';
-    }
-    echo $this->element($element, array(
-        'mayModify' => $mayModify,
-        'isAclTagger' => $isAclTagger,
-        'data' => $object['Galaxy'],
-        'target_id' => $scope == 'event' ? $object['Event']['id'] : $object['Attribute']['id'],
-        'target_type' => $scope
-    ));
+$mayModify = ($isAclModify && $object['Event']['orgc_id'] == $me['org_id']);
+if ($scope === 'event') {
+    echo '<span class="title-section">' . __('Galaxies') . '</span>';
+}
+echo $this->element('galaxyQuickViewNew', [
+    'mayModify' => $mayModify,
+    'isAclTagger' => $isAclTagger,
+    'data' => $object['Galaxy'],
+    'event' => $object,
+    'target_id' => $scope == 'event' ? $object['Event']['id'] : $object['Attribute']['id'],
+    'target_type' => $scope
+]);
 ?>
 <script type="text/javascript">
     var showContext = false;
-    $(document).ready(function () {
+    $(function () {
         $('.addGalaxy').click(function() {
             addGalaxyListener(this);
         });

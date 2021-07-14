@@ -12,6 +12,7 @@ class Organisation extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
         'Containable',
         'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
                 'roleModel' => 'Organisation',
@@ -97,7 +98,7 @@ class Organisation extends AppModel
         'uuid' => '0',
         'contacts' => '',
         'local' => true,
-        'restricted_to_domain' => '',
+        'restricted_to_domain' => [],
         'landingpage' => null
     );
 
@@ -110,15 +111,19 @@ class Organisation extends AppModel
             $this->data['Organisation']['uuid'] = strtolower(trim($this->data['Organisation']['uuid']));
         }
         $date = date('Y-m-d H:i:s');
-        if (!empty($this->data['Organisation']['restricted_to_domain'])) {
-            $this->data['Organisation']['restricted_to_domain'] = str_replace("\r", '', $this->data['Organisation']['restricted_to_domain']);
-            $this->data['Organisation']['restricted_to_domain'] = explode("\n", $this->data['Organisation']['restricted_to_domain']);
-            foreach ($this->data['Organisation']['restricted_to_domain'] as $k => $v) {
-                $this->data['Organisation']['restricted_to_domain'][$k] = trim($v);
+        if (array_key_exists('restricted_to_domain', $this->data['Organisation'])) {
+            if (!is_array($this->data['Organisation']['restricted_to_domain'])) {
+                $this->data['Organisation']['restricted_to_domain'] = str_replace('\r', '', $this->data['Organisation']['restricted_to_domain']);
+                $this->data['Organisation']['restricted_to_domain'] = explode('\n', $this->data['Organisation']['restricted_to_domain']);
             }
+            
+            $this->data['Organisation']['restricted_to_domain'] = array_values(
+                array_filter(
+                    array_map('trim', $this->data['Organisation']['restricted_to_domain'])
+                )
+            );
+
             $this->data['Organisation']['restricted_to_domain'] = json_encode($this->data['Organisation']['restricted_to_domain']);
-        } else {
-            $this->data['Organisation']['restricted_to_domain'] = '';
         }
         if (!isset($this->data['Organisation']['id'])) {
             $this->data['Organisation']['date_created'] = $date;

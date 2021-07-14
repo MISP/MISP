@@ -226,7 +226,6 @@
         <li><b><?php echo __('Message');?></b>: <?php echo __('This will show what the job is currently doing or alternatively an error message describing why a job failed.');?></li>
         <li><b><?php echo __('Org');?></b>: <?php echo __('The string identifier of the organisation that has scheduled the job.');?></li>
         <li><b><?php echo __('Status');?></b>: <?php echo __('The status reported by the worker.');?></li>
-        <li><b><?php echo __('Retries');?></b>: <?php echo __('Currently unused, it is planned to introduced automatic delayed retries for the background processing to add resilience.');?></li>
         <li><b><?php echo __('Progress');?></b>: <?php echo __('A progress bar showing how the job is coming along.');?></li>
     </ul>
     <br /><img src="<?php echo $baseurl;?>/img/doc/jobs.png" alt = "" title = "Site administrators can monitor the process of all queued jobs here."/><br />

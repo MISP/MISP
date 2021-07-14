@@ -96,68 +96,70 @@ class GalaxyClustersController extends AppController
                 )
             );
             return $this->RestResponse->viewData($clusters, $this->response->type());
-        } else {
-            $this->paginate['conditions']['AND'][] = $contextConditions;
-            $this->paginate['conditions']['AND'][] = $searchConditions;
-            $this->paginate['conditions']['AND'][] = $aclConditions;
-            $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc', 'SharingGroup', 'GalaxyClusterRelation', 'TargetingClusterRelation'));
-            $clusters = $this->paginate();
-
-            $tagIds = array();
-            foreach ($clusters as $k => $cluster) {
-                $clusters[$k] = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
-                $clusters[$k] = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
-                $clusters[$k]['GalaxyCluster']['relation_counts'] = array(
-                    'out' => count($clusters[$k]['GalaxyClusterRelation']),
-                    'in' => count($clusters[$k]['TargetingClusterRelation']),
-                );
-
-                if (isset($cluster['Tag']['id'])) {
-                    $tagIds[] = $cluster['Tag']['id'];
-                    $clusters[$k]['GalaxyCluster']['tag_id'] = $cluster['Tag']['id'];
-                }
-                $clusters[$k]['GalaxyCluster']['synonyms'] = array();
-                foreach ($cluster['GalaxyElement'] as $element) {
-                    $clusters[$k]['GalaxyCluster']['synonyms'][] = $element['value'];
-                }
-                $clusters[$k]['GalaxyCluster']['event_count'] = 0; // real number is assigned later
-            }
-
-            $eventCountsForTags = $this->GalaxyCluster->Tag->EventTag->countForTags($tagIds, $this->Auth->user());
-
-            $this->loadModel('Sighting');
-            $csvForTags = $this->Sighting->tagsSparkline($tagIds, $this->Auth->user(), '0');
-            foreach ($clusters as $k => $cluster) {
-                if (isset($cluster['GalaxyCluster']['tag_id'])) {
-                    if (isset($csvForTags[$cluster['GalaxyCluster']['tag_id']])) {
-                        $clusters[$k]['csv'] = $csvForTags[$cluster['GalaxyCluster']['tag_id']];
-                    }
-                    if (isset($eventCountsForTags[$cluster['GalaxyCluster']['tag_id']])) {
-                        $clusters[$k]['GalaxyCluster']['event_count'] = $eventCountsForTags[$cluster['GalaxyCluster']['tag_id']];
-                    }
-                }
-            }
-            $customClusterCount = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), [
-                'count' => true,
-                'conditions' => [
-                    'AND' => [$searchConditions, $aclConditions],
-                    'GalaxyCluster.default' => 0,
-                ]
-            ]);
-            $this->loadModel('Attribute');
-            $distributionLevels = $this->Attribute->distributionLevels;
-            unset($distributionLevels[5]);
-            $this->set('distributionLevels', $distributionLevels);
-            $this->set('list', $clusters);
-            $this->set('galaxy_id', $galaxyId);
-            $this->set('custom_cluster_count', $customClusterCount);
         }
+
+        $this->paginate['conditions']['AND'][] = $contextConditions;
+        $this->paginate['conditions']['AND'][] = $searchConditions;
+        $this->paginate['conditions']['AND'][] = $aclConditions;
+        $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc', 'SharingGroup', 'GalaxyClusterRelation', 'TargetingClusterRelation'));
+        $clusters = $this->paginate();
+
+        $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
+
+        $tagIds = array();
+        foreach ($clusters as $k => $cluster) {
+            $clusters[$k] = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
+            $clusters[$k]['GalaxyCluster']['relation_counts'] = array(
+                'out' => count($clusters[$k]['GalaxyClusterRelation']),
+                'in' => count($clusters[$k]['TargetingClusterRelation']),
+            );
+
+            if (isset($cluster['Tag']['id'])) {
+                $tagIds[] = $cluster['Tag']['id'];
+                $clusters[$k]['GalaxyCluster']['tag_id'] = $cluster['Tag']['id'];
+            }
+            $clusters[$k]['GalaxyCluster']['synonyms'] = array();
+            foreach ($cluster['GalaxyElement'] as $element) {
+                $clusters[$k]['GalaxyCluster']['synonyms'][] = $element['value'];
+            }
+            $clusters[$k]['GalaxyCluster']['event_count'] = 0; // real number is assigned later
+        }
+
+        $eventCountsForTags = $this->GalaxyCluster->Tag->EventTag->countForTags($tagIds, $this->Auth->user());
+
+        $this->loadModel('Sighting');
+        $csvForTags = $this->Sighting->tagsSparkline($tagIds, $this->Auth->user(), '0');
+        foreach ($clusters as $k => $cluster) {
+            if (isset($cluster['GalaxyCluster']['tag_id'])) {
+                if (isset($csvForTags[$cluster['GalaxyCluster']['tag_id']])) {
+                    $clusters[$k]['csv'] = $csvForTags[$cluster['GalaxyCluster']['tag_id']];
+                }
+                if (isset($eventCountsForTags[$cluster['GalaxyCluster']['tag_id']])) {
+                    $clusters[$k]['GalaxyCluster']['event_count'] = $eventCountsForTags[$cluster['GalaxyCluster']['tag_id']];
+                }
+            }
+        }
+        $customClusterCount = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), [
+            'count' => true,
+            'conditions' => [
+                'AND' => [$searchConditions, $aclConditions],
+                'GalaxyCluster.default' => 0,
+            ]
+        ]);
+        $this->loadModel('Attribute');
+        $distributionLevels = $this->Attribute->distributionLevels;
+        unset($distributionLevels[5]);
+        $this->set('distributionLevels', $distributionLevels);
+        $this->set('list', $clusters);
+        $this->set('galaxy_id', $galaxyId);
+        $this->set('custom_cluster_count', $customClusterCount);
+
         if ($this->request->is('ajax')) {
             $this->layout = 'ajax';
             $this->render('ajax/index');
         }
     }
-    
+
     /**
      * @param  mixed $id ID or UUID of the cluster
      */
@@ -179,7 +181,9 @@ class GalaxyClustersController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($cluster, $this->response->type());
         } else {
-            $cluster = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $cluster);
+            $clusters = [$cluster];
+            $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
+            $cluster = $clusters[0];
             $cluster = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $cluster);
             $this->set('id', $id);
             $this->set('galaxy', ['Galaxy' => $cluster['GalaxyCluster']['Galaxy']]);
@@ -200,7 +204,7 @@ class GalaxyClustersController extends AppController
             }
         }
     }
-    
+
     /**
      * @param  mixed $galaxyId ID of the galaxy to which the cluster will be added
      */
@@ -319,13 +323,14 @@ class GalaxyClustersController extends AppController
                 }
             }
         }
+        $this->set('galaxy', ['Galaxy' => ['id' => $galaxyId]]);
         $this->set('galaxy_id', $galaxyId);
         $this->set('distributionLevels', $distributionLevels);
         $this->set('initialDistribution', $initialDistribution);
         $this->set('sharingGroups', $sgs);
         $this->set('action', 'add');
     }
-    
+
     /**
      * @param  mixed $id ID or UUID of the cluster
      */
@@ -392,7 +397,7 @@ class GalaxyClustersController extends AppController
             if (empty($cluster['GalaxyCluster']['authors'])) {
                 $cluster['GalaxyCluster']['authors'] = [];
             } else if (is_array($cluster['GalaxyCluster']['authors'])) {
-                // This is as intended, move on 
+                // This is as intended, move on
             }else {
                 $decoded = json_decode($cluster['GalaxyCluster']['authors'], true);
                 if (is_null($decoded)) { // authors might be comma separated
@@ -768,6 +773,15 @@ class GalaxyClustersController extends AppController
         } else {
             throw new MethodNotAllowedException(__('This function can only be reached via POST.'));
         }
+    }
+
+    public function viewCyCatRelations($id)
+    {
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', true, false);
+        $CyCatRelations = $this->GalaxyCluster->getCyCatRelations($cluster);
+        $this->set('cluster', $cluster);
+        $this->set('CyCatRelations', $CyCatRelations);
+        $this->render('cluster_cycatrelations');
     }
 
     public function viewGalaxyMatrix($id)
