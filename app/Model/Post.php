@@ -8,6 +8,7 @@ App::uses('AppModel', 'Model');
 class Post extends AppModel
 {
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'Post',
@@ -134,7 +135,7 @@ class Post extends AppModel
                 'NOT' => ['User.id' => $excludeUsers]
             ],
             'contain' => ['User' => ['fields' => $userFields]],
-            'group' => ['User.id'], // remove duplicates
+            'group' => ['User.id', 'Post.id', 'User.email', 'User.gpgkey', 'User.certif_public', 'User.disabled'], // remove duplicates
         ]);
         $orgMembers = array_merge($orgMembers, $temp);
 

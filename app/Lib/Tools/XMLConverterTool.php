@@ -147,7 +147,9 @@ class XMLConverterTool
         }
         if (!empty($event['Event']['Object'])) {
             foreach ($event['Event']['Object'] as $k => $v) {
-                $event['Event']['Object'][$k]['Attribute'] = $this->__rearrangeAttributes($event['Event']['Object'][$k]['Attribute']);
+                if (!empty($event['Event']['Object'][$k]['Attribute'])) {
+                    $event['Event']['Object'][$k]['Attribute'] = $this->__rearrangeAttributes($event['Event']['Object'][$k]['Attribute']);
+                }
             }
         }
         if (isset($event['Event']['ShadowAttribute'])) {

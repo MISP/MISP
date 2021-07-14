@@ -210,6 +210,23 @@ div.actions h3 {
   color:#777;
 }
 
+input.input-with-description {
+    margin-bottom: 5px;
+}
+
+small.form-field-description::before {
+    color: #ccc;
+}
+
+small.form-field-description {
+    display: block;
+    text-align: justify;
+    margin-left: 0em;
+    margin-bottom: 1em;
+    line-height: 150%;
+    width: 520px;
+}
+
 div.input {
     float:left;
     margin-right: 10px;
@@ -2481,6 +2498,19 @@ table tr:hover .down-expand-button {
     text-align: left;
 }
 
+ul.correlations {
+    margin:0;
+}
+
+ul.correlations li {
+    padding-right: 0;
+    padding-left:0;
+}
+
+ul.correlations li span, ul.correlations li a {
+    margin-right:3px;
+}
+
 .break-word {
     word-wrap: break-word;
 }
@@ -2719,3 +2749,8 @@ Query builder
     margin-top: 0;
 }
 
+/* Fix text input for query builder */
+.query-builder .rule-value-container input[type="text"] {
+    padding: 4px !important;
+    height: 30px;
+}

@@ -2,9 +2,15 @@
 
 App::import('Lib', 'SysLog.SysLog');	// Audit, syslogd, extra
 
-class SysLogLogableBehavior extends LogableBehavior {
+class SysLogLogableBehavior extends LogableBehavior
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->defaults['enabled'] = !Configure::read('MISP.log_new_audit');
+    }
 
-	function afterSave(Model $Model, $created, $options = array()) {
+    function afterSave(Model $Model, $created, $options = array()) {
 		if (!$this->settings[$Model->alias]['enabled']) {
 			return true;
 		}
@@ -263,6 +269,10 @@ class SysLogLogableBehavior extends LogableBehavior {
         }
         $this->settings[$Model->alias] = array_merge($this->defaults, $config);
         $this->settings[$Model->alias]['ignore'][] = $Model->primaryKey;
+
+        if (!$this->settings[$Model->alias]['enabled']) {
+            return;
+        }
 
         $this->Log = ClassRegistry::init('Log');
         if ($this->settings[$Model->alias]['userModel'] != $Model->alias) {

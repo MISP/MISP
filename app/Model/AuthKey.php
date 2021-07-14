@@ -11,6 +11,7 @@ class AuthKey extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
                 'userModel' => 'User',
                 'userKey' => 'user_id',
@@ -108,6 +109,24 @@ class AuthKey extends AppModel
     }
 
     /**
+     * @param array $user
+     * @param int $authKeyId
+     * @return array
+     */
+    public function updateUserData(array $user, $authKeyId)
+    {
+        $authKey = $this->find('first', [
+            'conditions' => ['id' => $authKeyId, 'user_id' => $user['id']],
+            'fields' => ['id', 'expiration', 'allowed_ips', 'read_only'],
+            'recursive' => -1,
+        ]);
+        if (empty($authKey)) {
+            throw new RuntimeException("Auth key with ID $authKeyId doesn't exist anymore.");
+        }
+        return $this->setUserData($user, $authKey);
+    }
+
+    /**
      * @param string $authkey
      * @return array|false
      */
@@ -117,7 +136,7 @@ class AuthKey extends AppModel
         $end = substr($authkey, -4);
         $possibleAuthkeys = $this->find('all', [
             'recursive' => -1,
-            'fields' => ['id', 'authkey', 'user_id', 'expiration', 'allowed_ips'],
+            'fields' => ['id', 'authkey', 'user_id', 'expiration', 'allowed_ips', 'read_only'],
             'conditions' => [
                 'OR' => [
                     'expiration >' => time(),
@@ -132,15 +151,37 @@ class AuthKey extends AppModel
             if ($passwordHasher->check($authkey, $possibleAuthkey['AuthKey']['authkey'])) {
                 $user = $this->User->getAuthUser($possibleAuthkey['AuthKey']['user_id']);
                 if ($user) {
-                    $user['authkey_id'] = $possibleAuthkey['AuthKey']['id'];
-                    $user['authkey_expiration'] = $possibleAuthkey['AuthKey']['expiration'];
-                    $user['allowed_ips'] = $possibleAuthkey['AuthKey']['allowed_ips'];
+                    $user = $this->setUserData($user, $possibleAuthkey);
                 }
                 return $user;
             }
         }
         return false;
     }
+
+    /**
+     * @param array $user
+     * @param array $authkey
+     * @return array
+     */
+    private function setUserData(array $user, array $authkey)
+    {
+        $user['authkey_id'] = $authkey['AuthKey']['id'];
+        $user['authkey_expiration'] = $authkey['AuthKey']['expiration'];
+        $user['allowed_ips'] = $authkey['AuthKey']['allowed_ips'];
+        $user['authkey_read_only'] = (bool)$authkey['AuthKey']['read_only'];
+
+        if ($authkey['AuthKey']['read_only']) {
+            // Disable all permissions, keep just `perm_auth` unchanged
+            foreach ($user['Role'] as $key => &$value) {
+                if (substr($key, 0, 5) === 'perm_' && $key !== 'perm_auth') {
+                    $value = 0;
+                }
+            }
+        }
+        return $user;
+    }
+
 
     /**
      * @param int $userId
@@ -263,7 +304,7 @@ class AuthKey extends AppModel
 
     /**
      * When key is modified, update `date_modified` for user that was assigned to that key, so session data
-     * will be realoaded.
+     * will be reloaded.
      * @see AppController::_refreshAuth
      */
     public function afterSave($created, $options = array())

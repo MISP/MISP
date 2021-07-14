@@ -1,5 +1,8 @@
 <?php
     echo sprintf('<div%s>', empty($ajax) ? ' class="index"' : '');
+    if (!$advancedEnabled) {
+        echo '<div class="alert">' . __('Advanced auth keys are not enabled.') . '</div>';
+    }
     echo $this->element('genericElements/IndexTable/index_table', [
         'data' => [
             'data' => $data,
@@ -11,6 +14,7 @@
                         'children' => [
                             'data' => [
                                 'type' => 'simple',
+                                'fa-icon' => 'plus',
                                 'text' => __('Add authentication key'),
                                 'class' => 'btn btn-primary',
                                 'onClick' => 'openGenericModal',

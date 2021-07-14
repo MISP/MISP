@@ -85,9 +85,15 @@ class CRUDComponent extends Component
             } else {
                 $data = $input;
             }
+            if (isset($params['beforeSave'])) {
+                $data = $params['beforeSave']($data);
+            }
             /** @var Model $model */
             $model = $this->Controller->{$modelName};
             if ($model->save($data)) {
+                if (isset($params['afterSave'])) {
+                    $params['afterSave']($data);
+                }
                 $data = $model->find('first', [
                     'recursive' => -1,
                     'conditions' => [
@@ -117,6 +123,13 @@ class CRUDComponent extends Component
                     }
 
                     $redirect = isset($params['redirect']) ? $params['redirect'] : ['action' => 'index'];
+                    if (!empty($params['redirect_controller'])) {
+                        if (is_array($redirect)) {
+                            $redirect['controller'] = $params['redirect_controller'];
+                        } else {
+                            $redirect = '/' . $params['redirect_controller'] . '/' . $redirect;
+                        }
+                    }
                     // For AJAX requests doesn't make sense to redirect, redirect must be done on javascript side in `submitGenericFormInPlace`
                     if ($this->Controller->request->is('ajax')) {
                         $redirect = Router::url($redirect);
@@ -148,15 +161,21 @@ class CRUDComponent extends Component
         $query = isset($params['get']) ? $params['get'] : [
             'recursive' => -1,
             'conditions' => [
-                'id' => $id
+                $modelName . '.id' => $id
             ],
         ];
         if (!empty($params['conditions'])) {
             $query['conditions']['AND'][] = $params['conditions'];
         }
+        if (!empty($params['contain'])) {
+            $query['contain'] = $params['contain'];
+        }
         /** @var Model $model */
         $model = $this->Controller->{$modelName};
         $data = $model->find('first', $query);
+        if (empty($data)) {
+            throw new NotFoundException(__('Invalid %s.', $modelName));
+        }
         if (isset($params['afterFind'])) {
             $data = $params['afterFind']($data);
         }
@@ -172,7 +191,9 @@ class CRUDComponent extends Component
             }
             if (!empty($params['fields'])) {
                 foreach ($params['fields'] as $field) {
-                    $data[$modelName][$field] = $input[$modelName][$field];
+                    if(isset($input[$modelName][$field])){
+                        $data[$modelName][$field] = $input[$modelName][$field];
+                    }
                 }
             } else {
                 foreach ($input[$modelName] as $field => $fieldData) {
@@ -183,6 +204,9 @@ class CRUDComponent extends Component
                 $data = $params['beforeSave']($data);
             }
             if ($model->save($data)) {
+                if (isset($params['afterSave'])) {
+                    $params['afterSave']($data);
+                }
                 $message = __('%s updated.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
@@ -287,7 +311,7 @@ class CRUDComponent extends Component
         $this->Controller->render('/genericTemplates/delete');
     }
 
-    protected function setQuickFilters($params, array $query, $quickFilterFields)
+    public function setQuickFilters($params, array $query, $quickFilterFields)
     {
         if (!empty($params['quickFilter']) && !empty($quickFilterFields)) {
             $queryConditions = [];
@@ -300,7 +324,7 @@ class CRUDComponent extends Component
         return $query;
     }
 
-    protected function setFilters(array $params, array $query)
+    public function setFilters(array $params, array $query)
     {
         // For CakePHP 2, we don't need to distinguish between simpleFilters and relatedFilters
         //$params = $this->massageFilters($params);

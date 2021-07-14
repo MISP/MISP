@@ -8,12 +8,6 @@
             'model' => $modelForForm,
             'fields' => array(
                 array(
-                    'field' => 'org_id',
-                    'class' => 'org-id-picker-hidden-field',
-                    'type' => 'text',
-                    'hidden' => true
-                ),
-                array(
                     'field' => 'date',
                     'class' => 'datepicker',
                     'type' => 'text',
@@ -24,25 +18,30 @@
                     'class' => 'input',
                     'options' => $distributionLevels,
                     'default' => isset($event['Event']['distribution']) ? $event['Event']['distribution'] : $initialDistribution,
-                    'stayInLine' => 1
+                    'stayInLine' => 1,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'sharing_group_id',
                     'class' => 'input',
                     'options' => $sharingGroups,
-                    'label' => __("Sharing Group")
+                    'label' => __("Sharing Group"),
+                    'type' => 'dropdown',
+                    'required' => false
                 ),
                 array(
                     'field' => 'threat_level_id',
                     'class' => 'input',
                     'options' => $threatLevels,
                     'label' => __("Threat Level"),
-                    'stayInLine' => 1
+                    'stayInLine' => 1,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'analysis',
                     'class' => 'input',
-                    'options' => $analysisLevels
+                    'options' => $analysisLevels,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'info',

@@ -13,7 +13,7 @@
             </div>',
             h($elementId),
             h($elementId) . '-collapse',
-            h($title),
+            !empty($titleHTML) ? $titleHTML : h($title),
             !empty($allowFullscreen) ? '' : sprintf(
                 '<span class="fas fa-external-link-alt" title="View %s full screen" onclick="event.stopPropagation(); window.location.href=\'%s\';"></span>',
                 h($title),

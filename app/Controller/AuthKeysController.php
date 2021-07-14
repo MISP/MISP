@@ -51,6 +51,7 @@ class AuthKeysController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('title_for_layout', __('Auth Keys'));
+        $this->set('advancedEnabled', !empty(Configure::read('Security.advanced_authkeys')));
         $this->set('keyUsageEnabled', $keyUsageEnabled);
         $this->set('menuData', [
             'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
@@ -81,7 +82,8 @@ class AuthKeysController extends AppController
                 $authKey['AuthKey']['expiration'] = date('Y-m-d H:i:s', $authKey['AuthKey']['expiration']);
                 return $authKey;
             },
-            'fields' => ['comment', 'allowed_ips', 'expiration'],
+            'fields' => ['comment', 'allowed_ips', 'expiration', 'read_only'],
+            'contain' => ['User.id', 'User.org_id']
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -98,6 +100,7 @@ class AuthKeysController extends AppController
         ]);
         $this->set('edit', true);
         $this->set('validity', Configure::read('Security.advanced_authkeys_validity'));
+        $this->set('title_for_layout', __('Edit auth key'));
         $this->render('add');
     }
 
@@ -132,6 +135,7 @@ class AuthKeysController extends AppController
             ])
         ];
         $this->set(compact('dropdownData'));
+        $this->set('title_for_layout', __('Add auth key'));
         $this->set('menuData', [
             'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
             'menuItem' => 'authKeyAdd',
@@ -160,7 +164,7 @@ class AuthKeysController extends AppController
             $this->set('uniqueIps', $uniqueIps);
         }
 
-        $this->set('title_for_layout', __('Auth Key'));
+        $this->set('title_for_layout', __('Auth key'));
         $this->set('menuData', [
             'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
             'menuItem' => 'authKeyView',

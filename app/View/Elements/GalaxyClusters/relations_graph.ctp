@@ -1,4 +1,8 @@
 <div style="margin-bottom: 10px; position: relative">
+    <label>
+        <input type="checkbox" id="checkbox-include-inbound" <?= !empty($includeInbound) ? "checked=\"checked\"" : "" ?>></input>
+        <?= __('Include inbound relations from other galaxies') ?>
+    </label>
     <div id="graphContainer" style="height: 70vh; border: 1px solid #ddd; "></div>
     <div id="tooltipContainer" style="max-height: 450px; min-width: 200px; max-width:300px; position: absolute; top: 10px; right: 10px; border: 1px solid #999; border-radius: 3px; background-color: #f5f5f5ee; overflow: auto;"></div>
 </div>
@@ -45,7 +49,19 @@ $(document).ready( function() {
                     .text("<?= __('This galaxy does not have any relationships.') ?>")
             );
     }
+    $('#checkbox-include-inbound').click(function() {
+        var $container = $(this).parent().parent().parent();
+        var checked = $(this).prop('checked');
+        reloadGraph(checked);
+    })
 });
+
+function reloadGraph(checked) {
+    var uri = '<?= $baseurl ?>/galaxies/relationsGraph/<?= h($galaxy['Galaxy']['id']) ?>/' + (checked ? '1' : '0')
+    $.get(uri, function(data) {
+        $("#clusters_content").html(data);
+    })
+}
 
 function initGraph() {
     var groupDomain = {};

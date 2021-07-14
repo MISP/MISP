@@ -158,6 +158,7 @@ yumInstallCoreDeps7 () {
   PHP_INI="/etc/php.ini"
   sudo dnf install gcc git zip unzip \
                    mod_ssl \
+                   moreutils \
                    redis \
                    libxslt-devel zlib-devel ssdeep-devel -y
 

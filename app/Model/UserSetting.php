@@ -7,6 +7,7 @@ class UserSetting extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
             'SysLogLogable.SysLogLogable' => array(
                     'userModel' => 'User',
                     'userKey' => 'user_id',
@@ -92,6 +93,9 @@ class UserSetting extends AppModel
                 'false-positive:risk="medium"' => 99
             )
         ),
+        'event_index_hide_columns' => [
+            'placeholder' => ['clusters'],
+        ],
     );
 
     // massage the data before we send it off for validation before saving anything
