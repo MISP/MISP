@@ -785,6 +785,7 @@ class TagsController extends AppController
         }
         $successes = 0;
         $fails = array();
+        $existingRelations = array();
         foreach ($tags as $k => $tag) {
             if (is_numeric($tag)) {
                 $conditions = array('Tag.id' => $tag);
@@ -842,7 +843,9 @@ class TagsController extends AppController
                 'conditions' => $conditions
             ));
             if (!empty($existingAssociation)) {
-                $fails[] = __('%s already has the requested tag attached, no changes had to be made.', $objectType);
+                $message = __('%s already has the requested tag attached, no changes had to be made for tag %s.', $objectType, $existingTag['Tag']['name']);
+                $existingRelations[] = $existingTag['Tag']['name'];
+                $successes++;
                 continue;
             }
             $this->$objectType->$connectorObject->create();
@@ -882,6 +885,9 @@ class TagsController extends AppController
         if ($successes > 0) {
             if ($successes > 1) {
                 $message = __('Successfully attached %s tags to %s (%s)', $successes, $objectType, $object[$objectType]['id']);
+                if (!empty($existingRelations)) {
+                    $message .= __('. %s already has the requested tag attached, no changes had to be made for tags %s.', $object[$objectType]['id'], json_encode($existingRelations));
+                }
             }
             $message .= !empty($fails) ? PHP_EOL . $failedMessage : '';
             return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $message);
