@@ -3,6 +3,21 @@
         'data' => array(
             'skip_pagination' => true,
             'data' => $relations,
+            'top_bar' => array(
+                'children' => array(
+                    array(
+                        'type' => 'raw',
+                        'children' => array(
+                            array(
+                                'html' => '<label>' .
+                                    '<input type="checkbox" id="checkbox-include-inbound" ' . (!isset($includeInbound) || !empty($includeInbound) ? "checked=\"checked\"" : "") . '></input>' .
+                                __('Include inbound relations') .
+                                '</label>'
+                            )
+                        )
+                    )
+                ),
+            ),
             'fields' => array(
                 array(
                     'name' => __('Id'),
@@ -14,6 +29,12 @@
                     'class' => 'short',
                     'element' => 'boolean',
                     'data_path' => 'default',
+                ),
+                array(
+                    'name' => __('Is Inbound'),
+                    'class' => 'short',
+                    'element' => 'boolean',
+                    'data_path' => 'isInbound',
                 ),
                 array(
                     'name' => __('Galaxy Cluster Target (galaxy :: cluster)'),
@@ -170,6 +191,14 @@ $(document).ready(function() {
     $('#buttonAddRelationship').click(function() {
         submitRelationshipForm();
     })
+
+    var $checkbox = $('#referencesTable_div #checkbox-include-inbound');
+    $checkbox.click(function() {
+        var checked = $(this).prop('checked');
+        reloadRelationTable(checked, function () {
+            $('#references_div a[href="#tabularView"]').tab('show')
+        })
+    })
 });
 
 function pickerTarget() {
@@ -234,13 +263,7 @@ function submitRelationshipForm() {
             $.ajax({
                 data: $('#GalaxyClusterRelationAddForm').serialize(),
                 success:function (data) {
-                    $.get("/galaxy_clusters/viewRelations/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
-                        $("#relations_container").html(data);
-                        $('#references_div').show({
-                            complete: buildTree,
-                            duration: 0
-                        });
-                    });
+                    reloadRelationTable()
                 },
                 error:function(jqXHR, textStatus, errorThrown) {
                     showMessage('fail', textStatus + ": " + errorThrown);
@@ -265,5 +288,16 @@ function toggleLoadingButton(loading) {
     } else {
         $('#buttonAddRelationship > i').removeClass('fa-spinner fa-spin').addClass('fa-plus');
     }
+}
+
+function reloadRelationTable(checked, callback) {
+    $.get("/galaxy_clusters/viewRelations/<?php echo $cluster['GalaxyCluster']['id']; ?>/" + (checked ? '1' : '0'), function(data) {
+        $("#relations_container").html(data);
+        $('#references_div').show({
+            complete: buildTree,
+            duration: 0
+        });
+        callback()
+    });
 }
 </script>

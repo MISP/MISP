@@ -651,55 +651,52 @@ class Server extends AppModel
     /**
      * fetchCustomClusterIdsFromServer Fetch custom-published remote clusters' UUIDs and versions
      *
-     * @param  array $server
-     * @param  mixed $HttpSocket
-     * @param  array $conditions
-     * @return mixed The list of clusters or the error
+     * @param array $server
+     * @param HttpSocketExtended|null $HttpSocket
+     * @param array $conditions
+     * @return array The list of clusters
+     * @throws JsonException|HttpSocketHttpException|HttpSocketJsonException
      */
-    public function fetchCustomClusterIdsFromServer(array $server, $HttpSocket=null, array $conditions=array())
+    private function fetchCustomClusterIdsFromServer(array $server, HttpSocketExtended $HttpSocket=null, array $conditions=array())
     {
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/galaxy_clusters/restSearch';
-        $filterRules['published'] = 1;
-        $filterRules['minimal'] = 1;
-        $filterRules['custom'] = 1;
+        $filterRules = [
+            'published' => 1,
+            'minimal' => 1,
+            'custom' => 1,
+        ];
         $filterRules = array_merge($filterRules, $conditions);
-        try {
-            $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
-            if ($response->isOk()) {
-                $clusterArray = json_decode($response->body, true);
-                if (isset($clusterArray['response'])) {
-                    $clusterArray = $clusterArray['response'];
-                }
-                return $clusterArray;
-            }
-
-            if ($response->code == '403') {
-                return 403;
-            }
-        } catch (SocketException $e) {
-            return $e->getMessage();
+        $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
+        if (!$response->isOk()) {
+            throw new HttpSocketHttpException($response);
         }
 
-        // error, so return error message, since that is handled and everything is expecting an array
-        return __('Error: got response code %s', $response->code);
+        $clusterArray = $response->json();
+        if (isset($clusterArray['response'])) {
+            $clusterArray = $clusterArray['response'];
+        }
+        return $clusterArray;
     }
 
     /**
      * getElligibleClusterIdsFromServerForPull Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
      *
-     * @param  array $server
-     * @param  mixed $HttpSocket
-     * @param  bool  $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
-     * @param  array $elligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
-     * @param  array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
+     * @param array $server
+     * @param mixed $HttpSocket
+     * @param bool $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
+     * @param array $elligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
+     * @param array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
      * @return array List of cluster IDs to be pulled
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws JsonException
      */
     public function getElligibleClusterIdsFromServerForPull(array $server, $HttpSocket=null, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket=null, $conditions=$conditions);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket, $conditions=$conditions);
         if (!empty($clusterArray)) {
             foreach ($clusterArray as $cluster) {
                 if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
@@ -720,10 +717,20 @@ class Server extends AppModel
         return $clusterArray;
     }
 
-    // Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed
-    public function getElligibleClusterIdsFromServerForPush($server, $HttpSocket=null, $localClusters=array(), $conditions=array())
+    /**
+     * Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed.
+     * @param array $server
+     * @param HttpSocket|null $HttpSocket
+     * @param array $localClusters
+     * @param array $conditions
+     * @return array
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws JsonException
+     */
+    public function getElligibleClusterIdsFromServerForPush(array $server, $HttpSocket=null, $localClusters=array(), $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket=null, $conditions=$conditions);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket, $conditions=$conditions);
         $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
         if (!empty($localClusters)) {
             foreach ($localClusters as $k => $localCluster) {
@@ -773,9 +780,7 @@ class Server extends AppModel
 
         $uri = $server['Server']['url'] . '/events/index';
         $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
-        if ($response === false) {
-            throw new Exception("Could not reach '$uri'.");
-        }
+
         if (!$response->isOk()) {
             throw new HttpException("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}", intval($response->code));
         }
@@ -1006,7 +1011,7 @@ class Server extends AppModel
                     'fields' => array('Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
             );
             $eventIds = $this->Event->find('all', $findParams);
-            $eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
+            $eventUUIDsFiltered = $this->getEventIdsForPush($server, $HttpSocket, $eventIds);
             if (!empty($eventUUIDsFiltered)) {
                 $eventCount = count($eventUUIDsFiltered);
                 // now process the $eventIds to push each of the events sequentially
@@ -1099,11 +1104,8 @@ class Server extends AppModel
         return true;
     }
 
-    public function getEventIdsForPush($id, $HttpSocket, $eventIds, $user)
+    public function getEventIdsForPush(array $server, HttpSocket $HttpSocket, array $eventIds)
     {
-        $server = $this->read(null, $id);
-        $this->Event = ClassRegistry::init('Event');
-
         foreach ($eventIds as $k => $event) {
             if (empty($this->eventFilterPushableServers($event, array($server)))) {
                 unset($eventIds[$k]);
@@ -1111,17 +1113,14 @@ class Server extends AppModel
             }
             unset($eventIds[$k]['Event']['id']);
         }
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         $data = json_encode($eventIds);
         $uri = $server['Server']['url'] . '/events/filterEventIdsForPush';
         $response = $HttpSocket->post($uri, $data, $request);
         if ($response->code == '200') {
-            $uuidList = json_decode($response->body());
-        } else {
-            return false;
+            return $this->jsonDecode($response->body());
         }
-        return $uuidList;
+        return false;
     }
 
     /**
@@ -1156,8 +1155,13 @@ class Server extends AppModel
             }
         }
         $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
-        $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($server, $HttpSocket=$HttpSocket, $localClusters=$clusters, $conditions=array('uuid' => $localClusterUUIDs));
-        foreach ($clustersToPush as $k => $cluster) {
+        try {
+            $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($server, $HttpSocket = $HttpSocket, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
+        } catch (Exception $e) {
+            $this->logException("Could not get eligible cluster IDs from server #{$server['Server']['id']} for push.", $e);
+            return [];
+        }
+        foreach ($clustersToPush as $cluster) {
             $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $HttpSocket, $user);
             if ($result === 'Success') {
                 $successes[] = __('GalaxyCluster %s', $cluster['GalaxyCluster']['uuid']);
@@ -1166,7 +1170,7 @@ class Server extends AppModel
         return $successes;
     }
 
-    public function syncSightings($HttpSocket, $server, $user, $eventModel)
+    public function syncSightings($HttpSocket, array $server, array $user, Event $eventModel)
     {
         $successes = array();
         if (!$server['Server']['push_sightings']) {
@@ -1175,20 +1179,28 @@ class Server extends AppModel
         $this->Sighting = ClassRegistry::init('Sighting');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         try {
-            $eventIds = $this->getEventIdsFromServer($server, true, $HttpSocket, true, 'sightings');
+            $eventUuids = $this->getEventIdsFromServer($server, true, $HttpSocket, true, 'sightings');
         } catch (Exception $e) {
             $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
             return $successes;
         }
         // now process the $eventIds to push each of the events sequentially
         // check each event and push sightings when needed
-        foreach ($eventIds as $k => $eventId) {
-            $event = $eventModel->fetchEvent($user, $options = array('event_uuid' => $eventId, 'metadata' => true));
+        foreach ($eventUuids as $eventUuid) {
+            $event = $eventModel->fetchEvent($user, ['event_uuid' => $eventUuid, 'metadata' => true]);
             if (!empty($event)) {
                 $event = $event[0];
-                $event['Sighting'] = $this->Sighting->attachToEvent($event, $user, null, false, true);
-                $result = $eventModel->uploadEventToServer($event, $server, $HttpSocket, 'sightings');
-                if ($result === 'Success') {
+
+                if (empty($this->eventFilterPushableServers($event, [$server]))) {
+                    continue;
+                }
+                if (!$eventModel->checkDistributionForPush($event, $server)) {
+                    continue;
+                }
+
+                $sightings = $this->Sighting->attachToEvent($event, $user, null, false, true);
+                $result = $eventModel->uploadSightingsToServer($sightings, $server, $eventUuid, $HttpSocket);
+                if ($result) {
                     $successes[] = 'Sightings for event ' .  $event['Event']['id'];
                 }
             }
@@ -3245,9 +3257,8 @@ class Server extends AppModel
         return array('operational' => $scriptResult['success'], 'plyara' => $scriptResult['plyara']);
     }
 
-    public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
+    public function stixDiagnostics(&$diagnostic_errors)
     {
-        $result = array();
         $expected = array('stix' => '>1.2.0.9', 'cybox' => '>2.1.0.21', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>2.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
@@ -3256,7 +3267,8 @@ class Server extends AppModel
         } catch (Exception $e) {
             $this->logException('Invalid JSON returned from stixtest', $e);
             return array(
-                'operational' => 0,
+                'operational' => -1,
+                'invalid_version' => false,
                 'stix' => array('expected' => $expected['stix']),
                 'cybox' => array('expected' => $expected['cybox']),
                 'mixbox' => array('expected' => $expected['mixbox']),
@@ -3269,21 +3281,22 @@ class Server extends AppModel
         if ($scriptResult['operational'] == 0) {
             $diagnostic_errors++;
         }
-        $result['operational'] = $scriptResult['operational'];
-        foreach ($expected as $package => $version) {
+        $result = [
+            'operational' => $scriptResult['operational'],
+            'invalid_version' => false,
+        ];
+        foreach ($expected as $package => $expectedVersion) {
             $result[$package]['version'] = $scriptResult[$package];
-            $result[$package]['expected'] = $expected[$package];
-            if ($expected[$package][0] === '>') {
-                $expected[$package] = trim($expected[$package], '>');
-                $result[$package]['status'] = (version_compare($result[$package]['version'], $expected[$package]) >= 0) ? 1 : 0;
+            $result[$package]['expected'] = $expectedVersion;
+            if ($expectedVersion[0] === '>') {
+                $result[$package]['status'] = version_compare($result[$package]['version'], trim($expectedVersion, '>')) >= 0 ? 1 : 0;
             } else {
-                $result[$package]['status'] = $result[$package]['version'] == $result[$package]['expected'] ? 1 : 0;
+                $result[$package]['status'] = $result[$package]['version'] === $expectedVersion ? 1 : 0;
             }
             if ($result[$package]['status'] == 0) {
                 $diagnostic_errors++;
+                $result['invalid_version'] = true;
             }
-            ${$package . 'Version'}[0] = str_replace('$current', $result[$package]['version'], ${$package . 'Version'}[0]);
-            ${$package . 'Version'}[0] = str_replace('$expected', $result[$package]['expected'], ${$package . 'Version'}[0]);
         }
         return $result;
     }
@@ -4250,9 +4263,8 @@ class Server extends AppModel
 
     public function updateJSON()
     {
-        $toUpdate = array('Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate');
         $results = array();
-        foreach ($toUpdate as $target) {
+        foreach (['Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate', 'ObjectRelationship'] as $target) {
             $this->$target = ClassRegistry::init($target);
             $result = $this->$target->update();
             $results[$target] = $result === false ? false : true;

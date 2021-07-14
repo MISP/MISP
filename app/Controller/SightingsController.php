@@ -355,4 +355,26 @@ class SightingsController extends AppController
             throw new MethodNotAllowedException($e->getMessage());
         }
     }
+
+    public function filterSightingUuidsForPush($eventId)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This method is only accessible via POST requests.');
+        }
+
+        $event = $this->Sighting->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
+        if (empty($event)) {
+            throw new NotFoundException("Event not found");
+        }
+
+        $incomingSightingUuids = $this->request->data;
+        $existingSightingUuids = $this->Sighting->find('column', [
+            'fields' => ['Sighting.uuid'],
+            'conditions' => [
+                'Sighting.uuid' => $incomingSightingUuids,
+                'Sighting.event_id' => $event['Event']['id']
+            ],
+        ]);
+        return $this->RestResponse->viewData($existingSightingUuids, $this->response->type());
+    }
 }

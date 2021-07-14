@@ -3106,12 +3106,12 @@ class AppModel extends Model
      * @param $query
      * @param array $results
      * @return array
-     * @throws Exception
+     * @throws InvalidArgumentException
      */
     protected function _findColumn($state, $query, $results = array())
     {
         if ($state === 'before') {
-            if (count($query['fields']) === 1) {
+            if (isset($query['fields']) && count($query['fields']) === 1) {
                 if (strpos($query['fields'][0], '.') === false) {
                     $query['fields'][0] = $this->alias . '.' . $query['fields'][0];
                 }
@@ -3122,8 +3122,10 @@ class AppModel extends Model
                 } else {
                     $query['fields'] = array($query['fields'][0]);
                 }
+            } else if (!isset($query['fields'])) {
+                throw new InvalidArgumentException("This method requires `fields` option defined.");
             } else {
-                throw new Exception("Invalid number of column, expected one, " . count($query['fields']) . " given");
+                throw new InvalidArgumentException("Invalid number of column, expected one, " . count($query['fields']) . " given");
             }
 
             if (!isset($query['recursive'])) {

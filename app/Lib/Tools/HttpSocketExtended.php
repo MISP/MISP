@@ -2,9 +2,29 @@
 App::uses('HttpSocketResponse', 'Network/Http');
 App::uses('HttpSocket', 'Network/Http');
 
-class HttpClientJsonException extends Exception
+class HttpSocketHttpException extends Exception
 {
-    /** @var HttpSocketResponse */
+    /** @var HttpSocketResponseExtended */
+    private $response;
+
+    public function __construct(HttpSocketResponseExtended $response)
+    {
+        $this->response = $response;
+        parent::__construct("Remote server returns HTTP error code {$response->code}", (int)$response->code);
+    }
+
+    /**
+     * @return HttpSocketResponseExtended
+     */
+    public function getResponse()
+    {
+        return $this->response;
+    }
+}
+
+class HttpSocketJsonException extends Exception
+{
+    /** @var HttpSocketResponseExtended */
     private $response;
 
     public function __construct($message, HttpSocketResponseExtended $response, Throwable $previous = null)
@@ -14,7 +34,7 @@ class HttpClientJsonException extends Exception
     }
 
     /**
-     * @return HttpSocketResponse
+     * @return HttpSocketResponseExtended
      */
     public function getResponse()
     {
@@ -56,7 +76,7 @@ class HttpSocketResponseExtended extends HttpSocketResponse
      * Decodes JSON string and throws exception if string is not valid JSON.
      *
      * @return array
-     * @throws HttpClientJsonException
+     * @throws HttpSocketJsonException
      */
     public function json()
     {
@@ -72,13 +92,15 @@ class HttpSocketResponseExtended extends HttpSocketResponse
             }
             return $decoded;
         } catch (Exception $e) {
-            throw new HttpClientJsonException('Could not parse response as JSON.', $this, $e);
+            throw new HttpSocketJsonException('Could not parse response as JSON.', $this, $e);
         }
     }
 }
 
 /**
  * Supports response compression and also decodes response as JSON
+ * @method HttpSocketResponseExtended get($uri = null, $query = array(), $request = array())
+ * @method HttpSocketResponseExtended post($uri = null, $data = array(), $request = array())
  */
 class HttpSocketExtended extends HttpSocket
 {

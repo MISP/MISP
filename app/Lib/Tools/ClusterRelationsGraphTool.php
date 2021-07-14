@@ -74,7 +74,7 @@
                         'conditions' => array(
                             'referenced_galaxy_cluster_uuid' => $cluster['GalaxyCluster']['uuid']
                         ),
-                        'contain' => array('SharingGroup'),
+                        'contain' => array('SharingGroup', 'GalaxyClusterRelationTag' => 'Tag'),
                     ));
                     if (!empty($referencingRelations)) {
                         foreach ($referencingRelations as $relation) {
@@ -92,9 +92,9 @@
                                 $nodes[$referencingClusterUuid]['group'] = $referencingCluster['GalaxyCluster']['type'];
                                 $links[] = array(
                                     'source' => $referencingClusterUuid,
-                                    'target' =>   $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'],
+                                    'target' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'],
                                     'type' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_type'],
-                                    'tag' =>  isset($relation['Tag']) ? $relation['Tag'] : array(),
+                                    'tag' =>  isset($relation['GalaxyClusterRelationTag']) ? Hash::extract($relation, '{n}.Tag') : array(),
                                 );
                             }
                         }

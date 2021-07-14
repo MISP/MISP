@@ -2,10 +2,16 @@
 echo $this->element('genericElements/assetLoader', array(
     'js' => array('d3')
 ));
+$random = rand();
+$randomClass = "relation-{$random}";
 ?>
 
 <div style="padding: 5px; display: flex; position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
-    <svg id="treeSVG" style="width: 100%; height: 100%;"></svg>
+    <label style="position: absolute;">
+        <input type="checkbox" id="checkbox-include-inbound" class="<?= $randomClass ?>" <?= !isset($includeInbound) || !empty($includeInbound) ? "checked=\"checked\"" : "" ?>></input>
+        <?= __('Include inbound relations') ?>
+    </label>
+    <svg id="treeSVG" class="<?= $randomClass ?>" style="width: 100%; height: 100%;"></svg>
 </div>
 
 <script>
@@ -15,14 +21,23 @@ echo $this->element('genericElements/assetLoader', array(
     var margin = {top: 10, right: 10, bottom: 30, left: 20};
     var treeWidth, treeHeight;
     var colors = d3.scale.category10();
-    var hasBeenBuilt = false;
+    var hasBeenBuilt<?= $random ?> = false;
+
+    $(document).ready(function() {
+        var $checkbox = $('#checkbox-include-inbound.<?= $randomClass ?>');
+        $checkbox.click(function() {
+            var $container = $(this).parent().parent().parent();
+            var checked = $(this).prop('checked');
+            reloadDiagram($container, checked);
+        })
+    })
 
     function buildTree() {
-        if (hasBeenBuilt) {
+        if (hasBeenBuilt<?= $random ?>) {
             return;
         }
-        hasBeenBuilt = true;
-        var $tree = $('#treeSVG');
+        hasBeenBuilt<?= $random ?> = true;
+        var $tree = $('#treeSVG.<?= $randomClass ?>');
         treeWidth = $tree.width() - margin.right - margin.left;
         treeHeight = $tree.height() - margin.top - margin.bottom;
         var leftShift;
@@ -142,7 +157,7 @@ echo $this->element('genericElements/assetLoader', array(
                 + " " + (d.source.y + d.target.y) / 2 + "," + d.target.x
                 + " " + d.target.y + "," + d.target.x;
         };
-        var svg = d3.select("#treeSVG")
+        var svg = d3.select("#treeSVG.<?= $randomClass ?>")
             .attr("width", treeWidth + margin.right + margin.left)
             .attr("height", treeHeight + margin.top + margin.bottom)
             .append("g")
@@ -408,7 +423,7 @@ echo $this->element('genericElements/assetLoader', array(
     }
 
     function adaptContainerHeightIfNeeded(side) {
-        var $upperContainer = $('#treeSVG').parent().parent();
+        var $upperContainer = $('#treeSVG.<?= $randomClass ?>').parent().parent();
         var leftNodeNumber = 0
         var rightNodeNumber = 0 
         if (side == 'left') {
@@ -435,5 +450,18 @@ echo $this->element('genericElements/assetLoader', array(
             id = d.Relation.id;
         }
         return id;
+    }
+
+    function reloadDiagram($container, checked) {
+        var url = '<?= $baseurl ?>/galaxy_clusters/viewRelationTree/<?= h($cluster['GalaxyCluster']['id']) ?>/' + (checked ? '1' : '0')
+        xhr({
+            dataType: "html",
+            success: function (data) {
+                hasBeenBuilt<?= $random ?> = false;
+                $container.html(data);
+                buildTree()
+            },
+            url: url,
+        });
     }
 </script>
