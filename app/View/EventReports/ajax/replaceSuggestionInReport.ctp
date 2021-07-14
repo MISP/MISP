@@ -7,7 +7,7 @@
             'fields' => array(
                 array(
                     'field' => 'suggestions',
-                    'class' => 'textarea'
+                    'type' => 'textarea'
                 ),
             ),
             'submit' => array(

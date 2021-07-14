@@ -1279,12 +1279,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         if ($menuItem === 'edit' || $menuItem === 'view') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit',
-                                'url' => $baseurl . '/feeds/edit/' . h($feed['Feed']['id']),
+                                'url' => $baseurl . '/feeds/edit/' . h($feedId),
                                 'text' => __('Edit Feed')
                             ));
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'view',
-                                'url' => $baseurl . '/feeds/view/' . h($feed['Feed']['id']),
+                                'url' => $baseurl . '/feeds/view/' . h($feedId),
                                 'text' => __('View Feed')
                             ));
                         } else if ($menuItem === 'previewIndex') {
