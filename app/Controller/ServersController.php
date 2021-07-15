@@ -1800,13 +1800,13 @@ class ServersController extends AppController
         $response = [
             'version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'],
             'pymisp_recommended_version' => $this->pyMispVersion,
-            'perm_sync' => $this->userRole['perm_sync'],
-            'perm_sighting' => $this->userRole['perm_sighting'],
-            'perm_galaxy_editor' => $this->userRole['perm_galaxy_editor'],
+            'perm_sync' => (bool) $this->userRole['perm_sync'],
+            'perm_sighting' => (bool) $this->userRole['perm_sighting'],
+            'perm_galaxy_editor' => (bool) $this->userRole['perm_galaxy_editor'],
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
             'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
         ];
-        return $this->RestResponse->viewData($response, $this->response->type());
+        return $this->RestResponse->viewData($response, 'json');
     }
 
     /**
