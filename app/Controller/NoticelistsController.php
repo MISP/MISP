@@ -181,6 +181,9 @@ class NoticelistsController extends AppController
                 'afterFind' => function (array $noticelist) {
                     $noticelist['Noticelist']['ref'] = json_decode($noticelist['Noticelist']['ref']);
                     $noticelist['Noticelist']['geographical_area'] = json_decode($noticelist['Noticelist']['geographical_area']);
+                    $noticelist['Noticelist']['NoticelistEntry'] = $noticelist['NoticelistEntry'] ? $noticelist['NoticelistEntry'] : [];
+                    unset($noticelist['NoticelistEntry']);
+
                     return $noticelist;
                 }
             ]
