@@ -404,7 +404,8 @@ class ACLComponent extends Component
                     'index' => array('*'),
                     'toggleEnable' => array(),
                     'update' => array(),
-                    'view' => array('*')
+                    'view' => array('*'),
+                    'preview_entries' => array('*')
             ),
             'objects' => array(
                     'add' => array('perm_add'),
