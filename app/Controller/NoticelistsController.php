@@ -177,6 +177,7 @@ class NoticelistsController extends AppController
         $this->CRUD->view(
             $id,
             [
+                'contain' => ['NoticelistEntry'],
                 'afterFind' => function (array $noticelist) {
                     $noticelist['Noticelist']['ref'] = json_decode($noticelist['Noticelist']['ref']);
                     $noticelist['Noticelist']['geographical_area'] = json_decode($noticelist['Noticelist']['geographical_area']);
