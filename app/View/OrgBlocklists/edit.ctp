@@ -9,6 +9,7 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'org_uuid',
                 'label' => __('UUIDs'),
+                'default' => $blockEntry['OrgBlocklist']['org_uuid'],
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',
                 'type' => 'textarea',
@@ -18,12 +19,14 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'org_name',
                 'label' => __('Organisation name'),
+                'default' => $blockEntry['OrgBlocklist']['org_name'],
                 'class' => 'input-xxlarge',
                 'placeholder' => __('(Optional) The organisation name that the organisation is associated with')
             ],
             [
                 'field' => 'comment',
                 'label' => __('Comment'),
+                'default' => $blockEntry['OrgBlocklist']['comment'],
                 'type' => 'textarea',
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',
