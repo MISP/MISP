@@ -716,4 +716,12 @@ class AdminShell extends AppShell
         $this->out('Dropping default galaxy clusters. This process might take some time...');
         $this->GalaxyCluster->wipe_default();
     }
+
+    public function updateToAdvancedAuthKeys()
+    {
+        $this->loadModel('User');
+        $updated = $this->User->updateToAdvancedAuthKeys();
+        $message = __('The upgrade process is complete, %s authkey(s) generated.', $updated);
+        $this->out($message);
+    }
 }
