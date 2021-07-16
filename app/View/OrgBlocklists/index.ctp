@@ -1,8 +1,9 @@
 <?php
+$this->set('menuData', ['menuList' => 'admin', 'menuItem' => 'orgBlocklists']);
 echo $this->element('genericElements/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
-            'data' => $data,
+            'data' => $response,
             'fields' => [
                 [
                     'name' => 'Id',
