@@ -3,7 +3,12 @@ App::uses('AppController', 'Controller');
 
 class OrgBlocklistsController extends AppController
 {
-    public $components = array('Session', 'RequestHandler', 'BlockList');
+    public $components = [
+        'Session',
+        'RequestHandler',
+        'CRUD',
+        'BlockList'
+    ];
 
     public function beforeFilter()
     {
@@ -18,16 +23,21 @@ class OrgBlocklistsController extends AppController
     }
 
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
-            'order' => array(
-                    'OrgBlocklist.created' => 'DESC'
-            ),
+        'limit' => 60,
+        'maxLimit' => 9999,
+        'order' => array(
+            'OrgBlocklist.created' => 'DESC'
+        ),
     );
 
     public function index()
     {
-        return $this->BlockList->index($this->_isRest());
+        $this->CRUD->index([]);
+
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+        $this->set('menuData', ['menuList' => 'admin', 'menuItem' => 'orgBlocklists']);
     }
 
     public function add()
