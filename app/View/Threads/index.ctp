@@ -1,4 +1,4 @@
-<div class="allowedlist index">
+<div class="threads index">
     <?php
     echo $this->element('/genericElements/IndexTable/index_table', array(
         'data' => array(
