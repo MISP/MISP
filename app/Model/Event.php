@@ -3862,14 +3862,14 @@ class Event extends AppModel
                         $data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, $this->Log, $parentEvent);
                     }
                 }
+                unset($attributeHashes);
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
             }
-            $referencesToCapture = array();
+
             if (!empty($data['Event']['Object'])) {
+                $referencesToCapture = [];
                 foreach ($data['Event']['Object'] as $object) {
                     $result = $this->Object->captureObject($object, $this->id, $user, $this->Log, false, $breakOnDuplicate);
-                }
-                foreach ($data['Event']['Object'] as $object) {
                     if (isset($object['ObjectReference'])) {
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $objectRef['source_uuid'] = $object['uuid'];
@@ -3877,14 +3877,15 @@ class Event extends AppModel
                         }
                     }
                 }
+                foreach ($referencesToCapture as $referenceToCapture) {
+                    $result = $this->Object->ObjectReference->captureReference(
+                        $referenceToCapture,
+                        $this->id,
+                        $user
+                    );
+                }
             }
-            foreach ($referencesToCapture as $referenceToCapture) {
-                $result = $this->Object->ObjectReference->captureReference(
-                    $referenceToCapture,
-                    $this->id,
-                    $user
-                );
-            }
+
             if (!empty($data['Event']['EventReport'])) {
                 foreach ($data['Event']['EventReport'] as $report) {
                     $result = $this->EventReport->captureReport($user, $report, $this->id);
