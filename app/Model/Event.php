@@ -3849,23 +3849,13 @@ class Event extends AppModel
                 'recursive' => -1
             ));
             if (!empty($data['Event']['Attribute'])) {
+                $attributeHashes = [];
                 foreach ($data['Event']['Attribute'] as $k => $attribute) {
-                    $block = false;
-                    for ($i = 0; $i < $k; $i++) {
-                        if (empty($data['Event']['Attribute'][$i])) {
-                            continue;
-                        }
-                        if (
-                            $data['Event']['Attribute'][$i]['value'] == $attribute['value'] &&
-                            $data['Event']['Attribute'][$i]['type'] == $attribute['type'] &&
-                            $data['Event']['Attribute'][$i]['category'] == $attribute['category']
-                        ) {
-                            $block = true;
-                            unset($data['Event']['Attribute'][$i]);
-                            break;
-                        }
-                    }
-                    if (!$block) {
+                    $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
+                    if (isset($attributeHashes[$attributeHash])) {
+                        unset($data['Event']['Attribute'][$k]); // remove duplicate attribute
+                    } else {
+                        $attributeHashes[$attributeHash] = true;
                         $data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, $this->Log, $parentEvent);
                     }
                 }
@@ -4080,7 +4070,7 @@ class Event extends AppModel
             $validationErrors = array();
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
-                foreach ($data['Event']['Attribute'] as $k => $attribute) {
+                foreach ($data['Event']['Attribute'] as $attribute) {
                     $nothingToChange = false;
                     $result = $this->Attribute->editAttribute($attribute, $this->id, $user, 0, $this->Log, $force, $nothingToChange);
                     if ($result !== true) {
@@ -4093,7 +4083,7 @@ class Event extends AppModel
             }
             if (isset($data['Event']['Object'])) {
                 $data['Event']['Object'] = array_values($data['Event']['Object']);
-                foreach ($data['Event']['Object'] as $k => $object) {
+                foreach ($data['Event']['Object'] as $object) {
                     $nothingToChange = false;
                     $result = $this->Object->editObject($object, $this->id, $user, $this->Log, $force, $nothingToChange);
                     if ($result !== true) {
@@ -4117,7 +4107,7 @@ class Event extends AppModel
                 }
             }
             if (isset($data['Event']['EventReport'])) {
-                foreach ($data['Event']['EventReport'] as $i => $report) {
+                foreach ($data['Event']['EventReport'] as $report) {
                     $nothingToChange = false;
                     $result = $this->EventReport->editReport($user, ['EventReport' => $report], $this->id, true, $nothingToChange);
                     if (!empty($result)) {
