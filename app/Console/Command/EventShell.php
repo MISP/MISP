@@ -31,9 +31,11 @@ class EventShell extends AppShell
         ));
         $parser->addSubcommand('testEventNotificationEmail', [
             'help' => __('Generate event notification email in EML format.'),
-            'arguments' => [
-                'event_id' => ['help' => __('Event ID'), 'required' => true],
-                'user_id' => ['help' => __('User ID'), 'required' => true],
+            'parser' => [
+                'arguments' => [
+                    'event_id' => ['help' => __('Event ID'), 'required' => true],
+                    'user_id' => ['help' => __('User ID'), 'required' => true],
+                ],
             ],
         ]);
         return $parser;
