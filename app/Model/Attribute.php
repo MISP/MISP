@@ -3640,7 +3640,6 @@ class Attribute extends AppModel
             $attribute['data'] = $result['data'];
             $attribute['value'] = $attribute['value'] . '|' . $result['md5'];
         }
-        $fieldList = $this->captureFields;
         $this->create();
         if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
@@ -3649,7 +3648,7 @@ class Attribute extends AppModel
             }
         }
         $params = array(
-            'fieldList' => $fieldList
+            'fieldList' => $this->captureFields
         );
         if (!empty($parentEvent)) {
             $params['parentEvent'] = $parentEvent;
@@ -3675,7 +3674,6 @@ class Attribute extends AppModel
                     'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
             ));
         } else {
-            $tags = array();
             if (isset($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
                     unset($at['id']);
