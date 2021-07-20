@@ -12,6 +12,16 @@ echo $this->element('genericElements/IndexTable/scaffold', [
                 'pull' => 'right',
                 'children' => [
                     [
+                        'children' => [
+                            [
+                                'class' => 'hidden mass-select',
+                                'fa-icon' => 'trash',
+                                'onClick' => "multiSelectDeleteEventBlocklist",
+                                'onClickParams' => ['1', '0']
+                            ]
+                        ]
+                    ],
+                    [
                         'type' => 'search',
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
@@ -20,6 +30,15 @@ echo $this->element('genericElements/IndexTable/scaffold', [
                 ]
             ],
             'fields' => [
+                [
+                    'element' => 'selector',
+                    'class' => 'short',
+                    'data' => [
+                        'id' => [
+                            'value_path' => 'EventBlocklist.id'
+                        ]
+                    ]
+                ],
                 [
                     'name' => 'Id',
                     'sort' => 'EventBlocklist.id',
@@ -59,17 +78,17 @@ echo $this->element('genericElements/IndexTable/scaffold', [
             'actions' => [
                 [
                     'url' => $baseurl . '/event_blocklists/edit',
-                    'url_params_data_paths' => array(
+                    'url_params_data_paths' => [
                         'EventBlocklist.id'
-                    ),
+                    ],
                     'icon' => 'edit',
                     'title' => 'Edit Blocklist',
                 ],
                 [
                     'url' => $baseurl . '/event_blocklists/delete',
-                    'url_params_data_paths' => array(
+                    'url_params_data_paths' => [
                         'EventBlocklist.id'
-                    ),
+                    ],
                     'icon' => 'trash',
                     'title' => 'Delete Blocklist',
                 ]

@@ -1,8 +1,8 @@
 <?php
 if ($isSiteAdmin) {
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlocklistsAdd'));
+    echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'admin', 'menuItem' => 'eventBlocklistsAdd']);
 } else {
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'eventBlocklistsAdd'));
+    echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event-collection', 'menuItem' => 'eventBlocklistsAdd']);
 }
 
 echo $this->element('genericElements/Form/genericForm', [
