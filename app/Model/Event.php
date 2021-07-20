@@ -768,7 +768,7 @@ class Event extends AppModel
      * @param array $user
      * @param int $id Event ID when $scope is 'event', Attribute ID when $scope is 'attribute'
      * @param bool $shadowAttribute
-     * @param string $scope
+     * @param string $scope 'event' or 'attribute'
      * @return array
      */
     public function getRelatedAttributes(array $user, $id, $shadowAttribute = false, $scope = 'event')
@@ -852,26 +852,26 @@ class Event extends AppModel
         $events = $this->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
-            'fields' => array('Event.id', 'Event.orgc_id', 'Event.info', 'Event.date'),
+            'fields' => ['Event.id', 'Event.orgc_id', 'Event.info', 'Event.date'],
         ));
 
-        $eventInfos = array_column(array_column($events, 'Event'), null, 'id');
+        $events = array_column(array_column($events, 'Event'), null, 'id');
 
-        $relatedAttributes = array();
+        $relatedAttributes = [];
         foreach ($correlations as $correlation) {
             // User don't have access to correlated attribute event, skip.
-            if (!isset($eventInfos[$correlation['event_id']])) {
+            if (!isset($events[$correlation['event_id']])) {
                 continue;
             }
 
-            $eventInfo = $eventInfos[$correlation['event_id']];
+            $event = $events[$correlation['event_id']];
             $current = array(
                 'id' => $correlation['event_id'],
                 'attribute_id' => $correlation['attribute_id'],
                 'value' => $correlation['value'],
-                'org_id' => $eventInfo['orgc_id'],
-                'info' => $eventInfo['info'],
-                'date' => $eventInfo['date'],
+                'org_id' => $event['orgc_id'],
+                'info' => $event['info'],
+                'date' => $event['date'],
             );
             $parentId = $correlation[$settings['parentIdField']];
             $relatedAttributes[$parentId][] = $current;
