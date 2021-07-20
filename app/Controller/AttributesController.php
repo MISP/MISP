@@ -1696,7 +1696,7 @@ class AttributesController extends AppController
 
         // Fetch correlations in one query
         $sgIds = $this->Attribute->Event->cacheSgids($user, true);
-        $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, $sgIds, false, 'attribute');
+        $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, false, 'attribute');
 
         // `attachFeedCorrelations` method expects different attribute format, so we need to transform that, then process
         // and then take information back to original attribute structure.

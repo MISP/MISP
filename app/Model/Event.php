@@ -706,7 +706,9 @@ class Event extends AppModel
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
         }
-        $this->Correlation = ClassRegistry::init('Correlation');
+        if (!isset($this->Correlation)) {
+            $this->Correlation = ClassRegistry::init('Correlation');
+        }
         // search the correlation table for the event ids of the related events
         // Rules:
         // 1. Event is owned by the user (org_id matches)
@@ -762,63 +764,70 @@ class Event extends AppModel
         return $relatedEvents;
     }
 
-    public function getRelatedAttributes($user, $id, $sgids, $shadowAttribute = false, $scope = 'event')
+    /**
+     * @param array $user
+     * @param int $id Event ID when $scope is 'event', Attribute ID when $scope is 'attribute'
+     * @param bool $shadowAttribute
+     * @param string $scope
+     * @return array
+     */
+    public function getRelatedAttributes(array $user, $id, $shadowAttribute = false, $scope = 'event')
     {
         if ($shadowAttribute) {
-            $settings = array('model' => 'ShadowAttribute', 'correlationModel' => 'ShadowAttributeCorrelation', 'parentIdField' => '1_shadow_attribute_id');
+            $settings = array('correlationModel' => 'ShadowAttributeCorrelation', 'parentIdField' => '1_shadow_attribute_id');
         } else {
-            $settings = array('model' => 'Attribute', 'correlationModel' => 'Correlation', 'parentIdField' => '1_attribute_id');
+            $settings = array('correlationModel' => 'Correlation', 'parentIdField' => '1_attribute_id');
         }
-        if (!isset($sgids) || empty($sgids)) {
-            $sgids = array(-1);
+        if (!isset($this->{$settings['correlationModel']})) {
+            $this->{$settings['correlationModel']} = ClassRegistry::init($settings['correlationModel']);
         }
-        $this->{$settings['correlationModel']} = ClassRegistry::init($settings['correlationModel']);
         if (!$user['Role']['perm_site_admin']) {
+            $sgids = $this->cacheSgids($user, true);
             $conditionsCorrelation = array(
-                    'AND' => array(
-                            $settings['correlationModel'] . '.1_' . $scope . '_id' => $id,
-                            array(
+                'AND' => array(
+                    $settings['correlationModel'] . '.1_' . $scope . '_id' => $id,
+                    array(
+                        'OR' => array(
+                            $settings['correlationModel'] . '.org_id' => $user['org_id'],
+                            'AND' => array(
+                                array(
                                     'OR' => array(
-                                            $settings['correlationModel'] . '.org_id' => $user['org_id'],
+                                        array(
                                             'AND' => array(
-                                                    array(
-                                                            'OR' => array(
-                                                                    array(
-                                                                            'AND' => array(
-                                                                                    $settings['correlationModel'] . '.distribution >' => 0,
-                                                                                    $settings['correlationModel'] . '.distribution <' => 4,
-                                                                            ),
-                                                                    ),
-                                                                    array(
-                                                                            'AND' => array(
-                                                                                    $settings['correlationModel'] . '.distribution' => 4,
-                                                                                    $settings['correlationModel'] . '.sharing_group_id' => $sgids
-                                                                            ),
-                                                                    ),
-                                                            ),
-                                                    ),
-                                                    array(
-                                                            'OR' => array(
-                                                                    $settings['correlationModel'] . '.a_distribution' => 5,
-                                                                    array(
-                                                                            'AND' => array(
-                                                                                    $settings['correlationModel'] . '.a_distribution >' => 0,
-                                                                                    $settings['correlationModel'] . '.a_distribution <' => 4,
-                                                                            ),
-                                                                    ),
-                                                                    array(
-                                                                            'AND' => array(
-                                                                                    $settings['correlationModel'] . '.a_distribution' => 4,
-                                                                                    $settings['correlationModel'] . '.a_sharing_group_id' => $sgids
-                                                                            ),
-                                                                    ),
-                                                            ),
-                                                    ),
+                                                $settings['correlationModel'] . '.distribution >' => 0,
+                                                $settings['correlationModel'] . '.distribution <' => 4,
                                             ),
-                                    )
-                            )
-
+                                        ),
+                                        array(
+                                            'AND' => array(
+                                                $settings['correlationModel'] . '.distribution' => 4,
+                                                $settings['correlationModel'] . '.sharing_group_id' => $sgids
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                                array(
+                                    'OR' => array(
+                                        $settings['correlationModel'] . '.a_distribution' => 5,
+                                        array(
+                                            'AND' => array(
+                                                $settings['correlationModel'] . '.a_distribution >' => 0,
+                                                $settings['correlationModel'] . '.a_distribution <' => 4,
+                                            ),
+                                        ),
+                                        array(
+                                            'AND' => array(
+                                                $settings['correlationModel'] . '.a_distribution' => 4,
+                                                $settings['correlationModel'] . '.a_sharing_group_id' => $sgids
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        )
                     )
+
+                )
             );
         } else {
             $conditionsCorrelation = array($settings['correlationModel'] . '.1_' . $scope . '_id' => $id);
@@ -835,27 +844,21 @@ class Event extends AppModel
             return array();
         }
 
-        $eventIds = [];
-        foreach ($correlations as $correlation) {
-            $eventIds[] = $correlation[$settings['correlationModel']]['event_id'];
-        }
+        $correlations = array_column($correlations, $settings['correlationModel']);
+        $eventIds = array_unique(array_column($correlations, 'event_id'));
 
         $conditions = $this->createEventConditions($user);
-        $conditions['AND']['Event.id'] = array_unique($eventIds);
+        $conditions['AND']['Event.id'] = $eventIds;
         $events = $this->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
             'fields' => array('Event.id', 'Event.orgc_id', 'Event.info', 'Event.date'),
         ));
 
-        $eventInfos = array();
-        foreach ($events as $event) {
-            $eventInfos[$event['Event']['id']] = $event['Event'];
-        }
+        $eventInfos = array_column(array_column($events, 'Event'), null, 'id');
 
         $relatedAttributes = array();
         foreach ($correlations as $correlation) {
-            $correlation = $correlation[$settings['correlationModel']];
             // User don't have access to correlated attribute event, skip.
             if (!isset($eventInfos[$correlation['event_id']])) {
                 continue;
@@ -2211,11 +2214,11 @@ class Event extends AppModel
             }
             // Let's also find all the relations for the attributes - this won't be in the xml export though
             if (!empty($options['includeGranularCorrelations'])) {
-                $results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids);
+                $results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id']);
                 if (!empty($options['includeRelatedTags'])) {
                     $results[$eventKey] = $this->includeRelatedTags($results[$eventKey], $options);
                 }
-                $results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids, true);
+                $results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
             }
             if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute']) && isset($options['includeAttachments']) && $options['includeAttachments']) {
                 foreach ($event['ShadowAttribute'] as $k => $sa) {
