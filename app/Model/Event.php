@@ -3813,8 +3813,10 @@ class Event extends AppModel
         if ($saveResult) {
             if ($jobId) {
                 /** @var EventLock $eventLock */
-                $eventLock = ClassRegistry::init('EventLock');
-                $eventLock->insertLockBackgroundJob($this->id, $jobId);
+                if (!isset($this->EventLock)) {
+                    $this->EventLock = ClassRegistry::init('EventLock');
+                }
+                $this->EventLock->insertLockBackgroundJob($this->id, $jobId);
             }
 
             if ($passAlong) {
@@ -3943,7 +3945,7 @@ class Event extends AppModel
                 }
             }
             if ($jobId) {
-                $eventLock->deleteBackgroundJobLock($this->id, $jobId);
+                $this->EventLock->deleteBackgroundJobLock($this->id, $jobId);
             }
 
             return true;
