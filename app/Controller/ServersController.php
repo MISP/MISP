@@ -1862,9 +1862,6 @@ class ServersController extends AppController
 
     public function ondemandAction()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('You are not authorised to do that.');
-        }
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $actions = $this->Server->actions_description;
         $default_fields = array(

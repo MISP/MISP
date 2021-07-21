@@ -106,24 +106,6 @@ class AppModel extends Model
             'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
         ),
     );
-    public $actions_description = array(
-        'verifyGnuPGkeys' => array(
-            'title' => 'Verify GnuPG keys',
-            'description' => "Run a full validation of all GnuPG keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results.",
-            'url' => '/users/verifyGPG/'
-        ),
-        'databaseCleanupScripts' => array(
-            'title' => 'Database Cleanup Scripts',
-            'description' => 'If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.',
-            'url' => '/logs/pruneUpdateLogs/'
-        ),
-        'releaseUpdateLock' => array(
-            'title' => 'Release update lock',
-            'description' => 'If your your database is locked and is not updating, unlock it here.',
-            'ignore_disabled' => true,
-            'url' => '/servers/releaseUpdateLock/'
-        )
-    );
 
     public function afterSave($created, $options = array())
     {
