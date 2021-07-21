@@ -47,6 +47,11 @@ echo $this->element('genericElements/IndexTable/scaffold', [
             ],
             'actions' => [
                 [
+                    'url' => $baseurl . '/templates/view',
+                    'url_params_data_paths' => ['Template.id'],
+                    'icon' => 'eye'
+                ],
+                [
                     'url' => $baseurl . '/templates/edit',
                     'url_params_data_paths' => [
                         'Template.id'
