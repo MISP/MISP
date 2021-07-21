@@ -108,7 +108,7 @@ class Attribute extends AppModel
             'anonymised'
     );
 
-    public $primaryOnlyCorrelatingTypes = array(
+    public const PRIMARY_ONLY_CORRELATING_TYPES = array(
         'ip-src|port',
         'ip-dst|port',
         'hostname|port',
@@ -1689,7 +1689,7 @@ class Attribute extends AppModel
         foreach ($resultArray as $key => $result) {
             if (in_array($result['default_type'], $composeTypes, true)) {
                 $pieces = explode('|', $result['value']);
-                if (in_array($result['default_type'], $this->primaryOnlyCorrelatingTypes, true)) {
+                if (in_array($result['default_type'], self::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
                     $or = ['Attribute.value1' => $pieces[0], 'Attribute.value2' => $pieces[0]];
                 } else {
                     $or = ['Attribute.value1' => $pieces, 'Attribute.value2' => $pieces];
