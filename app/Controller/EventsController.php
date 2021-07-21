@@ -694,123 +694,7 @@ class EventsController extends AppController
             if ($nothing) {
                 return $this->RestResponse->viewData([], $this->response->type(), false, false, false, ['X-Result-Count' => 0]);
             }
-
-            $rules = array();
-            $fieldNames = array_keys($this->Event->getColumnTypes());
-            $directions = array('ASC', 'DESC');
-            if (isset($passedArgs['sort']) && in_array($passedArgs['sort'], $fieldNames)) {
-                if (isset($passedArgs['direction']) && in_array(strtoupper($passedArgs['direction']), $directions)) {
-                    $rules['order'] = array('Event.' . $passedArgs['sort'] => $passedArgs['direction']);
-                } else {
-                    $rules['order'] = array('Event.' . $passedArgs['sort'] => 'ASC');
-                }
-            }
-            $rules['contain'] = $this->paginate['contain'];
-            if (isset($this->paginate['conditions'])) {
-                $rules['conditions'] = $this->paginate['conditions'];
-            }
-            $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);
-            if ($minimal) {
-                $rules['recursive'] = -1;
-                $rules['fields'] = array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid');
-                $rules['contain'] = array('Orgc.uuid');
-            } else {
-                $rules['contain'][] = 'EventTag';
-            }
-            $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
-            foreach ($paginationRules as $paginationRule) {
-                if (isset($passedArgs[$paginationRule])) {
-                    $rules[$paginationRule] = $passedArgs[$paginationRule];
-                }
-            }
-
-            if (empty($rules['limit'])) {
-                $events = array();
-                $i = 1;
-                $rules['limit'] = 20000;
-                while (true) {
-                    $rules['page'] = $i;
-                    $temp = $this->Event->find('all', $rules);
-                    $resultCount = count($temp);
-                    if ($resultCount !== 0) {
-                        $events = array_merge($events, $temp);
-                    }
-                    if ($resultCount < $rules['limit']) {
-                        break;
-                    }
-                    $i += 1;
-                }
-                $absolute_total = count($events);
-            } else {
-                $counting_rules = $rules;
-                unset($counting_rules['limit']);
-                unset($counting_rules['page']);
-                $absolute_total = $this->Event->find('count', $counting_rules);
-
-                $events = $absolute_total === 0 ? [] : $this->Event->find('all', $rules);
-            }
-
-            if (!$minimal) {
-                $tagIds = [];
-                foreach (array_column($events, 'EventTag') as $eventTags) {
-                    foreach (array_column($eventTags, 'tag_id') as $tagId) {
-                        $tagIds[$tagId] = true;
-                    }
-                }
-                if (!empty($tagIds)) {
-                    $tags = $this->Event->EventTag->Tag->find('all', [
-                        'conditions' => [
-                            'Tag.id' => array_keys($tagIds),
-                            'Tag.exportable' => 1,
-                        ],
-                        'recursive' => -1,
-                        'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.is_galaxy'],
-                    ]);
-                    unset($tagIds);
-                    $tags = array_column(array_column($tags, 'Tag'), null, 'id');
-
-                    foreach ($events as $k => $event) {
-                        if (empty($event['EventTag'])) {
-                            continue;
-                        }
-                        foreach ($event['EventTag'] as $k2 => $et) {
-                            if (!isset($tags[$et['tag_id']])) {
-                                unset($events[$k]['EventTag'][$k2]); // tag not exists or is not exportable
-                            } else {
-                                $events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']];
-                            }
-                        }
-                        $events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
-                    }
-                    $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false);
-                }
-                foreach ($events as $key => $event) {
-                    if (empty($event['SharingGroup']['name'])) {
-                        unset($event['SharingGroup']);
-                    }
-
-                    $temp = $event['Event'];
-                    $temp['Org'] = $event['Org'];
-                    $temp['Orgc'] = $event['Orgc'];
-                    unset($temp['user_id']);
-                    $rearrangeObjects = array('GalaxyCluster', 'EventTag', 'SharingGroup');
-                    foreach ($rearrangeObjects as $ro) {
-                        if (isset($event[$ro])) {
-                            $temp[$ro] = $event[$ro];
-                        }
-                    }
-                    $events[$key] = $temp;
-                }
-                if ($this->response->type() === 'application/xml') {
-                    $events = array('Event' => $events);
-                }
-            } else {
-                foreach ($events as $key => $event) {
-                    $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
-                    $events[$key] = $event['Event'];
-                }
-            }
-            return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, ['X-Result-Count' => $absolute_total]);
+            return $this->__indexRestResponse($passedArgs);
         }
 
         $this->paginate['contain']['ThreatLevel'] = [
@@ -859,6 +743,156 @@ class EventsController extends AppController
             $this->layout = false;
             $this->render('ajax/index');
         }
+    }
+
+    /**
+     * @param array $passedArgs
+     * @return CakeResponse
+     */
+    private function __indexRestResponse($passedArgs)
+    {
+        $rules = array();
+        $fieldNames = array_keys($this->Event->getColumnTypes());
+        $directions = array('ASC', 'DESC');
+        if (isset($passedArgs['sort']) && in_array($passedArgs['sort'], $fieldNames)) {
+            if (isset($passedArgs['direction']) && in_array(strtoupper($passedArgs['direction']), $directions)) {
+                $rules['order'] = array('Event.' . $passedArgs['sort'] => $passedArgs['direction']);
+            } else {
+                $rules['order'] = array('Event.' . $passedArgs['sort'] => 'ASC');
+            }
+        }
+        $rules['contain'] = $this->paginate['contain'];
+        if (isset($this->paginate['conditions'])) {
+            $rules['conditions'] = $this->paginate['conditions'];
+        }
+        $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);
+        if ($minimal) {
+            $rules['recursive'] = -1;
+            $rules['fields'] = array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid');
+            $rules['contain'] = array('Orgc.uuid');
+        } else {
+            $rules['contain'][] = 'EventTag';
+            // we fetch organisations later to save memory
+            unset($rules['contain']['Org']);
+            unset($rules['contain']['Orgc']);
+        }
+        $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
+        foreach ($paginationRules as $paginationRule) {
+            if (isset($passedArgs[$paginationRule])) {
+                $rules[$paginationRule] = $passedArgs[$paginationRule];
+            }
+        }
+
+        if (empty($rules['limit'])) {
+            $events = array();
+            $i = 1;
+            $rules['limit'] = 20000;
+            while (true) {
+                $rules['page'] = $i;
+                $temp = $this->Event->find('all', $rules);
+                $resultCount = count($temp);
+                if ($resultCount !== 0) {
+                    // this is faster and memory efficient than array_merge
+                    foreach ($temp as $tempEvent) {
+                        $events[] = $tempEvent;
+                    }
+                }
+                if ($resultCount < $rules['limit']) {
+                    break;
+                }
+                $i++;
+            }
+            unset($temp);
+            $absolute_total = count($events);
+        } else {
+            $counting_rules = $rules;
+            unset($counting_rules['limit']);
+            unset($counting_rules['page']);
+            $absolute_total = $this->Event->find('count', $counting_rules);
+
+            $events = $absolute_total === 0 ? [] : $this->Event->find('all', $rules);
+        }
+
+        if (!$minimal) {
+            // Collect all tag IDs that are events
+            $tagIds = [];
+            foreach (array_column($events, 'EventTag') as $eventTags) {
+                foreach (array_column($eventTags, 'tag_id') as $tagId) {
+                    $tagIds[$tagId] = true;
+                }
+            }
+            // Fetch all org that are in events
+            $orgIds = [];
+            foreach ($events as $event) {
+                $orgIds[$event['Event']['org_id']] = true;
+                $orgIds[$event['Event']['orgc_id']] = true;
+            }
+            if (!empty($orgIds)) {
+                $orgs = $this->Event->Org->find('all', [
+                    'conditions' => ['Org.id' => array_keys($orgIds)],
+                    'recursive' => -1,
+                    'fields' => ['id', 'name', 'uuid'],
+                ]);
+                unset($orgIds);
+                $orgs = array_column(array_column($orgs, 'Org'), null, 'id');
+            } else {
+                $orgs = [];
+            }
+
+            if (!empty($tagIds)) {
+                $tags = $this->Event->EventTag->Tag->find('all', [
+                    'conditions' => [
+                        'Tag.id' => array_keys($tagIds),
+                        'Tag.exportable' => 1,
+                    ],
+                    'recursive' => -1,
+                    'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.is_galaxy'],
+                ]);
+                unset($tagIds);
+                $tags = array_column(array_column($tags, 'Tag'), null, 'id');
+
+                foreach ($events as $k => $event) {
+                    if (empty($event['EventTag'])) {
+                        continue;
+                    }
+                    foreach ($event['EventTag'] as $k2 => $et) {
+                        if (!isset($tags[$et['tag_id']])) {
+                            unset($events[$k]['EventTag'][$k2]); // tag not exists or is not exportable
+                        } else {
+                            $events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']];
+                        }
+                    }
+                    $events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
+                }
+                $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false);
+            }
+            foreach ($events as $key => $event) {
+                if (empty($event['SharingGroup']['name'])) {
+                    unset($event['SharingGroup']);
+                }
+
+                $temp = $event['Event'];
+                $temp['Org'] = $orgs[$temp['org_id']];
+                $temp['Orgc'] = $orgs[$temp['orgc_id']];
+                unset($temp['user_id']);
+                $rearrangeObjects = array('GalaxyCluster', 'EventTag', 'SharingGroup');
+                foreach ($rearrangeObjects as $ro) {
+                    if (isset($event[$ro])) {
+                        $temp[$ro] = $event[$ro];
+                    }
+                }
+                $events[$key] = $temp;
+            }
+            if ($this->response->type() === 'application/xml') {
+                $events = array('Event' => $events);
+            }
+        } else {
+            foreach ($events as $key => $event) {
+                $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
+                $events[$key] = $event['Event'];
+            }
+        }
+        return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, ['X-Result-Count' => $absolute_total]);
     }
 
     private function __indexColumns()
