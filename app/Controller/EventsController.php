@@ -776,6 +776,9 @@ class EventsController extends AppController
             unset($rules['contain']['Org']);
             unset($rules['contain']['Orgc']);
             unset($rules['contain']['SharingGroup']);
+            // Remove user ID from fetched fields
+            unset($fieldNames[array_search('user_id', $fieldNames)]);
+            $rules['fields'] = $fieldNames;
         }
         $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
         foreach ($paginationRules as $paginationRule) {
@@ -889,7 +892,6 @@ class EventsController extends AppController
                 if ($temp['sharing_group_id'] != 0) {
                     $temp['SharingGroup'] = $sharingGroups[$temp['sharing_group_id']];
                 }
-                unset($temp['user_id']);
                 $rearrangeObjects = array('GalaxyCluster', 'EventTag');
                 foreach ($rearrangeObjects as $ro) {
                     if (isset($event[$ro])) {
@@ -898,6 +900,8 @@ class EventsController extends AppController
                 }
                 $events[$key] = $temp;
             }
+            unset($sharingGroups);
+            unset($orgs);
             if ($this->response->type() === 'application/xml') {
                 $events = array('Event' => $events);
             }
@@ -907,8 +911,6 @@ class EventsController extends AppController
                 $events[$key] = $event['Event'];
             }
         }
-        var_dump(memory_get_peak_usage());
-        var_dump(memory_get_peak_usage(true));
         return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, ['X-Result-Count' => $absolute_total]);
     }
 
