@@ -772,9 +772,10 @@ class EventsController extends AppController
             $rules['contain'] = array('Orgc.uuid');
         } else {
             $rules['contain'][] = 'EventTag';
-            // we fetch organisations later to save memory
+            // we fetch organisations and sharging groups later to save memory
             unset($rules['contain']['Org']);
             unset($rules['contain']['Orgc']);
+            unset($rules['contain']['SharingGroup']);
         }
         $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
         foreach ($paginationRules as $paginationRule) {
@@ -821,23 +822,6 @@ class EventsController extends AppController
                     $tagIds[$tagId] = true;
                 }
             }
-            // Fetch all org that are in events
-            $orgIds = [];
-            foreach ($events as $event) {
-                $orgIds[$event['Event']['org_id']] = true;
-                $orgIds[$event['Event']['orgc_id']] = true;
-            }
-            if (!empty($orgIds)) {
-                $orgs = $this->Event->Org->find('all', [
-                    'conditions' => ['Org.id' => array_keys($orgIds)],
-                    'recursive' => -1,
-                    'fields' => ['id', 'name', 'uuid'],
-                ]);
-                unset($orgIds);
-                $orgs = array_column(array_column($orgs, 'Org'), null, 'id');
-            } else {
-                $orgs = [];
-            }
 
             if (!empty($tagIds)) {
                 $tags = $this->Event->EventTag->Tag->find('all', [
@@ -866,16 +850,47 @@ class EventsController extends AppController
                 }
                 $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false);
             }
-            foreach ($events as $key => $event) {
-                if (empty($event['SharingGroup']['name'])) {
-                    unset($event['SharingGroup']);
-                }
 
+            // Fetch all org and sharing groups that are in events
+            $orgIds = [];
+            $sharingGroupIds = [];
+            foreach ($events as $event) {
+                $orgIds[$event['Event']['org_id']] = true;
+                $orgIds[$event['Event']['orgc_id']] = true;
+                $sharingGroupIds[$event['Event']['sharing_group_id']] = true;
+            }
+            if (!empty($orgIds)) {
+                $orgs = $this->Event->Org->find('all', [
+                    'conditions' => ['Org.id' => array_keys($orgIds)],
+                    'recursive' => -1,
+                    'fields' => $this->paginate['contain']['Org']['fields'],
+                ]);
+                unset($orgIds);
+                $orgs = array_column(array_column($orgs, 'Org'), null, 'id');
+            } else {
+                $orgs = [];
+            }
+
+            unset($sharingGroupIds[0]);
+            if (!empty($sharingGroupIds)) {
+                $sharingGroups = $this->Event->SharingGroup->find('all', [
+                    'conditions' => ['SharingGroup.id' => array_keys($sharingGroupIds)],
+                    'recursive' => -1,
+                    'fields' => $this->paginate['contain']['SharingGroup']['fields'],
+                ]);
+                unset($sharingGroupIds);
+                $sharingGroups = array_column(array_column($sharingGroups, 'SharingGroup'), null, 'id');
+            }
+
+            foreach ($events as $key => $event) {
                 $temp = $event['Event'];
                 $temp['Org'] = $orgs[$temp['org_id']];
                 $temp['Orgc'] = $orgs[$temp['orgc_id']];
+                if ($temp['sharing_group_id'] != 0) {
+                    $temp['SharingGroup'] = $sharingGroups[$temp['sharing_group_id']];
+                }
                 unset($temp['user_id']);
-                $rearrangeObjects = array('GalaxyCluster', 'EventTag', 'SharingGroup');
+                $rearrangeObjects = array('GalaxyCluster', 'EventTag');
                 foreach ($rearrangeObjects as $ro) {
                     if (isset($event[$ro])) {
                         $temp[$ro] = $event[$ro];
@@ -892,6 +907,8 @@ class EventsController extends AppController
                 $events[$key] = $event['Event'];
             }
         }
+        var_dump(memory_get_peak_usage());
+        var_dump(memory_get_peak_usage(true));
         return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, ['X-Result-Count' => $absolute_total]);
     }
 
