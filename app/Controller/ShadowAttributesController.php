@@ -16,8 +16,6 @@ class ShadowAttributesController extends AppController
             'maxLimit' => 9999,
         );
 
-    public $helpers = array('Js' => array('Jquery'));
-
     public function beforeFilter()
     {
         parent::beforeFilter();

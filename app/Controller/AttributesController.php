@@ -18,8 +18,6 @@ class AttributesController extends AppController
             'order' => 'Attribute.event_id DESC'
     );
 
-    public $helpers = array('Js' => array('Jquery'));
-
     public function beforeFilter()
     {
         parent::beforeFilter();
