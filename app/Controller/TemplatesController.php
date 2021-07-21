@@ -106,6 +106,7 @@ class TemplatesController extends AppController
         $this->set('template', $template);
         $this->set('tags', $tagArray);
         $this->set('tagInfo', $tags);
+        $this->render('add');
     }
 
     public function view($id)

@@ -1,9 +1,12 @@
 <?php
+
 echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'templates', 'menuItem' => 'add'));
+
+$edit = $this->request->params['action'] === 'edit' ? true : false;
 
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
-        'title' => __('Create Template'),
+        'title' => $edit ? __('Edit Template') : __('Create Template'),
         'fields' => [
             [
                 'field' => 'name',
@@ -14,6 +17,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'label' => __('Tags'),
                 'type' => 'tags',
                 'tags' => $tags,
+                'selectedTags' => isset($currentTags) ? $currentTags : [],
                 'tagInfo' => $tagInfo
             ],
             [

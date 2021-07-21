@@ -28,7 +28,14 @@
     </table>
 </div>
 <script type="text/javascript">
-    var selectedTags = [];
+    var selectedTags = [
+        <?php
+        foreach ($fieldData['selectedTags'] as $k => $t) {
+            if ($k != 0) echo ', ';
+            echo '"' . h($t['Tag']['id']) . '"';
+        }
+        ?>
+    ];
     var allTags = [
         <?php
         foreach ($fieldData['tagInfo'] as $tag) {
@@ -36,5 +43,10 @@
         }
         ?>
     ];
+    $(document).ready(function() {
+        for (var i = 0, len = selectedTags.length; i < len; i++) {
+            appendTemplateTag(selectedTags[i], 'yes');
+        }
+    });
 </script>
 <?php echo $this->Js->writeBuffer();
