@@ -36,3 +36,6 @@
 [submodule "app/files/scripts/misp-opendata"]
 	path = app/files/scripts/misp-opendata
 	url = https://github.com/MISP/misp-opendata
+[submodule "app/files/scripts/misp-stix"]
+	path = app/files/scripts/misp-stix
+	url = git@github.com:misp/misp-stix.git
