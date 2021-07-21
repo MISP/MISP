@@ -23,6 +23,16 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 [
                     'children' => [
                         [
+                            'text' => __('Add'),
+                            'fa-icon' => 'plus',
+                            'url' => $baseurl . '/admin/organisations/add',
+                            'requirement' => $isSiteAdmin,
+                        ]
+                    ]
+                ],
+                [
+                    'children' => [
+                        [
                             'text' => $fullTitle['local']['main'],
                             'active' => $scope === 'local',
                             'url' => $baseurl . '/organisations/index/scope:local'
