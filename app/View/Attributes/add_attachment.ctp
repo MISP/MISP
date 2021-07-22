@@ -98,24 +98,9 @@ echo $this->Form->end();
     }
 ?>
 
-var formZipTypeValues = new Array();
-<?php
-    foreach ($categoryDefinitions as $category => $def) {
-        $types = $def['types'];
-        $alreadySet = false;
-        foreach ($types as $type) {
-            if (in_array($type, $zippedDefinitions) && !$alreadySet) {
-                $alreadySet = true;
-                echo "formZipTypeValues['$category'] = \"true\";\n";
-            }
-        }
-        if (!$alreadySet) {
-            echo "formZipTypeValues['$category'] = \"false\";\n";
-        }
-    }
-?>
+var formZipTypeValues = <?= json_encode($isMalwareSampleCategory) ?>;
 
-$(document).ready(function() {
+$(function() {
     initPopoverContent('Attribute');
     $('#AttributeCategory').change(function() {
         malwareCheckboxSetter("Attribute");
@@ -144,4 +129,3 @@ $(document).ready(function() {
 });
 
 </script>
-<?php echo $this->Js->writeBuffer(); // Write cached scripts

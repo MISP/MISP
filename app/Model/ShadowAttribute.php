@@ -64,18 +64,6 @@ class ShadowAttribute extends AppModel
             'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
     );
 
-    // if these then a category my have upload to be zipped
-
-    public $zippedDefinitions = array(
-            'malware-sample'
-    );
-
-    // if these then a category my have upload
-
-    public $uploadDefinitions = array(
-            'attachment'
-    );
-
     public $order = array("ShadowAttribute.event_id" => "DESC", "ShadowAttribute.type" => "ASC");
 
     public $validate = array(
@@ -395,7 +383,7 @@ class ShadowAttribute extends AppModel
 
     public function typeIsMalware($type)
     {
-        return $this->Attribute->typeIsAttachment($type);
+        return $this->Attribute->typeIsMalware($type);
     }
 
     public function typeIsAttachment($type)

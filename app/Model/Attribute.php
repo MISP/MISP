@@ -64,8 +64,6 @@ class Attribute extends AppModel
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
 
-    private $exclusions = null;
-
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -85,14 +83,10 @@ class Attribute extends AppModel
     // e.g. if the attribute should be correlated with others or not
 
     // if these then a category may have upload to be zipped
-    public $zippedDefinitions = array(
-            'malware-sample'
-    );
+    public const ZIPPED_DEFINITION = ['malware-sample'];
 
     // if these then a category may have upload
-    public $uploadDefinitions = array(
-            'attachment'
-    );
+    public const UPLOAD_DEFINITIONS = ['attachment'];
 
     // skip Correlation for the following types
     public $nonCorrelatingTypes = array(
@@ -1523,12 +1517,12 @@ class Attribute extends AppModel
 
     public function typeIsMalware($type)
     {
-        return in_array($type, $this->zippedDefinitions);
+        return in_array($type, self::ZIPPED_DEFINITION, true);
     }
 
     public function typeIsAttachment($type)
     {
-        return in_array($type, $this->zippedDefinitions) || in_array($type, $this->uploadDefinitions);
+        return in_array($type, self::ZIPPED_DEFINITION, true) || in_array($type, self::UPLOAD_DEFINITIONS, true);
     }
 
     public function getAttachment($attribute, $path_suffix='')

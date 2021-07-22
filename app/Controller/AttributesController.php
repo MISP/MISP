@@ -486,15 +486,29 @@ class AttributesController extends AppController
             foreach ($values['types'] as $type) {
                 if ($this->Attribute->typeIsAttachment($type)) {
                     $selectedCategories[] = $category;
-                    continue 2;
+                    break;
                 }
             }
         }
+
+        // Create list of categories that should be marked as malware sample by default
+        $isMalwareSampleCategory = [];
+        foreach ($selectedCategories as $category) {
+            $possibleMalwareSample = false;
+            foreach ($this->Attribute->categoryDefinitions[$category]['types'] as $type) {
+                if ($this->Attribute->typeIsMalware($type)) {
+                    $possibleMalwareSample = true;
+                    break;
+                }
+            }
+            $isMalwareSampleCategory[$category] = $possibleMalwareSample;
+        }
+
         $categories = $this->_arrayToValuesIndexArray($selectedCategories);
         $this->set('categories', $categories);
 
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-        $this->set('zippedDefinitions', $this->Attribute->zippedDefinitions);
+        $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
         $this->set('advancedExtractionAvailable', $this->Attribute->isAdvancedExtractionAvailable());
 
         // combobox for distribution

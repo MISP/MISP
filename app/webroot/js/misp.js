@@ -3994,10 +3994,9 @@ function formCategoryChanged(id) {
 }
 
 function malwareCheckboxSetter(context) {
-    idDiv = "#" + context + "Category" +'Div';
     var value = $("#" + context + "Category").val();  // get the selected value
     // set the malware checkbox if the category is in the zip types
-    $("#" + context + "Malware").prop('checked', formZipTypeValues[value] == "true");
+    $("#" + context + "Malware").prop('checked', formZipTypeValues[value]);
 }
 
 function feedFormUpdate() {
