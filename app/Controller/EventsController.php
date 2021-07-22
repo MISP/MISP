@@ -715,13 +715,6 @@ class EventsController extends AppController
             $this->redirect(array('controller' => 'events', 'action' => 'view', $events[0]['Event']['id']));
         }
 
-        if ($this->params['ext'] === 'csv') {
-            $events = $this->__attachInfoToEvents(['tags'], $events);
-            App::uses('CsvExport', 'Export');
-            $export = new CsvExport();
-            return $this->RestResponse->viewData($export->eventIndex($events), 'csv');
-        }
-
         list($possibleColumns, $enabledColumns) = $this->__indexColumns();
         $events = $this->__attachInfoToEvents($enabledColumns, $events);
 
@@ -817,6 +810,8 @@ class EventsController extends AppController
             $events = $absolute_total === 0 ? [] : $this->Event->find('all', $rules);
         }
 
+        $isCsvResponse = $this->response->type() === 'text/csv';
+
         if (!$minimal) {
             // Collect all tag IDs that are events
             $tagIds = [];
@@ -851,7 +846,9 @@ class EventsController extends AppController
                     }
                     $events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
                 }
-                $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false);
+                if (!$isCsvResponse) {
+                    $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false);
+                }
             }
 
             // Fetch all org and sharing groups that are in events
@@ -911,6 +908,13 @@ class EventsController extends AppController
                 $events[$key] = $event['Event'];
             }
         }
+
+        if ($isCsvResponse) {
+            App::uses('CsvExport', 'Export');
+            $export = new CsvExport();
+            $events = $export->eventIndex($events);
+        }
+
         return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, ['X-Result-Count' => $absolute_total]);
     }
 
