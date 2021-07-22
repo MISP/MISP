@@ -30,8 +30,6 @@ class Event extends AppModel
 
     public $displayField = 'id';
 
-    public $virtualFields = array();
-
     public $mispVersion = '2.4.0';
 
     public $fieldDescriptions = array(
@@ -90,17 +88,6 @@ class Event extends AppModel
         'xml' => array('xml', 'XmlExport', 'xml'),
         'yara' => array('txt', 'YaraExport', 'yara'),
         'yara-json' => array('json', 'YaraExport', 'json')
-    );
-
-    public $csv_event_context_fields_to_fetch = array(
-        'event_info' => array('object' => false, 'var' => 'info'),
-        'event_member_org' => array('object' => 'Org', 'var' => 'name'),
-        'event_source_org' => array('object' => 'Orgc', 'var' => 'name'),
-        'event_distribution' => array('object' => false, 'var' => 'distribution'),
-        'event_threat_level_id' => array('object' => 'ThreatLevel', 'var' => 'name'),
-        'event_analysis' => array('object' => false, 'var' => 'analysis'),
-        'event_date' => array('object' => false, 'var' => 'date'),
-        'event_tag' => array('object' => 'Tag', 'var' => 'name')
     );
 
     public $validate = array(
