@@ -8,17 +8,17 @@ class StixExport
     );
     protected $__return_format = 'json';
     protected $__scripts_dir = APP . 'files/scripts/';
+    protected $__tmp_dir = APP . 'files/scripts/tmp/';
     protected $__end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
     protected $__return_type = null;
+    protected $__filenames = array();
 
     private $__current_filename = null;
     private $__empty_file = null;
     private $__framing = null;
     private $__stix_file = null;
-    private $__tmp_dir = null;
     private $__tmp_file = null;
     private $__n_attributes = 0;
-    private $__filenames = array();
 
     public $non_restrictive_export = true;
 
@@ -66,7 +66,6 @@ class StixExport
         }
         $framing_cmd = $this->initiate_framing_params();
         $randomFileName = $this->__generateRandomFileName();
-        $this->__tmp_dir = $this->__scripts_dir . 'tmp/';
         $this->__framing = json_decode(shell_exec($framing_cmd), true);
         $this->__stix_file = new File($this->__tmp_dir . $randomFileName . '.' . $this->__return_type);
         unset($randomFileName);
@@ -85,14 +84,14 @@ class StixExport
             $this->__tmp_file->close();
             array_push($this->__filenames, $this->__current_filename);
         }
+        $result = $this->__parse_misp_events();
+        $decoded = json_decode($result, true);
+        if (!isset($decoded['success']) || !$decoded['success']) {
+            $this->__delete_temporary_files();
+            $error = $decoded && !empty($decoded['error']) ? $decoded['error'] : $result;
+            return 'Error while processing your query: ' . $error;
+        }
         foreach ($this->__filenames as $f => $filename) {
-            $result = $this->__parse_misp_events($filename);
-            $decoded = json_decode($result, true);
-            if (!isset($decoded['success']) || !$decoded['success']) {
-                $this->__delete_temporary_files($f);
-                $error = $decoded && !empty($decoded['error']) ? $decoded['error'] : $result;
-                return 'Error while processing your query: ' . $error;
-            }
             $file = new File($this->__tmp_dir . $filename . '.out');
             $stix_event = ($this->__return_type == 'stix') ? $file->read() : substr($file->read(), 1, -1);
             $file->close();
@@ -127,12 +126,10 @@ class StixExport
         return (new RandomTool())->random_str(false, 12);
     }
 
-    private function __delete_temporary_files($index)
+    private function __delete_temporary_files()
     {
         foreach ($this->__filenames as $f => $filename) {
-            if ($index >= $f) {
-                @unlink($this->__tmp_dir . $filename);
-            }
+            @unlink($this->__tmp_dir . $filename);
         }
         $this->__stix_file->close();
         $this->__stix_file->delete();

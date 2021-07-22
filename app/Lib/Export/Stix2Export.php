@@ -14,12 +14,12 @@ class Stix2Export extends StixExport
         return $my_server->getPythonVersion() . ' ' . $framing_file . $this->__return_type . ' ' . escapeshellarg(CakeText::uuid()) . $this->__end_of_cmd;
     }
 
-    protected function __parse_misp_events($filename)
+    protected function __parse_misp_events()
     {
         $scriptFile = $this->__scripts_dir . $this->__script_name;
-        $filename = $this->__scripts_dir . 'tmp/' . $filename;
+        $filenames = implode(' ' . $this->__tmp_dir, $this->__filenames);
         $my_server = ClassRegistry::init('Server');
-        $result = shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename . $this->__end_of_cmd);
+        $result = shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . ' ' . $this->__tmp_dir . $filenames . $this->__end_of_cmd);
         $result = preg_split("/\r\n|\n|\r/", trim($result));
         return end($result);
     }
