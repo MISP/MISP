@@ -1,8 +1,11 @@
 <?php
 
-echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'templates', 'menuItem' => 'add'));
-
 $edit = $this->request->params['action'] === 'edit' ? true : false;
+
+echo $this->element('/genericElements/SideMenu/side_menu', [
+    'menuList' => 'templates',
+    'menuItem' => $edit ? 'edit' : 'add'
+]);
 
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
