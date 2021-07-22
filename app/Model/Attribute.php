@@ -358,7 +358,7 @@ class Attribute extends AppModel
         if (!empty($this->data['Attribute']['type'])) {
             $compositeTypes = $this->getCompositeTypes();
             // explode composite types in value1 and value2
-            if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
+            if (in_array($this->data['Attribute']['type'], $compositeTypes, true)) {
                 $pieces = explode('|', $this->data['Attribute']['value']);
                 if (2 != count($pieces)) {
                     throw new InternalErrorException(__('Composite type, but value not explodable'));
@@ -754,7 +754,7 @@ class Attribute extends AppModel
         return true;
     }
 
-    private $__hexHashLengths = array(
+    private const HEX_HAS_LENGTHS = array(
         'authentihash' => 64,
         'md5' => 32,
         'imphash' => 32,
@@ -812,7 +812,7 @@ class Attribute extends AppModel
                 if ($this->isHashValid($type, $value)) {
                     return true;
                 } else {
-                    $length = $this->__hexHashLengths[$type];
+                    $length = self::HEX_HAS_LENGTHS[$type];
                     return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
                 }
             case 'tlsh':
@@ -885,7 +885,7 @@ class Attribute extends AppModel
             case 'filename|sha3-512':
             case 'filename|authentihash':
                 $parts = explode('|', $type);
-                $length = $this->__hexHashLengths[$parts[1]];
+                $length = self::HEX_HAS_LENGTHS[$parts[1]];
                 if (preg_match("#^.+\|[0-9a-f]{" . $length . "}$#", $value)) {
                     $returnValue = true;
                 } else {
@@ -4251,11 +4251,10 @@ class Attribute extends AppModel
      */
     private function isHashValid($type, $value)
     {
-        if (!isset($this->__hexHashLengths[$type])) {
+        if (!isset(self::HEX_HAS_LENGTHS[$type])) {
             throw new InvalidArgumentException("Invalid hash type '$type'.");
         }
-        $length = $this->__hexHashLengths[$type];
-        return strlen($value) === $length && ctype_xdigit($value);
+        return strlen($value) === self::HEX_HAS_LENGTHS[$type] && ctype_xdigit($value);
     }
 
     /**
