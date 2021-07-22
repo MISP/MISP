@@ -39,3 +39,4 @@
 [submodule "app/files/scripts/misp-stix"]
 	path = app/files/scripts/misp-stix
 	url = git@github.com:misp/misp-stix.git
+	branch = dev
