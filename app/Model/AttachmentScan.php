@@ -77,7 +77,7 @@ class AttachmentScan extends AppModel
 
         $moduleInfo = $this->loadModuleInfo($this->attachmentScanModuleName);
 
-        if (in_array('attachment', $moduleInfo['types'])) {
+        if (in_array('attachment', $moduleInfo['types'], true)) {
             $fakeAttribute = [
                 'uuid' => CakeText::uuid(),
                 'event_id' => 1,
@@ -427,7 +427,7 @@ class AttachmentScan extends AppModel
             if (!isset($object['template_uuid'])) {
                 continue;
             }
-            if (in_array($object['template_uuid'], $this->signatureTemplates)) {
+            if (in_array($object['template_uuid'], $this->signatureTemplates, true)) {
                 $software = null;
                 $signatures = array();
                 foreach ($object['Attribute'] as $attribute) {
@@ -469,7 +469,7 @@ class AttachmentScan extends AppModel
             throw new Exception("Module $moduleName not found.");
         }
 
-        if (!in_array('expansion', $module['meta']['module-type'])) {
+        if (!in_array('expansion', $module['meta']['module-type'], true)) {
             throw new Exception("Module $moduleName must be expansion type.");
         }
 
@@ -521,7 +521,7 @@ class AttachmentScan extends AppModel
      */
     private function checkType($type)
     {
-        if (!in_array($type, [self::TYPE_ATTRIBUTE, self::TYPE_SHADOW_ATTRIBUTE])) {
+        if (!in_array($type, [self::TYPE_ATTRIBUTE, self::TYPE_SHADOW_ATTRIBUTE], true)) {
             throw new InvalidArgumentException("Type must be 'Attribute' or 'ShadowAttribute', '$type' provided.");
         }
     }
