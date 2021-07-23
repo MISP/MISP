@@ -191,7 +191,9 @@ class CRUDComponent extends Component
             }
             if (!empty($params['fields'])) {
                 foreach ($params['fields'] as $field) {
-                    $data[$modelName][$field] = $input[$modelName][$field];
+                    if(isset($input[$modelName][$field])){
+                        $data[$modelName][$field] = $input[$modelName][$field];
+                    }
                 }
             } else {
                 foreach ($input[$modelName] as $field => $fieldData) {

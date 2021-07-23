@@ -16,7 +16,7 @@ class NidsSuricataExport extends NidsExport
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-        $content = 'dns_query; content:"'.$attribute['value'].'"; nocase; pcre: "/(^|[^A-Za-z0-9-\.])' . preg_quote($attribute['value']) . '$/i";';
+        $content = 'dns.query; content:"'.$attribute['value'].'"; nocase; pcre: "/(^|[^A-Za-z0-9-\.])' . preg_quote($attribute['value']) . '$/i";';
         $this->rules[] = sprintf(
             $ruleFormat,
                 ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -35,7 +35,7 @@ class NidsSuricataExport extends NidsExport
         $sid++;
         // also do http requests
         // warning: only suricata compatible
-        $content = 'flow:to_server,established; content: "Host|3a| ' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-\.])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/Hi";';
+        $content = 'flow:to_server,established; content: "Host|3a| ' . $attribute['value'] . '"; fast_pattern; nocase; http.header; pcre: "/(^|[^A-Za-z0-9-\.])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/Hi";';
         $this->rules[] = sprintf(
             $ruleFormat,
                 ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -57,7 +57,7 @@ class NidsSuricataExport extends NidsExport
     {
         $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-        $content = 'dns_query; content:"'.$attribute['value'].'"; nocase; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '$/i";';
+        $content = 'dns.query; content:"'.$attribute['value'].'"; nocase; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '$/i";';
         $this->rules[] = sprintf(
             $ruleFormat,
                 ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -76,7 +76,7 @@ class NidsSuricataExport extends NidsExport
         $sid++;
         // also do http requests,
         // warning: only suricata compatible
-        $content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/Hi";';
+        $content = 'flow:to_server,established; content: "Host|3a|"; nocase; http.header; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http.header; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/Hi";';
         $this->rules[] = sprintf(
             $ruleFormat,
                 ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
@@ -121,9 +121,9 @@ class NidsSuricataExport extends NidsExport
                 $tag = 'tag:session,600,seconds;';
                 if (!array_key_exists('path', $data)) {
                     $data['path'] = NidsExport::replaceIllegalChars($data['host']);
-                    $content = 'flow:to_server,established; content:"' . $data['host'] . '"; nocase; http_header;';
+                    $content = 'flow:to_server,established; content:"' . $data['host'] . '"; nocase; http.header;';
                 } else {
-                    $content = 'flow:to_server,established; content:"' . $data['host'] . '"; fast_pattern; nocase; http_header; content:"' . $data['path'] . '"; nocase; http_uri;';
+                    $content = 'flow:to_server,established; content:"' . $data['host'] . '"; fast_pattern; nocase; http.header; content:"' . $data['path'] . '"; nocase; http.uri;';
                 }
                 break;
 
@@ -136,7 +136,7 @@ class NidsSuricataExport extends NidsExport
                 $suricata_src_port = 'any';
                 $suricata_dst_ip = '$EXTERNAL_NET';
                 $suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
-                $content = 'tls_sni; content:"' . $data['host'] . '";';
+                $content = 'tls.sni; content:"' . $data['host'] . '";';
                 break;
 
             case "ssh":
@@ -182,7 +182,7 @@ class NidsSuricataExport extends NidsExport
                 $suricata_dst_port = 'any';
 
                 $url = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-                $content = 'flow:to_server,established; content:"' . $url . '"; fast_pattern; nocase; http_uri;';
+                $content = 'flow:to_server,established; content:"' . $url . '"; fast_pattern; nocase; http.uri;';
                 $tag = 'tag:session,600,seconds;';
 
                 break;

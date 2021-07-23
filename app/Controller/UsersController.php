@@ -26,8 +26,6 @@ class UsersController extends AppController
         )
     );
 
-    public $helpers = array('Js' => array('Jquery'));
-
     public $toggleableFields = ['disabled', 'autoalert'];
 
     public function beforeFilter()
@@ -2730,30 +2728,7 @@ class UsersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException(__('This endpoint can only be triggered via POST requests.'));
         }
-        $users = $this->User->find('all', [
-            'recursive' => -1,
-            'contain' => ['AuthKey'],
-            'fields' => ['id', 'authkey']
-        ]);
-        $updated = 0;
-        foreach ($users as $user) {
-            if (!empty($user['AuthKey'])) {
-                $currentKeyStart = substr($user['User']['authkey'], 0, 4);
-                $currentKeyEnd = substr($user['User']['authkey'], -4);
-                foreach ($user['AuthKey'] as $authkey) {
-                    if ($authkey['authkey_start'] === $currentKeyStart && $authkey['authkey_end'] === $currentKeyEnd) {
-                        continue 2;
-                    }
-                }
-            }
-            $this->User->AuthKey->create();
-            $this->User->AuthKey->save([
-                'authkey' => $user['User']['authkey'],
-                'expiration' => 0,
-                'user_id' => $user['User']['id']
-            ]);
-            $updated += 1;
-        }
+        $updated = $this->User->updateToAdvancedAuthKeys();
         $message = __('The upgrade process is complete, %s authkey(s) generated.', $updated);
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('User', 'acceptRegistrations', false, $this->response->type(), $message);

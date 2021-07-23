@@ -70,11 +70,11 @@
             <?= __('Additional sync parameters (based on the event index filters)');?>
         </div>
         <div style="display: flex;">
-            <textarea style="width:100%;" placeholder='{"timestamp": "30d"}' type="text" value="" id="urlParams" required="required" data-original-title="" title="" rows="3"
+            <textarea style="width:100%;" placeholder='{"timestamp": "30d"}' type="text" value="" id="urlParams" data-original-title="" title="" rows="3"
             ><?= !empty($ruleUrlParams) ? json_encode(h($ruleUrlParams), JSON_PRETTY_PRINT) : '' ?></textarea>
         </div>
     </div>
-</div>
+</div> 
 
 <?php
 echo $this->element('genericElements/assetLoader', array(
