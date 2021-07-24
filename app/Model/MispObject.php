@@ -289,12 +289,8 @@ class MispObject extends AppModel
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') &&
             Configure::read('Plugin.ZeroMQ_object_notifications_enable') &&
             empty($this->data['Object']['skip_zmq']);
-        $kafkaTopic = Configure::read('Plugin.Kafka_object_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') &&
-            Configure::read('Plugin.Kafka_object_notifications_enable') &&
-            !empty($kafkaTopic) &&
-            empty($this->data['Object']['skip_kafka']);
-        if ($pubToZmq || $pubToKafka) {
+        $pubToKafka = $this->publishToKafka('object');
+        if ($pubToZmq || ($pubToKafka && empty($this->data['Object']['skip_kafka']))) {
             $object = $this->find('first', array(
                 'conditions' => array('Object.id' => $this->id),
                 'recursive' => -1
@@ -309,7 +305,7 @@ class MispObject extends AppModel
             }
             if ($pubToKafka) {
                 $kafkaPubTool = $this->getKafkaPubTool();
-                $kafkaPubTool->publishJson($kafkaTopic, $object, $action);
+                $kafkaPubTool->publishJson($pubToKafka, $object, $action);
             }
         }
         return true;
@@ -319,8 +315,7 @@ class MispObject extends AppModel
     {
         if (!empty($this->data['Object']['id'])) {
             $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_notifications_enable');
-            $kafkaTopic = Configure::read('Plugin.Kafka_object_notifications_topic');
-            $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_object_notifications_enable') && !empty($kafkaTopic);
+            $pubToKafka = $this->publishToKafka('object');
             if ($pubToZmq || $pubToKafka) {
                 $object = $this->find('first', array(
                     'recursive' => -1,
@@ -332,7 +327,7 @@ class MispObject extends AppModel
                 }
                 if ($pubToKafka) {
                     $kafkaPubTool = $this->getKafkaPubTool();
-                    $kafkaPubTool->publishJson($kafkaTopic, $object, 'delete');
+                    $kafkaPubTool->publishJson($pubToKafka, $object, 'delete');
                 }
             }
         }

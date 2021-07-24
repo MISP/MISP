@@ -2536,32 +2536,35 @@ class AppModel extends Model
         }
     }
 
+    /**
+     * @return KafkaPubTool
+     */
     public function getKafkaPubTool()
     {
         if (!$this->loadedKafkaPubTool) {
-            $this->loadKafkaPubTool();
+            App::uses('KafkaPubTool', 'Tools');
+            $kafkaPubTool = new KafkaPubTool();
+            $rdkafkaIni = Configure::read('Plugin.Kafka_rdkafka_config');
+            $kafkaConf = array();
+            if (!empty($rdkafkaIni)) {
+                $kafkaConf = parse_ini_file($rdkafkaIni);
+            }
+            $brokers = Configure::read('Plugin.Kafka_brokers');
+            $kafkaPubTool->initTool($brokers, $kafkaConf);
+            $this->loadedKafkaPubTool = $kafkaPubTool;
         }
         return $this->loadedKafkaPubTool;
     }
 
-    public function loadKafkaPubTool()
+    /**
+     * @param string $topicName
+     * @param array $data
+     * @param false|string $action
+     */
+    public function publishKafkaNotification($topicName, $data, $action = false)
     {
-        App::uses('KafkaPubTool', 'Tools');
-        $kafkaPubTool = new KafkaPubTool();
-        $rdkafkaIni = Configure::read('Plugin.Kafka_rdkafka_config');
-        $kafkaConf = array();
-        if (!empty($rdkafkaIni)) {
-            $kafkaConf = parse_ini_file($rdkafkaIni);
-        }
-        $brokers = Configure::read('Plugin.Kafka_brokers');
-        $kafkaPubTool->initTool($brokers, $kafkaConf);
-        $this->loadedKafkaPubTool = $kafkaPubTool;
-        return true;
-    }
-
-    public function publishKafkaNotification($topicName, $data, $action = false) {
-        $kafkaTopic = Configure::read('Plugin.Kafka_' . $topicName . '_notifications_topic');
-        if (Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_' . $topicName . '_notifications_enable') && !empty($kafkaTopic)) {
+        $kafkaTopic = $this->publishToKafka($topicName);
+        if ($kafkaTopic) {
             $this->getKafkaPubTool()->publishJson($kafkaTopic, $data, $action);
         }
     }
@@ -3246,5 +3249,25 @@ class AppModel extends Model
             $this->Log = ClassRegistry::init('Log');
         }
         return $this->Log;
+    }
+
+    /**
+     * @param string $type
+     * @return string|false False when publishing to Kafka is disabled, string with Kafta topic othervisee
+     */
+    protected function publishToKafka($type)
+    {
+        static $kafkaEnabled;
+
+        if ($kafkaEnabled === null) {
+            $kafkaEnabled = (bool)Configure::read('Plugin.Kafka_enable');
+        }
+
+        if (!$kafkaEnabled || !Configure::read('Plugin.Kafka_' . $type . '_notifications_enable')) {
+            return false;
+        }
+
+        $kafkaTopic = Configure::read('Plugin.Kafka_' . $type . '_notifications_topic');
+        return !empty($kafkaTopic) ? $kafkaTopic : false;
     }
 }
