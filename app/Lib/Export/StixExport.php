@@ -35,7 +35,7 @@ class StixExport
         $converter = new JSONConverterTool();
         $event = $converter->convert($data);
         if ($this->__n_attributes + $attributes_count < $this->__attributes_limit) {
-            ($this->__n_attributes == 0) ? $this->__tmp_file->append($event) : $this->__tmp_file->append(',' . $event);
+            $this->__tmp_file->append($this->__n_attributes == 0 ? $event : ',' . $event);
             $this->__n_attributes += $attributes_count;
             $this->__empty_file = false;
         } else {
