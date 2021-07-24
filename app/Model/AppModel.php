@@ -24,6 +24,7 @@ App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('BlowfishPasswordHasher', 'Controller/Component/Auth');
 App::uses('RandomTool', 'Tools');
+
 class AppModel extends Model
 {
     public $name;
@@ -33,13 +34,8 @@ class AppModel extends Model
      */
     private $loadedPubSubTool;
 
-    public $loadedKafkaPubTool = false;
-
-    public $start = 0;
-
-    public $assetCache = [];
-
-    public $inserted_ids = array();
+    /** @var KafkaPubTool */
+    public $loadedKafkaPubTool;
 
     /** @var null|Redis */
     private static $__redisConnection = null;
@@ -106,14 +102,6 @@ class AppModel extends Model
             'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
         ),
     );
-
-    public function afterSave($created, $options = array())
-    {
-        if ($created) {
-            $this->inserted_ids[] = $this->getInsertID();
-        }
-        return true;
-    }
 
     public function isAcceptedDatabaseError($errorMessage, $dataSource)
     {
