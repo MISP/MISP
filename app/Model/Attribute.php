@@ -13,6 +13,7 @@ App::uses('ComplexTypeTool', 'Tools');
  * @property Event $Event
  * @property AttributeTag $AttributeTag
  * @property Sighting $Sighting
+ * @property MispObject $Object
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
@@ -3853,12 +3854,8 @@ class Attribute extends AppModel
         return true;
     }
 
-    public function deleteAttribute($id, $user, $hard = false)
+    public function deleteAttribute($id, array $user, $hard = false)
     {
-        $this->id = $id;
-        if (!$this->exists()) {
-            return false;
-        }
         $result = $this->fetchAttributes($user, array(
             'conditions' => array('Attribute.id' => $id),
             'flatten' => 1,
@@ -3883,7 +3880,6 @@ class Attribute extends AppModel
                 }
             }
         }
-        $date = new DateTime();
         if ($hard) {
             $save = $this->delete($id);
         } else {
@@ -3895,7 +3891,7 @@ class Attribute extends AppModel
                 $result['Attribute']['to_ids'] = 0;
             }
             $result['Attribute']['deleted'] = 1;
-            $result['Attribute']['timestamp'] = $date->getTimestamp();
+            $result['Attribute']['timestamp'] = time();
             $save = $this->save($result);
             $object_refs = $this->Object->ObjectReference->find('all', array(
                 'conditions' => array(
