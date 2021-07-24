@@ -9,6 +9,7 @@ class StixExport
     protected $__return_format = 'json';
     protected $__scripts_dir = APP . 'files/scripts/';
     protected $__tmp_dir = APP . 'files/scripts/tmp/';
+    protected $__framing_script = APP . 'files/scripts/misp_framing.py';
     protected $__end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
     protected $__return_type = null;
     protected $__filenames = array();
@@ -64,7 +65,7 @@ class StixExport
         } else if ($this->__return_type == 'stix') {
             $this->__return_format = 'xml';
         }
-        $framing_cmd = $this->initiate_framing_params();
+        $framing_cmd = $this->__initiate_framing_params();
         $randomFileName = $this->__generateRandomFileName();
         $this->__framing = json_decode(shell_exec($framing_cmd), true);
         $this->__stix_file = new File($this->__tmp_dir . $randomFileName . '.' . $this->__return_type);
