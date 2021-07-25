@@ -29,16 +29,14 @@ class AppModel extends Model
 {
     public $name;
 
-    /**
-     * @var PubSubTool
-     */
-    private $loadedPubSubTool;
+    /** @var PubSubTool */
+    private static $loadedPubSubTool;
 
     /** @var KafkaPubTool */
-    public $loadedKafkaPubTool;
+    private $loadedKafkaPubTool;
 
     /** @var null|Redis */
-    private static $__redisConnection = null;
+    private static $__redisConnection;
 
     private $__profiler = array();
 
@@ -2568,15 +2566,18 @@ class AppModel extends Model
         }
     }
 
+    /**
+     * @return PubSubTool
+     */
     public function getPubSubTool()
     {
-        if (!$this->loadedPubSubTool) {
+        if (!self::$loadedPubSubTool) {
             App::uses('PubSubTool', 'Tools');
             $pubSubTool = new PubSubTool();
             $pubSubTool->initTool();
-            $this->loadedPubSubTool = $pubSubTool;
+            self::$loadedPubSubTool = $pubSubTool;
         }
-        return $this->loadedPubSubTool;
+        return self::$loadedPubSubTool;
     }
 
     public function getElasticSearchTool()
