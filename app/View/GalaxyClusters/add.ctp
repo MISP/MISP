@@ -5,7 +5,7 @@
     if (isset($forkedClusterMeta)) {
         foreach ($forkedClusterMeta as $key => $value) {
             if (is_array($value)) {
-                $forkedClusterHtmlPreview .= sprintf('<div><b>%s: </b><div data-toggle="json" class="large-left-margin">%s</div></div>', h($key), json_encode($value));
+                $forkedClusterHtmlPreview .= sprintf('<div><b>%s: </b><div data-toggle="json" class="large-left-margin">%s</div></div>', h($key), json_encode(h($value)));
             } else {
                 $forkedClusterHtmlPreview .= sprintf('<div><b>%s: </b>%s</div>', h($key), h($value));
             }
