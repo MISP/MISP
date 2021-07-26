@@ -83,7 +83,7 @@ $config = array(
         'maintenance_message'            => 'Great things are happening! MISP is undergoing maintenance, but will return shortly. You can contact the administration at $email.',
         'welcome_text_top'               => 'Initial Install, please configure',
         'welcome_text_bottom'            => '',
-        'attachments_dir'                => '/var/www/MISP/app/files',
+        'attachments_dir'                => null,
         'download_attachments_on_load'   => true,
         'title_text'                     => 'MISP',
         'terms_download'                 => false,
@@ -133,11 +133,11 @@ $config = array(
     // Uncomment the following to enable client SSL certificate authentication
     /*
     'CertAuth'         => array(
-        
+
         // CA
         'ca'           => array('FIRST.Org'), // List of CAs authorized
         'caId'         => 'O',          // Certificate field used to verify the CA. In this example, the field O (organization) of the client certificate has to equal to 'FIRST.Org' in order to validate the CA
-        
+
         // User/client configuration
         'userModel'    => 'User',       // name of the User class (MISP class) to check if the user exists
         'userModelKey' => 'email',      // User field that will be used for querying. In this example, the field email of the MISP accounts will be used to search if the user exists.
@@ -145,7 +145,7 @@ $config = array(
             'O'            => 'org',
             'emailAddress' => 'email',
         ),
-        
+
         // Synchronization/RestAPI
         'syncUser'     => true,         // should the User be synchronized with an external REST API
         'userDefaults' => array(          // default user attributes, only used when creating new users. By default, new users are "Read only" users (role_id: 6).
@@ -227,7 +227,7 @@ $config = array(
         //'updateUser' => true, // Optional : Will update user on LDAP login to update user fields (e.g. role)
     ),
     */
-        
+
     // Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.
     // Feel free to enable it and report back to us if you run into any issues.
     //
