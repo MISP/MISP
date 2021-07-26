@@ -2241,6 +2241,12 @@ class Server extends AppModel
         }
     }
 
+    /**
+     * @param string $setting
+     * @param mixed $value
+     * @return bool
+     * @throws Exception
+     */
     public function serverSettingsSaveValue($setting, $value)
     {
         // validate if current config.php is intact:
@@ -2310,7 +2316,10 @@ class Server extends AppModel
         if (empty(Configure::read('MISP.server_settings_skip_backup_rotate'))) {
             $randomFilename = $this->generateRandomFileName();
             // To protect us from 2 admin users having a concurrent file write to the config file, solar flares and the bogeyman
-            file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
+            if (file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString) === false) {
+                $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', 0, 'Error: Could not create temp config file.');
+                return false;
+            }
             rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
             chmod(APP . 'Config' . DS . 'config.php', octdec($previous_file_perm));
             $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
@@ -2327,7 +2336,7 @@ class Server extends AppModel
                     'action' => 'error',
                     'user_id' => 0,
                     'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
-               ));
+                ));
                 return false;
             }
         } else {
@@ -6565,7 +6574,6 @@ class Server extends AppModel
                     'description' => __('The password, if set for Redis.'),
                     'value' => '',
                     'errorMessage' => '',
-                    'test' => 'testForEmpty',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
                 ),
