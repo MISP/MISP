@@ -1012,6 +1012,11 @@ class User extends AppModel
         return $hashed;
     }
 
+    /**
+     * @param int $org_id
+     * @return string Authentication key
+     * @throws Exception
+     */
     public function createInitialUser($org_id)
     {
         $authKey = $this->generateAuthKey();
@@ -1029,6 +1034,13 @@ class User extends AppModel
         ));
         $this->validator()->remove('password'); // password is too simple, remove validation
         $this->save($admin);
+
+        // Advanced authkeys are enabled, so create also new key
+        if (Configure::read('Security.advanced_authkeys')) {
+            $this->Authkey = ClassRegistry::init('AuthKey');
+            $authKey = $this->Authkey->createnewkey($this->id);
+        }
+
         return $authKey;
     }
 

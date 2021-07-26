@@ -1,7 +1,17 @@
 <?php
-class UserInitShell extends AppShell {
+
+/**
+ * @property Server $Server
+ * @property Role $Role
+ * @property User $User
+ * @property Organisation $Organisation
+ */
+class UserInitShell extends AppShell
+{
 	public $uses = array('User', 'Role', 'Organisation', 'Server', 'ConnectionManager');
-	public function main() {
+
+	public function main()
+    {
 		if (!Configure::read('Security.salt')) {
 			$this->loadModel('Server');
 			$this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
@@ -11,24 +21,24 @@ class UserInitShell extends AppShell {
 		$this->Role->Behaviors->unload('SysLogLogable.SysLogLogable');
 		$this->User->Behaviors->unload('SysLogLogable.SysLogLogable');
 		// populate the DB with the first role (site admin) if it's empty
-		if ($this->Role->find('count') == 0 ) {
+		if ($this->Role->find('count') == 0) {
 			$siteAdmin = array('Role' => array(
-					'id' => 1,
-					'name' => 'Site Admin',
-					'permission' => 3,
-					'perm_add' => 1,
-					'perm_modify' => 1,
-					'perm_modify_org' => 1,
-					'perm_publish' => 1,
-					'perm_sync' => 1,
-					'perm_admin' => 1,
-					'perm_audit' => 1,
-					'perm_auth' => 1,
-					'perm_site_admin' => 1,
-					'perm_regexp_access' => 1,
-					'perm_sharing_group' => 1,
-					'perm_tagger' => 1,
-					'perm_template' => 1
+                'id' => 1,
+                'name' => 'Site Admin',
+                'permission' => 3,
+                'perm_add' => 1,
+                'perm_modify' => 1,
+                'perm_modify_org' => 1,
+                'perm_publish' => 1,
+                'perm_sync' => 1,
+                'perm_admin' => 1,
+                'perm_audit' => 1,
+                'perm_auth' => 1,
+                'perm_site_admin' => 1,
+                'perm_regexp_access' => 1,
+                'perm_sharing_group' => 1,
+                'perm_tagger' => 1,
+                'perm_template' => 1
 			));
 			$this->Role->save($siteAdmin);
 			// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
@@ -39,15 +49,15 @@ class UserInitShell extends AppShell {
 		}
 
 		if ($this->Organisation->find('count', array('conditions' => array('Organisation.local' => true))) == 0) {
-			$date = date('Y-m-d H:i:s');
+            $date = date('Y-m-d H:i:s');
 			$org = array('Organisation' => array(
-					'id' => 1,
-					'name' => !empty(Configure::read('MISP.org')) ? Configure::read('MISP.org') : 'ADMIN',
-					'description' => 'Automatically generated admin organisation',
-					'type' => 'ADMIN',
-					'date_created' => $date,
-					'uuid' => CakeText::uuid(),
-					'local' => 1
+                'id' => 1,
+                'name' => !empty(Configure::read('MISP.org')) ? Configure::read('MISP.org') : 'ADMIN',
+                'description' => 'Automatically generated admin organisation',
+                'type' => 'ADMIN',
+                'date_created' => $date,
+                'uuid' => CakeText::uuid(),
+                'local' => 1
 			));
 			$this->Organisation->save($org);
 			// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
@@ -66,7 +76,7 @@ class UserInitShell extends AppShell {
 		}
 
 		// populate the DB with the first user if it's empty
-		if ($this->User->find('count') == 0 ) {
+		if ($this->User->find('count') == 0) {
 			$auth_key = $this->User->createInitialUser($org_id);
 			if (!empty($auth_key)) {
 				echo $auth_key . PHP_EOL;
