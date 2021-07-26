@@ -350,7 +350,9 @@ class AdminShell extends AppShell
             if ($result === true) {
                 echo 'Setting "' . $setting_name . '" changed to ' . $value . PHP_EOL;
             } else {
-                echo $result;
+                $message = __("The setting change was rejected. MISP considers the requested setting value as invalid and would lead to the following error:\n\n\"%s\"\n\nIf you still want to force this change, please supply the --force argument.\n", $result);
+                Shell::error(__('Setting change rejected.'), $message);
+                die();
             }
         }
         echo PHP_EOL;
@@ -490,7 +492,7 @@ class AdminShell extends AppShell
     {
         $this->ConfigLoad->execute();
         $parser = parent::getOptionParser();
-        
+
         $parser->addSubcommand('updateJSON', array(
             'help' => __('Update the JSON definitions of MISP.'),
             'parser' => array(
