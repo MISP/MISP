@@ -6574,7 +6574,6 @@ class Server extends AppModel
                     'description' => __('The password, if set for Redis.'),
                     'value' => '',
                     'errorMessage' => '',
-                    'test' => 'testForEmpty',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
                 ),
