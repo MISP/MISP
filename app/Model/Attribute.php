@@ -45,10 +45,6 @@ class Attribute extends AppModel
             'distribution' => array('desc' => 'Describes who will have access to the attribute.')
     );
 
-    public $defaultFields = array(
-        'id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'to_ids', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'comment', 'deleted', 'disable_correlation', 'first_seen', 'last_seen'
-    );
-
     public $editableFields = array('timestamp', 'category', 'value', 'value1', 'value2', 'to_ids', 'comment', 'distribution', 'sharing_group_id', 'deleted', 'disable_correlation', 'first_seen', 'last_seen');
 
     public $distributionDescriptions = array(
