@@ -63,12 +63,6 @@ class GalaxyClusterRelation extends AppModel
         'GalaxyClusterRelationTag' => array('dependent' => true),
     );
 
-    public function beforeValidate($options = array())
-    {
-        parent::beforeValidate();
-        return true;
-    }
-
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $result) {

@@ -11,21 +11,12 @@ class GalaxyElement extends AppModel
             'Containable',
     );
 
-    public $validate = array(
-    );
-
     public $belongsTo = array(
             'GalaxyCluster' => array(
                 'className' => 'GalaxyCluster',
                 'foreignKey' => 'galaxy_cluster_id',
             )
     );
-
-    public function beforeValidate($options = array())
-    {
-        parent::beforeValidate();
-        return true;
-    }
 
     public function updateElements($oldClusterId, $newClusterId, $elements, $delete=true)
     {
