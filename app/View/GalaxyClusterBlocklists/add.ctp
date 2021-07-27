@@ -13,6 +13,7 @@
                 array(
                     'disabled' => $action != 'add' ? 'disabled' : '',
                     'field' => 'uuids',
+                    'class' => 'span6',
                     'label' => __('Cluster UUID'),
                     'type' => 'textarea',
                     'default' => isset($blockEntry['GalaxyClusterBlocklist']['cluster_uuid']) ? $blockEntry['GalaxyClusterBlocklist']['cluster_uuid'] : '',
@@ -24,18 +25,21 @@
                 array(
                     'field' => 'cluster_orgc',
                     'label' => __('Creating organisation'),
+                    'class' => 'span6',
                     'type' => 'text',
                     'default' => isset($blockEntry['GalaxyClusterBlocklist']['cluster_orgc']) ? $blockEntry['GalaxyClusterBlocklist']['cluster_orgc'] : ''
                 ),
                 array(
                     'field' => 'cluster_info',
                     'label' => __('Cluster value'),
+                    'class' => 'span6',
                     'type' => 'text',
                     'default' => isset($blockEntry['GalaxyClusterBlocklist']['cluster_info']) ? $blockEntry['GalaxyClusterBlocklist']['cluster_info'] : ''
                 ),
                 array(
                     'field' => 'comment',
                     'label' => __('Comment'),
+                    'class' => 'span6',
                     'type' => 'text',
                     'default' => isset($blockEntry['GalaxyClusterBlocklist']['comment']) ? $blockEntry['GalaxyClusterBlocklist']['comment'] : ''
                 ),

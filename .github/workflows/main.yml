@@ -146,7 +146,7 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.host_org_id" 1'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.email" "info@admin.test"'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.disable_emailing" false'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "debug" true'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting --force "debug" true'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_port" 6379'
@@ -213,13 +213,16 @@ jobs:
               cat tests/keys.py
               popd
 
-      - name: Run tests
+      - name: Run PHP tests
         run: |
-              source $HOME/.poetry/env # enable poetry binary
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
               ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
               ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
               ./app/Vendor/bin/phpunit app/Test/CidrToolTest.php
+
+      - name: Run tests
+        run: |
+              source $HOME/.poetry/env # enable poetry binary
 
               # Ensure the perms of config files
               sudo chown -R $USER:www-data `pwd`/app/Config

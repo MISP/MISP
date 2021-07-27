@@ -978,13 +978,6 @@ class ServersController extends AppController
         $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed'));
         $proxyErrors = array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed'));
         $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
-        $stixOperational = array(0 => __('Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.'), 1 => __('OK'));
-        $stixVersion = array(0 => __('Incorrect STIX version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $stix2Version = array(0 => __('Incorrect STIX2 version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $cyboxVersion = array(0 => __('Incorrect CyBox version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $mixboxVersion = array(0 => __('Incorrect mixbox version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $maecVersion = array(0 => __('Incorrect maec version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $pymispVersion = array(0 => __('Incorrect PyMISP version installed, found $current, expecting $expected'), 1 => __('OK'));
         $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
         $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
 
@@ -1104,7 +1097,7 @@ class ServersController extends AppController
             }
 
             // check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
-            $stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion, $mixboxVersion, $maecVersion, $stix2Version, $pymispVersion);
+            $stix = $this->Server->stixDiagnostics($diagnostic_errors);
 
             $yaraStatus = $this->Server->yaraDiagnostics($diagnostic_errors);
 
@@ -1142,7 +1135,7 @@ class ServersController extends AppController
 
             $securityAudit = (new SecurityAudit())->run($this->Server);
 
-            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan', 'securityAudit');
+            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan', 'securityAudit');
         } else {
             $view = [];
         }
@@ -1211,6 +1204,7 @@ class ServersController extends AppController
         $this->set('pythonmin', $this->pythonmin);
         $this->set('pythonrec', $this->pythonrec);
         $this->set('pymisp', $this->pymisp);
+        $this->set('title_for_layout', __('Diagnostics'));
     }
 
     public function startWorker($type)
@@ -1805,14 +1799,19 @@ class ServersController extends AppController
         $versionArray = $this->Server->checkMISPVersion();
         $response = [
             'version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'],
-            'perm_sync' => $this->userRole['perm_sync'],
-            'perm_sighting' => $this->userRole['perm_sighting'],
-            'perm_galaxy_editor' => $this->userRole['perm_galaxy_editor'],
+            'pymisp_recommended_version' => $this->pyMispVersion,
+            'perm_sync' => (bool) $this->userRole['perm_sync'],
+            'perm_sighting' => (bool) $this->userRole['perm_sighting'],
+            'perm_galaxy_editor' => (bool) $this->userRole['perm_galaxy_editor'],
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
+            'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
         ];
-        return $this->RestResponse->viewData($response, $this->response->type());
+        return $this->RestResponse->viewData($response, 'json');
     }
 
+    /**
+     * @deprecated Use field `pymisp_recommended_version` from getVersion instead
+     */
     public function getPyMISPVersion()
     {
         $this->set('response', array('version' => $this->pyMispVersion));
@@ -1863,9 +1862,6 @@ class ServersController extends AppController
 
     public function ondemandAction()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('You are not authorised to do that.');
-        }
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $actions = $this->Server->actions_description;
         $default_fields = array(

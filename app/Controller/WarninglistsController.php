@@ -351,7 +351,7 @@ class WarninglistsController extends AppController
         if ($this->_isRest()) {
             $warninglist['Warninglist']['WarninglistEntry'] = $warninglist['WarninglistEntry'];
             $warninglist['Warninglist']['WarninglistType'] = $warninglist['WarninglistType'];
-            return $this->RestResponse->viewData($warninglist, $this->response->type());
+            return $this->RestResponse->viewData(['Warninglist' => $warninglist['Warninglist']], $this->response->type());
         }
 
         $this->set('warninglist', $warninglist);

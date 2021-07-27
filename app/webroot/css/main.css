@@ -221,10 +221,11 @@ small.form-field-description::before {
 small.form-field-description {
     display: block;
     text-align: justify;
-    margin-left: 0em;
+    margin-left: 0;
     margin-bottom: 1em;
     line-height: 150%;
     width: 520px;
+    font-size: 95%;
 }
 
 div.input {

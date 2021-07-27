@@ -2,7 +2,7 @@
     echo '<div class="index">';
     echo $this->element('/genericElements/IndexTable/index_table', array(
         'data' => array(
-            'data' => $feeds,
+            'data' => $data,
             'primary_id_path' => 'Feed.id',
             'top_bar' => array(
                 'children' => array(
@@ -67,7 +67,7 @@
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
                         'data' => '',
-                        'searchKey' => 'value'
+                        'searchKey' => 'quickFilter'
                     )
                 )
             ),

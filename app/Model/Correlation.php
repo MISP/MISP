@@ -113,7 +113,7 @@ class Correlation extends AppModel
                 'Attribute.value1' => $value,
                 'AND' => [
                     'Attribute.value2' => $value,
-                    'NOT' => ['Attribute.type' => $this->Attribute->primaryOnlyCorrelatingTypes]
+                    'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
                 ]
             ],
             'NOT' => [
@@ -290,7 +290,7 @@ class Correlation extends AppModel
         // generate additional correlating attribute list based on the advanced correlations
         $extraConditions = $this->__buildAdvancedCorrelationConditions($a);
         $correlatingValues = array($a['value1']);
-        if (!empty($a['value2']) && !in_array($a['type'], $this->Attribute->primaryOnlyCorrelatingTypes, true)) {
+        if (!empty($a['value2']) && !in_array($a['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
             $correlatingValues[] = $a['value2'];
         }
 
@@ -301,7 +301,7 @@ class Correlation extends AppModel
                     'Attribute.value1' => $cV,
                     'AND' => [
                         'Attribute.value2' => $cV,
-                        'NOT' => ['Attribute.type' => $this->Attribute->primaryOnlyCorrelatingTypes]
+                        'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
                     ]
                 ],
                 'NOT' => [

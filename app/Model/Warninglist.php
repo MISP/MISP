@@ -251,11 +251,13 @@ class Warninglist extends AppModel
     public function quickDelete($id)
     {
         $result = $this->WarninglistEntry->deleteAll(
-            array('WarninglistEntry.warninglist_id' => $id)
+            array('WarninglistEntry.warninglist_id' => $id),
+            false
         );
         if ($result) {
             $result = $this->WarninglistType->deleteAll(
-                array('WarninglistType.warninglist_id' => $id)
+                array('WarninglistType.warninglist_id' => $id),
+                false
             );
         }
         if ($result) {
@@ -283,7 +285,9 @@ class Warninglist extends AppModel
         }
 
         $id = $this->__updateList($list, $existingWarninglist ? $existingWarninglist['Warninglist']: [], false);
-        $this->regenerateWarninglistCaches($id);
+        if (is_int($id)) {
+            $this->regenerateWarninglistCaches($id);
+        }
         return $id;
     }
 
@@ -318,44 +322,44 @@ class Warninglist extends AppModel
         }
 
         $db = $this->getDataSource();
-        $values = array();
         $warninglistId = (int)$this->id;
+        $result = true;
 
         $keys = array_keys($list['list']);
         if ($keys === array_keys($keys)) {
-            foreach ($list['list'] as $value) {
-                if (!empty($value)) {
-                    $values[] = ['value' => $value, 'warninglist_id' => $warninglistId];
+            foreach (array_chunk($list['list'], 500) as $chunk) {
+                $valuesToInsert = [];
+                foreach ($chunk as $value) {
+                    if (!empty($value)) {
+                        $valuesToInsert[] = ['value' => $value, 'warninglist_id' => $warninglistId];
+                    }
                 }
-            }
-            $result = true;
-            foreach (array_chunk($values, 500) as $chunk) {
-                $result = $db->insertMulti('warninglist_entries', ['value', 'warninglist_id'], $chunk);
+                $result = $db->insertMulti('warninglist_entries', ['value', 'warninglist_id'], $valuesToInsert);
             }
         } else { // import warninglist with comments
-            foreach ($list['list'] as $value => $comment) {
-                if (!empty($value)) {
-                    $values[] = ['value' => $value, 'comment' => $comment, 'warninglist_id' => $warninglistId];
+            foreach (array_chunk($list['list'], 500, true) as $chunk) {
+                $valuesToInsert = [];
+                foreach ($chunk as $value => $comment) {
+                    if (!empty($value)) {
+                        $valuesToInsert[] = ['value' => $value, 'comment' => $comment, 'warninglist_id' => $warninglistId];
+                    }
                 }
-            }
-            $result = true;
-            foreach (array_chunk($values, 500) as $chunk) {
-                $result = $db->insertMulti('warninglist_entries', ['value', 'comment', 'warninglist_id'], $chunk);
+                $result = $db->insertMulti('warninglist_entries', ['value', 'comment', 'warninglist_id'], $valuesToInsert);
             }
         }
         if (!$result) {
             return 'Could not insert values.';
         }
-        if (!empty($list['matching_attributes'])) {
-            $values = array();
-            foreach ($list['matching_attributes'] as $type) {
-                $values[] = array('type' => $type, 'warninglist_id' => $warninglistId);
-            }
-            $this->WarninglistType->saveMany($values);
-        } else {
-            $this->WarninglistType->create();
-            $this->WarninglistType->save(array('WarninglistType' => array('type' => 'ALL', 'warninglist_id' => $warninglistId)));
+
+        if (empty($list['matching_attributes'])) {
+            $list['matching_attributes'] = ['ALL'];
         }
+        $values = array();
+        foreach ($list['matching_attributes'] as $type) {
+            $values[] = array('type' => $type, 'warninglist_id' => $warninglistId);
+        }
+        $this->WarninglistType->saveMany($values);
+
         return $warninglistId;
     }
 

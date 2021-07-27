@@ -1964,38 +1964,45 @@ class GalaxyCluster extends AppModel
     private function getClusterIdListBasedOnPullTechnique(array $user, $technique, array $server)
     {
         $this->Server = ClassRegistry::init('Server');
-        if ("update" === $technique) {
-            $localClustersToUpdate = $this->getElligibleLocalClustersToUpdate($user);
-            $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket=null, $onlyUpdateLocalCluster=true, $elligibleClusters=$localClustersToUpdate);
-        } elseif ("pull_relevant_clusters" === $technique) {
-            // Fetch all local custom cluster tags then fetch their corresponding clusters on the remote end
-            $tagNames = $this->Tag->find('column', array(
-                'conditions' => array(
-                    'Tag.is_custom_galaxy' => true
-                ),
-                'fields' => array('Tag.name'),
-            ));
-            $clusterUUIDs = array();
-            $re = '/^misp-galaxy:[^:="]+="(?<uuid>[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})"$/m';
-            foreach ($tagNames as $tagName) {
-                preg_match($re, $tagName, $matches);
-                if (isset($matches['uuid'])) {
-                    $clusterUUIDs[$matches['uuid']] = true;
+        try {
+            if ("update" === $technique) {
+                $localClustersToUpdate = $this->getElligibleLocalClustersToUpdate($user);
+                $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket = null, $onlyUpdateLocalCluster = true, $elligibleClusters = $localClustersToUpdate);
+            } elseif ("pull_relevant_clusters" === $technique) {
+                // Fetch all local custom cluster tags then fetch their corresponding clusters on the remote end
+                $tagNames = $this->Tag->find('column', array(
+                    'conditions' => array(
+                        'Tag.is_custom_galaxy' => true
+                    ),
+                    'fields' => array('Tag.name'),
+                ));
+                $clusterUUIDs = array();
+                $re = '/^misp-galaxy:[^:="]+="(?<uuid>[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})"$/m';
+                foreach ($tagNames as $tagName) {
+                    preg_match($re, $tagName, $matches);
+                    if (isset($matches['uuid'])) {
+                        $clusterUUIDs[$matches['uuid']] = true;
+                    }
                 }
+                $localClustersToUpdate = $this->getElligibleLocalClustersToUpdate($user);
+                $conditions = array('uuid' => array_keys($clusterUUIDs));
+                $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket = null, $onlyUpdateLocalCluster = false, $elligibleClusters = $localClustersToUpdate, $conditions = $conditions);
+            } elseif (is_numeric($technique)) {
+                $conditions = array('eventid' => $technique);
+                $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket = null, $onlyUpdateLocalCluster = false, $elligibleClusters = array(), $conditions = $conditions);
+            } else {
+                $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket = null, $onlyUpdateLocalCluster = false);
             }
-            $localClustersToUpdate = $this->getElligibleLocalClustersToUpdate($user);
-            $conditions = array('uuid' => array_keys($clusterUUIDs));
-            $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket=null, $onlyUpdateLocalCluster=false, $elligibleClusters=$localClustersToUpdate, $conditions=$conditions);
-        } elseif (is_numeric($technique)) {
-            $conditions = array('eventid' => $technique);
-            $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket=null, $onlyUpdateLocalCluster=false, $elligibleClusters=array(), $conditions=$conditions);
-        } else {
-            $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket=null, $onlyUpdateLocalCluster=false);
-        }
-        if ($clusterIds === 403) {
-            return array('error' => array(1, null));
-        } elseif (is_string($clusterIds)) {
-            return array('error' => array(2, $clusterIds));
+        } catch (HttpSocketHttpException $e) {
+            if ($e->getCode() === 403) {
+                return array('error' => array(1, null));
+            } else {
+                $this->logException("Could not get eligible cluster IDs from server {$server['Server']['id']} for pull.", $e);
+                return array('error' => array(2, $e->getMessage()));
+            }
+        } catch (Exception $e) {
+            $this->logException("Could not get eligible cluster IDs from server {$server['Server']['id']} for pull.", $e);
+            return array('error' => array(2, $e->getMessage()));
         }
         return $clusterIds;
     }
@@ -2064,7 +2071,7 @@ class GalaxyCluster extends AppModel
         return $cluster;
     }
 
-    public function attachClusterToRelations($user, $cluster)
+    public function attachClusterToRelations($user, $cluster, $both=true)
     {
         if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
             foreach ($cluster['GalaxyCluster']['GalaxyClusterRelation'] as $k => $relation) {
@@ -2075,12 +2082,14 @@ class GalaxyCluster extends AppModel
                 }
             }
         }
-        if (!empty($cluster['GalaxyCluster']['TargetingClusterRelation'])) {
-            foreach ($cluster['GalaxyCluster']['TargetingClusterRelation'] as $k => $relation) {
-                $conditions = array('conditions' => array('GalaxyCluster.uuid' => $relation['galaxy_cluster_uuid']));
-                $relatedCluster = $this->fetchGalaxyClusters($user, $conditions, false);
-                if (!empty($relatedCluster)) {
-                    $cluster['GalaxyCluster']['TargetingClusterRelation'][$k]['GalaxyCluster'] = $relatedCluster[0]['GalaxyCluster'];
+        if ($both) {
+            if (!empty($cluster['GalaxyCluster']['TargetingClusterRelation'])) {
+                foreach ($cluster['GalaxyCluster']['TargetingClusterRelation'] as $k => $relation) {
+                    $conditions = array('conditions' => array('GalaxyCluster.uuid' => $relation['galaxy_cluster_uuid']));
+                    $relatedCluster = $this->fetchGalaxyClusters($user, $conditions, false);
+                    if (!empty($relatedCluster)) {
+                        $cluster['GalaxyCluster']['TargetingClusterRelation'][$k]['GalaxyCluster'] = $relatedCluster[0]['GalaxyCluster'];
+                    }
                 }
             }
         }

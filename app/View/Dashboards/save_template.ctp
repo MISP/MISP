@@ -26,7 +26,8 @@
                     'class' => 'input span6',
                     'div' => 'input clear',
                     'label' => __('Restrict to organisation'),
-                    'requirements' => $isSiteAdmin
+                    'requirements' => $isSiteAdmin,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'restrict_to_role_id',
@@ -34,7 +35,8 @@
                     'class' => 'input span6',
                     'div' => 'input clear',
                     'label' => __('Restrict to role'),
-                    'requirements' => $isSiteAdmin
+                    'requirements' => $isSiteAdmin,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'restrict_to_permission_flag',
@@ -42,7 +44,8 @@
                     'class' => 'input span6',
                     'div' => 'input clear',
                     'label' => __('Restrict to role permission flag'),
-                    'requirements' => $isSiteAdmin
+                    'requirements' => $isSiteAdmin,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'selectable',

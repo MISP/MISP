@@ -106,24 +106,6 @@ class AppModel extends Model
             'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
         ),
     );
-    public $actions_description = array(
-        'verifyGnuPGkeys' => array(
-            'title' => 'Verify GnuPG keys',
-            'description' => "Run a full validation of all GnuPG keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results.",
-            'url' => '/users/verifyGPG/'
-        ),
-        'databaseCleanupScripts' => array(
-            'title' => 'Database Cleanup Scripts',
-            'description' => 'If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.',
-            'url' => '/logs/pruneUpdateLogs/'
-        ),
-        'releaseUpdateLock' => array(
-            'title' => 'Release update lock',
-            'description' => 'If your your database is locked and is not updating, unlock it here.',
-            'ignore_disabled' => true,
-            'url' => '/servers/releaseUpdateLock/'
-        )
-    );
 
     public function afterSave($created, $options = array())
     {
@@ -2947,11 +2929,6 @@ class AppModel extends Model
         return APP . 'files';
     }
 
-    public function getDefaultTmp_dir()
-    {
-        return sys_get_temp_dir();
-    }
-
     private function __bumpReferences()
     {
         $this->Event = ClassRegistry::init('Event');
@@ -3106,12 +3083,12 @@ class AppModel extends Model
      * @param $query
      * @param array $results
      * @return array
-     * @throws Exception
+     * @throws InvalidArgumentException
      */
     protected function _findColumn($state, $query, $results = array())
     {
         if ($state === 'before') {
-            if (count($query['fields']) === 1) {
+            if (isset($query['fields']) && count($query['fields']) === 1) {
                 if (strpos($query['fields'][0], '.') === false) {
                     $query['fields'][0] = $this->alias . '.' . $query['fields'][0];
                 }
@@ -3122,8 +3099,10 @@ class AppModel extends Model
                 } else {
                     $query['fields'] = array($query['fields'][0]);
                 }
+            } else if (!isset($query['fields'])) {
+                throw new InvalidArgumentException("This method requires `fields` option defined.");
             } else {
-                throw new Exception("Invalid number of column, expected one, " . count($query['fields']) . " given");
+                throw new InvalidArgumentException("Invalid number of column, expected one, " . count($query['fields']) . " given");
             }
 
             if (!isset($query['recursive'])) {
