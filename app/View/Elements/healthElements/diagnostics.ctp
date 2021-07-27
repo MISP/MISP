@@ -8,7 +8,7 @@
 ?>
     <h3><?php echo __('MISP version');?></h3>
     <p><?php echo __('Every version of MISP includes a json file with the current version. This is checked against the latest tag on github, if there is a version mismatch the tool will warn you about it. Make sure that you update MISP regularly.');?></p>
-    <div style="background-color:#f7f7f9;width:100%;">
+    <div style="width:100%;">
         <span><?php echo __('Currently installed version…');?>
             <?php
                 $upToDate = isset($version['upToDate']) ? $version['upToDate'] : null;
@@ -64,7 +64,7 @@
     <h3><?php echo __('Submodules version');?>
         <it id="refreshSubmoduleStatus" class="fas fa-sync useCursorPointer" style="font-size: small; margin-left: 5px;" title="<?php echo __('Refresh submodules version.'); ?>"></it>
     </h3>
-    <div id="divSubmoduleVersions" style="background-color:#f7f7f9;"></div>
+    <div id="divSubmoduleVersions" ></div>
     <span id="updateAllJson" class="btn btn-inverse" title="<?php echo __('Load all JSON into the database.'); ?>">
         <it class="fas fa-file-upload"></it> <?php echo __("Load JSON into database"); ?>
     </span>
