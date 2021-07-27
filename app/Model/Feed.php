@@ -61,7 +61,7 @@ class Feed extends AppModel
         )
     );
 
-    public const DEFAULT_FEED_PULL_RULES = [
+    const DEFAULT_FEED_PULL_RULES = [
         'tags' => [
             "OR" => [],
             "NOT" => [],
