@@ -3947,7 +3947,7 @@ class EventsController extends AppController
                         $counter++;
                     }
                     if (!$sa['deleted']) {
-                        $this->Event->ShadowAttribute->__sendProposalAlertEmail($event['Event']['id']);
+                        $this->Event->ShadowAttribute->sendProposalAlertEmail($event['Event']['id']);
                     }
                 }
             }
