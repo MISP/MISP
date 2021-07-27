@@ -125,7 +125,7 @@ class Attribute extends AppModel
         'hostname|port',
     );
 
-    public $captureFields = array(
+    const CAPTURE_FIELDS = array(
         'event_id',
         'category',
         'type',
@@ -2885,7 +2885,7 @@ class Attribute extends AppModel
             $attribute['distribution'] = $this->defaultDistribution();
         }
         $params = array(
-            'fieldList' => $this->captureFields
+            'fieldList' => self::CAPTURE_FIELDS,
         );
         if (!empty($parentEvent)) {
             $params['parentEvent'] = $parentEvent;
