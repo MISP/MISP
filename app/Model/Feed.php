@@ -381,7 +381,7 @@ class Feed extends AppModel
         $redisResultToAttributePosition = [];
 
         foreach ($attributes as $k => $attribute) {
-            if (in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes, true)) {
+            if (in_array($attribute['type'], Attribute::NON_CORRELATING_TYPES, true)) {
                 continue; // attribute type is not correlateable
             }
             if (!empty($attribute['disable_correlation'])) {
@@ -1313,7 +1313,7 @@ class Feed extends AppModel
                 $this->Attribute = ClassRegistry::init('Attribute');
                 $pipe = $redis->multi(Redis::PIPELINE);
                 foreach ($event['Event']['Attribute'] as $attribute) {
-                    if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
+                    if (!in_array($attribute['type'], Attribute::NON_CORRELATING_TYPES, true)) {
                         if (in_array($attribute['type'], $this->Attribute->getCompositeTypes())) {
                             $value = explode('|', $attribute['value']);
                             if (in_array($attribute['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
