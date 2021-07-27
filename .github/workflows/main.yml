@@ -213,13 +213,16 @@ jobs:
               cat tests/keys.py
               popd
 
-      - name: Run tests
+      - name: Run PHP tests
         run: |
-              source $HOME/.poetry/env # enable poetry binary
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
               ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
               ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
               ./app/Vendor/bin/phpunit app/Test/CidrToolTest.php
+
+      - name: Run tests
+        run: |
+              source $HOME/.poetry/env # enable poetry binary
 
               # Ensure the perms of config files
               sudo chown -R $USER:www-data `pwd`/app/Config
