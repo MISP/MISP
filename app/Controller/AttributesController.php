@@ -790,7 +790,7 @@ class AttributesController extends AppController
                 }
             }
             if ($existingAttribute['Attribute']['object_id']) {
-                $result = $this->Attribute->save($this->request->data, array('fieldList' => $this->Attribute->editableFields));
+                $result = $this->Attribute->save($this->request->data, array('fieldList' => Attribute::EDITABLE_FIELDS));
                 if ($result) {
                     $this->Attribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $attribute['Event']['id'], $capture=true);
                 }

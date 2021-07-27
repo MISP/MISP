@@ -46,7 +46,21 @@ class Attribute extends AppModel
             'distribution' => array('desc' => 'Describes who will have access to the attribute.')
     );
 
-    public $editableFields = array('timestamp', 'category', 'value', 'value1', 'value2', 'to_ids', 'comment', 'distribution', 'sharing_group_id', 'deleted', 'disable_correlation', 'first_seen', 'last_seen');
+    const EDITABLE_FIELDS = [
+        'timestamp',
+        'category',
+        'value',
+        'value1',
+        'value2',
+        'to_ids',
+        'comment',
+        'distribution',
+        'sharing_group_id',
+        'deleted',
+        'disable_correlation',
+        'first_seen',
+        'last_seen',
+    ];
 
     public $distributionDescriptions = array(
         0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
@@ -3786,7 +3800,7 @@ class Attribute extends AppModel
                 $attribute['distribution'] = 5;
             }
         }
-        $fieldList = $this->editableFields;
+        $fieldList = self::EDITABLE_FIELDS;
         if (empty($existingAttribute)) {
             $addableFieldList = array('event_id', 'type', 'uuid');
             $fieldList = array_merge($fieldList, $addableFieldList);
