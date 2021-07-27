@@ -89,17 +89,17 @@ class Attribute extends AppModel
     const UPLOAD_DEFINITIONS = ['attachment'];
 
     // skip Correlation for the following types
-    public $nonCorrelatingTypes = array(
-            'comment',
-            'http-method',
-            'aba-rtn',
-            'gender',
-            'counter',
-            'port',
-            'nationality',
-            'cortex',
-            'boolean',
-            'anonymised'
+    const NON_CORRELATING_TYPES = array(
+        'comment',
+        'http-method',
+        'aba-rtn',
+        'gender',
+        'counter',
+        'port',
+        'nationality',
+        'cortex',
+        'boolean',
+        'anonymised'
     );
 
     const PRIMARY_ONLY_CORRELATING_TYPES = array(
@@ -1695,7 +1695,7 @@ class Attribute extends AppModel
                 'conditions' => [
                     'OR' => $or,
                     'NOT' => [
-                        'Attribute.type' => $this->nonCorrelatingTypes,
+                        'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
                     ],
                     'Attribute.disable_correlation' => 0,
                 ],
@@ -2304,7 +2304,7 @@ class Attribute extends AppModel
                 'Attribute.deleted' => 0,
                 'Attribute.disable_correlation' => 0,
                 'NOT' => array(
-                    'Attribute.type' => $this->nonCorrelatingTypes,
+                    'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
                 ),
             );
             if ($attributeId) {
