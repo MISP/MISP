@@ -130,7 +130,9 @@ class TestSecurity(unittest.TestCase):
 
         # Connect as admin
         cls.admin_misp_connector = PyMISP(url, key)
-        cls.admin_misp_connector.set_server_setting('debug', 1, force=True)
+        # Set expected config values
+        check_response(cls.admin_misp_connector.set_server_setting('debug', 1, force=True))
+        check_response(cls.admin_misp_connector.set_server_setting('Security.advanced_authkeys', False, force=True))
         cls.admin_misp_connector.global_pythonify = True
         # Check if admin is really site admin
         assert cls.admin_misp_connector._current_role.perm_site_admin
