@@ -2309,9 +2309,7 @@ class Server extends AppModel
         }
         $settingsString = var_export($settingsArray, true);
         $settingsString = '<?php' . "\n" . '$config = ' . $settingsString . ';';
-        if (function_exists('opcache_reset')) {
-            opcache_reset();
-        }
+
         $previous_file_perm = substr(sprintf('%o', fileperms(APP . 'Config' . DS . 'config.php')), -4);
         if (empty(Configure::read('MISP.server_settings_skip_backup_rotate'))) {
             $randomFilename = $this->generateRandomFileName();
@@ -2321,6 +2319,9 @@ class Server extends AppModel
                 return false;
             }
             rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
+            if (function_exists('opcache_reset')) {
+                opcache_reset();
+            }
             chmod(APP . 'Config' . DS . 'config.php', octdec($previous_file_perm));
             $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
             // if the saved config file is empty, restore the backup.
@@ -2341,6 +2342,9 @@ class Server extends AppModel
             }
         } else {
             file_put_contents(APP . 'Config' . DS . 'config.php', $settingsString);
+            if (function_exists('opcache_reset')) {
+                opcache_reset();
+            }
         }
         return true;
     }
