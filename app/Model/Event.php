@@ -376,6 +376,8 @@ class Event extends AppModel
         );
     }
 
+    private $assetCache = [];
+
     public function beforeDelete($cascade = true)
     {
         // blocklist the event UUID if the feature is enabled

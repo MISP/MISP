@@ -24,6 +24,7 @@ App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('BlowfishPasswordHasher', 'Controller/Component/Auth');
 App::uses('RandomTool', 'Tools');
+
 class AppModel extends Model
 {
     public $name;
@@ -33,13 +34,8 @@ class AppModel extends Model
      */
     private $loadedPubSubTool;
 
-    public $loadedKafkaPubTool = false;
-
-    public $start = 0;
-
-    public $assetCache = [];
-
-    public $inserted_ids = array();
+    /** @var KafkaPubTool */
+    public $loadedKafkaPubTool;
 
     /** @var null|Redis */
     private static $__redisConnection = null;
@@ -61,7 +57,7 @@ class AppModel extends Model
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
-    public $old_db_changes = array(
+    const OLD_DB_CHANGES = array(
         2 => array(
             4 => array(
                 18 => false, 19 => false, 20 => false, 25 => false, 27 => false,
@@ -78,7 +74,7 @@ class AppModel extends Model
         )
     );
 
-    public $db_changes = array(
+    const DB_CHANGES = array(
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
@@ -106,14 +102,6 @@ class AppModel extends Model
             'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
         ),
     );
-
-    public function afterSave($created, $options = array())
-    {
-        if ($created) {
-            $this->inserted_ids[] = $this->getInsertID();
-        }
-        return true;
-    }
 
     public function isAcceptedDatabaseError($errorMessage, $dataSource)
     {
@@ -2375,12 +2363,12 @@ class AppModel extends Model
         }
     }
 
-    public function findUpgrades($db_version)
+    protected function findUpgrades($db_version)
     {
         $updates = array();
         if (strpos($db_version, '.')) {
             $version = explode('.', $db_version);
-            foreach ($this->old_db_changes as $major => $rest) {
+            foreach (self::OLD_DB_CHANGES as $major => $rest) {
                 if ($major < $version[0]) {
                     continue;
                 } elseif ($major == $version[0]) {
@@ -2403,7 +2391,7 @@ class AppModel extends Model
             }
             $db_version = 0;
         }
-        foreach ($this->db_changes as $db_change => $requiresLogout) {
+        foreach (self::DB_CHANGES as $db_change => $requiresLogout) {
             if ($db_version < $db_change) {
                 $updates[$db_change] = $requiresLogout;
             }

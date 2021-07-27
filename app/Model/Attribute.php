@@ -13,6 +13,7 @@ App::uses('ComplexTypeTool', 'Tools');
  * @property Event $Event
  * @property AttributeTag $AttributeTag
  * @property Sighting $Sighting
+ * @property MispObject $Object
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
@@ -45,11 +46,21 @@ class Attribute extends AppModel
             'distribution' => array('desc' => 'Describes who will have access to the attribute.')
     );
 
-    public $defaultFields = array(
-        'id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'to_ids', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'comment', 'deleted', 'disable_correlation', 'first_seen', 'last_seen'
-    );
-
-    public $editableFields = array('timestamp', 'category', 'value', 'value1', 'value2', 'to_ids', 'comment', 'distribution', 'sharing_group_id', 'deleted', 'disable_correlation', 'first_seen', 'last_seen');
+    const EDITABLE_FIELDS = [
+        'timestamp',
+        'category',
+        'value',
+        'value1',
+        'value2',
+        'to_ids',
+        'comment',
+        'distribution',
+        'sharing_group_id',
+        'deleted',
+        'disable_correlation',
+        'first_seen',
+        'last_seen',
+    ];
 
     public $distributionDescriptions = array(
         0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
@@ -3789,7 +3800,7 @@ class Attribute extends AppModel
                 $attribute['distribution'] = 5;
             }
         }
-        $fieldList = $this->editableFields;
+        $fieldList = self::EDITABLE_FIELDS;
         if (empty($existingAttribute)) {
             $addableFieldList = array('event_id', 'type', 'uuid');
             $fieldList = array_merge($fieldList, $addableFieldList);
@@ -3857,12 +3868,8 @@ class Attribute extends AppModel
         return true;
     }
 
-    public function deleteAttribute($id, $user, $hard = false)
+    public function deleteAttribute($id, array $user, $hard = false)
     {
-        $this->id = $id;
-        if (!$this->exists()) {
-            return false;
-        }
         $result = $this->fetchAttributes($user, array(
             'conditions' => array('Attribute.id' => $id),
             'flatten' => 1,
@@ -3887,7 +3894,6 @@ class Attribute extends AppModel
                 }
             }
         }
-        $date = new DateTime();
         if ($hard) {
             $save = $this->delete($id);
         } else {
@@ -3899,7 +3905,7 @@ class Attribute extends AppModel
                 $result['Attribute']['to_ids'] = 0;
             }
             $result['Attribute']['deleted'] = 1;
-            $result['Attribute']['timestamp'] = $date->getTimestamp();
+            $result['Attribute']['timestamp'] = time();
             $save = $this->save($result);
             $object_refs = $this->Object->ObjectReference->find('all', array(
                 'conditions' => array(
