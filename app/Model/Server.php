@@ -2266,7 +2266,11 @@ class Server extends AppModel
             ));
             return false;
         }
-        copy(APP . 'Config' . DS . 'config.php', APP . 'Config' . DS . 'config.php.bk');
+        $safeConfigChanges = empty(Configure::read('MISP.server_settings_skip_backup_rotate'));
+        if ($safeConfigChanges) {
+            // Create current config file backup
+            copy(APP . 'Config' . DS . 'config.php', APP . 'Config' . DS . 'config.php.bk');
+        }
         $settingObject = $this->getCurrentServerSettings();
         foreach ($settingObject as $branchName => $branch) {
             if (!isset($branch['level'])) {
@@ -2310,8 +2314,8 @@ class Server extends AppModel
         $settingsString = var_export($settingsArray, true);
         $settingsString = '<?php' . "\n" . '$config = ' . $settingsString . ';';
 
-        $previous_file_perm = substr(sprintf('%o', fileperms(APP . 'Config' . DS . 'config.php')), -4);
-        if (empty(Configure::read('MISP.server_settings_skip_backup_rotate'))) {
+        if ($safeConfigChanges) {
+            $previous_file_perm = substr(sprintf('%o', fileperms(APP . 'Config' . DS . 'config.php')), -4);
             $randomFilename = $this->generateRandomFileName();
             // To protect us from 2 admin users having a concurrent file write to the config file, solar flares and the bogeyman
             if (file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString) === false) {
