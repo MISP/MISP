@@ -16,7 +16,7 @@ class AuditLogBehavior extends ModelBehavior
     private $enabled;
 
     // Hash is faster that in_array
-    private const SKIP_FIELDS = [
+    const SKIP_FIELDS = [
         'id' => true,
         'lastpushedid' => true,
         'timestamp' => true,

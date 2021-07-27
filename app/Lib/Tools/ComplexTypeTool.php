@@ -3,7 +3,7 @@ require_once __DIR__ . '/TmpFileTool.php';
 
 class ComplexTypeTool
 {
-    private const REFANG_REGEX__TABLE = array(
+    const REFANG_REGEX__TABLE = array(
         array(
             'from' => '/^(hxxp|hxtp|htxp|meow|h\[tt\]p)/i',
             'to' => 'http',

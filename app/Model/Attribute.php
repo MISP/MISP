@@ -83,10 +83,10 @@ class Attribute extends AppModel
     // e.g. if the attribute should be correlated with others or not
 
     // if these then a category may have upload to be zipped
-    public const ZIPPED_DEFINITION = ['malware-sample'];
+    const ZIPPED_DEFINITION = ['malware-sample'];
 
     // if these then a category may have upload
-    public const UPLOAD_DEFINITIONS = ['attachment'];
+    const UPLOAD_DEFINITIONS = ['attachment'];
 
     // skip Correlation for the following types
     public $nonCorrelatingTypes = array(
@@ -102,7 +102,7 @@ class Attribute extends AppModel
             'anonymised'
     );
 
-    public const PRIMARY_ONLY_CORRELATING_TYPES = array(
+    const PRIMARY_ONLY_CORRELATING_TYPES = array(
         'ip-src|port',
         'ip-dst|port',
         'hostname|port',
@@ -754,7 +754,7 @@ class Attribute extends AppModel
         return true;
     }
 
-    private const HEX_HAS_LENGTHS = array(
+    const HEX_HAS_LENGTHS = array(
         'authentihash' => 64,
         'md5' => 32,
         'imphash' => 32,
