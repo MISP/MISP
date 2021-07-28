@@ -116,11 +116,73 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 ],
                 'quickedit' => true
             ],
+            [
+                'name' => __('Sightings'),
+                'element' => 'sightings',
+                'class' => 'short',
+                'data' => [
+                    'object' => [
+                        'value_path' => 'Attribute'
+                    ],
+                ],
+                'sightings' => $sightingsData
+            ],
+            [
+                'name' => __('Activity'),
+                'element' => 'sightingsActivity',
+                'class' => 'short',
+                'data' => [
+                    'object' => [
+                        'value_path' => 'Attribute'
+                    ],
+                ],
+                'sightings' => $sightingsData
+            ],
         ],
+        'actions' => array(
+            [
+                'url' => $baseurl . '/shadow_attributes/edit',
+                'url_params_data_paths' => array(
+                    'Attribute.id'
+                ),
+                'icon' => 'comment'
+            ],
+            [
+                'onclick' => "deleteObject('shadow_attributes', 'delete', '[onclick_params_data_path]');",
+                'onclick_params_data_path' => 'Attribute.id',
+                'icon' => 'trash',
+                'title' => __('Propose deletion'),
+                'requirement' => $isSiteAdmin,
+            ],
+            [
+                'url' => $baseurl . '/attributes',
+                'icon' => 'grip-lines-vertical'
+            ],
+            [
+                'url' => $baseurl . '/attributes/edit',
+                'url_params_data_paths' => array(
+                    'Attribute.id'
+                ),
+                'icon' => 'edit'
+            ],
+            [
+                'onclick' => "deleteObject('attributes', 'delete', '[onclick_params_data_path]/true');",
+                'onclick_params_data_path' => 'Attribute.id',
+                'icon' => 'trash',
+                'title' => __('Permanently delete attribute'),
+                'requirement' => $isSiteAdmin,
+            ]
+        )
     ]
 ]);
 
 echo '</div>';
+
+// Generate form for adding sighting just once, generation for every attribute is surprisingly too slow
+echo $this->Form->create('Sighting', ['id' => 'SightingForm', 'url' => $baseurl . '/sightings/add/', 'style' => 'display:none;']);
+echo $this->Form->input('id', ['label' => false, 'type' => 'number']);
+echo $this->Form->input('type', ['label' => false]);
+echo $this->Form->end();
 
 $class = $isSearch == 1 ? 'searchAttributes2' : 'listAttributes';
 echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $class));
