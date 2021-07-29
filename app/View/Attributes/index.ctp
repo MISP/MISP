@@ -10,7 +10,6 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'name' => __('Date'),
                 'sort' => 'Attribute.timestamp',
-                'class' => 'short',
                 'element' => 'timestamp',
                 'time_format' => 'Y-m-d',
                 'data_path' => 'Attribute.timestamp'
@@ -18,52 +17,47 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'name' => __('Event'),
                 'sort' => 'Attribute.event_id',
-                'class' => 'short',
                 'data_path' => 'Attribute.event_id'
             ],
             [
                 'name' => __('Org'),
                 'sort' => 'Event.Orgc.name',
-                'class' => 'short',
                 'data_path' => 'Event.Orgc',
                 'element' => 'org'
             ],
             [
                 'name' => __('Category'),
                 'sort' => 'Attribute.category',
-                'class' => 'short',
                 'data_path' => 'Attribute.category'
             ],
             [
                 'name' => __('Type'),
                 'sort' => 'Attribute.type',
-                'class' => 'short',
                 'data_path' => 'Attribute.type'
             ],
             [
                 'name' => __('Value'),
                 'sort' => 'Attribute.value',
-                'class' => 'short',
                 'data_path' => 'Attribute.value'
             ],
             [
                 'name' => __('Tags'),
-                'class' => 'short',
-                'data_path' => 'Attribute.AttributeTag'
+                'element' => 'attributeTags',
+                'data_path' => 'Attribute.AttributeTag',
+                'class' => 'short'
             ],
             [
                 'name' => __('Galaxies'),
-                'class' => 'short',
-                'data_path' => 'Attribute.Galaxy'
+                'element' => 'attributeGalaxies',
+                'data_path' => 'Attribute.Galaxy',
+                'class' => 'short'
             ],
             [
                 'name' => __('Comment'),
-                'class' => 'shortish',
                 'data_path' => 'Attribute.comment'
             ],
             [
                 'name' => __('Correlate'),
-                'class' => 'short',
                 'element' => 'correlate',
                 'data' => [
                     'object' => [
@@ -73,7 +67,6 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             ],
             [
                 'name' => __('Related Events'),
-                'class' => 'short',
                 'element' => 'relatedEvents',
                 'data' => [
                     'object' => [
@@ -84,7 +77,6 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             ],
             [
                 'name' => __('Feed hits'),
-                'class' => 'short',
                 'element' => 'feedHits',
                 'data' => [
                     'object' => [
@@ -94,7 +86,6 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             ],
             [
                 'name' => __('IDS'),
-                'class' => 'short',
                 'element' => 'toIds',
                 'data' => [
                     'object' => [
@@ -105,7 +96,6 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'name' => __('Distribution'),
                 'element' => 'distribution_levels',
-                'class' => 'short',
                 'data_path' => 'Attribute.distribution',
                 'distributionLevels' => $distributionLevels,
                 'data' => [
@@ -119,7 +109,6 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'name' => __('Sightings'),
                 'element' => 'sightings',
-                'class' => 'short',
                 'data' => [
                     'object' => [
                         'value_path' => 'Attribute'
@@ -130,7 +119,6 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'name' => __('Activity'),
                 'element' => 'sightingsActivity',
-                'class' => 'short',
                 'data' => [
                     'object' => [
                         'value_path' => 'Attribute'
