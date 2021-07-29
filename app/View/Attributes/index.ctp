@@ -1,7 +1,9 @@
 <?php
 
-echo '<div class="index">';
+$modules = isset($modules) ? $modules : null;
+$cortex_modules = isset($cortex_modules) ? $cortex_modules : null;
 
+echo '<div class="index">';
 echo $this->element('/genericElements/IndexTable/index_table', [
     'data' => [
         'title' => __('Attributes'),
@@ -43,13 +45,11 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'name' => __('Tags'),
                 'element' => 'attributeTags',
-                'data_path' => 'Attribute.AttributeTag',
                 'class' => 'short'
             ],
             [
                 'name' => __('Galaxies'),
                 'element' => 'attributeGalaxies',
-                'data_path' => 'Attribute.Galaxy',
                 'class' => 'short'
             ],
             [
@@ -127,12 +127,12 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'sightings' => $sightingsData
             ],
         ],
-        'actions' => array(
+        'actions' => [
             [
                 'url' => $baseurl . '/shadow_attributes/edit',
-                'url_params_data_paths' => array(
+                'url_params_data_paths' => [
                     'Attribute.id'
-                ),
+                ],
                 'icon' => 'comment'
             ],
             [
@@ -143,15 +143,90 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'requirement' => $isSiteAdmin,
             ],
             [
-                'url' => $baseurl . '/attributes',
+                'title' => __('Propose enrichment'),
+                'icon' => 'asterisk',
+                'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/ShadowAttribute\');',
+                'onclick_params_data_path' => 'Attribute.id',
+                'complex_requirement' => [
+                    'function' => function ($object) use ($modules) {
+                        return isset($modules) && isset($object['Attribute']['type']);
+                    },
+                    'options' => [
+                        'datapath' => [
+                            'type' => 'Attribute.type'
+                        ]
+                    ],
+                ],
+            ],
+            [
+                'title' => __('Propose enrichment through Cortex'),
+                'icon' => 'eye',
+                'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/ShadowAttribute/Cortex\');',
+                'onclick_params_data_path' => 'Attribute.id',
+                'complex_requirement' => [
+                    'function' => function ($object) use ($cortex_modules) {
+                        return isset($cortex_modules) && isset($cortex_modules['types'][$object['type']]);
+                    },
+                    'options' => [
+                        'datapath' => [
+                            'type' => 'Attribute.type'
+                        ]
+                    ],
+                ],
+            ],
+            [
                 'icon' => 'grip-lines-vertical'
             ],
             [
+                'title' => __('Add enrichment'),
+                'icon' => 'asterisk',
+                'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Attribute\');',
+                'onclick_params_data_path' => 'Attribute.id',
+                'complex_requirement' => [
+                    'function' => function ($object) use ($modules) {
+                        return isset($modules) && isset($object['Attribute']['type']);
+                    },
+                    'options' => [
+                        'datapath' => [
+                            'type' => 'Attribute.type'
+                        ]
+                    ],
+                ],
+            ],
+            [
+                'title' => __('Add enrichment via Cortex'),
+                'icon' => 'eye',
+                'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Attribute/Cortex\');',
+                'onclick_params_data_path' => 'Attribute.id',
+                'complex_requirement' => [
+                    'function' => function ($object) use ($cortex_modules) {
+                        return isset($cortex_modules) && isset($cortex_modules['types'][$object['type']]);
+                    },
+                    'options' => [
+                        'datapath' => [
+                            'type' => 'Attribute.type'
+                        ]
+                    ],
+                ],
+            ],
+            [
                 'url' => $baseurl . '/attributes/edit',
-                'url_params_data_paths' => array(
+                'url_params_data_paths' => [
                     'Attribute.id'
-                ),
+                ],
                 'icon' => 'edit'
+            ],
+            [
+                'onclick' => "deleteObject('attributes', 'delete', '[onclick_params_data_path]');",
+                'onclick_params_data_path' => 'Attribute.id',
+                'icon' => 'trash',
+                'title' => __('Soft delete attribute'),
+                'requirement' => $isSiteAdmin,
+                'complex_requirement' => [
+                    'function' => function ($object) {
+                        return !empty($object['Event']['publish_timestamp']);
+                    },
+                ]
             ],
             [
                 'onclick' => "deleteObject('attributes', 'delete', '[onclick_params_data_path]/true');",
@@ -159,8 +234,13 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'icon' => 'trash',
                 'title' => __('Permanently delete attribute'),
                 'requirement' => $isSiteAdmin,
+                'complex_requirement' => [
+                    'function' => function ($object) {
+                        return empty($object['Event']['publish_timestamp']);
+                    },
+                ]
             ]
-        )
+        ]
     ]
 ]);
 
@@ -173,7 +253,7 @@ echo $this->Form->input('type', ['label' => false]);
 echo $this->Form->end();
 
 $class = $isSearch == 1 ? 'searchAttributes2' : 'listAttributes';
-echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $class));
+echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event-collection', 'menuItem' => $class]);
 
 ?>
 

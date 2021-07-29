@@ -7,7 +7,7 @@ $objectId = intval($attribute['id']);
 
 ?>
 
-<div class="attributeTagContainer">
+<div id="Attribute_<?= $objectId ?>" class="attributeTagContainer">
     <?php echo $this->element(
         'ajaxTags',
         array(

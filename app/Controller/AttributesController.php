@@ -93,8 +93,6 @@ class AttributesController extends AppController
             }
         }
 
-        $distributionLevels = $this->Attribute->distributionLevels;
-
         list($attributes, $sightingsData) = $this->__searchUI($attributes);
         $this->set('sightingsData', $sightingsData);
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
@@ -103,7 +101,7 @@ class AttributesController extends AppController
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-        $this->set('distributionLevels', $distributionLevels);
+        $this->set('distributionLevels', $this->Attribute->distributionLevels);
     }
 
     public function add($eventId = false)
@@ -1652,6 +1650,7 @@ class AttributesController extends AppController
             $this->set('isSearch', 1);
             $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
             $this->set('shortDist', $this->Attribute->shortDist);
+            $this->set('distributionLevels', $this->Attribute->distributionLevels);
             $this->render('index');
         }
         if (isset($attributeTags)) {
