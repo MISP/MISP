@@ -17,6 +17,8 @@ class OpendataExport
     private $__scripts_dir = APP . 'files/scripts/';
     private $__script_name = 'misp-opendata/opendata.py';
 
+    private $__request_object = [];
+
     public function setDefaultFilters($filters)
     {
         $this->__default_filters = $filters;
@@ -58,11 +60,7 @@ class OpendataExport
             $simple_query = true;
         }
         if (!empty($this->__default_filters['portal-url'])) {
-            if ($simple_query) {
-                $this->__url = ' --portal_url ' . $this->__default_filters['portal-url'];
-            } else {
-                $this->__url .= ' --portal_url ' . $this->__default_filters['portal-url'];
-            }
+            $this->__request_object['portal_url'] = $this->__default_filters['portal-url'];
             unset($this->__default_filters['portal-url']);
         }
         return '';
@@ -73,7 +71,7 @@ class OpendataExport
         $my_server = ClassRegistry::init('Server');
         $cmd = $my_server->getPythonVersion() . ' ' . $this->__scripts_dir . $this->__script_name;
         if (!empty($this->__auth)) {
-            $cmd .= ' --auth ' . $this->__auth;
+            $this->__request_object['auth'] = $this->__auth;
         }
         if ($this->__search){
             return $this->__search_query($cmd);
@@ -91,14 +89,15 @@ class OpendataExport
         unset($this->__default_filters['returnFormat']);
         $body = json_encode($this->__default_filters);
         $bodyFilename = $this->__generateSetupFile($body);
-        $bodyParam = ' --body ' . $bodyFilename;
-        $levelParam = ' --level ' . strtolower($this->__scope) . 's';
+        $this->__request_object['body'] = $bodyFilename;
+        $this->__request_object['level'] = strtolower($this->__scope) . 's';
         $setup = json_encode($this->__setup);
         $setupFilename = $this->__generateSetupFile($setup);
-        $setupParam = ' --setup ' . $setupFilename;
-        $urlParam = ' --misp_url ' . $this->__url;
-        $cmd .= $bodyParam . $setupParam . $levelParam . $urlParam;
-        $results = shell_exec($cmd);
+        $this->__request_object['setup'] = $setupFilename;
+        $this->__request_object['misp_url'] = $this->__url;
+        $commandFile = $this->__generateCommandFile();
+        $results = shell_exec($cmd . ' --query_data ' . $commandFile);
+        unlink($commandFile);
         unlink($bodyFilename);
         unlink($setupFilename);
         return $results;
@@ -120,28 +119,25 @@ class OpendataExport
 
     private function __delete_query($cmd)
     {
-        $cmd .= $this->__url . " -d '" . $this->__setup['dataset'] . "'";
+        $this->__request_object['delete'] = $this->__setup['dataset'];
         return $this->__simple_query($cmd);
     }
 
     private function __search_query($cmd)
     {
-        $cmd .= $this->__url . " -s '" . $this->__setup['dataset'] . "'";
+        $this->__request_object['search'] = $this->__setup['dataset'];
         return $this->__simple_query($cmd);
     }
 
     private function __simple_query($cmd)
     {
         if (!empty($this->__setup['resources'])) {
-            if (is_array($this->__setup['resources'])) {
-                foreach ($this->__setup['resources'] as $resource) {
-                    $cmd .= " '" . $resource . "'";
-                }
-            } else {
-                $cmd .= " '" . $this->__setup['resources'] . "'";
-            }
+            $this->__request_object['search'] = $this->__setup['resources'];
         }
-        return shell_exec($cmd);
+        $commandFile = $this->__generateCommandFile();
+        $results = shell_exec($cmd . ' --query_data ' . $commandFile);
+        unlink($commandFile);
+        return $results;
     }
 
     private function __generateRandomFileName()
@@ -154,6 +150,15 @@ class OpendataExport
         $filename = $this->__scripts_dir . 'tmp/' . $this->__generateRandomFileName();
         $tmpFile = new File($filename, true, 0644);
         $tmpFile->write($to_write);
+        $tmpFile->close();
+        return $filename;
+    }
+
+    private function __generateCommandFile()
+    {
+        $filename = $this->__scripts_dir . 'tmp/' . $this->__generateRandomFileName() . '.command';
+        $tmpFile = new File($filename, true, 0644);
+        $tmpFile->write(json_encode($this->__request_object));
         $tmpFile->close();
         return $filename;
     }
