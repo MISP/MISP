@@ -34,11 +34,6 @@
                         'url' => $baseurl . '/attributes/search'
                     ),
                     array(
-                        'text' => __('REST client'),
-                        'url' => $baseurl . '/servers/rest',
-                        'requirement' => $canAccess('servers', 'rest'),
-                    ),
-                    array(
                         'type' => 'separator'
                     ),
                     array(
@@ -115,7 +110,7 @@
                         'requirement' =>
                             Configure::read('MISP.enableEventBlocklisting') !== false &&
                             !$isSiteAdmin && $hostOrgUser
-                    ),
+                    )
                 )
             ),
             array(
@@ -163,17 +158,17 @@
                         'requirement' => !$isAclRegexp
                     ),
                     array(
-                        'text' => __('List Warninglists'),
+                        'text' => __('Warninglists'),
                         'url' => $baseurl . '/warninglists/index'
                     ),
                     array(
-                        'text' => __('List Noticelists'),
+                        'text' => __('Noticelists'),
                         'url' => $baseurl . '/noticelists/index'
                     ),
                     array(
-                        'text' => __('List Correlation Exclusions'),
-			'url' => $baseurl . '/correlation_exclusions/index',
-			'requirement' => $canAccess('correlation_exclusions', 'index'),
+                        'text' => __('Correlation Exclusions'),
+		            	'url' => $baseurl . '/correlation_exclusions/index',
+	            		'requirement' => $canAccess('correlation_exclusions', 'index'),
                     )
                 )
             ),
@@ -446,11 +441,20 @@
                         'url' => $baseurl . '/orgBlocklists',
                         'requirement' => Configure::read('MISP.enableOrgBlocklisting') !== false && $isSiteAdmin
                     ),
+                    [
+                        'type' => 'separator',
+                        'requirement' => $isSiteAdmin
+                    ],
+                    [
+                        'text' => __('Top Correlations'),
+                        'url' => $baseurl . '/correlations/top',
+                        'requirement' => $isSiteAdmin
+                    ]
                 )
             ),
             array(
                 'type' => 'root',
-                'text' => __('Audit'),
+                'text' => __('Logs'),
                 'requirement' => $isAclAudit,
                 'children' => array(
                     array(
@@ -458,8 +462,28 @@
                         'url' => $baseurl . '/admin/logs/index'
                     ),
                     array(
+                        'text' => __('List Audit Logs'),
+                        'url' => $baseurl . '/admin/audit_logs/index',
+                        'requirement' => Configure::read('MISP.log_new_audit'),
+                    ),
+                    array(
                         'text' => __('Search Logs'),
                         'url' => $baseurl . '/admin/logs/search'
+                    )
+                )
+                    ),
+            array(
+                'type' => 'root',
+                'text' => __('API'),
+                'children' => array(
+                    array(
+                        'text' => __('OpenAPI'),
+                        'url' => $baseurl . '/servers/openapi'
+                    ),
+                    array(
+                        'text' => __('REST client'),
+                        'url' => $baseurl . '/servers/rest',
+                        'requirement' => $canAccess('servers', 'rest')
                     )
                 )
             )

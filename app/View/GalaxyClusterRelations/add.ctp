@@ -29,12 +29,14 @@
                     'field' => 'distribution',
                     'options' => $distributionLevels,
                     'default' => isset($cluster['GalaxyCluster']['distribution']) ? $cluster['GalaxyCluster']['distribution'] : $initialDistribution,
-                    'stayInLine' => 1
+                    'stayInLine' => 1,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'sharing_group_id',
                     'options' => $sharingGroups,
-                    'label' => __("Sharing Group")
+                    'label' => __("Sharing Group"),
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'referenced_galaxy_cluster_type',

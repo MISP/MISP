@@ -75,6 +75,8 @@
 # $ MISPvars
 MISPvars () {
   debug "Setting generic ${LBLUE}MISP${NC} variables shared by all flavours" 2> /dev/null
+  # Some distros have no openssl installed by default, catch that exception.
+  $(openssl help 2> /dev/null) || (echo "No openssl, please install to continue"; exit -1)
   # Local non-root MISP user
   MISP_USER="${MISP_USER:-misp}"
   MISP_PASSWORD="${MISP_PASSWORD:-$(openssl rand -hex 32)}"
@@ -1077,7 +1079,7 @@ runTests () {
 key = \"${AUTH_KEY}\"" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
 
-  ${SUDO_WWW} sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
+  ${SUDO_WWW} sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin main"
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
   ${SUDO_WWW} sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
 }
@@ -2234,12 +2236,12 @@ enableEPEL_REMI_8 () {
   sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
   sudo dnf install dnf-utils -y
   sudo dnf module enable php:remi-7.4 -y
-  [[ ${DISTRI} == "centos8stream" ]] && sudo dnf config-manager --set-enabled powertools
-  [[ ${DISTRI} == "centos8" ]] && sudo dnf config-manager --set-enabled powertools
+  ([[ ${DISTRI} == "centos8stream" ]] || [[ ${DISTRI} == "centos8" ]] || [[ ${DISTRI} == "rocky8.4" ]]) && sudo dnf config-manager --set-enabled powertools
 }
 
-enableREMI_f33 () {
-  sudo dnf install http://rpms.remirepo.net/fedora/remi-release-33.rpm
+enableREMI_fedora () {
+  [[ "${DISTRI%??}" == "fedora" ]] && sudo dnf install http://rpms.remirepo.net/fedora/remi-release-${DISTRI:6}.rpm -y
+  dnf list installed mod_lua && sudo dnf remove mod_lua -y
   sudo dnf install dnf-utils -y
   sudo dnf module enable php:remi-7.4 -y
 }
@@ -2250,6 +2252,7 @@ yumInstallCoreDeps7 () {
   PHP_INI="/etc/php.ini"
   sudo dnf install gcc git zip unzip \
                    mod_ssl \
+                   moreutils \
                    redis \
                    libxslt-devel zlib-devel ssdeep-devel -y
 
@@ -2291,6 +2294,7 @@ yumInstallCoreDeps8 () {
   sudo dnf install gcc git zip unzip \
                    httpd \
                    mod_ssl \
+                   moreutils \
                    redis \
                    mariadb \
                    mariadb-server \
@@ -2299,7 +2303,7 @@ yumInstallCoreDeps8 () {
                    policycoreutils-python-utils \
                    langpacks-en glibc-all-langpacks \
                    libxslt-devel zlib-devel ssdeep-devel -y
-  sudo alternatives --set python /usr/bin/python3
+  readlink -f /usr/bin/python | grep python3 || sudo alternatives --set python /usr/bin/python3
 
   # Enable and start redis
   sudo systemctl enable --now redis.service
@@ -2494,9 +2498,8 @@ installCoreRHEL8 () {
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
   $SUDO_WWW git config core.filemode false
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
-  ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
-  [[ ${DISTRI} == 'centos8stream' ]] && sudo dnf install cmake -y && CMAKE_BIN='cmake'
-  [[ ${DISTRI} == 'centos8' ]] && sudo dnf install cmake -y && CMAKE_BIN='cmake'
+  ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'fedora34' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
+  ([[ ${DISTRI} == 'centos8stream' ]] || [[ ${DISTRI} == 'centos8' ]] || [[ ${DISTRI} == 'rocky8.4' ]]) && sudo dnf install cmake -y && CMAKE_BIN='cmake'
 
   UMASK=$(umask)
   umask 0022
@@ -2914,7 +2917,7 @@ mispmodulesRHEL () {
   [[ "${DIST_VER}" =~ ^[7].* ]] && sudo dnf install openjpeg-devel gcc-c++ poppler-cpp-devel pkgconfig python3-devel redhat-rpm-config -y
 
   # some misp-modules dependencies for RHEL8
-  ([[ "${DISTRI}" == "fedora33" ]] || [[ "${DIST_VER}" =~ ^[8].* ]]) && sudo dnf install openjpeg2-devel gcc-c++ poppler-cpp-devel pkgconfig python3-devel redhat-rpm-config -y
+  ([[ "${DISTRI}" == "fedora33" ]] || [[ "${DISTRI}" == "fedora34" ]] || [[ "${DIST_VER}" =~ ^[8].* ]]) && sudo dnf install openjpeg2-devel gcc-c++ poppler-cpp-devel pkgconfig python3-devel redhat-rpm-config -y
 
   sudo chmod 2777 /usr/local/src
   sudo chown root:users /usr/local/src
@@ -3543,8 +3546,8 @@ installMISPRHEL () {
       apacheConfig_RHEL7
     fi
 
-    if [[ "${DISTRI}" == "fedora33" ]]; then
-      enableREMI_f33
+    if [[ "${DISTRI%??}" == "fedora" ]]; then
+      enableREMI_fedora
       yumInstallCoreDeps8
       installEntropyRHEL
       installCoreRHEL8
@@ -3697,11 +3700,14 @@ x86_64-kali-2021.3
 x86_64-kali-2021.4
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
+armv7l-raspbian-buster
 armv7l-debian-jessie
 armv7l-debian-stretch
 armv7l-debian-buster
 armv7l-ubuntu-bionic
 armv7l-ubuntu-focal
+aarch64-ubuntu-focal
+aarch64-ubuntu-hirsute
 "
 
 # Check if we actually support this configuration
@@ -3753,8 +3759,8 @@ if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   exit
 fi
 
-# If Debian is detected, figure out which release it is and run the according scripts
-if [[ "${FLAVOUR}" == "debian" ]]; then
+# If Debian/Raspbian is detected, figure out which release it is and run the according scripts
+if [[ "${FLAVOUR}" == "debian" ]] || [[ "${FLAVOUR}" == "raspbian" ]]; then
   CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
   if [[ "${CODE}" == "buster" ]]; then
     echo "Install on Debian testing fully supported."

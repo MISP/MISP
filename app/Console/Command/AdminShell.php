@@ -1,5 +1,9 @@
 <?php
 App::uses('AppShell', 'Console/Command');
+
+/**
+ * @property Server $Server
+ */
 class AdminShell extends AppShell
 {
     public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed');
@@ -335,22 +339,26 @@ class AdminShell extends AppShell
         $this->ConfigLoad->execute();
         $setting_name = !isset($this->args[0]) ? null : $this->args[0];
         $value = !isset($this->args[1]) ? null : $this->args[1];
-        if ($value === 'false') $value = 0;
-        if ($value === 'true') $value = 1;
+        if ($value === 'false') {
+            $value = 0;
+        } elseif ($value === 'true') {
+            $value = 1;
+        }
         $cli_user = array('id' => 0, 'email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'));
         if (empty($setting_name) || $value === null) {
             echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin setSetting [setting_name] [setting_value]' . PHP_EOL;
         } else {
             $setting = $this->Server->getSettingData($setting_name);
             if (empty($setting)) {
-                echo 'Invalid setting "' . $setting_name . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
-                exit(1);
+                $message =  'Invalid setting "' . $setting_name . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
+                $this->error(__('Setting change rejected.'), $message);
             }
-            $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value);
+            $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value, $this->params['force']);
             if ($result === true) {
                 echo 'Setting "' . $setting_name . '" changed to ' . $value . PHP_EOL;
             } else {
-                echo $result;
+                $message = __("The setting change was rejected. MISP considers the requested setting value as invalid and would lead to the following error:\n\n\"%s\"\n\nIf you still want to force this change, please supply the --force argument.\n", $result);
+                $this->error(__('Setting change rejected.'), $message);
             }
         }
         echo PHP_EOL;
@@ -490,6 +498,7 @@ class AdminShell extends AppShell
     {
         $this->ConfigLoad->execute();
         $parser = parent::getOptionParser();
+
         $parser->addSubcommand('updateJSON', array(
             'help' => __('Update the JSON definitions of MISP.'),
             'parser' => array(
@@ -498,6 +507,14 @@ class AdminShell extends AppShell
                 )
             )
         ));
+
+        $parser->addOption('force', array(
+            'short' => 'f',
+            'help' => 'Force the command.',
+            'default' => false,
+            'boolean' => true
+        ));
+
         return $parser;
     }
 
@@ -699,5 +716,20 @@ class AdminShell extends AppShell
         $blocking = !empty($this->args[0]);
         $done = $this->AdminSetting->updatesDone($blocking);
         $this->out($done ? 'True' : 'False');
+    }
+
+    public function wipeDefaultClusters()
+    {
+        $this->loadModel('GalaxyCluster');
+        $this->out('Dropping default galaxy clusters. This process might take some time...');
+        $this->GalaxyCluster->wipe_default();
+    }
+
+    public function updateToAdvancedAuthKeys()
+    {
+        $this->loadModel('User');
+        $updated = $this->User->updateToAdvancedAuthKeys();
+        $message = __('The upgrade process is complete, %s authkey(s) generated.', $updated);
+        $this->out($message);
     }
 }

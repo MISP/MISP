@@ -1521,11 +1521,19 @@ def generate_event(filename, tries=0):
             print(3)
     sys.exit(0)
 
+
+def is_from_misp(event):
+    try:
+        title = event.header.title
+    except AttributeError:
+        return False
+    return ('Export from ' in title and 'MISP' in title)
+
+
 def main(args):
     filename = '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
     event = generate_event(filename)
-    title = event.stix_header.title
-    from_misp = (title is not None and "Export from " in title and "MISP" in title)
+    from_misp = is_from_misp(event)
     stix_parser = StixFromMISPParser() if from_misp else ExternalStixParser()
     stix_parser.load_event(args[2:], filename, from_misp, event.version)
     stix_parser.build_misp_event(event)

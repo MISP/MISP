@@ -1,10 +1,10 @@
-# INSTALLATION INSTRUCTIONS for RHEL 8.x, CentOS8/Stream
+# INSTALLATION INSTRUCTIONS for RHEL 8.x based distros
 -------------------------
 
-### -2/ RHEL8/CentOS8/CentOS_Stream/Fedora33 - status
+### -2/ RHEL8/CentOS8/CentOS_Stream/Rocky8.4/Fedora34 - status
 -------------------------
 !!! notice
-    Tested fully working without SELinux by [@SteveClement](https://twitter.com/SteveClement) on 20210401
+    Tested fully working without SELinux by [@SteveClement](https://twitter.com/SteveClement) on 20210702
     TODO: Fix SELinux permissions, *pull-requests welcome*.
 
 {!generic/manual-install-notes.md!}
@@ -24,6 +24,7 @@
 
 !!! notice
     Maintenance for CentOS 8 will end on: December 31st, 2021 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
+    Consider using [Rocky Linux](https://rockylinux.org/)
     CentOS 8 [NetInstallURL](http://mirrorlist.centos.org/?release=8&arch=x86_64&repo=BaseOS)
 
 {!generic/manual-install-notes.md!}
@@ -92,14 +93,14 @@ sudo dnf install drpm -y
 ## 1.5.b/ Install vim (optional)
 ```bash
 # Because (neo)vim is just so practical
-sudo dnf install neovim -y
+sudo dnf install neovim -y || sudo dnf install vim -y || echo "neovim is not in the catalog"
 # For RHEL, it's vim and after enabling epel neovim is available too
 ```
 
 ## 1.5.c/ Install ntpdate (optional)
 ```bash
 # In case you time is wrong, this will fix it.
-sudo dnf install ntpdate -y
+sudo dnf install ntpdate -y || sudo dnf install ntpsec -y
 sudo ntpdate pool.ntp.org
 ```
 
@@ -120,12 +121,12 @@ enableEPEL_REMI_8 () {
   sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
   sudo dnf install dnf-utils -y
   sudo dnf module enable php:remi-7.4 -y
-  [[ ${DISTRI} == "centos8stream" ]] && sudo dnf config-manager --set-enabled powertools
-  [[ ${DISTRI} == "centos8" ]] && sudo dnf config-manager --set-enabled powertools
+  ([[ ${DISTRI} == "centos8stream" ]] || [[ ${DISTRI} == "centos8" ]] || [[ ${DISTRI} == "rocky8.4" ]]) && sudo dnf config-manager --set-enabled powertools
 }
 
-enableREMI_f33 () {
-  sudo dnf install http://rpms.remirepo.net/fedora/remi-release-33.rpm
+enableREMI_fedora () {
+  [[ "${DISTRI%??}" == "fedora" ]] && sudo dnf install http://rpms.remirepo.net/fedora/remi-release-${DISTRI:6}.rpm -y
+  dnf list installed mod_lua && sudo dnf remove mod_lua -y
   sudo dnf install dnf-utils -y
   sudo dnf module enable php:remi-7.4 -y
 }
@@ -160,7 +161,7 @@ yumInstallCoreDeps8 () {
                    policycoreutils-python-utils \
                    langpacks-en glibc-all-langpacks \
                    libxslt-devel zlib-devel ssdeep-devel -y
-  sudo alternatives --set python /usr/bin/python3
+  readlink -f /usr/bin/python | grep python3 || sudo alternatives --set python /usr/bin/python3
 
   # Enable and start redis
   sudo systemctl enable --now redis.service
@@ -272,9 +273,8 @@ installCoreRHEL8 () {
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
   $SUDO_WWW git config core.filemode false
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
-  ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
-  [[ ${DISTRI} == 'centos8stream' ]] && sudo dnf install cmake -y && CMAKE_BIN='cmake'
-  [[ ${DISTRI} == 'centos8' ]] && sudo dnf install cmake -y && CMAKE_BIN='cmake'
+  ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'fedora34' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
+  ([[ ${DISTRI} == 'centos8stream' ]] || [[ ${DISTRI} == 'centos8' ]] || [[ ${DISTRI} == 'rocky8.4' ]]) && sudo dnf install cmake -y && CMAKE_BIN='cmake'
 
   UMASK=$(umask)
   umask 0022

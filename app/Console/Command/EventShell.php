@@ -10,7 +10,7 @@ require_once 'AppShell.php';
  */
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation');
     public $tasks = array('ConfigLoad');
 
     public function getOptionParser()
@@ -96,7 +96,7 @@ class EventShell extends AppShell
             'job_input' => $id,
             'status' => 0,
             'retries' => 0,
-            //'org' => $jobOrg,
+            'org' => 0,
             'message' => 'Job created.',
         );
         $this->Job->save($data);
@@ -107,6 +107,26 @@ class EventShell extends AppShell
         $fieldList = array('published', 'id', 'info');
         $this->Event->save($event, array('fieldList' => $fieldList));
         // only allow form submit CSRF protection.
+        $this->Job->saveField('status', 1);
+        $this->Job->saveField('message', 'Job done.');
+    }
+
+    public function correlateValue()
+    {
+        $this->ConfigLoad->execute();
+        $value = $this->args[0];
+        $this->Job->create();
+        $data = array(
+            'worker' => 'default',
+            'job_type' => 'correlateValue',
+            'job_input' => $value,
+            'status' => 0,
+            'retries' => 0,
+            'org' => 0,
+            'message' => 'Job created.',
+        );
+        $this->Job->save($data);
+        $this->Correlation->correlateValue($value, $this->Job->id);
         $this->Job->saveField('status', 1);
         $this->Job->saveField('message', 'Job done.');
     }
@@ -322,24 +342,36 @@ class EventShell extends AppShell
     public function publish_sightings()
     {
         $this->ConfigLoad->execute();
-        $id = $this->args[0];
-        $passAlong = $this->args[1];
-        $jobId = $this->args[2];
-        $userId = $this->args[3];
+        list($id, $passAlong, $jobId, $userId) = $this->args;
         $user = $this->getUser($userId);
-        $job = $this->Job->read(null, $jobId);
-        $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
-        $result = $this->Event->publish_sightings($id, $passAlong);
-        $job['Job']['progress'] = 100;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        if ($result) {
-            $job['Job']['message'] = 'Sightings published.';
-        } else {
-            $job['Job']['message'] = 'Sightings published, but the upload to other instances may have failed.';
+
+        $sightingsUuidsToPush = [];
+        if (isset($this->args[4])) { // push just specific sightings
+            $path = APP . 'tmp/cache/ingest' . DS . $this->args[4];
+            $tempFile = new File($path);
+            $inputData = $tempFile->read();
+            if ($inputData === false) {
+                $this->error("File `$path` not found.");
+            }
+            $sightingsUuidsToPush = $this->Event->jsonDecode($inputData);
+            $tempFile->delete();
         }
-        $this->Job->save($job);
+
+        $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
+        $result = $this->Event->publish_sightings($id, $passAlong, $sightingsUuidsToPush);
+
+        $count = count($sightingsUuidsToPush);
+        $message = $count === 0 ? "All sightings published" : "$count sightings published";
+        if ($result) {
+            $message .= '.';
+        } else {
+            $message .= ', but the upload to other instances may have failed.';
+        }
+        $this->Job->saveStatus($jobId, true, $message);
+
         $log = ClassRegistry::init('Log');
-        $log->createLogEntry($user, 'publish_sightings', 'Event', $id, 'Sightings for event (' . $id . '): published.', 'publish_sightings updated');
+        $title = $count === 0 ? "All sightings for event published."  : "$count sightings for event published.";
+        $log->createLogEntry($user, 'publish_sightings', 'Event', $id, $title, 'publish_sightings updated');
     }
 
     public function publish_galaxy_clusters()
@@ -425,6 +457,7 @@ class EventShell extends AppShell
         $inputData = $tempFile->read();
         $inputData = json_decode($inputData, true);
         $tempFile->delete();
+        Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processFreeTextData(
             $inputData['user'],
             $inputData['attributes'],
@@ -445,6 +478,7 @@ class EventShell extends AppShell
         $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
         $inputData = json_decode($tempFile->read(), true);
         $tempFile->delete();
+        Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processModuleResultsData(
             $inputData['user'],
             $inputData['misp_format'],
@@ -510,6 +544,23 @@ class EventShell extends AppShell
         if (empty($user)) {
             $this->error("User with ID $userId does not exists.");
         }
+        Configure::write('CurrentUserId', $user['id']); // for audit logging purposes
         return $user;
+    }
+
+    public function generateTopCorrelations()
+    {
+        $this->ConfigLoad->execute();
+        $jobId = $this->args[0];
+        $job = $this->Job->read(null, $jobId);
+        $job['Job']['progress'] = 1;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $job['Job']['message'] = __('Generating top correlations list.');
+        $this->Job->save($job);
+        $result = $this->Correlation->generateTopCorrelations($jobId);
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $job['Job']['message'] = __('Job done.');
+        $this->Job->save($job);
     }
 }

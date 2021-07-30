@@ -82,8 +82,12 @@
             $contributorsContent = [];
             foreach ($contributors as $organisationId => $name) {
                 $org = ['Organisation' => ['id' => $organisationId, 'name' => $name]];
-                $link = $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($name);
-                $contributorsContent[] =  $this->OrgImg->getNameWithImg($org, $link);
+                if (Configure::read('MISP.log_new_audit')) {
+                    $link = $baseurl . "/audit_logs/eventIndex/" . h($event['Event']['id']) . '/' . h($organisationId);
+                } else {
+                    $link = $baseurl . "/logs/event_index/" . h($event['Event']['id']) . '/' . h($name);
+                }
+                $contributorsContent[] = $this->OrgImg->getNameWithImg($org, $link);
             }
             $table_data[] = array(
                 'key' => __('Contributors'),
@@ -182,7 +186,7 @@
             'key' => __('Published'),
             'class' => ($event['Event']['published'] == 0) ? 'background-red bold not-published' : 'published',
             'class_value' => ($event['Event']['published'] == 0) ? '' : 'green',
-            'html' => ($event['Event']['published'] == 0) ? __('No') : sprintf('<span class="green bold">%s</span>', __('Yes')) . ((empty($event['Event']['publish_timestamp'])) ? __('N/A') :  ' (' . date('Y-m-d H:i:s', ($event['Event']['publish_timestamp'])) . ')')
+            'html' => ($event['Event']['published'] == 0) ? __('No') : sprintf('<span class="green bold">%s</span>', __('Yes')) . ((empty($event['Event']['publish_timestamp'])) ? __('N/A') :  ' (' . $this->Time->time($event['Event']['publish_timestamp']) . ')')
         );
         $attribute_text = $attribute_count;
         $attribute_text .= __n(' (%s Object)', ' (%s Objects)', $object_count, h($object_count));
@@ -567,7 +571,7 @@
 <script type="text/javascript">
 var showContext = false;
 $(function () {
-    queryEventLock('<?php echo h($event['Event']['id']); ?>');
+    queryEventLock('<?= h($event['Event']['id']); ?>', <?= (int)$event['Event']['timestamp'] ?>);
     popoverStartup();
 
     $("th, td, dt, div, span, li").tooltip({

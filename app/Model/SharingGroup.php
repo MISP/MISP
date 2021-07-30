@@ -9,6 +9,7 @@ App::uses('AppModel', 'Model');
 class SharingGroup extends AppModel
 {
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'SharingGroup',
@@ -145,7 +146,7 @@ class SharingGroup extends AppModel
         } else {
             $ids = array_unique(array_merge(
                 $this->SharingGroupServer->fetchAllAuthorised(),
-                $this->SharingGroupOrg->fetchAllAuthorised($user['Organisation']['id'])
+                $this->SharingGroupOrg->fetchAllAuthorised($user['org_id'])
             ));
         }
         if (!empty($ids)) {
@@ -532,7 +533,7 @@ class SharingGroup extends AppModel
                     }
                 }
             }
-            if ($conditional === false) {
+            if ($conditional === false && empty($server['Server']['internal'])) {
                 return false;
             }
         }
@@ -617,6 +618,7 @@ class SharingGroup extends AppModel
             if ($existingCaptureResult !== true) {
                 return $existingCaptureResult;
             }
+            $sg_id = $existingSG['SharingGroup']['id'];
             $forceUpdate = true;
         }
         unset($sg['Organisation']);
@@ -837,7 +839,7 @@ class SharingGroup extends AppModel
                     $temp = $this->SharingGroupOrg->find('first', array(
                         'recursive' => -1,
                         'conditions' => array(
-                            'sharing_group_id' => $existingSG['SharingGroup']['id'],
+                            'sharing_group_id' => $sg_id,
                             'org_id' => $sg['SharingGroupOrg'][$k]['org_id']
                         ),
                     ));
@@ -890,7 +892,7 @@ class SharingGroup extends AppModel
                         $temp = $this->SharingGroupServer->find('first', array(
                             'recursive' => -1,
                             'conditions' => array(
-                                'sharing_group_id' => $existingSG['SharingGroup']['id'],
+                                'sharing_group_id' => $sg_id,
                                 'server_id' => $sg['SharingGroupServer'][$k]['server_id']
                             ),
                         ));

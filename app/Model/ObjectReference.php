@@ -1,10 +1,13 @@
 <?php
-
 App::uses('AppModel', 'Model');
 
+/**
+ * @property MispObject $Object
+ */
 class ObjectReference extends AppModel
 {
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
                 'userModel' => 'User',
@@ -265,7 +268,14 @@ class ObjectReference extends AppModel
         return true;
     }
 
-    public function getReferencedInfo($referencedUuid, $object, $strict = true, $user=[])
+    /**
+     * @param string $referencedUuid
+     * @param array $object
+     * @param bool $strict When true, throw exception when referenced object not found.
+     * @param array $user
+     * @return array|int[]
+     */
+    public function getReferencedInfo($referencedUuid, $object, $strict = true, $user = [])
     {
         $referenced_type = 1;
         $target_object = $this->Object->find('first', array(

@@ -53,7 +53,7 @@
                         'options' => $sharingGroups,
                         'class' => 'input',
                         'label' => false,
-                        'style' => 'display:none;width:438px;',
+                        'style' => 'width:438px;',
                         'div' => false
                 ));
                 if ($showorg) {
@@ -61,19 +61,18 @@
                             'options' => $orgs,
                             'class' => 'input',
                             'label' => false,
-                            'style' => 'display:none;width:438px;',
+                            'style' => 'width:438px;',
                             'div' => false
                     ));
                 }
                 echo $this->Form->input('searchtag', array(
-                        'options' => array($tags),
+                        'options' => $tags,
                         'class' => 'input',
                         'label' => false,
-                        'style' => 'display:none;width:438px;',
+                        'style' => 'width:438px',
                         'div' => false
                 ));
                 echo $this->Form->input('searchdatefrom', array(
-                        'div' => 'input clear',
                         'class' => 'datepicker',
                         'data-date-format' => 'yyyy-mm-dd',
                         'label' => false,
@@ -230,10 +229,12 @@ if (isSiteAdmin == 1) {
 
 var baseurl = "<?php echo $baseurl; ?>";
 
-$(document).ready(function() {
+$(function() {
     $('.datepicker').datepicker().on('changeDate', function(ev) {
         $('.dropdown-menu').hide();
     });
+    $('#EventSearchtag, #EventSearchorg, #EventSearchsharinggroup').chosen();
+    $('#EventSearchtag_chosen, #EventSearchorg_chosen, #EventSearchsharinggroup_chosen').css('top', '-5px');
     indexEvaluateFiltering();
 });
 

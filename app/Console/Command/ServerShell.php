@@ -212,6 +212,33 @@ class ServerShell extends AppShell
         }
     }
 
+    public function pushAll()
+    {
+        $this->ConfigLoad->execute();
+
+        $userId = $this->args[0];
+        $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die('User ID do not match an existing user.' . PHP_EOL);
+        }
+
+        $servers = $this->Server->find('all', array(
+            'conditions' => array('Server.push' => 1),
+            'recursive' => -1,
+            'order' => 'Server.priority',
+            'fields' => array('Server.name', 'Server.id'),
+        ));
+
+        foreach ($servers as $server) {
+            $jobId = CakeResque::enqueue(
+                'default',
+                'ServerShell',
+                array('push', $userId, $server['Server']['id'], $technique)
+            );
+            $this->out("Enqueued pushing from {$server['Server']['name']} server as job $jobId");
+        }
+    }
+
     public function fetchFeed()
     {
         $this->ConfigLoad->execute();
@@ -318,6 +345,34 @@ class ServerShell extends AppShell
             $this->Job->saveStatus($jobId, true, $message);
         }
         echo $message . PHP_EOL;
+    }
+
+    public function cacheServerAll()
+    {
+        $this->ConfigLoad->execute();
+
+        $userId = $this->args[0];
+        $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die('User ID do not match an existing user.' . PHP_EOL);
+        }
+
+        $servers = $this->Server->find('all', array(
+            'conditions' => array('Server.pull' => 1),
+            'recursive' => -1,
+            'order' => 'Server.priority',
+            'fields' => array('Server.name', 'Server.id'),
+        ));
+
+        foreach ($servers as $server) {
+            $jobId = CakeResque::enqueue(
+                'default',
+                'ServerShell',
+                array('cacheServer', $userId, $server['Server']['id'])
+            );
+            $this->out("Enqueued cacheServer from {$server['Server']['name']} server as job $jobId");
+        }
+
     }
 
     public function cacheFeed()

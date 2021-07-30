@@ -1,12 +1,16 @@
 <?php
-
 class AttackExport
 {
-    public $additional_params = array(
+    public $additional_params = [
         'flatten' => 1,
         'includeEventTags' => 1,
-        'includeGalaxy' => 1
-    );
+        'includeGalaxy' => 1,
+        'noSightings' => true,
+        'noEventReports' => true,
+        'noShadowAttributes' => true,
+        'sgReferenceOnly' => true,
+        'includeEventCorrelations' => false,
+    ];
 
     public $non_restrictive_export = true;
     public $renderView = 'attack_view';
@@ -16,6 +20,7 @@ class AttackExport
     private $__attackGalaxy = 'mitre-attack-pattern';
     private $__galaxy_id = 0;
     private $__galaxy_name = '';
+    /** @var null|Galaxy */
     private $__GalaxyModel = null;
     private $__tabs = false;
     private $__matrixTags = false;

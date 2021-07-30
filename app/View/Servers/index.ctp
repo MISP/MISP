@@ -51,7 +51,9 @@ foreach ($servers as $server):
                     $ruleDescription[$syncOption] .= '<span class=\'bold\'>' . ucfirst($fieldOption) . ' ' . $typeData['text'] . '</span>: <span class=\'' . $typeData['colour'] . '\'>';
                     foreach ($rules[$syncOption][$fieldOption][$typeOption] as $k => $temp) {
                         if ($k != 0) $ruleDescription[$syncOption] .= ', ';
-                        if ($syncOption === 'push') $temp = $collection[$fieldOption][$temp];
+                        if ($syncOption === 'push') {
+                            $temp = !empty($collection[$fieldOption][$temp]) ? $collection[$fieldOption][$temp] : $temp;
+                        }
                         $ruleDescription[$syncOption] .= h($temp);
                     }
                     $ruleDescription[$syncOption] .= '</span><br>';

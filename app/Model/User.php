@@ -9,6 +9,7 @@ App::uses('SendEmail', 'Tools');
  * @property Log $Log
  * @property Organisation $Organisation
  * @property Role $Role
+ * @property UserSetting $UserSetting
  */
 class User extends AppModel
 {
@@ -64,13 +65,10 @@ class User extends AppModel
             ),
         ),
         'email' => array(
-            'email' => array(
-                'rule' => array('email'),
-                'message' => 'Please enter a valid email address.',
-                //'allowEmpty' => false,
+            'emailValidation' => array(
+                'rule' => array('validateEmail'),
+                'message' => 'Please nter a valid email address.',
                 'required' => true,
-                //'last' => false, // Stop validation after this rule
-                //'on' => 'create', // Limit validation to 'create' or 'update' operations
             ),
             'unique' => array(
                 'rule' => 'isUnique',
@@ -215,6 +213,7 @@ class User extends AppModel
     );
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',
             'userKey' => 'user_id',
@@ -382,6 +381,16 @@ class User extends AppModel
             return false;
         }
         return true;
+    }
+
+    public function validateEmail($check)
+    {
+        $localPartReg = '[\p{L}0-9!#$%&\'*+\/=?^_`{|}~-]+(?:\.[\p{L}0-9!#$%&\'*+\/=?^_`{|}~-]+)*@';
+        $domainReg = '[a-z0-9_\-\.]+';
+        $fullReg = sprintf('/^%s%s$/ui', $localPartReg, $domainReg);
+        $check = array_values($check);
+        $check = $check[0];
+        return preg_match($fullReg, $check, $matches) ? true : false;
     }
 
     /*
@@ -805,7 +814,6 @@ class User extends AppModel
 
         $gpg = $this->initializeGpg();
         $sendEmail = new SendEmail($gpg);
-
         try {
             $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
 
@@ -942,6 +950,7 @@ class User extends AppModel
         }
         $body = str_replace('$password', $password, $body);
         $body = str_replace('$username', $user['User']['email'], $body);
+        $body = str_replace('\n', PHP_EOL, $body);
         $result = $this->sendEmail($user, $body, false, $subject);
         if ($result) {
             $this->id = $user['User']['id'];
@@ -1020,6 +1029,17 @@ class User extends AppModel
         ));
         $this->validator()->remove('password'); // password is too simple, remove validation
         $this->save($admin);
+        if (!empty(Configure::read("Security.advanced_authkeys"))) {
+            $this->AuthKey = ClassRegistry::init('AuthKey');
+            $newKey = [
+                'authkey' => $authKey,
+                'user_id' => 1,
+                'comment' => 'Initial auto-generated key',
+                'allowed_ips' => null,
+            ];
+            $this->AuthKey->create();
+            $this->AuthKey->save($newKey);
+        }
         return $authKey;
     }
 
@@ -1388,5 +1408,34 @@ class User extends AppModel
             $this->gpg = false;
             return null;
         }
+    }
+
+    public function updateToAdvancedAuthKeys()
+    {
+        $users = $this->find('all', [
+            'recursive' => -1,
+            'contain' => ['AuthKey'],
+            'fields' => ['id', 'authkey']
+        ]);
+        $updated = 0;
+        foreach ($users as $user) {
+            if (!empty($user['AuthKey'])) {
+                $currentKeyStart = substr($user['User']['authkey'], 0, 4);
+                $currentKeyEnd = substr($user['User']['authkey'], -4);
+                foreach ($user['AuthKey'] as $authkey) {
+                    if ($authkey['authkey_start'] === $currentKeyStart && $authkey['authkey_end'] === $currentKeyEnd) {
+                        continue 2;
+                    }
+                }
+            }
+            $this->AuthKey->create();
+            $this->AuthKey->save([
+                'authkey' => $user['User']['authkey'],
+                'expiration' => 0,
+                'user_id' => $user['User']['id']
+            ]);
+            $updated += 1;
+        }
+        return $updated;
     }
 }

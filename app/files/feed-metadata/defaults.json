@@ -3,7 +3,7 @@
     "Feed": {
       "name": "CIRCL OSINT Feed",
       "provider": "CIRCL",
-      "url": "https://www.circl.lu/doc/misp/feed-osint",
+      "url": "https://www.circl.lu/doc/misp/feed-osint/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "3",
@@ -849,7 +849,7 @@
   },
   {
     "Feed": {
-      "name": "http://cybercrime-tracker.net",
+      "name": "http://cybercrime-tracker.net hashlist",
       "provider": "http://cybercrime-tracker.net hashlist",
       "url": "https://cybercrime-tracker.net/ccamlist.php",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
@@ -869,7 +869,7 @@
   },
   {
     "Feed": {
-      "name": "http://cybercrime-tracker.net",
+      "name": "http://cybercrime-tracker.net gatelist",
       "provider": "http://cybercrime-tracker.net gatelist",
       "url": "https://cybercrime-tracker.net/ccamgate.php",
       "rules": "",
@@ -1587,5 +1587,92 @@
       "delete_local_file": false,
       "lookup_visible": false
     }
-  }
+  }, 
+  {
+   "Feed": {
+        "name": "URL Seen in honeypots",
+        "provider": "APNIC Community Honeynet Project",
+        "url": "https:\/\/feeds.honeynet.asia\/url\/latest-url-unique.csv",
+        "rules": "",
+        "enabled": false,
+        "distribution": "0",
+        "sharing_group_id": "0",
+        "default": false,
+        "source_format": "freetext",
+        "fixed_event": true,
+        "delta_merge": false,
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": true,
+        "caching_enabled": true,
+        "force_to_ids": false
+       }, 
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  }, 
+  {
+   "Feed": {
+        "name": "SSH Bruteforce IPs",
+        "provider": "APNIC Community Honeynet Project",
+        "url": "https:\/\/feeds.honeynet.asia\/bruteforce\/latest-sshbruteforce-unique.csv",
+        "rules": "",
+        "enabled": false,
+        "distribution": "0",
+        "sharing_group_id": "0",
+        "default": false,
+        "source_format": "csv",
+        "fixed_event": true,
+        "delta_merge": false,
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": true,
+        "caching_enabled": true,
+        "force_to_ids": false
+       }, 
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  }, 
+  {
+   "Feed": {
+        "name": "Telnet Bruteforce IPs",
+        "provider": "APNIC Community Honeynet Project",
+        "url": "https:\/\/feeds.honeynet.asia\/bruteforce\/latest-telnetbruteforce-unique.csv",
+        "rules": "",
+        "enabled": false,
+        "distribution": "0",
+        "sharing_group_id": "0",
+        "default": false,
+        "source_format": "csv",
+        "fixed_event": true,
+        "delta_merge": false,
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": true,
+        "caching_enabled": true,
+        "force_to_ids": false
+       }, 
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  } 
 ]

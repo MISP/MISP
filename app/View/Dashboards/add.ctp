@@ -20,7 +20,8 @@
                 array(
                     'field' => 'widget',
                     'class' => 'input span6',
-                    'options' => Hash::combine($data['widget_options'], '{s}.widget', '{s}.title')
+                    'options' => Hash::combine($data['widget_options'], '{s}.widget', '{s}.title'),
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'width',
