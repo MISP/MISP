@@ -299,7 +299,7 @@ $randomClass = "relation-{$random}";
             .attr("class", "well well-small")
             .style('padding', '4px 9px')
             .style('white-space', 'nowrap')
-            .html(function(d) { return d.Relation.referenced_galaxy_cluster_type; })
+            .text(function(d) { return d.Relation.referenced_galaxy_cluster_type; })
             
         paddingX = 8;
         gEnter.append("foreignObject")
@@ -319,7 +319,7 @@ $randomClass = "relation-{$random}";
                             .style('background-color', tag.colour)
                             .style('color', getTextColour(tag.colour))
                             .style('display', 'inline')
-                            .html(tag.name)
+                            .text(tag.name)
                     });
                 }
             });
