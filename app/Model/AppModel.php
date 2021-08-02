@@ -1891,6 +1891,7 @@ class AppModel extends Model
                 unlink($file);
             }
         }
+        return true;
     }
 
     public function getPythonVersion()
