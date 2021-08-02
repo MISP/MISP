@@ -2090,6 +2090,7 @@ class Server extends AppModel
             );
             $job->saveField('process_id', $process_id);
         }
+        return true;
     }
 
     public function ipLogBeforeHook($setting, $value)
@@ -2219,7 +2220,6 @@ class Server extends AppModel
         } else {
             $oldValue = Configure::read($setting['name']);
             $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
-
             if ($settingSaveResult) {
                 $this->Log = ClassRegistry::init('Log');
                 $change = array($setting['name'] => array($oldValue, $value));
