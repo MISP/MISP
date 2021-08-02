@@ -830,16 +830,7 @@ class Server extends AppModel
         } else {
             if (Configure::read('MISP.enableEventBlocklisting') !== false) {
                 $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-                $blocklistHits = $this->EventBlocklist->find('column', array(
-                    'conditions' => array('EventBlocklist.event_uuid' => array_column($eventArray, 'uuid')),
-                    'fields' => array('EventBlocklist.event_uuid'),
-                ));
-                $blocklistHits = array_flip($blocklistHits);
-                foreach ($eventArray as $k => $event) {
-                    if (isset($blocklistHits[$event['uuid']])) {
-                        unset($eventArray[$k]);
-                    }
-                }
+                $this->EventBlocklist->removeBlockedEvents($eventArray);
             }
 
             if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
