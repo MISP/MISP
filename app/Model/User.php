@@ -10,6 +10,7 @@ App::uses('SendEmail', 'Tools');
  * @property Organisation $Organisation
  * @property Role $Role
  * @property UserSetting $UserSetting
+ * @property Event $Event
  */
 class User extends AppModel
 {
