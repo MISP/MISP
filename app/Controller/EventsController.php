@@ -175,16 +175,16 @@ class EventsController extends AppController
         }
         $values = array();
         foreach ($value as $v) {
-            $values[] = '%' . strtolower($v) . '%';
+            $values[] = '%' . mb_strtolower($v) . '%';
         }
 
         // get all of the attributes that have a hit on the search term, in either the value or the comment field
         // This is not perfect, the search will be case insensitive, but value1 and value2 are searched separately. lower() doesn't seem to work on virtualfields
         $subconditions = array();
         foreach ($values as $v) {
-            $subconditions[] = array('lower(value1) LIKE' => $v);
-            $subconditions[] = array('lower(value2) LIKE' => $v);
-            $subconditions[] = array('lower(Attribute.comment) LIKE' => $v);
+            $subconditions[] = array('Attribute.value1 LIKE' => $v);
+            $subconditions[] = array('Attribute.value2 LIKE' => $v);
+            $subconditions[] = array('Attribute.comment LIKE' => $v);
         }
         $conditions = array(
             'OR' => $subconditions,
