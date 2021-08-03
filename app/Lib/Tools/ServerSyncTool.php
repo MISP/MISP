@@ -5,7 +5,8 @@ class ServerSyncTool
 {
     const FEATURE_BR = 'br',
         FEATURE_GZIP = 'gzip',
-        FEATURE_FILTER_SIGHTINGS = 'filter_sightings';
+        FEATURE_FILTER_SIGHTINGS = 'filter_sightings',
+        FEATURE_PROPOSALS = 'proposals';
 
     /** @var array */
     private $server;
@@ -46,14 +47,15 @@ class ServerSyncTool
      */
     public function eventExists(array $event)
     {
-        $exists = $this->socket->head($this->server['Server']['url'] . '/events/view/' . $event['Event']['uuid'], [], $this->request);
+        $url = $this->server['Server']['url'] . '/events/view/' . $event['Event']['uuid'];
+        $exists = $this->socket->head($url, [], $this->request);
         if ($exists->code == '404') {
             return false;
         }
         if ($exists->code == '200') {
             return true;
         }
-        throw new HttpSocketHttpException($exists);
+        throw new HttpSocketHttpException($exists, $url);
     }
 
     /**
@@ -76,6 +78,7 @@ class ServerSyncTool
      * @param array $sightings
      * @param string $eventUuid
      * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
      */
     public function uploadSightings(array $sightings, $eventUuid)
     {
@@ -87,6 +90,20 @@ class ServerSyncTool
 
         $logMessage = "Pushing Sightings for Event #{$eventUuid} to Server #{$this->server['Server']['id']}";
         $this->post('/sightings/bulkSaveSightings/' . $eventUuid, $sightings, $logMessage);
+    }
+
+    /**
+     * @param array $params
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function fetchProposals(array $params = [])
+    {
+        $url = '/shadow_attributes/index';
+        $url .= $this->createParams($params);
+        $url .= '.json';
+
+        return $this->get($url);
     }
 
     /**
@@ -130,7 +147,32 @@ class ServerSyncTool
     }
 
     /**
-     * @params string $url Relative URL
+     * @param string $flag
+     * @return bool
+     * @throws HttpSocketJsonException
+     * @throws InvalidArgumentException
+     * @throws HttpSocketHttpException
+     */
+    public function isSupported($flag)
+    {
+        $info = $this->info();
+        switch ($flag) {
+            case self::FEATURE_BR:
+                return isset($info['request_encoding']) && in_array('br', $info['request_encoding'], true);
+            case self::FEATURE_GZIP:
+                return isset($info['request_encoding']) && in_array('gzip', $info['request_encoding'], true);
+            case self::FEATURE_FILTER_SIGHTINGS:
+                return isset($info['filter_sightings']) && $info['filter_sightings'];
+            case self::FEATURE_PROPOSALS:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] >= 111;
+            default:
+                throw new InvalidArgumentException("Invalid flag `$flag` provided");
+        }
+    }
+
+    /**
+     * @param string $url Relative URL
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
      */
@@ -185,22 +227,21 @@ class ServerSyncTool
     }
 
     /**
-     * @param string $flag
-     * @return bool
-     * @throws HttpSocketJsonException
+     * @param array $params
+     * @return string
      */
-    private function isSupported($flag)
+    private function createParams(array $params)
     {
-        $info = $this->info();
-        switch ($flag) {
-            case self::FEATURE_BR:
-                return isset($info['request_encoding']) && in_array('br', $info['request_encoding'], true);
-            case self::FEATURE_GZIP:
-                return isset($info['request_encoding']) && in_array('gzip', $info['request_encoding'], true);
-            case self::FEATURE_FILTER_SIGHTINGS:
-                return isset($info['filter_sightings']) && $info['filter_sightings'];
-            default:
-                throw new InvalidArgumentException("Invalid flag `$flag` provided");
+        $url = '';
+        foreach ($params as $key => $value) {
+            if (is_array($value)) {
+                foreach ($value as $v) {
+                    $url .= "/{$key}[]:$v";
+                }
+            } else {
+                $url .= "/$key:$value";
+            }
         }
+        return $url;
     }
 }
