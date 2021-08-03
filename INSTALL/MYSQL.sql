@@ -664,7 +664,7 @@ CREATE TABLE IF NOT EXISTS `objects` (
   INDEX `template_version` (`template_version`),
   INDEX `meta-category` (`meta-category`),
   INDEX `event_id` (`event_id`),
-  INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `uuid` (`uuid`),
   INDEX `timestamp` (`timestamp`),
   INDEX `distribution` (`distribution`),
   INDEX `sharing_group_id` (`sharing_group_id`),
@@ -787,7 +787,7 @@ CREATE TABLE IF NOT EXISTS `organisations` (
   `restricted_to_domain` text COLLATE utf8_bin,
   `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   PRIMARY KEY (`id`),
-  INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `uuid` (`uuid`),
   INDEX `name` (`name`(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
@@ -798,7 +798,7 @@ CREATE TABLE IF NOT EXISTS `org_blocklists` (
   `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
   `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   PRIMARY KEY (`id`),
-  INDEX `org_uuid` (`org_uuid`),
+  UNIQUE INDEX `org_uuid` (`org_uuid`),
   INDEX `org_name` (`org_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 -- --------------------------------------------------------
