@@ -504,7 +504,7 @@ class Server extends AppModel
 
         $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         try {
-            $server['Server']['version'] = $serverSync->info();
+            $server['Server']['version'] = $serverSync->info()['version'];
         } catch (HttpSocketHttpException $e) {
             // ignore for now
         }
@@ -3689,21 +3689,6 @@ class Server extends AppModel
             'title' => $text[$type]['title'],
             'change' => $text[$type]['change']
         ));
-    }
-
-    private function getRemoteVersion(array $server)
-    {
-        $HttpSocket = $this->setupHttpSocket($server);
-        $request = $this->setupSyncRequest($server);
-        $response = $HttpSocket->get($server['Server']['url'] . '/servers/getVersion', $data = '', $request);
-        if ($response->code == 200) {
-            $data = $this->jsonDecode($response->body);
-            if (isset($data['version']) && !empty($data['version'])) {
-                return $data['version'];
-            } else {
-                throw new Exception("Invalid response from remote server: version field missing");
-            }
-        }
     }
 
     /**
