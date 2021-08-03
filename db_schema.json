@@ -8030,7 +8030,9 @@
             "name": false
         },
         "org_blocklists": {
-            "id": true
+            "id": true,
+            "org_uuid": true,
+            "org_name": false
         },
         "posts": {
             "id": true,
