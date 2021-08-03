@@ -7991,7 +7991,7 @@
             "template_version": false,
             "meta-category": false,
             "event_id": false,
-            "uuid": false,
+            "uuid": true,
             "timestamp": false,
             "distribution": false,
             "sharing_group_id": false,
@@ -8026,7 +8026,7 @@
         },
         "organisations": {
             "id": true,
-            "uuid": false,
+            "uuid": true,
             "name": false
         },
         "org_blocklists": {
