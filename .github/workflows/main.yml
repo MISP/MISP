@@ -135,6 +135,7 @@ jobs:
         run: |
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.osuser" $USER'
               sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
+              sudo -E su $USER -c 'app/Console/cake Admin schemaDiagnostics'
 
       - name: Configure MISP
         run: |

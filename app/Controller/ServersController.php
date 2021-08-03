@@ -2429,9 +2429,6 @@ misp.direct_call(relative_path, body)
 
     public function dbSchemaDiagnostic()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException(__('Only site admin accounts get the DB schema diagnostic.'));
-        }
         $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($dbSchemaDiagnostics, $this->response->type());

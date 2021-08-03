@@ -732,4 +732,38 @@ class AdminShell extends AppShell
         $message = __('The upgrade process is complete, %s authkey(s) generated.', $updated);
         $this->out($message);
     }
+
+    public function schemaDiagnostics()
+    {
+        $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
+        $this->out('# Columns diagnostics');
+
+        foreach ($dbSchemaDiagnostics['diagnostic'] as $tableName => $diagnostics) {
+            $diagnostics = array_filter($diagnostics, function ($c) {
+                return $c['is_critical'];
+            });
+            if (empty($diagnostics)) {
+                continue;
+            }
+            $this->out();
+            $this->out('Table ' . $tableName . ':');
+            foreach ($diagnostics as $diagnostic) {
+                $this->out(' - ' . $diagnostic['description']);
+                $this->out('   Expected: ' . implode(' ', $diagnostic['expected']));
+                if (!empty($diagnostic['actual'])) {
+                    $this->out('   Actual:   ' . implode(' ', $diagnostic['actual']));
+                }
+            }
+        }
+
+        $this->out();
+        $this->out('# Index diagnostics');
+        foreach ($dbSchemaDiagnostics['diagnostic_index'] as $tableName => $diagnostics) {
+            $this->out();
+            $this->out('Table ' . $tableName . ':');
+            foreach ($diagnostics as $info) {
+                $this->out(' - ' . $info['message']);
+            }
+        }
+    }
 }
