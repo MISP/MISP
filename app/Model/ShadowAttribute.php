@@ -450,7 +450,7 @@ class ShadowAttribute extends AppModel
     public function validateLastSeenValue($fields)
     {
         $ls = $fields['last_seen'];
-        if (is_null($this->data['ShadowAttribute']['first_seen']) || is_null($ls)) {
+        if (!isset($this->data['ShadowAttribute']['first_seen']) || is_null($ls)) {
             return true;
         }
         $converted = $this->Attribute->ISODatetimeToUTC(['ShadowAttribute' => [
