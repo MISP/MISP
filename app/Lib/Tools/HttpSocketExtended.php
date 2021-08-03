@@ -68,7 +68,7 @@ class HttpSocketResponseExtended extends HttpSocketResponse
                 throw new SocketException("Response should be brotli encoded, but brotli decoding failed.");
             }
         } else if ($contentEncoding) {
-            throw new SocketException("Remote server returns unsupported content encoding '$contentEncoding'");
+            throw new SocketException("Remote server returns unsupported content encoding '$contentEncoding'.");
         }
     }
 
@@ -101,6 +101,7 @@ class HttpSocketResponseExtended extends HttpSocketResponse
  * Supports response compression and also decodes response as JSON
  * @method HttpSocketResponseExtended get($uri = null, $query = array(), $request = array())
  * @method HttpSocketResponseExtended post($uri = null, $data = array(), $request = array())
+ * @method HttpSocketResponseExtended head($uri = null, $query = array(), $request = array())
  */
 class HttpSocketExtended extends HttpSocket
 {

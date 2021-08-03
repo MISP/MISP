@@ -1644,16 +1644,11 @@ class ServersController extends AppController
 
     public function getRemoteUser($id)
     {
-        $this->Server->id = $id;
-        if (!$this->Server->exists()) {
+        $user = $this->Server->getRemoteUser($id);
+        if ($user === null) {
             throw new NotFoundException(__('Invalid server'));
         }
-        $user = $this->Server->getRemoteUser($id);
-        if (empty($user)) {
-            throw new NotFoundException(__('Invalid user or user not found.'));
-        } else {
-            return $this->RestResponse->viewData($user);
-        }
+        return $this->RestResponse->viewData($user);
     }
 
     public function testConnection($id = false)
