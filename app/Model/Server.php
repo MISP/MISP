@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('GpgTool', 'Tools');
+App::uses('ServerSyncTool', 'Tools');
 
 /**
  * @property-read array $serverSettings
@@ -500,7 +501,14 @@ class Server extends AppModel
         } else {
             $email = $user['email'];
         }
-        $server['Server']['version'] = $this->getRemoteVersion($server);
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        try {
+            $server['Server']['version'] = $serverSync->info();
+        } catch (HttpSocketHttpException $e) {
+            // ignore for now
+        }
+
         $pulledClusters = 0;
         if (!empty($server['Server']['pull_galaxy_clusters'])) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -779,7 +787,7 @@ class Server extends AppModel
      */
     public function getEventIdsFromServer(array $server, $all = false, HttpSocket $HttpSocket = null, $ignoreFilterRules = false, $scope = 'events', $force = false)
     {
-        if (!in_array($scope, array('events', 'sightings'))) {
+        if (!in_array($scope, ['events', 'sightings'], true)) {
             throw new InvalidArgumentException("Scope mus be 'events' or 'sightings', '$scope' given.");
         }
 
@@ -4437,50 +4445,45 @@ class Server extends AppModel
         return array($data, $response);
     }
 
+    /**
+     * @param int $id
+     * @return array|int|null
+     * @throws JsonException
+     */
     public function getRemoteUser($id)
     {
         $server = $this->find('first', array(
             'conditions' => array('Server.id' => $id),
             'recursive' => -1
         ));
-        $HttpSocket = $this->setupHttpSocket($server);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/users/view/me.json';
-        try {
-            $response = $HttpSocket->get($uri, false, $request);
-        } catch (Exception $e) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $message = __('Could not fetch remote user account.');
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: ' . $message,
-            ));
-            return $message;
+        if (empty($server)) {
+            return null; // server not found
         }
-        if ($response->isOk()) {
-            $user = $this->jsonDecode($response->body);
-            if (!empty($user['User'])) {
-                $results = [
-                    __('User') => $user['User']['email'],
-                    __('Role name') => isset($user['Role']['name']) ? $user['Role']['name'] : __('Unknown, outdated instance'),
-                    __('Sync flag') => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
-                ];
-                if (isset($response->headers['X-Auth-Key-Expiration'])) {
-                    $date = new DateTime($response->headers['X-Auth-Key-Expiration']);
-                    $results[__('Auth key expiration')] = $date->format('Y-m-d H:i:s');
-                }
-                return $results;
-            } else {
-                return __('No user object received in response.');
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
+        try {
+            $response = $serverSync->userInfo();
+            $user = $response->json();
+
+            $results = [
+                __('User') => $user['User']['email'],
+                __('Role name') => isset($user['Role']['name']) ? $user['Role']['name'] : __('Unknown, outdated instance'),
+                __('Sync flag') => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
+            ];
+            if (isset($response->headers['X-Auth-Key-Expiration'])) {
+                $date = new DateTime($response->headers['X-Auth-Key-Expiration']);
+                $results[__('Auth key expiration')] = $date->format('Y-m-d H:i:s');
             }
-        } else {
-            return $response->code;
+            return $results;
+        } catch (HttpSocketHttpException $e) {
+            $this->logException('Could not fetch remote user account.', $e);
+            return $e->getCode();
+        } catch  (Exception $e) {
+            $this->logException('Could not fetch remote user account.', $e);
+            $message = __('Could not fetch remote user account.');
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $id, 'Error: ' . $message);
+            return $message;
         }
     }
 

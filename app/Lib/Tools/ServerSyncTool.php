@@ -17,7 +17,7 @@ class ServerSyncTool
     private $socket;
 
     /** @var array|null */
-    private $info = null;
+    private $info;
 
     /**
      * @param array $server
@@ -48,14 +48,14 @@ class ServerSyncTool
         if ($exists->code == '200') {
             return true;
         }
-        throw new Exception("Not possible to check if event exists or not. Unexpected HTTP code $exists->code");
+        throw new HttpSocketHttpException($exists);
     }
 
     /**
      * @param array $event
      * @param array $sightingUuids
      * @return array Sighting UUIDs that exists on remote side
-     * @throws HttpClientJsonException
+     * @throws HttpSocketJsonException|HttpSocketHttpException
      */
     public function filterSightingUuidsForPush(array $event, array $sightingUuids)
     {
@@ -64,17 +64,17 @@ class ServerSyncTool
         }
 
         $response = $this->post('/sightings/filterSightingUuidsForPush/' . $event['Event']['uuid'], $sightingUuids);
-        if ($response->isOk()) {
-            return $response->json();
+        if (!$response->isOk()) {
+            throw new HttpSocketHttpException($response);
         }
 
-        throw new Exception("Not possible to filter sighting UUIDs. Unexpected HTTP code $response->code");
+        return $response->json();
     }
 
     /**
      * @param array $sightings
      * @param string $eventUuid
-     * @throws Exception
+     * @throws HttpSocketHttpException
      */
     public function uploadSightings(array $sightings, $eventUuid)
     {
@@ -87,13 +87,14 @@ class ServerSyncTool
         $logMessage = "Pushing Sightings for Event #{$eventUuid} to Server #{$this->server['Server']['id']}";
         $response = $this->post('/sightings/bulkSaveSightings/' . $eventUuid, $sightings, $logMessage);
         if (!$response->isOk()) {
-            throw new Exception("HTTP error {$response->code}: $response->body");
+            throw new HttpSocketHttpException($response);
         }
     }
 
     /**
      * @return array
-     * @throws HttpClientJsonException
+     * @throws HttpSocketJsonException
+     * @throws Exception
      */
     public function info()
     {
@@ -103,15 +104,28 @@ class ServerSyncTool
 
         $response = $this->socket->get($this->server['Server']['url'] . '/servers/getVersion', [], $this->request);
         if (!$response->isOk()) {
-            throw new Exception("Invalid response when fetching server version. Error {$response->code}: $response->body");
+            throw new HttpSocketHttpException($response);
         }
 
         $info = $response->json();
         if (!isset($info['version'])) {
-            throw new Exception("Invalid response when fetching server version: version field missing");
+            throw new Exception("Invalid response when fetching server version: `version` field missing.");
         }
         $this->info = $info;
         return $info;
+    }
+
+    /**
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function userInfo()
+    {
+        $response = $this->socket->get($this->server['Server']['url'] . '/users/view/me.json', [], $this->request);
+        if (!$response->isOk()) {
+            throw new HttpSocketHttpException($response);
+        }
+        return $response;
     }
 
     /**
@@ -151,7 +165,7 @@ class ServerSyncTool
     /**
      * @param string $flag
      * @return bool
-     * @throws HttpClientJsonException
+     * @throws HttpSocketJsonException
      */
     private function isSupported($flag)
     {
@@ -164,7 +178,7 @@ class ServerSyncTool
             case self::FEATURE_FILTER_SIGHTINGS:
                 return isset($info['filter_sightings']) && $info['filter_sightings'];
             default:
-                throw new InvalidArgumentException("Invalid flag provided");
+                throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
     }
 }

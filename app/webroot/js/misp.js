@@ -3291,14 +3291,14 @@ function getRemoteSyncUser(id) {
         },
         success: function(response) {
             resultContainer.empty();
-            if (typeof(response.message) != 'undefined') {
+            if (typeof response !== 'object') {
                 resultContainer.append(
                     $('<span>')
                     .attr('class', 'red bold')
                     .text('Error')
                 ).append(
                     $('<span>')
-                    .text(': #' + response.message)
+                    .text(': #' + response)
                 );
             } else {
                 Object.keys(response).forEach(function(key) {
