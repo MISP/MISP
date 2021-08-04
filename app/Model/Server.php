@@ -4433,7 +4433,7 @@ class Server extends AppModel
 
     /**
      * @param int $id
-     * @return array|int|null
+     * @return array|null
      * @throws JsonException
      */
     public function getRemoteUser($id)
@@ -4464,12 +4464,12 @@ class Server extends AppModel
             return $results;
         } catch (HttpSocketHttpException $e) {
             $this->logException('Could not fetch remote user account.', $e);
-            return $e->getCode();
+            return ['error' => $e->getCode()];
         } catch  (Exception $e) {
             $this->logException('Could not fetch remote user account.', $e);
             $message = __('Could not fetch remote user account.');
             $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $id, 'Error: ' . $message);
-            return $message;
+            return ['error' => $message];
         }
     }
 
