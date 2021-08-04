@@ -245,40 +245,28 @@ class Server extends AppModel
      * @param array $server
      * @param bool $force
      * @return array
+     * @throws InvalidArgumentException
      */
     private function __getEventIdListBasedOnPullTechnique($technique, array $server, $force = false)
     {
-        try {
-            if ("full" === $technique) {
-                // get a list of the event_ids on the server
-                $eventIds = $this->getEventIdsFromServer($server, false, null, false, 'events', $force);
-                // reverse array of events, to first get the old ones, and then the new ones
-                return array_reverse($eventIds);
-            } elseif ("update" === $technique) {
-                $eventIds = $this->getEventIdsFromServer($server, false, null, true, 'events', $force);
-                $eventModel = ClassRegistry::init('Event');
-                $localEventUuids = $eventModel->find('column', array(
-                    'fields' => array('Event.uuid'),
-                ));
-                return array_intersect($eventIds, $localEventUuids);
-            } elseif (is_numeric($technique)) {
-                return array(intval($technique));
-            } elseif (Validation::uuid($technique)) {
-                return array($technique);
-            } else {
-                return array('error' => array(4, null));
-            }
-        } catch (HttpException $e) {
-            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
-            if ($e->getCode() === 403) {
-                return array('error' => array(1, null));
-            } else {
-                return array('error' => array(2, $e->getMessage()));
-            }
-        } catch (Exception $e) {
-            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
-            return array('error' => array(2, $e->getMessage()));
+        if ("full" === $technique) {
+            // get a list of the event_ids on the server
+            $eventIds = $this->getEventIdsFromServer($server, false, null, false, 'events', $force);
+            // reverse array of events, to first get the old ones, and then the new ones
+            return array_reverse($eventIds);
+        } elseif ("update" === $technique) {
+            $eventIds = $this->getEventIdsFromServer($server, false, null, true, 'events', $force);
+            $eventModel = ClassRegistry::init('Event');
+            $localEventUuids = $eventModel->find('column', array(
+                'fields' => array('Event.uuid'),
+            ));
+            return array_intersect($eventIds, $localEventUuids);
+        } elseif (is_numeric($technique)) {
+            return array(intval($technique));
+        } elseif (Validation::uuid($technique)) {
+            return array($technique);
         }
+        throw new InvalidArgumentException("Invalid pull technique `$technique`.");
     }
 
     private function __checkIfEventIsBlockedBeforePull($event)
@@ -505,8 +493,16 @@ class Server extends AppModel
         $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         try {
             $server['Server']['version'] = $serverSync->info()['version'];
-        } catch (HttpSocketHttpException $e) {
-            // ignore for now
+        } catch (Exception $e) {
+            $this->logException("Could not get remote server `{$server['Server']['name']}` version.", $e);
+            if ($e instanceof HttpSocketHttpException && $e->getCode() === 403) {
+                $message = __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.');
+            } else {
+                $message = $e->getMessage();
+            }
+            $title = 'Failed pull from ' . $server['Server']['url'] . ' initiated by ' . $email;
+            $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $title, $message);
+            return $message;
         }
 
         $pulledClusters = 0;
@@ -528,29 +524,22 @@ class Server extends AppModel
                 $job->saveField('message', 'Pulling events.');
             }
         }
-        $eventModel = ClassRegistry::init('Event');
-        $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server, $force);
-        if (!empty($eventIds['error'])) {
-            $errors = array(
-                '1' => __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'),
-                '2' => $eventIds['error'][1],
-                '3' => __('Sorry, this is not yet implemented'),
-                '4' => __('Something went wrong while trying to pull')
-            );
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                'org' => $user['Organisation']['name'],
-                'model' => 'Server',
-                'model_id' => $id,
-                'email' => $user['email'],
-                'action' => 'error',
-                'user_id' => $user['id'],
-                'title' => 'Failed pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
-                'change' => !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.')
-            ));
-            return !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.');
+
+        try {
+            $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server, $force);
+        } catch (Exception $e) {
+            $this->logException("Could not fetch event IDs from server `{$server['Server']['name']}`.", $e);
+            if ($e instanceof HttpSocketHttpException && $e->getCode() === 403) {
+                $message = __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.');
+            } else {
+                $message = $e->getMessage();
+            }
+            $title = 'Failed pull from ' . $server['Server']['url'] . ' initiated by ' . $email;
+            $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $title, $message);
+            return $message;
         }
+
+        $eventModel = ClassRegistry::init('Event');
         $successes = array();
         $fails = array();
         // now process the $eventIds to pull each of the events sequentially
