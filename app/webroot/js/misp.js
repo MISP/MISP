@@ -3300,7 +3300,7 @@ function getRemoteSyncUser(id) {
                         .text('Error')
                 ).append(
                     $('<span>')
-                        .text(': #' + response)
+                        .text(': #' + response.error)
                 );
             } else {
                 Object.keys(response).forEach(function(key) {
