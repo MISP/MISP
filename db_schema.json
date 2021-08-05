@@ -7857,7 +7857,7 @@
         },
         "event_blocklists": {
             "id": true,
-            "event_uuid": false,
+            "event_uuid": true,
             "event_orgc": false
         },
         "event_delegations": {

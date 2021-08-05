@@ -299,7 +299,7 @@ CREATE TABLE IF NOT EXISTS `event_blocklists` (
   `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
-  INDEX `event_uuid` (`event_uuid`),
+  UNIQUE INDEX `event_uuid` (`event_uuid`),
   INDEX `event_orgc` (`event_orgc`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
