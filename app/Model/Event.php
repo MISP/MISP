@@ -7409,14 +7409,6 @@ class Event extends AppModel
                 }
             }
         }
-        if (!empty($event['ShadowAttribute'])) {
-            foreach ($event['ShadowAttribute'] as $attribute) {
-                foreach ($attribute['AttributeTag'] as $attributeTag) {
-                    $tagName = $attributeTag['Tag']['name'];
-                    $tags[$tagName] = $tagName;
-                }
-            }
-        }
         if (!empty($event['Object'])) {
             foreach ($event['Object'] as $object) {
                 if (!empty($object['Attribute'])) {
