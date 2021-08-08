@@ -10,7 +10,8 @@ echo $this->element('genericElements/Form/genericForm', array(
                 'label' => '<strong>' . __("Clusters' distribution:") . '</strong>',
                 'options' => $distributionLevels,
                 'selected' => array(1, 2, 3),
-                'multiple' => 'checkbox', 
+                'multiple' => 'checkbox',
+                'type' => 'dropdown'
             ),
             '<br />',
             array(

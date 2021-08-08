@@ -15,7 +15,8 @@ class AuditLogBehavior extends ModelBehavior
     /** @var bool */
     private $enabled;
 
-    private $skipFields = [
+    // Hash is faster that in_array
+    const SKIP_FIELDS = [
         'id' => true,
         'lastpushedid' => true,
         'timestamp' => true,
@@ -291,7 +292,7 @@ class AuditLogBehavior extends ModelBehavior
         $dbFields = $model->schema();
         $changedFields = [];
         foreach ($model->data[$model->alias] as $key => $value) {
-            if (isset($this->skipFields[$key])) {
+            if (isset(self::SKIP_FIELDS[$key])) {
                 continue;
             }
             if (!isset($dbFields[$key])) {

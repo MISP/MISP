@@ -16,8 +16,6 @@ class ShadowAttributesController extends AppController
             'maxLimit' => 9999,
         );
 
-    public $helpers = array('Js' => array('Jquery'));
-
     public function beforeFilter()
     {
         parent::beforeFilter();
@@ -570,39 +568,43 @@ class ShadowAttributesController extends AppController
             $this->request->data['ShadowAttribute']['event_id'] = $event['Event']['id'];
         }
 
-        // combobox for categories
-        $categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
-        $categories = $this->_arrayToValuesIndexArray($categories);
         // just get them with attachments..
         $selectedCategories = array();
-        foreach ($categories as $category) {
-            if (isset($this->ShadowAttribute->categoryDefinitions[$category])) {
-                $types = $this->ShadowAttribute->categoryDefinitions[$category]['types'];
-                $alreadySet = false;
-                foreach ($types as $type) {
-                    if ($this->ShadowAttribute->typeIsAttachment($type) && !$alreadySet) {
-                        // add to the whole..
-                        $selectedCategories[] = $category;
-                        $alreadySet = true;
-                    }
+        foreach ($this->ShadowAttribute->categoryDefinitions as $category => $values) {
+            foreach ($values['types'] as $type) {
+                if ($this->ShadowAttribute->typeIsAttachment($type)) {
+                    $selectedCategories[] = $category;
+                    break;
                 }
             }
         }
+
+        // Create list of categories that should be marked as malware sample by default
+        $isMalwareSampleCategory = [];
+        foreach ($selectedCategories as $category) {
+            $possibleMalwareSample = false;
+            foreach ($this->ShadowAttribute->categoryDefinitions[$category]['types'] as $type) {
+                if ($this->ShadowAttribute->typeIsMalware($type)) {
+                    $possibleMalwareSample = true;
+                    break;
+                }
+            }
+            $isMalwareSampleCategory[$category] = $possibleMalwareSample;
+        }
+
         $categories = $this->_arrayToValuesIndexArray($selectedCategories);
         $this->set('categories', $categories);
-        foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
+        foreach ($this->ShadowAttribute->categoryDefinitions as $key => $value) {
             $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
         }
-        foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
+        foreach ($this->ShadowAttribute->typeDefinitions as $key => $value) {
             $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
         }
         $this->set('info', $info);
         $this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
-
-        $this->set('zippedDefinitions', $this->ShadowAttribute->zippedDefinitions);
-        $this->set('uploadDefinitions', $this->ShadowAttribute->uploadDefinitions);
+        $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
     }
 
     // Propose an edit to an attribute

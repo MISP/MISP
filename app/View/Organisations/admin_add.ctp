@@ -57,6 +57,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'options' => $countries,
                 'class' => 'span4',
                 'stayInLine' => 1,
+                'type' => 'dropdown'
             ],
             [
                 'field' => 'sector',

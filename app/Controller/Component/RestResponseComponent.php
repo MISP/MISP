@@ -470,7 +470,6 @@ class RestResponseComponent extends Component
 
     public function saveFailResponse($controller, $action, $id = false, $validationErrors, $format = false, $data = null)
     {
-        $this->autoRender = false;
         $response = array();
         $action = $this->__dissectAdminRouting($action);
         $stringifiedAction = $action['action'];
@@ -480,7 +479,7 @@ class RestResponseComponent extends Component
         $response['saved'] = false;
         $response['name'] = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
         $response['message'] = $response['name'];
-        if (!is_null($data)) {
+        if ($data !== null) {
             $response['data'] = $data;
         }
         $response['url'] = $this->__generateURL($action, $controller, $id);
@@ -498,7 +497,7 @@ class RestResponseComponent extends Component
         $response['success'] = true;
         $response['name'] = $message;
         $response['message'] = $response['name'];
-        if (!is_null($data)) {
+        if ($data !== null) {
             $response['data'] = $data;
         }
         $response['url'] = $this->__generateURL($action, $controller, $id);
@@ -558,7 +557,7 @@ class RestResponseComponent extends Component
                     }
                 }
                 // Do not pretty print response for automatic tools
-                $flags = $this->isAutomaticTool() ? JSON_UNESCAPED_UNICODE : JSON_PRETTY_PRINT;
+                $flags = $this->isAutomaticTool() ? JSON_UNESCAPED_UNICODE : (JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
                 $response = json_encode($response, $flags);
             } else {
                 if ($dumpSql) {

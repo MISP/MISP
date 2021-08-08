@@ -1,17 +1,17 @@
 <?php
     $table_data = array();
-    $table_data[] = array('key' => __('ID'), 'value' => $feed['Feed']['id']);
-    $table_data[] = array('key' => __('Name'), 'value' => $feed['Feed']['name']);
-    $table_data[] = array('key' => __('URL'), 'value' => $feed['Feed']['url']);
+    $table_data[] = array('key' => __('ID'), 'value' => $data['Feed']['id']);
+    $table_data[] = array('key' => __('Name'), 'value' => $data['Feed']['name']);
+    $table_data[] = array('key' => __('URL'), 'value' => $data['Feed']['url']);
     $table_data[] = array(
         'key' => __('Source format'),
-        'html' => $feed['Feed']['source_format'] !== 'misp' ? h($feed['Feed']['source_format']) : sprintf(
+        'html' => $data['Feed']['source_format'] !== 'misp' ? h($data['Feed']['source_format']) : sprintf(
             '%s%s',
             '<span class="blue bold">M</span>',
             '<span class="black bold">ISP</span>'
         )
     );
-    if (!empty($feed['Tag']['id'])) {
+    if (!empty($data['Tag']['id'])) {
         $table_data[] = array(
             'key' => __('Tags'),
             'html' => sprintf(
@@ -20,7 +20,7 @@
                     'ajaxTags',
                     array(
                         'scope' => 'feed',
-                        'tags' => array(array('Tag' => $feed['Tag'])),
+                        'tags' => array(array('Tag' => $data['Tag'])),
                         'tagAccess' => false,
                         'localTagAccess' => false,
                         'static_tags_only' => true
@@ -29,8 +29,8 @@
             )
         );
     }
-    $table_data[] = array('key' => __('Provider'), 'value' => $feed['Feed']['provider']);
-    $temp = json_decode($feed['Feed']['rules'], true);
+    $table_data[] = array('key' => __('Provider'), 'value' => $data['Feed']['provider']);
+    $temp = json_decode($data['Feed']['rules'], true);
     if ($temp) {
         $scopes = array('tags', 'orgs');
         $booleanScopeColours = array('OR' => 'green', 'NOT' => 'red');
@@ -55,18 +55,18 @@
         }
         $table_data[] = array('key' => __('Rules'), 'html' => implode('<br />', $rule));
     }
-    if (!empty($feed['Feed']['settings'])) {
+    if (!empty($data['Feed']['settings'])) {
         $table_data[] = array('key' => __('Settings'), 'html' => sprintf(
             '<pre class="red">%s</pre>',
-            h(json_encode(json_decode($feed['Feed']['settings']), JSON_PRETTY_PRINT)))
+            h(json_encode(json_decode($data['Feed']['settings']), JSON_PRETTY_PRINT)))
         );
     }
-    $table_data[] = array('key' => __('Enabled'), 'boolean' => $feed['Feed']['enabled']);
-    $table_data[] = array('key' => __('Caching enabled'), 'boolean' => $feed['Feed']['caching_enabled']);
+    $table_data[] = array('key' => __('Enabled'), 'boolean' => $data['Feed']['enabled']);
+    $table_data[] = array('key' => __('Caching enabled'), 'boolean' => $data['Feed']['caching_enabled']);
     $progress_bar = sprintf(
         '<div class="progress" style="margin-bottom:0px;"><div class="bar" style="width: %s;">%s</div></div>',
-        h($feed['Feed']['coverage_by_other_feeds']),
-        h($feed['Feed']['coverage_by_other_feeds'])
+        h($data['Feed']['coverage_by_other_feeds']),
+        h($data['Feed']['coverage_by_other_feeds'])
     );
     $table_data[] = array(
         'key' => __('Coverage by other feeds'),
@@ -81,6 +81,6 @@
             __('Feed'),
             $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
         ),
-        $this->element('Feeds/View/feed_overlap_tool', array('other_feeds' => $other_feeds, 'feed' => $feed))
+        $this->element('Feeds/View/feed_overlap_tool', array('other_feeds' => $other_feeds, 'feed' => $data))
     );
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'view'));

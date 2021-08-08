@@ -3,7 +3,7 @@ require_once __DIR__ . '/TmpFileTool.php';
 
 class ComplexTypeTool
 {
-    private static $__refangRegexTable = array(
+    const REFANG_REGEX__TABLE = array(
         array(
             'from' => '/^(hxxp|hxtp|htxp|meow|h\[tt\]p)/i',
             'to' => 'http',
@@ -35,7 +35,7 @@ class ComplexTypeTool
 
     public static function refangValue($value, $type)
     {
-        foreach (self::$__refangRegexTable as $regex) {
+        foreach (self::REFANG_REGEX__TABLE as $regex) {
             if (in_array($type, $regex['types'], true)) {
                 $value = preg_replace($regex['from'], $regex['to'], $value);
             }
@@ -352,7 +352,7 @@ class ComplexTypeTool
     private function __refangInput($input)
     {
         $input['refanged'] = $input['raw'];
-        foreach (self::$__refangRegexTable as $regex) {
+        foreach (self::REFANG_REGEX__TABLE as $regex) {
             $input['refanged'] = preg_replace($regex['from'], $regex['to'], $input['refanged']);
         }
         $input['refanged'] = rtrim($input['refanged'], ".");

@@ -21,6 +21,7 @@ import json
 import os
 import time
 import io
+import pymisp
 import stix2
 import stix2misp_mapping
 from collections import defaultdict
@@ -28,9 +29,7 @@ from copy import deepcopy
 from pathlib import Path
 _misp_dir = Path(os.path.realpath(__file__)).parents[4]
 _misp_objects_path = _misp_dir / 'app' / 'files' / 'misp-objects' / 'objects'
-_pymisp_dir = _misp_dir / 'PyMISP'
-with open(_pymisp_dir / 'pymisp' / 'data' / 'describeTypes.json', 'r') as f:
-    _misp_types = json.loads(f.read())['result'].get('types')
+_misp_types = pymisp.AbstractMISP().describe_types.get('types')
 from pymisp import MISPEvent, MISPObject, MISPAttribute
 
 

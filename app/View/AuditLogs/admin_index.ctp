@@ -282,7 +282,7 @@
                 <?= isset($item['AuditLog']['model_link']) ? '</a>' : '' ?>
             </td>
             <td class="limitedWidth"><?= h($item['AuditLog']['title']) ?></td>
-            <td ondblclick="showFullChange(<?= h($item['AuditLog']['id']) ?>)"><?= $this->element('AuditLog/change', ['item' => $item]) ?></td>
+            <td class="fullChange" data-log-id="<?= h($item['AuditLog']['id']) ?>"><?= $this->element('AuditLog/change', ['item' => $item]) ?></td>
         </tr>
         <?php endforeach; ?>
     </table>
@@ -301,7 +301,8 @@
 <script type="text/javascript">
     var passedArgs = <?= $passedArgs ?>;
 
-    function showFullChange(id) {
+    $('.fullChange').dblclick(function () {
+        var id = $(this).data('log-id');
         $.get(baseurl + "/audit_logs/fullChange/" + id, function(data) {
             var $popoverFormLarge = $('#popover_form_large');
             $popoverFormLarge.html(data);
@@ -311,7 +312,7 @@
             openPopup($popoverFormLarge);
         });
         return false;
-    }
+    });
 
     $('td[data-search]').mouseenter(function() {
         var $td = $(this);

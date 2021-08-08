@@ -53,7 +53,6 @@ class SharingGroupOrg extends AppModel
                 $isChange = true;
             }
             if ($this->save($SgO)) {
-                $log->create();
                 if ($isChange) {
                     $log->createLogEntry($user, 'edit', 'SharingGroupOrg', $this->id, 'Sharing group (' . $id . '): Modified right to alter sharing group for organisation (' . $org['id'] . ').', ($org['extend'] ? 'Organisation (' . $org['id'] . ') can now extend the sharing group.' : 'Organisation (' . $org['id'] . ') can no longer extend the sharing group.'));
                 } else {
@@ -64,7 +63,6 @@ class SharingGroupOrg extends AppModel
         // We are left with some "old orgs" that are not in the new list. This means that they can be safely deleted.
         foreach ($old_orgs as $old_org) {
             if ($this->delete($old_org['id'])) {
-                $log->create();
                 $log->createLogEntry($user, 'delete', 'SharingGroupOrg', $old_org['id'], 'Sharing group (' . $id . '): Removed organisation (' . $old_org['id'] . ').', 'Organisation (' . $org['id'] . ') removed from Sharing group.');
             }
         }
