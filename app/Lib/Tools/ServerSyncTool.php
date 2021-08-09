@@ -129,6 +129,16 @@ class ServerSyncTool
     }
 
     /**
+     * @param string $testString
+     * @return HttpSocketResponseExtended
+     * @throws Exception
+     */
+    public function postTest($testString)
+    {
+        return $this->post('/servers/postTest', ['testString' => $testString]);
+    }
+
+    /**
      * @param string $url
      * @param mixed $data
      * @param string|null $logMessage

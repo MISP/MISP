@@ -2509,16 +2509,16 @@ class Server extends AppModel
         if (!$testFile) {
             throw new Exception("Could not load payload for POST test.");
         }
-        $HttpSocket = $this->setupHttpSocket($server);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/servers/postTest';
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
 
         try {
-            $response = $HttpSocket->post($uri, json_encode(array('testString' => $testFile)), $request);
+            $response = $serverSync->postTest($testFile);
             $contentEncoding = $response->getHeader('Content-Encoding');
             $rawBody = $response->body;
-            $response = $this->jsonDecode($rawBody);
+            $response = $response->json();
         } catch (Exception $e) {
+            $this->logException("Invalid response for remote server {$server['Server']['name']} POST test.", $e);
             $title = 'Error: POST connection test failed. Reason: ' . $e->getMessage();
             $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
             return ['status' => 8];
