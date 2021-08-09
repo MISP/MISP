@@ -22,10 +22,15 @@ class ServerSyncTool
     /**
      * @param array $server
      * @param array $request
+     * @throws InvalidArgumentException
      * @throws Exception
      */
     public function __construct(array $server, array $request)
     {
+        if (!isset($server['Server'])) {
+            throw new InvalidArgumentException("Invalid server provided.");
+        }
+
         $this->server = $server;
         $this->request = $request;
 
@@ -64,10 +69,6 @@ class ServerSyncTool
         }
 
         $response = $this->post('/sightings/filterSightingUuidsForPush/' . $event['Event']['uuid'], $sightingUuids);
-        if (!$response->isOk()) {
-            throw new HttpSocketHttpException($response);
-        }
-
         return $response->json();
     }
 
@@ -85,15 +86,13 @@ class ServerSyncTool
         }
 
         $logMessage = "Pushing Sightings for Event #{$eventUuid} to Server #{$this->server['Server']['id']}";
-        $response = $this->post('/sightings/bulkSaveSightings/' . $eventUuid, $sightings, $logMessage);
-        if (!$response->isOk()) {
-            throw new HttpSocketHttpException($response);
-        }
+        $this->post('/sightings/bulkSaveSightings/' . $eventUuid, $sightings, $logMessage);
     }
 
     /**
      * @return array
      * @throws HttpSocketJsonException
+     * @throws HttpSocketHttpException
      * @throws Exception
      */
     public function info()
@@ -102,11 +101,7 @@ class ServerSyncTool
             return $this->info;
         }
 
-        $response = $this->socket->get($this->server['Server']['url'] . '/servers/getVersion', [], $this->request);
-        if (!$response->isOk()) {
-            throw new HttpSocketHttpException($response);
-        }
-
+        $response = $this->get('/servers/getVersion');
         $info = $response->json();
         if (!isset($info['version'])) {
             throw new Exception("Invalid response when fetching server version: `version` field missing.");
@@ -121,11 +116,7 @@ class ServerSyncTool
      */
     public function userInfo()
     {
-        $response = $this->socket->get($this->server['Server']['url'] . '/users/view/me.json', [], $this->request);
-        if (!$response->isOk()) {
-            throw new HttpSocketHttpException($response);
-        }
-        return $response;
+        return $this->get('/users/view/me.json');
     }
 
     /**
@@ -139,11 +130,27 @@ class ServerSyncTool
     }
 
     /**
-     * @param string $url
+     * @params string $url Relative URL
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    private function get($url)
+    {
+        $url = $this->server['Server']['url'] . $url;
+        $response = $this->socket->get($url, [], $this->request);
+        if (!$response->isOk()) {
+            throw new HttpSocketHttpException($response, $url);
+        }
+        return $response;
+    }
+
+    /**
+     * @param string $url Relative URL
      * @param mixed $data
      * @param string|null $logMessage
      * @return HttpSocketResponseExtended
-     * @throws Exception
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
      */
     private function post($url, $data, $logMessage = null)
     {
@@ -169,7 +176,12 @@ class ServerSyncTool
                 $data = gzencode($data, 1);
             }
         }
-        return $this->socket->post($this->server['Server']['url'] . $url, $data, $request);
+        $url = $this->server['Server']['url'] . $url;
+        $response = $this->socket->post($url, $data, $request);
+        if (!$response->isOk()) {
+            throw new HttpSocketHttpException($response, $url);
+        }
+        return $response;
     }
 
     /**
