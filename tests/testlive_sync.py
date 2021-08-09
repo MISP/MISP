@@ -18,6 +18,8 @@ pymisp.global_pythonify = True
 remote_server = pymisp.add_server({
     "pull": True,
     "pull_galaxy_clusters": True,
+    "push": True,
+    "push_sightings": True,
     "remote_org_id": 1,
     "name": "Localhost",
     "url": url,
@@ -44,6 +46,12 @@ url = f'servers/pull/{remote_server["id"]}/disable_background_processing:1'
 pull_response = pymisp._check_json_response(pymisp._prepare_request('GET', url))
 check_response(pull_response)
 assert "Pull completed. 0 events pulled, 0 events could not be pulled, 0 proposals pulled, 0 sightings pulled, 0 clusters pulled." == pull_response["message"], pull_response["message"]
+
+# Test push
+url = f'servers/push/{remote_server["id"]}/full/disable_background_processing:1'
+push_response = pymisp._check_json_response(pymisp._prepare_request('GET', url))
+check_response(push_response)
+assert "Push complete. 0 events pushed, 0 events could not be pushed." == push_response["message"], push_response["message"]
 
 # Delete server
 check_response(pymisp.delete_server(remote_server))

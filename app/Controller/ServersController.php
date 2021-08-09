@@ -816,10 +816,9 @@ class ServersController extends AppController
             throw new MethodNotAllowedException(__('You are not authorised to do that.'));
         }
         if (!Configure::read('MISP.background_jobs')) {
-            $server = $this->Server->read(null, $id);
             App::uses('SyncTool', 'Tools');
             $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
+            $HttpSocket = $syncTool->setupHttpSocket($s);
             $result = $this->Server->push($id, $technique, false, $HttpSocket, $this->Auth->user());
             if ($result === false) {
                 $error = __('The remote server is too outdated to initiate a push towards it. Please notify the hosting organisation of the remote instance.');
@@ -835,7 +834,7 @@ class ServersController extends AppController
                 }
             }
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', __('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1])), $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $id, $this->response->type(), __('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1])));
             } else {
                 $this->set('successes', $result[0]);
                 $this->set('fails', $result[1]);
