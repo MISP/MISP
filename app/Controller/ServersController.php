@@ -738,10 +738,6 @@ class ServersController extends AppController
         if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) {
             throw new MethodNotAllowedException(__('You are not authorised to do that.'));
         }
-        $this->Server->id = $id;
-        if (!$this->Server->exists()) {
-            throw new NotFoundException(__('Invalid server'));
-        }
         if (false == $this->Server->data['Server']['pull'] && ($technique == 'full' || $technique == 'incremental')) {
             $error = __('Pull setting not enabled for this server.');
         }
@@ -752,7 +748,7 @@ class ServersController extends AppController
             if (!Configure::read('MISP.background_jobs')) {
                 $result = $this->Server->pull($this->Auth->user(), $id, $technique, $s);
                 if (is_array($result)) {
-                    $success = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]));
+                    $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
                 } else {
                     $error = $result;
                 }
@@ -780,14 +776,14 @@ class ServersController extends AppController
                         array('pull', $this->Auth->user('id'), $id, $technique, $jobId)
                 );
                 $this->Job->saveField('process_id', $process_id);
-                $success = sprintf(__('Pull queued for background execution. Job ID: %s'), $jobId);
+                $success = __('Pull queued for background execution. Job ID: %s', $jobId);
             }
         }
         if ($this->_isRest()) {
             if (!empty($error)) {
-                return $this->RestResponse->saveFailResponse('Servers', 'pull', false, $error, $this->response->type());
+                return $this->RestResponse->saveFailResponse('Servers', 'pull', $id, $error, $this->response->type());
             } else {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'pull', $success, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'pull', $id, $this->response->type(), $success);
             }
         } else {
             if (!empty($error)) {
