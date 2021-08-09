@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
+App::uses('ServerSyncTool', 'Tools');
 
 /**
  * @property Attribute $Attribute
@@ -1103,20 +1104,27 @@ class Sighting extends AppModel
 
     public function pullSightings($user, $server)
     {
-        $HttpSocket = $this->setupHttpSocket($server);
         $this->Server = ClassRegistry::init('Server');
         try {
-            $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, 'sightings');
+            $eventIds = $this->Server->getEventIdsFromServer($server, false, null, false, 'sightings');
         } catch (Exception $e) {
             $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
             return 0;
         }
         $saved = 0;
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         // now process the $eventIds to pull each of the events sequentially
         // download each event and save sightings
-        foreach ($eventIds as $k => $eventId) {
+        foreach ($eventIds as $eventId) {
             try {
-                $event = $this->Event->downloadEventFromServer($eventId, $server);
+                // TODO: Do not fetch shadow attributes and event reports
+                $event = $serverSync->fetchEvent($eventId, [
+                    'deleted' => [0, 1],
+                    'excludeGalaxy' => 1,
+                    'excludeLocalTags' => 1,
+                    'includeAttachments' => 0,
+                ])->json();
             } catch (Exception $e) {
                 $this->logException("Failed downloading the event $eventId from {$server['Server']['name']}.", $e);
                 continue;

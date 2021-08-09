@@ -59,6 +59,19 @@ class ServerSyncTool
     }
 
     /**
+     * @param int|string $eventId Event ID or UUID
+     * @param array $params
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function fetchEvent($eventId, array $params = [])
+    {
+        $url = "/events/view/$eventId";
+        $url .= $this->createParams($params);
+        return $this->get($url);
+    }
+
+    /**
      * @param array $event
      * @param array $sightingUuids
      * @return array Sighting UUIDs that exists on remote side
