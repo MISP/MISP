@@ -1322,7 +1322,7 @@ class ServersController extends AppController
                 $remote_server = $this->Server->find('first', array('conditions' => $conditions));
                 if (!empty($remote_server)) {
                     try {
-                        $remote_event = $this->Event->downloadEventFromServer($this->request->data['Event']['uuid'], $remote_server, null, true);
+                        $remote_event = $this->Event->downloadEventMetadataFromServer($this->request->data['Event']['uuid'], $remote_server);
                     } catch (Exception $e) {
                         $this->Flash->error(__("Issue while contacting the remote server to retrieve event information"));
                         return;
@@ -1356,7 +1356,7 @@ class ServersController extends AppController
 
                 $exception = null;
                 try {
-                    $remoteEvent = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $server, null, true);
+                    $remoteEvent = $this->Event->downloadEventMetadataFromServer($local_event['Event']['uuid'], $server);
                 } catch (Exception $e) {
                     $remoteEvent = null;
                     $exception = $e->getMessage();

@@ -60,6 +60,17 @@ class ServerSyncTool
 
     /**
      * @param int|string $eventId Event ID or UUID
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function fetchEventMetadata($eventId)
+    {
+        return $this->post('/events/index', ['eventid' => $eventId]);
+    }
+
+    /**
+     * @param int|string $eventId Event ID or UUID
      * @param array $params
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
