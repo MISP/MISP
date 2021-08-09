@@ -1681,6 +1681,14 @@ class EventsController extends AppController
             $conditions['includeServerCorrelations'] = $this->params['named']['includeServerCorrelations'];
         }
 
+        if ($this->_isRest()) {
+            foreach (['includeEventCorrelations', 'includeFeedCorrelations', 'includeWarninglistHits', 'noEventReports', 'noShadowAttributes'] as $param) {
+                if (isset($this->params['named'][$param])) {
+                    $conditions[$param] = $this->params['named'][$param];
+                }
+            }
+        }
+
         // Site admin can view event as different user
         if ($this->_isSiteAdmin() && isset($this->params['named']['viewAs'])) {
             $user = $this->User->getAuthUser($this->params['named']['viewAs']);

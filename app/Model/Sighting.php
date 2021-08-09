@@ -1118,12 +1118,16 @@ class Sighting extends AppModel
         // download each event and save sightings
         foreach ($eventIds as $eventId) {
             try {
-                // TODO: Do not fetch shadow attributes and event reports
                 $event = $serverSync->fetchEvent($eventId, [
                     'deleted' => [0, 1],
                     'excludeGalaxy' => 1,
                     'excludeLocalTags' => 1,
                     'includeAttachments' => 0,
+                    'includeEventCorrelations' => 0,
+                    'includeFeedCorrelations' => 0,
+                    'includeWarninglistHits' => 0,
+                    'noEventReports' => 1,
+                    'noShadowAttributes' => 1,
                 ])->json();
             } catch (Exception $e) {
                 $this->logException("Failed downloading the event $eventId from {$server['Server']['name']}.", $e);
