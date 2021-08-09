@@ -7,10 +7,22 @@ class HttpSocketHttpException extends Exception
     /** @var HttpSocketResponseExtended */
     private $response;
 
-    public function __construct(HttpSocketResponseExtended $response)
+    /** @var string|null */
+    private $url;
+
+    /**
+     * @param HttpSocketResponseExtended $response
+     * @param string|null $url
+     */
+    public function __construct(HttpSocketResponseExtended $response, $url = null)
     {
         $this->response = $response;
-        parent::__construct("Remote server returns HTTP error code {$response->code}", (int)$response->code);
+        $this->url = $url;
+        $message = "Remote server returns HTTP error code $response->code";
+        if ($url) {
+            $message .= " for URL $url";
+        }
+        parent::__construct($message, (int)$response->code);
     }
 
     /**
@@ -19,6 +31,15 @@ class HttpSocketHttpException extends Exception
     public function getResponse()
     {
         return $this->response;
+    }
+
+    /**
+     * Request URL
+     * @return string|null
+     */
+    public function getUrl()
+    {
+        return $this->url;
     }
 }
 
