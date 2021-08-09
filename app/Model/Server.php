@@ -452,12 +452,22 @@ class Server extends AppModel
         }
     }
 
-    private function __pullEvent($eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
+    private function __pullEvent(ServerSyncTool $serverSync, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
     {
         try {
-            $event = $eventModel->downloadEventFromServer($eventId, $server);
+            $params = [
+                'deleted' => [0, 1],
+                'excludeGalaxy' => 1,
+                'includeEventCorrelations' => 0, // we don't need remote correlations
+                'includeFeedCorrelations' => 0,
+                'includeWarninglistHits' => 0, // we don't need remote warninglist hits
+            ];
+            if (empty($server['Server']['internal'])) {
+                $params['excludeLocalTags'] = 1;
+            }
+            $event = $serverSync->fetchEvent($eventId, $params)->json();
         } catch (Exception $e) {
-            $this->logException('Failed downloading the event ' . $eventId, $e);
+            $this->logException("Failed downloading the event $eventId from remote server {$server['Server']['id']}", $e);
             $fails[$eventId] = __('failed downloading the event');
             return false;
         }
@@ -549,7 +559,7 @@ class Server extends AppModel
                 $job->saveProgress($jobId, __n('Pulling %s event.', 'Pulling %s events.', count($eventIds), count($eventIds)));
             }
             foreach ($eventIds as $k => $eventId) {
-                $this->__pullEvent($eventId, $successes, $fails, $eventModel, $server, $user, $jobId, $force);
+                $this->__pullEvent($serverSync, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId, $force);
                 if ($jobId) {
                     if ($k % 10 == 0) {
                         $job->saveProgress($jobId, null, 10 + 40 * (($k + 1) / count($eventIds)));
