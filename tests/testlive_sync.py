@@ -1,5 +1,5 @@
 import os
-from pymisp import PyMISP
+from pymisp import PyMISP, MISPEvent
 
 
 def check_response(response):
@@ -41,6 +41,21 @@ assert remote_user["Sync flag"] == "Yes"
 assert remote_user["Role name"] == "admin"
 assert remote_user["User"] == "admin@admin.test"
 
+# Create testing event
+event = MISPEvent()
+event.load_file(os.path.dirname(os.path.realpath(__file__)) + "/event.json")
+event = pymisp.add_event(event, metadata=True)
+check_response(event)
+
+# Publish that event
+check_response(pymisp.publish(event))
+
+# Preview event
+url = f'servers/previewEvent/{remote_server["id"]}/{event.uuid}'
+event_preview = pymisp._check_json_response(pymisp._prepare_request('GET', url))
+check_response(event_preview)
+assert event_preview["Event"]["uuid"] == event.uuid
+
 # Test pull
 url = f'servers/pull/{remote_server["id"]}/disable_background_processing:1'
 pull_response = pymisp._check_json_response(pymisp._prepare_request('GET', url))
@@ -53,5 +68,7 @@ push_response = pymisp._check_json_response(pymisp._prepare_request('GET', url))
 check_response(push_response)
 assert "Push complete. 0 events pushed, 0 events could not be pushed." == push_response["message"], push_response["message"]
 
-# Delete server
+# Delete server and test event
 check_response(pymisp.delete_server(remote_server))
+check_response(pymisp.delete_event(event))
+check_response(pymisp.delete_event_blocklist(event))
