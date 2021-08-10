@@ -18,8 +18,10 @@ pymisp.global_pythonify = True
 remote_server = pymisp.add_server({
     "pull": True,
     "pull_galaxy_clusters": True,
+    "push_galaxy_clusters": True,
     "push": True,
     "push_sightings": True,
+    "caching_enabled": True,
     "remote_org_id": 1,
     "name": "Localhost",
     "url": url,
@@ -73,7 +75,13 @@ check_response(push_response)
 assert "Push complete. 0 events pushed, 0 events could not be pushed." == push_response["message"], push_response["message"]
 
 # Test push background
-pymisp.server_push(remote_server)
+check_response(pymisp.server_push(remote_server))
+
+# Test caching
+url = f'servers/cache/{remote_server["id"]}/disable_background_processing:1'
+cache_response = pymisp._check_json_response(pymisp._prepare_request('GET', url))
+check_response(cache_response)
+assert "Caching the servers has successfully completed." == cache_response["message"], cache_response["message"]
 
 # Delete server and test event
 check_response(pymisp.delete_server(remote_server))
