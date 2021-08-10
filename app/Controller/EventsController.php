@@ -2073,11 +2073,8 @@ class EventsController extends AppController
                 $validationErrors = array();
                 $created_id = 0;
                 $add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '', null, false, null, $created_id, $validationErrors);
-                if ($add === true && !is_numeric($add)) {
+                if ($add === true) {
                     if ($this->_isRest()) {
-                        if ($add === 'blocked') {
-                            throw new ForbiddenException(__('Event blocked by local blocklist.'));
-                        }
                         // REST users want to see the newly created event
                         $metadata = $this->request->param('named.metadata');
                         $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $created_id, 'metadata' => $metadata]);
@@ -2097,6 +2094,14 @@ class EventsController extends AppController
                             $this->response->header('Location', $this->baseurl . '/events/' . $add);
                             $this->response->send();
                             throw new NotFoundException(__('Event already exists, if you would like to edit it, use the url in the location header.'));
+                        }
+
+                        if ($add === 'blocked') {
+                            throw new ForbiddenException(__('Event blocked by organisation blocklist.'));
+                        } else if ($add === 'Blocked by blocklist') {
+                            throw new ForbiddenException(__('Event blocked by event blocklist.'));
+                        } else if ($add === 'Blocked by event block rules') {
+                            throw new ForbiddenException(__('Blocked by event block rules.'));
                         }
                         // # TODO i18n?
                         return $this->RestResponse->saveFailResponse('Events', 'add', false, $validationErrors, $this->response->type());
