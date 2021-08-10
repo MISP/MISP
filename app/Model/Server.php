@@ -246,6 +246,7 @@ class Server extends AppModel
      * @param bool $force
      * @return array
      * @throws InvalidArgumentException
+     * @throws JsonException
      */
     private function __getEventIdListBasedOnPullTechnique($technique, array $server, $force = false)
     {
@@ -272,7 +273,9 @@ class Server extends AppModel
     private function __checkIfEventIsBlockedBeforePull($event)
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            if (!isset($this->EventBlocklist)) {
+                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            }
             if ($this->EventBlocklist->isBlocked($event['Event']['uuid'])) {
                 return true;
             }
@@ -411,7 +414,7 @@ class Server extends AppModel
         return false;
     }
 
-    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
+    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force = false)
     {
         // check if the event already exist (using the uuid)
         $existingEvent = $eventModel->find('first', [
@@ -430,7 +433,7 @@ class Server extends AppModel
                     $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'add_from_connected_server');
                 }
             } else {
-                $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors, true);
+                $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors);
             }
         } else {
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
@@ -452,19 +455,20 @@ class Server extends AppModel
         }
     }
 
-    private function __pullEvent(ServerSyncTool $serverSync, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
+    private function __pullEvent(ServerSyncTool $serverSync, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force = false)
     {
+        $params = [
+            'deleted' => [0, 1],
+            'excludeGalaxy' => 1,
+            'includeEventCorrelations' => 0, // we don't need remote correlations
+            'includeFeedCorrelations' => 0,
+            'includeWarninglistHits' => 0, // we don't need remote warninglist hits
+        ];
+        if (empty($server['Server']['internal'])) {
+            $params['excludeLocalTags'] = 1;
+        }
+
         try {
-            $params = [
-                'deleted' => [0, 1],
-                'excludeGalaxy' => 1,
-                'includeEventCorrelations' => 0, // we don't need remote correlations
-                'includeFeedCorrelations' => 0,
-                'includeWarninglistHits' => 0, // we don't need remote warninglist hits
-            ];
-            if (empty($server['Server']['internal'])) {
-                $params['excludeLocalTags'] = 1;
-            }
             $event = $serverSync->fetchEvent($eventId, $params)->json();
         } catch (Exception $e) {
             $this->logException("Failed downloading the event $eventId from remote server {$server['Server']['id']}", $e);
@@ -549,6 +553,7 @@ class Server extends AppModel
             return $message;
         }
 
+        /** @var Event $eventModel */
         $eventModel = ClassRegistry::init('Event');
         $successes = array();
         $fails = array();
@@ -567,21 +572,8 @@ class Server extends AppModel
                 }
             }
         }
-        if (!empty($fails)) {
-            $this->Log = ClassRegistry::init('Log');
-            foreach ($fails as $eventid => $message) {
-                $this->Log->create();
-                $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => $user['email'],
-                    'action' => 'pull',
-                    'user_id' => $user['id'],
-                    'title' => 'Failed to pull event #' . $eventid . '.',
-                    'change' => 'Reason: ' . $message
-                ));
-            }
+        foreach ($fails as $eventid => $message) {
+            $this->loadLog()->createLogEntry($user, 'pull', 'Server', $id, "Failed to pull event #$eventid.", 'Reason: ' . $message);
         }
         if ($jobId) {
             $job->saveProgress($jobId, 'Pulling proposals.', 50);
