@@ -1102,35 +1102,56 @@ class Sighting extends AppModel
         }
     }
 
-    public function pullSightings($user, $server)
+    /**
+     * Pull sightings from remote server for event that has newer sighting than this instance.
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @param array $eventArray
+     * @return int
+     * @throws JsonException|Exception
+     */
+    public function pullSightings($user, ServerSyncTool $serverSync, array $eventArray)
     {
-        $this->Server = ClassRegistry::init('Server');
-        try {
-            $eventIds = $this->Server->getEventIdsFromServer($server, false, null, false, 'sightings');
-        } catch (Exception $e) {
-            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+        // Local events in UUID => sighting_timestamp format
+        $localEvents = $this->Event->find('list', [
+            'fields' => ['Event.uuid', 'Event.sighting_timestamp'],
+            'conditions' => ['Event.uuid' => array_column($eventArray, 'uuid')],
+        ]);
+
+        if (empty($localEvents)) {
             return 0;
         }
-        $saved = 0;
 
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-        // now process the $eventIds to pull each of the events sequentially
+        // Keep just event UUIDs that exists locally and has newer sightings timestamp on remote side
+        $eventUuids = [];
+        foreach ($eventArray as $event) {
+            if (isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] < $event['sighting_timestamp']) {
+                $eventUuids[] = $event['uuid'];
+            }
+        }
+        unset($localEvents);
+
+        // We don't need some of the event data, like correlations and event reports
+        $params = [
+            'deleted' => [0, 1],
+            'excludeGalaxy' => 1,
+            'excludeLocalTags' => 1,
+            'includeAttachments' => 0,
+            'includeEventCorrelations' => 0,
+            'includeFeedCorrelations' => 0,
+            'includeWarninglistHits' => 0,
+            'noEventReports' => 1,
+            'noShadowAttributes' => 1,
+        ];
+
+        $saved = 0;
+        // now process the $eventUuids to pull each of the events sequentially
         // download each event and save sightings
-        foreach ($eventIds as $eventId) {
+        foreach ($eventUuids as $eventUuid) {
             try {
-                $event = $serverSync->fetchEvent($eventId, [
-                    'deleted' => [0, 1],
-                    'excludeGalaxy' => 1,
-                    'excludeLocalTags' => 1,
-                    'includeAttachments' => 0,
-                    'includeEventCorrelations' => 0,
-                    'includeFeedCorrelations' => 0,
-                    'includeWarninglistHits' => 0,
-                    'noEventReports' => 1,
-                    'noShadowAttributes' => 1,
-                ])->json();
+                $event = $serverSync->fetchEvent($eventUuid, $params)->json();
             } catch (Exception $e) {
-                $this->logException("Failed downloading the event $eventId from {$server['Server']['name']}.", $e);
+                $this->logException("Failed downloading the event $eventUuid from {$serverSync->server()['Server']['name']}.", $e);
                 continue;
             }
             $sightings = array();
@@ -1142,7 +1163,7 @@ class Sighting extends AppModel
                 }
             }
             if (!empty($event) && !empty($sightings)) {
-                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
+                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $serverSync->server()['Server']['id']);
                 if (is_numeric($result)) {
                     $saved += $result;
                 }

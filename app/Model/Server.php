@@ -585,7 +585,12 @@ class Server extends AppModel
             if ($jobId) {
                 $job->saveProgress($jobId, 'Pulling sightings.', 75);
             }
-            $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
+            try {
+                $eventArray = $this->getEventsFromServer($serverSync);
+                $pulledSightings = $eventModel->Sighting->pullSightings($user, $serverSync, $eventArray);
+            } catch (Exception $e) {
+                $this->logException("Could not pull sightings from remote server.", $e);
+            }
         }
         if ($jobId) {
             $job->saveProgress($jobId, 'Pull completed.', 100);
@@ -644,26 +649,6 @@ class Server extends AppModel
             $final = array_merge_recursive($final, $url_params);
         }
         return $final;
-    }
-
-    /**
-     * @param HttpSocket $HttpSocket
-     * @param array $request
-     * @param array $server
-     * @param array $filterRules
-     * @return array
-     * @throws JsonException
-     */
-    private function __orgRuleDowngrade(HttpSocket $HttpSocket, array $request, array $server, array $filterRules)
-    {
-        $uri = $server['Server']['url'] . '/servers/getVersion';
-        $version_response = $HttpSocket->get($uri, false, $request);
-        $version = $this->jsonDecode($version_response->body)['version'];
-        $version = explode('.', $version);
-        if ($version[0] <= 2 && $version[1] <= 4 && $version[0] <= 123) {
-            $filterRules['org'] = implode('|', $filterRules['org']);
-        }
-        return $filterRules;
     }
 
     /**
@@ -764,6 +749,29 @@ class Server extends AppModel
     }
 
     /**
+     * @param ServerSyncTool $serverSync
+     * @param bool $ignoreFilterRules
+     * @return array
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    private function getEventsFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false)
+    {
+        $filterRules = $ignoreFilterRules ? [] : $this->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
+        if (!empty($filterRules['org']) && !$serverSync->isSupported(ServerSyncTool::FEATURE_ORG_RULE)) {
+            $filterRules['org'] = implode('|', $filterRules['org']);
+        }
+        $filterRules['minimal'] = 1;
+        $filterRules['published'] = 1;
+
+        $eventArray = $serverSync->eventIndex($filterRules)->json();
+        if (isset($eventArray['id'])) {
+            $eventArray = [$eventArray];
+        }
+        return $eventArray;
+    }
+
+    /**
      * Get an array of event UUIDs that are present on the remote server.
      *
      * @param array $server
@@ -782,32 +790,8 @@ class Server extends AppModel
             throw new InvalidArgumentException("Scope mus be 'events' or 'sightings', '$scope' given.");
         }
 
-        if ($ignoreFilterRules) {
-            $filterRules = array();
-        } else {
-            $filterRules = $this->filterRuleToParameter($server['Server']['pull_rules']);
-        }
-
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        if (!empty($filterRules['org'])) {
-            $filterRules = $this->__orgRuleDowngrade($HttpSocket, $request, $server, $filterRules);
-        }
-        $filterRules['minimal'] = 1;
-        $filterRules['published'] = 1;
-
-        $uri = $server['Server']['url'] . '/events/index';
-        $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
-
-        if (!$response->isOk()) {
-            throw new HttpException("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}", intval($response->code));
-        }
-
-        $eventArray = $this->jsonDecode($response->body);
-        // correct $eventArray if just one event
-        if (isset($eventArray['id'])) {
-            $eventArray = array($eventArray);
-        }
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        $eventArray = $this->getEventsFromServer($serverSync, $ignoreFilterRules);
         if ($all) {
             if ($scope === 'sightings') {
                 // Used when pushing: return just eventUuids that has sightings newer than remote server

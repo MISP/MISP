@@ -7,6 +7,7 @@ class ServerSyncTool
         FEATURE_GZIP = 'gzip',
         FEATURE_FILTER_SIGHTINGS = 'filter_sightings',
         FEATURE_PROPOSALS = 'proposals',
+        FEATURE_ORG_RULE = 'org_rule',
         FEATURE_SUPPORT_EDIT_OF_GALAXY_CLUSTER = 'support_edit_of_galaxy_cluster';
 
     /** @var array */
@@ -57,6 +58,16 @@ class ServerSyncTool
             return true;
         }
         throw new HttpSocketHttpException($exists, $url);
+    }
+
+    /**
+     * @param array $params
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function eventIndex($params = [])
+    {
+        return $this->post('/events/index', $params);
     }
 
     /**
@@ -203,6 +214,9 @@ class ServerSyncTool
                 return $version[0] == 2 && $version[1] == 4 && $version[2] >= 111;
             case self::FEATURE_SUPPORT_EDIT_OF_GALAXY_CLUSTER:
                 return isset($info['perm_galaxy_editor']);
+            case self::FEATURE_ORG_RULE:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] > 123;
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
