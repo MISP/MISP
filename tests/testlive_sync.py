@@ -63,11 +63,17 @@ pull_response = pymisp._check_json_response(pymisp._prepare_request('GET', url))
 check_response(pull_response)
 assert "Pull completed. 0 events pulled, 0 events could not be pulled, 0 proposals pulled, 0 sightings pulled, 0 clusters pulled." == pull_response["message"], pull_response["message"]
 
+# Test pull background
+check_response(pymisp.server_pull(remote_server))
+
 # Test push
 url = f'servers/push/{remote_server["id"]}/full/disable_background_processing:1'
 push_response = pymisp._check_json_response(pymisp._prepare_request('GET', url))
 check_response(push_response)
 assert "Push complete. 0 events pushed, 0 events could not be pushed." == push_response["message"], push_response["message"]
+
+# Test push background
+pymisp.server_push(remote_server)
 
 # Delete server and test event
 check_response(pymisp.delete_server(remote_server))
