@@ -762,6 +762,28 @@ class Server extends AppModel
     }
 
     /**
+     * @param ServerSyncTool $serverSync
+     * @param bool $ignoreFilterRules Ignore defined server pull rules
+     * @return array
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false)
+    {
+        if (!$ignoreFilterRules) {
+            $filterRules = $this->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
+            if (!empty($filterRules['org']) && !$serverSync->isSupported(ServerSyncTool::FEATURE_ORG_RULE)) {
+                $filterRules['org'] = implode('|', $filterRules['org']);
+            }
+        } else {
+            $filterRules = [];
+        }
+        $filterRules['minimal'] = 1;
+        $filterRules['published'] = 1;
+        return $serverSync->eventIndex($filterRules)->json();
+    }
+
+    /**
      * Get an array of event UUIDs that are present on the remote server.
      *
      * @param array $server
@@ -873,7 +895,8 @@ class Server extends AppModel
         $serverUuids = [];
         foreach ($servers as &$server) {
             try {
-                $uuids = $this->getEventIdsFromServer($server, true, null, true);
+                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+                $uuids = array_column($this->getEventIndexFromServer($serverSync, true), 'uuid');
                 $serverUuids[$server['Server']['id']] = array_flip($uuids);
                 $server['Server']['events_count'] = count($uuids);
             } catch (Exception $e) {
