@@ -14,17 +14,17 @@ echo $this->element('genericElements/IndexTable/scaffold', [
                 ],
                 [
                     'name' => __('User'),
-                    'sort' => 'User',
+                    'sort' => 'email',
                     'data_path' => 'User.email'
                 ],
                 [
                     'name' => __('Title'),
-                    'sort' => 'News.title',
+                    'sort' => 'title',
                     'data_path' => 'News.title'
                 ],
                 [
                     'name' => __('Message'),
-                    'sort' => 'Message',
+                    'sort' => 'message',
                     'data_path' => 'News.message'
                 ],
                 [
