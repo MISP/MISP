@@ -6,7 +6,8 @@ class ServerSyncTool
     const FEATURE_BR = 'br',
         FEATURE_GZIP = 'gzip',
         FEATURE_FILTER_SIGHTINGS = 'filter_sightings',
-        FEATURE_PROPOSALS = 'proposals';
+        FEATURE_PROPOSALS = 'proposals',
+        FEATURE_SUPPORT_EDIT_OF_GALAXY_CLUSTER = 'support_edit_of_galaxy_cluster';
 
     /** @var array */
     private $server;
@@ -131,6 +132,16 @@ class ServerSyncTool
     }
 
     /**
+     * @param int|string $galaxyClusterId
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function fetchGalaxyCluster($galaxyClusterId)
+    {
+        return $this->get('/galaxy_clusters/view/' . $galaxyClusterId);
+    }
+
+    /**
      * @return array
      * @throws HttpSocketJsonException
      * @throws HttpSocketHttpException
@@ -190,9 +201,19 @@ class ServerSyncTool
             case self::FEATURE_PROPOSALS:
                 $version = explode('.', $info['version']);
                 return $version[0] == 2 && $version[1] == 4 && $version[2] >= 111;
+            case self::FEATURE_SUPPORT_EDIT_OF_GALAXY_CLUSTER:
+                return isset($info['perm_galaxy_editor']);
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
+    }
+
+    /**
+     * @return array
+     */
+    public function server()
+    {
+        return $this->server;
     }
 
     /**

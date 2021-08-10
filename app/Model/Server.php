@@ -525,8 +525,8 @@ class Server extends AppModel
             if ($jobId) {
                 $job->saveField('message', $technique == 'pull_relevant_clusters' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
             }
-            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
-            if ($technique == 'pull_relevant_clusters') {
+            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $serverSync, $technique);
+            if ($technique === 'pull_relevant_clusters') {
                 if ($jobId) {
                     $job->saveField('progress', 100);
                     $job->saveField('message', 'Pulling complete.');
