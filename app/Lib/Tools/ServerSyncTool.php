@@ -5,6 +5,7 @@ class ServerSyncTool
 {
     const FEATURE_BR = 'br',
         FEATURE_GZIP = 'gzip',
+        FEATURE_ORG_RULE = 'org_rule',
         FEATURE_FILTER_SIGHTINGS = 'filter_sightings';
 
     /** @var array */
@@ -46,14 +47,25 @@ class ServerSyncTool
      */
     public function eventExists(array $event)
     {
-        $exists = $this->socket->head($this->server['Server']['url'] . '/events/view/' . $event['Event']['uuid'], [], $this->request);
+        $url = $this->server['Server']['url'] . '/events/view/' . $event['Event']['uuid'];
+        $exists = $this->socket->head($url, [], $this->request);
         if ($exists->code == '404') {
             return false;
         }
         if ($exists->code == '200') {
             return true;
         }
-        throw new HttpSocketHttpException($exists);
+        throw new HttpSocketHttpException($exists, $url);
+    }
+
+    /**
+     * @param array $params
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function eventIndex($params = [])
+    {
+        return $this->post('/events/index', $params);
     }
 
     /**
@@ -130,6 +142,39 @@ class ServerSyncTool
     }
 
     /**
+     * @return array
+     */
+    public function server()
+    {
+        return $this->server;
+    }
+
+    /**
+     * @param string $flag
+     * @return bool
+     * @throws HttpSocketJsonException
+     * @throws HttpSocketHttpException
+     * @throws InvalidArgumentException
+     */
+    public function isSupported($flag)
+    {
+        $info = $this->info();
+        switch ($flag) {
+            case self::FEATURE_BR:
+                return isset($info['request_encoding']) && in_array('br', $info['request_encoding'], true);
+            case self::FEATURE_GZIP:
+                return isset($info['request_encoding']) && in_array('gzip', $info['request_encoding'], true);
+            case self::FEATURE_FILTER_SIGHTINGS:
+                return isset($info['filter_sightings']) && $info['filter_sightings'];
+            case self::FEATURE_ORG_RULE:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] > 123;
+            default:
+                throw new InvalidArgumentException("Invalid flag `$flag` provided");
+        }
+    }
+
+    /**
      * @params string $url Relative URL
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
@@ -182,25 +227,5 @@ class ServerSyncTool
             throw new HttpSocketHttpException($response, $url);
         }
         return $response;
-    }
-
-    /**
-     * @param string $flag
-     * @return bool
-     * @throws HttpSocketJsonException
-     */
-    private function isSupported($flag)
-    {
-        $info = $this->info();
-        switch ($flag) {
-            case self::FEATURE_BR:
-                return isset($info['request_encoding']) && in_array('br', $info['request_encoding'], true);
-            case self::FEATURE_GZIP:
-                return isset($info['request_encoding']) && in_array('gzip', $info['request_encoding'], true);
-            case self::FEATURE_FILTER_SIGHTINGS:
-                return isset($info['filter_sightings']) && $info['filter_sightings'];
-            default:
-                throw new InvalidArgumentException("Invalid flag `$flag` provided");
-        }
     }
 }
