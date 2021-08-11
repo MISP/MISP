@@ -2056,7 +2056,8 @@ class ServersController extends AppController
         $request['header'] = array(
             'Authorization' => $this->Auth->user('authkey'),
             'Accept' => 'application/json',
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'MISP REST Client',
         );
         foreach ($temp_headers as $header) {
             $header = explode(':', $header);
