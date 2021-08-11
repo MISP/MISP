@@ -2748,13 +2748,9 @@ class AppModel extends Model
                 'Authorization' => $server[$model]['authkey'],
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-                'MISP-version' => $version,
                 'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
             )
         );
-        if ($commit) {
-            $request['header']['commit'] = $commit;
-        }
         return $request;
     }
 
