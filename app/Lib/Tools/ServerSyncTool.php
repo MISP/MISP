@@ -6,7 +6,8 @@ class ServerSyncTool
     const FEATURE_BR = 'br',
         FEATURE_GZIP = 'gzip',
         FEATURE_ORG_RULE = 'org_rule',
-        FEATURE_FILTER_SIGHTINGS = 'filter_sightings';
+        FEATURE_FILTER_SIGHTINGS = 'filter_sightings',
+        FEATURE_PROPOSALS = 'proposals';
 
     /** @var array */
     private $server;
@@ -78,6 +79,19 @@ class ServerSyncTool
     {
         $url = "/events/view/$eventId";
         $url .= $this->createParams($params);
+        return $this->get($url);
+    }
+
+    /**
+     * @param array $params
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function fetchProposals(array $params = [])
+    {
+        $url = '/shadow_attributes/index';
+        $url .= $this->createParams($params);
+        $url .= '.json';
         return $this->get($url);
     }
 
@@ -184,6 +198,9 @@ class ServerSyncTool
             case self::FEATURE_ORG_RULE:
                 $version = explode('.', $info['version']);
                 return $version[0] == 2 && $version[1] == 4 && $version[2] > 123;
+            case self::FEATURE_PROPOSALS:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] >= 111;
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
