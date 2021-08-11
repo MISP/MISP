@@ -127,12 +127,12 @@ class GalaxyCluster extends AppModel
             }
             if (isset($result[$this->alias]['org_id']) && $results[$k][$this->alias]['org_id'] == 0) {
                 if (isset($results[$k]['Org'])) {
-                    $results[$k]['Org'] = $this->Org->genericMISPOrganisation;
+                    $results[$k]['Org'] = Organisation::GENERIC_MISP_ORGANISATION;
                 }
             }
             if (isset($result[$this->alias]['orgc_id']) && $results[$k][$this->alias]['orgc_id'] == 0) {
                 if (isset($results[$k]['Orgc'])) {
-                    $results[$k]['Orgc'] = $this->Org->genericMISPOrganisation;
+                    $results[$k]['Orgc'] = Organisation::GENERIC_MISP_ORGANISATION;
                 }
             }
 
