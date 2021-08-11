@@ -1322,20 +1322,20 @@ class ServersController extends AppController
                 $remote_server = $this->Server->find('first', array('conditions' => $conditions));
                 if (!empty($remote_server)) {
                     try {
-                        $remote_event = $this->Event->downloadEventFromServer($this->request->data['Event']['uuid'], $remote_server, null, true);
+                        $remote_event = $this->Event->downloadEventMetadataFromServer($this->request->data['Event']['uuid'], $remote_server);
                     } catch (Exception $e) {
                         $this->Flash->error(__("Issue while contacting the remote server to retrieve event information"));
                         return;
                     }
 
-                    $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $remote_event[0]['uuid']);
+                    $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $remote_event['uuid']);
                     // we record it to avoid re-querying the same server in the 2nd phase
                     if (!empty($local_event)) {
                         $remote_events[] = array(
                             "server_id" => $remote_server['Server']['id'],
                             "server_name" => $remote_server['Server']['name'],
-                            "url" => $remote_server['Server']['url']."/events/view/".$remote_event[0]['id'],
-                            "remote_id" => $remote_event[0]['id']
+                            "url" => $remote_server['Server']['url']."/events/view/".$remote_event['id'],
+                            "remote_id" => $remote_event['id']
                         );
                     }
                 }
@@ -1356,12 +1356,12 @@ class ServersController extends AppController
 
                 $exception = null;
                 try {
-                    $remoteEvent = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $server, null, true);
+                    $remoteEvent = $this->Event->downloadEventMetadataFromServer($local_event['Event']['uuid'], $server);
                 } catch (Exception $e) {
                     $remoteEvent = null;
                     $exception = $e->getMessage();
                 }
-                $remoteEventId = isset($remoteEvent[0]['id']) ? $remoteEvent[0]['id'] : null;
+                $remoteEventId = isset($remoteEvent['id']) ? $remoteEvent['id'] : null;
                 $remote_events[] = array(
                     "server_id" => $server['Server']['id'],
                     "server_name" => $server['Server']['name'],
