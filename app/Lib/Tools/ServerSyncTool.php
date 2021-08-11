@@ -69,10 +69,24 @@ class ServerSyncTool
     }
 
     /**
+     * @param int|string $eventId Event ID or UUID
+     * @param array $params
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function fetchEvent($eventId, array $params = [])
+    {
+        $url = "/events/view/$eventId";
+        $url .= $this->createParams($params);
+        return $this->get($url);
+    }
+
+    /**
      * @param array $event
      * @param array $sightingUuids
      * @return array Sighting UUIDs that exists on remote side
-     * @throws HttpSocketJsonException|HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws HttpSocketHttpException
      */
     public function filterSightingUuidsForPush(array $event, array $sightingUuids)
     {
@@ -88,6 +102,7 @@ class ServerSyncTool
      * @param array $sightings
      * @param string $eventUuid
      * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
      */
     public function uploadSightings(array $sightings, $eventUuid)
     {
@@ -227,5 +242,24 @@ class ServerSyncTool
             throw new HttpSocketHttpException($response, $url);
         }
         return $response;
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    private function createParams(array $params)
+    {
+        $url = '';
+        foreach ($params as $key => $value) {
+            if (is_array($value)) {
+                foreach ($value as $v) {
+                    $url .= "/{$key}[]:$v";
+                }
+            } else {
+                $url .= "/$key:$value";
+            }
+        }
+        return $url;
     }
 }
