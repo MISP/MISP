@@ -79,8 +79,8 @@ class Tag extends AppModel
         )
     );
 
-    public $reGalaxy = '/misp-galaxy:[^:="]+="[^:="]+/i';
-    public $reCustomGalaxy = '/misp-galaxy:[^:="]+="[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"/i';
+    const RE_GALAXY = '/misp-galaxy:[^:="]+="[^:="]+/i';
+    const RE_CUSTOM_GALAXY = '/misp-galaxy:[^:="]+="[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"/i';
     private $tagOverrides = false;
 
     public function beforeValidate($options = array())
@@ -101,8 +101,8 @@ class Tag extends AppModel
         if (isset($tag['name']) && strlen($tag['name']) >= 255) {
             $tag['name'] = substr($tag['name'], 0, 255);
         }
-        $tag['is_galaxy'] = preg_match($this->reGalaxy, $tag['name']);
-        $tag['is_custom_galaxy'] = preg_match($this->reCustomGalaxy, $tag['name']);
+        $tag['is_galaxy'] = preg_match(self::RE_GALAXY, $tag['name']);
+        $tag['is_custom_galaxy'] = preg_match(self::RE_CUSTOM_GALAXY, $tag['name']);
         return true;
     }
 
