@@ -31,6 +31,18 @@ class ComplexTypeTool
         )
     );
 
+    const HEX_HASH_TYPES = array(
+        32 => array('single' => array('md5', 'imphash', 'x509-fingerprint-md5'), 'composite' => array('filename|md5', 'filename|imphash')),
+        40 => array('single' => array('sha1', 'pehash', 'x509-fingerprint-sha1', 'cdhash'), 'composite' => array('filename|sha1', 'filename|pehash')),
+        56 => array('single' => array('sha224', 'sha512/224'), 'composite' => array('filename|sha224', 'filename|sha512/224')),
+        64 => array('single' => array('sha256', 'authentihash', 'sha512/256', 'x509-fingerprint-sha256'), 'composite' => array('filename|sha256', 'filename|authentihash', 'filename|sha512/256')),
+        96 => array('single' => array('sha384'), 'composite' => array('filename|sha384')),
+        128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
+    );
+
+    // algorithms to run through in order, without Hashes that are checked separately
+    const CHECKS = array('Email', 'IP', 'DomainOrFilename', 'SimpleRegex', 'AS', 'BTC');
+
     private $__tlds = null;
 
     public static function refangValue($value, $type)
@@ -223,18 +235,6 @@ class ComplexTypeTool
         return array_values($resultArray);
     }
 
-    private $__hexHashTypes = array(
-        32 => array('single' => array('md5', 'imphash', 'x509-fingerprint-md5'), 'composite' => array('filename|md5', 'filename|imphash')),
-        40 => array('single' => array('sha1', 'pehash', 'x509-fingerprint-sha1', 'cdhash'), 'composite' => array('filename|sha1', 'filename|pehash')),
-        56 => array('single' => array('sha224', 'sha512/224'), 'composite' => array('filename|sha224', 'filename|sha512/224')),
-        64 => array('single' => array('sha256', 'authentihash', 'sha512/256', 'x509-fingerprint-sha256'), 'composite' => array('filename|sha256', 'filename|authentihash', 'filename|sha512/256')),
-        96 => array('single' => array('sha384'), 'composite' => array('filename|sha384')),
-        128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
-    );
-
-    // algorithms to run through in order, without Hashes that are checked separately
-    private $__checks = array('Email', 'IP', 'DomainOrFilename', 'SimpleRegex', 'AS', 'BTC');
-
     /**
      * @param string $raw_input Trimmed value
      * @return array|false
@@ -263,7 +263,7 @@ class ComplexTypeTool
         $input = $this->__refangInput($input);
         $input = $this->__extractPort($input);
 
-        foreach ($this->__checks as $check) {
+        foreach (self::CHECKS as $check) {
             $result = $this->{'__checkFor' . $check}($input);
             if ($result) {
                 return $result;
@@ -511,8 +511,8 @@ class ComplexTypeTool
     private function __resolveHash($value)
     {
         $strlen = strlen($value);
-        if (isset($this->__hexHashTypes[$strlen]) && ctype_xdigit($value)) {
-            return $this->__hexHashTypes[$strlen];
+        if (isset(self::HEX_HASH_TYPES[$strlen]) && ctype_xdigit($value)) {
+            return self::HEX_HASH_TYPES[$strlen];
         }
         return false;
     }
