@@ -253,384 +253,376 @@ class EventsController extends AppController
         return $result;
     }
 
-    private function __setIndexFilterConditions($passedArgs, &$urlparams)
+    /**
+     * @param array $passedArgs
+     * @param string $urlparams
+     * @return array
+     */
+    private function __setIndexFilterConditions(array $passedArgs, &$urlparams)
     {
         $passedArgsArray = array();
         foreach ($passedArgs as $k => $v) {
-            if (substr($k, 0, 6) === 'search') {
-                if (!is_array($v)) {
-                    if ($urlparams != "") {
-                        $urlparams .= "/";
-                    }
-                    $urlparams .= $k . ":" . $v;
+            if (substr($k, 0, 6) !== 'search') {
+                continue;
+            }
+            if (!is_array($v)) {
+                if ($urlparams != "") {
+                    $urlparams .= "/";
                 }
-                $searchTerm = strtolower(substr($k, 6));
-                switch ($searchTerm) {
-                    case 'all':
-                        if (!empty($passedArgs['searchall'])) {
-                            $this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($passedArgs['searchall']));
-                        }
-                        break;
-                    case 'attribute':
-                        $event_id_arrays = $this->__filterOnAttributeValue($v);
-                        if (!empty($event_id_arrays[0])) {
-                            $this->paginate['conditions']['AND'][] = array('Event.id' => $event_id_arrays[0]);
-                        }
-                        if (!empty($event_id_arrays[1])) {
-                            $this->paginate['conditions']['AND'][] = array('Event.id !=' => $event_id_arrays[1]);
-                        }
-                        break;
-                    case 'published':
-                        if ($v == 2) {
-                            continue 2;
-                        }
-                        $this->paginate['conditions']['AND'][] = array('Event.' . substr($k, 6) . ' =' => $v);
-                        break;
-                    case 'hasproposal':
-                        if ($v == 2) {
-                            continue 2;
-                        }
-                        $proposalQuery = "exists (select id, deleted from shadow_attributes where shadow_attributes.event_id = Event.id and shadow_attributes.deleted = 0)";
-                        if ($v == 0) {
-                            $proposalQuery = 'not ' . $proposalQuery;
-                        }
-                        $this->paginate['conditions']['AND'][] = $proposalQuery;
-                        break;
-                    case 'eventid':
-                        if ($v == "") {
-                            continue 2;
-                        }
-                        if (is_array($v)) {
-                            $pieces = $v;
-                        } else {
-                            $pieces = explode('|', $v);
-                        }
-                        $eventidConditions = array();
-                        foreach ($pieces as $piece) {
-                            $piece = trim($piece);
-                            if ($piece[0] == '!') {
-                                if (strlen($piece) == 37) {
-                                    $eventidConditions['NOT']['uuid'][] = substr($piece, 1);
-                                } else {
-                                    $eventidConditions['NOT']['id'][] = substr($piece, 1);
-                                }
+                $urlparams .= $k . ":" . $v;
+            }
+            $searchTerm = strtolower(substr($k, 6));
+            switch ($searchTerm) {
+                case 'all':
+                    if (!empty($passedArgs['searchall'])) {
+                        $this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($passedArgs['searchall']));
+                    }
+                    break;
+                case 'attribute':
+                    $event_id_arrays = $this->__filterOnAttributeValue($v);
+                    if (!empty($event_id_arrays[0])) {
+                        $this->paginate['conditions']['AND'][] = array('Event.id' => $event_id_arrays[0]);
+                    }
+                    if (!empty($event_id_arrays[1])) {
+                        $this->paginate['conditions']['AND'][] = array('Event.id !=' => $event_id_arrays[1]);
+                    }
+                    break;
+                case 'published':
+                    if ($v === 2 || $v === '2') { // both
+                        continue 2;
+                    }
+                    $this->paginate['conditions']['AND'][] = array('Event.published' => $v);
+                    break;
+                case 'hasproposal':
+                    if ($v === 2 || $v === '2') { // both
+                        continue 2;
+                    }
+                    $proposalQuery = "exists (select id, deleted from shadow_attributes where shadow_attributes.event_id = Event.id and shadow_attributes.deleted = 0)";
+                    if ($v == 0) {
+                        $proposalQuery = 'not ' . $proposalQuery;
+                    }
+                    $this->paginate['conditions']['AND'][] = $proposalQuery;
+                    break;
+                case 'eventid':
+                    if ($v == "") {
+                        continue 2;
+                    }
+                    $pieces = is_array($v) ? $v : explode('|', $v);
+                    $eventidConditions = array();
+                    foreach ($pieces as $piece) {
+                        $piece = trim($piece);
+                        if ($piece[0] == '!') {
+                            if (strlen($piece) == 37) {
+                                $eventidConditions['NOT']['uuid'][] = substr($piece, 1);
                             } else {
-                                if (strlen($piece) == 36) {
-                                    $eventidConditions['OR']['uuid'][] = $piece;
-                                } else {
-                                    $eventidConditions['OR']['id'][] = $piece;
-                                }
+                                $eventidConditions['NOT']['id'][] = substr($piece, 1);
+                            }
+                        } else {
+                            if (strlen($piece) == 36) {
+                                $eventidConditions['OR']['uuid'][] = $piece;
+                            } else {
+                                $eventidConditions['OR']['id'][] = $piece;
                             }
                         }
-                        foreach ($eventidConditions as $operator => $conditionForOperator) {
-                            foreach ($conditionForOperator as $conditionKey => $conditionValue) {
-                                $lookupKey = 'Event.' . $conditionKey;
-                                if ($operator === 'NOT') {
-                                    $lookupKey = $lookupKey . ' !=';
-                                }
-                                $this->paginate['conditions']['AND'][] = array($lookupKey => $conditionValue);
+                    }
+                    foreach ($eventidConditions as $operator => $conditionForOperator) {
+                        foreach ($conditionForOperator as $conditionKey => $conditionValue) {
+                            $lookupKey = 'Event.' . $conditionKey;
+                            if ($operator === 'NOT') {
+                                $lookupKey = $lookupKey . ' !=';
                             }
+                            $this->paginate['conditions']['AND'][] = array($lookupKey => $conditionValue);
                         }
-                        break;
-                    case 'datefrom':
-                        if ($v == "") {
-                            continue 2;
+                    }
+                    break;
+                case 'datefrom':
+                    if ($v == "") {
+                        continue 2;
+                    }
+                    $this->paginate['conditions']['AND'][] = array('Event.date >=' => $v);
+                    break;
+                case 'dateuntil':
+                    if ($v == "") {
+                        continue 2;
+                    }
+                    $this->paginate['conditions']['AND'][] = array('Event.date <=' => $v);
+                    break;
+                case 'timestamp':
+                    if ($v == "") {
+                        continue 2;
+                    }
+                    if (preg_match('/^[0-9]+[mhdw]$/i', $v)) {
+                        $v = $this->Event->resolveTimeDelta($v);
+                    }
+                    $this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v);
+                    break;
+                case 'publish_timestamp':
+                case 'publishtimestamp':
+                    if ($v == "") {
+                        continue 2;
+                    }
+                    if (is_array($v) && isset($v[0]) && isset($v[1])) {
+                        if (preg_match('/^[0-9]+[mhdw]$/i', $v[0])) {
+                            $v[0] = $this->Event->resolveTimeDelta($v[0]);
                         }
-                        $this->paginate['conditions']['AND'][] = array('Event.date >=' => $v);
-                        break;
-                    case 'dateuntil':
-                        if ($v == "") {
-                            continue 2;
+                        if (preg_match('/^[0-9]+[mhdw]$/i', $v[1])) {
+                            $v[1] = $this->Event->resolveTimeDelta($v[1]);
                         }
-                        $this->paginate['conditions']['AND'][] = array('Event.date <=' => $v);
-                        break;
-                    case 'timestamp':
-                        if ($v == "") {
-                            continue 2;
-                        }
+                        $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v[0]);
+                        $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp <=' => $v[1]);
+                    } else {
                         if (preg_match('/^[0-9]+[mhdw]$/i', $v)) {
                             $v = $this->Event->resolveTimeDelta($v);
                         }
-                        $this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v);
-                        break;
-                    case 'publish_timestamp':
-                    case 'publishtimestamp':
-                        if ($v == "") {
-                            continue 2;
-                        }
-                        if (is_array($v) && isset($v[0]) && isset($v[1])) {
-                            if (preg_match('/^[0-9]+[mhdw]$/i', $v[0])) {
-                                $v[0] = $this->Event->resolveTimeDelta($v[0]);
-                            }
-                            if (preg_match('/^[0-9]+[mhdw]$/i', $v[1])) {
-                                $v[1] = $this->Event->resolveTimeDelta($v[1]);
-                            }
-                            $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v[0]);
-                            $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp <=' => $v[1]);
-                        } else {
-                            if (preg_match('/^[0-9]+[mhdw]$/i', $v)) {
-                                $v = $this->Event->resolveTimeDelta($v);
-                            }
-                            $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v);
-                        }
-                        break;
-                    case 'org':
-                        if ($v == "") {
-                            continue 2;
-                        }
-                        if (!Configure::read('MISP.showorg')) {
-                            continue 2;
-                        }
-                        $orgArray = $this->Event->Org->find('list', array('fields' => array('Org.name')));
-                        $orgUuidArray = $this->Event->Org->find('list', array('fields' => array('Org.uuid')));
-                        $orgArray = array_map('strtoupper', $orgArray);
-                        // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
-                        if (!is_array($v)) {
-                            $pieces = explode('|', $v);
-                        } else {
-                            $pieces = $v;
-                        }
-                        $test = array();
-                        foreach ($pieces as $piece) {
-                            if ($piece[0] == '!') {
-                                if (is_numeric(substr($piece, 1))) {
-                                    $this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => substr($piece, 1));
-                                } else {
-                                    if (Validation::uuid(substr($piece, 1))) {
-                                        $org_id = array_search(substr($piece, 1), $orgUuidArray);
-                                    } else {
-                                        $org_id = array_search(strtoupper(substr($piece, 1)), $orgArray);
-                                    }
-                                    if ($org_id) {
-                                        $this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => $org_id);
-                                    }
-                                }
-                            } else {
-                                if (is_numeric($piece)) {
-                                    $test['OR'][] = array('Event.orgc_id' => array('Event.orgc_id' => $piece));
-                                } else {
-                                    if (Validation::uuid($piece)) {
-                                        $org_id = array_search($piece, $orgUuidArray);
-                                    } else {
-                                        $org_id = array_search(strtoupper($piece), $orgArray);
-                                    }
-                                    if ($org_id) {
-                                        $test['OR'][] = array('Event.orgc_id' => $org_id);
-                                    } else {
-                                        $test['OR'][] = array('Event.orgc_id' => -1);
-                                    }
-                                }
-                            }
-                        }
-                        $this->paginate['conditions']['AND'][] = $test;
-                        break;
-                    case 'sharinggroup':
-                        $pieces = explode('|', $v);
-                        $test = array();
-                        foreach ($pieces as $piece) {
-                            if ($piece[0] == '!') {
-                                $this->paginate['conditions']['AND'][] = array('Event.sharing_group_id !=' => substr($piece, 1));
-                            } else {
-                                $test['OR'][] = array('Event.sharing_group_id' => $piece);
-                            }
-                        }
-                        if (!empty($test)) {
-                            $this->paginate['conditions']['AND'][] = $test;
-                        }
-                        break;
-                    case 'eventinfo':
-                        if ($v == "") {
-                            continue 2;
-                        }
-                        // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
-                        $pieces = explode('|', $v);
-                        $test = array();
-                        foreach ($pieces as $piece) {
-                            if ($piece[0] == '!') {
-                                $this->paginate['conditions']['AND'][] = array('lower(Event.info) NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
-                            } else {
-                                $test['OR'][] = array('lower(Event.info) LIKE' => '%' . strtolower($piece) . '%');
-                            }
-                        }
-                        $this->paginate['conditions']['AND'][] = $test;
-                        break;
-                    case 'tag':
-                    case 'tags':
-                        if (!$v || !Configure::read('MISP.tagging') || $v === 0) {
-                            continue 2;
-                        }
-                        if (!is_array($v)) {
-                            $pieces = explode('|', $v);
-                        } else {
-                            $pieces = $v;
-                        }
-                        $filterString = "";
-                        $expectOR = false;
-                        $setOR = false;
-                        $tagRules = [];
-                        foreach ($pieces as $piece) {
-                            if ($piece[0] == '!') {
-                                if (is_numeric(substr($piece, 1))) {
-                                    $conditions = array('OR' => array('Tag.id' => substr($piece, 1)));
-                                } else {
-                                    $conditions = array('OR' => array('Tag.name' => substr($piece, 1)));
-                                }
-                                $tagName = $this->Event->EventTag->Tag->find('first', array(
-                                    'conditions' => $conditions,
-                                    'fields' => array('id', 'name'),
-                                    'recursive' => -1,
-                                ));
-
-                                if (empty($tagName)) {
-                                    if ($filterString != "") {
-                                        $filterString .= "|";
-                                    }
-                                    $filterString .= '!' . $piece;
-                                    continue;
-                                }
-                                $block = $this->Event->EventTag->find('column', array(
-                                    'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
-                                    'fields' => ['EventTag.event_id'],
-                                ));
-                                if (!empty($block)) {
-                                    $sqlSubQuery = 'Event.id NOT IN (' . implode(",", $block) . ')';
-                                    $tagRules['AND'][] = $sqlSubQuery;
-                                }
-                                if ($filterString != "") {
-                                    $filterString .= "|";
-                                }
-                                $filterString .= '!' . (isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece);
-                            } else {
-                                $expectOR = true;
-                                if (is_numeric($piece)) {
-                                    $conditions = array('OR' => array('Tag.id' => $piece));
-                                } else {
-                                    $conditions = array('OR' => array('Tag.name' => $piece));
-                                }
-
-                                $tagName = $this->Event->EventTag->Tag->find('first', array(
-                                        'conditions' => $conditions,
-                                        'fields' => array('id', 'name'),
-                                        'recursive' => -1,
-                                ));
-                                if (empty($tagName)) {
-                                    if ($filterString != "") {
-                                        $filterString .= "|";
-                                    }
-                                    $filterString .= $piece;
-                                    continue;
-                                }
-
-                                $allow = $this->Event->EventTag->find('column', array(
-                                    'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
-                                    'fields' => ['EventTag.event_id'],
-                                ));
-                                if (!empty($allow)) {
-                                    $setOR = true;
-                                    $sqlSubQuery = 'Event.id IN ('. implode(",", $allow) . ')';
-                                    $tagRules['OR'][] = $sqlSubQuery;
-                                }
-                                if ($filterString != "") {
-                                    $filterString .= "|";
-                                }
-                                $filterString .= isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece;
-                            }
-                        }
-                        $this->paginate['conditions']['AND'][] = $tagRules;
-                        // If we have a list of OR-d arguments, we expect to end up with a list of allowed event IDs
-                        // If we don't however, it means that none of the tags was found. To prevent displaying the entire event index in this case:
-                        if ($expectOR && !$setOR) {
-                            $this->paginate['conditions']['AND'][] = array('Event.id' => -1);
-                        }
-                        $v = $filterString;
-                        break;
-                    case 'email':
-                        if ($v == "" || (strtolower($this->Auth->user('email')) !== strtolower(trim($v)) && !$this->_isSiteAdmin())) {
-                            continue 2;
-                        }
-                        // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
-                        $pieces = explode('|', $v);
-                        $test = array();
-                        foreach ($pieces as $piece) {
-                            if ($piece[0] == '!') {
-                                $users = $this->Event->User->find('list', array(
-                                        'recursive' => -1,
-                                        'fields' => array('User.email'),
-                                        'conditions' => array('lower(User.email) LIKE' => '%' . strtolower(substr($piece, 1)) . '%')
-                                ));
-                                if (!empty($users)) {
-                                    $this->paginate['conditions']['AND'][] = array('Event.user_id !=' => array_keys($users));
-                                }
-                            } else {
-                                $users = $this->Event->User->find('list', array(
-                                        'recursive' => -1,
-                                        'fields' => array('User.email'),
-                                        'conditions' => array('lower(User.email) LIKE' => '%' . strtolower($piece) . '%')
-                                ));
-                                if (!empty($users)) {
-                                    $test['OR'][] = array('Event.user_id' => array_keys($users));
-                                }
-                            }
-                        }
-
-                        if (!empty($test)) {
-                            $this->paginate['conditions']['AND'][] = $test;
-                        }
-                        break;
-                    case 'distribution':
-                    case 'analysis':
-                    case 'threatlevel':
-                        if ($v == "") {
-                            continue 2;
-                        }
-                        $terms = array();
-                        $filterString = "";
-                        $searchTermInternal = $searchTerm;
-                        if ($searchTerm == 'threatlevel') {
-                            $searchTermInternal = 'threat_level_id';
-                            $terms = $this->Event->ThreatLevel->listThreatLevels();
-                        } elseif ($searchTerm == 'analysis') {
-                            $terms = $this->Event->analysisLevels;
-                        } else {
-                            $terms = $this->Event->distributionLevels;
-                        }
-                        if (is_array($v)) {
-                            $pieces = $v;
-                        } else {
-                            $pieces = explode('|', $v);
-                        }
-                        $test = array();
-                        foreach ($pieces as $piece) {
-                            if ($filterString != "") {
-                                $filterString .= '|';
-                            }
-                            if ($piece[0] == '!') {
-                                $filterString .= $terms[substr($piece, 1)];
-                                $this->paginate['conditions']['AND'][] = array('Event.' . $searchTermInternal . ' !=' => substr($piece, 1));
-                            } else {
-                                $filterString .= $terms[$piece];
-                                $test['OR'][] = array('Event.' . $searchTermInternal => $piece);
-                            }
-                        }
-                        $this->paginate['conditions']['AND'][] = $test;
-                        $v = $filterString;
-                        break;
-                    case 'minimal':
-                        $tableName = $this->Event->EventReport->table;
-                        $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
-                        $this->paginate['conditions']['AND'][] = [
-                            'OR' => [
-                                ['Event.attribute_count >' => 0],
-                                [$eventReportQuery]
-                            ]
-                        ];
-                        break;
-                    default:
+                        $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v);
+                    }
+                    break;
+                case 'org':
+                    if ($v == "") {
                         continue 2;
-                        break;
-                }
-                $passedArgsArray[$searchTerm] = $v;
+                    }
+                    if (!Configure::read('MISP.showorg')) {
+                        continue 2;
+                    }
+                    $orgArray = $this->Event->Org->find('list', array('fields' => array('Org.name')));
+                    $orgUuidArray = $this->Event->Org->find('list', array('fields' => array('Org.uuid')));
+                    $orgArray = array_map('strtoupper', $orgArray);
+                    // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
+                    if (!is_array($v)) {
+                        $pieces = explode('|', $v);
+                    } else {
+                        $pieces = $v;
+                    }
+                    $test = array();
+                    foreach ($pieces as $piece) {
+                        if ($piece[0] == '!') {
+                            if (is_numeric(substr($piece, 1))) {
+                                $this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => substr($piece, 1));
+                            } else {
+                                if (Validation::uuid(substr($piece, 1))) {
+                                    $org_id = array_search(substr($piece, 1), $orgUuidArray);
+                                } else {
+                                    $org_id = array_search(strtoupper(substr($piece, 1)), $orgArray);
+                                }
+                                if ($org_id) {
+                                    $this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => $org_id);
+                                }
+                            }
+                        } else {
+                            if (is_numeric($piece)) {
+                                $test['OR'][] = array('Event.orgc_id' => array('Event.orgc_id' => $piece));
+                            } else {
+                                if (Validation::uuid($piece)) {
+                                    $org_id = array_search($piece, $orgUuidArray);
+                                } else {
+                                    $org_id = array_search(strtoupper($piece), $orgArray);
+                                }
+                                if ($org_id) {
+                                    $test['OR'][] = array('Event.orgc_id' => $org_id);
+                                } else {
+                                    $test['OR'][] = array('Event.orgc_id' => -1);
+                                }
+                            }
+                        }
+                    }
+                    $this->paginate['conditions']['AND'][] = $test;
+                    break;
+                case 'sharinggroup':
+                    $pieces = explode('|', $v);
+                    $test = array();
+                    foreach ($pieces as $piece) {
+                        if ($piece[0] == '!') {
+                            $this->paginate['conditions']['AND'][] = array('Event.sharing_group_id !=' => substr($piece, 1));
+                        } else {
+                            $test['OR'][] = array('Event.sharing_group_id' => $piece);
+                        }
+                    }
+                    if (!empty($test)) {
+                        $this->paginate['conditions']['AND'][] = $test;
+                    }
+                    break;
+                case 'eventinfo':
+                    if ($v == "") {
+                        continue 2;
+                    }
+                    // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
+                    $pieces = explode('|', $v);
+                    $test = array();
+                    foreach ($pieces as $piece) {
+                        if ($piece[0] == '!') {
+                            $this->paginate['conditions']['AND'][] = array('lower(Event.info) NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
+                        } else {
+                            $test['OR'][] = array('lower(Event.info) LIKE' => '%' . strtolower($piece) . '%');
+                        }
+                    }
+                    $this->paginate['conditions']['AND'][] = $test;
+                    break;
+                case 'tag':
+                case 'tags':
+                    if (!$v || !Configure::read('MISP.tagging') || $v === 0) {
+                        continue 2;
+                    }
+                    $pieces = is_array($v) ? $v : explode('|', $v);
+                    $filterString = "";
+                    $expectOR = false;
+                    $setOR = false;
+                    $tagRules = [];
+                    foreach ($pieces as $piece) {
+                        if ($piece[0] == '!') {
+                            if (is_numeric(substr($piece, 1))) {
+                                $conditions = array('OR' => array('Tag.id' => substr($piece, 1)));
+                            } else {
+                                $conditions = array('OR' => array('Tag.name' => substr($piece, 1)));
+                            }
+                            $tagName = $this->Event->EventTag->Tag->find('first', array(
+                                'conditions' => $conditions,
+                                'fields' => array('id', 'name'),
+                                'recursive' => -1,
+                            ));
+
+                            if (empty($tagName)) {
+                                if ($filterString != "") {
+                                    $filterString .= "|";
+                                }
+                                $filterString .= '!' . $piece;
+                                continue;
+                            }
+                            $block = $this->Event->EventTag->find('column', array(
+                                'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
+                                'fields' => ['EventTag.event_id'],
+                            ));
+                            if (!empty($block)) {
+                                $sqlSubQuery = 'Event.id NOT IN (' . implode(",", $block) . ')';
+                                $tagRules['AND'][] = $sqlSubQuery;
+                            }
+                            if ($filterString != "") {
+                                $filterString .= "|";
+                            }
+                            $filterString .= '!' . (isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece);
+                        } else {
+                            $expectOR = true;
+                            if (is_numeric($piece)) {
+                                $conditions = array('OR' => array('Tag.id' => $piece));
+                            } else {
+                                $conditions = array('OR' => array('Tag.name' => $piece));
+                            }
+
+                            $tagName = $this->Event->EventTag->Tag->find('first', array(
+                                'conditions' => $conditions,
+                                'fields' => array('id', 'name'),
+                                'recursive' => -1,
+                            ));
+                            if (empty($tagName)) {
+                                if ($filterString != "") {
+                                    $filterString .= "|";
+                                }
+                                $filterString .= $piece;
+                                continue;
+                            }
+
+                            $allow = $this->Event->EventTag->find('column', array(
+                                'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
+                                'fields' => ['EventTag.event_id'],
+                            ));
+                            if (!empty($allow)) {
+                                $setOR = true;
+                                $sqlSubQuery = 'Event.id IN (' . implode(",", $allow) . ')';
+                                $tagRules['OR'][] = $sqlSubQuery;
+                            }
+                            if ($filterString != "") {
+                                $filterString .= "|";
+                            }
+                            $filterString .= isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece;
+                        }
+                    }
+                    $this->paginate['conditions']['AND'][] = $tagRules;
+                    // If we have a list of OR-d arguments, we expect to end up with a list of allowed event IDs
+                    // If we don't however, it means that none of the tags was found. To prevent displaying the entire event index in this case:
+                    if ($expectOR && !$setOR) {
+                        $this->paginate['conditions']['AND'][] = array('Event.id' => -1);
+                    }
+                    $v = $filterString;
+                    break;
+                case 'email':
+                    if ($v == "" || (strtolower($this->Auth->user('email')) !== strtolower(trim($v)) && !$this->_isSiteAdmin())) {
+                        continue 2;
+                    }
+                    // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
+                    $pieces = explode('|', $v);
+                    $test = array();
+                    foreach ($pieces as $piece) {
+                        if ($piece[0] == '!') {
+                            $users = $this->Event->User->find('list', array(
+                                'recursive' => -1,
+                                'fields' => array('User.email'),
+                                'conditions' => array('lower(User.email) LIKE' => '%' . strtolower(substr($piece, 1)) . '%')
+                            ));
+                            if (!empty($users)) {
+                                $this->paginate['conditions']['AND'][] = array('Event.user_id !=' => array_keys($users));
+                            }
+                        } else {
+                            $users = $this->Event->User->find('list', array(
+                                'recursive' => -1,
+                                'fields' => array('User.email'),
+                                'conditions' => array('lower(User.email) LIKE' => '%' . strtolower($piece) . '%')
+                            ));
+                            if (!empty($users)) {
+                                $test['OR'][] = array('Event.user_id' => array_keys($users));
+                            }
+                        }
+                    }
+
+                    if (!empty($test)) {
+                        $this->paginate['conditions']['AND'][] = $test;
+                    }
+                    break;
+                case 'distribution':
+                case 'analysis':
+                case 'threatlevel':
+                    if ($v == "") {
+                        continue 2;
+                    }
+                    $filterString = "";
+                    $searchTermInternal = $searchTerm;
+                    if ($searchTerm === 'threatlevel') {
+                        $searchTermInternal = 'threat_level_id';
+                        $terms = $this->Event->ThreatLevel->listThreatLevels();
+                    } elseif ($searchTerm === 'analysis') {
+                        $terms = $this->Event->analysisLevels;
+                    } else {
+                        $terms = $this->Event->distributionLevels;
+                    }
+                    $pieces = is_array($v) ? $v :  explode('|', $v);
+                    $test = array();
+                    foreach ($pieces as $piece) {
+                        if ($filterString != "") {
+                            $filterString .= '|';
+                        }
+                        if ($piece[0] == '!') {
+                            $filterString .= $terms[substr($piece, 1)];
+                            $this->paginate['conditions']['AND'][] = array('Event.' . $searchTermInternal . ' !=' => substr($piece, 1));
+                        } else {
+                            $filterString .= $terms[$piece];
+                            $test['OR'][] = array('Event.' . $searchTermInternal => $piece);
+                        }
+                    }
+                    $this->paginate['conditions']['AND'][] = $test;
+                    $v = $filterString;
+                    break;
+                case 'minimal':
+                    $tableName = $this->Event->EventReport->table;
+                    $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
+                    $this->paginate['conditions']['AND'][] = [
+                        'OR' => [
+                            ['Event.attribute_count >' => 0],
+                            [$eventReportQuery]
+                        ]
+                    ];
+                    break;
+                default:
+                    continue 2;
             }
+            $passedArgsArray[$searchTerm] = $v;
         }
         return $passedArgsArray;
     }
