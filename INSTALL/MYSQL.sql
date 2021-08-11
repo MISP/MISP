@@ -1109,7 +1109,7 @@ CREATE TABLE IF NOT EXISTS `sightings` (
   INDEX `attribute_id` (`attribute_id`),
   INDEX `event_id` (`event_id`),
   INDEX `org_id` (`org_id`),
-  INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `uuid` (`uuid`),
   INDEX `source` (`source`),
   INDEX `type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
