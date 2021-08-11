@@ -228,8 +228,6 @@ class LogsController extends AppController
         $this->set('mayModify', $mayModify);
     }
 
-    public $helpers = array('Js' => array('Jquery'), 'Highlight');
-
     public function admin_search($new = false)
     {
         $orgRestriction = null;

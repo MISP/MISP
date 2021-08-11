@@ -14,7 +14,7 @@ $fields = [
     [
         'field' => 'permission',
         'label' => __('Permissions'),
-        'type' => 'select',
+        'type' => 'dropdown',
         'options' => $dropdownData['options'],
         'value' => '3',
         'class' => 'span3'

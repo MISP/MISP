@@ -83,57 +83,57 @@ class PubSubTool
         return $this->pushToRedis(':data:misp_json', $json);
     }
 
-    public function event_save($event, $action)
+    public function event_save(array $event, $action)
     {
         if (!empty($action)) {
             $event['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_event', json_encode($event, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_event', $event);
     }
 
-    public function object_save($object, $action)
+    public function object_save(array $object, $action)
     {
         if (!empty($action)) {
             $object['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_object', json_encode($object, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_object', $object);
     }
 
-    public function object_reference_save($object_reference, $action)
+    public function object_reference_save(array $object_reference, $action)
     {
         if (!empty($action)) {
             $object_reference['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_object_reference', json_encode($object_reference, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_object_reference', $object_reference);
     }
 
-    public function publishConversation($message)
+    public function publishConversation(array $message)
     {
-        return $this->pushToRedis(':data:misp_json_conversation', json_encode($message, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_conversation', $message);
     }
 
-    public function attribute_save($attribute, $action = false)
+    public function attribute_save(array $attribute, $action = false)
     {
         if (!empty($action)) {
             $attribute['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_attribute', json_encode($attribute, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_attribute', $attribute);
     }
 
-    public function tag_save($tag, $action = false)
+    public function tag_save(array $tag, $action = false)
     {
         if (!empty($action)) {
             $tag['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_tag', json_encode($tag, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_tag', $tag);
     }
 
-    public function sighting_save($sighting, $action = false)
+    public function sighting_save(array $sighting, $action = false)
     {
         if (!empty($action)) {
             $sighting['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_sighting', $sighting);
     }
 
     public function warninglist_save(array $warninglist, $action = false)
@@ -141,15 +141,21 @@ class PubSubTool
         if (!empty($action)) {
             $warninglist['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_warninglist', json_encode($warninglist, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_warninglist', $warninglist);
     }
 
+    /**
+     * @param array $data
+     * @param string $type
+     * @param string|false $action
+     * @return bool
+     */
     public function modified($data, $type, $action = false)
     {
         if (!empty($action)) {
             $data['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_' . $type, $data);
     }
 
     public function publish($data, $type, $action = false)
@@ -157,7 +163,7 @@ class PubSubTool
         if (!empty($action)) {
             $data['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
+        return $this->pushToRedis(':data:misp_json_' . $type, $data);
     }
 
     public function killService()
@@ -230,8 +236,17 @@ class PubSubTool
         }
     }
 
+    /**
+     * @param string $ns
+     * @param string|array $data
+     * @return bool
+     */
     private function pushToRedis($ns, $data)
     {
+        if (is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
+
         $this->redis->rPush($this->settings['redis_namespace'] . $ns, $data);
         return true;
     }

@@ -6,7 +6,7 @@ App::uses('File', 'Utility');
 
 class TemplatesController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');
+    public $components = array('Security' ,'RequestHandler', 'CRUD');
 
     public $paginate = array(
             'limit' => 50,
@@ -106,6 +106,7 @@ class TemplatesController extends AppController
         $this->set('template', $template);
         $this->set('tags', $tagArray);
         $this->set('tagInfo', $tags);
+        $this->render('add');
     }
 
     public function view($id)
@@ -231,22 +232,19 @@ class TemplatesController extends AppController
 
     public function delete($id)
     {
-        $template = $this->Template->checkAuthorisation($id, $this->Auth->user(), true);
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException('This action can only be invoked via a post request.');
-        }
-        if (!$this->_isSiteAdmin() && !$template) {
-            throw new MethodNotAllowedException('No template with the provided ID exists, or you are not authorised to edit it.');
-        }
-        if ($this->Template->delete($id, true)) {
-            $this->Flash->success('Template deleted.');
-            $this->redirect(array('action' => 'index'));
-        } else {
-            $this->Flash->error('The template could not be deleted.');
-            $this->redirect(array('action' => 'index'));
+        $this->CRUD->delete($id, [
+            'validate' => function () use ($id) {
+                $template = $this->Template->checkAuthorisation($id, $this->Auth->user(), true);
+
+                if (!$this->_isSiteAdmin() && !$template) {
+                    throw new MethodNotAllowedException('No template with the provided ID exists, or you are not authorised to edit it.');
+                }
+            }
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
-
 
     public function templateChoices($id)
     {

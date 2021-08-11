@@ -404,7 +404,8 @@ class ACLComponent extends Component
                     'index' => array('*'),
                     'toggleEnable' => array(),
                     'update' => array(),
-                    'view' => array('*')
+                    'view' => array('*'),
+                    'preview_entries' => array('*')
             ),
             'objects' => array(
                     'add' => array('perm_add'),
@@ -594,6 +595,7 @@ class ACLComponent extends Component
                     'quickDelete' => array('perm_sighting'),
                     'viewSightings' => array('*'),
                     'bulkSaveSightings' => array('OR' => array('perm_sync', 'perm_sighting')),
+                    'filterSightingUuidsForPush' => ['perm_sync'],
                     'quickAdd' => array('perm_sighting')
             ),
             'sightingdb' => array(
@@ -651,6 +653,7 @@ class ACLComponent extends Component
                     'toggleRequired' => array('perm_site_admin'),
                     'update' => array(),
                     'import' => [],
+                    'export' => ['*'],
                     'view' => array('*'),
                     'unhideTag' => array('perm_tagger'),
                     'hideTag' => array('perm_tagger'),

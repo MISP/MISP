@@ -1,5 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
+
+/**
+ * @property GalaxyCluster $GalaxyCluster
+ */
 class Galaxy extends AppModel
 {
     public $useTable = 'galaxies';
@@ -13,9 +17,6 @@ class Galaxy extends AppModel
             'userKey' => 'user_id',
             'change' => 'full'),
         'Containable',
-    );
-
-    public $validate = array(
     );
 
     public $hasMany = array(
@@ -53,6 +54,11 @@ class Galaxy extends AppModel
         return $results;
     }
 
+    /**
+     * @param bool $force
+     * @return array Galaxy type => Galaxy ID
+     * @throws JsonException
+     */
     private function __load_galaxies($force = false)
     {
         $dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'galaxies');
@@ -60,22 +66,15 @@ class Galaxy extends AppModel
         $galaxies = array();
         foreach ($files as $file) {
             $file = new File($dir->pwd() . DS . $file);
-            $galaxies[] = json_decode($file->read(), true);
+            $galaxies[] = $this->jsonDecode($file->read());
             $file->close();
         }
-        $galaxyTypes = array();
-        foreach ($galaxies as $i => $galaxy) {
-            $galaxyTypes[$galaxy['type']] = $galaxy['type'];
-        }
-        $temp = $this->find('all', array(
+        $existingGalaxies = $this->find('all', array(
             'fields' => array('uuid', 'version', 'id', 'icon'),
             'recursive' => -1
         ));
-        $existingGalaxies = array();
-        foreach ($temp as $v) {
-            $existingGalaxies[$v['Galaxy']['uuid']] = $v['Galaxy'];
-        }
-        foreach ($galaxies as $k => $galaxy) {
+        $existingGalaxies = array_column(array_column($existingGalaxies, 'Galaxy'), null, 'uuid');
+        foreach ($galaxies as $galaxy) {
             if (isset($existingGalaxies[$galaxy['uuid']])) {
                 if (
                     $force ||
@@ -97,7 +96,7 @@ class Galaxy extends AppModel
     {
         return [
             'source' => isset($cluster_package['source']) ? $cluster_package['source'] : '',
-            'authors' => json_encode(isset($cluster_package['authors']) ? $cluster_package['authors'] : array(), true),
+            'authors' => json_encode(isset($cluster_package['authors']) ? $cluster_package['authors'] : array()),
             'collection_uuid' => isset($cluster_package['uuid']) ? $cluster_package['uuid'] : '',
             'galaxy_id' => $galaxies[$cluster_package['type']],
             'type' => $cluster_package['type'],
@@ -115,7 +114,7 @@ class Galaxy extends AppModel
             'fields' => array('version', 'id', 'value', 'uuid')
         ));
         $existingClusters = [];
-        foreach ($temp as $k => $v) {
+        foreach ($temp as $v) {
             $existingClusters[$v['GalaxyCluster']['value']] = $v;
         }
         return $existingClusters;
@@ -157,7 +156,6 @@ class Galaxy extends AppModel
     {
         $relations = [];
         $elements = [];
-        $saved_tag_names = [];
         $this->GalaxyCluster->bulkEntry = true;
         foreach ($cluster_package['values'] as $cluster) {
             if (empty($cluster['version'])) {
@@ -215,7 +213,7 @@ class Galaxy extends AppModel
                 }
             }
             if (isset($cluster['related'])) {
-                foreach ($cluster['related'] as $key => $relation) {
+                foreach ($cluster['related'] as $relation) {
                     $relations[] = [
                         'galaxy_cluster_id' => $galaxyClusterId,
                         'galaxy_cluster_uuid' => $cluster['uuid'],
@@ -239,20 +237,17 @@ class Galaxy extends AppModel
         $force = (bool)$force;
         foreach ($files as $file) {
             $file = new File($dir->pwd() . DS . $file);
-            $cluster_package = json_decode($file->read(), true);
+            $cluster_package = $this->jsonDecode($file->read());
             $file->close();
             if (!isset($galaxies[$cluster_package['type']])) {
                 continue;
             }
             $template = $this->__update_prepare_template($cluster_package, $galaxies);
-            $elements = [];
             $existingClusters = $this->__getPreExistingClusters($galaxies, $cluster_package);
             $cluster_package = $this->__deleteOutdated($force, $cluster_package, $existingClusters);
 
             // create all clusters
             list($elements, $relations) = $this->__createClusters($cluster_package, $template);
-            $db = $this->getDataSource();
-            $fields = array('galaxy_cluster_id', 'key', 'value');
             if (!empty($elements)) {
                 $db = $this->getDataSource();
                 $fields = array('galaxy_cluster_id', 'key', 'value');

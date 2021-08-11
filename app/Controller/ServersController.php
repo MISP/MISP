@@ -739,10 +739,6 @@ class ServersController extends AppController
         if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) {
             throw new MethodNotAllowedException(__('You are not authorised to do that.'));
         }
-        $this->Server->id = $id;
-        if (!$this->Server->exists()) {
-            throw new NotFoundException(__('Invalid server'));
-        }
         if (false == $this->Server->data['Server']['pull'] && ($technique == 'full' || $technique == 'incremental')) {
             $error = __('Pull setting not enabled for this server.');
         }
@@ -753,7 +749,7 @@ class ServersController extends AppController
             if (!Configure::read('MISP.background_jobs')) {
                 $result = $this->Server->pull($this->Auth->user(), $id, $technique, $s);
                 if (is_array($result)) {
-                    $success = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]));
+                    $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
                 } else {
                     $error = $result;
                 }
@@ -781,14 +777,14 @@ class ServersController extends AppController
                         array('pull', $this->Auth->user('id'), $id, $technique, $jobId)
                 );
                 $this->Job->saveField('process_id', $process_id);
-                $success = sprintf(__('Pull queued for background execution. Job ID: %s'), $jobId);
+                $success = __('Pull queued for background execution. Job ID: %s', $jobId);
             }
         }
         if ($this->_isRest()) {
             if (!empty($error)) {
-                return $this->RestResponse->saveFailResponse('Servers', 'pull', false, $error, $this->response->type());
+                return $this->RestResponse->saveFailResponse('Servers', 'pull', $id, $error, $this->response->type());
             } else {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'pull', $success, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'pull', $id, $this->response->type(), $success);
             }
         } else {
             if (!empty($error)) {
@@ -821,10 +817,9 @@ class ServersController extends AppController
             throw new MethodNotAllowedException(__('You are not authorised to do that.'));
         }
         if (!Configure::read('MISP.background_jobs')) {
-            $server = $this->Server->read(null, $id);
             App::uses('SyncTool', 'Tools');
             $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
+            $HttpSocket = $syncTool->setupHttpSocket($s);
             $result = $this->Server->push($id, $technique, false, $HttpSocket, $this->Auth->user());
             if ($result === false) {
                 $error = __('The remote server is too outdated to initiate a push towards it. Please notify the hosting organisation of the remote instance.');
@@ -840,7 +835,7 @@ class ServersController extends AppController
                 }
             }
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', __('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1])), $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $id, $this->response->type(), __('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1])));
             } else {
                 $this->set('successes', $result[0]);
                 $this->set('fails', $result[1]);
@@ -979,13 +974,6 @@ class ServersController extends AppController
         $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed'));
         $proxyErrors = array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed'));
         $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
-        $stixOperational = array(0 => __('Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.'), 1 => __('OK'));
-        $stixVersion = array(0 => __('Incorrect STIX version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $stix2Version = array(0 => __('Incorrect STIX2 version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $cyboxVersion = array(0 => __('Incorrect CyBox version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $mixboxVersion = array(0 => __('Incorrect mixbox version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $maecVersion = array(0 => __('Incorrect maec version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $pymispVersion = array(0 => __('Incorrect PyMISP version installed, found $current, expecting $expected'), 1 => __('OK'));
         $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
         $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
 
@@ -1105,7 +1093,7 @@ class ServersController extends AppController
             }
 
             // check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
-            $stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion, $mixboxVersion, $maecVersion, $stix2Version, $pymispVersion);
+            $stix = $this->Server->stixDiagnostics($diagnostic_errors);
 
             $yaraStatus = $this->Server->yaraDiagnostics($diagnostic_errors);
 
@@ -1143,7 +1131,7 @@ class ServersController extends AppController
 
             $securityAudit = (new SecurityAudit())->run($this->Server);
 
-            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan', 'securityAudit');
+            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan', 'securityAudit');
         } else {
             $view = [];
         }
@@ -1212,6 +1200,7 @@ class ServersController extends AppController
         $this->set('pythonmin', $this->pythonmin);
         $this->set('pythonrec', $this->pythonrec);
         $this->set('pymisp', $this->pymisp);
+        $this->set('title_for_layout', __('Diagnostics'));
     }
 
     public function startWorker($type)
@@ -1651,16 +1640,11 @@ class ServersController extends AppController
 
     public function getRemoteUser($id)
     {
-        $this->Server->id = $id;
-        if (!$this->Server->exists()) {
+        $user = $this->Server->getRemoteUser($id);
+        if ($user === null) {
             throw new NotFoundException(__('Invalid server'));
         }
-        $user = $this->Server->getRemoteUser($id);
-        if (empty($user)) {
-            throw new NotFoundException(__('Invalid user or user not found.'));
-        } else {
-            return $this->RestResponse->viewData($user);
-        }
+        return $this->RestResponse->viewData($user);
     }
 
     public function testConnection($id = false)
@@ -1806,14 +1790,19 @@ class ServersController extends AppController
         $versionArray = $this->Server->checkMISPVersion();
         $response = [
             'version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'],
-            'perm_sync' => $this->userRole['perm_sync'],
-            'perm_sighting' => $this->userRole['perm_sighting'],
-            'perm_galaxy_editor' => $this->userRole['perm_galaxy_editor'],
+            'pymisp_recommended_version' => $this->pyMispVersion,
+            'perm_sync' => (bool) $this->userRole['perm_sync'],
+            'perm_sighting' => (bool) $this->userRole['perm_sighting'],
+            'perm_galaxy_editor' => (bool) $this->userRole['perm_galaxy_editor'],
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
+            'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
         ];
-        return $this->RestResponse->viewData($response, $this->response->type());
+        return $this->RestResponse->viewData($response, 'json');
     }
 
+    /**
+     * @deprecated Use field `pymisp_recommended_version` from getVersion instead
+     */
     public function getPyMISPVersion()
     {
         $this->set('response', array('version' => $this->pyMispVersion));
@@ -1864,9 +1853,6 @@ class ServersController extends AppController
 
     public function ondemandAction()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('You are not authorised to do that.');
-        }
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $actions = $this->Server->actions_description;
         $default_fields = array(
@@ -2071,7 +2057,8 @@ class ServersController extends AppController
         $request['header'] = array(
             'Authorization' => $this->Auth->user('authkey'),
             'Accept' => 'application/json',
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'MISP REST Client',
         );
         foreach ($temp_headers as $header) {
             $header = explode(':', $header);
@@ -2434,9 +2421,6 @@ misp.direct_call(relative_path, body)
 
     public function dbSchemaDiagnostic()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException(__('Only site admin accounts get the DB schema diagnostic.'));
-        }
         $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($dbSchemaDiagnostics, $this->response->type());

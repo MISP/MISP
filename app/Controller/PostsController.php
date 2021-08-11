@@ -14,8 +14,6 @@ class PostsController extends AppController
         'RequestHandler'
     );
 
-    public $helpers = array('Js' => array('Jquery'));
-
     public $paginate = array(
             'limit' => 60,
     );

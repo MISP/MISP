@@ -15,18 +15,18 @@ class Feed extends AppModel
     );
 
     public $belongsTo = array(
-            'SharingGroup' => array(
-                    'className' => 'SharingGroup',
-                    'foreignKey' => 'sharing_group_id',
-            ),
-            'Tag' => array(
-                    'className' => 'Tag',
-                    'foreignKey' => 'tag_id',
-            ),
-            'Orgc' => array(
-                    'className' => 'Organisation',
-                    'foreignKey' => 'orgc_id'
-            )
+        'SharingGroup' => array(
+            'className' => 'SharingGroup',
+            'foreignKey' => 'sharing_group_id',
+        ),
+        'Tag' => array(
+            'className' => 'Tag',
+            'foreignKey' => 'tag_id',
+        ),
+        'Orgc' => array(
+            'className' => 'Organisation',
+            'foreignKey' => 'orgc_id'
+        )
     );
 
     public $validate = array(
@@ -61,6 +61,18 @@ class Feed extends AppModel
         )
     );
 
+    const DEFAULT_FEED_PULL_RULES = [
+        'tags' => [
+            "OR" => [],
+            "NOT" => [],
+        ],
+        'orgs' => [
+            "OR" => [],
+            "NOT" => [],
+        ],
+        'url_params' => ''
+    ];
+
     /*
      *  Cleanup of empty belongsto relationships
      */
@@ -93,8 +105,8 @@ class Feed extends AppModel
                     'Invalid input source. The only valid options are %s. %s',
                     implode(', ', $validOptions),
                     (!$localAllowed && $this->data['Feed']['input_source'] === 'local') ?
-                    __('Security.disable_local_feed_access is currently enabled, local feeds are thereby not allowed.') :
-                    ''
+                        __('Security.disable_local_feed_access is currently enabled, local feeds are thereby not allowed.') :
+                        ''
                 );
             }
         }
@@ -369,7 +381,7 @@ class Feed extends AppModel
         $redisResultToAttributePosition = [];
 
         foreach ($attributes as $k => $attribute) {
-            if (in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes, true)) {
+            if (in_array($attribute['type'], Attribute::NON_CORRELATING_TYPES, true)) {
                 continue; // attribute type is not correlateable
             }
             if (!empty($attribute['disable_correlation'])) {
@@ -380,7 +392,7 @@ class Feed extends AppModel
                 list($value1, $value2) = explode('|', $attribute['value']);
                 $parts = [$value1];
 
-                if (!in_array($attribute['type'], $this->Attribute->primaryOnlyCorrelatingTypes, true)) {
+                if (!in_array($attribute['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
                     $parts[] = $value2;
                 }
             } else {
@@ -545,7 +557,8 @@ class Feed extends AppModel
                     unset($sources[$k]);
                 }
             }
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+        }
 
         return $sources;
     }
@@ -773,9 +786,9 @@ class Feed extends AppModel
     {
         $this->Event = ClassRegistry::init('Event');
         $existingEvent = $this->Event->find('first', array(
-                'conditions' => array('Event.uuid' => $event['Event']['uuid']),
-                'recursive' => -1,
-                'fields' => array('Event.uuid', 'Event.id', 'Event.timestamp')
+            'conditions' => array('Event.uuid' => $event['Event']['uuid']),
+            'recursive' => -1,
+            'fields' => array('Event.uuid', 'Event.id', 'Event.timestamp')
         ));
         $result = array();
         if (!empty($existingEvent)) {
@@ -840,8 +853,8 @@ class Feed extends AppModel
         }
         if ($feed['Feed']['sharing_group_id']) {
             $sg = $this->SharingGroup->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array('SharingGroup.id' => $feed['Feed']['sharing_group_id'])
+                'recursive' => -1,
+                'conditions' => array('SharingGroup.id' => $feed['Feed']['sharing_group_id'])
             ));
             if (!empty($sg)) {
                 $event['Event']['SharingGroup'] = $sg['SharingGroup'];
@@ -927,15 +940,15 @@ class Feed extends AppModel
             if (empty($existingFeed)) {
                 $this->create();
                 $feed = array(
-                        'name' => $newFeed['name'],
-                        'provider' => $newFeed['provider'],
-                        'url' => $newFeed['url'],
-                        'enabled' => $newFeed['enabled'],
-                        'caching_enabled' => !empty($newFeed['caching_enabled']) ? $newFeed['caching_enabled'] : 0,
-                        'distribution' => 3,
-                        'sharing_group_id' => 0,
-                        'tag_id' => 0,
-                        'default' => true,
+                    'name' => $newFeed['name'],
+                    'provider' => $newFeed['provider'],
+                    'url' => $newFeed['url'],
+                    'enabled' => $newFeed['enabled'],
+                    'caching_enabled' => !empty($newFeed['caching_enabled']) ? $newFeed['caching_enabled'] : 0,
+                    'distribution' => 3,
+                    'sharing_group_id' => 0,
+                    'tag_id' => 0,
+                    'default' => true,
                 );
                 $result = $this->save($feed) && $success;
             }
@@ -1044,15 +1057,15 @@ class Feed extends AppModel
                 $orgc_id = $feed['Feed']['orgc_id'];
             }
             $event = array(
-                    'info' => $feed['Feed']['name'] . ' feed',
-                    'analysis' => 2,
-                    'threat_level_id' => 4,
-                    'orgc_id' => $orgc_id,
-                    'org_id' => $user['org_id'],
-                    'date' => date('Y-m-d'),
-                    'distribution' => $feed['Feed']['distribution'],
-                    'sharing_group_id' => $feed['Feed']['sharing_group_id'],
-                    'user_id' => $user['id']
+                'info' => $feed['Feed']['name'] . ' feed',
+                'analysis' => 2,
+                'threat_level_id' => 4,
+                'orgc_id' => $orgc_id,
+                'org_id' => $user['org_id'],
+                'date' => date('Y-m-d'),
+                'distribution' => $feed['Feed']['distribution'],
+                'sharing_group_id' => $feed['Feed']['sharing_group_id'],
+                'user_id' => $user['id']
             );
             $result = $this->Event->save($event);
             if (!$result) {
@@ -1300,10 +1313,10 @@ class Feed extends AppModel
                 $this->Attribute = ClassRegistry::init('Attribute');
                 $pipe = $redis->multi(Redis::PIPELINE);
                 foreach ($event['Event']['Attribute'] as $attribute) {
-                    if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
+                    if (!in_array($attribute['type'], Attribute::NON_CORRELATING_TYPES, true)) {
                         if (in_array($attribute['type'], $this->Attribute->getCompositeTypes())) {
                             $value = explode('|', $attribute['value']);
-                            if (in_array($attribute['type'], $this->Attribute->primaryOnlyCorrelatingTypes)) {
+                            if (in_array($attribute['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
                                 unset($value[1]);
                             }
                         } else {
@@ -1592,7 +1605,8 @@ class Feed extends AppModel
         return $cardinality;
     }
 
-    public function getAllCachingEnabledFeeds($feedId, $intersectingOnly = false) {
+    public function getAllCachingEnabledFeeds($feedId, $intersectingOnly = false)
+    {
         if ($intersectingOnly) {
             $redis = $this->setupRedis();
         }
@@ -1923,13 +1937,13 @@ class Feed extends AppModel
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->save(array(
-                'org' => 'SYSTEM',
-                'model' => 'Feed',
-                'model_id' => $id,
-                'email' => $user['email'],
-                'action' => 'purge_events',
-                'title' => __('Events related to feed %s purged.', $id),
-                'change' => null,
+            'org' => 'SYSTEM',
+            'model' => 'Feed',
+            'model_id' => $id,
+            'email' => $user['email'],
+            'action' => 'purge_events',
+            'title' => __('Events related to feed %s purged.', $id),
+            'change' => null,
         ));
         $feed['Feed']['fixed_event'] = 1;
         $feed['Feed']['event_id'] = 0;

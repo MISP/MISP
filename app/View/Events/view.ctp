@@ -186,7 +186,7 @@
             'key' => __('Published'),
             'class' => ($event['Event']['published'] == 0) ? 'background-red bold not-published' : 'published',
             'class_value' => ($event['Event']['published'] == 0) ? '' : 'green',
-            'html' => ($event['Event']['published'] == 0) ? __('No') : sprintf('<span class="green bold">%s</span>', __('Yes')) . ((empty($event['Event']['publish_timestamp'])) ? __('N/A') :  ' (' . date('Y-m-d H:i:s', ($event['Event']['publish_timestamp'])) . ')')
+            'html' => ($event['Event']['published'] == 0) ? __('No') : sprintf('<span class="green bold">%s</span>', __('Yes')) . ((empty($event['Event']['publish_timestamp'])) ? __('N/A') :  ' (' . $this->Time->time($event['Event']['publish_timestamp']) . ')')
         );
         $attribute_text = $attribute_count;
         $attribute_text .= __n(' (%s Object)', ' (%s Objects)', $object_count, h($object_count));

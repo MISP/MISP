@@ -646,7 +646,7 @@ class GalaxiesController extends AppController
         $this->set('galaxy_id', $galaxyId);
     }
 
-    public function relationsGraph($galaxyId)
+    public function relationsGraph($galaxyId, $includeInbound=0)
     {
         $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full=true);
         if (empty($clusters)) {
@@ -658,13 +658,14 @@ class GalaxiesController extends AppController
         ));
         App::uses('ClusterRelationsGraphTool', 'Tools');
         $grapher = new ClusterRelationsGraphTool($this->Auth->user(), $this->Galaxy->GalaxyCluster);
-        $relations = $grapher->getNetwork($clusters);
+        $relations = $grapher->getNetwork($clusters, $includeInbound, $includeInbound);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($relations, $this->response->type());
         }
         $this->set('relations', $relations);
         $this->set('galaxy', $galaxy);
         $this->set('galaxy_id', $galaxyId);
+        $this->set('includeInbound', $includeInbound);
         $this->loadModel('Attribute');
         $distributionLevels = $this->Attribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);

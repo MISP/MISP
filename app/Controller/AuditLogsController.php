@@ -501,6 +501,8 @@ class AuditLogsController extends AppController
             'User' => 'admin/user',
             'Role' => 'roles',
             'EventReport' => 'eventReports',
+            'SharingGroup' => 'sharing_groups',
+            'Taxonomy' => 'taxonomies',
         ];
 
         $existingObjects = [];

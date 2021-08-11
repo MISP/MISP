@@ -15,6 +15,7 @@ class AuditLogBehavior extends ModelBehavior
     /** @var bool */
     private $enabled;
 
+    // Hash is faster that in_array
     private $skipFields = [
         'id' => true,
         'lastpushedid' => true,

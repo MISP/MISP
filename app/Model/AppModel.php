@@ -24,6 +24,7 @@ App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('BlowfishPasswordHasher', 'Controller/Component/Auth');
 App::uses('RandomTool', 'Tools');
+
 class AppModel extends Model
 {
     public $name;
@@ -33,13 +34,8 @@ class AppModel extends Model
      */
     private $loadedPubSubTool;
 
-    public $loadedKafkaPubTool = false;
-
-    public $start = 0;
-
-    public $assetCache = [];
-
-    public $inserted_ids = array();
+    /** @var KafkaPubTool */
+    public $loadedKafkaPubTool;
 
     /** @var null|Redis */
     private static $__redisConnection = null;
@@ -61,7 +57,7 @@ class AppModel extends Model
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
-    public $old_db_changes = array(
+    const OLD_DB_CHANGES = array(
         2 => array(
             4 => array(
                 18 => false, 19 => false, 20 => false, 25 => false, 27 => false,
@@ -78,7 +74,7 @@ class AppModel extends Model
         )
     );
 
-    public $db_changes = array(
+    const DB_CHANGES = array(
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
@@ -106,32 +102,6 @@ class AppModel extends Model
             'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
         ),
     );
-    public $actions_description = array(
-        'verifyGnuPGkeys' => array(
-            'title' => 'Verify GnuPG keys',
-            'description' => "Run a full validation of all GnuPG keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results.",
-            'url' => '/users/verifyGPG/'
-        ),
-        'databaseCleanupScripts' => array(
-            'title' => 'Database Cleanup Scripts',
-            'description' => 'If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.',
-            'url' => '/logs/pruneUpdateLogs/'
-        ),
-        'releaseUpdateLock' => array(
-            'title' => 'Release update lock',
-            'description' => 'If your your database is locked and is not updating, unlock it here.',
-            'ignore_disabled' => true,
-            'url' => '/servers/releaseUpdateLock/'
-        )
-    );
-
-    public function afterSave($created, $options = array())
-    {
-        if ($created) {
-            $this->inserted_ids[] = $this->getInsertID();
-        }
-        return true;
-    }
 
     public function isAcceptedDatabaseError($errorMessage, $dataSource)
     {
@@ -1924,6 +1894,7 @@ class AppModel extends Model
                 unlink($file);
             }
         }
+        return true;
     }
 
     public function getPythonVersion()
@@ -2396,12 +2367,12 @@ class AppModel extends Model
         }
     }
 
-    public function findUpgrades($db_version)
+    protected function findUpgrades($db_version)
     {
         $updates = array();
         if (strpos($db_version, '.')) {
             $version = explode('.', $db_version);
-            foreach ($this->old_db_changes as $major => $rest) {
+            foreach (self::OLD_DB_CHANGES as $major => $rest) {
                 if ($major < $version[0]) {
                     continue;
                 } elseif ($major == $version[0]) {
@@ -2424,7 +2395,7 @@ class AppModel extends Model
             }
             $db_version = 0;
         }
-        foreach ($this->db_changes as $db_change => $requiresLogout) {
+        foreach (self::DB_CHANGES as $db_change => $requiresLogout) {
             if ($db_version < $db_change) {
                 $updates[$db_change] = $requiresLogout;
             }
@@ -2950,11 +2921,6 @@ class AppModel extends Model
         return APP . 'files';
     }
 
-    public function getDefaultTmp_dir()
-    {
-        return sys_get_temp_dir();
-    }
-
     private function __bumpReferences()
     {
         $this->Event = ClassRegistry::init('Event');
@@ -3109,12 +3075,12 @@ class AppModel extends Model
      * @param $query
      * @param array $results
      * @return array
-     * @throws Exception
+     * @throws InvalidArgumentException
      */
     protected function _findColumn($state, $query, $results = array())
     {
         if ($state === 'before') {
-            if (count($query['fields']) === 1) {
+            if (isset($query['fields']) && count($query['fields']) === 1) {
                 if (strpos($query['fields'][0], '.') === false) {
                     $query['fields'][0] = $this->alias . '.' . $query['fields'][0];
                 }
@@ -3125,8 +3091,10 @@ class AppModel extends Model
                 } else {
                     $query['fields'] = array($query['fields'][0]);
                 }
+            } else if (!isset($query['fields'])) {
+                throw new InvalidArgumentException("This method requires `fields` option defined.");
             } else {
-                throw new Exception("Invalid number of column, expected one, " . count($query['fields']) . " given");
+                throw new InvalidArgumentException("Invalid number of column, expected one, " . count($query['fields']) . " given");
             }
 
             if (!isset($query['recursive'])) {
