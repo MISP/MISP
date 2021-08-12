@@ -650,20 +650,17 @@ class Server extends AppModel
     }
 
     /**
-     * @param HttpSocket $HttpSocket
-     * @param array $request
-     * @param array $server
+     * @param ServerSyncTool $serverSync
      * @param array $filterRules
      * @return array
-     * @throws JsonException
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
      */
-    private function __orgRuleDowngrade(HttpSocket $HttpSocket, array $request, array $server, array $filterRules)
+    private function __orgRuleDowngrade(ServerSyncTool $serverSync, array $filterRules)
     {
-        $uri = $server['Server']['url'] . '/servers/getVersion';
-        $version_response = $HttpSocket->get($uri, false, $request);
-        $version = $this->jsonDecode($version_response->body)['version'];
+        $version = $serverSync->info()['version'];
         $version = explode('.', $version);
-        if ($version[0] <= 2 && $version[1] <= 4 && $version[0] <= 123) {
+        if ($version[0] <= 2 && $version[1] <= 4 && $version[2] <= 123) {
             $filterRules['org'] = implode('|', $filterRules['org']);
         }
         return $filterRules;
@@ -798,8 +795,9 @@ class Server extends AppModel
      * @param string $scope 'events' or 'sightings'
      * @param bool $force
      * @return array Array of event UUIDs.
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
      * @throws JsonException
-     * @throws InvalidArgumentException
      */
     public function getEventIdsFromServer(array $server, $all = false, HttpSocket $HttpSocket = null, $ignoreFilterRules = false, $scope = 'events', $force = false)
     {
@@ -807,28 +805,22 @@ class Server extends AppModel
             throw new InvalidArgumentException("Scope mus be 'events' or 'sightings', '$scope' given.");
         }
 
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
         if ($ignoreFilterRules) {
             $filterRules = array();
         } else {
             $filterRules = $this->filterRuleToParameter($server['Server']['pull_rules']);
         }
 
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
         if (!empty($filterRules['org'])) {
-            $filterRules = $this->__orgRuleDowngrade($HttpSocket, $request, $server, $filterRules);
+            $filterRules = $this->__orgRuleDowngrade($serverSync, $filterRules);
         }
         $filterRules['minimal'] = 1;
         $filterRules['published'] = 1;
 
-        $uri = $server['Server']['url'] . '/events/index';
-        $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
+        $eventArray = $serverSync->eventIndex($filterRules)->json();
 
-        if (!$response->isOk()) {
-            throw new HttpException("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}", intval($response->code));
-        }
-
-        $eventArray = $this->jsonDecode($response->body);
         // correct $eventArray if just one event
         if (isset($eventArray['id'])) {
             $eventArray = array($eventArray);
