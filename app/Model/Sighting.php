@@ -1102,6 +1102,12 @@ class Sighting extends AppModel
         }
     }
 
+    /**
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @return int Number of saved sighting.
+     * @throws Exception
+     */
     public function pullSightings(array $user, ServerSyncTool $serverSync)
     {
         $this->Server = ClassRegistry::init('Server');
@@ -1111,6 +1117,13 @@ class Sighting extends AppModel
             $this->logException("Could not fetch event IDs from server {$serverSync->server()['Server']['name']}", $e);
             return 0;
         }
+
+        // Because `getEventIdsFromServer` is bugged, filter out events that do not exists locally
+        $eventUuids = $this->Event->find('column', [
+            'conditions' => ['Event.uuid' => $eventUuids],
+            'fields' => ['Event.uuid'],
+        ]);
+
         $saved = 0;
         // We don't need some of the event data, like correlations and event reports
         $params = [
