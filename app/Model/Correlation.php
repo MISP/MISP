@@ -21,7 +21,7 @@ class Correlation extends AppModel
         )
     );
 
-    private $exclusions = [];
+    private $exclusions;
 
     public function correlateValueRouter($value)
     {
@@ -349,19 +349,26 @@ class Correlation extends AppModel
         return $this->__saveCorrelations($correlations);
     }
 
+    /**
+     * @param array $a
+     * @return bool True if attribute value is excluded
+     */
     private function __preventExcludedCorrelations($a)
     {
-        $value = $a['value1'];
-        if (!empty($a['value2'])) {
-            $value .= '|' . $a['value2'];
-        }
-        if (empty($this->exclusions)) {
+        if ($this->exclusions === null) {
             try {
                 $redis = $this->setupRedisWithException();
                 $this->exclusions = $redis->sMembers('misp:correlation_exclusions');
             } catch (Exception $e) {
                 return false;
             }
+        } else if (empty($this->exclusions)) {
+            return false;
+        }
+
+        $value = $a['value1'];
+        if (!empty($a['value2'])) {
+            $value .= '|' . $a['value2'];
         }
         foreach ($this->exclusions as $exclusion) {
             if (!empty($exclusion)) {
