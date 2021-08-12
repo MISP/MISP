@@ -2263,6 +2263,21 @@ class Feed extends AppModel
     }
 
     /**
+     * Remove all cached serves and feeds from Redis.
+     * @throws Exception
+     */
+    public function clearCache()
+    {
+        $redis = $this->setupRedisWithException();
+        $keys = $redis->keys(self::REDIS_CACHE_PREFIX . '*');
+        $redis->pipeline();
+        foreach ($keys as $key) {
+            $redis->del($key);
+        }
+        $redis->exec();
+    }
+
+    /**
      * Insert feed to Redis cache.
      *
      * @param string $type Can be 'feed' or 'server'

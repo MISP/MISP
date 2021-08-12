@@ -527,6 +527,11 @@ class ServerShell extends AppShell
         echo $message . PHP_EOL;
     }
 
+    public function clearCached()
+    {
+        $this->Feed->clearCache();
+    }
+
     public function enqueuePull()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
