@@ -1153,7 +1153,7 @@ CREATE TABLE IF NOT EXISTS `tags` (
   `hide_tag` tinyint(1) NOT NULL DEFAULT 0,
   `numerical_value` int(11) NULL,
   PRIMARY KEY (`id`),
-  INDEX `name` (`name`(255)),
+  UNIQUE INDEX `name` (`name`(255)),
   INDEX `org_id` (`org_id`),
   INDEX `user_id` (`user_id`),
   INDEX `numerical_value` (`numerical_value`)

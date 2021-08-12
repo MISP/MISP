@@ -8121,7 +8121,7 @@
         },
         "tags": {
             "id": true,
-            "name": false,
+            "name": true,
             "org_id": false,
             "user_id": false,
             "numerical_value": false
