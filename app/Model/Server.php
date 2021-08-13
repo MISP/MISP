@@ -2565,11 +2565,18 @@ class Server extends AppModel
         return ['status' => 1, 'content-encoding' => $contentEncoding];
     }
 
+    /**
+     * @param array $server
+     * @param array $user
+     * @param HttpSocket|false $HttpSocket
+     * @return array|string
+     * @throws JsonException
+     */
     public function checkVersionCompatibility(array $server, $user = array(), $HttpSocket = false)
     {
         // for event publishing when we don't have a user.
         if (empty($user)) {
-            $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
+            $user = 'SYSTEM';
         }
         $localVersion = $this->checkMISPVersion();
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
@@ -2581,22 +2588,12 @@ class Server extends AppModel
             $error = $e->getMessage();
         }
         if (!isset($response) || $response->code != '200') {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
             if (isset($response->code)) {
                 $title = 'Error: Connection to the server has failed.' . (isset($response->code) ? ' Returned response code: ' . $response->code : '');
             } else {
                 $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $error;
             }
-            $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => $server['Server']['id'],
-                    'email' => $user['email'],
-                    'action' => 'error',
-                    'user_id' => $user['id'],
-                    'title' => $title
-            ));
+            $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $title);
             return $title;
         }
         $remoteVersion = $this->jsonDecode($response->body);
@@ -2606,18 +2603,8 @@ class Server extends AppModel
         $canEditGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']) ? $remoteVersion['perm_galaxy_editor'] : false;
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
             $message = __('Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.');
-            $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => $server['Server']['id'],
-                    'email' => $user['email'],
-                    'action' => 'error',
-                    'user_id' => $user['id'],
-                    'title' => $message,
-            ));
+            $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $message);
             return $message;
         }
         $response = false;
@@ -2653,17 +2640,7 @@ class Server extends AppModel
         }
 
         if ($response !== false) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => $server['Server']['id'],
-                    'email' => $user['email'],
-                    'action' => $issueLevel,
-                    'user_id' => $user['id'],
-                    'title' => ucfirst($issueLevel) . ': ' . $response,
-            ));
+            $this->loadLog()->createLogEntry($user, $issueLevel, 'Server', $server['Server']['id'], ucfirst($issueLevel) . ': ' . $response);
         }
         return [
             'success' => $success,
