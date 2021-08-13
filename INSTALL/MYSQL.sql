@@ -440,7 +440,7 @@ CREATE TABLE IF NOT EXISTS `galaxies` (
   `kill_chain_order` text,
   PRIMARY KEY (id),
   INDEX `name` (`name`),
-  INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `uuid` (`uuid`),
   INDEX `type` (`type`),
   INDEX `namespace` (`namespace`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -1409,7 +1409,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `date_created` bigint(20),
   `date_modified` bigint(20),
   PRIMARY KEY (`id`),
-  INDEX `email` (`email`),
+  UNIQUE INDEX `email` (`email`),
   INDEX `org_id` (`org_id`),
   INDEX `server_id` (`server_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;

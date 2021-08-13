@@ -7823,7 +7823,7 @@
         },
         "correlation_exclusions": {
             "id": true,
-            "value": false
+            "value": true
         },
         "dashboards": {
             "id": true,
@@ -7907,7 +7907,7 @@
         "galaxies": {
             "id": true,
             "name": false,
-            "uuid": false,
+            "uuid": true,
             "type": false,
             "namespace": false
         },
@@ -8183,7 +8183,7 @@
         },
         "users": {
             "id": true,
-            "email": false,
+            "email": true,
             "org_id": false,
             "server_id": false
         },
