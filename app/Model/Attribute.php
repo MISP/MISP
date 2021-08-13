@@ -14,6 +14,7 @@ App::uses('ComplexTypeTool', 'Tools');
  * @property AttributeTag $AttributeTag
  * @property Sighting $Sighting
  * @property MispObject $Object
+ * @property SharingGroup $SharingGroup
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
@@ -3722,22 +3723,21 @@ class Attribute extends AppModel
         if (isset($attribute['uuid'])) {
             $existingAttribute = $this->find('first', array(
                 'conditions' => array('Attribute.uuid' => $attribute['uuid']),
-                'contain' => array('AttributeTag' => 'Tag'),
                 'recursive' => -1,
             ));
             $this->Log = ClassRegistry::init('Log');
             if (count($existingAttribute)) {
                 if ($existingAttribute['Attribute']['event_id'] != $eventId || $existingAttribute['Attribute']['object_id'] != $objectId) {
                     $this->Log->create();
-                    $result = $this->Log->save(array(
-                            'org' => $user['Organisation']['name'],
-                            'model' => 'Attribute',
-                            'model_id' => 0,
-                            'email' => $user['email'],
-                            'action' => 'edit',
-                            'user_id' => $user['id'],
-                            'title' => 'Duplicate UUID found in attribute',
-                            'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'] . '. This can also be due to the same attribute (or an attribute with the same UUID) existing in a different event / object)',
+                    $this->Log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Attribute',
+                        'model_id' => 0,
+                        'email' => $user['email'],
+                        'action' => 'edit',
+                        'user_id' => $user['id'],
+                        'title' => 'Duplicate UUID found in attribute',
+                        'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'] . '. This can also be due to the same attribute (or an attribute with the same UUID) existing in a different event / object)',
                     ));
                     return true;
                 }
@@ -3758,8 +3758,7 @@ class Attribute extends AppModel
                         return true;
                     }
                 } else {
-                    $date = new DateTime();
-                    $attribute['timestamp'] = $date->getTimestamp();
+                    $attribute['timestamp'] = time();
                 }
             } else {
                 $this->create();
@@ -3849,7 +3848,7 @@ class Attribute extends AppModel
                                 $this->Log->create();
                                 $this->Log->save(array(
                                     'org' => $user['Organisation']['name'],
-                                    'model' => 'Attrubute',
+                                    'model' => 'Attribute',
                                     'model_id' => $this->id,
                                     'email' => $user['email'],
                                     'action' => 'edit',

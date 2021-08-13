@@ -333,11 +333,19 @@ class Tag extends AppModel
         return $ids;
     }
 
+    /**
+     * @param array $tag
+     * @param array $user
+     * @param bool $force
+     * @return false|int
+     * @throws Exception
+     */
     public function captureTag($tag, $user, $force=false)
     {
         $existingTag = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('LOWER(name)' => strtolower($tag['name']))
+            'recursive' => -1,
+            'conditions' => array('LOWER(name)' => strtolower($tag['name'])),
+            'fields' => ['id', 'org_id', 'user_id'],
         ));
         if (empty($existingTag)) {
             if ($force || $user['Role']['perm_tag_editor']) {
@@ -346,12 +354,12 @@ class Tag extends AppModel
                     $tag['colour'] = $this->random_color();
                 }
                 $tag = array(
-                        'name' => $tag['name'],
-                        'colour' => $tag['colour'],
-                        'exportable' => isset($tag['exportable']) ? $tag['exportable'] : 1,
-                        'org_id' => 0,
-                        'user_id' => 0,
-                        'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0
+                    'name' => $tag['name'],
+                    'colour' => $tag['colour'],
+                    'exportable' => isset($tag['exportable']) ? $tag['exportable'] : 1,
+                    'org_id' => 0,
+                    'user_id' => 0,
+                    'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0
                 );
                 $this->save($tag);
                 return $this->id;
