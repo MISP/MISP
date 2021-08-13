@@ -1662,7 +1662,7 @@ class GalaxyCluster extends AppModel
     {
         $this->Server = ClassRegistry::init('Server');
         $this->Log = ClassRegistry::init('Log');
-        $push = $this->Server->checkVersionCompatibility($server, false, $HttpSocket);
+        $push = $this->Server->checkVersionCompatibility($server, false);
         if (empty($push['canPush']) && empty($push['canPushGalaxyCluster'])) {
             return __('The remote user does not have the permission to manipulate galaxies - the upload of the galaxy clusters has been blocked.');
         }

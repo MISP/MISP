@@ -2568,35 +2568,34 @@ class Server extends AppModel
     /**
      * @param array $server
      * @param array $user
-     * @param HttpSocket|false $HttpSocket
+     * @param ServerSyncTool|null $serverSync
      * @return array|string
      * @throws JsonException
      */
-    public function checkVersionCompatibility(array $server, $user = array(), $HttpSocket = false)
+    public function checkVersionCompatibility(array $server, $user = [], ServerSyncTool $serverSync = null)
     {
         // for event publishing when we don't have a user.
         if (empty($user)) {
             $user = 'SYSTEM';
         }
         $localVersion = $this->checkMISPVersion();
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/servers/getVersion';
+
+        $serverSync = $serverSync ? $serverSync : new ServerSyncTool($server, $this->setupSyncRequest($server));
+
         try {
-            $response = $HttpSocket->get($uri, '', $request);
-        } catch (Exception $e) {
-            $error = $e->getMessage();
-        }
-        if (!isset($response) || $response->code != '200') {
-            if (isset($response->code)) {
-                $title = 'Error: Connection to the server has failed.' . (isset($response->code) ? ' Returned response code: ' . $response->code : '');
-            } else {
-                $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $error;
-            }
+            $remoteVersion = $serverSync->info();
+        } catch (HttpSocketHttpException $e) {
+            $this->logException("Connection to the server {$server['Server']['id']} has failed", $e);
+            $title = 'Error: Connection to the server has failed. Returned response code: ' . $e->getResponse()->code;
+            $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $title);
+            return $title;
+        }  catch (Exception $e) {
+            $this->logException("Connection to the server {$server['Server']['id']} has failed", $e);
+            $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
             $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $title);
             return $title;
         }
-        $remoteVersion = $this->jsonDecode($response->body);
+
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
         $supportEditOfGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']);
