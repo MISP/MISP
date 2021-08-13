@@ -8027,7 +8027,7 @@
         "organisations": {
             "id": true,
             "uuid": true,
-            "name": false
+            "name": true
         },
         "org_blocklists": {
             "id": true,

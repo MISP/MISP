@@ -788,7 +788,7 @@ CREATE TABLE IF NOT EXISTS `organisations` (
   `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `uuid` (`uuid`),
-  INDEX `name` (`name`(255))
+  UNIQUE INDEX `name` (`name`(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 CREATE TABLE IF NOT EXISTS `org_blocklists` (
