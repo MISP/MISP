@@ -2578,20 +2578,19 @@ class Server extends AppModel
         if (empty($user)) {
             $user = 'SYSTEM';
         }
-        $localVersion = $this->checkMISPVersion();
 
         $serverSync = $serverSync ? $serverSync : new ServerSyncTool($server, $this->setupSyncRequest($server));
 
         try {
             $remoteVersion = $serverSync->info();
-        } catch (HttpSocketHttpException $e) {
+        } catch (Exception $e) {
             $this->logException("Connection to the server {$server['Server']['id']} has failed", $e);
-            $title = 'Error: Connection to the server has failed. Returned response code: ' . $e->getResponse()->code;
-            $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $title);
-            return $title;
-        }  catch (Exception $e) {
-            $this->logException("Connection to the server {$server['Server']['id']} has failed", $e);
-            $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
+
+            if ($e instanceof HttpSocketHttpException) {
+                $title = 'Error: Connection to the server has failed. Returned response code: ' . $e->getCode();
+            } else {
+                $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
+            }
             $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $title);
             return $title;
         }
@@ -2606,6 +2605,7 @@ class Server extends AppModel
             $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $message);
             return $message;
         }
+        $localVersion = $this->checkMISPVersion();
         $response = false;
         $success = false;
         $issueLevel = "warning";
