@@ -20,7 +20,7 @@ class EventFixture extends AbstractFixture implements FixtureInterface
 
         $defaults = [
             'id' => (string)$faker->numberBetween(1, 1000),
-            'org_id' => $orgId,
+            'org_id' => (string)$orgId,
             'date' => $faker->date('Y-m-d'),
             'info' => $faker->text(200),
             'user_id' => '1',
@@ -33,7 +33,7 @@ class EventFixture extends AbstractFixture implements FixtureInterface
             'distribution' => '0',
             'sharing_group_id' => '0',
             'proposal_email_lock' => false,
-            'locked' => false,
+            'locked' => 0,
             'threat_level_id' => '1',
             'publish_timestamp' => '0',
             'sighting_timestamp' => '0',
@@ -47,8 +47,8 @@ class EventFixture extends AbstractFixture implements FixtureInterface
     public function toResponse(): array
     {
         return [
-            'id' => $this->attributes['id'],
-            'org_id' => $this->attributes['org_id'],
+            'id' => (string)$this->attributes['id'],
+            'org_id' => (string)$this->attributes['org_id'],
             'date' => $this->attributes['date'],
             'info' => $this->attributes['info'],
             'uuid' => $this->attributes['uuid'],
@@ -57,7 +57,7 @@ class EventFixture extends AbstractFixture implements FixtureInterface
             'attribute_count' => $this->attributes['attribute_count'],
             'orgc_id' => $this->attributes['orgc_id'],
             'timestamp' => $this->attributes['timestamp'],
-            'distribution' => $this->attributes['distribution'],
+            'distribution' => (string)$this->attributes['distribution'],
             'sharing_group_id' => $this->attributes['sharing_group_id'],
             'proposal_email_lock' => $this->attributes['proposal_email_lock'],
             'locked' => $this->attributes['locked'],

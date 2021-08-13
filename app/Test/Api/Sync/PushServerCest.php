@@ -103,7 +103,8 @@ class PushServerCest
                 'uuid' => $eventUuid,
                 'org_id' => $remoteOrgId,
                 'published' => true,
-                'distribution' => '2'
+                'distribution' => '2',
+                'locked' => 1
             ]
         );
         $fakeAttribute = AttributeFixture::fake(
@@ -130,6 +131,7 @@ class PushServerCest
                 'saved' => true,
                 'success' => true,
                 'message' => 'Push complete. 1 events pushed, 0 events could not be pushed.'
+                // 'message' => 'Server pushed'
             ]
         );
         $I->seeInDatabase('events', ['uuid' => $eventUuid]);
@@ -326,22 +328,46 @@ class PushServerCest
         WireMock $wiremock,
         EventFixture $event
     ): void {
+        $eventResponse = $event->toResponse();
 
         $wiremock->stubFor(WireMock::post(WireMock::urlEqualTo('/events/filterEventIdsForPush'))
             ->willReturn(WireMock::aResponse()
                 ->withHeader('Content-Type', 'application/json')
                 ->withBody(
                     (string)json_encode(
-                        [$event->toResponse()['uuid']]
+                        [$eventResponse['uuid']]
                     )
                 )));
 
-        $wiremock->stubFor(WireMock::post(WireMock::urlEqualTo('/events'))
+        $wiremock->stubFor(WireMock::head(WireMock::urlEqualTo(
+            sprintf('/events/view/%s', $eventResponse['uuid'])
+        ))
+            ->willReturn(WireMock::aResponse()
+                ->withHeader('Content-Type', 'application/json')
+                ->withBody('[]')));
+
+        $wiremock->stubFor(WireMock::post(WireMock::urlEqualTo(
+            sprintf('/events/edit/%s/metadata:1', $event->toResponse()['uuid'])
+        ))
+            ->withRequestBody(WireMock::equalToJson(
+                (string)json_encode(['Event' => [
+                    'id' => $eventResponse['id'],
+                    'uuid' => $eventResponse['uuid']
+                ]]),
+                true,
+                true
+            ))
             ->willReturn(WireMock::aResponse()
                 ->withHeader('Content-Type', 'application/json')
                 ->withBody('{}')));
 
         $wiremock->stubFor(WireMock::post(WireMock::urlEqualTo('/events/index'))
+            ->withRequestBody(WireMock::equalToJson(
+                (string)json_encode([
+                    'minimal' => 1,
+                    'published' => 1
+                ])
+            ))
             ->willReturn(WireMock::aResponse()
                 ->withHeader('Content-Type', 'application/json')
                 ->withBody('[]')));
