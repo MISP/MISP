@@ -221,7 +221,7 @@ class MispObject extends AppModel
      public function validateLastSeenValue($fields)
      {
          $ls = $fields['last_seen'];
-         if (is_null($this->data['Object']['first_seen']) || is_null($ls)) {
+         if (!isset($this->data['Object']['first_seen']) || is_null($ls)) {
              return true;
          }
          $converted = $this->Attribute->ISODatetimeToUTC(['Object' => [
@@ -884,7 +884,7 @@ class MispObject extends AppModel
                                     $newAttribute['event_id'] = $object['Object']['event_id'];
                                     $newAttribute['object_id'] = $object['Object']['id'];
                                     $newAttribute['timestamp'] = $date->getTimestamp();
-                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => $this->Attribute->editableFields));
+                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => Attribute::EDITABLE_FIELDS));
                                     if ($result) {
                                         $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
                                     }
@@ -926,7 +926,7 @@ class MispObject extends AppModel
                 }
                 foreach ($object['Attribute'] as $origKey => $originalAttribute) {
                     $originalAttribute['deleted'] = 1;
-                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => $this->Attribute->editableFields));
+                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => Attribute::EDITABLE_FIELDS));
                 }
             }
         } else { // we only add the new attribute

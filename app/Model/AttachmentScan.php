@@ -22,7 +22,7 @@ class AttachmentScan extends AppModel
      * List of supported object templates
      * @var string[]
      */
-    private const SIGNATURE_TEMPLATES = [
+    const SIGNATURE_TEMPLATES = [
         '4dbb56ef-4763-4c97-8696-a2bfc305cf8e', // av-signature
         '984c5c39-be7f-4e1e-b034-d3213bac51cb', // sb-signature
     ];

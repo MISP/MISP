@@ -210,7 +210,7 @@ class ShadowAttribute extends AppModel
         if (isset($sa['ShadowAttribute'])) {
             $sa = $sa['ShadowAttribute'];
         }
-        if (in_array($sa['type'], $this->Attribute->nonCorrelatingTypes)) {
+        if (in_array($sa['type'], Attribute::NON_CORRELATING_TYPES, true)) {
             return;
         }
         $this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
@@ -228,7 +228,7 @@ class ShadowAttribute extends AppModel
                                             'Attribute.value1' => $cV,
                                             'Attribute.value2' => $cV
                                     ),
-                                    'Attribute.type !=' => $this->Attribute->nonCorrelatingTypes,
+                                    'Attribute.type !=' => Attribute::NON_CORRELATING_TYPES,
                                     'Attribute.deleted' => 0,
                                     'Attribute.event_id !=' => $sa['event_id']
                             ),
@@ -450,7 +450,7 @@ class ShadowAttribute extends AppModel
     public function validateLastSeenValue($fields)
     {
         $ls = $fields['last_seen'];
-        if (is_null($this->data['ShadowAttribute']['first_seen']) || is_null($ls)) {
+        if (!isset($this->data['ShadowAttribute']['first_seen']) || is_null($ls)) {
             return true;
         }
         $converted = $this->Attribute->ISODatetimeToUTC(['ShadowAttribute' => [

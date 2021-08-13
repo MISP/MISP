@@ -5,6 +5,7 @@ class ServerSyncTool
 {
     const FEATURE_BR = 'br',
         FEATURE_GZIP = 'gzip',
+        FEATURE_ORG_RULE = 'org_rule',
         FEATURE_FILTER_SIGHTINGS = 'filter_sightings';
 
     /** @var array */
@@ -17,15 +18,20 @@ class ServerSyncTool
     private $socket;
 
     /** @var array|null */
-    private $info = null;
+    private $info;
 
     /**
      * @param array $server
      * @param array $request
+     * @throws InvalidArgumentException
      * @throws Exception
      */
     public function __construct(array $server, array $request)
     {
+        if (!isset($server['Server'])) {
+            throw new InvalidArgumentException("Invalid server provided.");
+        }
+
         $this->server = $server;
         $this->request = $request;
 
@@ -41,21 +47,46 @@ class ServerSyncTool
      */
     public function eventExists(array $event)
     {
-        $exists = $this->socket->head($this->server['Server']['url'] . '/events/view/' . $event['Event']['uuid'], [], $this->request);
+        $url = $this->server['Server']['url'] . '/events/view/' . $event['Event']['uuid'];
+        $exists = $this->socket->head($url, [], $this->request);
         if ($exists->code == '404') {
             return false;
         }
         if ($exists->code == '200') {
             return true;
         }
-        throw new Exception("Not possible to check if event exists or not. Unexpected HTTP code $exists->code");
+        throw new HttpSocketHttpException($exists, $url);
+    }
+
+    /**
+     * @param array $params
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function eventIndex($params = [])
+    {
+        return $this->post('/events/index', $params);
+    }
+
+    /**
+     * @param int|string $eventId Event ID or UUID
+     * @param array $params
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function fetchEvent($eventId, array $params = [])
+    {
+        $url = "/events/view/$eventId";
+        $url .= $this->createParams($params);
+        return $this->get($url);
     }
 
     /**
      * @param array $event
      * @param array $sightingUuids
      * @return array Sighting UUIDs that exists on remote side
-     * @throws HttpClientJsonException
+     * @throws HttpSocketJsonException
+     * @throws HttpSocketHttpException
      */
     public function filterSightingUuidsForPush(array $event, array $sightingUuids)
     {
@@ -64,17 +95,14 @@ class ServerSyncTool
         }
 
         $response = $this->post('/sightings/filterSightingUuidsForPush/' . $event['Event']['uuid'], $sightingUuids);
-        if ($response->isOk()) {
-            return $response->json();
-        }
-
-        throw new Exception("Not possible to filter sighting UUIDs. Unexpected HTTP code $response->code");
+        return $response->json();
     }
 
     /**
      * @param array $sightings
      * @param string $eventUuid
-     * @throws Exception
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
      */
     public function uploadSightings(array $sightings, $eventUuid)
     {
@@ -85,15 +113,14 @@ class ServerSyncTool
         }
 
         $logMessage = "Pushing Sightings for Event #{$eventUuid} to Server #{$this->server['Server']['id']}";
-        $response = $this->post('/sightings/bulkSaveSightings/' . $eventUuid, $sightings, $logMessage);
-        if (!$response->isOk()) {
-            throw new Exception("HTTP error {$response->code}: $response->body");
-        }
+        $this->post('/sightings/bulkSaveSightings/' . $eventUuid, $sightings, $logMessage);
     }
 
     /**
      * @return array
-     * @throws HttpClientJsonException
+     * @throws HttpSocketJsonException
+     * @throws HttpSocketHttpException
+     * @throws Exception
      */
     public function info()
     {
@@ -101,25 +128,89 @@ class ServerSyncTool
             return $this->info;
         }
 
-        $response = $this->socket->get($this->server['Server']['url'] . '/servers/getVersion', [], $this->request);
-        if (!$response->isOk()) {
-            throw new Exception("Invalid response when fetching server version. Error {$response->code}: $response->body");
-        }
-
+        $response = $this->get('/servers/getVersion');
         $info = $response->json();
         if (!isset($info['version'])) {
-            throw new Exception("Invalid response when fetching server version: version field missing");
+            throw new Exception("Invalid response when fetching server version: `version` field missing.");
         }
         $this->info = $info;
         return $info;
     }
 
     /**
-     * @param string $url
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function userInfo()
+    {
+        return $this->get('/users/view/me.json');
+    }
+
+    /**
+     * @param string $testString
+     * @return HttpSocketResponseExtended
+     * @throws Exception
+     */
+    public function postTest($testString)
+    {
+        return $this->post('/servers/postTest', ['testString' => $testString]);
+    }
+
+    /**
+     * @return array
+     */
+    public function server()
+    {
+        return $this->server;
+    }
+
+    /**
+     * @param string $flag
+     * @return bool
+     * @throws HttpSocketJsonException
+     * @throws HttpSocketHttpException
+     * @throws InvalidArgumentException
+     */
+    public function isSupported($flag)
+    {
+        $info = $this->info();
+        switch ($flag) {
+            case self::FEATURE_BR:
+                return isset($info['request_encoding']) && in_array('br', $info['request_encoding'], true);
+            case self::FEATURE_GZIP:
+                return isset($info['request_encoding']) && in_array('gzip', $info['request_encoding'], true);
+            case self::FEATURE_FILTER_SIGHTINGS:
+                return isset($info['filter_sightings']) && $info['filter_sightings'];
+            case self::FEATURE_ORG_RULE:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] > 123;
+            default:
+                throw new InvalidArgumentException("Invalid flag `$flag` provided");
+        }
+    }
+
+    /**
+     * @params string $url Relative URL
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    private function get($url)
+    {
+        $url = $this->server['Server']['url'] . $url;
+        $response = $this->socket->get($url, [], $this->request);
+        if (!$response->isOk()) {
+            throw new HttpSocketHttpException($response, $url);
+        }
+        return $response;
+    }
+
+    /**
+     * @param string $url Relative URL
      * @param mixed $data
      * @param string|null $logMessage
      * @return HttpSocketResponseExtended
-     * @throws Exception
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
      */
     private function post($url, $data, $logMessage = null)
     {
@@ -145,26 +236,30 @@ class ServerSyncTool
                 $data = gzencode($data, 1);
             }
         }
-        return $this->socket->post($this->server['Server']['url'] . $url, $data, $request);
+        $url = $this->server['Server']['url'] . $url;
+        $response = $this->socket->post($url, $data, $request);
+        if (!$response->isOk()) {
+            throw new HttpSocketHttpException($response, $url);
+        }
+        return $response;
     }
 
     /**
-     * @param string $flag
-     * @return bool
-     * @throws HttpClientJsonException
+     * @param array $params
+     * @return string
      */
-    private function isSupported($flag)
+    private function createParams(array $params)
     {
-        $info = $this->info();
-        switch ($flag) {
-            case self::FEATURE_BR:
-                return isset($info['request_encoding']) && in_array('br', $info['request_encoding'], true);
-            case self::FEATURE_GZIP:
-                return isset($info['request_encoding']) && in_array('gzip', $info['request_encoding'], true);
-            case self::FEATURE_FILTER_SIGHTINGS:
-                return isset($info['filter_sightings']) && $info['filter_sightings'];
-            default:
-                throw new InvalidArgumentException("Invalid flag provided");
+        $url = '';
+        foreach ($params as $key => $value) {
+            if (is_array($value)) {
+                foreach ($value as $v) {
+                    $url .= "/{$key}[]:$v";
+                }
+            } else {
+                $url .= "/$key:$value";
+            }
         }
+        return $url;
     }
 }

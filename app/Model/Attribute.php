@@ -13,6 +13,8 @@ App::uses('ComplexTypeTool', 'Tools');
  * @property Event $Event
  * @property AttributeTag $AttributeTag
  * @property Sighting $Sighting
+ * @property MispObject $Object
+ * @property SharingGroup $SharingGroup
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
@@ -45,11 +47,21 @@ class Attribute extends AppModel
             'distribution' => array('desc' => 'Describes who will have access to the attribute.')
     );
 
-    public $defaultFields = array(
-        'id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'to_ids', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'comment', 'deleted', 'disable_correlation', 'first_seen', 'last_seen'
-    );
-
-    public $editableFields = array('timestamp', 'category', 'value', 'value1', 'value2', 'to_ids', 'comment', 'distribution', 'sharing_group_id', 'deleted', 'disable_correlation', 'first_seen', 'last_seen');
+    const EDITABLE_FIELDS = [
+        'timestamp',
+        'category',
+        'value',
+        'value1',
+        'value2',
+        'to_ids',
+        'comment',
+        'distribution',
+        'sharing_group_id',
+        'deleted',
+        'disable_correlation',
+        'first_seen',
+        'last_seen',
+    ];
 
     public $distributionDescriptions = array(
         0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
@@ -83,26 +95,26 @@ class Attribute extends AppModel
     // e.g. if the attribute should be correlated with others or not
 
     // if these then a category may have upload to be zipped
-    public const ZIPPED_DEFINITION = ['malware-sample'];
+    const ZIPPED_DEFINITION = ['malware-sample'];
 
     // if these then a category may have upload
-    public const UPLOAD_DEFINITIONS = ['attachment'];
+    const UPLOAD_DEFINITIONS = ['attachment'];
 
     // skip Correlation for the following types
-    public $nonCorrelatingTypes = array(
-            'comment',
-            'http-method',
-            'aba-rtn',
-            'gender',
-            'counter',
-            'port',
-            'nationality',
-            'cortex',
-            'boolean',
-            'anonymised'
+    const NON_CORRELATING_TYPES = array(
+        'comment',
+        'http-method',
+        'aba-rtn',
+        'gender',
+        'counter',
+        'port',
+        'nationality',
+        'cortex',
+        'boolean',
+        'anonymised'
     );
 
-    public const PRIMARY_ONLY_CORRELATING_TYPES = array(
+    const PRIMARY_ONLY_CORRELATING_TYPES = array(
         'ip-src|port',
         'ip-dst|port',
         'hostname|port',
@@ -741,7 +753,7 @@ class Attribute extends AppModel
     public function validateLastSeenValue($fields)
     {
         $ls = $fields['last_seen'];
-        if (is_null($this->data['Attribute']['first_seen']) || is_null($ls)) {
+        if (!isset($this->data['Attribute']['first_seen']) || is_null($ls)) {
             return true;
         }
         $converted = $this->ISODatetimeToUTC(['Attribute' => [
@@ -754,7 +766,7 @@ class Attribute extends AppModel
         return true;
     }
 
-    private const HEX_HAS_LENGTHS = array(
+    const HEX_HAS_LENGTHS = array(
         'authentihash' => 64,
         'md5' => 32,
         'imphash' => 32,
@@ -1695,7 +1707,7 @@ class Attribute extends AppModel
                 'conditions' => [
                     'OR' => $or,
                     'NOT' => [
-                        'Attribute.type' => $this->nonCorrelatingTypes,
+                        'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
                     ],
                     'Attribute.disable_correlation' => 0,
                 ],
@@ -2304,7 +2316,7 @@ class Attribute extends AppModel
                 'Attribute.deleted' => 0,
                 'Attribute.disable_correlation' => 0,
                 'NOT' => array(
-                    'Attribute.type' => $this->nonCorrelatingTypes,
+                    'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
                 ),
             );
             if ($attributeId) {
@@ -3629,7 +3641,6 @@ class Attribute extends AppModel
             $attribute['data'] = $result['data'];
             $attribute['value'] = $attribute['value'] . '|' . $result['md5'];
         }
-        $fieldList = $this->captureFields;
         $this->create();
         if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
@@ -3638,7 +3649,7 @@ class Attribute extends AppModel
             }
         }
         $params = array(
-            'fieldList' => $fieldList
+            'fieldList' => $this->captureFields
         );
         if (!empty($parentEvent)) {
             $params['parentEvent'] = $parentEvent;
@@ -3664,7 +3675,6 @@ class Attribute extends AppModel
                     'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
             ));
         } else {
-            $tags = array();
             if (isset($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
                     unset($at['id']);
@@ -3713,22 +3723,21 @@ class Attribute extends AppModel
         if (isset($attribute['uuid'])) {
             $existingAttribute = $this->find('first', array(
                 'conditions' => array('Attribute.uuid' => $attribute['uuid']),
-                'contain' => array('AttributeTag' => 'Tag'),
                 'recursive' => -1,
             ));
             $this->Log = ClassRegistry::init('Log');
             if (count($existingAttribute)) {
                 if ($existingAttribute['Attribute']['event_id'] != $eventId || $existingAttribute['Attribute']['object_id'] != $objectId) {
                     $this->Log->create();
-                    $result = $this->Log->save(array(
-                            'org' => $user['Organisation']['name'],
-                            'model' => 'Attribute',
-                            'model_id' => 0,
-                            'email' => $user['email'],
-                            'action' => 'edit',
-                            'user_id' => $user['id'],
-                            'title' => 'Duplicate UUID found in attribute',
-                            'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'] . '. This can also be due to the same attribute (or an attribute with the same UUID) existing in a different event / object)',
+                    $this->Log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Attribute',
+                        'model_id' => 0,
+                        'email' => $user['email'],
+                        'action' => 'edit',
+                        'user_id' => $user['id'],
+                        'title' => 'Duplicate UUID found in attribute',
+                        'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'] . '. This can also be due to the same attribute (or an attribute with the same UUID) existing in a different event / object)',
                     ));
                     return true;
                 }
@@ -3749,8 +3758,7 @@ class Attribute extends AppModel
                         return true;
                     }
                 } else {
-                    $date = new DateTime();
-                    $attribute['timestamp'] = $date->getTimestamp();
+                    $attribute['timestamp'] = time();
                 }
             } else {
                 $this->create();
@@ -3789,7 +3797,7 @@ class Attribute extends AppModel
                 $attribute['distribution'] = 5;
             }
         }
-        $fieldList = $this->editableFields;
+        $fieldList = self::EDITABLE_FIELDS;
         if (empty($existingAttribute)) {
             $addableFieldList = array('event_id', 'type', 'uuid');
             $fieldList = array_merge($fieldList, $addableFieldList);
@@ -3840,7 +3848,7 @@ class Attribute extends AppModel
                                 $this->Log->create();
                                 $this->Log->save(array(
                                     'org' => $user['Organisation']['name'],
-                                    'model' => 'Attrubute',
+                                    'model' => 'Attribute',
                                     'model_id' => $this->id,
                                     'email' => $user['email'],
                                     'action' => 'edit',
@@ -3857,12 +3865,8 @@ class Attribute extends AppModel
         return true;
     }
 
-    public function deleteAttribute($id, $user, $hard = false)
+    public function deleteAttribute($id, array $user, $hard = false)
     {
-        $this->id = $id;
-        if (!$this->exists()) {
-            return false;
-        }
         $result = $this->fetchAttributes($user, array(
             'conditions' => array('Attribute.id' => $id),
             'flatten' => 1,
@@ -3887,7 +3891,6 @@ class Attribute extends AppModel
                 }
             }
         }
-        $date = new DateTime();
         if ($hard) {
             $save = $this->delete($id);
         } else {
@@ -3899,7 +3902,7 @@ class Attribute extends AppModel
                 $result['Attribute']['to_ids'] = 0;
             }
             $result['Attribute']['deleted'] = 1;
-            $result['Attribute']['timestamp'] = $date->getTimestamp();
+            $result['Attribute']['timestamp'] = time();
             $save = $this->save($result);
             $object_refs = $this->Object->ObjectReference->find('all', array(
                 'conditions' => array(

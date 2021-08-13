@@ -205,12 +205,16 @@ class GalaxyCluster extends AppModel
 
     public function generateMissingRelations()
     {
-        $missingRelations = $this->GalaxyClusterRelation->find('list', [
+        $missingRelations = $this->GalaxyClusterRelation->find('column', [
             'conditions' => ['referenced_galaxy_cluster_id' => 0],
-            'fields' => ['referenced_galaxy_cluster_uuid', 'id']
+            'fields' => ['referenced_galaxy_cluster_uuid'],
+            'unique' => true,
         ]);
+        if (empty($missingRelations)) {
+            return;
+        }
         $ids = $this->find('list', [
-            'conditions' => ['uuid' => array_keys($missingRelations)],
+            'conditions' => ['uuid' => $missingRelations],
             'fields' => ['uuid', 'id']
         ]);
         foreach ($ids as $uuid => $id) {

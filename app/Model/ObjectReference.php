@@ -176,11 +176,8 @@ class ObjectReference extends AppModel
         return true;
     }
 
-    public function captureReference($reference, $eventId, $user, $log = false)
+    public function captureReference($reference, $eventId, $user)
     {
-        if ($log == false) {
-            $log = ClassRegistry::init('Log');
-        }
         if (isset($reference['uuid'])) {
             $existingReference = $this->find('first', array(
                 'conditions' => array('ObjectReference.uuid' => $reference['uuid']),
@@ -216,7 +213,8 @@ class ObjectReference extends AppModel
         }
         $sourceObject = $this->Object->find('first', array(
             'recursive' => -1,
-            'conditions' => $conditions
+            'conditions' => $conditions,
+            'fields' => ['Object.id', 'Object.uuid', 'Object.event_id'],
         ));
         if (isset($reference['referenced_uuid'])) {
             $conditions[0] = array('Attribute.uuid' => $reference['referenced_uuid']);

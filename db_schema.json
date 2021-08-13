@@ -431,13 +431,13 @@
             },
             {
                 "column_name": "authkey_id",
-                "is_nullable": "NO",
+                "is_nullable": "YES",
                 "data_type": "int",
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
-                "column_default": null,
+                "column_default": "NULL",
                 "extra": ""
             },
             {
@@ -7857,7 +7857,7 @@
         },
         "event_blocklists": {
             "id": true,
-            "event_uuid": false,
+            "event_uuid": true,
             "event_orgc": false
         },
         "event_delegations": {
@@ -7991,7 +7991,7 @@
             "template_version": false,
             "meta-category": false,
             "event_id": false,
-            "uuid": false,
+            "uuid": true,
             "timestamp": false,
             "distribution": false,
             "sharing_group_id": false,
@@ -8026,11 +8026,13 @@
         },
         "organisations": {
             "id": true,
-            "uuid": false,
-            "name": false
+            "uuid": true,
+            "name": true
         },
         "org_blocklists": {
-            "id": true
+            "id": true,
+            "org_uuid": true,
+            "org_name": false
         },
         "posts": {
             "id": true,
@@ -8113,13 +8115,13 @@
             "attribute_id": false,
             "event_id": false,
             "org_id": false,
-            "uuid": false,
+            "uuid": true,
             "source": false,
             "type": false
         },
         "tags": {
             "id": true,
-            "name": false,
+            "name": true,
             "org_id": false,
             "user_id": false,
             "numerical_value": false

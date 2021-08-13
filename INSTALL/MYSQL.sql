@@ -299,7 +299,7 @@ CREATE TABLE IF NOT EXISTS `event_blocklists` (
   `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
-  INDEX `event_uuid` (`event_uuid`),
+  UNIQUE INDEX `event_uuid` (`event_uuid`),
   INDEX `event_orgc` (`event_orgc`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
@@ -664,7 +664,7 @@ CREATE TABLE IF NOT EXISTS `objects` (
   INDEX `template_version` (`template_version`),
   INDEX `meta-category` (`meta-category`),
   INDEX `event_id` (`event_id`),
-  INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `uuid` (`uuid`),
   INDEX `timestamp` (`timestamp`),
   INDEX `distribution` (`distribution`),
   INDEX `sharing_group_id` (`sharing_group_id`),
@@ -787,8 +787,8 @@ CREATE TABLE IF NOT EXISTS `organisations` (
   `restricted_to_domain` text COLLATE utf8_bin,
   `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   PRIMARY KEY (`id`),
-  INDEX `uuid` (`uuid`),
-  INDEX `name` (`name`(255))
+  UNIQUE INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `name` (`name`(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 CREATE TABLE IF NOT EXISTS `org_blocklists` (
@@ -798,7 +798,7 @@ CREATE TABLE IF NOT EXISTS `org_blocklists` (
   `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
   `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   PRIMARY KEY (`id`),
-  INDEX `org_uuid` (`org_uuid`),
+  UNIQUE INDEX `org_uuid` (`org_uuid`),
   INDEX `org_name` (`org_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 -- --------------------------------------------------------
@@ -1109,7 +1109,7 @@ CREATE TABLE IF NOT EXISTS `sightings` (
   INDEX `attribute_id` (`attribute_id`),
   INDEX `event_id` (`event_id`),
   INDEX `org_id` (`org_id`),
-  INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `uuid` (`uuid`),
   INDEX `source` (`source`),
   INDEX `type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -1153,7 +1153,7 @@ CREATE TABLE IF NOT EXISTS `tags` (
   `hide_tag` tinyint(1) NOT NULL DEFAULT 0,
   `numerical_value` int(11) NULL,
   PRIMARY KEY (`id`),
-  INDEX `name` (`name`(255)),
+  UNIQUE INDEX `name` (`name`(255)),
   INDEX `org_id` (`org_id`),
   INDEX `user_id` (`user_id`),
   INDEX `numerical_value` (`numerical_value`)
