@@ -244,7 +244,7 @@ class Attribute extends AppModel
             'unique' => array(
                 'rule' => 'isUnique',
                 'message' => 'The UUID provided is not unique',
-                'required' => 'create'
+                'on' => 'create'
             )
         ),
         'distribution' => array(

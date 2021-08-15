@@ -173,6 +173,11 @@ class Event extends AppModel
                 'rule' => 'uuid',
                 'message' => 'Please provide a valid RFC 4122 UUID'
             ),
+            'unique' => array(
+                'rule' => 'isUnique',
+                'message' => 'The UUID provided is not unique',
+                'on' => 'create'
+            ),
         ),
         'extends_uuid' => array(
             'uuid' => array(
