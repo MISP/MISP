@@ -46,7 +46,7 @@ class PublishEventCest
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson(
             [
-                'name' => 'Publish',
+                'name' => 'Event published without alerts',
                 'message' => 'Event published without alerts'
             ]
         );

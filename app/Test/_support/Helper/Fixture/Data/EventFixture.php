@@ -33,7 +33,7 @@ class EventFixture extends AbstractFixture implements FixtureInterface
             'distribution' => '0',
             'sharing_group_id' => '0',
             'proposal_email_lock' => false,
-            'locked' => 0,
+            'locked' => false,
             'threat_level_id' => '1',
             'publish_timestamp' => '0',
             'sighting_timestamp' => '0',

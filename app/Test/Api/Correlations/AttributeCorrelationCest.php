@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use \Helper\Fixture\Data\AttributeFixture;
 use \Helper\Fixture\Data\EventFixture;
+use \Codeception\Scenario;
 
 class AttributeCorrelationCest
 {
@@ -212,8 +213,10 @@ class AttributeCorrelationCest
         $I->assertEquals(2, $I->grabNumRecords('correlations'));
     }
 
-    public function testSimpleAttributeValue1AndCompositeAttributeValue2Correlate(ApiTester $I): void
+    public function testSimpleAttributeValue1AndCompositeAttributeValue2Correlate(ApiTester $I, Scenario $scenario): void
     {
+        $scenario->skip('Correlation not yet supported.');
+
         $attributeAId = 10;
         $eventAId = 1;
         $eventBId = 2;
@@ -348,8 +351,9 @@ class AttributeCorrelationCest
         $I->assertEquals(2, $I->grabNumRecords('correlations'));
     }
 
-    public function testCompositeAttributeValue1AndCompositeAttributeValue2Correlate(ApiTester $I): void
+    public function testCompositeAttributeValue1AndCompositeAttributeValue2Correlate(ApiTester $I, Scenario $scenario): void
     {
+        $scenario->skip('Correlation not yet supported.');
         $attributeAId = 10;
         $eventAId = 1;
         $eventBId = 2;
@@ -417,8 +421,9 @@ class AttributeCorrelationCest
         $I->assertEquals(2, $I->grabNumRecords('correlations'));
     }
 
-    public function testCompositeAttributeValue2AndCompositeAttributeValue1Correlate(ApiTester $I): void
+    public function testCompositeAttributeValue2AndCompositeAttributeValue1Correlate(ApiTester $I, Scenario $scenario): void
     {
+        $scenario->skip('Correlation not yet supported.');
         $attributeAId = 10;
         $eventAId = 1;
         $eventBId = 2;
@@ -643,8 +648,9 @@ class AttributeCorrelationCest
         $I->assertEquals(2, $I->grabNumRecords('correlations'));
     }
 
-    public function testCompositeAttributeValue2AndSimpleAttributeValue1CidrCorrelate(ApiTester $I): void
+    public function testCompositeAttributeValue2AndSimpleAttributeValue1CidrCorrelate(ApiTester $I, Scenario $scenario): void
     {
+        $scenario->skip('Correlation not yet supported');
         $attributeAId = 10;
         $eventAId = 1;
         $eventBId = 2;

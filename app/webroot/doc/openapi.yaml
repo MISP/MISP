@@ -1815,14 +1815,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /noticelists/toggleEnable:
+  /noticelists/toggleEnable/{noticelistId}:
     post:
       summary: "Enable/disable noticelist"
       operationId: toggleEnableNoticelist
       tags:
         - Noticelists
-      requestBody:
-        $ref: "#/components/requestBodies/ToggleEnableNoticelistRequest"
+      parameters:
+        - $ref: "#/components/parameters/noticelistIdParameter"
       responses:
         "200":
           $ref: "#/components/responses/NoticelistToggleEnableResponse"
@@ -7162,8 +7162,16 @@ components:
               saved:
                 type: boolean
               success:
+                type: boolean
+              name:
                 type: string
-                example: "Noticelist enabled"
+                example: "Noticelist enabled."
+              message:
+                type: string
+                example: "Noticelist enabled."
+              url:
+                type: string
+                example: "/noticelists/toggleEnable/1"
 
     UpdateNoticelistsResponse:
       description: "Toggle enable noticelist response"

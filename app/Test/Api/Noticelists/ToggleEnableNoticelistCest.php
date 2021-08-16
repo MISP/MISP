@@ -8,11 +8,12 @@ use \Helper\Fixture\Data\UserFixture;
 class ToggleEnableNoticelistCest
 {
 
-    private const URL = '/noticelists/toggleEnable';
+    private const URL = '/noticelists/toggleEnable/%s';
 
     public function testToggleEnableReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
-        $I->sendPost(self::URL);
+        $noticelistId = 1;
+        $I->sendPost(sprintf(self::URL, $noticelistId));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -36,14 +37,7 @@ class ToggleEnableNoticelistCest
         );
         $I->haveInDatabase('noticelists', $fakeNoticelist->toDatabase());
 
-        $I->sendPost(
-            self::URL,
-            [
-                'Noticelist' => [
-                    'data' => $noticelistId
-                ]
-            ]
-        );
+        $I->sendPost(sprintf(self::URL, $noticelistId));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -52,7 +46,8 @@ class ToggleEnableNoticelistCest
         $I->seeResponseContainsJson(
             [
                 'saved' => true,
-                'success' => 'Noticelist enabled'
+                'success' => true,
+                'message' => 'Noticelist enabled.'
             ]
         );
         $I->seeInDatabase('noticelists', ['id' => $noticelistId, 'enabled' => true]);
@@ -73,14 +68,7 @@ class ToggleEnableNoticelistCest
         );
         $I->haveInDatabase('noticelists', $fakeNoticelist->toDatabase());
 
-        $I->sendPost(
-            self::URL,
-            [
-                'Noticelist' => [
-                    'data' => $noticelistId
-                ]
-            ]
-        );
+        $I->sendPost(sprintf(self::URL, $noticelistId));
 
         $I->validateRequest();
         $I->validateResponse();
@@ -89,7 +77,8 @@ class ToggleEnableNoticelistCest
         $I->seeResponseContainsJson(
             [
                 'saved' => true,
-                'success' => 'Noticelist disabled'
+                'success' => true,
+                'message' => 'Noticelist disabled.'
             ]
         );
         $I->seeInDatabase('noticelists', ['id' => $noticelistId, 'enabled' => false]);

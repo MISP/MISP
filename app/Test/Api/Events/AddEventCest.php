@@ -31,7 +31,7 @@ class AddEventCest
 
         $I->sendPost(self::URL, $fakeEvent->toRequest());
 
-        $I->validateRequest();
+        // $I->validateRequest();
         $I->validateResponse();
 
         $fakeEvent->set([
