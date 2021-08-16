@@ -13,9 +13,9 @@ class SecurityAudit
     {
         $output = [];
 
-        foreach (['config.php', 'database.php', 'email.php'] as $configFile) {
-            $perms = fileperms(CONFIG . $configFile);
-            if ($perms & 0x0004) {
+        foreach (['config.php', 'config.php.bk', 'database.php', 'email.php'] as $configFile) {
+            $perms = @fileperms(CONFIG . $configFile);
+            if ($perms !== false && $perms & 0x0004) {
                 $output['File permissions'][] = ['error', __('%s config file is readable for any user.', $configFile)];
             }
         }
@@ -123,6 +123,12 @@ class SecurityAudit
             $output['Logging'][] = [
                 'hint',
                 __('Passing user information to response headers is disabled. This can be useful for logging user info at the reverse proxy level. You can enable it by setting `Security.username_in_response_header` to `true`.'),
+            ];
+        }
+        if (!Configure::read('MISP.log_new_audit')) {
+            $output['Logging'][] = [
+                'hint',
+                __('New audit log stores more information, like used authkey ID or request ID that can help when analysing or correlating audit logs.'),
             ];
         }
 
@@ -367,7 +373,7 @@ class SecurityAudit
             if ($diffDays > 300) {
                 $output['System'][] = [
                     'warning',
-                    __('Kernel build time was s days ago. This usually means that the system kernel is not updated.', $diffDays),
+                    __('Kernel build time was %s days ago. This usually means that the system kernel is not updated.', $diffDays),
                 ];
             }
         }
@@ -476,7 +482,7 @@ class SecurityAudit
      */
     private function getCakeVersion()
     {
-        $filePath = APP . 'Lib/cakephp/lib/Cake/VERSION.txt';
+        $filePath = CAKE_CORE_INCLUDE_PATH . '/Cake/VERSION.txt';
         $version = file_get_contents($filePath);
         if (!$version) {
             throw new RuntimeException("Could not open CakePHP version file '$filePath'.");

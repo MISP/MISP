@@ -21,6 +21,7 @@ import os
 import time
 import uuid
 import base64
+import pymisp
 import stix2misp_mapping
 import stix.extensions.marking.ais
 from mixbox.namespaces import NamespaceNotFoundError
@@ -33,13 +34,12 @@ except ImportError:
     pass
 
 _MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-3]])
-_PyMISP_dir = '{_MISP_dir}/PyMISP'.format(_MISP_dir=_MISP_dir)
 _MISP_objects_path = '{_MISP_dir}/app/files/misp-objects/objects'.format(_MISP_dir=_MISP_dir)
-sys.path.append(_PyMISP_dir)
+
 from pymisp.mispevent import MISPEvent, MISPObject, MISPAttribute
 
-with open("{_PyMISP_dir}/pymisp/data/describeTypes.json".format(_PyMISP_dir=_PyMISP_dir), 'r') as f:
-    categories = json.loads(f.read())['result'].get('categories')
+categories = pymisp.AbstractMISP().describe_types.get('categories')
+
 
 class StixParser():
     def __init__(self):
@@ -1521,11 +1521,19 @@ def generate_event(filename, tries=0):
             print(3)
     sys.exit(0)
 
+
+def is_from_misp(event):
+    try:
+        title = event.header.title
+    except AttributeError:
+        return False
+    return ('Export from ' in title and 'MISP' in title)
+
+
 def main(args):
     filename = '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
     event = generate_event(filename)
-    title = event.stix_header.title
-    from_misp = (title is not None and "Export from " in title and "MISP" in title)
+    from_misp = is_from_misp(event)
     stix_parser = StixFromMISPParser() if from_misp else ExternalStixParser()
     stix_parser.load_event(args[2:], filename, from_misp, event.version)
     stix_parser.build_misp_event(event)

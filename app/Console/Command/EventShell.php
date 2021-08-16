@@ -10,7 +10,7 @@ require_once 'AppShell.php';
  */
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation');
     public $tasks = array('ConfigLoad');
 
     public function getOptionParser()
@@ -29,6 +29,13 @@ class EventShell extends AppShell
                 ],
             )
         ));
+        $parser->addSubcommand('testEventNotificationEmail', [
+            'help' => __('Generate event notification email in EML format.'),
+            'arguments' => [
+                'event_id' => ['help' => __('Event ID'), 'required' => true],
+                'user_id' => ['help' => __('User ID'), 'required' => true],
+            ],
+        ]);
         return $parser;
     }
 
@@ -77,10 +84,6 @@ class EventShell extends AppShell
     public function doPublish()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Do publish'] . PHP_EOL);
-        }
-
         $id = $this->args[0];
         $this->Event->id = $id;
         if (!$this->Event->exists()) {
@@ -93,7 +96,7 @@ class EventShell extends AppShell
             'job_input' => $id,
             'status' => 0,
             'retries' => 0,
-            //'org' => $jobOrg,
+            'org' => 0,
             'message' => 'Job created.',
         );
         $this->Job->save($data);
@@ -108,13 +111,29 @@ class EventShell extends AppShell
         $this->Job->saveField('message', 'Job done.');
     }
 
+    public function correlateValue()
+    {
+        $this->ConfigLoad->execute();
+        $value = $this->args[0];
+        $this->Job->create();
+        $data = array(
+            'worker' => 'default',
+            'job_type' => 'correlateValue',
+            'job_input' => $value,
+            'status' => 0,
+            'retries' => 0,
+            'org' => 0,
+            'message' => 'Job created.',
+        );
+        $this->Job->save($data);
+        $this->Correlation->correlateValue($value, $this->Job->id);
+        $this->Job->saveField('status', 1);
+        $this->Job->saveField('message', 'Job done.');
+    }
+
     public function cache()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache event'] . PHP_EOL);
-        }
-
         $timeStart = time();
         $userId = $this->args[0];
         $id = $this->args[1];
@@ -168,13 +187,9 @@ class EventShell extends AppShell
     public function cachebro()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache bro'] . PHP_EOL);
-        }
-
         $timeStart = time();
         $userId = $this->args[0];
-        $user = $this->User->getAuthUser($userId);
+        $user = $this->getUser($userId);
         $id = $this->args[1];
         $this->Job->id = $id;
         $this->Job->saveField('progress', 1);
@@ -209,10 +224,6 @@ class EventShell extends AppShell
     public function alertemail()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Alert email'] . PHP_EOL);
-        }
-
         $userId = $this->args[0];
         $jobId = $this->args[1];
         $eventId = $this->args[2];
@@ -224,11 +235,6 @@ class EventShell extends AppShell
     public function contactemail()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
-            empty($this->args[3]) || empty($this->args[4])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Contact email'] . PHP_EOL);
-        }
-
         $id = $this->args[0];
         $message = $this->args[1];
         $all = $this->args[2];
@@ -243,11 +249,6 @@ class EventShell extends AppShell
     public function postsemail()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
-            empty($this->args[3]) || empty($this->args[4]) || empty($this->args[5])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Posts email'] . PHP_EOL);
-        }
-
         $userId = $this->args[0];
         $postId = $this->args[1];
         $eventId = $this->args[2];
@@ -265,10 +266,6 @@ class EventShell extends AppShell
     public function enqueueCaching()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Enqueue caching'] . PHP_EOL);
-        }
-
         $timestamp = $this->args[0];
         $task = $this->Task->findByType('cache_exports');
 
@@ -322,10 +319,6 @@ class EventShell extends AppShell
     public function publish()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish event'] . PHP_EOL);
-        }
-
         $id = $this->args[0];
         $passAlong = $this->args[1];
         $jobId = $this->args[2];
@@ -343,45 +336,47 @@ class EventShell extends AppShell
         }
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): published.', 'published () => (1)');
     }
 
     public function publish_sightings()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish sightings'] . PHP_EOL);
+        list($id, $passAlong, $jobId, $userId) = $this->args;
+        $user = $this->getUser($userId);
+
+        $sightingsUuidsToPush = [];
+        if (isset($this->args[4])) { // push just specific sightings
+            $path = APP . 'tmp/cache/ingest' . DS . $this->args[4];
+            $tempFile = new File($path);
+            $inputData = $tempFile->read();
+            if ($inputData === false) {
+                $this->error("File `$path` not found.");
+            }
+            $sightingsUuidsToPush = $this->Event->jsonDecode($inputData);
+            $tempFile->delete();
         }
 
-        $id = $this->args[0];
-        $passAlong = $this->args[1];
-        $jobId = $this->args[2];
-        $userId = $this->args[3];
-        $user = $this->getUser($userId);
-        $job = $this->Job->read(null, $jobId);
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
-        $result = $this->Event->publish_sightings($id, $passAlong);
-        $job['Job']['progress'] = 100;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $result = $this->Event->publish_sightings($id, $passAlong, $sightingsUuidsToPush);
+
+        $count = count($sightingsUuidsToPush);
+        $message = $count === 0 ? "All sightings published" : "$count sightings published";
         if ($result) {
-            $job['Job']['message'] = 'Sightings published.';
+            $message .= '.';
         } else {
-            $job['Job']['message'] = 'Sightings published, but the upload to other instances may have failed.';
+            $message .= ', but the upload to other instances may have failed.';
         }
-        $this->Job->save($job);
+        $this->Job->saveStatus($jobId, true, $message);
+
         $log = ClassRegistry::init('Log');
-        $log->create();
-        $log->createLogEntry($user, 'publish_sightings', 'Event', $id, 'Sightings for event (' . $id . '): published.', 'publish_sightings updated');
+        $title = $count === 0 ? "All sightings for event published."  : "$count sightings for event published.";
+        $log->createLogEntry($user, 'publish_sightings', 'Event', $id, $title, 'publish_sightings updated');
     }
 
     public function publish_galaxy_clusters()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish Galaxy clusters'] . PHP_EOL);
-        }
-
         $clusterId = $this->args[0];
         $jobId = $this->args[1];
         $userId = $this->args[2];
@@ -399,7 +394,6 @@ class EventShell extends AppShell
         }
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'publish', 'GalaxyCluster', $clusterId, 'GalaxyCluster (' . $clusterId . '): published.', 'published () => (1)');
     }
 
@@ -407,9 +401,8 @@ class EventShell extends AppShell
     {
         $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run enrichment'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['enrichment'] . PHP_EOL);
         }
-
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $eventId = $this->args[1];
@@ -452,23 +445,19 @@ class EventShell extends AppShell
 	echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'enrichment', 'Event', $eventId, 'Event (' . $eventId . '): enriched.', 'enriched () => (1)');
     }
 
     public function processfreetext()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process free text'] . PHP_EOL);
-        }
-
         $inputFile = $this->args[0];
         $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
         $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
         $inputData = $tempFile->read();
         $inputData = json_decode($inputData, true);
         $tempFile->delete();
+        Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processFreeTextData(
             $inputData['user'],
             $inputData['attributes'],
@@ -484,15 +473,12 @@ class EventShell extends AppShell
     public function processmoduleresult()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process module result'] . PHP_EOL);
-        }
-
         $inputFile = $this->args[0];
         $tempDir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
         $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
         $inputData = json_decode($tempFile->read(), true);
         $tempFile->delete();
+        Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processModuleResultsData(
             $inputData['user'],
             $inputData['misp_format'],
@@ -506,10 +492,6 @@ class EventShell extends AppShell
     public function recoverEvent()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Recover event'] . PHP_EOL);
-        }
-
         $jobId = $this->args[0];
         $id = $this->args[1];
         $job = $this->Job->read(null, $jobId);
@@ -524,6 +506,34 @@ class EventShell extends AppShell
         $this->Job->save($job);
     }
 
+    public function testEventNotificationEmail()
+    {
+        list($eventId, $userId) = $this->args;
+
+        $user = $this->getUser($userId);
+        $eventForUser = $this->Event->fetchEvent($user, [
+            'eventid' => $eventId,
+            'includeAllTags' => true,
+            'includeEventCorrelations' => true,
+            'noEventReports' => true,
+            'noSightings' => true,
+            'metadata' => Configure::read('MISP.event_alert_metadata_only') ?: false,
+        ]);
+        if (empty($eventForUser)) {
+            $this->error("Event with ID $eventId not exists or given user don't have permission to access it.");
+        }
+
+        $emailTemplate = $this->Event->prepareAlertEmail($eventForUser[0], $user);
+
+        App::uses('SendEmail', 'Tools');
+        App::uses('GpgTool', 'Tools');
+        $sendEmail = new SendEmail(GpgTool::initializeGpg());
+        $sendEmail->setTransport('Debug');
+        $result = $sendEmail->sendToUser(['User' => $user], null, $emailTemplate);
+
+        echo $result['contents']['headers'] . "\n\n" . $result['contents']['message'] . "\n";
+    }
+
     /**
      * @param int $userId
      * @return array
@@ -534,6 +544,23 @@ class EventShell extends AppShell
         if (empty($user)) {
             $this->error("User with ID $userId does not exists.");
         }
+        Configure::write('CurrentUserId', $user['id']); // for audit logging purposes
         return $user;
+    }
+
+    public function generateTopCorrelations()
+    {
+        $this->ConfigLoad->execute();
+        $jobId = $this->args[0];
+        $job = $this->Job->read(null, $jobId);
+        $job['Job']['progress'] = 1;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $job['Job']['message'] = __('Generating top correlations list.');
+        $this->Job->save($job);
+        $result = $this->Correlation->generateTopCorrelations($jobId);
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $job['Job']['message'] = __('Job done.');
+        $this->Job->save($job);
     }
 }

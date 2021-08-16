@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
+App::uses('CidrTool', 'Tools');
 
 /**
  * @property User $User
@@ -10,6 +11,7 @@ class AuthKey extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
                 'userModel' => 'User',
                 'userKey' => 'user_id',
@@ -26,7 +28,6 @@ class AuthKey extends AppModel
     // massage the data before we send it off for validation before saving anything
     public function beforeValidate($options = array())
     {
-        //parent::beforeValidate();
         if (empty($this->data['AuthKey']['id'])) {
             if (empty($this->data['AuthKey']['uuid'])) {
                 $this->data['AuthKey']['uuid'] = CakeText::uuid();
@@ -42,25 +43,87 @@ class AuthKey extends AppModel
             $this->data['AuthKey']['authkey_end'] = substr($authkey, -4);
             $this->data['AuthKey']['authkey_raw'] = $authkey;
             $this->authkey_raw = $authkey;
+        }
 
-            $validity = Configure::read('Security.advanced_authkeys_validity');
-            if (empty($this->data['AuthKey']['expiration'])) {
-                $this->data['AuthKey']['expiration'] = $validity ? strtotime("+$validity days") : 0;
+        if (!empty($this->data['AuthKey']['allowed_ips'])) {
+            if (is_string($this->data['AuthKey']['allowed_ips'])) {
+                $this->data['AuthKey']['allowed_ips'] = trim($this->data['AuthKey']['allowed_ips']);
+                if (empty($this->data['AuthKey']['allowed_ips'])) {
+                    $this->data['AuthKey']['allowed_ips'] = [];
+                } else {
+                    $this->data['AuthKey']['allowed_ips'] = explode("\n", $this->data['AuthKey']['allowed_ips']);
+                    $this->data['AuthKey']['allowed_ips'] = array_map('trim', $this->data['AuthKey']['allowed_ips']);
+                }
+            }
+            if (!is_array($this->data['AuthKey']['allowed_ips'])) {
+                $this->invalidate('allowed_ips', 'Allowed IPs must be array');
+            }
+            foreach ($this->data['AuthKey']['allowed_ips'] as $cidr) {
+                if (!CidrTool::validate($cidr)) {
+                    $this->invalidate('allowed_ips', "$cidr is not valid IP range");
+                }
+            }
+        }
+
+        $creationTime = isset($this->data['AuthKey']['created']) ? $this->data['AuthKey']['created'] : time();
+        $validity = Configure::read('Security.advanced_authkeys_validity');
+        if (empty($this->data['AuthKey']['expiration'])) {
+            $this->data['AuthKey']['expiration'] = $validity ? strtotime("+$validity days", $creationTime) : 0;
+        } else {
+            $expiration = is_numeric($this->data['AuthKey']['expiration']) ?
+                (int)$this->data['AuthKey']['expiration'] :
+                strtotime($this->data['AuthKey']['expiration']);
+
+            if ($expiration === false) {
+                $this->invalidate('expiration', __('Expiration must be in YYYY-MM-DD format.'));
+            }
+            if ($validity && $expiration > strtotime("+$validity days", $creationTime)) {
+                $this->invalidate('expiration', __('Maximal key validity is %s days.', $validity));
+            }
+            $this->data['AuthKey']['expiration'] = $expiration;
+        }
+
+        return true;
+    }
+
+    public function afterFind($results, $primary = false)
+    {
+        foreach ($results as $key => $val) {
+            if (isset($val['AuthKey']['allowed_ips'])) {
+                $results[$key]['AuthKey']['allowed_ips'] = $this->jsonDecode($val['AuthKey']['allowed_ips']);
+            }
+        }
+        return $results;
+    }
+
+    public function beforeSave($options = array())
+    {
+        if (isset($this->data['AuthKey']['allowed_ips'])) {
+            if (empty($this->data['AuthKey']['allowed_ips'])) {
+                $this->data['AuthKey']['allowed_ips'] = null;
             } else {
-                $expiration = is_numeric($this->data['AuthKey']['expiration']) ?
-                    (int)$this->data['AuthKey']['expiration'] :
-                    strtotime($this->data['AuthKey']['expiration']);
-
-                if ($expiration === false) {
-                    $this->invalidate('expiration', __('Expiration must be in YYYY-MM-DD format.'));
-                }
-                if ($validity && $expiration > strtotime("+$validity days")) {
-                    $this->invalidate('expiration', __('Maximal key validity is %s days.', $validity));
-                }
-                $this->data['AuthKey']['expiration'] = $expiration;
+                $this->data['AuthKey']['allowed_ips'] = json_encode($this->data['AuthKey']['allowed_ips']);
             }
         }
         return true;
+    }
+
+    /**
+     * @param array $user
+     * @param int $authKeyId
+     * @return array
+     */
+    public function updateUserData(array $user, $authKeyId)
+    {
+        $authKey = $this->find('first', [
+            'conditions' => ['id' => $authKeyId, 'user_id' => $user['id']],
+            'fields' => ['id', 'expiration', 'allowed_ips', 'read_only'],
+            'recursive' => -1,
+        ]);
+        if (empty($authKey)) {
+            throw new RuntimeException("Auth key with ID $authKeyId doesn't exist anymore.");
+        }
+        return $this->setUserData($user, $authKey);
     }
 
     /**
@@ -71,9 +134,9 @@ class AuthKey extends AppModel
     {
         $start = substr($authkey, 0, 4);
         $end = substr($authkey, -4);
-        $existing_authkeys = $this->find('all', [
+        $possibleAuthkeys = $this->find('all', [
             'recursive' => -1,
-            'fields' => ['id', 'authkey', 'user_id', 'expiration'],
+            'fields' => ['id', 'authkey', 'user_id', 'expiration', 'allowed_ips', 'read_only'],
             'conditions' => [
                 'OR' => [
                     'expiration >' => time(),
@@ -84,12 +147,11 @@ class AuthKey extends AppModel
             ]
         ]);
         $passwordHasher = $this->getHasher();
-        foreach ($existing_authkeys as $existing_authkey) {
-            if ($passwordHasher->check($authkey, $existing_authkey['AuthKey']['authkey'])) {
-                $user = $this->User->getAuthUser($existing_authkey['AuthKey']['user_id']);
+        foreach ($possibleAuthkeys as $possibleAuthkey) {
+            if ($passwordHasher->check($authkey, $possibleAuthkey['AuthKey']['authkey'])) {
+                $user = $this->User->getAuthUser($possibleAuthkey['AuthKey']['user_id']);
                 if ($user) {
-                    $user['authkey_id'] = $existing_authkey['AuthKey']['id'];
-                    $user['authkey_expiration'] = $existing_authkey['AuthKey']['expiration'];
+                    $user = $this->setUserData($user, $possibleAuthkey);
                 }
                 return $user;
             }
@@ -97,26 +159,91 @@ class AuthKey extends AppModel
         return false;
     }
 
-    public function resetauthkey($id)
+    /**
+     * @param array $user
+     * @param array $authkey
+     * @return array
+     */
+    private function setUserData(array $user, array $authkey)
     {
-        $existing_authkeys = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'user_id' => $id
-            ]
-        ]);
-        foreach ($existing_authkeys as $key) {
-            $key['AuthKey']['expiration'] = time();
-            $this->save($key);
+        $user['authkey_id'] = $authkey['AuthKey']['id'];
+        $user['authkey_expiration'] = $authkey['AuthKey']['expiration'];
+        $user['allowed_ips'] = $authkey['AuthKey']['allowed_ips'];
+        $user['authkey_read_only'] = (bool)$authkey['AuthKey']['read_only'];
+
+        if ($authkey['AuthKey']['read_only']) {
+            // Disable all permissions, keep just `perm_auth` unchanged
+            foreach ($user['Role'] as $key => &$value) {
+                if (substr($key, 0, 5) === 'perm_' && $key !== 'perm_auth') {
+                    $value = 0;
+                }
+            }
         }
-        return $this->createnewkey($id);
+        return $user;
     }
 
-    public function createnewkey($id)
+
+    /**
+     * @param int $userId
+     * @param int|null $keyId
+     * @return false|string
+     * @throws Exception
+     */
+    public function resetAuthKey($userId, $keyId = null)
+    {
+        $time = time();
+
+        if ($keyId) {
+            $currentAuthkey = $this->find('first', [
+                'recursive' => -1,
+                'conditions' => [
+                    'id' => $keyId,
+                    'user_id' => $userId,
+                ],
+            ]);
+            if (empty($currentAuthkey)) {
+                throw new RuntimeException("Key with ID $keyId for user with ID $userId not found.");
+            }
+            $currentAuthkey['AuthKey']['expiration'] = $time;
+            if (!$this->save($currentAuthkey)) {
+                throw new RuntimeException("Key with ID $keyId could not be saved.");
+            }
+            $comment = __("Created by resetting auth key %s\n%s", $keyId, $currentAuthkey['AuthKey']['comment']);
+            $allowedIps = isset($currentAuthkey['AuthKey']['allowed_ips']) ? $currentAuthkey['AuthKey']['allowed_ips'] : [];
+            return $this->createnewkey($userId, $comment, $allowedIps);
+        } else {
+            $existingAuthkeys = $this->find('all', [
+                'recursive' => -1,
+                'conditions' => [
+                    'OR' => [
+                        'expiration >' => $time,
+                        'expiration' => 0
+                    ],
+                    'user_id' => $userId
+                ]
+            ]);
+            foreach ($existingAuthkeys as $key) {
+                $key['AuthKey']['expiration'] = $time;
+                $this->save($key);
+            }
+            return $this->createnewkey($userId);
+        }
+    }
+
+    /**
+     * @param int $userId
+     * @param string $comment
+     * @param array $allowedIps
+     * @return false|string
+     * @throws Exception
+     */
+    public function createnewkey($userId, $comment = '', array $allowedIps = [])
     {
         $newKey = [
             'authkey' => (new RandomTool())->random_str(true, 40),
-            'user_id' => $id
+            'user_id' => $userId,
+            'comment' => $comment,
+            'allowed_ips' => empty($allowedIps) ? null : $allowedIps,
         ];
         $this->create();
         if ($this->save($newKey)) {
@@ -173,6 +300,18 @@ class AuthKey extends AppModel
             $output[$id] = $lastUsages[$i] === false ? null : (int)$lastUsages[$i];
         }
         return $output;
+    }
+
+    /**
+     * When key is modified, update `date_modified` for user that was assigned to that key, so session data
+     * will be reloaded.
+     * @see AppController::_refreshAuth
+     */
+    public function afterSave($created, $options = array())
+    {
+        parent::afterSave($created, $options);
+        $userId = $this->data['AuthKey']['user_id'];
+        $this->User->updateAll(['date_modified' => time()], ['User.id' => $userId]);
     }
 
     /**

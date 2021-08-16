@@ -24,6 +24,7 @@ App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('BlowfishPasswordHasher', 'Controller/Component/Auth');
 App::uses('RandomTool', 'Tools');
+
 class AppModel extends Model
 {
     public $name;
@@ -33,13 +34,8 @@ class AppModel extends Model
      */
     private $loadedPubSubTool;
 
-    public $loadedKafkaPubTool = false;
-
-    public $start = 0;
-
-    public $assetCache = [];
-
-    public $inserted_ids = array();
+    /** @var KafkaPubTool */
+    public $loadedKafkaPubTool;
 
     /** @var null|Redis */
     private static $__redisConnection = null;
@@ -61,7 +57,7 @@ class AppModel extends Model
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
-    public $old_db_changes = array(
+    const OLD_DB_CHANGES = array(
         2 => array(
             4 => array(
                 18 => false, 19 => false, 20 => false, 25 => false, 27 => false,
@@ -78,7 +74,7 @@ class AppModel extends Model
         )
     );
 
-    public $db_changes = array(
+    const DB_CHANGES = array(
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
@@ -89,7 +85,8 @@ class AppModel extends Model
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-        63 => true, 64 => false, 65 => false
+        63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
+        69 => false, 70 => false, 71 => true, 72 => true,
     );
 
     public $advanced_updates_description = array(
@@ -105,32 +102,6 @@ class AppModel extends Model
             'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
         ),
     );
-    public $actions_description = array(
-        'verifyGnuPGkeys' => array(
-            'title' => 'Verify GnuPG keys',
-            'description' => "Run a full validation of all GnuPG keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results.",
-            'url' => '/users/verifyGPG/'
-        ),
-        'databaseCleanupScripts' => array(
-            'title' => 'Database Cleanup Scripts',
-            'description' => 'If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.',
-            'url' => '/logs/pruneUpdateLogs/'
-        ),
-        'releaseUpdateLock' => array(
-            'title' => 'Release update lock',
-            'description' => 'If your your database is locked and is not updating, unlock it here.',
-            'ignore_disabled' => true,
-            'url' => '/servers/releaseUpdateLock/'
-        )
-    );
-
-    public function afterSave($created, $options = array())
-    {
-        if ($created) {
-            $this->inserted_ids[] = $this->getInsertID();
-        }
-        return true;
-    }
 
     public function isAcceptedDatabaseError($errorMessage, $dataSource)
     {
@@ -1568,6 +1539,48 @@ class AppModel extends Model
                     INDEX `value` (`value`(255))
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
+            case 66:
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` MODIFY COLUMN `tag_name` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT '';";
+                $indexArray[] = ['event_reports', 'event_id'];
+                break;
+            case 67:
+                $sqlArray[] = "ALTER TABLE `auth_keys` ADD `allowed_ips` text DEFAULT NULL;";
+                break;
+            case 68:
+                $sqlArray[] = "ALTER TABLE `correlation_exclusions` ADD `comment` text DEFAULT NULL;";
+                break;
+            case 69:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `audit_logs` (
+                      `id` int(11) NOT NULL AUTO_INCREMENT,
+                      `created` datetime NOT NULL,
+                      `user_id` int(11) NOT NULL,
+                      `org_id` int(11) NOT NULL,
+                      `authkey_id` int(11) DEFAULT NULL,
+                      `ip` varbinary(16) DEFAULT NULL,
+                      `request_type` tinyint NOT NULL,
+                      `request_id` varchar(255) DEFAULT NULL,
+                      `action` varchar(20) NOT NULL,
+                      `model` varchar(80) NOT NULL,
+                      `model_id` int(11) NOT NULL,
+                      `model_title` text DEFAULT NULL,
+                      `event_id` int(11) NULL,
+                      `change` blob,
+                      PRIMARY KEY (`id`),
+                      INDEX `event_id` (`event_id`),
+                      INDEX `model_id` (`model_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 70:
+                $sqlArray[] = "ALTER TABLE `galaxies` ADD `enabled` tinyint(1) NOT NULL DEFAULT 1 AFTER `namespace`;";
+                break;
+            case 71:
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_warninglist` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `warninglist_entries` ADD `comment` text DEFAULT NULL;";
+                $sqlArray[] = "ALTER TABLE `warninglists` ADD `default` tinyint(1) NOT NULL DEFAULT 1, ADD `category` varchar(20) NOT NULL DEFAULT 'false_positive', DROP COLUMN `warninglist_entry_count`";
+                break;
+            case 72:
+                $sqlArray[] = "ALTER TABLE `auth_keys` ADD `read_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `expiration`;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1821,18 +1834,19 @@ class AppModel extends Model
         }
     }
 
-    private function __addIndex($table, $field, $length = false)
+    private function __addIndex($table, $field, $length = null, $unique = false)
     {
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         $dataSource = $dataSourceConfig['datasource'];
         $this->Log = ClassRegistry::init('Log');
+        $index = $unique ? 'UNIQUE INDEX' : 'INDEX';
         if ($dataSource == 'Database/Postgres') {
-            $addIndex = "CREATE INDEX idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
+            $addIndex = "CREATE $index idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
         } else {
             if (!$length) {
-                $addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`);";
+                $addIndex = "ALTER TABLE `" . $table . "` ADD $index `" . $field . "` (`" . $field . "`);";
             } else {
-                $addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`(" . $length . "));";
+                $addIndex = "ALTER TABLE `" . $table . "` ADD $index `" . $field . "` (`" . $field . "`(" . $length . "));";
             }
         }
         $result = true;
@@ -1841,7 +1855,7 @@ class AppModel extends Model
         try {
             $this->query($addIndex);
         } catch (Exception $e) {
-            $duplicate = (strpos($e->getMessage(), '1061') !== false);
+            $duplicate = strpos($e->getMessage(), '1061') !== false;
             $errorMessage = $e->getMessage();
             $result = false;
         }
@@ -1877,6 +1891,7 @@ class AppModel extends Model
                 unlink($file);
             }
         }
+        return true;
     }
 
     public function getPythonVersion()
@@ -2349,12 +2364,12 @@ class AppModel extends Model
         }
     }
 
-    public function findUpgrades($db_version)
+    protected function findUpgrades($db_version)
     {
         $updates = array();
         if (strpos($db_version, '.')) {
             $version = explode('.', $db_version);
-            foreach ($this->old_db_changes as $major => $rest) {
+            foreach (self::OLD_DB_CHANGES as $major => $rest) {
                 if ($major < $version[0]) {
                     continue;
                 } elseif ($major == $version[0]) {
@@ -2377,7 +2392,7 @@ class AppModel extends Model
             }
             $db_version = 0;
         }
-        foreach ($this->db_changes as $db_change => $requiresLogout) {
+        foreach (self::DB_CHANGES as $db_change => $requiresLogout) {
             if ($db_version < $db_change) {
                 $updates[$db_change] = $requiresLogout;
             }
@@ -2719,26 +2734,26 @@ class AppModel extends Model
 
     /**
      * @param array $server
+     * @param string $model
      * @return array[]
      * @throws JsonException
      */
     protected function setupSyncRequest(array $server, $model = 'Server')
     {
         $version = implode('.', $this->checkMISPVersion());
+        $commit = $this->checkMIPSCommit();
         $request = array(
             'header' => array(
                 'Authorization' => $server[$model]['authkey'],
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
                 'MISP-version' => $version,
+                'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
             )
         );
-
-        $commit = $this->checkMIPSCommit();
         if ($commit) {
             $request['header']['commit'] = $commit;
         }
-        $request['header']['User-Agent'] = 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit);
         return $request;
     }
 
@@ -2903,11 +2918,6 @@ class AppModel extends Model
         return APP . 'files';
     }
 
-    public function getDefaultTmp_dir()
-    {
-        return sys_get_temp_dir();
-    }
-
     private function __bumpReferences()
     {
         $this->Event = ClassRegistry::init('Event');
@@ -3029,17 +3039,45 @@ class AppModel extends Model
     }
 
     /**
+     * Optimised version of CakePHP _findList method when just one or two fields are set from same model
+     * @param string $state
+     * @param array $query
+     * @param array $results
+     * @return array
+     */
+    protected function _findList($state, $query, $results = [])
+    {
+        if ($state === 'before') {
+            return parent::_findList($state, $query, $results);
+        }
+
+        if (empty($results)) {
+            return [];
+        }
+
+        if ($query['list']['groupPath'] === null) {
+            $keyPath = explode('.', $query['list']['keyPath']);
+            $valuePath = explode('.', $query['list']['valuePath']);
+            if ($keyPath[1] === $valuePath[1]) { // same model
+                return array_column(array_column($results, $keyPath[1]), $valuePath[2], $keyPath[2]);
+            }
+        }
+
+        return parent::_findList($state, $query, $results);
+    }
+
+    /**
      * Find method that allows to fetch just one column from database.
      * @param $state
      * @param $query
      * @param array $results
      * @return array
-     * @throws Exception
+     * @throws InvalidArgumentException
      */
     protected function _findColumn($state, $query, $results = array())
     {
         if ($state === 'before') {
-            if (count($query['fields']) === 1) {
+            if (isset($query['fields']) && count($query['fields']) === 1) {
                 if (strpos($query['fields'][0], '.') === false) {
                     $query['fields'][0] = $this->alias . '.' . $query['fields'][0];
                 }
@@ -3050,8 +3088,10 @@ class AppModel extends Model
                 } else {
                     $query['fields'] = array($query['fields'][0]);
                 }
+            } else if (!isset($query['fields'])) {
+                throw new InvalidArgumentException("This method requires `fields` option defined.");
             } else {
-                throw new Exception("Invalid number of column, expected one, " . count($query['fields']) . " given");
+                throw new InvalidArgumentException("Invalid number of column, expected one, " . count($query['fields']) . " given");
             }
 
             if (!isset($query['recursive'])) {

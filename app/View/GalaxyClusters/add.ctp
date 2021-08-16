@@ -5,7 +5,7 @@
     if (isset($forkedClusterMeta)) {
         foreach ($forkedClusterMeta as $key => $value) {
             if (is_array($value)) {
-                $forkedClusterHtmlPreview .= sprintf('<div><b>%s: </b><div data-toggle="json" class="large-left-margin">%s</div></div>', h($key), json_encode($value));
+                $forkedClusterHtmlPreview .= sprintf('<div><b>%s: </b><div data-toggle="json" class="large-left-margin">%s</div></div>', h($key), json_encode(h($value)));
             } else {
                 $forkedClusterHtmlPreview .= sprintf('<div><b>%s: </b>%s</div>', h($key), h($value));
             }
@@ -25,6 +25,7 @@
                 array(
                     'field' => 'value',
                     'label' => __('Name'),
+                    'class' => 'span6',
                     'type' => 'text',
                     'stayInLine' => true
                 ),
@@ -32,12 +33,14 @@
                     'field' => 'distribution',
                     'options' => $distributionLevels,
                     'default' => isset($cluster['GalaxyCluster']['distribution']) ? $cluster['GalaxyCluster']['distribution'] : $initialDistribution,
-                    'stayInLine' => 1
+                    'stayInLine' => 1,
+                    'type' => 'dropdown'
                 ),
                 array(
                     'field' => 'sharing_group_id',
                     'options' => $sharingGroups,
-                    'label' => __("Sharing Group")
+                    'label' => __("Sharing Group"),
+                    'type' => 'dropdown'
                 ),
                 !isset($forkedClusterMeta) ? '' : sprintf('<div id="fork_galaxy_preview" class="panel-container fork-cluster-preview"><h5>%s %s</h5>%s</div>',
                     __('Forked Cluster data'),
@@ -76,8 +79,8 @@
                     'field' => 'elements',
                     'label' => __("Galaxy Cluster Elements"),
                     'type' => 'textarea',
-                    'class' => 'input span6',
-                    'div' => 'input clear',
+                    'class' => 'span6',
+                    'div' => 'input clear input-append',
                     'picker' => array(
                         'text' => __('Toggle UI'),
                         'function' => 'initClusterElementUI'

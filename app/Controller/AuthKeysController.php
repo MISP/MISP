@@ -51,6 +51,7 @@ class AuthKeysController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('title_for_layout', __('Auth Keys'));
+        $this->set('advancedEnabled', !empty(Configure::read('Security.advanced_authkeys')));
         $this->set('keyUsageEnabled', $keyUsageEnabled);
         $this->set('menuData', [
             'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
@@ -71,8 +72,36 @@ class AuthKeysController extends AppController
 
     public function edit($id)
     {
-        $this->set('metaGroup', 'admin');
-        $this->set('metaAction', 'authkeys_edit');
+        $this->CRUD->edit($id, [
+            'conditions' => $this->__prepareConditions(),
+            'afterFind' => function (array $authKey) {
+                unset($authKey['AuthKey']['authkey']);
+                if (is_array($authKey['AuthKey']['allowed_ips'])) {
+                    $authKey['AuthKey']['allowed_ips'] = implode("\n", $authKey['AuthKey']['allowed_ips']);
+                }
+                $authKey['AuthKey']['expiration'] = date('Y-m-d H:i:s', $authKey['AuthKey']['expiration']);
+                return $authKey;
+            },
+            'fields' => ['comment', 'allowed_ips', 'expiration', 'read_only'],
+            'contain' => ['User.id', 'User.org_id']
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+        $this->set('dropdownData', [
+            'user' => $this->User->find('list', [
+                'sort' => ['username' => 'asc'],
+                'conditions' => ['id' => $this->request->data['AuthKey']['user_id']],
+            ])
+        ]);
+        $this->set('menuData', [
+            'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
+            'menuItem' => 'authKeyAdd',
+        ]);
+        $this->set('edit', true);
+        $this->set('validity', Configure::read('Security.advanced_authkeys_validity'));
+        $this->set('title_for_layout', __('Edit auth key'));
+        $this->render('add');
     }
 
     public function add($user_id = false)
@@ -106,6 +135,7 @@ class AuthKeysController extends AppController
             ])
         ];
         $this->set(compact('dropdownData'));
+        $this->set('title_for_layout', __('Add auth key'));
         $this->set('menuData', [
             'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
             'menuItem' => 'authKeyAdd',
@@ -134,7 +164,7 @@ class AuthKeysController extends AppController
             $this->set('uniqueIps', $uniqueIps);
         }
 
-        $this->set('title_for_layout', __('Auth Key'));
+        $this->set('title_for_layout', __('Auth key'));
         $this->set('menuData', [
             'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
             'menuItem' => 'authKeyView',

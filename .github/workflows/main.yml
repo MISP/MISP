@@ -27,6 +27,8 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
 
       # Stop mysql
       - name: Shutdown Ubuntu MySQL (SUDO)
@@ -57,14 +59,13 @@ jobs:
       - name: Initialize variables
         run: |
           echo "USER=`id -u -n`" >> $GITHUB_ENV
-          echo "HOST=`hostname`" >> $GITHUB_ENV
+          echo "HOST=localhost" >> $GITHUB_ENV
 
       # Runs a set of commands using the runners shell
       - name: Install deps
         env:
           php_version: ${{ matrix.php }}
         run: |
-              git submodule update --init --recursive
               sudo apt-get -y update
               # Repo is missing for unknown reason
               LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
@@ -134,6 +135,7 @@ jobs:
         run: |
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.osuser" $USER'
               sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
+              sudo -E su $USER -c 'app/Console/cake Admin schemaDiagnostics'
 
       - name: Configure MISP
         run: |
@@ -145,7 +147,7 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.host_org_id" 1'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.email" "info@admin.test"'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.disable_emailing" false'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "debug" true'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting --force "debug" true'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_port" 6379'
@@ -202,6 +204,8 @@ jobs:
 
       - name: Test if apache is working
         run: |
+              sudo systemctl status apache2 --no-pager -l
+              sudo apache2ctl -S
               curl http://${HOST}
               sudo chmod -R 777 PyMISP
               pushd PyMISP
@@ -210,13 +214,16 @@ jobs:
               cat tests/keys.py
               popd
 
-      - name: Run tests
+      - name: Run PHP tests
         run: |
-              source $HOME/.poetry/env # enable poetry binary
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
               ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
               ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
               ./app/Vendor/bin/phpunit app/Test/CidrToolTest.php
+
+      - name: Run tests
+        run: |
+              source $HOME/.poetry/env # enable poetry binary
 
               # Ensure the perms of config files
               sudo chown -R $USER:www-data `pwd`/app/Config
@@ -229,6 +236,7 @@ jobs:
               ./curl_tests_GH.sh $AUTH $HOST
               popd
 
+              sudo chmod -R g+ws `pwd`/app/tmp/logs
               pushd PyMISP
               poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport -E email
               poetry run python tests/testlive_comprehensive.py
@@ -246,3 +254,4 @@ jobs:
         if: ${{ always() }}
         run: |
               tail -n +1 `pwd`/app/tmp/logs/*
+              tail -n +1 /var/log/apache2/*.log

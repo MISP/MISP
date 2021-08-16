@@ -83,7 +83,7 @@ if ($context == 'JSONView') {
 
 echo $this->element('/genericElements/IndexTable/index_table', $indexOptions);
 if ($context == 'JSONView') {
-    echo sprintf('<div id="elementJSONDiv" class="well well-small">%s</div>', json_encode($JSONElements));
+    echo sprintf('<div id="elementJSONDiv" class="well well-small">%s</div>', json_encode(h($JSONElements)));
 }
 ?>
 

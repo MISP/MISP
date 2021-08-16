@@ -286,10 +286,9 @@ class RestResponseComponent extends Component
                 'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
                 'params' => array('tag_id')
             ),
-            'removeTag' => array(
-                'description' => "POST a request object in JSON format to this API to create detach a tag from an event. #FIXME Function does not exists",
-                'mandatory' => array('event', 'tag'),
-                'params' => array('tag_id')
+            'removeTagFromObject' => array(
+                'description' => "Untag an event or attribute. Tag can be the id or the name.",
+                'mandatory' => array('uuid', 'tag')
             ),
             'attachTagToObject' => array(
                 'description' => "Attach a Tag to an object, refenced by an UUID. Tag can either be a tag id or a tag name.",
@@ -429,6 +428,16 @@ class RestResponseComponent extends Component
         return $result;
     }
 
+    public function getScopedApiInfo($user)
+    {
+        $api = $this->getAllApis($user);
+        $scopedApi = [];
+        foreach ($api as $apiEntry) {
+            $scopeApi[$apiEntry['controller']][] = $apiEntry;
+        }
+        return $scopeApi;
+    }
+
     /**
      * Use a relative path to check if the current api has a description
      * @param string $relative_path
@@ -461,7 +470,6 @@ class RestResponseComponent extends Component
 
     public function saveFailResponse($controller, $action, $id = false, $validationErrors, $format = false, $data = null)
     {
-        $this->autoRender = false;
         $response = array();
         $action = $this->__dissectAdminRouting($action);
         $stringifiedAction = $action['action'];
@@ -471,7 +479,7 @@ class RestResponseComponent extends Component
         $response['saved'] = false;
         $response['name'] = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
         $response['message'] = $response['name'];
-        if (!is_null($data)) {
+        if ($data !== null) {
             $response['data'] = $data;
         }
         $response['url'] = $this->__generateURL($action, $controller, $id);
@@ -489,7 +497,7 @@ class RestResponseComponent extends Component
         $response['success'] = true;
         $response['name'] = $message;
         $response['message'] = $response['name'];
-        if (!is_null($data)) {
+        if ($data !== null) {
             $response['data'] = $data;
         }
         $response['url'] = $this->__generateURL($action, $controller, $id);
@@ -549,7 +557,7 @@ class RestResponseComponent extends Component
                     }
                 }
                 // Do not pretty print response for automatic tools
-                $flags = $this->isAutomaticTool() ? JSON_UNESCAPED_UNICODE : JSON_PRETTY_PRINT;
+                $flags = $this->isAutomaticTool() ? JSON_UNESCAPED_UNICODE : (JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
                 $response = json_encode($response, $flags);
             } else {
                 if ($dumpSql) {
@@ -601,11 +609,14 @@ class RestResponseComponent extends Component
     }
 
     /**
-     * Detect if request comes from automatic tool, like other MISP instance or PyMISP
+     * Detect if request comes from automatic tool (like other MISP instance or PyMISP) or AJAX
      * @return bool
      */
     public function isAutomaticTool()
     {
+        if ($this->Controller->request->is('ajax')) {
+            return true;
+        }
         $userAgent = CakeRequest::header('User-Agent');
         return $userAgent && (substr($userAgent, 0, 6) === 'PyMISP' || substr($userAgent, 0, 4) === 'MISP');
     }

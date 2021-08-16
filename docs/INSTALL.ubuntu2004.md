@@ -1,31 +1,16 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 20.04-server
+## for Ubuntu 20.04.2.0-server
+
+{!generic/manual-install-notes.md!}
 
 ### -1/ Installer and Manual install instructions
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
-
-To install MISP on a fresh Ubuntu 20.04, all you need to do is the following:
-
-```bash
-# Please check the installer options first to make the best choice for your install
-wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-bash /tmp/INSTALL.sh
-
-# This will install MISP Core
-wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-bash /tmp/INSTALL.sh -c
-```
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
 
 ### 0/ MISP Ubuntu 20.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20200501
-
-!!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
-    Which explains why you will see the use of shell *functions* in various steps.
-    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210401 (works with **Ubuntu 19.04/20.04/21.04** too)
 
 !!! notice
     If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
@@ -37,7 +22,7 @@ bash /tmp/INSTALL.sh -c
 
 #### Install a minimal Ubuntu 20.04-server system with the software:
 - OpenSSH server
-- This guide assumes a user name of 'misp' with sudo working
+- This guide assumes a user name of 'misp' with sudo working but can be overwritten by setting the environment variable: *${MISP_USER}*
 
 #### Make sure your system is up2date
 ```bash
@@ -109,18 +94,20 @@ installDepsPhp74 () {
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   checkAptLock
   sudo apt install -qy \
-  libapache2-mod-php \
-  php php-cli \
-  php-dev \
-  php-json php-xml php-mysql php7.4-opcache php-readline php-mbstring php-zip \
-  php-redis php-gnupg \
-  php-intl php-bcmath \
-  php-gd
+  libapache2-mod-php7.4 \
+  php7.4 php7.4-cli \
+  php7.4-dev \
+  php7.4-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip \
+  php7.4-redis php7.4-gnupg \
+  php7.4-intl php7.4-bcmath \
+  php7.4-gd
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 }
 # <snippet-end 0_installDepsPhp74.sh>
 ```
@@ -505,6 +492,8 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 
 {!generic/misp-modules-debian.md!}
 
+{!generic/misp-modules-cake.md!}
+
 {!generic/INSTALL.done.md!}
 
 {!generic/recommended.actions.md!}
@@ -531,6 +520,8 @@ installKafka () {
 ```
 
 {!generic/misp-dashboard-debian.md!}
+
+{!generic/misp-dashboard-cake.md!}
 
 {!generic/viper-debian.md!}
 

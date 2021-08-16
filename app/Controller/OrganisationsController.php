@@ -45,6 +45,8 @@ class OrganisationsController extends AppController
             $searchall = $this->passedArgs['all'];
         } elseif (isset($this->passedArgs['searchall'])) {
             $searchall = $this->passedArgs['searchall'];
+        } elseif (isset($this->passedArgs['quickFilter'])) {
+            $searchall = $this->passedArgs['quickFilter'];
         }
 
         if (isset($searchall) && !empty($searchall)) {
@@ -130,13 +132,13 @@ class OrganisationsController extends AppController
                 $this->__uploadLogo($this->Organisation->id);
                 if ($this->_isRest()) {
                     $org = $this->Organisation->find('first', array(
-                            'conditions' => array('Organisation.id' => $this->Organisation->id),
-                            'recursive' => -1
+                        'conditions' => array('Organisation.id' => $this->Organisation->id),
+                        'recursive' => -1
                     ));
                     return $this->RestResponse->viewData($org, $this->response->type());
                 } else {
                     $this->Flash->success(__('The organisation has been successfully added.'));
-                    $this->redirect(array('admin' => false, 'action' => 'index'));
+                    $this->redirect(array('admin' => false, 'action' => 'view', $this->Organisation->id));
                 }
             } else {
                 if ($this->_isRest()) {
@@ -159,6 +161,7 @@ class OrganisationsController extends AppController
         }
         $countries = array_merge(['' => __('Not specified')], $this->_arrayToValuesIndexArray($this->Organisation->getCountries()));
         $this->set('countries', $countries);
+        $this->set('action', 'add');
     }
 
     public function admin_edit($id)
@@ -183,7 +186,7 @@ class OrganisationsController extends AppController
                     $this->request->data['Organisation'] = $this->request->data;
                 }
                 $existingOrg = $this->Organisation->find('first', array('conditions' => array('Organisation.id' => $id)));
-                $changeFields = array('name', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid');
+                $changeFields = array('name', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid', 'restricted_to_domain');
                 $temp = array('Organisation' => array());
                 foreach ($changeFields as $field) {
                     if (isset($this->request->data['Organisation'][$field])) {
@@ -245,6 +248,8 @@ class OrganisationsController extends AppController
             $this->request->data['Organisation']['restricted_to_domain'] = implode("\n", $this->request->data['Organisation']['restricted_to_domain']);
         }
         $this->set('id', $id);
+        $this->set('action', 'edit');
+        $this->render('admin_add');
     }
 
     public function admin_delete($id)

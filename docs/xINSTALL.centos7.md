@@ -268,6 +268,8 @@ for key in upload_max_filesize post_max_size max_execution_time max_input_time m
 do
     sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
 done
+sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 sudo systemctl restart rh-php72-php-fpm.service
 
 # To use the scheduler worker for scheduled tasks, do the following:
@@ -596,6 +598,8 @@ sudo sed -i -e '$i \sudo -u apache ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.
 ```
 
 {!generic/misp-dashboard-centos.md!}
+
+{!generic/misp-dashboard-cake.md!}
 
 {!generic/MISP_CAKE_init.md!}
 

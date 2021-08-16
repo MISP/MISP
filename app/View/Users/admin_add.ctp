@@ -8,26 +8,27 @@
         <div class="clear"></div>
     <?php
         $password = true;
-        if (Configure::read('Plugin.CustomAuth_enable')):
-            if (Configure::read('Plugin.CustomAuth_required')):
+        if (Configure::read('Plugin.CustomAuth_enable')) {
+            if (Configure::read('Plugin.CustomAuth_required')) {
                 $password = false;
-            else:
+            } else {
                 $userType = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
                 echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'label' => $userType . ' user'));
-            endif;
-
-    ?>
-        <div class="clear"></div>
-        <div id="externalAuthDiv">
-        <?php
-            echo $this->Form->input('external_auth_key', array('type' => 'text'));
-        ?>
-        </div>
-    <?php
-        endif;
+            }
+            echo sprintf(
+                '<div class="clear"></div><div %s>%s</div>',
+                (
+                    (
+                        !empty(Configure::read('Plugin.CustomAuth_required')) &&
+                        !empty(Configure::read('Plugin.CustomAuth_enable'))
+                    ) ? '' : sprintf('id="externalAuthDiv"')
+                ),
+                $this->Form->input('external_auth_key', array('type' => 'text'))
+            );
+        }
     ?>
     <div class="clear"></div>
-    <div id="passwordDivDiv">
+    <div id="passwordDivDiv" style="<?= (!empty(Configure::read('Plugin.CustomAuth_required')) && !empty(Configure::read('Plugin.CustomAuth_enable'))) ? 'display:none;' : ''?>">
         <?php
             echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => __('Set password')));
         ?>

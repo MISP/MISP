@@ -26,7 +26,7 @@ class UsersController extends AppController
         )
     );
 
-    public $helpers = array('Js' => array('Jquery'));
+    public $toggleableFields = ['disabled', 'autoalert'];
 
     public function beforeFilter()
     {
@@ -472,11 +472,6 @@ class UsersController extends AppController
                     }
                 }
                 $this->set('users', $users);
-            }
-            if ($this->request->is('ajax')) {
-                $this->autoRender = false;
-                $this->layout = false;
-                $this->render('ajax/admin_index');
             }
         }
     }
@@ -1095,6 +1090,54 @@ class UsersController extends AppController
         $this->redirect(array('action' => 'index'));
     }
 
+    public function admin_massToggleField($fieldName, $enabled)
+    {
+        if (!in_array($fieldName, $this->toggleableFields)) {
+            throw new MethodNotAllowedException(__('The field `%s` cannot be toggled', $fieldName));
+        }
+        if (!$this->_isAdmin()) {
+            throw new UnauthorizedException(__('Administrators only'));
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $jsonIds = $this->request->data['User']['user_ids'];
+            $ids = $this->User->jsonDecode($jsonIds);
+            $conditions = ['User.id' => $ids];
+            if (!$this->_isSiteAdmin()) {
+                $conditions['User.org_id'] = $this->Auth->user('org_id');
+            }
+            $users = $this->User->find('all', [
+                    'conditions' => $conditions,
+                    'recursive' => -1
+            ]);
+            if (empty($users)) {
+                throw new NotFoundException(__('Invalid users'));
+            }
+            $count = 0;
+            foreach ($users as $user) {
+                if ($user['User'][$fieldName] != $enabled) {
+                    $this->User->id = $user['User']['id'];
+                    $this->User->saveField($fieldName, $enabled);
+                    $count++;
+                }
+            }
+            if ($count > 0) {
+                $message = __('%s users got their field `%s` %s', $count, $fieldName, $enabled ? __('enabled') : __('disabled'));
+            } else {
+                $message = __('All users have already their field `%s` %s', $fieldName, $enabled ? __('enabled') : __('disabled'));
+            }
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('User', 'admin_massToggleField', 'selected', $this->response->type(), $message);
+            } else {
+                if ($count > 0) {
+                    $this->Flash->success($message);
+                } else {
+                    $this->Flash->info($message);
+                }
+                $this->redirect('/admin/users/index');
+            }
+        }
+    }
+
     public function updateLoginTime()
     {
         if (!$this->request->is('post')) {
@@ -1245,9 +1288,9 @@ class UsersController extends AppController
           ),
           'recursive' => -1
       ));
-      $lastUserLogin = $user['User']['last_login'];
       unset($user['User']['password']);
       $this->User->updateLoginTimes($user['User']);
+      $lastUserLogin = $user['User']['last_login'];
       $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
       if ($lastUserLogin) {
           $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
@@ -1294,24 +1337,22 @@ class UsersController extends AppController
 
     public function resetauthkey($id = null, $alert = false)
     {
-        if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
-            throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
-        }
         if (!$this->request->is('post') && !$this->request->is('put')) {
             throw new MethodNotAllowedException(__('This functionality is only accessible via POST requests.'));
         }
-        if ($id == 'me') {
+        if ($id === 'me') {
             $id = $this->Auth->user('id');
+            // Reset just current auth key
+            $keyId = isset($this->Auth->user()['authkey_id']) ? $this->Auth->user()['authkey_id'] : null;
+        } else {
+            $keyId = null;
         }
-        if (!$this->userRole['perm_auth']) {
-            throw new MethodNotAllowedException(__('Invalid action.'));
-        }
-        $newkey = $this->User->resetauthkey($this->Auth->user(), $id, $alert);
+        $newkey = $this->User->resetauthkey($this->Auth->user(), $id, $alert, $keyId);
         if ($newkey === false) {
             throw new MethodNotAllowedException(__('Invalid user.'));
         }
         if (!$this->_isRest()) {
-            $this->Flash->success(__('New authkey generated.', true));
+            $this->Flash->success(__('New authkey generated.'));
             $this->redirect($this->referer());
         } else {
             return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'Authkey updated: ' . $newkey);
@@ -1350,9 +1391,9 @@ class UsersController extends AppController
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             $org_ids = array($this->Auth->user('org_id'));
         } else {
-            $org_ids = $this->User->Event->find('list', array(
-                'fields' => array('Event.orgc_id', 'Event.orgc_id'),
-                'group' => array('Event.orgc_id')
+            $org_ids = $this->User->Event->find('column', array(
+                'fields' => array('Event.orgc_id'),
+                'unique' => true,
             ));
         }
         $orgs_temp = $this->User->Organisation->find('list', array(
@@ -1399,20 +1440,28 @@ class UsersController extends AppController
             $temp = $this->User->Event->Attribute->find('all', $params);
             $temp = Hash::combine($temp, '{n}.Attribute.type', '{n}.0.num_types');
             $total = 0;
-            foreach ($temp as $k => $v) {
-                if (intval($v) > $max) {
-                    $max = intval($v);
+            foreach ($temp as $v) {
+                $v = (int) $v;
+                if ($v > $max) {
+                    $max = $v;
                 }
-                $total += intval($v);
+                $total += $v;
             }
-            $data[$org_id]['data'] = $temp;
-            $data[$org_id]['org_name'] = $org_name;
-            $data[$org_id]['total'] = $total;
+            $data[$org_id] = [
+                'data' => $temp,
+                'org_name' => $org_name,
+                'total' => $total,
+            ];
         }
         uasort($data, function ($a, $b) {
             return $b['total'] - $a['total'];
         });
         $data = array_values($data);
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($data, $this->response->type());
+        }
+
         $this->set('data', $data);
         $this->set('max', $max);
         $this->set('selectedTypes', $selectedTypes);
@@ -1426,13 +1475,10 @@ class UsersController extends AppController
         foreach ($sigTypes as $k => $type) {
             $typeDb[$type] = $colours[$k];
         }
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($data, $this->response->type());
-        } else {
-            $this->set('typeDb', $typeDb);
-            $this->set('sigTypes', $sigTypes);
-            $this->layout = 'ajax';
-        }
+
+        $this->set('typeDb', $typeDb);
+        $this->set('sigTypes', $sigTypes);
+        $this->layout = 'ajax';
     }
 
     public function terms()
@@ -1741,7 +1787,8 @@ class UsersController extends AppController
 
             // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
             $userForSendMail = $this->User->getUserById($user_id);
-            $result = $this->User->sendEmail($userForSendMail, $body, false, "[MISP] Email OTP");
+            $body = str_replace('\n', PHP_EOL, $body);
+            $result = $this->User->sendEmail($userForSendMail, $body, false, "[MISP " . Configure::read('MISP.org') . "] Email OTP");
 
             if ($result) {
                 $this->Flash->success(__("An email containing a OTP has been sent."));
@@ -1770,6 +1817,8 @@ class UsersController extends AppController
     // shows some statistics about the instance
     public function statistics($page = 'data')
     {
+        @session_write_close(); // loading this page can take long time, so we can close session
+
         $this->set('page', $page);
         $pages = array('data' => __('Usage data'),
                        'orgs' => __('Organisations'),
@@ -1814,14 +1863,14 @@ class UsersController extends AppController
     {
         // set all of the data up for the heatmaps
         $params = array(
-            'fields' => array('name'),
+            'fields' => array('id', 'name'),
             'recursive' => -1,
             'conditions' => array()
         );
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             $params['conditions'] = array('Organisation.id' => $this->Auth->user('org_id'));
         }
-        $orgs = $this->User->Organisation->find('all', $params);
+        $orgs = $this->User->Organisation->find('list', $params);
 
         $local_orgs_params = $params;
         $local_orgs_params['conditions']['Organisation.local'] = 1;
@@ -1849,7 +1898,7 @@ class UsersController extends AppController
         $stats['correlation_count'] = $this->Correlation->find('count', array('recursive' => -1));
         $stats['correlation_count'] = $stats['correlation_count'] / 2;
 
-        $stats['proposal_count'] = $this->User->Event->ShadowAttribute->find('count', array('recursive' => -1));
+        $stats['proposal_count'] = $this->User->Event->ShadowAttribute->find('count', array('recursive' => -1, 'conditions' => array('deleted' => 0)));
 
         $stats['user_count'] = $this->User->find('count', array('recursive' => -1));
         $stats['user_count_pgp'] = $this->User->find('count', array('recursive' => -1, 'conditions' => array('User.gpgkey !=' => '')));
@@ -1870,16 +1919,17 @@ class UsersController extends AppController
                 'stats' => $stats
             );
             return $this->RestResponse->viewData($data, $this->response->type());
-        } else {
-            $this->set('stats', $stats);
-            $this->set('orgs', $orgs);
-            $this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
-            $this->set('end', strtotime(date('Y-m-d H:i:s')));
-            $this->set('startDateCal', $year . ', ' . $month . ', 01');
-            $range = '[5, 10, 50, 100]';
-            $this->set('range', $range);
-            $this->render('statistics_data');
         }
+
+        $this->set('stats', $stats);
+        $this->set('orgs', $orgs);
+        $this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
+        $this->set('end', strtotime(date('Y-m-d H:i:s')));
+        $this->set('startDateCal', $year . ', ' . $month . ', 01');
+        $range = '[5, 10, 50, 100]';
+        $this->set('range', $range);
+        $this->set('activityUrl', $this->baseurl . (Configure::read('MISP.log_new_audit') ? '/audit_logs' : '/logs') . '/returnDates');
+        $this->render('statistics_data');
     }
 
     private function __statisticsSightings($params = array())
@@ -2126,7 +2176,7 @@ class UsersController extends AppController
                 unset($organisations[$id]);
             }
         }
-        $organisations = array_merge([0 => __('All')], $organisations);
+        $organisations = [0 => __('All')] + $organisations;
         $this->set('organisations', $organisations);
 
         if (isset($params['organisation']) && $params['organisation'] != 0) {
@@ -2405,6 +2455,7 @@ class UsersController extends AppController
                 throw new BadRequestException(__('We require at least the email field to be filled.'));
             }
             $this->User->set($requestObject);
+            unset($this->User->validate['email']['unique']);
             if (!$this->User->validates(array('fieldList' => $fieldToValidate))) {
                 $errors = $this->User->validationErrors;
                 $message = __('Request could not be created.');
@@ -2684,30 +2735,7 @@ class UsersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException(__('This endpoint can only be triggered via POST requests.'));
         }
-        $users = $this->User->find('all', [
-            'recursive' => -1,
-            'contain' => ['AuthKey'],
-            'fields' => ['id', 'authkey']
-        ]);
-        $updated = 0;
-        foreach ($users as $user) {
-            if (!empty($user['AuthKey'])) {
-                $currentKeyStart = substr($user['User']['authkey'], 0, 4);
-                $currentKeyEnd = substr($user['User']['authkey'], -4);
-                foreach ($user['AuthKey'] as $authkey) {
-                    if ($authkey['authkey_start'] === $currentKeyStart && $authkey['authkey_end'] === $currentKeyEnd) {
-                        continue 2;
-                    }
-                }
-            }
-            $this->User->AuthKey->create();
-            $this->User->AuthKey->save([
-                'authkey' => $user['User']['authkey'],
-                'expiration' => 0,
-                'user_id' => $user['User']['id']
-            ]);
-            $updated += 1;
-        }
+        $updated = $this->User->updateToAdvancedAuthKeys();
         $message = __('The upgrade process is complete, %s authkey(s) generated.', $updated);
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('User', 'acceptRegistrations', false, $this->response->type(), $message);

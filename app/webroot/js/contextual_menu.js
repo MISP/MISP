@@ -72,6 +72,12 @@ class ContextualMenu {
         this.items[action_table.id] = action_table;
     }
 
+    add_datepicker(options) {
+        this.__create_divider_if_needed('checkbox');
+        var checkbox = this.__create_datepicker(options);
+        this.items[checkbox.id] = checkbox;
+    }
+
     create_divider(height) {
         var divider = document.createElement('li');
         divider.classList.add("contextual-menu-divider");
@@ -399,5 +405,29 @@ class ContextualMenu {
     __create_action_table(options) {
         var action_table = new ActionTable(options);
         return action_table;
+    }
+
+    __create_datepicker(options) {
+        var div = document.createElement('div');
+        div.style = "width: inherit;";
+        var datepicker = document.createElement('input');
+        datepicker.classList.add("datepicker");
+        var label = document.createElement('label');
+        label.innerHTML = options.label+":";
+        label.title = options.tooltip;
+        datepicker.id = options.id === undefined ? 'contextualMenu_'+this.__get_uniq_index() : options.id;
+        datepicker.type = "text";
+        if(options.tooltip !== undefined) {
+            label.title = options.tooltip;
+        }
+        div.appendChild(label);
+        div.appendChild(datepicker);
+        this.menu.appendChild(div);
+        $("#" + datepicker.id).datepicker({
+            format: 'yyyy-mm-dd',
+        }).on('changeDate', function(evt) {
+            options.event(evt.target.checked);
+        });
+        return datepicker;
     }
 }

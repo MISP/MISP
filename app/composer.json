@@ -10,12 +10,13 @@
         "ext-simplexml": "*",
         "ext-pcre": "*",
         "kamisama/cake-resque": "4.1.2",
-        "pear/crypt_gpg": "1.6.3",
+        "pear/crypt_gpg": "1.6.5",
         "monolog/monolog": "1.24.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^8",
-        "php-parallel-lint/php-parallel-lint": "^1.2"
+        "php-parallel-lint/php-parallel-lint": "^1.2",
+        "cakephp/debug_kit": "^2.2.0"
     },
     "suggest": {
         "ext-gd": "For creating image thumbnails",

@@ -61,6 +61,10 @@
                     'data_path' => 'CorrelationExclusion.value',
                 ],
                 [
+                    'name' => 'Comment',
+                    'data_path' => 'CorrelationExclusion.comment',
+                ],
+                [
                     'name' => 'JSON source',
                     'sort' => 'CorrelationExclusion.from_json',
                     'data_path' => 'CorrelationExclusion.from_json',
@@ -72,6 +76,15 @@
             'description' => empty($ajax) ? __('A list of values to exclude from the correlation engine.') : false,
             'pull' => 'right',
             'actions' => [
+                [
+                    'onclick' => sprintf(
+                        'openGenericModal(\'%s/correlation_exclusions/edit/[onclick_params_data_path]\');',
+                        $baseurl
+                    ),
+                    'onclick_params_data_path' => 'CorrelationExclusion.id',
+                    'icon' => 'edit',
+                    'title' => __('Edit exclusion entry'),
+                ],
                 [
                     'onclick' => sprintf(
                         'openGenericModal(\'%s/correlation_exclusions/delete/[onclick_params_data_path]\');',

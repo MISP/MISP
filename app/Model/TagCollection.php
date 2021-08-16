@@ -9,6 +9,7 @@ class TagCollection extends AppModel
     public $displayField = 'name';
 
     public $actsAs = array(
+        'AuditLog',
             'Trim',
             'SysLogLogable.SysLogLogable' => array(
                     'roleModel' => 'Role',

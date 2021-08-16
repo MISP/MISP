@@ -3,19 +3,19 @@ App::uses('AppModel', 'Model');
 
 class Job extends AppModel
 {
-    const STATUS_WAITING = 1;
-    const STATUS_RUNNING = 2;
-    const STATUS_FAILED = 3;
-    const STATUS_COMPLETED = 4;
+    const STATUS_WAITING = 1,
+        STATUS_RUNNING = 2,
+        STATUS_FAILED = 3,
+        STATUS_COMPLETED = 4;
 
     public $belongsTo = array(
-            'Org' => array(
-                    'className' => 'Organisation',
-                    'foreignKey' => 'org_id',
-                    'order' => array(),
-                    'fields' => array('id', 'name', 'uuid')
-            ),
-        );
+        'Org' => array(
+            'className' => 'Organisation',
+            'foreignKey' => 'org_id',
+            'order' => array(),
+            'fields' => array('id', 'name', 'uuid')
+        ),
+    );
 
     public function beforeValidate($options = array())
     {
@@ -92,7 +92,7 @@ class Job extends AppModel
             }
         }
         try {
-            if ($this->save($jobData)) {
+            if ($this->save($jobData, ['atomic' => false])) {
                 return true;
             }
             $this->log("Could not save progress for job $jobId because of validation errors: " . json_encode($this->validationErrors), LOG_NOTICE);

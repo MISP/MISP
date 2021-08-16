@@ -20,20 +20,20 @@ class RestClientHistory extends AppModel
 
     public function cleanup($user_id)
     {
-        $list = $this->find('list', array(
+        $keepIds = $this->find('column', array(
             'conditions' => array(
                 'RestClientHistory.user_id' => $user_id
             ),
             'page' => 1,
             'limit' => 10,
             'order' => array('RestClientHistory.timestamp DESC'),
-            'fields' => array('RestClientHistory.id', 'RestClientHistory.timestamp')
+            'fields' => array('RestClientHistory.id')
         ));
         $this->deleteAll(array(
             'RestClientHistory.user_id' => $user_id,
             'RestClientHistory.bookmark' => 0,
             'NOT' => array(
-                'RestClientHistory.id' => array_keys($list)
+                'RestClientHistory.id' => $keepIds
             )
         ));
     }

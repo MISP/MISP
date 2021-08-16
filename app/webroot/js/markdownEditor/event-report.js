@@ -153,10 +153,12 @@ function buildMISPElementHints() {
     MISPElementHints['object'] = []
     Object.keys(proxyMISPElements['object']).forEach(function(uuid) {
         var object = proxyMISPElements['object'][uuid]
+        var topPriorityValue = getTopPriorityValue(object)
         MISPElementHints['object'].push(
             [object.name, uuid],
             [object.id, uuid],
             [object.uuid, uuid],
+            [topPriorityValue, uuid],
         )
     })
     MISPElementHints['galaxymatrix'] = []
@@ -181,6 +183,7 @@ function hintMISPElements(cm, options) {
     var authorizedMISPElements = ['attribute', 'object', 'galaxymatrix', 'tag']
     var availableScopes = ['attribute', 'object', 'galaxymatrix', 'tag']
     var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)?\\)');
+    var reMISPScope = RegExp('@\\[(?<scope>\\S+)\\]\\(\\)');
     var reExtendedWord = /\S/
     var hintList = []
     var scope, elementID, element
@@ -202,6 +205,25 @@ function hintMISPElements(cm, options) {
             list: hintList,
             from: CodeMirror.Pos(cursor.line, start),
             to: CodeMirror.Pos(cursor.line, end)
+        }
+    }
+
+    var resScope = reMISPScope.exec(word)
+    if (resScope !== null) {
+        var partialScope = resScope.groups.scope
+        availableScopes.forEach(function(scope) {
+            if (scope.startsWith(partialScope) && scope !== partialScope) {
+                hintList.push({
+                    text: '@[' + scope + ']()'
+                })
+            }
+        });
+        if (hintList.length > 0) {
+            return {
+                list: hintList,
+                from: CodeMirror.Pos(cursor.line, start),
+                to: CodeMirror.Pos(cursor.line, end)
+            }
         }
     }
 
@@ -288,13 +310,7 @@ function renderHintElement(scope, element) {
                     .text(element.value)
             )
     } else if (scope == 'object') {
-        var associatedTemplate = element.template_uuid + '.' + element.template_version
-        var objectTemplate = proxyMISPElements['objectTemplates'][associatedTemplate]
-        var topPriorityValue = element.Attribute.length
-        if (objectTemplate !== undefined) {
-            var temp = getPriorityValue(element, objectTemplate)
-            topPriorityValue = temp !== false ? temp : topPriorityValue
-        }
+        var topPriorityValue = getTopPriorityValue(element)
         $node = $('<span/>').addClass('hint-object')
         $node.append($('<i/>').addClass('').text('[' + element['meta-category'] + '] '))
             .append($('<span/>').addClass('bold').text(element.name + ' '))
@@ -346,6 +362,7 @@ function MISPElementSuggestionRule(state) {
     var blockTokens = state.tokens
     var tokens, blockToken, currentToken
     var indexOfAllLines, lineOffset, absoluteLine, relativeIndex
+    var tokenMap
     var i, j, l
     for (i = 0, l = blockTokens.length; i < l; i++) {
         blockToken = blockTokens[i]
@@ -364,7 +381,8 @@ function MISPElementSuggestionRule(state) {
                 blockToken.indexOfAllLines = indexOfAllLines
             }
             lineOffset = getLineNumInArrayList(currentToken.content.indexes.start, blockToken.indexOfAllLines.bMarks)
-            var absoluteLine = blockToken.map[0] + lineOffset
+            tokenMap = findBackClosestStartLine(blockTokens, i)
+            var absoluteLine = tokenMap[0] + lineOffset
             var relativeIndex = currentToken.content.indexes.start - blockToken.indexOfAllLines.bMarks[lineOffset]
             state.tokens[i].children[j].content.indexes.lineStart = absoluteLine
             state.tokens[i].children[j].content.indexes.start = relativeIndex
@@ -1416,6 +1434,17 @@ function getPriorityValue(mispObject, objectTemplate) {
     return false
 }
 
+function getTopPriorityValue(object) {
+    var associatedTemplate = object.template_uuid + '.' + object.template_version
+    var objectTemplate = proxyMISPElements['objectTemplates'][associatedTemplate]
+    var topPriorityValue = object.Attribute.length
+    if (objectTemplate !== undefined) {
+        var temp = getPriorityValue(object, objectTemplate)
+        topPriorityValue = temp !== false ? temp : topPriorityValue
+    }
+    return topPriorityValue
+}
+
 function constructTag(tagName) {
     var tagData = proxyMISPElements['tag'][tagName]
     var $info = 'No information about this tag'
@@ -2084,6 +2113,20 @@ function getLineNumInArrayList(index, arrayToSearchInto) {
         }
     }
     return 0
+}
+
+function findBackClosestStartLine(tokens, i) {
+    if (tokens[i].map !== null) {
+        return tokens[i].map
+    }
+    var token
+    for (var j = i-1; j >= 0; j--) {
+        token = tokens[j]
+        if (token.map !== null) {
+            return token.map
+        }
+    }
+    return null
 }
 
 function parseDestinationValue(str, pos, max) {

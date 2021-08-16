@@ -1,15 +1,11 @@
 <div style="border:1px solid #dddddd; margin-top:1px; width:95%; padding:10px">
-<?php
-    if (!$dbEncodingStatus):
-?>
-        <div style="font-size:12pt;padding-left:3px;width:100%;background-color:red;color:white;font-weight:bold;"><?php echo __('Incorrect database encoding setting: Your database connection is currently NOT set to UTF-8. Please make sure to uncomment the \'encoding\' => \'utf8\' line in ') . APP; ?>Config/database.php</div>
-<?php
-    endif;
-?>
-    <h3><?php echo __('MISP version');?></h3>
-    <p><?php echo __('Every version of MISP includes a json file with the current version. This is checked against the latest tag on github, if there is a version mismatch the tool will warn you about it. Make sure that you update MISP regularly.');?></p>
-    <div style="background-color:#f7f7f9;width:100%;">
-        <span><?php echo __('Currently installed version…');?>
+    <?php if (!$dbEncodingStatus):?>
+    <div style="font-size:12pt;padding-left:3px;width:100%;background-color:red;color:white;font-weight:bold;"><?= __('Incorrect database encoding setting: Your database connection is currently NOT set to UTF-8. Please make sure to uncomment the \'encoding\' => \'utf8\' line in ') . APP; ?>Config/database.php</div>
+    <?php endif; ?>
+    <h3><?= __('MISP version');?></h3>
+    <p><?= __('Every version of MISP includes a JSON file with the current version. This is checked against the latest tag on GitHub, if there is a version mismatch the tool will warn you about it. Make sure that you update MISP regularly.');?></p>
+    <div class="diagnostics-box" style="width:100%">
+        <span><?= __('Currently installed version…');?>
             <?php
                 $upToDate = isset($version['upToDate']) ? $version['upToDate'] : null;
                 switch ($upToDate) {
@@ -31,7 +27,7 @@
                 }
             ?>
             <span style="color:<?php echo $fontColour; ?>;">
-                <?= (isset($version['current']) ? $version['current'] : __('Unknown')) . ' (' . h($commit) . ')';
+                <?= (isset($version['current']) ? $version['current'] : __('Unknown')) . ' (' . ($commit ? h($commit) : __('Unknown')) . ')';
                 ?>
                 <?php if ($commit === ''): ?>
                     <br>
@@ -40,23 +36,23 @@
                     </span>
                 <?php endif; ?>
             </span>
-        </span><br />
+        </span><br>
         <span><?php echo __('Latest available version…');?>
             <span style="color:<?php echo $fontColour; ?>;">
-                <?= (isset($version['newest']) ? $version['newest'] : __('Unknown')) . ' (' . (isset($latestCommit) ? $latestCommit : __('Unknown')) . ')' ?>
+                <?= (isset($version['newest']) ? $version['newest'] : __('Unknown')) . ' (' . ($latestCommit ? $latestCommit : __('Unknown')) . ')' ?>
             </span>
-        </span><br />
+        </span><br>
         <span><?php echo __('Status…');?>
-            <span style="color:<?php echo $fontColour; ?>;"><?= $versionText ?></span>
-        </span><br />
+            <span style="color:<?= $fontColour; ?>;"><?= $versionText ?></span>
+        </span><br>
         <span><?php echo __('Current branch…');?>
             <?php
                 $branchColour = $branch == '2.4' ? 'green' : 'red bold';
             ?>
             <span class="<?php echo h($branchColour); ?>">
-                <?=($branch == '2.4') ? h($branch) : __('You are not on a branch, Update MISP will fail'); ?>
+                <?= $branch == '2.4' ? h($branch) : __('You are not on a branch, Update MISP will fail'); ?>
             </span>
-        </span><br />
+        </span><br>
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from GitHub');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
         <a title="<?php echo __('Click the following button to go to the update progress page. This page lists all updates that are currently queued and executed.'); ?>" style="margin-left: 5px;" href="<?php echo $baseurl; ?>/servers/updateProgress/"><i class="fas fa-tasks"></i> <?php echo __('View Update Progress');?></a>
@@ -96,7 +92,7 @@
                     $message = __('File ') . $message;
                     $colour = 'red';
                 }
-                echo $file . '…<span style="color:' . $colour . ';">' . $message . '</span><br />';
+                echo $file . '…<span style="color:' . $colour . ';">' . $message . '</span><br>';
             }
         ?>
     </div>
@@ -110,7 +106,7 @@
                     $message = __('File ') . $message;
                     $colour = 'red';
                 }
-                echo $file . '…<span style="color:' . $colour . ';">' . $message . '</span><br />';
+                echo $file . '…<span style="color:' . $colour . ';">' . $message . '</span><br>';
             }
         ?>
     </div>
@@ -188,7 +184,6 @@
     <p><span class="bold"><?php echo __('PHP ini path');?></span>:… <span class="green"><?php echo h($php_ini); ?></span><br />
     <span class="bold"><?php echo __('PHP Version');?> (><?php echo $phprec; ?> <?php echo __('recommended');?>): </span><span class="<?php echo $phpversions['web']['phpcolour']; ?>"><?php echo h($phpversions['web']['phpversion']) . ' (' . $phpversions['web']['phptext'] . ')';?></span><br />
     <span class="bold"><?php echo __('PHP CLI Version');?> (><?php echo $phprec; ?> <?php echo __('recommended');?>): </span><span class="<?php echo $phpversions['cli']['phpcolour']; ?>"><?php echo h($phpversions['cli']['phpversion']) . ' (' . $phpversions['cli']['phptext'] . ')';?></span></p>
-    <p class="red bold"><?php echo __('Please note that the support for Python versions below 3.6 and below PHP 7.2 has been dropped as of 2020-01-01 and are henceforth considered unsupported. More info: ');?><a href="https://secure.php.net/supported-versions.php">PHP</a>, <a href="https://www.python.org/dev/peps/pep-0373">Python</a>.</p>
     <p><?php echo __('The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.');?></p>
     <?php
         foreach ($phpSettings as $settingName => &$phpSetting):
@@ -236,9 +231,8 @@
         </tbody>
     </table>
 
-    <?php
-        echo '<div style="width:400px;">';
-        echo $this->element('/genericElements/IndexTable/index_table', array(
+    <div style="width:400px;">
+    <?= $this->element('/genericElements/IndexTable/index_table', array(
             'data' => array(
                 'data' => $dbDiagnostics,
                 'skip_pagination' => 1,
@@ -266,25 +260,27 @@
                 'description' => __('Size of each individual table on disk, along with the size that can be freed via SQL optimize. Make sure that you always have at least 3x the size of the largest table in free space in order for the update scripts to work as expected.')
             )
         ));
-        echo '</div>';
     ?>
-        <h4><?php echo __('Schema status');?></h4>
-        <div id="schemaStatusDiv" style="width: 70vw; padding-left: 10px;">
-            <?php echo $this->element('/healthElements/db_schema_diagnostic', array(
-                'checkedTableColumn' => $dbSchemaDiagnostics['checked_table_column'],
-                'dbSchemaDiagnostics' => $dbSchemaDiagnostics['diagnostic'],
-                'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
-                'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version'],
-                'error' => $dbSchemaDiagnostics['error'],
-                'remainingLockTime' => $dbSchemaDiagnostics['remaining_lock_time'],
-                'updateFailNumberReached' => $dbSchemaDiagnostics['update_fail_number_reached'],
-                'updateLocked' => $dbSchemaDiagnostics['update_locked'],
-                'dataSource' => $dbSchemaDiagnostics['dataSource'],
-                'columnPerTable' => $dbSchemaDiagnostics['columnPerTable'],
-                'dbIndexDiagnostics' => $dbSchemaDiagnostics['diagnostic_index'],
-                'indexes' => $dbSchemaDiagnostics['indexes'],
-            )); ?>
-        </div>
+    </div>
+
+    <h4><?php echo __('Schema status');?></h4>
+    <div id="schemaStatusDiv" style="width: 70vw; padding-left: 10px;">
+        <?= $this->element('/healthElements/db_schema_diagnostic', array(
+            'checkedTableColumn' => $dbSchemaDiagnostics['checked_table_column'],
+            'dbSchemaDiagnostics' => $dbSchemaDiagnostics['diagnostic'],
+            'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
+            'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version'],
+            'error' => $dbSchemaDiagnostics['error'],
+            'remainingLockTime' => $dbSchemaDiagnostics['remaining_lock_time'],
+            'updateFailNumberReached' => $dbSchemaDiagnostics['update_fail_number_reached'],
+            'updateLocked' => $dbSchemaDiagnostics['update_locked'],
+            'dataSource' => $dbSchemaDiagnostics['dataSource'],
+            'columnPerTable' => $dbSchemaDiagnostics['columnPerTable'],
+            'dbIndexDiagnostics' => $dbSchemaDiagnostics['diagnostic_index'],
+            'indexes' => $dbSchemaDiagnostics['indexes'],
+        )); ?>
+    </div>
+
     <h3><?= __("Redis info") ?></h3>
     <div class="diagnostics-box">
         <b><?= __('PHP extension version') ?>:</b> <?= $redisInfo['extensionVersion'] ?: ('<span class="red bold">' . __('Not installed.') . '</span>') ?><br>
@@ -293,11 +289,13 @@
         <b><?= __('Memory allocator') ?>:</b> <?= $redisInfo['mem_allocator'] ?><br>
         <b><?= __('Memory usage') ?>:</b> <?= $redisInfo['used_memory_human'] ?>B<br>
         <b><?= __('Peak memory usage') ?>:</b> <?= $redisInfo['used_memory_peak_human'] ?>B<br>
+        <b><?= __('Fragmentation ratio') ?>:</b> <?= $redisInfo['mem_fragmentation_ratio'] ?><br>
         <b><?= __('Total system memory') ?>:</b> <?= $redisInfo['total_system_memory_human'] ?>B
         <?php elseif ($redisInfo['extensionVersion']): ?>
         <span class="red bold">Redis is not available. <?= $redisInfo['connection_error'] ?></span>
         <?php endif; ?>
     </div>
+
     <h3><?php echo __('Advanced attachment handler');?></h3>
         <?php echo __('The advanced attachment tools are used by the add attachment functionality to extract additional data about the uploaded sample.');?>
         <div class="diagnostics-box">
@@ -316,6 +314,7 @@
                 endif;
             ?>
         </div>
+
     <h3><?= __('Attachment scan module') ?></h3>
     <div class="diagnostics-box">
         <?php if ($attachmentScan['status']): ?>
@@ -326,55 +325,45 @@
         <b>Reason:</b> <?= $attachmentScan['error'] ?>
         <?php endif; ?>
     </div>
-    <h3><?php echo __('STIX and Cybox libraries');?></h3>
-    <p><?php echo __('Mitre\'s STIX and Cybox python libraries have to be installed in order for MISP\'s STIX export to work. Make sure that you install them (as described in the MISP installation instructions) if you receive an error below.');?><br />
-    <?php echo __('If you run into any issues here, make sure that both STIX and CyBox are installed as described in the INSTALL.txt file. The required versions are');?>:<br />
-    <b>STIX</b>: <?php echo $stix['stix']['expected'];?><br />
-    <b>CyBox</b>: <?php echo $stix['cybox']['expected'];?><br />
-    <b>mixbox</b>: <?php echo $stix['mixbox']['expected'];?><br />
-    <b>maec</b>: <?php echo $stix['maec']['expected'];?><br />
-    <b>STIX2</b>: <?php echo $stix['stix2']['expected'];?><br />
-    <b>PyMISP</b>: <?php echo $stix['pymisp']['expected'];?><br />
-    <?php echo __('Other versions might work but are not tested / recommended.');?></p>
-    <div class="diagnostics-box">
-        <?php
-            $colour = 'green';
-            $testReadError = false;
-            foreach ($readableFiles as $file => $data) {
-                if (substr($file, -strlen('/stixtest.py')) == '/stixtest.py') {
-                    if ($data > 0) {
-                        $colour = 'red';
-                        echo __('STIX and CyBox') . '… <span class="red">' . __('Could not read test script (stixtest.py).') . '</span>';
-                        $testReadError = true;
-                    }
-                }
-            }
-            if (!$testReadError) {
-                $error_count = 0;
-                $libraries = '';
-                foreach (array('stix', 'cybox', 'mixbox', 'maec', 'stix2', 'pymisp') as $package) {
-                    $lib_colour = 'green';
-                    if ($stix[$package]['status'] == 0) {
-                        $lib_colour = 'red';
-                        $error_count += 1;
-                    }
-                    $libraries = $libraries . strtoupper($package) . __(' library version') . '…<span style="color:' . $lib_colour . ';">' . ${$package . 'Version'}[$stix[$package]['status']] . '</span><br />';
-                }
-                if ($stix['operational'] == 0) {
-                    $colour = 'red';
-                    echo '<b>Current libraries status</b>…<span style="color:' . $colour . ';">' . $stixOperational[$stix['operational']] . '</span><br />';
-                } else {
-                    if ($error_count > 0) {
-                        $colour = 'orange';
-                        echo '<b>Current libraries status</b>…<span style="color:' . $colour . ';">Some versions should be updated</span>:<br />';
-                    } else {
-                        echo '<b>Current libraries status</b>…<span style="color:' . $colour . ';">' . $stixOperational[$stix['operational']] . '</span><br />';
-                    }
-                }
-                echo $libraries;
-            }
-        ?>
-    </div>
+
+    <h3><?= __('STIX and Cybox libraries');?></h3>
+    <p><?= __('Mitre\'s STIX and Cybox python libraries have to be installed in order for MISP\'s STIX export to work. Make sure that you install them (as described in the MISP installation instructions) if you receive an error below.');?><br />
+    <?= __('If you run into any issues here, make sure that both STIX and CyBox are installed as described in the INSTALL.txt file.');?><br>
+
+    <?php if ($stix['operational'] === -1): ?>
+        <b class="red"><?= __('Could not run test script (stixtest.py). Please check error logs for more details.') ?></b>
+    <?php else: ?>
+
+    <b><?= __('Current libraries status') ?>:</b>
+    <?php if ($stix['operational'] === 0): ?>
+    <b class="red bold"><?= __('Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.') ?></b>
+    <?php elseif ($stix['invalid_version']): ?>
+    <span class="orange"><?= __('Some versions should be updated.') ?></span>
+    <?php else: ?>
+    <b class="green"><?= __('OK') ?></b>
+    <?php endif ?>
+    <table class="table table-condensed table-bordered" style="width: 400px">
+        <thead>
+            <tr>
+                <th><?= __('Library') ?></th>
+                <th><?= __('Expected version') ?></th>
+                <th><?= __('Installed version') ?></th>
+                <th><?= __('Status') ?></th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($stix as $name => $library): if (!isset($library['expected'])) continue; ?>
+            <tr>
+                <td><?= h($name) ?></td>
+                <td><?= h($library['expected']) ?></td>
+                <td><?= $library['version'] === 0 ? __('Not installed') : h($library['version']) ?></td>
+                <td><?= $library['status'] ? '<i class="green fa fa-check" role="img" aria-label="' .  __('Correct') . '"></i>' : '<i class="red fa fa-times" role="img" aria-label="' .  __('Incorrect') . '"></i>' ?></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+    <?php endif; ?>
+
     <h3><?php echo __('Yara');?></h3>
     <p><?php echo __('This tool tests whether plyara, the library used by the yara export tool is installed or not.');?></p>
     <div class="diagnostics-box">
@@ -401,6 +390,7 @@
             }
         ?>
     </div>
+
     <h3><?php echo __('ZeroMQ');?></h3>
     <p><?php echo __('This tool tests whether the ZeroMQ extension is installed and functional.');?></p>
     <div class="diagnostics-box">
@@ -432,26 +422,23 @@
     </div>
     <h3><?php echo __('Module System');?></h3>
     <p><?php echo __('This tool tests the various module systems and whether they are reachable based on the module settings.');?></p>
+    <div class="diagnostics-box">
     <?php
-        foreach ($moduleTypes as $type):
+        foreach ($moduleTypes as $type) {
+            $colour = 'red';
+            if (isset($moduleErrors[$moduleStatus[$type]])) {
+                $message = $moduleErrors[$moduleStatus[$type]];
+            } else {
+                $message = h($moduleStatus[$type]);
+            }
+            if ($moduleStatus[$type] === 0) {
+                $colour = 'green';
+            }
+            echo $type . __(' module system') . '…<span style="color:' . $colour . ';">' . $message . '</span><br>';
+        }
     ?>
-        <div class="diagnostics-box">
-            <?php
-                $colour = 'red';
-                if (isset($moduleErrors[$moduleStatus[$type]])) {
-                    $message = $moduleErrors[$moduleStatus[$type]];
-                } else {
-                    $message = h($moduleStatus[$type]);
-                }
-                if ($moduleStatus[$type] === 0) {
-                    $colour = 'green';
-                }
-                echo $type . __(' module system') . '…<span style="color:' . $colour . ';">' . $message . '</span>';
-            ?>
-        </div>
-    <?php
-        endforeach;
-    ?>
+    </div>
+
     <h3><?php echo __('Session table');?></h3>
     <p><?php echo __('This tool checks how large your database\'s session table is. <br />Sessions in CakePHP rely on PHP\'s garbage collection for clean-up and in certain distributions this can be disabled by default resulting in an ever growing cake session table. <br />If you are affected by this, just click the clean session table button below.');?></p>
     <div class="diagnostics-box">
@@ -501,6 +488,7 @@
     </div><br />
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
     <?php echo $this->Form->postButton(__('Remove orphaned attributes'), $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+    <?php echo $this->Form->postButton(__('Remove orphaned correlations'), $baseurl . '/servers/removeOrphanedCorrelations', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
     <?php echo $this->Form->postButton(__('Remove published empty events'), $baseurl . '/events/cullEmptyEvents', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
     <h3><?php echo __('Administrator On-demand Action');?></h3>
     <p><?php echo __('Click the following button to go to the Administrator On-demand Action page.');?></p>

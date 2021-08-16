@@ -1,5 +1,8 @@
 <?php
     echo sprintf('<div%s>', empty($ajax) ? ' class="index"' : '');
+    if (!$advancedEnabled) {
+        echo '<div class="alert">' . __('Advanced auth keys are not enabled.') . '</div>';
+    }
     echo $this->element('genericElements/IndexTable/index_table', [
         'data' => [
             'data' => $data,
@@ -11,6 +14,7 @@
                         'children' => [
                             'data' => [
                                 'type' => 'simple',
+                                'fa-icon' => 'plus',
                                 'text' => __('Add authentication key'),
                                 'class' => 'btn btn-primary',
                                 'onClick' => 'openGenericModal',
@@ -63,11 +67,16 @@
                     'data_path' => 'AuthKey.last_used',
                     'element' => 'datetime',
                     'requirements' => $keyUsageEnabled,
+                    'empty' => __('Never'),
                 ],
                 [
                     'name' => __('Comment'),
                     'sort' => 'AuthKey.comment',
                     'data_path' => 'AuthKey.comment',
+                ],
+                [
+                    'name' => __('Allowed IPs'),
+                    'data_path' => 'AuthKey.allowed_ips',
                 ],
             ],
             'title' => empty($ajax) ? __('Authentication key Index') : false,
@@ -80,7 +89,16 @@
                         'AuthKey.id'
                     ),
                     'icon' => 'eye',
-                    'dbclickAction' => true
+                    'dbclickAction' => true,
+                    'title' => 'View auth key',
+                ],
+                [
+                    'url' => $baseurl . '/auth_keys/edit',
+                    'url_params_data_paths' => array(
+                        'AuthKey.id'
+                    ),
+                    'icon' => 'edit',
+                    'title' => 'Edit auth key',
                 ],
                 [
                     'onclick' => sprintf(
