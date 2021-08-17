@@ -3984,8 +3984,6 @@ class Event extends AppModel
             $server['Server']['internal'] = false;
         }
         // If the event exists...
-        $dateObj = new DateTime();
-        $date = $dateObj->getTimestamp();
         if (count($existingEvent)) {
             $data['Event']['id'] = $existingEvent['Event']['id'];
             $id = $existingEvent['Event']['id'];
@@ -3994,21 +3992,21 @@ class Event extends AppModel
             // edit timestamp newer than existing event timestamp
             if ($force || !isset($data['Event']['timestamp']) || $data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
                 if (!isset($data['Event']['timestamp'])) {
-                    $data['Event']['timestamp'] = $date;
+                    $data['Event']['timestamp'] = time();
                 }
                 if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4) {
                     if (!isset($data['Event']['SharingGroup'])) {
                         if (!isset($data['Event']['sharing_group_id'])) {
-                            return(array('error' => 'Event could not be saved: Sharing group chosen as the distribution level, but no sharing group specified. Make sure that the event includes a valid sharing_group_id or change to a different distribution level.'));
+                            return array('error' => 'Event could not be saved: Sharing group chosen as the distribution level, but no sharing group specified. Make sure that the event includes a valid sharing_group_id or change to a different distribution level.');
                         }
                         if (!$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) {
-                            return(array('error' => 'Event could not be saved: Invalid sharing group or you don\'t have access to that sharing group.'));
+                            return array('error' => 'Event could not be saved: Invalid sharing group or you don\'t have access to that sharing group.');
                         }
                     } else {
                         $data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user, $server);
                         unset($data['Event']['SharingGroup']);
                         if ($data['Event']['sharing_group_id'] === false) {
-                            return (array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.'));
+                            return array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.');
                         }
                     }
                 }
@@ -4019,14 +4017,14 @@ class Event extends AppModel
                 || ($user['Role']['perm_sync'] && $existingEvent['Event']['locked']) || $user['Role']['perm_site_admin']) {
                     if ($user['Role']['perm_sync']) {
                         if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) {
-                            return (array('error' => 'Event could not be saved: The sync user has to have access to the sharing group in order to be able to edit it.'));
+                            return array('error' => 'Event could not be saved: The sync user has to have access to the sharing group in order to be able to edit it.');
                         }
                     }
                 } else {
-                    return (array('error' => 'Event could not be saved: The user used to edit the event is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the event whilst also not being a site administrator.'));
+                    return array('error' => 'Event could not be saved: The user used to edit the event is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the event whilst also not being a site administrator.');
                 }
             } else {
-                return (array('error' => 'Event could not be saved: Event in the request not newer than the local copy.'));
+                return array('error' => 'Event could not be saved: Event in the request not newer than the local copy.');
             }
             $changed = false;
             // If a field is not set in the request, just reuse the old value
@@ -4042,7 +4040,7 @@ class Event extends AppModel
                 }
             }
         } else {
-            return (array('error' => 'Event could not be saved: Could not find the local event.'));
+            return array('error' => 'Event could not be saved: Could not find the local event.');
         }
         if (!empty($data['Event']['published']) && !$user['Role']['perm_publish']) {
             $data['Event']['published'] = 0;
