@@ -126,6 +126,9 @@ class Warninglist extends AppModel
                     }
                 }
             }
+            if (!empty($eventWarnings)) {
+                $this->assignComments($attributes);
+            }
             return $eventWarnings;
         }
 
@@ -196,14 +199,69 @@ class Warninglist extends AppModel
         }
 
         if (!empty($saveToCache)) {
-            $pipe = $redis->multi(Redis::PIPELINE);
+            $pipe = $redis->pipeline();
             foreach ($saveToCache as $attributeKey => $json) {
                 $redis->setex($attributeKey, 8 * 3600, $json); // cache for eight hour
             }
             $pipe->exec();
         }
 
+        if (!empty($eventWarnings)) {
+            $this->assignComments($attributes);
+        }
+
         return $eventWarnings;
+    }
+
+    /**
+     * Assign comments to warninglist hits.
+     * @param array $attributes
+     */
+    private function assignComments(array &$attributes)
+    {
+        $toFetch = [];
+        foreach ($attributes as $attribute) {
+            if (isset($attribute['warnings'])) {
+                foreach ($attribute['warnings'] as $warning) {
+                    $toFetch[$warning['warninglist_id']][] = $warning['match'];
+                }
+            }
+        }
+
+        $conditions = [];
+        foreach ($toFetch as $warninglistId => $values) {
+            $conditions[] = ['AND' => [
+                'warninglist_id' => $warninglistId,
+                'value' => array_unique($values),
+            ]];
+        }
+
+        $entries = $this->WarninglistEntry->find('all', [
+           'conditions' => [
+               'OR' => $conditions,
+               'comment !=' => '',
+           ],
+            'fields' => ['value', 'warninglist_id', 'comment'],
+        ]);
+        if (empty($entries)) {
+            return;
+        }
+
+        $comments = [];
+        foreach ($entries as $entry) {
+            $entry = $entry['WarninglistEntry'];
+            $comments[$entry['warninglist_id']][$entry['value']] = $entry['comment'];
+        }
+
+        foreach ($attributes as &$attribute) {
+            if (isset($attribute['warnings'])) {
+                foreach ($attribute['warnings'] as &$warning) {
+                    if (isset($comments[$warning['warninglist_id']][$warning['match']])) {
+                        $warning['comment'] = $comments[$warning['warninglist_id']][$warning['match']];
+                    }
+                }
+            }
+        }
     }
 
     public function update()
