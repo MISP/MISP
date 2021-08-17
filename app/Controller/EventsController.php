@@ -41,7 +41,7 @@ class EventsController extends AppController
         'proposal' => 0,
         'correlation' => 0,
         'warning' => 0,
-        'deleted' => 0,
+        'deleted' => 2,
         'includeRelatedTags' => 0,
         'includeDecayScore' => 0,
         'toIDS' => 0,
@@ -1272,7 +1272,7 @@ class EventsController extends AppController
         }
         $deleted = 0;
         if (isset($filters['deleted'])) {
-            $deleted = $filters['deleted'] > 0 ? 1 : 0;
+            $deleted = $filters['deleted'] != 2 ? 1 : 0;
         }
         $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('deleted', $deleted);
