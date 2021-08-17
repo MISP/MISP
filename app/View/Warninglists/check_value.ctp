@@ -19,7 +19,7 @@
             <?= __('Result for <i>%s</i>:', h($value))?>
             <ul>
                 <?php foreach ($lists as $list): ?>
-                    <li><a href="<?= $baseurl . '/warninglists/view/' . h($list['id']) ?>"><?= h($list['name']) ?></a></li>
+                    <li><?= h($list['matched']) ?>: <a href="<?= $baseurl . '/warninglists/view/' . h($list['id']) ?>"><?= h($list['name']) ?></a></li>
                 <?php endforeach; ?>
             </ul>
         <?php endforeach; ?>

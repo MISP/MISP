@@ -603,7 +603,7 @@ class Warninglist extends AppModel
         if ($object['to_ids'] || $this->showForAll) {
             foreach ($warninglists as $list) {
                 if (in_array('ALL', $list['types'], true) || in_array($object['type'], $list['types'], true)) {
-                    $result = $this->__checkValue($this->getFilteredEntries($list), $object['value'], $object['type'], $list['Warninglist']['type']);
+                    $result = $this->checkValue($this->getFilteredEntries($list), $object['value'], $object['type'], $list['Warninglist']['type']);
                     if ($result !== false) {
                         $object['warnings'][] = array(
                             'match' => $result[0],
@@ -626,7 +626,7 @@ class Warninglist extends AppModel
      * @param string $listType
      * @return array|false [Matched value, attribute value that matched]
      */
-    private function __checkValue($listValues, $value, $type, $listType)
+    public function checkValue($listValues, $value, $type, $listType)
     {
         if ($type === 'malware-sample' || strpos($type, '|') !== false) {
             $value = explode('|', $value, 2);
@@ -652,11 +652,6 @@ class Warninglist extends AppModel
             }
         }
         return false;
-    }
-
-    public function quickCheckValue($listValues, $value, $type)
-    {
-        return $this->__checkValue($listValues, $value, '', $type) !== false;
     }
 
     /**
@@ -762,7 +757,7 @@ class Warninglist extends AppModel
 
         foreach ($warninglists as $warninglist) {
             if (in_array('ALL', $warninglist['types'], true) || in_array($attribute['type'], $warninglist['types'], true)) {
-                $result = $this->__checkValue($this->getFilteredEntries($warninglist), $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
+                $result = $this->checkValue($this->getFilteredEntries($warninglist), $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
                 if ($result !== false) {
                     return false;
                 }
