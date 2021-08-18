@@ -643,7 +643,7 @@ class Sighting extends AppModel
         return $this->attachOrgToSightings($sightings, $user, $forSync);
     }
 
-    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false)
+    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false, $filters=[])
     {
         if (!in_array($type, array(0, 1, 2))) {
             return 'Invalid type, please change it before you POST 1000000 sightings.';
@@ -677,18 +677,27 @@ class Sighting extends AppModel
             if (!is_array($values)) {
                 $values = array($values);
             }
-            foreach ($values as $value) {
-                foreach (array('value1', 'value2') as $field) {
-                    $conditions['OR'][] = array(
-                        'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value)
-                    );
+            if (empty($filters)) {
+                foreach ($values as $value) {
+                    foreach (array('value1', 'value2') as $field) {
+                        $conditions['OR'][] = array(
+                            'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value)
+                        );
+                    }
                 }
             }
         }
-        $attributes = $this->Attribute->fetchAttributesSimple($user, [
-            'conditions' => $conditions,
-            'fields' => ['Attribute.id', 'Attribute.event_id'],
-        ]);
+        $attributes = [];
+        if (empty($filters)) {
+            $attributes = $this->Attribute->fetchAttributesSimple($user, [
+                'conditions' => $conditions,
+                'fields' => ['Attribute.id', 'Attribute.event_id'],
+            ]);
+        } else {
+            $filters['value'] = $values;
+            $params = $this->Attribute->restSearch($user, 'json', $filters, true);
+            $attributes = $this->Attribute->fetchAttributes($user, $params);
+        }
         if (empty($attributes)) {
             return 'No valid attributes found that match the criteria.';
         }
