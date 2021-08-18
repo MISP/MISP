@@ -2969,23 +2969,30 @@ class Event extends AppModel
 
     public function set_filter_value(&$params, $conditions, $options, $keys = array('Attribute.value1', 'Attribute.value2'))
     {
-        if (!empty($params['value'])) {
-            $valueParts = explode('|', $params['value'], 2);
-            $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
-            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], $keys);
-            // Allows searching for ['value1' => [full, part1], 'value2' => [full, part2]]
-            if (count($valueParts) == 2) {
-                $convertedFilterVal1 = $this->convert_filters($valueParts[0]);
-                $convertedFilterVal2 = $this->convert_filters($valueParts[1]);
-                $conditionVal1 = $this->generic_add_filter([], $convertedFilterVal1, ['Attribute.value1'])['AND'][0]['OR'];
-                $conditionVal2 = $this->generic_add_filter([], $convertedFilterVal2, ['Attribute.value2'])['AND'][0]['OR'];
-                $tmpConditions = [
-                    'AND' => [$conditionVal1, $conditionVal2]
-                ];
-                $conditions['AND'][0]['OR']['OR']['AND'] = [$conditionVal1, $conditionVal2];
-            }
+        if (!is_array($params['value'])) {
+            $params['value'] = [$params['value']];
         }
-        return $conditions;
+        $allConditions = [];
+        foreach($params['value'] as $value) {
+            if (!empty($value)) {
+                $valueParts = explode('|', $value, 2);
+                $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
+                $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], $keys);
+                // Allows searching for ['value1' => [full, part1], 'value2' => [full, part2]]
+                if (count($valueParts) == 2) {
+                    $convertedFilterVal1 = $this->convert_filters($valueParts[0]);
+                    $convertedFilterVal2 = $this->convert_filters($valueParts[1]);
+                    $conditionVal1 = $this->generic_add_filter([], $convertedFilterVal1, ['Attribute.value1'])['AND'][0]['OR'];
+                    $conditionVal2 = $this->generic_add_filter([], $convertedFilterVal2, ['Attribute.value2'])['AND'][0]['OR'];
+                    $tmpConditions = [
+                        'AND' => [$conditionVal1, $conditionVal2]
+                    ];
+                    $conditions['AND'][0]['OR']['OR']['AND'] = [$conditionVal1, $conditionVal2];
+                }
+            }
+            $allConditions['OR'][] = $conditions;
+        }
+        return $allConditions;
     }
 
     public function set_filter_object_name(&$params, $conditions, $options)
