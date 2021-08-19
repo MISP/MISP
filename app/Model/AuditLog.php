@@ -347,7 +347,7 @@ class AuditLog extends AppModel
             ]);
         } elseif ($dataSource === 'Database/Postgres') {
             if (!empty($conditions['org_id'])) {
-                $condOrg = 'WHERE org_id = "' . $conditions['org_id'] . '"';
+                $condOrg = sprintf('WHERE org_id = %s', intval($conditions['org_id']));
             } else {
                 $condOrg = '';
             }
