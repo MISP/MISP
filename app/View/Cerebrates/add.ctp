@@ -12,7 +12,8 @@ $fields = [
     ],
     [
         'field' => 'authkey',
-        'class' => 'span6'
+        'class' => 'span6',
+        'autocomplete' => 'off',
     ],
     [
         'field' => 'org_id',
