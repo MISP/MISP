@@ -174,7 +174,7 @@ class Log extends AppModel
             // cakephp ORM would escape "DATE" datatype in CAST expression
             $condnotinaction = "'" . implode("', '", $conditions['AND']['NOT']['action']) . "'";
             if (!empty($conditions['org'])) {
-                $condOrg = ' AND org = "' . $conditions['org'] . '"';
+                $condOrg = sprintf('AND org = %s', $this->getDataSource()->value($conditions['org']));
             } else {
                 $condOrg = '';
             }

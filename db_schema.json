@@ -437,7 +437,7 @@
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -448,7 +448,7 @@
                 "numeric_precision": null,
                 "collation_name": null,
                 "column_type": "varbinary(16)",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -470,7 +470,7 @@
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
                 "column_type": "varchar(255)",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -514,7 +514,7 @@
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
                 "column_type": "text",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -525,7 +525,7 @@
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -536,7 +536,7 @@
                 "numeric_precision": null,
                 "collation_name": null,
                 "column_type": "blob",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             }
         ],
