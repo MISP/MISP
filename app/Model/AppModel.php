@@ -23,6 +23,7 @@
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('RandomTool', 'Tools');
+App::uses('SyncTool', 'Tools');
 
 class AppModel extends Model
 {
@@ -66,7 +67,7 @@ class AppModel extends Model
                 68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
                 75 => false, 77 => false, 78 => false, 79 => false, 80 => false,
                 81 => false, 82 => false, 83 => false, 84 => false, 85 => false,
-                86 => false, 87 => false
+                86 => false, 87 => false,
             )
         )
     );
@@ -83,7 +84,7 @@ class AppModel extends Model
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
-        69 => false, 70 => false, 71 => true, 72 => true,
+        69 => false, 70 => false, 71 => true, 72 => true, 73 => false,
     );
 
     public $advanced_updates_description = array(
@@ -1578,6 +1579,10 @@ class AppModel extends Model
             case 72:
                 $sqlArray[] = "ALTER TABLE `auth_keys` ADD `read_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `expiration`;";
                 break;
+            case 73:
+                $sqlArray[] = "ALTER TABLE `servers` MODIFY COLUMN `authkey` VARBINARY(255) NOT NULL;";
+                $sqlArray[] = "ALTER TABLE `cerebrates` MODIFY COLUMN `authkey` VARBINARY(255) NOT NULL;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2758,7 +2763,7 @@ class AppModel extends Model
         $commit = $this->checkMIPSCommit();
         $request = array(
             'header' => array(
-                'Authorization' => $server[$model]['authkey'],
+                'Authorization' => SyncTool::decryptAuthkey($server[$model]['authkey']),
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
                 'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),

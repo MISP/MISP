@@ -13,6 +13,14 @@ class ServerShell extends AppShell
 {
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
 
+    public function getOptionParser()
+    {
+        $parser = parent::getOptionParser();
+        $parser->addSubcommand('encryptAuthkeys', [
+            'help' => __('Encrypt server authkeys.'),
+        ]);
+    }
+
     public function list()
     {
         $servers = $this->Server->find('all', [
@@ -72,7 +80,6 @@ class ServerShell extends AppShell
 
         $servers = $this->Server->find('list', array(
             'conditions' => array('Server.pull' => 1),
-            'recursive' => -1,
             'order' => 'Server.priority',
             'fields' => array('Server.id', 'Server.name'),
         ));
@@ -577,6 +584,26 @@ class ServerShell extends AppShell
         }
         $this->Task->id = $task['Task']['id'];
         $this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.');
+    }
+
+    public function encryptAuthkeys()
+    {
+        if (!Configure::read('MISP.authkey_encryption')) {
+            $this->error("Authkey encryption is not enabled.");
+        }
+
+        $servers = $this->Server->find('list', [
+            'fields' => ['id', 'authkey'],
+        ]);
+        foreach ($servers as $id => $authkey) {
+            if (!SyncTool::isAuthkeyEncrypted($authkey)) {
+                // Save again, so authkey will be encrypted
+                $this->Server->save([
+                    'id' => $id,
+                    'authkey' => $authkey,
+                ], false);
+            }
+        }
     }
 
     /**

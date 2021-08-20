@@ -69,6 +69,50 @@ class SyncTool
     }
 
     /**
+     * @param string $authkey
+     * @return bool
+     */
+    public static function isAuthkeyEncrypted($authkey)
+    {
+        return strlen($authkey) !== 40;
+    }
+
+    /**
+     * @param string $authkey
+     * @return string
+     * @throws CakeException
+     */
+    public static function encryptAuthkey($authkey)
+    {
+        if (!self::isAuthkeyEncrypted($authkey) && Configure::read('MISP.authkey_encryption')) {
+            $authkey = Security::encrypt($authkey, Configure::read('MISP.authkey_encryption'));
+        }
+        return $authkey;
+    }
+
+    /**
+     * @param string $authkey
+     * @return string
+     * @throws Exception
+     */
+    public static function decryptAuthkey($authkey)
+    {
+        if (!self::isAuthkeyEncrypted($authkey)) {
+            return $authkey;
+        }
+        $authkeyEncryption = Configure::read('MISP.authkey_encryption');
+        if ($authkeyEncryption) {
+            $authkey = Security::decrypt($authkey, $authkeyEncryption);
+            if ($authkey === false) {
+                throw new Exception("Could not decrypt auth key.");
+            }
+        } else {
+            throw new Exception("Auth key is encrypted, but encryption key (`MISP.authkey_encryption`) is not provided.");
+        }
+        return $authkey;
+    }
+
+    /**
      * @param array $server
      * @return array|void
      * @throws Exception

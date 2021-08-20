@@ -21,6 +21,13 @@ class Cerebrate extends AppModel
         )
     );
 
+    public function beforeSave($options = array())
+    {
+        if (!empty($this->data['Cerebrate']['authkey'])) {
+            $this->data['Cerebrate']['authkey'] = SyncTool::encryptAuthkey($this->data['Cerebrate']['authkey']);
+        }
+    }
+
     public function queryInstance($options) {
         $url = $options['cerebrate']['Cerebrate']['url'] . $options['path'];
         $url_params = [];

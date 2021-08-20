@@ -173,7 +173,9 @@ class Server extends AppModel
 
     public function beforeSave($options = array())
     {
-        $this->data['Server']['url'] = rtrim($this->data['Server']['url'], '/');
+        if (!empty($this->data['Server']['url'] )) {
+            $this->data['Server']['url'] = rtrim($this->data['Server']['url'], '/');
+        }
         if (empty($this->data['Server']['id'])) {
             $max_prio = $this->find('first', array(
                 'recursive' => -1,
@@ -186,6 +188,9 @@ class Server extends AppModel
                 $max_prio = $max_prio['Server']['priority'];
             }
             $this->data['Server']['priority'] = $max_prio + 1;
+        }
+        if (!empty($this->data['Server']['authkey'])) {
+            $this->data['Server']['authkey'] = SyncTool::encryptAuthkey($this->data['Server']['authkey']);
         }
         return true;
     }

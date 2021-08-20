@@ -82,6 +82,7 @@
             $this->Form->input('authkey', [
                 'placeholder' => __('Leave empty to use current key'),
                 'autocomplete' => 'off',
+                'type' => 'input',
             ])
         );
         echo '<div class = "input clear" style="width:100%;"><hr /></div>';

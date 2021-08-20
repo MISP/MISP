@@ -9,7 +9,7 @@ App::uses('SecurityAudit', 'Tools');
  */
 class ServersController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');   // XXX ACL component
+    public $components = array('Security', 'RequestHandler');   // XXX ACL component
 
     public $paginate = array(
         'limit' => 60,
@@ -83,11 +83,11 @@ class ServersController extends AppController
             $this->set('servers', $servers);
             $collection = array();
             $collection['orgs'] = $this->Server->Organisation->find('list', array(
-                  'fields' => array('id', 'name'),
+                'fields' => array('id', 'name'),
             ));
             $this->loadModel('Tag');
             $collection['tags'] = $this->Tag->find('list', array(
-                  'fields' => array('id', 'name'),
+                'fields' => array('id', 'name'),
             ));
             $this->set('collection', $collection);
         }
