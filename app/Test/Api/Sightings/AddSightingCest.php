@@ -24,7 +24,7 @@ class AddSightingCest
         $I->seeResponseIsJson();
     }
 
-    public function testIndexReturnsExpectedSighting(ApiTester $I): void
+    public function testAddReturnsExpectedSighting(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;
@@ -55,7 +55,6 @@ class AddSightingCest
                 'org_id' => $orgId
             ]
         );
-        $I->haveInDatabase('sightings', $fakeSighting->toDatabase());
 
         $I->sendPost(sprintf(self::URL, $attributeId), $fakeSighting->toRequest());
 
