@@ -117,6 +117,15 @@ class ServerSyncTool
     }
 
     /**
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function getAvailableSyncFilteringRules()
+    {
+        return $this->get('/servers/getAvailableSyncFilteringRules');
+    }
+
+    /**
      * @return array
      * @throws HttpSocketJsonException
      * @throws HttpSocketHttpException
