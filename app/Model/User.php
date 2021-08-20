@@ -68,7 +68,7 @@ class User extends AppModel
         'email' => array(
             'emailValidation' => array(
                 'rule' => array('validateEmail'),
-                'message' => 'Please nter a valid email address.',
+                'message' => 'Please enter a valid email address.',
                 'required' => true,
             ),
             'unique' => array(

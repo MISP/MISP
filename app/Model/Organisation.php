@@ -36,7 +36,8 @@ class Organisation extends AppModel
         'uuid' => array(
             'unique' => array(
                 'rule' => 'isUnique',
-                'message' => 'An organisation with this UUID already exists.'
+                'message' => 'An organisation with this UUID already exists.',
+                'on' => 'create',
             ),
             'uuid' => array(
                 'rule' => 'uuid',
