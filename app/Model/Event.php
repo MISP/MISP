@@ -1332,37 +1332,22 @@ class Event extends AppModel
     }
 
     /**
-     * Download event from remote server.
+     * Download event metadata from remote server.
      *
      * @param int $eventId
      * @param array $server
-     * @param null|HttpSocket $HttpSocket
-     * @param boolean $metadataOnly, if True, we only retrieve the metadata, without attributes and attachments which is much faster
-     * @return array
+     * @param bool $minimal Return just minimal event response
+     * @return array|null Null when event doesn't exists on remote server
      * @throws Exception
      */
-    public function downloadEventFromServer($eventId, $server, HttpSocket $HttpSocket=null, $metadataOnly=false)
+    public function downloadEventMetadataFromServer($eventId, $server, $minimal = false)
     {
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        if ($metadataOnly) {
-            $uri = $url . '/events/index';
-            $data = json_encode(['eventid' => $eventId]);
-            $response = $HttpSocket->post($uri, $data, $request);
-        } else {
-            $uri = $url . '/events/view/' . $eventId . '/deleted[]:0/deleted[]:1/excludeGalaxy:1';
-            if (empty($server['Server']['internal'])) {
-                $uri = $uri . '/excludeLocalTags:1';
-            }
-            $response = $HttpSocket->get($uri, [], $request);
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        $data = $serverSync->eventIndex(['eventid' => $eventId, 'minimal' => $minimal ? '1' : '0'])->json();
+        if (empty($data)) {
+            return null;
         }
-
-        if (!$response->isOk()) {
-            throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
-        }
-
-        return $this->jsonDecode($response->body);
+        return $data;
     }
 
     public function quickDelete($event)
