@@ -583,12 +583,12 @@ class Server extends AppModel
         }
         $pulledProposals = $pulledSightings = 0;
         if ($technique === 'full' || $technique === 'update') {
-            $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
+            $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $serverSync);
 
             if ($jobId) {
                 $job->saveProgress($jobId, 'Pulling sightings.', 75);
             }
-            $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
+            $pulledSightings = $eventModel->Sighting->pullSightings($user, $serverSync);
         }
         if ($jobId) {
             $job->saveProgress($jobId, 'Pull completed.', 100);
