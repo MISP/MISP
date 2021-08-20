@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
 App::uses('CidrTool', 'Tools');
+App::uses('BlowfishPasswordHasherConstant', 'Tools');
 
 /**
  * @property User $User
@@ -331,6 +332,6 @@ class AuthKey extends AppModel
      */
     private function getHasher()
     {
-        return new BlowfishPasswordHasher();
+        return new BlowfishPasswordHasherConstant();
     }
 }
