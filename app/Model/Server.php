@@ -2467,44 +2467,34 @@ class Server extends AppModel
             $clientCertificate = ['error' => $e->getMessage()];
         }
 
-        $HttpSocket = $this->setupHttpSocket($server, null, 5);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/servers/getVersion';
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
 
         try {
-            $response = $HttpSocket->get($uri, false, $request);
-            if ($response === false) {
-                throw new Exception("Connection failed for unknown reason.");
+            $info = $serverSync->info();
+            return ['status' => 1, 'info' => $info, 'client_certificate' => $clientCertificate];
+
+        } catch (HttpSocketHttpException $e) {
+            if ($e->getCode() === 403) {
+                return ['status' => 4, 'client_certificate' => $clientCertificate];
+            } else if ($e->getCode() === 405) {
+                try {
+                    $responseText = $e->getResponse()->json()['message'];
+                    if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') {
+                        return array('status' => 5, 'client_certificate' => $clientCertificate);
+                    } elseif ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') {
+                        return array('status' => 6, 'client_certificate' => $clientCertificate);
+                    }
+                } catch (Exception $e) {
+                    // pass
+                }
             }
+            $response = $e->getResponse();
+        } catch (HttpSocketJsonException $e) {
+            $response = $e->getResponse();
         } catch (Exception $e) {
             $logTitle = 'Error: Connection test failed. Reason: ' .  $e->getMessage();
             $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $logTitle);
-            return array('status' => 2, 'client_certificate' => $clientCertificate);
-        }
-
-        if ($response->code == '403') {
-            return array('status' => 4, 'client_certificate' => $clientCertificate);
-        } else if ($response->code == '405') {
-            try {
-                $responseText = $this->jsonDecode($response->body)['message'];
-                if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') {
-                    return array('status' => 5, 'client_certificate' => $clientCertificate);
-                } elseif ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') {
-                    return array('status' => 6, 'client_certificate' => $clientCertificate);
-                }
-            } catch (Exception $e) {
-                // pass
-            }
-        } else if ($response->isOk()) {
-            try {
-                $info = $this->jsonDecode($response->body());
-                if (!isset($info['version'])) {
-                    throw new Exception("Server returns JSON response, but doesn't contain required 'version' field.");
-                }
-                return array('status' => 1, 'info' => $info, 'client_certificate' => $clientCertificate);
-            } catch (Exception $e) {
-                // Even if server returns OK status, that doesn't mean that connection to another MISP instance works
-            }
+            return ['status' => 2, 'client_certificate' => $clientCertificate];
         }
 
         $logTitle = 'Error: Connection test failed. Returned data is in the change field.';
@@ -2512,7 +2502,7 @@ class Server extends AppModel
             'response' => ['', $response->body],
             'response-code' => ['', $response->code],
         ]);
-        return array('status' => 3, 'client_certificate' => $clientCertificate);
+        return ['status' => 3, 'client_certificate' => $clientCertificate];
     }
 
     /**
