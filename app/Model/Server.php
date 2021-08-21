@@ -2449,10 +2449,11 @@ class Server extends AppModel
 
     /**
      * @param array $server
+     * @param bool $withPostTest
      * @return array
      * @throws JsonException
      */
-    public function runConnectionTest(array $server)
+    public function runConnectionTest(array $server, $withPostTest = true)
     {
         App::uses('SyncTool', 'Tools');
         try {
@@ -2460,8 +2461,8 @@ class Server extends AppModel
             if ($clientCertificate) {
                 $clientCertificate['valid_from'] = $clientCertificate['valid_from'] ? $clientCertificate['valid_from']->format('c') : __('Not defined');
                 $clientCertificate['valid_to'] = $clientCertificate['valid_to'] ? $clientCertificate['valid_to']->format('c') : __('Not defined');
-                $clientCertificate['public_key_size'] = $clientCertificate['public_key_size'] ?: __('Unknwon');
-                $clientCertificate['public_key_type'] = $clientCertificate['public_key_type'] ?: __('Unknwon');
+                $clientCertificate['public_key_size'] = $clientCertificate['public_key_size'] ?: __('Unknown');
+                $clientCertificate['public_key_type'] = $clientCertificate['public_key_type'] ?: __('Unknown');
             }
         } catch (Exception $e) {
             $clientCertificate = ['error' => $e->getMessage()];
@@ -2471,7 +2472,17 @@ class Server extends AppModel
 
         try {
             $info = $serverSync->info();
-            return ['status' => 1, 'info' => $info, 'client_certificate' => $clientCertificate];
+            $response = [
+                'status' => 1,
+                'info' => $info,
+                'client_certificate' => $clientCertificate,
+            ];
+
+            if ($withPostTest) {
+                $response['post'] = $serverSync->isSupported(ServerSyncTool::FEATURE_POST_TEST) ? $this->runPOSTtest($serverSync) : null;
+            }
+
+            return $response;
 
         } catch (HttpSocketHttpException $e) {
             if ($e->getCode() === 403) {
@@ -2506,18 +2517,16 @@ class Server extends AppModel
     }
 
     /**
-     * @param array $server
+     * @param ServerSyncTool $serverSync
      * @return array
-     * @throws JsonException
+     * @throws Exception
      */
-    public function runPOSTtest(array $server)
+    private function runPOSTtest(ServerSyncTool $serverSync)
     {
         $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
         if (!$testFile) {
             throw new Exception("Could not load payload for POST test.");
         }
-
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
 
         try {
             $response = $serverSync->postTest($testFile);
@@ -2525,9 +2534,9 @@ class Server extends AppModel
             $rawBody = $response->body;
             $response = $response->json();
         } catch (Exception $e) {
-            $this->logException("Invalid response for remote server {$server['Server']['name']} POST test.", $e);
+            $this->logException("Invalid response for remote server {$serverSync->server()['Server']['name']} POST test.", $e);
             $title = 'Error: POST connection test failed. Reason: ' . $e->getMessage();
-            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $serverSync->serverId(), $title);
             return ['status' => 8];
         }
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
@@ -2540,7 +2549,7 @@ class Server extends AppModel
             }
 
             $title = 'Error: POST connection test failed due to the message body not containing the expected data. Response: ' . PHP_EOL . PHP_EOL . $responseString;
-            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $serverSync->serverId(), $title);
             return ['status' => 9, 'content-encoding' => $contentEncoding];
         }
         $headers = array('Accept', 'Content-type');
@@ -2548,7 +2557,7 @@ class Server extends AppModel
             if (!isset($response['headers'][$header]) || $response['headers'][$header] !== 'application/json') {
                 $responseHeader = isset($response['headers'][$header]) ? $response['headers'][$header] : 'Header was not set.';
                 $title = 'Error: POST connection test failed due to a header ' . $header . ' not matching the expected value. Expected: "application/json", received "' . $responseHeader . '"';
-                $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
+                $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $serverSync->serverId(), $title);
                 return ['status' => 10, 'content-encoding' => $contentEncoding];
             }
         }

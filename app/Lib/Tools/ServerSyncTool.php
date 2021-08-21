@@ -7,7 +7,8 @@ class ServerSyncTool
         FEATURE_GZIP = 'gzip',
         FEATURE_ORG_RULE = 'org_rule',
         FEATURE_FILTER_SIGHTINGS = 'filter_sightings',
-        FEATURE_PROPOSALS = 'proposals';
+        FEATURE_PROPOSALS = 'proposals',
+        FEATURE_POST_TEST = 'post_test';
 
     /** @var array */
     private $server;
@@ -179,6 +180,14 @@ class ServerSyncTool
     }
 
     /**
+     * @return int
+     */
+    public function serverId()
+    {
+        return $this->server['Server']['id'];
+    }
+
+    /**
      * @param string $flag
      * @return bool
      * @throws HttpSocketJsonException
@@ -201,6 +210,9 @@ class ServerSyncTool
             case self::FEATURE_PROPOSALS:
                 $version = explode('.', $info['version']);
                 return $version[0] == 2 && $version[1] == 4 && $version[2] >= 111;
+            case self::FEATURE_POST_TEST:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] > 68;
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }

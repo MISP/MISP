@@ -1662,9 +1662,6 @@ class ServersController extends AppController
                 $mismatch = false;
                 $newer = false;
                 $parts = array('major', 'minor', 'hotfix');
-                if ($version[0] == 2 && $version[1] == 4 && $version[2] > 68) {
-                    $post = $this->Server->runPOSTTest($server);
-                }
                 foreach ($parts as $k => $v) {
                     if (!$mismatch) {
                         if ($version[$k] > $local_version[$v]) {
@@ -1693,8 +1690,8 @@ class ServersController extends AppController
                     'version' => implode('.', $version),
                     'mismatch' => $mismatch,
                     'newer' => $newer,
-                    'post' => isset($post) ? $post['status'] : 'too old',
-                    'response_encoding' => isset($post['content-encoding']) ? $post['content-encoding'] : null,
+                    'post' => isset($result['post']) ? $result['post']['status'] : 'too old',
+                    'response_encoding' => isset($result['post']['content-encoding']) ? $result['post']['content-encoding'] : null,
                     'request_encoding' => isset($result['info']['request_encoding']) ? $result['info']['request_encoding'] : null,
                     'client_certificate' => $result['client_certificate'],
                 ], 'json');
