@@ -1634,7 +1634,7 @@ class ServersController extends AppController
                 'Authorization' => isset($headers['authorization']) ? 'OK' : 0,
             ],
         ];
-        return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+        return $this->RestResponse->viewData($result, 'json');
     }
 
     public function getRemoteUser($id)
@@ -1655,18 +1655,9 @@ class ServersController extends AppController
         $result = $this->Server->runConnectionTest($server);
         if ($result['status'] == 1) {
             if (isset($result['info']['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $result['info']['version'])) {
-                $perm_sync = false;
-                if (isset($result['info']['perm_sync'])) {
-                    $perm_sync = $result['info']['perm_sync'];
-                }
-                $perm_sighting = false;
-                if (isset($result['info']['perm_sighting'])) {
-                    $perm_sighting = $result['info']['perm_sighting'];
-                }
-                App::uses('Folder', 'Utility');
-                $file = new File(ROOT . DS . 'VERSION.json', true);
-                $local_version = json_decode($file->read(), true);
-                $file->close();
+                $perm_sync = isset($result['info']['perm_sync']) ? $result['info']['perm_sync'] : false;
+                $perm_sighting = isset($result['info']['perm_sighting']) ? $result['info']['perm_sighting'] : false;
+                $local_version = $this->Server->checkMISPVersion();
                 $version = explode('.', $result['info']['version']);
                 $mismatch = false;
                 $newer = false;
