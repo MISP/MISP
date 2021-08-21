@@ -4,6 +4,7 @@ App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
 App::uses('GpgTool', 'Tools');
 App::uses('SendEmail', 'Tools');
+App::uses('BlowfishPasswordHasherConstant', 'Tools');
 
 /**
  * @property Log $Log
@@ -1007,7 +1008,7 @@ class User extends AppModel
             App::uses('SimplePasswordHasher', 'Controller/Component/Auth');
             $passwordHasher = new SimplePasswordHasher();
         } else {
-            $passwordHasher = new BlowfishPasswordHasher();
+            $passwordHasher = new BlowfishPasswordHasherConstant();
         }
         $hashed = $passwordHasher->check($password, $currentUser['User']['password']);
         return $hashed;
