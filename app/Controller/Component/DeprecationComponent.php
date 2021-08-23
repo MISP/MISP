@@ -1,6 +1,4 @@
 <?php
-
-
 class DeprecationComponent extends Component
 {
     public $redis = false;
@@ -10,7 +8,7 @@ class DeprecationComponent extends Component
      *  - simple controller->action structure
      *  - each endpoint can be set to to a deprecation warning message or false
      */
-    public $deprecatedEndpoints = false;
+    private $deprecatedEndpoints;
 
     public function initialize(Controller $controller) {
         $this->deprecatedEndpoints = array(
@@ -59,24 +57,18 @@ class DeprecationComponent extends Component
         if ($this->redis) {
             @$this->redis->hincrby(
                 'misp:deprecation',
-                sprintf(
-                    '%s:%s:%s',
-                    $controller,
-                    $action,
-                    $user_id
-                ),
+                "$controller:$action:$user_id",
                 1
             );
-            $result = $this->redis->hGetAll('misp:deprecation');
         }
         return false;
     }
 
     public function getDeprecatedAccessList($model)
     {
+        $rearranged = array();
         $this->redis = $model->setupRedis();
         if ($this->redis) {
-            $rearranged = array();
             @$result = $this->redis->hGetAll('misp:deprecation');
             if (!empty($result)) {
                 foreach ($result as $key => $value) {
