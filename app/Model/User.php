@@ -226,8 +226,9 @@ class User extends AppModel
         'Containable'
     );
 
-    public function __construct($id = false, $table = null, $ds = null) {
-        parent::__construct();
+    public function __construct($id = false, $table = null, $ds = null)
+    {
+        parent::__construct($id, $table, $ds);
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $db_version = $this->AdminSetting->find('first', [
             'recursive' => -1,
@@ -1207,7 +1208,7 @@ class User extends AppModel
         // write to syslogd as well
         App::import('Lib', 'SysLog.SysLog');
         $syslog = new SysLog();
-        $syslog->write('notice', "$description -- $action" . (empty($fieldResult) ? '' : ' -- ' . $result['Log']['change']));
+        $syslog->write('notice', "$description -- $action" . (empty($fieldsResult) ? '' : ' -- ' . $result['Log']['change']));
     }
 
     /**

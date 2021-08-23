@@ -2997,7 +2997,6 @@ class AppModel extends Model
             return $delta;
         }
         $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1);
-        $multiplier = $multiplierArray['d'];
         $lastChar = strtolower(substr($delta, -1));
         if (!is_numeric($lastChar) && array_key_exists($lastChar, $multiplierArray)) {
             $multiplier = $multiplierArray[$lastChar];

@@ -210,7 +210,7 @@ class Organisation extends AppModel
                         'conditions' => array('name' => $name),
                 ));
                 if ($existingOrgByName) {
-                    $organisation['name'] = $organisation['name'] . '_' . rand(0, 9999);
+                    $organisation['name'] = $organisation['name'] . '_' . mt_rand(0, 9999);
                 }
                 $organisation['uuid'] = $uuid;
             }

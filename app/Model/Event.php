@@ -771,7 +771,7 @@ class Event extends AppModel
 
     /**
      * @param array $user
-     * @param int $id Event ID when $scope is 'event', Attribute ID when $scope is 'attribute'
+     * @param int|array $id Event ID when $scope is 'event', Attribute ID when $scope is 'attribute'
      * @param bool $shadowAttribute
      * @param string $scope 'event' or 'attribute'
      * @return array
@@ -2401,7 +2401,7 @@ class Event extends AppModel
         unset($clusters);
 
         if (isset($event['EventTag'])) {
-            foreach ($event['EventTag'] as $etk => $eventTag) {
+            foreach ($event['EventTag'] as $eventTag) {
                 if (!$eventTag['Tag']['is_galaxy']) {
                     continue;
                 }
