@@ -20,6 +20,7 @@
 import argparse
 import json
 import sys
+import traceback
 from pathlib import Path
 from stix2.base import STIXJSONEncoder
 from typing import Union
@@ -56,7 +57,12 @@ def _process_misp_files(version: str, input_names: Union[list, None], debug: boo
             _handle_errors(errors)
         print(json.dumps({'success': 1}))
     except Exception as e:
-        print(json.dumps({'error': e.__str__()}))
+        print(json.dumps(
+            {
+                'error': e.__str__(),
+                'traceback': ''.join(traceback.format_tb(e.__traceback__))
+            }
+        ))
 
 
 if __name__ == "__main__":

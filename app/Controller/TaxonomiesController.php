@@ -113,6 +113,55 @@ class TaxonomiesController extends AppController
         $this->set('title_for_layout', __('%s Taxonomy Library', h(strtoupper($taxonomy['Taxonomy']['namespace']))));
     }
 
+    public function export($id)
+    {
+        $taxonomy = $this->Taxonomy->find('first', [
+            'recursive' => -1,
+            'contain' => ['TaxonomyPredicate' => ['TaxonomyEntry']],
+            'conditions' => is_numeric($id) ? ['Taxonomy.id' => $id] : ['LOWER(Taxonomy.namespace)' => mb_strtolower($id)],
+        ]);
+        if (empty($taxonomy)) {
+            throw new NotFoundException(__('Taxonomy not found.'));
+        }
+
+        $data = [
+            'namespace' => $taxonomy['Taxonomy']['namespace'],
+            'description' => $taxonomy['Taxonomy']['description'],
+            'version' => (int)$taxonomy['Taxonomy']['version'],
+            'exclusive' => $taxonomy['Taxonomy']['exclusive'],
+            'predicates' => [],
+        ];
+
+        foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
+            $predicateOutput = [];
+            foreach (['value', 'expanded', 'colour', 'description', 'exclusive', 'numerical_value'] as $field) {
+                if (isset($predicate[$field]) && !empty($predicate[$field])) {
+                    $predicateOutput[$field] = $predicate[$field];
+                }
+            }
+            $data['predicates'][] = $predicateOutput;
+
+            if (!empty($predicate['TaxonomyEntry'])) {
+                $entries = [];
+                foreach ($predicate['TaxonomyEntry'] as $entry) {
+                    $entryOutput = [];
+                    foreach(['value', 'expanded', 'colour', 'description', 'exclusive', 'numerical_value'] as $field) {
+                        if (isset($entry[$field]) && !empty($entry[$field])) {
+                            $entryOutput[$field] = $entry[$field];
+                        }
+                    }
+                    $entries[] = $entryOutput;
+                }
+                $data['values'][] = [
+                    'predicate' => $predicate['value'],
+                    'entry' => $entries,
+                ];
+            }
+        }
+
+        return $this->RestResponse->viewData($data, 'json');
+    }
+
     public function enable($id)
     {
         if (!$this->_isSiteAdmin() || !$this->request->is('Post')) {

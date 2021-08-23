@@ -981,14 +981,14 @@ class GalaxyClustersController extends AppController
     /**
      * @param  mixed $id ID or UUID of the cluster
      */
-    public function viewRelations($id)
+    public function viewRelations($id, $includeInbound=1)
     {
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This function can only be reached via AJAX.');
         }
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', true, true);
         $existingRelations = $this->GalaxyCluster->GalaxyClusterRelation->getExistingRelationships();
-        $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster);
+        $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster, $includeInbound);
 
         App::uses('ClusterRelationsTreeTool', 'Tools');
         $grapher = new ClusterRelationsTreeTool();
@@ -998,9 +998,16 @@ class GalaxyClustersController extends AppController
         $this->set('existingRelations', $existingRelations);
         $this->set('cluster', $cluster);
         $relations = $cluster['GalaxyCluster']['GalaxyClusterRelation'];
+        if ($includeInbound && !empty($cluster['GalaxyCluster']['TargetingClusterRelation'])) {
+            foreach ($cluster['GalaxyCluster']['TargetingClusterRelation'] as $targetingCluster) {
+                $targetingCluster['isInbound'] = true;
+                $relations[] = $targetingCluster;
+            }
+        }
         $this->set('passedArgs', json_encode([]));
         $this->set('relations', $relations);
         $this->set('tree', $tree);
+        $this->set('includeInbound', $includeInbound);
         $this->loadModel('Attribute');
         $distributionLevels = $this->Attribute->distributionLevels;
         unset($distributionLevels[4]);
@@ -1011,15 +1018,18 @@ class GalaxyClustersController extends AppController
     /**
      * @param  mixed $id ID or UUID of the cluster
      */
-    public function viewRelationTree($id)
+    public function viewRelationTree($id, $includeInbound=1)
     {
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
-        $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster);
+        $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster, $includeInbound);
         App::uses('ClusterRelationsTreeTool', 'Tools');
         $grapher = new ClusterRelationsTreeTool();
         $grapher->construct($this->Auth->user(), $this->GalaxyCluster);
         $tree = $grapher->getTree($cluster);
         $this->set('tree', $tree);
+        $this->set('cluster', $cluster);
+        $this->set('includeInbound', $includeInbound);
+        $this->set('testtest', 'testtest');
         $this->render('/Elements/GalaxyClusters/view_relation_tree');
     }
 }

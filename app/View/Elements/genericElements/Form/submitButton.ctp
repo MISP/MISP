@@ -26,4 +26,3 @@
             empty($text) ? __('Submit') : h($text)
         );
     }
-?>

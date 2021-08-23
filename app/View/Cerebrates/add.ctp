@@ -1,4 +1,5 @@
 <?php
+$modelForForm = 'Cerebrates';
 $edit = $this->request->params['action'] === 'edit' ? true : false;
 $fields = [
     [
@@ -16,10 +17,9 @@ $fields = [
     [
         'field' => 'org_id',
         'label' => 'Owner Organisation',
-        'type' => 'select',
         'options' => $dropdownData['org_id'],
         'class' => 'span6',
-        'searchable' => 1
+        'type' => 'dropdown'
     ],
     [
         'field' => 'description',
@@ -40,6 +40,7 @@ $fields = [
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
         'description' => false,
+        'model' => 'Cerebrate',
         'title' => $edit ? __('Edit Cerebrate connection') : __('Add Cerebrate connection'),
         'fields' => $fields,
         'submit' => [
@@ -52,4 +53,3 @@ echo $this->element('genericElements/Form/genericForm', [
 if (!$ajax) {
     echo $this->element('/genericElements/SideMenu/side_menu', $menuData);
 }
-?>

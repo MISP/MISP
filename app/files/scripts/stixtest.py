@@ -47,13 +47,5 @@ try:
 except Exception:
     results['success'] = 0
 
-print(json.dumps({
-    'success': results['success'],
-    'stix': results['stix'],
-    'cybox': results['cybox'],
-    'mixbox': results['mixbox'],
-    'maec': results['maec'],
-    'stix2': results['stix2'],
-    'pymisp': results['pymisp']
-}))
+print(json.dumps(results))
 sys.exit(0)
