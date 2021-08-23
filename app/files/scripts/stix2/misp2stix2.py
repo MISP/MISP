@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-#    Copyright (C) 2017-2021 CIRCL Computer Incident Response Center Luxembourg (smile gie)
+#    Copyright (C) 2017-2021 CIRCL Computer Incident Response Center Luxembourg (securitymadein.lu gie)
 #    Copyright (C) 2017-2021 Christian Studer
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -17,13 +17,15 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import argparse
 import json
 import sys
 from pathlib import Path
 from stix2.base import STIXJSONEncoder
+from typing import Union
 
 sys.path.append(str(Path(__file__).resolve().parent.parent / 'misp-stix'))
-from misp_stix_converter import MISPtoSTIX20Parser
+from misp_stix_converter import MISPtoSTIX20Parser, MISPtoSTIX21Parser
 
 
 def _handle_errors(errors: dict):
@@ -34,9 +36,13 @@ def _handle_errors(errors: dict):
         print(f'Errors encountered while parsing {identifier}:\n - {values}', file=sys.stderr)
 
 
-def _process_misp_files(input_names: list):
+def _process_misp_files(version: str, input_names: Union[list, None], debug: bool):
+    if input_names is None:
+        print('No input file provided.', file=sys.stderr)
+        print(json.dumps({'success': 1}))
+        return
     try:
-        parser = MISPtoSTIX20Parser()
+        parser = MISPtoSTIX20Parser() if version == '2.0' else MISPtoSTIX21Parser()
         for name in input_names[:-1]:
             parser.parse_json_content(name)
             with open(f'{name}.out', 'wt', encoding='utf-8') as f:
@@ -54,4 +60,12 @@ def _process_misp_files(input_names: list):
 
 
 if __name__ == "__main__":
-    _process_misp_files(sys.argv[1:])
+    argparser = argparse.ArgumentParser(description='Export MISP into STIX2.')
+    argparser.add_argument('-v', '--version', default='2.0', choices=['2.0', '2.1'], help='STIX version (2.0 or 2.1).')
+    argparser.add_argument('-i', '--input', nargs='+', help='Input file(s) containing MISP standard format.')
+    argparser.add_argument('-d', '--debug', action='store_true', help='Allow debug mode with warnings.')
+    try:
+        args = argparser.parse_args()
+        _process_misp_files(args.version, args.input, args.debug)
+    except SystemExit:
+        print(json.dumps({'error': 'Arguments error, please check you entered a valid version and provided input file names.'}))
