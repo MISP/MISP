@@ -4525,50 +4525,40 @@ class Server extends AppModel
         return $success;
     }
 
-    public function queryAvailableSyncFilteringRules($server)
+    public function queryAvailableSyncFilteringRules(array $server)
     {
         $syncFilteringRules = [
             'error' => '',
             'data' => []
         ];
-        $HttpSocket = $this->setupHttpSocket($server, null);
-        $uri = $server['Server']['url'] . '/servers/getAvailableSyncFilteringRules';
-        $request = $this->setupSyncRequest($server);
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
         try {
-            $response = $HttpSocket->get($uri, false, $request);
-            if ($response === false) {
-                $syncFilteringRules['error'] = __('Connection failed for unknown reason.');
-                return $syncFilteringRules;
-            }
-        } catch (SocketException $e) {
-            $syncFilteringRules['error'] = __('Connection failed for unknown reason. Error returned: %s', $e->getMessage());
+            $syncFilteringRules['data'] = $serverSync->getAvailableSyncFilteringRules()->json();
+        } catch (Exception $e) {
+            $syncFilteringRules['error'] = __('Connection failed. Error returned: %s', $e->getMessage());
             return $syncFilteringRules;
         }
 
-        if ($response->isOk()) {
-            $syncFilteringRules['data'] = $this->jsonDecode($response->body());
-        } else {
-            $syncFilteringRules['error'] = __('Reponse was not OK. (HTTP code: %s)', $response->code);
-        }
         return $syncFilteringRules;
     }
 
-    public function getAvailableSyncFilteringRules($user)
+    public function getAvailableSyncFilteringRules(array $user)
     {
-        $this->Organisation = ClassRegistry::init('Organisation');
         $this->Tag = ClassRegistry::init('Tag');
         $organisations = [];
         if ($user['Role']['perm_sharing_group'] || !Configure::read('Security.hide_organisation_index_from_users')) {
-            $organisations = $this->Organisation->find('list', [
+            $organisations = $this->Organisation->find('column', [
                 'fields' => 'name'
             ]);
         }
-        $tags = $this->Tag->find('list', [
+        $tags = $this->Tag->find('column', [
             'fields' => 'name'
         ]);
         return [
-            'organisations' => array_values($organisations),
-            'tags' => array_values($tags),
+            'organisations' => $organisations,
+            'tags' => $tags,
         ];
     }
 
