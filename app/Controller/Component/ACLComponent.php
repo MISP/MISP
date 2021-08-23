@@ -533,7 +533,7 @@ class ACLComponent extends Component
                     'pull' => array(),
                     'purgeSessions' => array(),
                     'push' => array(),
-                    'queryAvailableSyncFilteringRules' => array('*'),
+                    'queryAvailableSyncFilteringRules' => array(),
                     'releaseUpdateLock' => array(),
                     'resetRemoteAuthKey' => array(),
                     'removeOrphanedCorrelations' => array('perm_site_admin'),
