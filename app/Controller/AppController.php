@@ -19,6 +19,7 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @property IndexFilterComponent $IndexFilter
  * @property RateLimitComponent $RateLimit
  * @property CompressedRequestHandlerComponent $CompressedRequestHandler
+ * @property DeprecationComponent $Deprecation
  */
 class AppController extends Controller
 {
@@ -353,7 +354,7 @@ class AppController extends Controller
                 $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
                 if ($this->_isRest()) {
                     $this->response->header('X-Deprecation-Warning', $deprecationWarnings);
-                    $this->components['RestResponse']['deprecationWarnings'] = $deprecationWarnings;
+                    $this->RestResponse->setHeader('X-Deprecation-Warning', $deprecationWarnings);
                 } else {
                     $this->Flash->warning($deprecationWarnings);
                 }

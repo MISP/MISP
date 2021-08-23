@@ -599,9 +599,6 @@ class RestResponseComponent extends Component
         if (!empty($headers)) {
             $cakeResponse->header($headers);
         }
-        if (!empty($deprecationWarnings)) {
-            $cakeResponse->header('X-Deprecation-Warning', $deprecationWarnings);
-        }
         if ($download) {
             $cakeResponse->download($download);
         }
