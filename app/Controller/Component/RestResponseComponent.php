@@ -431,7 +431,7 @@ class RestResponseComponent extends Component
     public function getScopedApiInfo($user)
     {
         $api = $this->getAllApis($user);
-        $scopedApi = [];
+        $scopeApi = [];
         foreach ($api as $apiEntry) {
             $scopeApi[$apiEntry['controller']][] = $apiEntry;
         }

@@ -465,14 +465,14 @@ class Server extends AppModel
             'includeFeedCorrelations' => 0,
             'includeWarninglistHits' => 0, // we don't need remote warninglist hits
         ];
-        if (empty($server['Server']['internal'])) {
+        if (empty($serverSync->server()['Server']['internal'])) {
             $params['excludeLocalTags'] = 1;
         }
 
         try {
             $event = $serverSync->fetchEvent($eventId, $params)->json();
         } catch (Exception $e) {
-            $this->logException("Failed downloading the event $eventId from remote server {$server['Server']['id']}", $e);
+            $this->logException("Failed downloading the event $eventId from remote server {$serverSync->serverId()}", $e);
             $fails[$eventId] = __('failed downloading the event');
             return false;
         }
@@ -2540,7 +2540,7 @@ class Server extends AppModel
             return ['status' => 8];
         }
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
-            if (!empty($repsonse['body']['testString'])) {
+            if (!empty($response['body']['testString'])) {
                 $responseString = $response['body']['testString'];
             } else if (!empty($rawBody)){
                 $responseString = $rawBody;

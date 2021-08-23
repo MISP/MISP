@@ -832,17 +832,10 @@ class ShadowAttributesController extends AppController
 
     public function viewPicture($id, $thumbnail=false)
     {
+        $conditions = $this->ShadowAttribute->buildConditions($this->Auth->user());
         $conditions['ShadowAttribute.id'] = $id;
         $conditions['ShadowAttribute.type'] = 'attachment';
-        $options = array(
-            'conditions' => $conditions,
-            'includeAllTags' => false,
-            'includeAttributeUuid' => true,
-            'flatten' => true,
-            'deleted' => [0, 1]
-        );
 
-        
         $sa = $this->ShadowAttribute->find('first', array(
             'recursive' => -1,
             'contain' => ['Event', 'Attribute'], // required because of conditions

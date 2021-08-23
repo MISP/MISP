@@ -92,7 +92,7 @@ class SharingGroup extends AppModel
             'fields' => array('SharingGroup.name')
         ));
         if (!empty($sameNameSG) && !isset($this->data['SharingGroup']['id'])) {
-            $this->data['SharingGroup']['name'] = $this->data['SharingGroup']['name'] . '_' . rand(0, 9999);
+            $this->data['SharingGroup']['name'] = $this->data['SharingGroup']['name'] . '_' . mt_rand(0, 9999);
         }
         return true;
     }

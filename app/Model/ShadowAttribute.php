@@ -216,7 +216,6 @@ class ShadowAttribute extends AppModel
         }
         $this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
         $shadow_attribute_correlations = array();
-        $fields = array('value1', 'value2');
         $correlatingValues = array($sa['value1']);
         if (!empty($sa['value2'])) {
             $correlatingValues[] = $sa['value2'];
