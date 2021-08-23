@@ -1121,17 +1121,25 @@ class Sighting extends AppModel
     {
         $this->Server = ClassRegistry::init('Server');
         try {
-            $eventUuids = $this->Server->getEventIdsFromServer($serverSync->server(), false, null, false, 'sightings');
+            $remoteEvents = $this->Server->getEventIndexFromServer($serverSync);
         } catch (Exception $e) {
             $this->logException("Could not fetch event IDs from server {$serverSync->server()['Server']['name']}", $e);
             return 0;
         }
 
-        // Because `getEventIdsFromServer` is bugged, filter out events that do not exists locally
-        $eventUuids = $this->Event->find('column', [
-            'conditions' => ['Event.uuid' => $eventUuids],
-            'fields' => ['Event.uuid'],
+        // Downloads sightings just from events that exists locally and remote sighting_timestamp is newer than local.
+        $localEvents = $this->Event->find('list', [
+            'fields' => ['Event.uuid', 'Event.sighting_timestamp'],
+            'conditions' => count($remoteEvents) > 10000 ? ['Event.uuid' => array_column($remoteEvents, 'uuid')] : [],
         ]);
+
+        $eventUuids = [];
+        foreach ($remoteEvents as $remoteEvent) {
+            if (isset($localEvents[$remoteEvent['uuid']]) && $localEvents[$remoteEvent['uuid']] < $remoteEvent['sighting_timestamp']) {
+                $eventUuids[] = $remoteEvent['uuid'];
+            }
+        }
+        unset($remoteEvents, $localEvents);
 
         $saved = 0;
         // We don't need some of the event data, like correlations and event reports
@@ -1155,7 +1163,7 @@ class Sighting extends AppModel
                 $this->logException("Failed downloading the event $eventUuid from {$serverSync->server()['Server']['name']}.", $e);
                 continue;
             }
-            $sightings = array();
+            $sightings = [];
             if (!empty($event['Event']['Attribute'])) {
                 foreach ($event['Event']['Attribute'] as $attribute) {
                     if (!empty($attribute['Sighting'])) {
@@ -1163,8 +1171,19 @@ class Sighting extends AppModel
                     }
                 }
             }
+            if (!empty($event['Event']['Object'])) {
+                foreach ($event['Event']['Object'] as $object) {
+                    if (!empty($object['Attribute'])) {
+                        foreach ($object['Attribute'] as $attribute) {
+                            if (!empty($attribute['Sighting'])) {
+                                $sightings = array_merge($sightings, $attribute['Sighting']);
+                            }
+                        }
+                    }
+                }
+            }
             if (!empty($sightings)) {
-                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $serverSync->server()['Server']['id']);
+                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $serverSync->serverId());
                 if (is_numeric($result)) {
                     $saved += $result;
                 }
