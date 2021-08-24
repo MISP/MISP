@@ -22,7 +22,6 @@
 
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
-App::uses('BlowfishPasswordHasher', 'Controller/Component/Auth');
 App::uses('RandomTool', 'Tools');
 
 class AppModel extends Model
