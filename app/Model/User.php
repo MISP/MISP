@@ -4,7 +4,7 @@ App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
 App::uses('GpgTool', 'Tools');
 App::uses('SendEmail', 'Tools');
-App::uses('BlowfishPasswordHasherConstant', 'Tools');
+App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 
 /**
  * @property Log $Log
@@ -272,7 +272,7 @@ class User extends AppModel
     {
         $this->data[$this->alias]['date_modified'] = time();
         if (isset($this->data[$this->alias]['password'])) {
-            $passwordHasher = new BlowfishPasswordHasher();
+            $passwordHasher = new BlowfishConstantPasswordHasher();
             $this->data[$this->alias]['password'] = $passwordHasher->hash($this->data[$this->alias]['password']);
         }
         return true;
@@ -1009,7 +1009,7 @@ class User extends AppModel
             App::uses('SimplePasswordHasher', 'Controller/Component/Auth');
             $passwordHasher = new SimplePasswordHasher();
         } else {
-            $passwordHasher = new BlowfishPasswordHasherConstant();
+            $passwordHasher = new BlowfishConstantPasswordHasher();
         }
         $hashed = $passwordHasher->check($password, $currentUser['User']['password']);
         return $hashed;
