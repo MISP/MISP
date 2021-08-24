@@ -1205,7 +1205,16 @@ class Server extends AppModel
         return $successes;
     }
 
-    public function syncSightings($HttpSocket, array $server, array $user, Event $eventModel)
+    /**
+     * Push sightings to remote server.
+     * @param HttpSocket $HttpSocket
+     * @param array $server
+     * @param array $user
+     * @param Event $eventModel
+     * @return array
+     * @throws Exception
+     */
+    private function syncSightings($HttpSocket, array $server, array $user, Event $eventModel)
     {
         $successes = array();
         if (!$server['Server']['push_sightings']) {
@@ -1221,6 +1230,14 @@ class Server extends AppModel
         }
         // now process the $eventIds to push each of the events sequentially
         // check each event and push sightings when needed
+        $fakeSyncUser = [
+            'org_id' => $server['Server']['remote_org_id'],
+            'Role' => [
+                'perm_site_admin' => 0,
+            ],
+        ];
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         foreach ($eventUuids as $eventUuid) {
             $event = $eventModel->fetchEvent($user, ['event_uuid' => $eventUuid, 'metadata' => true]);
             if (!empty($event)) {
@@ -1233,11 +1250,21 @@ class Server extends AppModel
                     continue;
                 }
 
-                $sightings = $this->Sighting->attachToEvent($event, $user, null, false, true);
-                $result = $eventModel->uploadSightingsToServer($sightings, $server, $eventUuid, $HttpSocket);
-                if ($result) {
-                    $successes[] = 'Sightings for event ' .  $event['Event']['id'];
+                // Process sightings in batch to keep memory requirements low
+                foreach ($this->Sighting->fetchUuidsForEventToPush($event, $fakeSyncUser) as $batch) {
+                    // Filter out sightings that already exists on remote server
+                    $existingSightings = $serverSync->filterSightingUuidsForPush($event, $batch);
+                    $newSightings = array_diff($batch, $existingSightings);
+                    if (empty($newSightings)) {
+                        continue;
+                    }
+
+                    $conditions = ['Sighting.uuid' => $newSightings];
+                    $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, $conditions, true);
+                    $serverSync->uploadSightings($sightings, $event['Event']['uuid']);
                 }
+
+                $successes[] = 'Sightings for event ' .  $event['Event']['id'];
             }
         }
         return $successes;
