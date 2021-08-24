@@ -12,6 +12,7 @@ App::uses('BlowfishPasswordHasherConstant', 'Tools');
  * @property Role $Role
  * @property UserSetting $UserSetting
  * @property Event $Event
+ * @property AuthKey $AuthKey
  */
 class User extends AppModel
 {

@@ -464,6 +464,9 @@ class AdminShell extends AppShell
         return PHP_EOL . '---------------------------------------------------------------' . PHP_EOL;
     }
 
+    /**
+     * @deprecated Use UserShell instead
+     */
     public function change_authkey()
     {
         $this->ConfigLoad->execute();
@@ -635,6 +638,9 @@ class AdminShell extends AppShell
         }
     }
 
+    /**
+     * @deprecated Use UserShell instead
+     */
     public function UserIP()
     {
         $this->ConfigLoad->execute();
