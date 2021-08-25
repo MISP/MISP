@@ -153,7 +153,7 @@ class Cerebrate extends AppModel
                     'fields' => ['Organisation.id']
                 ]);
                 if (!empty($nameCheck)) {
-                    $orgToSave['name'] = $orgToSave['name'] . '_' . rand(0, 9999);
+                    $orgToSave['name'] = $orgToSave['name'] . '_' . mt_rand(0, 9999);
                 }
                 $result = $this->Organisation->save($orgToSave);
                 if ($result) {

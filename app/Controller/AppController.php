@@ -3,6 +3,7 @@ App::uses('ConnectionManager', 'Model');
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
+App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 
 /**
  * Application Controller
@@ -19,9 +20,14 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @property IndexFilterComponent $IndexFilter
  * @property RateLimitComponent $RateLimit
  * @property CompressedRequestHandlerComponent $CompressedRequestHandler
+ * @property DeprecationComponent $Deprecation
  */
 class AppController extends Controller
 {
+    /**
+     * @var string
+     * @deprecated Use modelClass instead
+     */
     public $defaultModel = '';
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
@@ -55,14 +61,10 @@ class AppController extends Controller
     /** @var User */
     public $User;
 
-    public function __construct($id = false, $table = null, $ds = null)
+    public function __construct($request = null, $response = null)
     {
-        parent::__construct($id, $table, $ds);
-
-        $name = get_class($this);
-        $name = str_replace('sController', '', $name);
-        $name = str_replace('Controller', '', $name);
-        $this->defaultModel = $name;
+        parent::__construct($request, $response);
+        $this->defaultModel = $this->modelClass;
     }
 
     public $components = array(
@@ -71,7 +73,7 @@ class AppController extends Controller
                 'authError' => 'Unauthorised access.',
                 'authenticate' => array(
                     'Form' => array(
-                        'passwordHasher' => 'Blowfish',
+                        'passwordHasher' => 'BlowfishConstant',
                         'fields' => array(
                             'username' => 'email'
                         )
@@ -353,7 +355,7 @@ class AppController extends Controller
                 $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
                 if ($this->_isRest()) {
                     $this->response->header('X-Deprecation-Warning', $deprecationWarnings);
-                    $this->components['RestResponse']['deprecationWarnings'] = $deprecationWarnings;
+                    $this->RestResponse->setHeader('X-Deprecation-Warning', $deprecationWarnings);
                 } else {
                     $this->Flash->warning($deprecationWarnings);
                 }

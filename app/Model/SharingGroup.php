@@ -33,6 +33,11 @@ class SharingGroup extends AppModel
                 'rule' => 'uuid',
                 'message' => 'Please provide a valid RFC 4122 UUID'
             ),
+            'unique' => array(
+                'rule' => 'isUnique',
+                'message' => 'The UUID provided is not unique',
+                'on' => 'create'
+            ),
         )
     );
 
@@ -87,7 +92,7 @@ class SharingGroup extends AppModel
             'fields' => array('SharingGroup.name')
         ));
         if (!empty($sameNameSG) && !isset($this->data['SharingGroup']['id'])) {
-            $this->data['SharingGroup']['name'] = $this->data['SharingGroup']['name'] . '_' . rand(0, 9999);
+            $this->data['SharingGroup']['name'] = $this->data['SharingGroup']['name'] . '_' . mt_rand(0, 9999);
         }
         return true;
     }

@@ -245,7 +245,7 @@ class Attribute extends AppModel
             'unique' => array(
                 'rule' => 'isUnique',
                 'message' => 'The UUID provided is not unique',
-                'required' => 'create'
+                'on' => 'create'
             )
         ),
         'distribution' => array(
@@ -4298,7 +4298,7 @@ class Attribute extends AppModel
             $this->typeDefinitions = $this->generateTypeDefinitions();
             return $this->typeDefinitions;
         } else if ($name === 'categoryDefinitions') {
-            $this->categoryDefinitions = $this->generateCategoryDefintions();
+            $this->categoryDefinitions = $this->generateCategoryDefinitions();
             return $this->categoryDefinitions;
         }
         return parent::__get($name);
@@ -4309,7 +4309,7 @@ class Attribute extends AppModel
      * NOTE WHEN MODIFYING: please ensure to run the script 'tools/gen_misp_types_categories.py' to update the new definitions everywhere. (docu, website, RFC, ... )
      * @return array[]
      */
-    private function generateCategoryDefintions()
+    private function generateCategoryDefinitions()
     {
         return array(
             'Internal reference' => array(

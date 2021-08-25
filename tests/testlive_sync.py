@@ -83,6 +83,11 @@ cache_response = pymisp._check_json_response(pymisp._prepare_request('GET', url)
 check_response(cache_response)
 assert "Caching the servers has successfully completed." == cache_response["message"], cache_response["message"]
 
+# Test fetching available sync filtering rules
+url = f'servers/queryAvailableSyncFilteringRules/{remote_server["id"]}'
+rules_response = pymisp._check_json_response(pymisp._prepare_request('GET', url))
+check_response(rules_response)
+
 # Delete server and test event
 check_response(pymisp.delete_server(remote_server))
 check_response(pymisp.delete_event(event))

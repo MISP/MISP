@@ -6,7 +6,9 @@ class ServerSyncTool
     const FEATURE_BR = 'br',
         FEATURE_GZIP = 'gzip',
         FEATURE_ORG_RULE = 'org_rule',
-        FEATURE_FILTER_SIGHTINGS = 'filter_sightings';
+        FEATURE_FILTER_SIGHTINGS = 'filter_sightings',
+        FEATURE_PROPOSALS = 'proposals',
+        FEATURE_POST_TEST = 'post_test';
 
     /** @var array */
     private $server;
@@ -82,6 +84,19 @@ class ServerSyncTool
     }
 
     /**
+     * @param array $params
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function fetchProposals(array $params = [])
+    {
+        $url = '/shadow_attributes/index';
+        $url .= $this->createParams($params);
+        $url .= '.json';
+        return $this->get($url);
+    }
+
+    /**
      * @param array $event
      * @param array $sightingUuids
      * @return array Sighting UUIDs that exists on remote side
@@ -114,6 +129,15 @@ class ServerSyncTool
 
         $logMessage = "Pushing Sightings for Event #{$eventUuid} to Server #{$this->server['Server']['id']}";
         $this->post('/sightings/bulkSaveSightings/' . $eventUuid, $sightings, $logMessage);
+    }
+
+    /**
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function getAvailableSyncFilteringRules()
+    {
+        return $this->get('/servers/getAvailableSyncFilteringRules');
     }
 
     /**
@@ -165,6 +189,14 @@ class ServerSyncTool
     }
 
     /**
+     * @return int
+     */
+    public function serverId()
+    {
+        return $this->server['Server']['id'];
+    }
+
+    /**
      * @param string $flag
      * @return bool
      * @throws HttpSocketJsonException
@@ -184,6 +216,12 @@ class ServerSyncTool
             case self::FEATURE_ORG_RULE:
                 $version = explode('.', $info['version']);
                 return $version[0] == 2 && $version[1] == 4 && $version[2] > 123;
+            case self::FEATURE_PROPOSALS:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] >= 111;
+            case self::FEATURE_POST_TEST:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] > 68;
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
