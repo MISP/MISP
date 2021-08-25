@@ -8,12 +8,14 @@ echo $this->element('genericElements/Form/genericForm', [
                 'field' => 'value',
                 'label' => __('Value'),
                 'class' => 'span6',
-                'requirements' => $this->action === 'add'
+                'requirements' => $this->action === 'add',
+                'type' => 'textarea'
             ],
             [
                 'field' => 'comment',
                 'label' => __('Comment'),
                 'class' => 'span6',
+                'type' => 'textarea'
             ]
         ],
         'submit' => [

@@ -1,85 +1,76 @@
-<div class="taxonomies index">
-    <h2><?php echo __('Noticelists');?></h2>
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-    <div id="hiddenFormDiv">
-    <?php
-        if ($isSiteAdmin) {
-            echo $this->Form->create('Noticelist', array('url' => $baseurl . '/noticelists/toggleEnable'));
-            echo $this->Form->input('data', array('label' => false, 'style' => 'display:none;'));
-            echo $this->Form->end();
-        }
-    ?>
-    </div>
-    <table class="table table-striped table-hover table-condensed">
-        <tr>
-                <th><?php echo $this->Paginator->sort('id'); ?></th>
-                <th><?php echo $this->Paginator->sort('name'); ?></th>
-                <th><?php echo $this->Paginator->sort('expanded_name', __('Expanded name')); ?></th>
-                <th><?php echo __('ref');?></th>
-                <th><?php echo __('geographical_area');?></th>
-                <th><?php echo __('version');?></th>
-                <th><?php echo __('enabled');?></th>
-                <th class="actions"><?php echo __('Actions');?></th>
-        </tr>
-        <?php
-            foreach ($noticelists as $k => $item) {
-                echo '<tr>';
-                echo sprintf('<td ondblclick="document.location.href =%s">%s&nbsp;</td>', $baseurl . "/noticeists/view/" . h($item['Noticelist']['id']), h($item['Noticelist']['id']));
-                echo sprintf('<td ondblclick="document.location.href =%s">%s&nbsp;</td>', $baseurl . "/noticeists/view/" . h($item['Noticelist']['id']), h($item['Noticelist']['name']));
-                echo sprintf('<td ondblclick="document.location.href =%s">%s&nbsp;</td>', $baseurl . "/noticeists/view/" . h($item['Noticelist']['id']), h($item['Noticelist']['expanded_name']));
-                $references = array();
-                foreach ($item['Noticelist']['ref'] as $ref) {
-                    $references[] = sprintf('<a href="%s">%s</a>', h($ref), h($ref));
-                }
-                $references = implode(PHP_EOL, $references);
-                echo sprintf('<td ondblclick="document.location.href =%s">%s&nbsp;</td>', $baseurl . "/noticeists/view/" . h($item['Noticelist']['id']), $references);
-                $geo = array();
-                foreach ($item['Noticelist']['geographical_area'] as $geo_area) {
-                    $geo[] = h($geo_area);
-                }
-                $geo = implode(PHP_EOL, $geo);
-                echo sprintf('<td class="short" ondblclick="document.location.href =%s">%s&nbsp;</td>', $baseurl . "/noticeists/view/" . h($item['Noticelist']['id']), $geo);
-                echo sprintf('<td class="short" ondblclick="document.location.href =%s">%s&nbsp;</td>', $baseurl . "/noticeists/view/" . h($item['Noticelist']['id']), h($item['Noticelist']['version']));
-                if ($isSiteAdmin) {
-                    $onClick = 'onClick="toggleSetting(event, \'noticelist_enable\', \'' . h($item['Noticelist']['id']) . '\'); ' . '"';
-                } else {
-                    $onClick = 'disabled';
-                }
-                $input = '<input id="checkBox_' . h($item['Noticelist']['id']) . '" type="checkbox" aria-label="' . __('Enabled') . '" ' . $onClick . ' ' . ($item['Noticelist']['enabled'] ? 'checked' : '') . ' />';
-                echo '<td class="short" id="checkbox_row_' . h($item['Noticelist']['id']) . '">' . $input . '</td>';
-                $actions = '';
-                $actions .= '<a href="' . $baseurl . "/noticelists/view/" . h($item['Noticelist']['id']) . '" class="fa fa-eye" title="' . __('View') . '" aria-label="' . __('View') . '"></a>';
-                echo '<td class="short action-links">' . $actions . '</td>';
-                echo '</tr>';
-
-            }
-        ?>
-    </table>
-    <p>
-        <?php
-        echo $this->Paginator->counter(array(
-            'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-        ));
-        ?>
-    </p>
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-</div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'noticelist', 'menuItem' => 'index'));
-?>
+$fields = [
+    [
+        'name' => __('ID'),
+        'sort' => 'Noticelist.id',
+        'data_path' => 'Noticelist.id'
+    ],
+    [
+        'name' => __('Name'),
+        'sort' => 'Noticelist.name',
+        'data_path' => 'Noticelist.name'
+    ],
+    [
+        'name' => __('Expanded Name'),
+        'sort' => 'Noticelist.expanded_name',
+        'data_path' => 'Noticelist.expanded_name'
+    ],
+    [
+        'name' => __('ref'),
+        'data_path' => 'Noticelist.ref',
+        'element' => 'links'
+    ],
+    [
+        'name' => __('geographical_area'),
+        'data_path' => 'Noticelist.geographical_area',
+        'element' => 'list'
+    ],
+    [
+        'name' => __('version'),
+        'data_path' => 'Noticelist.version',
+    ],
+    [
+        'name' => __('enabled'),
+        'data_path' => 'Noticelist.enabled',
+        'element' => 'toggle',
+        'url' => '/noticelists/toggleEnable',
+        'url_params_data_paths' => ['Noticelist.id'],
+        'requirement' => $isSiteAdmin,
+    ],
+    [
+        'name' => __('Default'),
+        'data_path' => 'Noticelist.enabled',
+        'element' => 'boolean',
+        'colors' => true,
+        'requirement' => !$isSiteAdmin,
+    ],
+];
+
+
+echo $this->element('genericElements/IndexTable/scaffold', [
+    'scaffold_data' => [
+        'data' => [
+            'data' => $data,
+            'top_bar' => [
+                'pull' => 'right',
+                'children' => [
+                    [
+                        'type' => 'search',
+                        'button' => __('Filter'),
+                        'placeholder' => __('Enter value to search'),
+                        'searchKey' => 'quickFilter',
+                    ]
+                ]
+            ],
+            'fields' => $fields,
+            'title' => empty($ajax) ? __('Noticelists') : false,
+            'actions' => [
+                [
+                    'url' => $baseurl . '/noticelists/view',
+                    'url_params_data_paths' => ['Noticelist.id'],
+                    'icon' => 'eye'
+                ],
+            ]
+        ]
+    ]
+]);

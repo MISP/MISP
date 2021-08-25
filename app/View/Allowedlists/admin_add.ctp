@@ -9,6 +9,7 @@
                 [
                     'field' => 'name',
                     'class' => 'input-xxlarge',
+                    'type' => 'textarea'
                 ],
             ],
             'submit' => [

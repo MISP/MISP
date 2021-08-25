@@ -4436,47 +4436,47 @@ components:
       description: "Format of the response payload"
       type: string
       enum:
-          - json
-          - xml
-          - csv
-          - text
-          - stix
-          - stix2
-          - stix-json
-          - attack
-          - attack-sightings
-          - cache
-          - count
-          - hashes
-          - netfilter
-          - opendata
-          - openioc
-          - rpz
-          - snort
-          - suricata
-          - yara
-          - yara-json
+        - json
+        - xml
+        - csv
+        - text
+        - stix
+        - stix2
+        - stix-json
+        - attack
+        - attack-sightings
+        - cache
+        - count
+        - hashes
+        - netfilter
+        - opendata
+        - openioc
+        - rpz
+        - snort
+        - suricata
+        - yara
+        - yara-json
 
     AttributesRestSearchReturnFormat:
       description: "Format of the response payload"
       type: string
       enum:
-          - json
-          - xml
-          - csv
-          - text
-          - hashes
-          - cache
-          - count
-          - netfilter
-          - opendata
-          - openioc
-          - rpz
-          - snort
-          - suricata
-          - text
-          - yara
-          - yara-json
+        - json
+        - xml
+        - csv
+        - text
+        - hashes
+        - cache
+        - count
+        - netfilter
+        - opendata
+        - openioc
+        - rpz
+        - snort
+        - suricata
+        - text
+        - yara
+        - yara-json
 
     ObjectRelationRestSearchFilter:
       description: "Filter by the attribute object relation value"
@@ -4961,7 +4961,6 @@ components:
               returnFormat:
                 $ref: "#/components/schemas/AttributesRestSearchReturnFormat"
 
-
     AddEventRequest:
       required: true
       content:
@@ -5068,6 +5067,16 @@ components:
                 type: string
                 nullable: true
                 example: "1"
+              searchDatefrom:
+                description: "Filters on the date, anything newer than the given date in YYYY-MM-DD format is taken - non-negatable"
+                type: string
+                nullable: true
+                example: "2020-01-20"
+              searchDateuntil:
+                description: "Filters on the date, anything older than the given date in YYYY-MM-DD format is taken - non-negatable"
+                type: string
+                nullable: true
+                example: "2020-01-20"
 
     RestSearchEventsRequest:
       required: true
@@ -7370,7 +7379,6 @@ components:
           - suricata
           - yara
           - yara-json
-
 
 security:
   - ApiKeyAuth: []

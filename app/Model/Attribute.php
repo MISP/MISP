@@ -13,6 +13,7 @@ App::uses('ComplexTypeTool', 'Tools');
  * @property Event $Event
  * @property AttributeTag $AttributeTag
  * @property Sighting $Sighting
+ * @property MispObject $Object
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
@@ -45,11 +46,21 @@ class Attribute extends AppModel
             'distribution' => array('desc' => 'Describes who will have access to the attribute.')
     );
 
-    public $defaultFields = array(
-        'id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'to_ids', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'comment', 'deleted', 'disable_correlation', 'first_seen', 'last_seen'
-    );
-
-    public $editableFields = array('timestamp', 'category', 'value', 'value1', 'value2', 'to_ids', 'comment', 'distribution', 'sharing_group_id', 'deleted', 'disable_correlation', 'first_seen', 'last_seen');
+    const EDITABLE_FIELDS = [
+        'timestamp',
+        'category',
+        'value',
+        'value1',
+        'value2',
+        'to_ids',
+        'comment',
+        'distribution',
+        'sharing_group_id',
+        'deleted',
+        'disable_correlation',
+        'first_seen',
+        'last_seen',
+    ];
 
     public $distributionDescriptions = array(
         0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
@@ -63,8 +74,6 @@ class Attribute extends AppModel
     public $distributionLevels = array();
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
-
-    private $exclusions = null;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -85,30 +94,26 @@ class Attribute extends AppModel
     // e.g. if the attribute should be correlated with others or not
 
     // if these then a category may have upload to be zipped
-    public $zippedDefinitions = array(
-            'malware-sample'
-    );
+    const ZIPPED_DEFINITION = ['malware-sample'];
 
     // if these then a category may have upload
-    public $uploadDefinitions = array(
-            'attachment'
-    );
+    const UPLOAD_DEFINITIONS = ['attachment'];
 
     // skip Correlation for the following types
-    public $nonCorrelatingTypes = array(
-            'comment',
-            'http-method',
-            'aba-rtn',
-            'gender',
-            'counter',
-            'port',
-            'nationality',
-            'cortex',
-            'boolean',
-            'anonymised'
+    const NON_CORRELATING_TYPES = array(
+        'comment',
+        'http-method',
+        'aba-rtn',
+        'gender',
+        'counter',
+        'port',
+        'nationality',
+        'cortex',
+        'boolean',
+        'anonymised'
     );
 
-    public $primaryOnlyCorrelatingTypes = array(
+    const PRIMARY_ONLY_CORRELATING_TYPES = array(
         'ip-src|port',
         'ip-dst|port',
         'hostname|port',
@@ -364,7 +369,7 @@ class Attribute extends AppModel
         if (!empty($this->data['Attribute']['type'])) {
             $compositeTypes = $this->getCompositeTypes();
             // explode composite types in value1 and value2
-            if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
+            if (in_array($this->data['Attribute']['type'], $compositeTypes, true)) {
                 $pieces = explode('|', $this->data['Attribute']['value']);
                 if (2 != count($pieces)) {
                     throw new InternalErrorException(__('Composite type, but value not explodable'));
@@ -747,7 +752,7 @@ class Attribute extends AppModel
     public function validateLastSeenValue($fields)
     {
         $ls = $fields['last_seen'];
-        if (is_null($this->data['Attribute']['first_seen']) || is_null($ls)) {
+        if (!isset($this->data['Attribute']['first_seen']) || is_null($ls)) {
             return true;
         }
         $converted = $this->ISODatetimeToUTC(['Attribute' => [
@@ -760,7 +765,7 @@ class Attribute extends AppModel
         return true;
     }
 
-    private $__hexHashLengths = array(
+    const HEX_HAS_LENGTHS = array(
         'authentihash' => 64,
         'md5' => 32,
         'imphash' => 32,
@@ -818,7 +823,7 @@ class Attribute extends AppModel
                 if ($this->isHashValid($type, $value)) {
                     return true;
                 } else {
-                    $length = $this->__hexHashLengths[$type];
+                    $length = self::HEX_HAS_LENGTHS[$type];
                     return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
                 }
             case 'tlsh':
@@ -891,7 +896,7 @@ class Attribute extends AppModel
             case 'filename|sha3-512':
             case 'filename|authentihash':
                 $parts = explode('|', $type);
-                $length = $this->__hexHashLengths[$parts[1]];
+                $length = self::HEX_HAS_LENGTHS[$parts[1]];
                 if (preg_match("#^.+\|[0-9a-f]{" . $length . "}$#", $value)) {
                     $returnValue = true;
                 } else {
@@ -1523,12 +1528,12 @@ class Attribute extends AppModel
 
     public function typeIsMalware($type)
     {
-        return in_array($type, $this->zippedDefinitions);
+        return in_array($type, self::ZIPPED_DEFINITION, true);
     }
 
     public function typeIsAttachment($type)
     {
-        return in_array($type, $this->zippedDefinitions) || in_array($type, $this->uploadDefinitions);
+        return in_array($type, self::ZIPPED_DEFINITION, true) || in_array($type, self::UPLOAD_DEFINITIONS, true);
     }
 
     public function getAttachment($attribute, $path_suffix='')
@@ -1689,7 +1694,7 @@ class Attribute extends AppModel
         foreach ($resultArray as $key => $result) {
             if (in_array($result['default_type'], $composeTypes, true)) {
                 $pieces = explode('|', $result['value']);
-                if (in_array($result['default_type'], $this->primaryOnlyCorrelatingTypes, true)) {
+                if (in_array($result['default_type'], self::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
                     $or = ['Attribute.value1' => $pieces[0], 'Attribute.value2' => $pieces[0]];
                 } else {
                     $or = ['Attribute.value1' => $pieces, 'Attribute.value2' => $pieces];
@@ -1701,7 +1706,7 @@ class Attribute extends AppModel
                 'conditions' => [
                     'OR' => $or,
                     'NOT' => [
-                        'Attribute.type' => $this->nonCorrelatingTypes,
+                        'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
                     ],
                     'Attribute.disable_correlation' => 0,
                 ],
@@ -2310,7 +2315,7 @@ class Attribute extends AppModel
                 'Attribute.deleted' => 0,
                 'Attribute.disable_correlation' => 0,
                 'NOT' => array(
-                    'Attribute.type' => $this->nonCorrelatingTypes,
+                    'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
                 ),
             );
             if ($attributeId) {
@@ -3795,7 +3800,7 @@ class Attribute extends AppModel
                 $attribute['distribution'] = 5;
             }
         }
-        $fieldList = $this->editableFields;
+        $fieldList = self::EDITABLE_FIELDS;
         if (empty($existingAttribute)) {
             $addableFieldList = array('event_id', 'type', 'uuid');
             $fieldList = array_merge($fieldList, $addableFieldList);
@@ -3863,12 +3868,8 @@ class Attribute extends AppModel
         return true;
     }
 
-    public function deleteAttribute($id, $user, $hard = false)
+    public function deleteAttribute($id, array $user, $hard = false)
     {
-        $this->id = $id;
-        if (!$this->exists()) {
-            return false;
-        }
         $result = $this->fetchAttributes($user, array(
             'conditions' => array('Attribute.id' => $id),
             'flatten' => 1,
@@ -3893,7 +3894,6 @@ class Attribute extends AppModel
                 }
             }
         }
-        $date = new DateTime();
         if ($hard) {
             $save = $this->delete($id);
         } else {
@@ -3905,7 +3905,7 @@ class Attribute extends AppModel
                 $result['Attribute']['to_ids'] = 0;
             }
             $result['Attribute']['deleted'] = 1;
-            $result['Attribute']['timestamp'] = $date->getTimestamp();
+            $result['Attribute']['timestamp'] = time();
             $save = $this->save($result);
             $object_refs = $this->Object->ObjectReference->find('all', array(
                 'conditions' => array(
@@ -4257,11 +4257,10 @@ class Attribute extends AppModel
      */
     private function isHashValid($type, $value)
     {
-        if (!isset($this->__hexHashLengths[$type])) {
+        if (!isset(self::HEX_HAS_LENGTHS[$type])) {
             throw new InvalidArgumentException("Invalid hash type '$type'.");
         }
-        $length = $this->__hexHashLengths[$type];
-        return strlen($value) === $length && ctype_xdigit($value);
+        return strlen($value) === self::HEX_HAS_LENGTHS[$type] && ctype_xdigit($value);
     }
 
     /**

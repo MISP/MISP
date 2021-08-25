@@ -16,13 +16,15 @@ echo $this->element('genericElements/Form/genericForm', array(
                 'class' => 'input',
                 'empty' => __('(choose one)'),
                 'options' => $categories,
-                'stayInLine' => 1
+                'stayInLine' => 1,
+                'type' => 'dropdown'
             ),
             array(
                 'field' => 'type',
                 'class' => 'input',
                 'empty' => __('(choose category first)'),
-                'options' => $types
+                'options' => $types,
+                'type' => 'dropdown'
             ),
             array(
                 'field'=> 'value',

@@ -6,6 +6,8 @@ set -x
 AUTH="$1"
 HOST="$2"
 
+# Check if user is logged
+curl -i -H "Authorization: $AUTH" -H "Accept: application/json" -X GET http://${HOST}/servers/getVersion
 curl -i -H "Accept: application/json" -H "content-type: application/json" -H "Authorization: $AUTH" --data "@event.json" -X POST http://${HOST}/events > /dev/null
 curl -H "Authorization: $AUTH"  -X GET http://${HOST}/events/csv/download/1/ignore:1 | sed -e 's/^M//g' | cut -d, -f2 --complement | sort > 1.csv
 cat 1.csv
