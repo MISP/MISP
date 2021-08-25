@@ -4313,16 +4313,25 @@ class Server extends AppModel
         return $response->body;
     }
 
-    public function attachServerCacheTimestamps($data)
+    /**
+     * @param array $servers
+     * @return array
+     */
+    public function attachServerCacheTimestamps(array $servers)
     {
         $redis = $this->setupRedis();
         if ($redis === false) {
-            return $data;
+            return $servers;
         }
-        foreach ($data as $k => $v) {
-            $data[$k]['Server']['cache_timestamp'] = $redis->get('misp:server_cache_timestamp:' . $data[$k]['Server']['id']);
+        $redis->pipeline();
+        foreach ($servers as $server) {
+            $redis->get('misp:server_cache_timestamp:' . $server['Server']['id']);
         }
-        return $data;
+        $results = $redis->exec();
+        foreach ($servers as $k => $v) {
+            $data[$k]['Server']['cache_timestamp'] = $results[$k];
+        }
+        return $servers;
     }
 
     public function updateJSON()
