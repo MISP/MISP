@@ -47,7 +47,7 @@
                     'field' => 'info',
                     'label' => __('Event Info'),
                     'class' => 'input span6',
-                    'type' => 'text',
+                    'type' => 'textarea',
                     'placeholder' => __('Quick Event Description or Tracking Info')
                 ),
                 array(
