@@ -3072,7 +3072,7 @@ class AppModel extends Model
     protected function _findColumn($state, $query, $results = array())
     {
         if ($state === 'before') {
-            if (isset($query['fields']) && count($query['fields']) === 1) {
+            if (isset($query['fields']) && is_array($query['fields']) && count($query['fields']) === 1) {
                 if (strpos($query['fields'][0], '.') === false) {
                     $query['fields'][0] = $this->alias . '.' . $query['fields'][0];
                 }

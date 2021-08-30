@@ -4586,11 +4586,11 @@ class Server extends AppModel
         $organisations = [];
         if ($user['Role']['perm_sharing_group'] || !Configure::read('Security.hide_organisation_index_from_users')) {
             $organisations = $this->Organisation->find('column', [
-                'fields' => 'name'
+                'fields' => ['name'],
             ]);
         }
         $tags = $this->Tag->find('column', [
-            'fields' => 'name'
+            'fields' => ['name'],
         ]);
         return [
             'organisations' => $organisations,
