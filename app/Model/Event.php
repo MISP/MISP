@@ -3856,7 +3856,7 @@ class Event extends AppModel
                         unset($data['Event']['Attribute'][$k]); // remove duplicate attribute
                     } else {
                         $attributeHashes[$attributeHash] = true;
-                        $data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, $this->Log, $parentEvent);
+                        $data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
                     }
                 }
                 unset($attributeHashes);
@@ -3866,7 +3866,7 @@ class Event extends AppModel
             if (!empty($data['Event']['Object'])) {
                 $referencesToCapture = [];
                 foreach ($data['Event']['Object'] as $object) {
-                    $result = $this->Object->captureObject($object, $this->id, $user, $this->Log, false, $breakOnDuplicate);
+                    $result = $this->Object->captureObject($object, $this->id, $user, null, false, $breakOnDuplicate);
                     if (isset($object['ObjectReference'])) {
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $objectRef['source_uuid'] = $object['uuid'];
