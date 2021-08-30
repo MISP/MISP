@@ -13,6 +13,8 @@ class StixExport
     protected $__end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
     protected $__return_type = null;
     protected $__filenames = array();
+    protected $__default_filters = null;
+    protected $__version = null;
 
     private $__current_filename = null;
     private $__empty_file = null;
@@ -22,6 +24,13 @@ class StixExport
     private $__n_attributes = 0;
 
     public $non_restrictive_export = true;
+    public $use_default_filters = true;
+
+    public function setDefaultFilters($filters)
+    {
+        $sane_version = (!empty($filters['version']) && in_array($filters['version'], $this->__sane_versions));
+        $this->__version = $sane_version ? $filters['version'] : $this->__default_version;
+    }
 
     public function handler($data, $options = array())
     {
@@ -85,7 +94,8 @@ class StixExport
             $this->__tmp_file->close();
             array_push($this->__filenames, $this->__current_filename);
         }
-        $result = $this->__parse_misp_events();
+        $filenames = implode(' ' . $this->__tmp_dir, $this->__filenames);
+        $result = $this->__parse_misp_events($filenames);
         $decoded = json_decode($result, true);
         if (!isset($decoded['success']) || !$decoded['success']) {
             $this->__delete_temporary_files();
