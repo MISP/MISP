@@ -2390,7 +2390,7 @@ class EventsController extends AppController
                     $this->Event->Attribute->captureAttribute($attribute, $target_id, $this->Auth->user());
                 }
                 foreach ($results['results']['Object'] as $object) {
-                    $this->Event->Object->captureObject($object, $target_id, $this->Auth->user(), $this->Log);
+                    $this->Event->Object->captureObject($object, $target_id, $this->Auth->user());
                 }
                 foreach ($results['results']['EventReport'] as $report) {
                     $this->Event->EventReport->captureReport($this->Auth->user(), $report, $target_id);
