@@ -1010,28 +1010,6 @@
                 "column_type": "int(11)",
                 "column_default": null,
                 "extra": ""
-            },
-            {
-                "column_name": "date",
-                "is_nullable": "NO",
-                "data_type": "date",
-                "character_maximum_length": null,
-                "numeric_precision": null,
-                "collation_name": null,
-                "column_type": "date",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "info",
-                "is_nullable": "NO",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
             }
         ],
         "correlation_exclusions": [
