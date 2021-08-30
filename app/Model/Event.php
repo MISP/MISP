@@ -3856,7 +3856,7 @@ class Event extends AppModel
                         unset($data['Event']['Attribute'][$k]); // remove duplicate attribute
                     } else {
                         $attributeHashes[$attributeHash] = true;
-                        $data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, $this->Log, $parentEvent);
+                        $data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
                     }
                 }
                 unset($attributeHashes);

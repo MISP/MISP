@@ -2387,7 +2387,7 @@ class EventsController extends AppController
                 $this->loadModel('Log');
                 $save_results = ['attributes' => 0, 'objects' => 0, 'eventReports' => 0];
                 foreach ($results['results']['Attribute'] as $attribute) {
-                    $this->Event->Attribute->captureAttribute($attribute, $target_id, $this->Auth->user(), false, $this->Log);
+                    $this->Event->Attribute->captureAttribute($attribute, $target_id, $this->Auth->user());
                 }
                 foreach ($results['results']['Object'] as $object) {
                     $this->Event->Object->captureObject($object, $target_id, $this->Auth->user(), $this->Log);

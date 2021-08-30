@@ -999,7 +999,7 @@ class MispObject extends AppModel
             $partialFails = array();
             if (!empty($object['Object']['Attribute'])) {
                 foreach ($object['Object']['Attribute'] as $attribute) {
-                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, $log);
+                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId);
                 }
             }
             return true;
