@@ -165,6 +165,7 @@ class Attribute extends AppModel
         'count' => array('txt', 'CountExport', 'txt'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'hashes' => array('txt', 'HashesExport', 'txt'),
+        'hosts' => array('txt', 'HostsExport', 'txt'),
         'json' => array('json', 'JsonExport', 'json'),
         'netfilter' => array('txt', 'NetfilterExport', 'sh'),
         'opendata' => array('txt', 'OpendataExport', 'txt'),
