@@ -33,14 +33,15 @@
         private function getAttributes()
         {
             $filterConditions = $this->__eventModel->Attribute->buildFilterConditions($this->__user, $this->__options['conditions']);
+
             $options = [
                 'includeWarninglistHits' => true,
                 'includeSightings' => true,
                 'includeCorrelations' => true,
-                'conditions' => [
-                    'Attribute.event_id' => $this->__options['event_id'],
+                'conditions' => array_merge(
+                    ['Attribute.event_id' => $this->__options['event_id']],
                     $filterConditions
-                ]
+                )
             ];
             $this->attributes = $this->__eventModel->Attribute->fetchAttributes($this->__user, $options);
         }
