@@ -556,8 +556,14 @@ class RestResponseComponent extends Component
                         $response['sql_dump'] = $this->Log->getDataSource()->getLog(false, false);
                     }
                 }
-                // Do not pretty print response for automatic tools
-                $flags = $this->isAutomaticTool() ? JSON_UNESCAPED_UNICODE : (JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+                $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+                if (!$this->isAutomaticTool()) {
+                    $flags |= JSON_PRETTY_PRINT; // Do not pretty print response for automatic tools
+                }
+                if (defined('JSON_THROW_ON_ERROR')) {
+                    $flags |= JSON_THROW_ON_ERROR; // Throw exception on error if supported
+                }
                 $response = json_encode($response, $flags);
             } else {
                 if ($dumpSql) {
