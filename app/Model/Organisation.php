@@ -36,7 +36,8 @@ class Organisation extends AppModel
         'uuid' => array(
             'unique' => array(
                 'rule' => 'isUnique',
-                'message' => 'An organisation with this UUID already exists.'
+                'message' => 'An organisation with this UUID already exists.',
+                'on' => 'create',
             ),
             'uuid' => array(
                 'rule' => 'uuid',
@@ -209,7 +210,7 @@ class Organisation extends AppModel
                         'conditions' => array('name' => $name),
                 ));
                 if ($existingOrgByName) {
-                    $organisation['name'] = $organisation['name'] . '_' . rand(0, 9999);
+                    $organisation['name'] = $organisation['name'] . '_' . mt_rand(0, 9999);
                 }
                 $organisation['uuid'] = $uuid;
             }

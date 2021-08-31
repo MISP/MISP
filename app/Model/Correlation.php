@@ -21,7 +21,20 @@ class Correlation extends AppModel
         )
     );
 
+    /** @var array */
     private $exclusions;
+
+    /**
+     * Use old schema with `date` and `info` fields.
+     * @var bool
+     */
+    private $oldSchema;
+
+    public function __construct($id = false, $table = null, $ds = null)
+    {
+        parent::__construct($id, $table, $ds);
+        $this->oldSchema = $this->schema('date') !== null;
+    }
 
     public function correlateValueRouter($value)
     {
@@ -99,7 +112,7 @@ class Correlation extends AppModel
             ],
             'contain' => [
                 'Event' => [
-                    'fields' => ['Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id', 'Event.disable_correlation']
+                    'fields' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id', 'Event.disable_correlation']
                 ]
             ],
             'order' => [],
@@ -137,7 +150,7 @@ class Correlation extends AppModel
             ],
             'contain' => [
                 'Event' => [
-                    'fields' => ['Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id', 'Event.disable_correlation']
+                    'fields' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id', 'Event.disable_correlation']
                 ]
             ],
             'order' => [],
@@ -162,8 +175,6 @@ class Correlation extends AppModel
                     'a_distribution' => $b['Attribute']['distribution'],
                     'sharing_group_id' => $b['Event']['sharing_group_id'],
                     'a_sharing_group_id' => $b['Attribute']['sharing_group_id'],
-                    'date' => $b['Event']['date'],
-                    'info' => $b['Event']['info']
                 ];
             } else {
                 $correlations[] = [
@@ -177,8 +188,6 @@ class Correlation extends AppModel
                     $b['Attribute']['distribution'],
                     $b['Event']['sharing_group_id'],
                     $b['Attribute']['sharing_group_id'],
-                    $b['Event']['date'],
-                    $b['Event']['info']
                 ];
             }
         }
@@ -228,9 +237,26 @@ class Correlation extends AppModel
         $fields = [
             'value', '1_event_id', '1_attribute_id', 'event_id', 'attribute_id', 'org_id',
             'distribution', 'a_distribution', 'sharing_group_id', 'a_sharing_group_id',
-            'date', 'info'
         ];
+
+        // In older MISP instances, correlations table contains also date and info columns, that stores information
+        // about correlated event title and date. But because this information can be fetched directly from Event table,
+        // it is not necessary to keep them there. The problem is that these columns are marked as not null, so they must
+        // be filled with value and removing these columns can take long time for big instances. So for new installation
+        // these columns doesn't exists anymore and we don't need to save dummy value into them. Also feel free to remove
+        // them from your instance.
+        if ($this->oldSchema) {
+            $fields[] = 'date';
+            $fields[] = 'info';
+        }
+
         if (Configure::read('MISP.deadlock_avoidance')) {
+            if ($this->oldSchema) {
+                foreach ($correlations as &$correlation) {
+                    $correlation['date'] = '1000-01-01'; // Dummy value
+                    $correlation['info'] = ''; // Dummy value
+                }
+            }
             return $this->saveMany($correlations, array(
                 'atomic' => false,
                 'callbacks' => false,
@@ -239,6 +265,12 @@ class Correlation extends AppModel
                 'fieldList' => $fields
             ));
         } else {
+            if ($this->oldSchema) {
+                foreach ($correlations as &$correlation) {
+                    $correlation[] = '1000-01-01'; // Dummy value
+                    $correlation[] = ''; // Dummy value
+                }
+            }
             $db = $this->getDataSource();
             return $db->insertMulti('correlations', $fields, $correlations);
         }
@@ -278,7 +310,7 @@ class Correlation extends AppModel
         if (!$event) {
             $event = $this->Attribute->Event->find('first', array(
                 'recursive' => -1,
-                'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
+                'fields' => array('Event.distribution', 'Event.id', 'Event.org_id', 'Event.sharing_group_id', 'Event.disable_correlation'),
                 'conditions' => array('id' => $a['event_id']),
                 'order' => array(),
             ));
@@ -325,7 +357,7 @@ class Correlation extends AppModel
                     'Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id',
                     'Attribute.value1', 'Attribute.value2'
                 ],
-                'contain' => ['Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'],
+                'contain' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'],
                 'order' => []
             ));
         }

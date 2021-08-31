@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
+App::uses('ServerSyncTool', 'Tools');
 
 /**
  * @property Attribute $Attribute
@@ -1110,36 +1111,79 @@ class Sighting extends AppModel
         }
     }
 
-    public function pullSightings($user, $server)
+    /**
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @return int Number of saved sighting.
+     * @throws Exception
+     */
+    public function pullSightings(array $user, ServerSyncTool $serverSync)
     {
-        $HttpSocket = $this->setupHttpSocket($server);
         $this->Server = ClassRegistry::init('Server');
         try {
-            $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, 'sightings');
+            $remoteEvents = $this->Server->getEventIndexFromServer($serverSync);
         } catch (Exception $e) {
-            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            $this->logException("Could not fetch event IDs from server {$serverSync->server()['Server']['name']}", $e);
             return 0;
         }
+
+        // Downloads sightings just from events that exists locally and remote sighting_timestamp is newer than local.
+        $localEvents = $this->Event->find('list', [
+            'fields' => ['Event.uuid', 'Event.sighting_timestamp'],
+            'conditions' => count($remoteEvents) > 10000 ? ['Event.uuid' => array_column($remoteEvents, 'uuid')] : [],
+        ]);
+
+        $eventUuids = [];
+        foreach ($remoteEvents as $remoteEvent) {
+            if (isset($localEvents[$remoteEvent['uuid']]) && $localEvents[$remoteEvent['uuid']] < $remoteEvent['sighting_timestamp']) {
+                $eventUuids[] = $remoteEvent['uuid'];
+            }
+        }
+        unset($remoteEvents, $localEvents);
+
         $saved = 0;
-        // now process the $eventIds to pull each of the events sequentially
+        // We don't need some of the event data, like correlations and event reports
+        $params = [
+            'deleted' => [0, 1],
+            'excludeGalaxy' => 1,
+            'excludeLocalTags' => 1,
+            'includeAttachments' => 0,
+            'includeEventCorrelations' => 0,
+            'includeFeedCorrelations' => 0,
+            'includeWarninglistHits' => 0,
+            'noEventReports' => 1,
+            'noShadowAttributes' => 1,
+        ];
+        // now process the $eventUuids to pull each of the events sequentially
         // download each event and save sightings
-        foreach ($eventIds as $k => $eventId) {
+        foreach ($eventUuids as $eventUuid) {
             try {
-                $event = $this->Event->downloadEventFromServer($eventId, $server);
+                $event = $serverSync->fetchEvent($eventUuid, $params)->json();
             } catch (Exception $e) {
-                $this->logException("Failed downloading the event $eventId from {$server['Server']['name']}.", $e);
+                $this->logException("Failed downloading the event $eventUuid from {$serverSync->server()['Server']['name']}.", $e);
                 continue;
             }
-            $sightings = array();
-            if (!empty($event) && !empty($event['Event']['Attribute'])) {
+            $sightings = [];
+            if (!empty($event['Event']['Attribute'])) {
                 foreach ($event['Event']['Attribute'] as $attribute) {
                     if (!empty($attribute['Sighting'])) {
                         $sightings = array_merge($sightings, $attribute['Sighting']);
                     }
                 }
             }
-            if (!empty($event) && !empty($sightings)) {
-                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
+            if (!empty($event['Event']['Object'])) {
+                foreach ($event['Event']['Object'] as $object) {
+                    if (!empty($object['Attribute'])) {
+                        foreach ($object['Attribute'] as $attribute) {
+                            if (!empty($attribute['Sighting'])) {
+                                $sightings = array_merge($sightings, $attribute['Sighting']);
+                            }
+                        }
+                    }
+                }
+            }
+            if (!empty($sightings)) {
+                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $serverSync->serverId());
                 if (is_numeric($result)) {
                     $saved += $result;
                 }

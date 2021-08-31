@@ -150,8 +150,6 @@ CREATE TABLE IF NOT EXISTS `correlations` (
   `a_distribution` tinyint(4) NOT NULL,
   `sharing_group_id` int(11) NOT NULL,
   `a_sharing_group_id` int(11) NOT NULL,
-  `date` date NOT NULL,
-  `info` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `1_event_id` (`1_event_id`),
@@ -440,7 +438,7 @@ CREATE TABLE IF NOT EXISTS `galaxies` (
   `kill_chain_order` text,
   PRIMARY KEY (id),
   INDEX `name` (`name`),
-  INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `uuid` (`uuid`),
   INDEX `type` (`type`),
   INDEX `namespace` (`namespace`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -1409,7 +1407,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `date_created` bigint(20),
   `date_modified` bigint(20),
   PRIMARY KEY (`id`),
-  INDEX `email` (`email`),
+  UNIQUE INDEX `email` (`email`),
   INDEX `org_id` (`org_id`),
   INDEX `server_id` (`server_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;

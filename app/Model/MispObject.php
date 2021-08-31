@@ -68,7 +68,7 @@ class MispObject extends AppModel
             'unique' => array(
                 'rule' => 'isUnique',
                 'message' => 'The UUID provided is not unique',
-                'required' => 'create'
+                'on' => 'create'
             ),
         ),
         'first_seen' => array(
@@ -970,22 +970,12 @@ class MispObject extends AppModel
             $duplicatedObjectID = null;
             $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID);
             if ($duplicate) {
-                $log->create();
-                $log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Object',
-                        'model_id' => 0,
-                        'email' => $user['email'],
-                        'action' => 'add',
-                        'user_id' => $user['id'],
-                        'title' => __('Object dropped due to it being a duplicate (ID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectID, $eventId),
-                        'change' => 'Duplicate object found.',
-                ));
+                $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
+                    __('Object dropped due to it being a duplicate (ID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectID, $eventId),
+                    'Duplicate object found.'
+                );
                 return true;
             }
-        }
-        if (empty($log)) {
-            $log = ClassRegistry::init('Log');
         }
         if (isset($object['Object']['id'])) {
             unset($object['Object']['id']);
@@ -999,22 +989,15 @@ class MispObject extends AppModel
             $partialFails = array();
             if (!empty($object['Object']['Attribute'])) {
                 foreach ($object['Object']['Attribute'] as $attribute) {
-                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, $log);
+                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId);
                 }
             }
             return true;
         } else {
-            $log->create();
-            $log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Object',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'add',
-                    'user_id' => $user['id'],
-                    'title' => 'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['Object']['name'],
-                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object),
-            ));
+            $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
+                'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['Object']['name'],
+                'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object)
+            );
         }
         return 'fail';
     }
@@ -1053,7 +1036,7 @@ class MispObject extends AppModel
                 'conditions' => array('Object.uuid' => $object['uuid'])
             ));
             if (empty($existingObject)) {
-                return $this->captureObject($object, $eventId, $user, $log);
+                return $this->captureObject($object, $eventId, $user);
             } else {
                 if ($existingObject['Object']['event_id'] != $eventId) {
                     $log->create();
@@ -1080,7 +1063,7 @@ class MispObject extends AppModel
                 }
             }
         } else {
-            return $this->captureObject($object, $eventId, $user, $log);
+            return $this->captureObject($object, $eventId, $user);
         }
         // At this point we have an existingObject that we can edit
         $recoverFields = array(

@@ -25,11 +25,11 @@ class FuzzyCorrelateSsdeep extends AppModel
             if (!in_array($hash[$i], $chars)) {
                 $chars[] = $hash[$i];
             }
-        };
+        }
         $search = true;
         while ($search) {
             $search = false;
-            foreach ($chars as $k => $c) {
+            foreach ($chars as $c) {
                 if (strpos($hash, $c . $c . $c . $c)) {
                     $hash = str_replace($c . $c . $c . $c, $c . $c . $c, $hash);
                     $search = true;
