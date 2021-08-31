@@ -3143,7 +3143,10 @@ class Event extends AppModel
             return true;
         }
         $banStatus = $this->getEventRepublishBanStatus($id);
-        if ($banStatus['active']) {
+        $banStatusUser = $this->User->checkNotificationBanStatus($user);
+        if ($banStatus['active'] || $banStatusUser['active']) {
+            $logMessage = $banStatus['active'] ? $banStatus['message'] : $banStatusUser['message'];
+            $banError = $banStatus['error'] || $banStatusUser['error'];
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
@@ -3153,9 +3156,9 @@ class Event extends AppModel
                     'email' => $user['email'],
                     'action' => 'publish',
                     'title' => __('E-mail alerts not sent out during publishing'),
-                    'change' => $banStatus['message'],
+                    'change' => $logMessage,
             ));
-            return !$banStatus['error'];
+            return !$banError;
         }
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
