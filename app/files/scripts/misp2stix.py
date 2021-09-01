@@ -38,10 +38,6 @@ def _handle_errors(errors: dict):
 
 
 def _process_misp_files(orgname: str, version: str, return_format:str, input_names: Union[list, None], debug: bool):
-    print(orgname, file=sys.stderr)
-    print(version, file=sys.stderr)
-    print(return_format, file=sys.stderr)
-    print(input_names, file=sys.stderr)
     if input_names is None:
         print('No input file provided.', file=sys.stderr)
         print(json.dumps({'success': 1}))
