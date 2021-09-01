@@ -1127,10 +1127,17 @@ class Sighting extends AppModel
             return 0;
         }
 
+        // Remove events from list that do not have published sightings.
+        foreach ($remoteEvents as $k => $remoteEvent) {
+            if ($remoteEvent['sighting_timestamp'] == 0) {
+                unset($remoteEvents[$k]);
+            }
+        }
+
         // Downloads sightings just from events that exists locally and remote sighting_timestamp is newer than local.
         $localEvents = $this->Event->find('list', [
             'fields' => ['Event.uuid', 'Event.sighting_timestamp'],
-            'conditions' => count($remoteEvents) > 10000 ? ['Event.uuid' => array_column($remoteEvents, 'uuid')] : [],
+            'conditions' => (count($remoteEvents) > 10000) ? [] : ['Event.uuid' => array_column($remoteEvents, 'uuid')],
         ]);
 
         $eventUuids = [];
