@@ -358,7 +358,7 @@ class AuditLog extends AppModel
             $validDates = $this->query($sql);
         }
         $data = [];
-        foreach ($validDates as $k => $date) {
+        foreach ($validDates as $date) {
             $data[(int)$date[0]['Date']] = (int)$date[0]['count'];
         }
         return $data;

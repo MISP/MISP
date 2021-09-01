@@ -1873,7 +1873,8 @@ class UsersController extends AppController
         $params = array(
             'fields' => array('id', 'name'),
             'recursive' => -1,
-            'conditions' => array()
+            'conditions' => array(),
+            'order' => ['name'],
         );
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             $params['conditions'] = array('Organisation.id' => $this->Auth->user('org_id'));
