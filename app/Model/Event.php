@@ -4913,15 +4913,6 @@ class Event extends AppModel
         return $xmlArray;
     }
 
-    public function checkIfNewer($incomingEvent)
-    {
-        $localEvent = $this->find('first', array('conditions' => array('uuid' => $incomingEvent['uuid']), 'recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp')));
-        if (empty($localEvent) || $incomingEvent['timestamp'] > $localEvent['Event']['timestamp']) {
-            return true;
-        }
-        return false;
-    }
-
     public function removeOlder(array &$events, $scope = 'events')
     {
         $field = $scope === 'sightings' ? 'sighting_timestamp' : 'timestamp';
@@ -5271,8 +5262,8 @@ class Event extends AppModel
         if ($filterType['warninglistId']) {
             // check if object contains at least one attribute that is part of given warninglist
             $flagKeep = false;
-            if (isset($attribute['warnings'])) {
-                foreach ($object['Attribute'] as $attribute) {
+            foreach ($object['Attribute'] as $attribute) {
+                if (isset($attribute['warnings'])) {
                     foreach ($attribute['warnings'] as $warning) {
                         if (in_array($warning['warninglist_id'], $filterType['warninglistId'])) {
                             $flagKeep = true;

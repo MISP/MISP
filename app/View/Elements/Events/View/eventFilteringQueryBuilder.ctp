@@ -1,3 +1,10 @@
+<?php
+$warninglistsValues = [];
+foreach ($warninglists as $id => $name) {
+    $warninglistsValues[] = [(int)$id => h($name)];
+}
+$warninglistsValues = json_encode($warninglistsValues);
+?>
 <div id="eventFilteringQBWrapper" style="padding: 5px; display: none; border: 1px solid #dddddd; border-bottom: 0px;">
     <div id="eventFilteringQB" style="overflow-y: auto; padding-right: 5px; resize: vertical; max-height: 750px; height: 400px;"></div>
     <div style="display: flex; justify-content: flex-end; margin-top: 5px;">
@@ -100,7 +107,7 @@ function triggerEventFilteringTool(hide) {
                 "unique": true,
                 "id": "warninglistId",
                 "label": "Warninglist",
-                "values": <?= json_encode(array_map("h", $warninglists)); ?>
+                "values": <?= $warninglistsValues ?>
             },
             {
                 "input": "radio",
