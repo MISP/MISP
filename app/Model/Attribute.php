@@ -76,6 +76,9 @@ class Attribute extends AppModel
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
 
+    /** @var array */
+    private $old;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -250,9 +253,9 @@ class Attribute extends AppModel
             )
         ),
         'distribution' => array(
-                'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
-                'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
-                'required' => true
+            'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
+            'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
+            'required' => true
         ),
         'first_seen' => array(
             'rule' => array('datetimeOrNull'),
@@ -364,7 +367,7 @@ class Attribute extends AppModel
                 'conditions' => array('Attribute.id' => $this->data['Attribute']['id'])
             ));
         } else {
-            $this->old = false;
+            $this->old = null;
         }
         // explode value of composite type in value1 and value2
         // or copy value to value1 if not composite type
@@ -485,7 +488,7 @@ class Attribute extends AppModel
                 }
             }
         }
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst')) && strpos($this->data['Attribute']['value'], '/')) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && strpos($this->data['Attribute']['value'], '/')) {
             $this->setCIDRList();
         }
         if ($created && isset($this->data['Attribute']['event_id']) && empty($this->data['Attribute']['skip_auto_increment'])) {
@@ -3422,11 +3425,17 @@ class Attribute extends AppModel
         return $conditions;
     }
 
+    /**
+     * Get list of all CIDR for correlation.
+     * @return array
+     */
     private function __getCIDRList()
     {
         return $this->find('column', array(
             'conditions' => array(
                 'type' => array('ip-src', 'ip-dst'),
+                'disable_correlation' => 0,
+                'deleted' => 0,
                 'value1 LIKE' => '%/%'
             ),
             'fields' => array('Attribute.value1'),
@@ -3440,17 +3449,18 @@ class Attribute extends AppModel
         $redis = $this->setupRedis();
         $cidrList = array();
         if ($redis) {
-            $redis->del('misp:cidr_cache_list');
             $cidrList = $this->__getCIDRList();
+
+            $redis->pipeline();
+            $redis->del('misp:cidr_cache_list');
             if (method_exists($redis, 'saddArray')) {
                 $redis->sAddArray('misp:cidr_cache_list', $cidrList);
             } else {
-                $pipeline = $redis->multi(Redis::PIPELINE);
                 foreach ($cidrList as $cidr) {
-                    $pipeline->sadd('misp:cidr_cache_list', $cidr);
+                    $redis->sadd('misp:cidr_cache_list', $cidr);
                 }
-                $pipeline->exec();
             }
+            $redis->exec();
         }
         return $cidrList;
     }
@@ -3481,7 +3491,6 @@ class Attribute extends AppModel
             }
         }
         $sgs = $this->SharingGroup->fetchAllAuthorised($user, 'name', 1);
-        $this->set('sharingGroups', $sgs);
         $distributionLevels = $this->distributionLevels;
         if (empty($sgs)) {
             unset($distributionLevels[4]);
