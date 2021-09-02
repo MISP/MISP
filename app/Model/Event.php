@@ -4913,15 +4913,6 @@ class Event extends AppModel
         return $xmlArray;
     }
 
-    public function checkIfNewer($incomingEvent)
-    {
-        $localEvent = $this->find('first', array('conditions' => array('uuid' => $incomingEvent['uuid']), 'recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp')));
-        if (empty($localEvent) || $incomingEvent['timestamp'] > $localEvent['Event']['timestamp']) {
-            return true;
-        }
-        return false;
-    }
-
     public function removeOlder(array &$events, $scope = 'events')
     {
         $field = $scope === 'sightings' ? 'sighting_timestamp' : 'timestamp';
