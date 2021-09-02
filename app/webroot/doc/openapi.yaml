@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: 2.4.144
+  version: 2.4.148
   title: MISP Automation API
   description: |
 
@@ -1007,6 +1007,8 @@ paths:
       operationId: addServer
       tags:
         - Servers
+      requestBody:
+        $ref: "#/components/requestBodies/AddServerRequest"
       responses:
         "200":
           $ref: "#/components/responses/ServerResponse"
@@ -1025,6 +1027,8 @@ paths:
         - Servers
       parameters:
         - $ref: "#/components/parameters/serverIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/EditServerRequest"
       responses:
         "200":
           $ref: "#/components/responses/ServerResponse"
@@ -5560,6 +5564,18 @@ components:
                 items:
                   type: string
                   format: hostname
+
+    AddServerRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ServerNoId"
+
+    EditServerRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Server"
 
     EditServerSettingRequest:
       content:
