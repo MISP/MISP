@@ -5262,8 +5262,8 @@ class Event extends AppModel
         if ($filterType['warninglistId']) {
             // check if object contains at least one attribute that is part of given warninglist
             $flagKeep = false;
-            if (isset($attribute['warnings'])) {
-                foreach ($object['Attribute'] as $attribute) {
+            foreach ($object['Attribute'] as $attribute) {
+                if (isset($attribute['warnings'])) {
                     foreach ($attribute['warnings'] as $warning) {
                         if (in_array($warning['warninglist_id'], $filterType['warninglistId'])) {
                             $flagKeep = true;
