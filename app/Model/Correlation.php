@@ -552,19 +552,6 @@ class Correlation extends AppModel
         return $extraConditions;
     }
 
-    public function beforeDeleteCorrelation($attribute_id)
-    {
-        // When we remove an attribute we need to
-        // - remove the existing relations related to that attribute, we DO have an id reference
-        // ==> DELETE FROM correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id;
-        $dummy = $this->deleteAll([
-            'OR' => [
-                'Correlation.1_attribute_id' => $attribute_id,
-                'Correlation.attribute_id' => $attribute_id
-            ]
-        ]);
-    }
-
     // using Alnitak's solution from http://stackoverflow.com/questions/594112/matching-an-ip-to-a-cidr-mask-in-php5
     private function __ipv4InCidr($ip, $cidr)
     {
