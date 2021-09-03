@@ -51,7 +51,7 @@ class FuzzyCorrelateSsdeep extends AppModel
             $temp = base64_decode($temp);
             $temp = $temp . "\x00\x00\x00";
             $temp = base64_encode($temp);
-            if (!in_array($temp, $results)) {
+            if (!in_array($temp, $results, true)) {
                 $results[] = $temp;
             }
         }

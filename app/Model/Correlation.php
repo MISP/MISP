@@ -286,12 +286,12 @@ class Correlation extends AppModel
         // ==> DELETE FROM correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id; */
         // first check if it's an update
         if (isset($attribute['id'])) {
-            // FIXME : check that $attribute['id'] is checked correctly so that the user can't remove attributes he shouldn't
-            $dummy = $this->deleteAll(
-                array('OR' => array(
+            $this->deleteAll([
+                'OR' => [
                     'Correlation.1_attribute_id' => $attribute['id'],
-                    'Correlation.attribute_id' => $attribute['id']))
-            );
+                    'Correlation.attribute_id' => $attribute['id']
+                ],
+            ], false);
         }
         if ($attribute['type'] === 'ssdeep') {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
