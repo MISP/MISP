@@ -71,6 +71,12 @@ Custom Codeception modules are used to simplify tasks as authenticating API requ
 $ Vendor/bin/codecept run
 ```
 
+or:
+
+```
+$ make test
+```
+
 ## Fixtures
 To easily create mock data fixtures are described in here `app/Test/_support/Helper/Fixture/Data`, these helper classes implement the `FixtureInterface` interface which defines basic methods for creating dummy arrays. The [Faker](https://github.com/fzaninotto/Faker) library is used to generate random data when possible.
 
