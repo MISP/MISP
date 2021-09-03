@@ -26,8 +26,8 @@ App::uses('AppModel', 'Model');
  *
  * @package       app.Console.Command
  */
-class AppShell extends Shell {
-
+class AppShell extends Shell
+{
     public $tasks = array('ConfigLoad');
     
     public function perform()
