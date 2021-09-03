@@ -30,10 +30,14 @@ class Correlation extends AppModel
      */
     private $oldSchema;
 
+    /** @var bool */
+    private $deadlockAvoidance;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
         $this->oldSchema = $this->schema('date') !== null;
+        $this->deadlockAvoidance = Configure::read('MISP.deadlock_avoidance');
     }
 
     public function correlateValueRouter($value)
@@ -163,7 +167,7 @@ class Correlation extends AppModel
         if (
             $a['Attribute']['event_id'] !== $b['Attribute']['event_id']
         ) {
-            if (Configure::read('MISP.deadlock_avoidance')) {
+            if ($this->deadlockAvoidance) {
                 $correlations[] = [
                     'value' => $value,
                     '1_event_id' => $a['Event']['id'],
@@ -250,7 +254,7 @@ class Correlation extends AppModel
             $fields[] = 'info';
         }
 
-        if (Configure::read('MISP.deadlock_avoidance')) {
+        if ($this->deadlockAvoidance) {
             if ($this->oldSchema) {
                 foreach ($correlations as &$correlation) {
                     $correlation['date'] = '1000-01-01'; // Dummy value
