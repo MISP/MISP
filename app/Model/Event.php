@@ -4069,7 +4069,7 @@ class Event extends AppModel
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 foreach ($data['Event']['Attribute'] as $attribute) {
                     $nothingToChange = false;
-                    $result = $this->Attribute->editAttribute($attribute, $this->id, $user, 0, $this->Log, $force, $nothingToChange);
+                    $result = $this->Attribute->editAttribute($attribute, $this->id, $user, 0, false, $force, $nothingToChange);
                     if ($result !== true) {
                         $validationErrors['Attribute'][] = $result;
                     }
