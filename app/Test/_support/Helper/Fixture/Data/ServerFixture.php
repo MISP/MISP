@@ -54,4 +54,12 @@ class ServerFixture extends AbstractFixture implements FixtureInterface
 
         return $request;
     }
+
+    public function toResponse(): array
+    {
+        $request = parent::toResponse();
+        unset($request['authkey']);
+
+        return $request;
+    }
 }

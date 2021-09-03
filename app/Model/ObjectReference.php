@@ -38,10 +38,6 @@ class ObjectReference extends AppModel
         )
     );
 
-
-    public $validate = array(
-    );
-
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();

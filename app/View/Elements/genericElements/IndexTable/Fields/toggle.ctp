@@ -7,7 +7,7 @@
  *
  */
     $data = Hash::extract($row, $field['data_path']);
-    $seed = rand();
+    $seed = mt_rand();
     $checkboxId = 'GenericToggle-' . $seed;
     $checkboxClass = empty($field['checkbox_class']) ? 'genericCheckbox' : h($field['checkbox_class']);
     $tempboxId = 'TempBox-' . $seed;

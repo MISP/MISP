@@ -32,7 +32,8 @@ $simpleFieldAllowedlist = array(
     'selected',
     'legend',
     'disabled',
-    'description'
+    'description',
+    'autocomplete',
 );
 $fieldsArrayForPersistence = array();
 $formOptions = isset($formOptions) ? $formOptions : array();

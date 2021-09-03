@@ -7,7 +7,7 @@
  *
  */
     $data = Hash::extract($row, $field['data_path']);
-    $seed = rand();
+    $seed = mt_rand();
     $checkboxId = 'GenericToggle-' . $seed;
     $tempboxId = 'TempBox-' . $seed;
     echo sprintf(

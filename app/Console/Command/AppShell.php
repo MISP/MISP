@@ -30,8 +30,24 @@ class AppShell extends Shell {
 
     public $tasks = array('ConfigLoad');
     
-    public function perform() {
+    public function perform()
+    {
         $this->initialize();
         $this->{array_shift($this->args)}();
+    }
+
+    protected function _welcome()
+    {
+        // disable welcome message
+    }
+
+    /**
+     * @param mixed $data
+     * @return string
+     * @throws JsonException
+     */
+    protected function json($data)
+    {
+        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 }

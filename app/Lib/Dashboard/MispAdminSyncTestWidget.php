@@ -25,7 +25,7 @@ class MispAdminSyncTestWidget
         }
         $syncTestErrorCodes = $this->Server->syncTestErrorCodes;
         foreach ($servers as $server) {
-            $result = $this->Server->runConnectionTest($server);
+            $result = $this->Server->runConnectionTest($server, false);
             if ($result['status'] === 1) {
                 $message = __('Connected.');
                 $colour = 'green';

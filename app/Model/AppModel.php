@@ -22,7 +22,6 @@
 
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
-App::uses('BlowfishPasswordHasher', 'Controller/Component/Auth');
 App::uses('RandomTool', 'Tools');
 
 class AppModel extends Model
@@ -1534,7 +1533,7 @@ class AppModel extends Model
                     `value` text NOT NULL,
                     `from_json` tinyint(1) default 0,
                     PRIMARY KEY (`id`),
-                    INDEX `value` (`value`(255))
+                    UNIQUE INDEX `value` (`value`(255))
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 66:
@@ -2997,7 +2996,6 @@ class AppModel extends Model
             return $delta;
         }
         $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1);
-        $multiplier = $multiplierArray['d'];
         $lastChar = strtolower(substr($delta, -1));
         if (!is_numeric($lastChar) && array_key_exists($lastChar, $multiplierArray)) {
             $multiplier = $multiplierArray[$lastChar];
@@ -3074,7 +3072,7 @@ class AppModel extends Model
     protected function _findColumn($state, $query, $results = array())
     {
         if ($state === 'before') {
-            if (isset($query['fields']) && count($query['fields']) === 1) {
+            if (isset($query['fields']) && is_array($query['fields']) && count($query['fields']) === 1) {
                 if (strpos($query['fields'][0], '.') === false) {
                     $query['fields'][0] = $this->alias . '.' . $query['fields'][0];
                 }

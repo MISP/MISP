@@ -30,7 +30,12 @@ class IndexServersCest
 
         $remoteOrgId = 2;
         $remoteOrg = OrganisationFixture::fake(['id' => $remoteOrgId]);
-        $fakeServer = ServerFixture::fake(['org_id' => $orgId, 'remote_org_id' => $remoteOrgId]);
+        $fakeServer = ServerFixture::fake(
+            [
+                'org_id' => (string)$orgId,
+                'remote_org_id' => (string)$remoteOrgId
+            ]
+        );
         $I->haveInDatabase('servers', $fakeServer->toDatabase());
         $I->haveInDatabase('organisations', $remoteOrg->toDatabase());
 

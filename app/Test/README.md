@@ -70,6 +70,24 @@ Custom Codeception modules are used to simplify tasks as authenticating API requ
 ```
 $ Vendor/bin/codecept run
 ```
+
+## Fixtures
+To easily create mock data fixtures are described in here `app/Test/_support/Helper/Fixture/Data`, these helper classes implement the `FixtureInterface` interface which defines basic methods for creating dummy arrays. The [Faker](https://github.com/fzaninotto/Faker) library is used to generate random data when possible.
+
+Example:
+```php
+$fakeUser = UserFixture::fake(
+    [
+        'id' => (string)$userId,
+        'org_id' => (string)$orgId,
+        'role_id' => (string)UserFixture::ROLE_ADMIN,
+    ]
+);
+$fakeUser->toRequest();  // returns the API request payload for this entity
+$fakeUser->toResponse(); // returns the API response payload for this entity
+$fakeUser->toDatabase(); // returns the database representation for this entity
+```
+
 ## Modules
 Custom `Codeception` modules are defined in `app/Test/_support/Helper/Module` directory to simplify tests code.
 
@@ -88,9 +106,6 @@ $I->haveMispSetting('MISP.background_jobs', '1');
 ```
 
 > **NOTE:** Setting rollback is not yet supported, so keep in mind you might have to set it back to the default value at the end of your test.
-
-### Fixtures
-
 
 ### OpenAPI validation
 The `OpenApiValidator` module handles the validation of the API requests and responeses with the `MISP` OpenAPI spec located in `app/webroot/doc/openapi.yaml`.

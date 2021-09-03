@@ -11,6 +11,7 @@ App::uses('BaseAuthenticate', 'Controller/Component/Auth');
  *  - OidcAuth.organisation_property (default: `organization`)
  *  - OidcAuth.roles_property (default: `roles`)
  *  - OidcAuth.default_org
+ *  - OidcAuth.unblock
  */
 class OidcAuthenticate extends BaseAuthenticate
 {
@@ -32,7 +33,7 @@ class OidcAuthenticate extends BaseAuthenticate
         }
 
         $mispUsername = $oidc->requestUserInfo('email');
-        $this->log($mispUsername, "Trying login");
+        $this->log($mispUsername, "Trying login.");
 
         $verifiedClaims = $oidc->getVerifiedClaims();
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
@@ -78,6 +79,12 @@ class OidcAuthenticate extends BaseAuthenticate
                 $this->userModel()->updateField($user, 'role_id', $roleId);
                 $this->log($mispUsername, "User role changed from {$user['role_id']} to $roleId.");
                 $user['role_id'] = $roleId;
+            }
+
+            if ($user['disabled'] && $this->getConfig('unblock', false)) {
+                $this->userModel()->updateField($user, 'disabled', false);
+                $this->log($mispUsername, "Unblocking user.");
+                $user['disabled'] = false;
             }
 
             $this->log($mispUsername, 'Logged in.');

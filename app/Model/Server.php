@@ -465,14 +465,14 @@ class Server extends AppModel
             'includeFeedCorrelations' => 0,
             'includeWarninglistHits' => 0, // we don't need remote warninglist hits
         ];
-        if (empty($server['Server']['internal'])) {
+        if (empty($serverSync->server()['Server']['internal'])) {
             $params['excludeLocalTags'] = 1;
         }
 
         try {
             $event = $serverSync->fetchEvent($eventId, $params)->json();
         } catch (Exception $e) {
-            $this->logException("Failed downloading the event $eventId from remote server {$server['Server']['id']}", $e);
+            $this->logException("Failed downloading the event $eventId from remote server {$serverSync->serverId()}", $e);
             $fails[$eventId] = __('failed downloading the event');
             return false;
         }
@@ -583,12 +583,12 @@ class Server extends AppModel
         }
         $pulledProposals = $pulledSightings = 0;
         if ($technique === 'full' || $technique === 'update') {
-            $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
+            $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $serverSync);
 
             if ($jobId) {
                 $job->saveProgress($jobId, 'Pulling sightings.', 75);
             }
-            $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
+            $pulledSightings = $eventModel->Sighting->pullSightings($user, $serverSync);
         }
         if ($jobId) {
             $job->saveProgress($jobId, 'Pull completed.', 100);
@@ -1205,7 +1205,16 @@ class Server extends AppModel
         return $successes;
     }
 
-    public function syncSightings($HttpSocket, array $server, array $user, Event $eventModel)
+    /**
+     * Push sightings to remote server.
+     * @param HttpSocket $HttpSocket
+     * @param array $server
+     * @param array $user
+     * @param Event $eventModel
+     * @return array
+     * @throws Exception
+     */
+    private function syncSightings($HttpSocket, array $server, array $user, Event $eventModel)
     {
         $successes = array();
         if (!$server['Server']['push_sightings']) {
@@ -1221,6 +1230,14 @@ class Server extends AppModel
         }
         // now process the $eventIds to push each of the events sequentially
         // check each event and push sightings when needed
+        $fakeSyncUser = [
+            'org_id' => $server['Server']['remote_org_id'],
+            'Role' => [
+                'perm_site_admin' => 0,
+            ],
+        ];
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         foreach ($eventUuids as $eventUuid) {
             $event = $eventModel->fetchEvent($user, ['event_uuid' => $eventUuid, 'metadata' => true]);
             if (!empty($event)) {
@@ -1233,11 +1250,21 @@ class Server extends AppModel
                     continue;
                 }
 
-                $sightings = $this->Sighting->attachToEvent($event, $user, null, false, true);
-                $result = $eventModel->uploadSightingsToServer($sightings, $server, $eventUuid, $HttpSocket);
-                if ($result) {
-                    $successes[] = 'Sightings for event ' .  $event['Event']['id'];
+                // Process sightings in batch to keep memory requirements low
+                foreach ($this->Sighting->fetchUuidsForEventToPush($event, $fakeSyncUser) as $batch) {
+                    // Filter out sightings that already exists on remote server
+                    $existingSightings = $serverSync->filterSightingUuidsForPush($event, $batch);
+                    $newSightings = array_diff($batch, $existingSightings);
+                    if (empty($newSightings)) {
+                        continue;
+                    }
+
+                    $conditions = ['Sighting.uuid' => $newSightings];
+                    $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, $conditions, true);
+                    $serverSync->uploadSightings($sightings, $event['Event']['uuid']);
                 }
+
+                $successes[] = 'Sightings for event ' .  $event['Event']['id'];
             }
         }
         return $successes;
@@ -2449,10 +2476,11 @@ class Server extends AppModel
 
     /**
      * @param array $server
+     * @param bool $withPostTest
      * @return array
      * @throws JsonException
      */
-    public function runConnectionTest(array $server)
+    public function runConnectionTest(array $server, $withPostTest = true)
     {
         App::uses('SyncTool', 'Tools');
         try {
@@ -2460,51 +2488,51 @@ class Server extends AppModel
             if ($clientCertificate) {
                 $clientCertificate['valid_from'] = $clientCertificate['valid_from'] ? $clientCertificate['valid_from']->format('c') : __('Not defined');
                 $clientCertificate['valid_to'] = $clientCertificate['valid_to'] ? $clientCertificate['valid_to']->format('c') : __('Not defined');
-                $clientCertificate['public_key_size'] = $clientCertificate['public_key_size'] ?: __('Unknwon');
-                $clientCertificate['public_key_type'] = $clientCertificate['public_key_type'] ?: __('Unknwon');
+                $clientCertificate['public_key_size'] = $clientCertificate['public_key_size'] ?: __('Unknown');
+                $clientCertificate['public_key_type'] = $clientCertificate['public_key_type'] ?: __('Unknown');
             }
         } catch (Exception $e) {
             $clientCertificate = ['error' => $e->getMessage()];
         }
 
-        $HttpSocket = $this->setupHttpSocket($server, null, 5);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/servers/getVersion';
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
 
         try {
-            $response = $HttpSocket->get($uri, false, $request);
-            if ($response === false) {
-                throw new Exception("Connection failed for unknown reason.");
+            $info = $serverSync->info();
+            $response = [
+                'status' => 1,
+                'info' => $info,
+                'client_certificate' => $clientCertificate,
+            ];
+
+            if ($withPostTest) {
+                $response['post'] = $serverSync->isSupported(ServerSyncTool::FEATURE_POST_TEST) ? $this->runPOSTtest($serverSync) : null;
             }
+
+            return $response;
+
+        } catch (HttpSocketHttpException $e) {
+            if ($e->getCode() === 403) {
+                return ['status' => 4, 'client_certificate' => $clientCertificate];
+            } else if ($e->getCode() === 405) {
+                try {
+                    $responseText = $e->getResponse()->json()['message'];
+                    if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') {
+                        return array('status' => 5, 'client_certificate' => $clientCertificate);
+                    } elseif ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') {
+                        return array('status' => 6, 'client_certificate' => $clientCertificate);
+                    }
+                } catch (Exception $e) {
+                    // pass
+                }
+            }
+            $response = $e->getResponse();
+        } catch (HttpSocketJsonException $e) {
+            $response = $e->getResponse();
         } catch (Exception $e) {
             $logTitle = 'Error: Connection test failed. Reason: ' .  $e->getMessage();
             $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $logTitle);
-            return array('status' => 2, 'client_certificate' => $clientCertificate);
-        }
-
-        if ($response->code == '403') {
-            return array('status' => 4, 'client_certificate' => $clientCertificate);
-        } else if ($response->code == '405') {
-            try {
-                $responseText = $this->jsonDecode($response->body)['message'];
-                if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') {
-                    return array('status' => 5, 'client_certificate' => $clientCertificate);
-                } elseif ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') {
-                    return array('status' => 6, 'client_certificate' => $clientCertificate);
-                }
-            } catch (Exception $e) {
-                // pass
-            }
-        } else if ($response->isOk()) {
-            try {
-                $info = $this->jsonDecode($response->body());
-                if (!isset($info['version'])) {
-                    throw new Exception("Server returns JSON response, but doesn't contain required 'version' field.");
-                }
-                return array('status' => 1, 'info' => $info, 'client_certificate' => $clientCertificate);
-            } catch (Exception $e) {
-                // Even if server returns OK status, that doesn't mean that connection to another MISP instance works
-            }
+            return ['status' => 2, 'client_certificate' => $clientCertificate];
         }
 
         $logTitle = 'Error: Connection test failed. Returned data is in the change field.';
@@ -2512,22 +2540,20 @@ class Server extends AppModel
             'response' => ['', $response->body],
             'response-code' => ['', $response->code],
         ]);
-        return array('status' => 3, 'client_certificate' => $clientCertificate);
+        return ['status' => 3, 'client_certificate' => $clientCertificate];
     }
 
     /**
-     * @param array $server
+     * @param ServerSyncTool $serverSync
      * @return array
-     * @throws JsonException
+     * @throws Exception
      */
-    public function runPOSTtest(array $server)
+    private function runPOSTtest(ServerSyncTool $serverSync)
     {
         $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
         if (!$testFile) {
             throw new Exception("Could not load payload for POST test.");
         }
-
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
 
         try {
             $response = $serverSync->postTest($testFile);
@@ -2535,13 +2561,13 @@ class Server extends AppModel
             $rawBody = $response->body;
             $response = $response->json();
         } catch (Exception $e) {
-            $this->logException("Invalid response for remote server {$server['Server']['name']} POST test.", $e);
+            $this->logException("Invalid response for remote server {$serverSync->server()['Server']['name']} POST test.", $e);
             $title = 'Error: POST connection test failed. Reason: ' . $e->getMessage();
-            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $serverSync->serverId(), $title);
             return ['status' => 8];
         }
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
-            if (!empty($repsonse['body']['testString'])) {
+            if (!empty($response['body']['testString'])) {
                 $responseString = $response['body']['testString'];
             } else if (!empty($rawBody)){
                 $responseString = $rawBody;
@@ -2550,7 +2576,7 @@ class Server extends AppModel
             }
 
             $title = 'Error: POST connection test failed due to the message body not containing the expected data. Response: ' . PHP_EOL . PHP_EOL . $responseString;
-            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $serverSync->serverId(), $title);
             return ['status' => 9, 'content-encoding' => $contentEncoding];
         }
         $headers = array('Accept', 'Content-type');
@@ -2558,7 +2584,7 @@ class Server extends AppModel
             if (!isset($response['headers'][$header]) || $response['headers'][$header] !== 'application/json') {
                 $responseHeader = isset($response['headers'][$header]) ? $response['headers'][$header] : 'Header was not set.';
                 $title = 'Error: POST connection test failed due to a header ' . $header . ' not matching the expected value. Expected: "application/json", received "' . $responseHeader . '"';
-                $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
+                $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $serverSync->serverId(), $title);
                 return ['status' => 10, 'content-encoding' => $contentEncoding];
             }
         }
@@ -3312,7 +3338,7 @@ class Server extends AppModel
 
     public function stixDiagnostics(&$diagnostic_errors)
     {
-        $expected = array('stix' => '>1.2.0.9', 'cybox' => '>2.1.0.21', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>2.0', 'pymisp' => '>2.4.120');
+        $expected = array('stix' => '>1.2.0.11', 'cybox' => '>2.1.0.21', 'mixbox' => '>1.0.5', 'maec' => '>4.1.0.17', 'stix2' => '>2.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         try {
@@ -4287,16 +4313,25 @@ class Server extends AppModel
         return $response->body;
     }
 
-    public function attachServerCacheTimestamps($data)
+    /**
+     * @param array $servers
+     * @return array
+     */
+    public function attachServerCacheTimestamps(array $servers)
     {
         $redis = $this->setupRedis();
         if ($redis === false) {
-            return $data;
+            return $servers;
         }
-        foreach ($data as $k => $v) {
-            $data[$k]['Server']['cache_timestamp'] = $redis->get('misp:server_cache_timestamp:' . $data[$k]['Server']['id']);
+        $redis->pipeline();
+        foreach ($servers as $server) {
+            $redis->get('misp:server_cache_timestamp:' . $server['Server']['id']);
         }
-        return $data;
+        $results = $redis->exec();
+        foreach ($servers as $k => $v) {
+            $data[$k]['Server']['cache_timestamp'] = $results[$k];
+        }
+        return $servers;
     }
 
     public function updateJSON()
@@ -4526,50 +4561,40 @@ class Server extends AppModel
         return $success;
     }
 
-    public function queryAvailableSyncFilteringRules($server)
+    public function queryAvailableSyncFilteringRules(array $server)
     {
         $syncFilteringRules = [
             'error' => '',
             'data' => []
         ];
-        $HttpSocket = $this->setupHttpSocket($server, null);
-        $uri = $server['Server']['url'] . '/servers/getAvailableSyncFilteringRules';
-        $request = $this->setupSyncRequest($server);
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
         try {
-            $response = $HttpSocket->get($uri, false, $request);
-            if ($response === false) {
-                $syncFilteringRules['error'] = __('Connection failed for unknown reason.');
-                return $syncFilteringRules;
-            }
-        } catch (SocketException $e) {
-            $syncFilteringRules['error'] = __('Connection failed for unknown reason. Error returned: %s', $e->getMessage());
+            $syncFilteringRules['data'] = $serverSync->getAvailableSyncFilteringRules()->json();
+        } catch (Exception $e) {
+            $syncFilteringRules['error'] = __('Connection failed. Error returned: %s', $e->getMessage());
             return $syncFilteringRules;
         }
 
-        if ($response->isOk()) {
-            $syncFilteringRules['data'] = $this->jsonDecode($response->body());
-        } else {
-            $syncFilteringRules['error'] = __('Reponse was not OK. (HTTP code: %s)', $response->code);
-        }
         return $syncFilteringRules;
     }
 
-    public function getAvailableSyncFilteringRules($user)
+    public function getAvailableSyncFilteringRules(array $user)
     {
-        $this->Organisation = ClassRegistry::init('Organisation');
         $this->Tag = ClassRegistry::init('Tag');
         $organisations = [];
         if ($user['Role']['perm_sharing_group'] || !Configure::read('Security.hide_organisation_index_from_users')) {
-            $organisations = $this->Organisation->find('list', [
-                'fields' => 'name'
+            $organisations = $this->Organisation->find('column', [
+                'fields' => ['name'],
             ]);
         }
-        $tags = $this->Tag->find('list', [
-            'fields' => 'name'
+        $tags = $this->Tag->find('column', [
+            'fields' => ['name'],
         ]);
         return [
-            'organisations' => array_values($organisations),
-            'tags' => array_values($tags),
+            'organisations' => $organisations,
+            'tags' => $tags,
         ];
     }
 

@@ -49,7 +49,7 @@ class Role extends AppModel
     );
 
     public $virtualFields = array(
-        'permission' => "CASE WHEN (Role.perm_add + Role.perm_modify + Role.perm_publish = 3) THEN '3' WHEN (Role.perm_add + Role.perm_modify_org = 2) THEN '2' WHEN (Role.perm_add = 1) THEN '1' ELSE '0' END",
+        'permission' => "CASE WHEN (Role.perm_add AND Role.perm_modify AND Role.perm_publish) THEN '3' WHEN (Role.perm_add AND Role.perm_modify_org) THEN '2' WHEN (Role.perm_add) THEN '1' ELSE '0' END",
     );
 
     public $permissionConstants = array(
