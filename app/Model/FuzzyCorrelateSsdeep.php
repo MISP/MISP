@@ -79,7 +79,7 @@ class FuzzyCorrelateSsdeep extends AppModel
                 $to_save[] = array('attribute_id' => $attribute_id, 'chunk' => $chunk);
             }
         }
-        $this->saveAll($to_save);
+        $this->saveMany($to_save);
         return $result;
     }
 

@@ -437,7 +437,7 @@ class Correlation extends AppModel
 
     private function ssdeepCorrelation($a)
     {
-        if (empty($this->FuzzyCorrelateSsdeep)) {
+        if (!isset($this->FuzzyCorrelateSsdeep)) {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
         }
         $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($a['value1'], $a['id']);
