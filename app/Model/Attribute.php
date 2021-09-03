@@ -15,6 +15,7 @@ App::uses('ComplexTypeTool', 'Tools');
  * @property Sighting $Sighting
  * @property MispObject $Object
  * @property SharingGroup $SharingGroup
+ * @property Correlation $Correlation
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
@@ -415,9 +416,6 @@ class Attribute extends AppModel
         }
         // update correlation...
         if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
-            if (empty($this->Correlation)) {
-                $this->Correlation = ClassRegistry::init('Correlation');
-            }
             $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
             if (isset($this->data['Attribute']['event_id'])) {
                 $this->__alterAttributeCount($this->data['Attribute']['event_id'], false);
@@ -2276,7 +2274,6 @@ class Attribute extends AppModel
 
     public function generateCorrelation($jobId = false, $startPercentage = 0, $eventId = false, $attributeId = false)
     {
-        $this->Correlation = ClassRegistry::init('Correlation');
         $this->purgeCorrelations($eventId);
 
         $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
@@ -2358,7 +2355,6 @@ class Attribute extends AppModel
         if (!$eventId) {
             $this->query('TRUNCATE TABLE correlations;');
         } elseif (!$attributeId) {
-            $this->Correlation = ClassRegistry::init('Correlation');
             $this->Correlation->deleteAll(
                 array('OR' => array(
                 'Correlation.1_event_id' => $eventId,

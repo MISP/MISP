@@ -712,9 +712,6 @@ class Event extends AppModel
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
         }
-        if (!isset($this->Correlation)) {
-            $this->Correlation = ClassRegistry::init('Correlation');
-        }
         // search the correlation table for the event ids of the related events
         // Rules:
         // 1. Event is owned by the user (org_id matches)
@@ -727,7 +724,7 @@ class Event extends AppModel
         //        ii. Atttibute has a distribution between 1-3 (community only, connected communities, all orgs)
         //        iii. Attribute has a sharing group that the user is accessible to view
         $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventId, $sgids);
-        $relatedEventIds = $this->Correlation->find('column', array(
+        $relatedEventIds = $this->Attribute->Correlation->find('column', array(
             'fields' => array('Correlation.event_id'),
             'conditions' => $conditionsCorrelation,
             'unique' => true,
