@@ -112,7 +112,7 @@ class Correlation extends AppModel
             ],
             'contain' => [
                 'Event' => [
-                    'fields' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id', 'Event.disable_correlation']
+                    'fields' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id']
                 ]
             ],
             'order' => [],
@@ -150,7 +150,7 @@ class Correlation extends AppModel
             ],
             'contain' => [
                 'Event' => [
-                    'fields' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id', 'Event.disable_correlation']
+                    'fields' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id']
                 ]
             ],
             'order' => [],
