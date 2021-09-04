@@ -1015,18 +1015,10 @@ class MispObject extends AppModel
             }
             if (empty($object['sharing_group_id'])) {
                 $object_short = (isset($object['meta-category']) ? $object['meta-category'] : 'N/A') . '/' . (isset($object['name']) ? $object['name'] : 'N/A') . ' ' . (isset($object['uuid']) ? $object['uuid'] : 'N/A');
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'MispObject',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'edit',
-                    'user_id' => $user['id'],
-                    'title' => 'Object dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $object_short,
-                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object),
-                ));
+                $this->loadLog()->createLogEntry($user, 'edit', 'MispObject', 0,
+                    'Object dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $object_short,
+                    'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object)
+                );
                 return 'Invalid sharing group choice.';
             }
         }
@@ -1039,17 +1031,8 @@ class MispObject extends AppModel
                 return $this->captureObject($object, $eventId, $user);
             } else {
                 if ($existingObject['Object']['event_id'] != $eventId) {
-                    $log->create();
-                    $log->save(array(
-                            'org' => $user['Organisation']['name'],
-                            'model' => 'MispObject',
-                            'model_id' => 0,
-                            'email' => $user['email'],
-                            'action' => 'edit',
-                            'user_id' => $user['id'],
-                            'title' => 'Duplicate UUID found in object',
-                            'change' => 'An object was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $object['uuid'] . '. This can also be due to the same object (or an object with the same UUID) existing in a different event)',
-                    ));
+                    $change = 'An object was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $object['uuid'] . '. This can also be due to the same object (or an object with the same UUID) existing in a different event)';
+                    $this->loadLog()->createLogEntry($user, 'edit','MispObject', 0, 'Duplicate UUID found in object', $change);
                     return true;
                 }
                 if (isset($object['timestamp'])) {
@@ -1058,8 +1041,7 @@ class MispObject extends AppModel
                         return true;
                     }
                 } else {
-                    $date = new DateTime();
-                    $object['timestamp'] = $date->getTimestamp();
+                    $object['timestamp'] = time();
                 }
             }
         } else {
@@ -1089,17 +1071,10 @@ class MispObject extends AppModel
             $object['sharing_group_id'] = $this->SharingGroup->captureSG($object['SharingGroup'], $user);
         }
         if (!$this->save($object)) {
-            $log->create();
-            $log->save(array(
-                'org' => $user['Organisation']['name'],
-                'model' => 'Object',
-                'model_id' => 0,
-                'email' => $user['email'],
-                'action' => 'edit',
-                'user_id' => $user['id'],
-                'title' => 'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['name'],
-                'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object),
-            ));
+            $this->loadLog()->createLogEntry($user, 'edit', 'MispObject', 0,
+                'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['name'],
+                'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object)
+            );
             return $this->validationErrors;
         }
         if (!empty($object['Attribute'])) {

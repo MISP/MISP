@@ -4082,7 +4082,7 @@ class Event extends AppModel
                 $data['Event']['Object'] = array_values($data['Event']['Object']);
                 foreach ($data['Event']['Object'] as $object) {
                     $nothingToChange = false;
-                    $result = $this->Object->editObject($object, $this->id, $user, $this->Log, $force, $nothingToChange);
+                    $result = $this->Object->editObject($object, $this->id, $user, false, $force, $nothingToChange);
                     if ($result !== true) {
                         $validationErrors['Object'][] = $result;
                     }
@@ -4095,7 +4095,7 @@ class Event extends AppModel
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $nothingToChange = false;
                             $objectRef['source_uuid'] = $object['uuid'];
-                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user, $this->Log, $force, $nothingToChange);
+                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user);
                             if ($result && !$nothingToChange) {
                                 $changed = true;
                             }
