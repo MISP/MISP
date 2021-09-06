@@ -93,6 +93,15 @@
                         'icon' => 'arrow-circle-down'
                     ],
                     [
+                        'onclick' => sprintf(
+                            'openGenericModal(\'%s/cerebrates/pull_sgs/[onclick_params_data_path]\');',
+                            $baseurl
+                        ),
+                        'onclick_params_data_path' => 'Cerebrate.id',
+                        'title' => __('Pull all sharing groups'),
+                        'icon' => 'arrow-circle-down'
+                    ],
+                    [
                         'url' => $baseurl . '/cerebrates/edit',
                         'url_params_data_paths' => ['Cerebrate.id'],
                         'icon' => 'edit'
