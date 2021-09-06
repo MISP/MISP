@@ -44,7 +44,7 @@ class PullServerCest
                 'org_id' => $orgId,
                 'remote_org_id' => $remoteOrgId,
                 'pull' => true,
-                'url' => 'http://wiremock:8080'
+                'url' => $I->getWireMockBaseUrl()
             ]
         );
         $I->haveInDatabase('servers', $fakeServer->toDatabase());
@@ -86,7 +86,7 @@ class PullServerCest
                 'org_id' => $orgId,
                 'remote_org_id' => $remoteOrgId,
                 'pull' => true,
-                'url' => 'http://wiremock:8080'
+                'url' => $I->getWireMockBaseUrl()
             ]
         );
         $I->haveInDatabase('servers', $fakeServer->toDatabase());

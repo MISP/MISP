@@ -35,7 +35,7 @@ class FetchFromAllFeedsCest
                 'id' => (string)$feedId,
                 'orgc_id' => (string)$orgId,
                 'enabled' => true,
-                'url' => 'http://wiremock:8080/fetch-feed',
+                'url' => $I->getWireMockBaseUrl() . '/fetch-feed',
                 'source_format' => 'misp'
             ]
         );

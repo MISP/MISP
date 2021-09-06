@@ -4862,7 +4862,6 @@ components:
         url:
           type: string
           example: "/attributes"
-      additionalProperties: false
 
     UnauthorizedApiError:
       type: object
@@ -4880,7 +4879,6 @@ components:
         url:
           type: string
           example: "/attributes"
-      additionalProperties: false
 
     NotFoundApiError:
       type: object
@@ -4898,7 +4896,6 @@ components:
         url:
           type: string
           example: "/attributes/1234"
-      additionalProperties: false
 
   parameters:
     eventIdParameter:

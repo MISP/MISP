@@ -65,4 +65,9 @@ final class WireMock extends \Codeception\Module
                 )
         );
     }
+
+    public function getWireMockBaseUrl(): string
+    {
+        return 'http://' . $this->config['hostname'] . ':' . $this->config['port'];
+    }
 }

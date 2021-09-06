@@ -54,7 +54,9 @@ suites:
                 - \Helper\Module\OpenApiValidator:
                       depends: \Helper\Module\Api
                       openapi: "webroot/doc/openapi.yaml"
-                - \Helper\Module\WireMock
+                - \Helper\Module\WireMock:
+                      hostname: "127.0.0.1"
+                      port: 8080
             config:
                 PhpBrowser:
                     url: https://localhost
