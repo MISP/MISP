@@ -231,7 +231,7 @@ class OidcAuthenticate extends BaseAuthenticate
 
     /**
      * @param int $userId
-     * @param array $verifiedClaims
+     * @param stdClass $verifiedClaims
      * @return array|bool|mixed|null
      * @throws Exception
      */
@@ -239,8 +239,8 @@ class OidcAuthenticate extends BaseAuthenticate
     {
         $value = [];
         foreach (['sub', 'preferred_username', 'given_name', 'family_name'] as $field) {
-            if (isset($verifiedClaims[$field])) {
-                $value[$field] = $verifiedClaims[$field];
+            if (property_exists($verifiedClaims, $field)) {
+                $value[$field] = $verifiedClaims->{$field};
             }
         }
 
