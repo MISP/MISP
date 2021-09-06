@@ -4069,7 +4069,7 @@ class Event extends AppModel
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 foreach ($data['Event']['Attribute'] as $attribute) {
                     $nothingToChange = false;
-                    $result = $this->Attribute->editAttribute($attribute, $this->id, $user, 0, $this->Log, $force, $nothingToChange);
+                    $result = $this->Attribute->editAttribute($attribute, $this->id, $user, 0, false, $force, $nothingToChange);
                     if ($result !== true) {
                         $validationErrors['Attribute'][] = $result;
                     }
@@ -4082,7 +4082,7 @@ class Event extends AppModel
                 $data['Event']['Object'] = array_values($data['Event']['Object']);
                 foreach ($data['Event']['Object'] as $object) {
                     $nothingToChange = false;
-                    $result = $this->Object->editObject($object, $this->id, $user, $this->Log, $force, $nothingToChange);
+                    $result = $this->Object->editObject($object, $this->id, $user, false, $force, $nothingToChange);
                     if ($result !== true) {
                         $validationErrors['Object'][] = $result;
                     }
@@ -4095,7 +4095,7 @@ class Event extends AppModel
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $nothingToChange = false;
                             $objectRef['source_uuid'] = $object['uuid'];
-                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user, $this->Log, $force, $nothingToChange);
+                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user);
                             if ($result && !$nothingToChange) {
                                 $changed = true;
                             }
