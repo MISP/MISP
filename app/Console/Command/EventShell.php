@@ -7,10 +7,11 @@ require_once 'AppShell.php';
  * @property User $User
  * @property Event $Event
  * @property Job $Job
+ * @property Tag $Tag
  */
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation', 'Tag');
     public $tasks = array('ConfigLoad');
 
     public function getOptionParser()
@@ -34,6 +35,18 @@ class EventShell extends AppShell
             'arguments' => [
                 'event_id' => ['help' => __('Event ID'), 'required' => true],
                 'user_id' => ['help' => __('User ID'), 'required' => true],
+            ],
+        ]);
+        $parser->addSubcommand('duplicateTags', [
+            'help' => __('Show duplicate tags'),
+        ]);
+        $parser->addSubcommand('mergeTags', [
+            'help' => __('Merge tags'),
+            'parser' => [
+                'arguments' => array(
+                    'source' => ['help' => __('Source tag ID or name. Source tag will be deleted.'), 'required' => true],
+                    'destination' => ['help' => __('Destination tag ID or name.'), 'required' => true],
+                )
             ],
         ]);
         return $parser;
@@ -79,6 +92,20 @@ class EventShell extends AppShell
                 $this->out("Could not import event because of validation errors: " . json_encode($result['validationIssues']));
             }
         }
+    }
+
+    public function mergeTags()
+    {
+        list($source, $destination) = $this->args;
+        $output = $this->Tag->mergeTag($source, $destination);
+        $this->out("Merged tag `{$output['source_tag']['Tag']['name']}` into `{$output['destination_tag']['Tag']['name']}`");
+        $this->out(__("%s attribute or event tags changed", $output['changed']));
+    }
+
+    public function duplicateTags()
+    {
+        $output = $this->Tag->duplicateTags();
+        $this->out($this->json($output));
     }
 
     public function doPublish()
