@@ -8168,8 +8168,7 @@
         "user_settings": {
             "id": true,
             "setting": false,
-            "user_id": false,
-            "timestamp": false
+            "user_id": false
         },
         "warninglists": {
             "id": true
@@ -8182,5 +8181,5 @@
             "id": true
         }
     },
-    "db_version": "72"
+    "db_version": "73"
 }

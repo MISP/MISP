@@ -1,5 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
+
+/**
+ * @property User $User
+ */
 class UserSetting extends AppModel
 {
     public $useTable = 'user_settings';
@@ -92,12 +96,14 @@ class UserSetting extends AppModel
         'event_index_hide_columns' => [
             'placeholder' => ['clusters'],
         ],
+        'oidc' => [ // Data saved by OIDC plugin
+            'restricted' => 'perm_site_admin',
+        ],
     );
 
     // massage the data before we send it off for validation before saving anything
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
         // add a timestamp if it is not set
         if (empty($this->data['UserSetting']['timestamp'])) {
             $this->data['UserSetting']['timestamp'] = time();
@@ -120,7 +126,9 @@ class UserSetting extends AppModel
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $v) {
-            $results[$k]['UserSetting']['value'] = json_decode($v['UserSetting']['value'], true);
+            if (isset($v['UserSetting']['value'])) {
+                $results[$k]['UserSetting']['value'] = json_decode($v['UserSetting']['value'], true);
+            }
         }
         return $results;
     }
@@ -232,8 +240,8 @@ class UserSetting extends AppModel
 
     /**
      * Check whether the event is something the user is interested (to be alerted on)
-     * @param $user
-     * @param $event
+     * @param array $user
+     * @param array $event
      * @return bool
      */
     public function checkPublishFilter(array $user, array $event)
@@ -392,7 +400,8 @@ class UserSetting extends AppModel
             'conditions' => array(
                 'UserSetting.user_id' => $userSetting['user_id'],
                 'UserSetting.setting' => $userSetting['setting']
-            )
+            ),
+            'fields' =>  ['id'],
         ));
         if (empty($existingSetting)) {
             $this->create();
@@ -402,6 +411,39 @@ class UserSetting extends AppModel
         // save the setting
         $result = $this->save(array('UserSetting' => $userSetting));
         return true;
+    }
+
+    /**
+     * Set user setting without checking permission.
+     * @param int $userId
+     * @param string $setting
+     * @param mixed $value
+     * @return array|bool|mixed|null
+     * @throws Exception
+     */
+    public function setSettingInternal($userId, $setting, $value)
+    {
+        $userSetting = [
+            'user_id' => $userId,
+            'setting' => $setting,
+            'value' => $value,
+        ];
+
+        $existingSetting = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'UserSetting.user_id' => $userId,
+                'UserSetting.setting' => $setting,
+            ),
+            'fields' =>  ['id'],
+        ));
+        if (empty($existingSetting)) {
+            $this->create();
+        } else {
+            $userSetting['id'] = $existingSetting['UserSetting']['id'];
+        }
+
+        return $this->save($userSetting);
     }
 
     /**
