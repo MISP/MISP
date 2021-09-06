@@ -23,9 +23,12 @@ class CreateServerSyncCest
     public function testCreateSync(ApiTester $I): void
     {
         $orgId = 1;
-        $userId = 1;
-        $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_SYNC_USER);
+        $adminId = 1;
+        $userId = 10;
+        $I->haveAuthorizationKey($orgId, $adminId, UserFixture::ROLE_ADMIN);
         $I->haveMispSetting('MISP.host_org_id', (string)$orgId);
+
+        $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_SYNC_USER);
 
         $I->sendPost(self::URL);
 

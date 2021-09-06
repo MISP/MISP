@@ -43,7 +43,9 @@ class ApiTester extends \Codeception\Actor
         if (!$fakeOrg) {
             $fakeOrg = OrganisationFixture::fake(['id' => $orgId]);
         }
-        $this->haveInDatabase('organisations', $fakeOrg->toDatabase());
+        if (!$this->grabFromDatabase('organisations', 'id', array('id' => $orgId))) {
+            $this->haveInDatabase('organisations', $fakeOrg->toDatabase());
+        }
 
         if (!$fakeUser) {
             $fakeUser = UserFixture::fake([

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use \Helper\Fixture\Data\AttributeFixture;
 use \Helper\Fixture\Data\EventFixture;
+use \Helper\Fixture\Data\UserFixture;
 use \Codeception\Scenario;
 
 class AttributeCorrelationCest
@@ -586,10 +587,14 @@ class AttributeCorrelationCest
         $eventAId = 1;
         $eventBId = 2;
         $orgId = 10;
+        $adminId = 1;
         $userId = 10;
 
+        $I->haveAuthorizationKey($orgId, $adminId, UserFixture::ROLE_ADMIN);
         $I->haveMispSetting('MISP.enable_advanced_correlations', '1');
+
         $I->haveAuthorizationKey($orgId, $userId);
+
         $fakeEventA = EventFixture::fake(['id' => $eventAId, 'org_id' => $orgId, 'user_id' => $userId]);
         $fakeEventB = EventFixture::fake(['id' => $eventBId, 'org_id' => $orgId, 'user_id' => $userId]);
         $I->haveInDatabase('events', $fakeEventA->toDatabase());
@@ -655,10 +660,14 @@ class AttributeCorrelationCest
         $eventAId = 1;
         $eventBId = 2;
         $orgId = 10;
+        $adminId = 1;
         $userId = 10;
 
+        $I->haveAuthorizationKey($orgId, $adminId, UserFixture::ROLE_ADMIN);
         $I->haveMispSetting('MISP.enable_advanced_correlations', '1');
+
         $I->haveAuthorizationKey($orgId, $userId);
+
         $fakeEventA = EventFixture::fake(['id' => $eventAId, 'org_id' => $orgId, 'user_id' => $userId]);
         $fakeEventB = EventFixture::fake(['id' => $eventBId, 'org_id' => $orgId, 'user_id' => $userId]);
         $I->haveInDatabase('events', $fakeEventA->toDatabase());

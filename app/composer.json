@@ -21,7 +21,6 @@
         "codeception/module-rest": "^1.0.0",
         "codeception/module-phpbrowser": "^1.0.0",
         "codeception/module-db": "^1.1",
-        "codeception/module-cli": "^1.1",
         "fzaninotto/faker": "^1.9",
         "league/openapi-psr7-validator": "^0.15.2",
         "wiremock-php/wiremock-php": "2.27.0",

@@ -50,8 +50,7 @@ suites:
                       database: 0
                       cleanupBefore: "test"
                 - \Helper\Module\MispSettings:
-                      depends: Cli
-                      docker_misp_dir: "/home/runner/work/MISP/MISP/docker-misp"
+                      depends: \Helper\Module\Api
                 - \Helper\Module\OpenApiValidator:
                       depends: \Helper\Module\Api
                       openapi: "webroot/doc/openapi.yaml"

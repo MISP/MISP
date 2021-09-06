@@ -1,14 +1,101 @@
 # API / E2E Testing
-The API test suite is powered by [Codeception](https://github.com/Codeception/Codeception) and relies on having a [docker-misp]([docker-misp](https://github.com/coolacid/docker-misp)) instance running with some extra settings.
+The API test suite is powered by [Codeception](https://github.com/Codeception/Codeception) and relies on having a MISP test instance running.
 
 Custom Codeception modules are used to simplify tasks as authenticating API requests, modifying the `MISP` test instance settings, validate API requests and responeses with the OpenAPI spec, mock sync requests to other `MISP` instances, and others.
 
 ## Preparation
+Install dependencies and generate `Codeception` Actor classes:
+
+```bash
+$ cd app/
+$ composer install
+$ Vendor/bin/codecept build
+```
+
+## Running the tests
+```
+$ Vendor/bin/codecept run
+```
+
+or:
+
+```
+$ make test
+```
+
+## Fixtures
+To easily create mock data fixtures are described in here `app/Test/_support/Helper/Fixture/Data`, these helper classes implement the `FixtureInterface` interface which defines basic methods for creating dummy arrays. The [Faker](https://github.com/fzaninotto/Faker) library is used to generate random data when possible.
+
+Example:
+```php
+$fakeUser = UserFixture::fake(
+    [
+        'id' => (string)$userId,
+        'org_id' => (string)$orgId,
+        'role_id' => (string)UserFixture::ROLE_ADMIN,
+    ]
+);
+$fakeUser->toRequest();  // returns the API request payload for this entity
+$fakeUser->toResponse(); // returns the API response payload for this entity
+$fakeUser->toDatabase(); // returns the database representation for this entity
+```
+
+## Modules
+Custom `Codeception` modules are defined in `app/Test/_support/Helper/Module` directory to simplify tests code.
+
+### Authentication
+To perform an authenticated API request you can use the following helper:
+```php
+     $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
+```
+This will automatically create a user with the role `admin` and add the `Authorization` header to the API request with the users auth key.
+
+### Manipulating config settings
+Some test cases require to manipulate `MISP` instances settings to test certain behavior, this can be done using the `MispSettings` module, it sets the setting via the MISP API, so `$I->haveAuthorizationKey()` needs to be called with the `UserFixture::ROLE_ADMIN` role.
+Add the following line in your test to set a custom config setting:
+```php
+$I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
+$I->haveMispSetting('MISP.background_jobs', '1');
+```
+
+> **NOTE:** Setting rollback is not yet supported, so keep in mind you might have to set it back to the default value at the end of your test.
+
+### OpenAPI validation
+The `OpenApiValidator` module handles the validation of the API requests and responeses with the `MISP` OpenAPI spec located in `app/webroot/doc/openapi.yaml`.
+
+Add the following lines to validate your requests against the OpenAPI spec:
+```php
+$I->validateRequest();  
+$I->validateResponse();
+```
+
+### WireMock
+Some features such as sync/push/pull require to interact with remote `MISP` instances to be able to test this features we can mock the expected requests, by using the `WireMock` module we can easily do that. This module relies on a [WireMock](http://wiremock.org/) instance running and the [wiremock-php](https://github.com/rowanhill/wiremock-php) wrapper.
+
+
+Example:
+```php
+$I->getWireMock()->stubFor(WireMock::post(WireMock::urlEqualTo('/events/index'))
+    ->willReturn(WireMock::aResponse()
+        ->withHeader('Content-Type', 'application/json')
+        ->withBody((string)json_encode(
+            [
+                'event_id' => '1',
+                'info' => 'foobar'
+            ]
+        ))));
+```
+
+When a `POST` request to `http://wiremock:8080/events/index` is triggered from the context of this test, it will return the stubbed response.
+
+## Docker
+You can mount your local MISP repo to a [docker-misp]([docker-misp](https://github.com/coolacid/docker-misp)) MISP instance following these instructions:
 
 1. Clone `docker-misp`:
     ```bash
     $ git clone https://github.com/coolacid/docker-misp.git
     ```
+
 2. Inside your `docker-misp` clone directory, add the following `docker-compose.override.yml` file, replace `/home/myuser/MISP` with the directory of your `MISP` clone.
 
     ```bash
@@ -55,93 +142,7 @@ Custom Codeception modules are used to simplify tasks as authenticating API requ
     ```bash
     $ docker-compose up -d
     ```
-
-4. Create a copy of `app/codeception.dist.yml` named `app/codeception.yml` and set the `docker_misp_dir` to your local `docker-misp` repo directory.
-
-
-5. Install dependencies and generate `Codeception` Actor classes:
-    ```bash
-    $ cd app/
-    $ composer install
-    $ Vendor/bin/codecept build
-    ```
-
-## Running the tests
-```
-$ Vendor/bin/codecept run
-```
-
-or:
-
-```
-$ make test
-```
-
-## Fixtures
-To easily create mock data fixtures are described in here `app/Test/_support/Helper/Fixture/Data`, these helper classes implement the `FixtureInterface` interface which defines basic methods for creating dummy arrays. The [Faker](https://github.com/fzaninotto/Faker) library is used to generate random data when possible.
-
-Example:
-```php
-$fakeUser = UserFixture::fake(
-    [
-        'id' => (string)$userId,
-        'org_id' => (string)$orgId,
-        'role_id' => (string)UserFixture::ROLE_ADMIN,
-    ]
-);
-$fakeUser->toRequest();  // returns the API request payload for this entity
-$fakeUser->toResponse(); // returns the API response payload for this entity
-$fakeUser->toDatabase(); // returns the database representation for this entity
-```
-
-## Modules
-Custom `Codeception` modules are defined in `app/Test/_support/Helper/Module` directory to simplify tests code.
-
-### Authentication
-To perform an authenticated API request you can use the following helper:
-```php
-     $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
-```
-This will automatically create a user with the role `admin` and add the `Authorization` header to the API request with the users auth key.
-
-### Manipulating config settings
-Some test cases require to manipulate `MISP` instances settings to test certain behavior, this can be done using the `MispSettings` module.
-Add the following line in your test to set a custom config setting:
-```php
-$I->haveMispSetting('MISP.background_jobs', '1');
-```
-
-> **NOTE:** Setting rollback is not yet supported, so keep in mind you might have to set it back to the default value at the end of your test.
-
-### OpenAPI validation
-The `OpenApiValidator` module handles the validation of the API requests and responeses with the `MISP` OpenAPI spec located in `app/webroot/doc/openapi.yaml`.
-
-Add the following lines to validate your requests against the OpenAPI spec:
-```php
-$I->validateRequest();  
-$I->validateResponse();
-```
-
-### WireMock
-Some features such as sync/push/pull require to interact with remote `MISP` instances to be able to test this features we can mock the expected requests, by using the `WireMock` module we can easily do that. This module relies on a docker container running [WireMock](http://wiremock.org/) and the [wiremock-php](https://github.com/rowanhill/wiremock-php) wrapper.
-
-
-Example:
-```php
-$I->getWireMock()->stubFor(WireMock::post(WireMock::urlEqualTo('/events/index'))
-    ->willReturn(WireMock::aResponse()
-        ->withHeader('Content-Type', 'application/json')
-        ->withBody((string)json_encode(
-            [
-                'event_id' => '1',
-                'info' => 'foobar'
-            ]
-        ))));
-```
-
-When a `POST` request to `http://wiremock:8080/events/index` is triggered from the context of this test, it will return the stubbed response.
-
-## Extras
+    
 ### Debugging
 It is possible to use xdebug to debug the `MISP` instance running on the docker container, it is required to add the following bash script as an entrypoint.
 

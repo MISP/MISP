@@ -32,8 +32,8 @@ class PushServerCest
     {
         $orgId = 1;
         $userId = 1;
-        $I->haveMispSetting('MISP.background_jobs', '1');
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
+        $I->haveMispSetting('MISP.background_jobs', '1');
 
         $serverId = 1;
         $technique = 'full';
@@ -75,8 +75,8 @@ class PushServerCest
     {
         $orgId = 1;
         $userId = 1;
-        $I->haveMispSetting('MISP.background_jobs', '0 --force');
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
+        $I->haveMispSetting('MISP.background_jobs', '0');
 
         $serverId = 1;
         $technique = 'full';
@@ -142,8 +142,8 @@ class PushServerCest
     {
         $orgId = 1;
         $userId = 1;
-        $I->haveMispSetting('MISP.background_jobs', '0 --force');
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
+        $I->haveMispSetting('MISP.background_jobs', '0');
 
         $serverId = 1;
         $technique = 'full';
@@ -240,7 +240,7 @@ class PushServerCest
         $orgId = 1;
         $userId = 1;
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
-        $I->haveMispSetting('MISP.background_jobs', '0 --force');
+        $I->haveMispSetting('MISP.background_jobs', '0');
 
         $serverId = 1;
         $technique = 'full';

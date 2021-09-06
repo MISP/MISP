@@ -26,8 +26,8 @@ class PublishEventCest
     {
         $orgId = 1;
         $eventId = 1;
-        $I->haveMispSetting('MISP.background_jobs', '0 --force');
         $I->haveAuthorizationKey($orgId, 1, UserFixture::ROLE_ADMIN);
+        $I->haveMispSetting('MISP.background_jobs', '0');
         $fakeEvent = EventFixture::fake(
             [
                 'id' => (string)$eventId,

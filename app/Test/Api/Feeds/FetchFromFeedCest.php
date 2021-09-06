@@ -27,8 +27,8 @@ class FetchFromFeedCest
     {
         $orgId = 1;
         $userId = 1;
-        $I->haveMispSetting('MISP.background_jobs', '0 --force');
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
+        $I->haveMispSetting('MISP.background_jobs', '0');
 
         $feedId = 1;
         $fakeFeed = FeedFixture::fake(

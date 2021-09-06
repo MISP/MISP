@@ -24,8 +24,8 @@ class CacheServerCest
     {
         $orgId = 1;
         $userId = 1;
-        $I->haveMispSetting('MISP.background_jobs', '0 --force');
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
+        $I->haveMispSetting('MISP.background_jobs', '0');
 
         $I->sendPost(self::URL);
 
