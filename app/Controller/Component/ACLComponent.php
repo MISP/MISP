@@ -650,6 +650,7 @@ class ACLComponent extends Component
                     'disableTag' => array(),
                     'enable' => array(),
                     'index' => array('*'),
+                    'taxonomy_tags' => array('*'),
                     'taxonomyMassConfirmation' => array('perm_tagger'),
                     'taxonomyMassHide' => array('perm_tagger'),
                     'taxonomyMassUnhide' => array('perm_tagger'),

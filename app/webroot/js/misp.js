@@ -2236,7 +2236,7 @@ function runIndexQuickFilterFixed(preserveParams, url, target) {
         delete preserveParams[searchKey]
     }
     for (var key in preserveParams) {
-        if (typeof key == 'number') {
+        if (!isNaN(key)) {
             url += "/" + preserveParams[key];
         } else if (key !== 'page') {
             url += "/" + key + ":" + preserveParams[key];
