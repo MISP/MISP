@@ -1478,7 +1478,7 @@ class User extends AppModel
             }
             $pipe = $redis->multi(Redis::PIPELINE)
                 ->incr($redisKeyAmountThreshold);
-            if (!$banStatus['active']) { // no need to refresh the tll if the ban is active
+            if (!$banStatus['active']) { // no need to refresh the ttl if the ban is active
                 $pipe->expire($redisKeyAmountThreshold, $banThresholdSeconds);
             }
             $pipe->exec();
