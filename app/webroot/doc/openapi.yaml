@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: 2.4.144
+  version: 2.4.148
   title: MISP Automation API
   description: |
 
@@ -104,6 +104,10 @@ tags:
     description: "Notice lists to inform MISP users of the legal, privacy, policy or even technical implications of using specific attributes, categories or objects."
     externalDocs:
       url: https://www.circl.lu/doc/misp/noticelists/
+  - name: Logs
+    description: "Users with audit permissions are able to browse or search logs that MISP automatically appends each time certain actions are taken (actions that modify data or if a user logs in and out)."
+    externalDocs:
+      url: https://www.circl.lu/doc/misp/administration/#using-misp-logs
 
 paths:
   /attributes/restSearch:
@@ -945,6 +949,24 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /admin/logs:
+    post:
+      summary: "Get instance logs"
+      operationId: getLogs
+      tags:
+        - Logs
+      requestBody:
+        $ref: "#/components/requestBodies/GetLogsRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/GetLogsResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /organisations:
     get:
       summary: "Get organisations"
@@ -985,6 +1007,8 @@ paths:
       operationId: addServer
       tags:
         - Servers
+      requestBody:
+        $ref: "#/components/requestBodies/AddServerRequest"
       responses:
         "200":
           $ref: "#/components/responses/ServerResponse"
@@ -1003,6 +1027,8 @@ paths:
         - Servers
       parameters:
         - $ref: "#/components/parameters/serverIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/EditServerRequest"
       responses:
         "200":
           $ref: "#/components/responses/ServerResponse"
@@ -4331,6 +4357,114 @@ components:
         deletable:
           type: boolean
 
+    # Logs
+    LogActionType:
+      type: string
+      enum:
+        - "accept"
+        - "accept_delegation"
+        - "acceptRegistrations"
+        - "add"
+        - "admin_email"
+        - "attachTags"
+        - "auth"
+        - "auth_fail"
+        - "blocklisted"
+        - "captureRelations"
+        - "change_pw"
+        - "delete"
+        - "disable"
+        - "discard"
+        - "discardRegistrations"
+        - "edit"
+        - "email"
+        - "enable"
+        - "enrichment"
+        - "error"
+        - "export"
+        - "fetchEvent"
+        - "file_upload"
+        - "galaxy"
+        - "include_formula"
+        - "login"
+        - "login_fail"
+        - "logout"
+        - "merge"
+        - "pruneUpdateLogs"
+        - "publish"
+        - "publish_sightings"
+        - "publish alert"
+        - "pull"
+        - "purge_events"
+        - "push"
+        - "registration"
+        - "registration_error"
+        - "remove_dead_workers"
+        - "request"
+        - "request_delegation"
+        - "reset_auth_key"
+        - "send_mail"
+        - "security"
+        - "serverSettingsEdit"
+        - "tag"
+        - "undelete"
+        - "update"
+        - "update_database"
+        - "update_db_worker"
+        - "upgrade_24"
+        - "upload_sample"
+        - "version_warning"
+        - "warning"
+        - "wipe_default"
+    LogId:
+      type: string
+      pattern: '^\d+$'
+      maxLength: 10
+      example: "12345"
+
+    LogTitle:
+      type: string
+      example: "Attribute (448272) from Event (1): Other/text foo"
+
+    LogChange:
+      type: string
+      example: "name () => (ORGNAME)"
+
+    LogDescription:
+      type: string
+      example: 'Organisation "ORGNAME" (1) added by User "SYSTEM" (0).'
+
+    Log:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/LogId"
+        title:
+          $ref: "#/components/schemas/LogTitle"
+        created:
+          type: string
+          format: datetime
+        model:
+          $ref: "#/components/schemas/ModelName"
+        model_id:
+          $ref: "#/components/schemas/ModelId"
+        action:
+          $ref: "#/components/schemas/LogActionType"
+        user_id:
+          $ref: "#/components/schemas/UserId"
+        change:
+          $ref: "#/components/schemas/LogChange"
+        email:
+          type: string
+          format: email
+        org:
+          $ref: "#/components/schemas/OrganisationName"
+        description:
+          $ref: "#/components/schemas/LogDescription"
+        ip:
+          type: string
+          example: "10.0.0.10"
+
     # General
     AuthKey:
       type: string
@@ -4485,6 +4619,14 @@ components:
       type: string
       nullable: true
 
+    DateIntervalRestSearchFilter:
+      description: "Interval described by two dates"
+      type: array
+      minimum: 2
+      maximum: 2
+      items:
+        $ref: "#/components/schemas/DateRestSearchFilter"
+
     LastRestSearchFilter:
       description: "Published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
       type: integer
@@ -4564,6 +4706,95 @@ components:
 
     ModelOverridesRestSearchFilter:
       $ref: "#/components/schemas/DecayingModelParameters"
+
+    ModelId:
+      type: string
+      pattern: '^\d+$'
+      maxLength: 10
+      example: "12345"
+
+    ModelName:
+      type: string
+      enum:
+        - "AdminSetting"
+        - "Allowedlist"
+        - "AttachmentScan"
+        - "Attribute"
+        - "AttributeTag"
+        - "AuditLog"
+        - "AuthKey"
+        - "Bruteforce"
+        - "Cerebrate"
+        - "Community"
+        - "CorrelationExclusion"
+        - "Correlation"
+        - "Dashboard"
+        - "DecayingModelMapping"
+        - "DecayingModel"
+        - "EventBlocklist"
+        - "EventDelegation"
+        - "EventGraph"
+        - "EventLock"
+        - "Event"
+        - "EventReport"
+        - "EventTag"
+        - "FavouriteTag"
+        - "Feed"
+        - "FuzzyCorrelateSsdeep"
+        - "GalaxyClusterBlocklist"
+        - "GalaxyCluster"
+        - "GalaxyClusterRelation"
+        - "GalaxyClusterRelationTag"
+        - "GalaxyElement"
+        - "Galaxy"
+        - "Inbox"
+        - "Job"
+        - "Log"
+        - "MispObject"
+        - "Module"
+        - "News"
+        - "NoticelistEntry"
+        - "Noticelist"
+        - "NotificationLog"
+        - "ObjectReference"
+        - "ObjectRelationship"
+        - "ObjectTemplateElement"
+        - "ObjectTemplate"
+        - "Organisation"
+        - "OrgBlocklist"
+        - "Post"
+        - "Regexp"
+        - "RestClientHistory"
+        - "Role"
+        - "Server"
+        - "ShadowAttribute"
+        - "SharingGroupElement"
+        - "SharingGroupOrg"
+        - "SharingGroup"
+        - "SharingGroupServer"
+        - "SightingdbOrg"
+        - "Sightingdb"
+        - "Sighting"
+        - "TagCollection"
+        - "TagCollectionTag"
+        - "Tag"
+        - "Task"
+        - "TaxonomyEntry"
+        - "Taxonomy"
+        - "TaxonomyPredicate"
+        - "TemplateElementAttribute"
+        - "TemplateElementFile"
+        - "TemplateElement"
+        - "TemplateElementText"
+        - "Template"
+        - "TemplateTag"
+        - "Thread"
+        - "ThreatLevel"
+        - "User"
+        - "UserSetting"
+        - "WarninglistEntry"
+        - "Warninglist"
+        - "WarninglistType"
 
     EventsRestSearchReturnFormat:
       description: "Format of the response payload"
@@ -5334,6 +5565,18 @@ components:
                   type: string
                   format: hostname
 
+    AddServerRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ServerNoId"
+
+    EditServerRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Server"
+
     EditServerSettingRequest:
       content:
         application/json:
@@ -5583,6 +5826,51 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/TagNoId"
+
+    GetLogsRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              page:
+                $ref: "#/components/schemas/PageSearchFilter"
+              limit:
+                $ref: "#/components/schemas/LimitSearchFilter"
+              id:
+                $ref: "#/components/schemas/LogId"
+              title:
+                $ref: "#/components/schemas/LogTitle"
+              created:
+                oneOf:
+                  - $ref: "#/components/schemas/DateRestSearchFilter"
+                  - $ref: "#/components/schemas/DateIntervalRestSearchFilter"
+              model:
+                $ref: "#/components/schemas/ModelName"
+              model_id:
+                $ref: "#/components/schemas/ModelId"
+              action:
+                $ref: "#/components/schemas/LogActionType"
+              user_id:
+                $ref: "#/components/schemas/UserId"
+              change:
+                type: string
+                description: "Text search for log change property"
+                example: "%name () => (ORGNAME)%"
+              email:
+                type: string
+                format: email
+              org:
+                type: string
+                description: "Text search for log organisation name property"
+                example: "ORG_%"
+              description:
+                type: string
+                description: "Text search for log change property"
+                example: "%updated by User%"
+              ip:
+                type: string
+                description: "Text search for log ip property"
 
   responses:
     AttributeResponse:
@@ -7360,6 +7648,18 @@ components:
             type: array
             items:
               $ref: "#/components/schemas/ExtendedTag"
+
+    GetLogsResponse:
+      description: "Get logs response"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                Log:
+                  $ref: "#/components/schemas/Log"
 
     ApiErrorResponse:
       description: "Unexpected API error"

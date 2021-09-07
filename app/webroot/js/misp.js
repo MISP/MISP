@@ -12,6 +12,14 @@ if (!String.prototype.startsWith) {
   };
 }
 
+function copyToClipboard(element) {
+    var $temp = $("<input>");
+    $("body").append($temp);
+    $temp.val($(element).val()).select();
+    document.execCommand("copy");
+    $temp.remove();
+}
+
 function stringToRGB(str){
     var hash = 0;
     if (str.length == 0) return hash;
@@ -3695,12 +3703,11 @@ function toggleBoolFilter(url, param) {
     xhr({
         type: "get",
         url: url,
-        success:function (data) {
+        success: function (data) {
             $("#attributes_div").html(data);
             querybuilderTool = undefined;
-
         },
-        error:function() {
+        error: function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
         }
     });

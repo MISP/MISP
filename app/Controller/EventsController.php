@@ -32,10 +32,10 @@ class EventsController extends AppController
         'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
         'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution',
         'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit',
-        'filterColumnsOverwrite', 'feed', 'server', 'toIDS', 'sighting', 'includeSightingdb'
+        'filterColumnsOverwrite', 'feed', 'server', 'toIDS', 'sighting', 'includeSightingdb', 'warninglistId'
     );
 
-    public $defaultFilteringRules =  array(
+    public $defaultFilteringRules = array(
         'searchFor' => '',
         'attributeFilter' => 'all',
         'proposal' => 0,
@@ -50,7 +50,8 @@ class EventsController extends AppController
         'distribution' => array(0, 1, 2, 3, 4, 5),
         'sighting' => 0,
         'taggedAttributes' => '',
-        'galaxyAttachedAttributes' => ''
+        'galaxyAttachedAttributes' => '',
+        'warninglistId' => '',
     );
 
     public $paginationFunctions = array('index', 'proposalEventIndex');
@@ -1237,58 +1238,19 @@ class EventsController extends AppController
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
-        $dataForView = array(
-            'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels', 'shortDist' => 'shortDist'),
-            'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisDescriptions' => 'analysisDescriptions', 'analysisLevels' => 'analysisLevels')
-        );
-        foreach ($dataForView as $m => $variables) {
-            if ($m === 'Event') {
-                $currentModel = $this->Event;
-            } elseif ($m === 'Attribute') {
-                $currentModel = $this->Event->Attribute;
-            }
-            foreach ($variables as $alias => $variable) {
-                $this->set($alias, $currentModel->{$variable});
-            }
-        }
-        if (Configure::read('Plugin.Enrichment_services_enable')) {
-            $this->loadModel('Module');
-            $modules = $this->Module->getEnabledModules($this->Auth->user());
-            if (!empty($modules) && is_array($modules)) {
-                foreach ($modules as $k => $v) {
-                    if (isset($v['restrict'])) {
-                        if (!$this->_isSiteAdmin() && $v['restrict'] != $this->Auth->user('org_id')) {
-                            unset($modules[$k]);
-                        }
-                    }
-                }
-            }
-            $this->set('modules', $modules);
-        }
-        if (Configure::read('Plugin.Cortex_services_enable')) {
-            $this->loadModel('Module');
-            $cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
-            $this->set('cortex_modules', $cortex_modules);
-        }
+
         $deleted = 0;
         if (isset($filters['deleted'])) {
             $deleted = $filters['deleted'] != 2 ? 1 : 0;
         }
         $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('deleted', $deleted);
-        $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
         $this->set('filters', $filters);
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
-        $this->set('defaultFilteringRules', $this->defaultFilteringRules);
-        $orgTable = $this->Event->Orgc->find('list', array(
-            'fields' => array('Orgc.id', 'Orgc.name')
-        ));
-        $this->set('orgTable', $orgTable);
-        $this->disableCache();
-        $this->layout = 'ajax';
+        $this->response->disableCache();
         $uriArray = explode('/', $this->params->here);
         foreach ($uriArray as $k => $v) {
             if (strpos($v, ':')) {
@@ -1304,6 +1266,7 @@ class EventsController extends AppController
         }
         $this->set('currentUri', $this->params->here);
         $this->layout = false;
+        $this->__eventViewCommon($this->Auth->user());
         $this->render('/Elements/eventattribute');
     }
 
@@ -1330,20 +1293,6 @@ class EventsController extends AppController
         $attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
         $objectCount = isset($event['Object']) ? count($event['Object']) : 0;
         $oldest_timestamp = false;
-        if (!empty($event['Object'])) {
-            foreach ($event['Object'] as $k => $object) {
-                if (!empty($object['Attribute'])) {
-                    foreach ($object['Attribute'] as $attribute) {
-                        if ($oldest_timestamp == false || $oldest_timestamp > $attribute['timestamp']) {
-                            $oldest_timestamp = $attribute['timestamp'];
-                        }
-                    }
-                    $attributeCount += count($object['Attribute']);
-                }
-            }
-        }
-        $this->set('attribute_count', $attributeCount);
-        $this->set('object_count', $objectCount);
         // set the data for the contributors / history field
         $contributors = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
         $this->set('contributors', $contributors);
@@ -1354,8 +1303,9 @@ class EventsController extends AppController
             }
             if (!$proposalStatus && !empty($event['Attribute'])) {
                 foreach ($event['Attribute'] as $temp) {
-                    if (isset($temp['ShadowAttribute']) && !empty($temp['ShadowAttribute'])) {
+                    if (!empty($temp['ShadowAttribute'])) {
                         $proposalStatus = true;
+                        break;
                     }
                 }
             }
@@ -1376,11 +1326,6 @@ class EventsController extends AppController
         $this->__setDeletable($pivot, $event['Event']['id'], true);
         $this->set('allPivots', $this->Session->read('pivot_thread'));
         $this->set('pivot', $pivot);
-        // set data for the view, the event is already set in view()
-        $dataForView = array(
-                'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels', 'shortDist' => 'shortDist'),
-                'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisDescriptions' => 'analysisDescriptions', 'analysisLevels' => 'analysisLevels')
-        );
 
         // workaround to get number of correlation per related event
         $relatedEventCorrelationCount = array();
@@ -1393,17 +1338,6 @@ class EventsController extends AppController
         }
         foreach ($relatedEventCorrelationCount as $key => $relation) {
             $relatedEventCorrelationCount[$key] = count($relatedEventCorrelationCount[$key]);
-        }
-
-        foreach ($dataForView as $m => $variables) {
-            if ($m === 'Event') {
-                $currentModel = $this->Event;
-            } elseif ($m === 'Attribute') {
-                $currentModel = $this->Event->Attribute;
-            }
-            foreach ($variables as $alias => $variable) {
-                $this->set($alias, $currentModel->{$variable});
-            }
         }
 
         $this->Event->removeGalaxyClusterTags($event);
@@ -1421,7 +1355,7 @@ class EventsController extends AppController
         $modificationMap = array($modDate => 1);
 
         foreach ($event['Attribute'] as $k => $attribute) {
-            if ($oldest_timestamp == false || $oldest_timestamp > $attribute['timestamp']) {
+            if ($oldest_timestamp === false || $oldest_timestamp > $attribute['timestamp']) {
                 $oldest_timestamp = $attribute['timestamp'];
             }
             $modDate = date("Y-m-d", $attribute['timestamp']);
@@ -1446,7 +1380,12 @@ class EventsController extends AppController
             $modDate = date("Y-m-d", $object['timestamp']);
             $modificationMap[$modDate] = !isset($modificationMap[$modDate])? 1 : $modificationMap[$modDate] + 1;
             if (!empty($object['Attribute'])) {
+                $attributeCount += count($object['Attribute']);
                 foreach ($object['Attribute'] as $k2 => $attribute) {
+                    if ($oldest_timestamp === false || $oldest_timestamp > $attribute['timestamp']) {
+                        $oldest_timestamp = $attribute['timestamp'];
+                    }
+
                     $modDate = date("Y-m-d", $attribute['timestamp']);
                     $modificationMap[$modDate] = !isset($modificationMap[$modDate])? 1 : $modificationMap[$modDate] + 1;
 
@@ -1478,7 +1417,7 @@ class EventsController extends AppController
         sort($startDate);
         $startDate = $startDate[0];
         $this->set('startDate', $startDate);
-        $today = strtotime(date('Y-m-d', time()));
+        $today = strtotime(date('Y-m-d'));
         if (($today - 172800) > $startDate) {
             $startDate = date('Y-m-d', $today - 172800);
         }
@@ -1527,26 +1466,7 @@ class EventsController extends AppController
                 'contain' => array('Org', 'RequesterOrg')
             )));
         }
-        if (Configure::read('Plugin.Enrichment_services_enable')) {
-            $this->loadModel('Module');
-            $modules = $this->Module->getEnabledModules($user);
-            if (is_array($modules)) {
-                foreach ($modules as $k => $v) {
-                    if (isset($v['restrict'])) {
-                        if ($this->_isSiteAdmin() && $v['restrict'] != $user['org_id']) {
-                            unset($modules[$k]);
-                        }
-                    }
-                }
-            }
-            $this->set('modules', $modules);
-        }
-        if (Configure::read('Plugin.Cortex_services_enable')) {
-            $this->loadModel('Module');
-            $cortex_modules = $this->Module->getEnabledModules($user, false, 'Cortex');
-            $this->set('cortex_modules', $cortex_modules);
-        }
-        $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
+
         $attributeUri = $this->baseurl . '/events/viewEventAttributes/' . $event['Event']['id'];
         foreach ($this->params->named as $k => $v) {
             if (!is_numeric($k)) {
@@ -1559,25 +1479,69 @@ class EventsController extends AppController
                 }
             }
         }
-        $orgTable = $this->Event->Orgc->find('list', array(
-            'fields' => array('Orgc.id', 'Orgc.name')
-        ));
+
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($user));
         }
-        $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
+        $this->set('includeSightingdb', !empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable'));
         $this->set('relatedEventCorrelationCount', $relatedEventCorrelationCount);
         $this->set('oldest_timestamp', $oldest_timestamp);
         $this->set('missingTaxonomies', $this->Event->missingTaxonomies($event));
-        $this->set('orgTable', $orgTable);
         $this->set('currentUri', $attributeUri);
         $this->set('filters', $filters);
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
-        $this->set('defaultFilteringRules', $this->defaultFilteringRules);
         $this->set('modificationMapCSV', $modificationMapCSV);
         $this->set('title_for_layout', __('Event #%s', $event['Event']['id']));
+        $this->set('attribute_count', $attributeCount);
+        $this->set('object_count', $objectCount);
+        $this->__eventViewCommon($user);
+    }
+
+    private function __eventViewCommon(array $user)
+    {
+        $this->set('defaultFilteringRules', $this->defaultFilteringRules);
+        $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
+
+        $orgTable = $this->Event->Orgc->find('list', array(
+            'fields' => array('Orgc.id', 'Orgc.name')
+        ));
+        $this->set('orgTable', $orgTable);
+
+        $this->loadModel('Warninglist');
+        $warninglists = $this->Warninglist->find('list', [
+            'fields' => ['Warninglist.id', 'Warninglist.name'],
+            'order' => ['Warninglist.name'],
+            'conditions' => ['Warninglist.enabled' => true],
+        ]);
+        $this->set('warninglists', $warninglists);
+
+        $dataForView = array(
+            'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels', 'shortDist' => 'shortDist'),
+            'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisDescriptions' => 'analysisDescriptions', 'analysisLevels' => 'analysisLevels')
+        );
+        foreach ($dataForView as $m => $variables) {
+            if ($m === 'Event') {
+                $currentModel = $this->Event;
+            } elseif ($m === 'Attribute') {
+                $currentModel = $this->Event->Attribute;
+            }
+            foreach ($variables as $alias => $variable) {
+                $this->set($alias, $currentModel->{$variable});
+            }
+        }
+
+        if (Configure::read('Plugin.Enrichment_services_enable')) {
+            $this->loadModel('Module');
+            $modules = $this->Module->getEnabledModules($user);
+            $this->set('modules', $modules);
+        }
+        if (Configure::read('Plugin.Cortex_services_enable')) {
+            $this->loadModel('Module');
+            $cortex_modules = $this->Module->getEnabledModules($user, false, 'Cortex');
+            $this->set('cortex_modules', $cortex_modules);
+        }
     }
 
     public function view($id = null, $continue = false, $fromEvent = null)

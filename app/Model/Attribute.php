@@ -15,6 +15,7 @@ App::uses('ComplexTypeTool', 'Tools');
  * @property Sighting $Sighting
  * @property MispObject $Object
  * @property SharingGroup $SharingGroup
+ * @property Correlation $Correlation
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
@@ -75,6 +76,9 @@ class Attribute extends AppModel
     public $distributionLevels = array();
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
+
+    /** @var array */
+    private $old;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -250,9 +254,9 @@ class Attribute extends AppModel
             )
         ),
         'distribution' => array(
-                'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
-                'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
-                'required' => true
+            'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
+            'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
+            'required' => true
         ),
         'first_seen' => array(
             'rule' => array('datetimeOrNull'),
@@ -361,10 +365,11 @@ class Attribute extends AppModel
         if (!empty($this->data['Attribute']['id'])) {
             $this->old = $this->find('first', array(
                 'recursive' => -1,
-                'conditions' => array('Attribute.id' => $this->data['Attribute']['id'])
+                'conditions' => array('Attribute.id' => $this->data['Attribute']['id']),
+                'fields' => ['value', 'disable_correlation', 'type', 'distribution', 'sharing_group_id'],
             ));
         } else {
-            $this->old = false;
+            $this->old = null;
         }
         // explode value of composite type in value1 and value2
         // or copy value to value1 if not composite type
@@ -412,9 +417,6 @@ class Attribute extends AppModel
         }
         // update correlation...
         if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
-            if (empty($this->Correlation)) {
-                $this->Correlation = ClassRegistry::init('Correlation');
-            }
             $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
             if (isset($this->data['Attribute']['event_id'])) {
                 $this->__alterAttributeCount($this->data['Attribute']['event_id'], false);
@@ -485,7 +487,7 @@ class Attribute extends AppModel
                 }
             }
         }
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst')) && strpos($this->data['Attribute']['value'], '/')) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && strpos($this->data['Attribute']['value'], '/')) {
             $this->setCIDRList();
         }
         if ($created && isset($this->data['Attribute']['event_id']) && empty($this->data['Attribute']['skip_auto_increment'])) {
@@ -502,7 +504,7 @@ class Attribute extends AppModel
             $this->loadAttachmentTool()->delete($this->data['Attribute']['event_id'], $this->data['Attribute']['id']);
         }
         // update correlation..
-        $this->Correlation->beforeDeleteCorrelation($this->data['Attribute']['id']);
+        $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
         if (!empty($this->data['Attribute']['id'])) {
             if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
                 $pubSubTool = $this->getPubSubTool();
@@ -2273,7 +2275,6 @@ class Attribute extends AppModel
 
     public function generateCorrelation($jobId = false, $startPercentage = 0, $eventId = false, $attributeId = false)
     {
-        $this->Correlation = ClassRegistry::init('Correlation');
         $this->purgeCorrelations($eventId);
 
         $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
@@ -2355,7 +2356,6 @@ class Attribute extends AppModel
         if (!$eventId) {
             $this->query('TRUNCATE TABLE correlations;');
         } elseif (!$attributeId) {
-            $this->Correlation = ClassRegistry::init('Correlation');
             $this->Correlation->deleteAll(
                 array('OR' => array(
                 'Correlation.1_event_id' => $eventId,
@@ -3422,11 +3422,17 @@ class Attribute extends AppModel
         return $conditions;
     }
 
+    /**
+     * Get list of all CIDR for correlation.
+     * @return array
+     */
     private function __getCIDRList()
     {
         return $this->find('column', array(
             'conditions' => array(
                 'type' => array('ip-src', 'ip-dst'),
+                'disable_correlation' => 0,
+                'deleted' => 0,
                 'value1 LIKE' => '%/%'
             ),
             'fields' => array('Attribute.value1'),
@@ -3440,17 +3446,18 @@ class Attribute extends AppModel
         $redis = $this->setupRedis();
         $cidrList = array();
         if ($redis) {
-            $redis->del('misp:cidr_cache_list');
             $cidrList = $this->__getCIDRList();
+
+            $redis->pipeline();
+            $redis->del('misp:cidr_cache_list');
             if (method_exists($redis, 'saddArray')) {
                 $redis->sAddArray('misp:cidr_cache_list', $cidrList);
             } else {
-                $pipeline = $redis->multi(Redis::PIPELINE);
                 foreach ($cidrList as $cidr) {
-                    $pipeline->sadd('misp:cidr_cache_list', $cidr);
+                    $redis->sadd('misp:cidr_cache_list', $cidr);
                 }
-                $pipeline->exec();
             }
+            $redis->exec();
         }
         return $cidrList;
     }
@@ -3481,7 +3488,6 @@ class Attribute extends AppModel
             }
         }
         $sgs = $this->SharingGroup->fetchAllAuthorised($user, 'name', 1);
-        $this->set('sharingGroups', $sgs);
         $distributionLevels = $this->distributionLevels;
         if (empty($sgs)) {
             unset($distributionLevels[4]);
@@ -3710,20 +3716,10 @@ class Attribute extends AppModel
                 'conditions' => array('Attribute.uuid' => $attribute['uuid']),
                 'recursive' => -1,
             ));
-            $this->Log = ClassRegistry::init('Log');
-            if (count($existingAttribute)) {
+            if (!empty($existingAttribute)) {
                 if ($existingAttribute['Attribute']['event_id'] != $eventId || $existingAttribute['Attribute']['object_id'] != $objectId) {
-                    $this->Log->create();
-                    $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Attribute',
-                        'model_id' => 0,
-                        'email' => $user['email'],
-                        'action' => 'edit',
-                        'user_id' => $user['id'],
-                        'title' => 'Duplicate UUID found in attribute',
-                        'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'] . '. This can also be due to the same attribute (or an attribute with the same UUID) existing in a different event / object)',
-                    ));
+                    $change = 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'] . '. This can also be due to the same attribute (or an attribute with the same UUID) existing in a different event / object)';
+                    $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', 0, 'Duplicate UUID found in attribute', $change);
                     return true;
                 }
                 // If a field is not set in the request, just reuse the old value
@@ -3762,23 +3758,15 @@ class Attribute extends AppModel
             }
             if (empty($attribute['sharing_group_id'])) {
                 $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Attribute',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'edit',
-                    'user_id' => $user['id'],
-                    'title' => 'Attribute dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $attribute_short,
-                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
-                ));
+                $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', 0,
+                    'Attribute dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $attribute_short,
+                    'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
+                );
                 return 'Invalid sharing group choice.';
             }
         } else if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-            if ($attribute['distribution'] == 'event') {
+            if ($attribute['distribution'] === 'event') {
                 $attribute['distribution'] = 5;
             }
         }
@@ -3791,24 +3779,15 @@ class Attribute extends AppModel
             $fieldList[] = 'object_id';
             $fieldList[] = 'object_relation';
         }
-        if (!$this->save(array('Attribute' => $attribute), array('fieldList' => $fieldList))) {
+        if (!$this->save($attribute, array('fieldList' => $fieldList))) {
             $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                'org' => $user['Organisation']['name'],
-                'model' => 'Attribute',
-                'model_id' => 0,
-                'email' => $user['email'],
-                'action' => 'edit',
-                'user_id' => $user['id'],
-                'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
-                'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
-            ));
+            $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', 0,
+                'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
+                'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
+            );
             return $this->validationErrors;
         } else {
             if (isset($attribute['Sighting']) && !empty($attribute['Sighting'])) {
-                $this->Sighting = ClassRegistry::init('Sighting');
                 $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
             }
             if ($user['Role']['perm_tagger']) {
@@ -3830,17 +3809,7 @@ class Attribute extends AppModel
                             // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
                             // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
                             if ($user['Role']['perm_tag_editor']) {
-                                $this->Log->create();
-                                $this->Log->save(array(
-                                    'org' => $user['Organisation']['name'],
-                                    'model' => 'Attribute',
-                                    'model_id' => $this->id,
-                                    'email' => $user['email'],
-                                    'action' => 'edit',
-                                    'user_id' => $user['id'],
-                                    'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.',
-                                    'change' => ''
-                                ));
+                                $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', $this->id, 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.');
                             }
                         }
                     }
