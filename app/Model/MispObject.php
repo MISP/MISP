@@ -68,6 +68,7 @@ class MispObject extends AppModel
             'unique' => array(
                 'rule' => 'isUnique',
                 'message' => 'The UUID provided is not unique',
+                'required' => true,
                 'on' => 'create'
             ),
         ),
@@ -90,12 +91,16 @@ class MispObject extends AppModel
         ),
         'name' => array(
             'stringNotEmpty' => array(
-                'rule' => array('stringNotEmpty')
+                'rule' => array('stringNotEmpty'),
+                'required' => true,
+                'on' => 'create'
             ),
         ),
         'meta-category' => array(
             'stringNotEmpty' => array(
-                'rule' => array('stringNotEmpty')
+                'rule' => array('stringNotEmpty'),
+                'required' => true,
+                'on' => 'create'
             ),
         ),
         'description' => array(
@@ -106,12 +111,16 @@ class MispObject extends AppModel
         'template_uuid' => array(
             'uuid' => array(
                 'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID'
+                'message' => 'Please provide a valid RFC 4122 UUID',
+                'required' => true,
+                'on' => 'create'
             ),
         ),
         'template_version' => array(
             'numeric' => array(
                 'rule' => 'naturalNumber',
+                'required' => true,
+                'on' => 'create'
             )
         ),
     );
