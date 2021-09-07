@@ -3229,6 +3229,7 @@ class Event extends AppModel
 
         $userCount = count($usersWithAccess);
         $this->UserSetting = ClassRegistry::init('UserSetting');
+        $metadataOnly = Configure::read('MISP.event_alert_metadata_only') || Configure::read('MISP.publish_alerts_summary_only');
         foreach ($usersWithAccess as $k => $user) {
             // Fetch event for user that will receive alert e-mail to respect all ACLs
             $eventForUser = $this->fetchEvent($user, [
@@ -3237,7 +3238,7 @@ class Event extends AppModel
                 'includeEventCorrelations' => true,
                 'noEventReports' => true,
                 'noSightings' => true,
-                'metadata' => Configure::read('MISP.event_alert_metadata_only') ?: false,
+                'metadata' => $metadataOnly,
             ])[0];
 
             if ($this->UserSetting->checkPublishFilter($user, $eventForUser)) {
@@ -3284,11 +3285,7 @@ class Event extends AppModel
         $subjMarkingString = $this->getEmailSubjectMarkForEvent($event);
         $subject = "[" . Configure::read('MISP.org') . " MISP] Event {$event['Event']['id']} - $subject$threatLevel" . strtoupper($subjMarkingString);
 
-        if (!empty(Configure::read('MISP.publish_alerts_summary_only'))) {
-            $template = new SendEmailTemplate('alert_light');
-        } else {
-            $template = new SendEmailTemplate('alert');
-        }
+        $template = new SendEmailTemplate('alert');
         $template->set('event', $event);
         $template->set('user', $user);
         $template->set('oldPublishTimestamp', $oldpublish);

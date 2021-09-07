@@ -5009,7 +5009,7 @@ class Server extends AppModel
                 ),
                 'publish_alerts_summary_only' => array(
                     'level' => 1,
-                    'description' => __('Only send a summary of the publish alert, rather than the full contents of the event.'),
+                    'description' => __('This setting is deprecated. Please use `MISP.event_alert_metadata_only` instead.'),
                     'value' => false,
                     'errorMessage' => '',
                     'null' => true,

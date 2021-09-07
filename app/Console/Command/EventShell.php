@@ -32,9 +32,11 @@ class EventShell extends AppShell
         ));
         $parser->addSubcommand('testEventNotificationEmail', [
             'help' => __('Generate event notification email in EML format.'),
-            'arguments' => [
-                'event_id' => ['help' => __('Event ID'), 'required' => true],
-                'user_id' => ['help' => __('User ID'), 'required' => true],
+            'parser' => [
+                'arguments' => [
+                    'event_id' => ['help' => __('Event ID'), 'required' => true],
+                    'user_id' => ['help' => __('User ID'), 'required' => true],
+                ],
             ],
         ]);
         $parser->addSubcommand('duplicateTags', [
@@ -544,7 +546,7 @@ class EventShell extends AppShell
             'includeEventCorrelations' => true,
             'noEventReports' => true,
             'noSightings' => true,
-            'metadata' => Configure::read('MISP.event_alert_metadata_only') ?: false,
+            'metadata' => Configure::read('MISP.event_alert_metadata_only') || Configure::read('MISP.publish_alerts_summary_only'),
         ]);
         if (empty($eventForUser)) {
             $this->error("Event with ID $eventId not exists or given user don't have permission to access it.");
