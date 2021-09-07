@@ -341,19 +341,20 @@ class TaxonomiesController extends AppController
         if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger'])) {
             throw new NotFoundException(__('You don\'t have permission to do that.'));
         }
-        if (
-            $this->request->is('get') &&
-            (
-                empty($this->request->params['named']['taxonomy_id']) ||
+        if ($this->request->is('get')) {
+            if (empty($taxonomy_id) && !empty($this->request->params['named']['taxonomy_id'])) {
+                $taxonomy_id = $this->request->params['named']['taxonomy_id'];
+            }
+            if (
+                empty($taxonomy_id) ||
                 empty($this->request->params['named']['name'])
-            )
-        ) {
-            throw new MethodNotAllowedException(__('Taxonomy ID or tag name must be provided.'));
+            ) {
+                throw new MethodNotAllowedException(__('Taxonomy ID or tag name must be provided.'));
+            } else {
+                $this->request->data['Taxonomy']['taxonomy_id'] = $taxonomy_id;
+                $this->request->data['Taxonomy']['name'] = $this->request->params['named']['name'];
+            }
         } else {
-            $this->request->data['Taxonomy']['taxonomy_id'] = $this->request->params['named']['taxonomy_id'];
-            $this->request->data['Taxonomy']['name'] = $this->request->params['named']['name'];
-        }
-        if ($this->request->is('post')) {
             if ($taxonomy_id) {
                 $result = $this->Taxonomy->addTags($taxonomy_id);
             } else {
