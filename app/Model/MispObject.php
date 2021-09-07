@@ -1021,8 +1021,9 @@ class MispObject extends AppModel
         return 'fail';
     }
 
-    public function editObject($object, $eventId, $user, $log, $force = false, &$nothingToChange = false)
+    public function editObject($object, array $event, $user, $log, $force = false, &$nothingToChange = false)
     {
+        $eventId = $event['Event']['id'];
         $object['event_id'] = $eventId;
         if (isset($object['distribution']) && $object['distribution'] == 4) {
             if (!empty($object['SharingGroup'])) {
@@ -1098,7 +1099,7 @@ class MispObject extends AppModel
         }
         if (!empty($object['Attribute'])) {
             foreach ($object['Attribute'] as $attribute) {
-                $result = $this->Attribute->editAttribute($attribute, $eventId, $user, $object['id'], false, $force);
+                $result = $this->Attribute->editAttribute($attribute, $event, $user, $object['id'], false, $force);
             }
         }
         return true;

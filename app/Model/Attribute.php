@@ -3699,8 +3699,9 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function editAttribute($attribute, $eventId, $user, $objectId, $log = false, $force = false, &$nothingToChange = false)
+    public function editAttribute($attribute, array $event, $user, $objectId, $log = false, $force = false, &$nothingToChange = false)
     {
+        $eventId = $event['Event']['id'];
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId;
         if (isset($attribute['encrypt'])) {
@@ -3777,7 +3778,7 @@ class Attribute extends AppModel
             $fieldList[] = 'object_id';
             $fieldList[] = 'object_relation';
         }
-        if (!$this->save($attribute, array('fieldList' => $fieldList))) {
+        if (!$this->save($attribute, ['fieldList' => $fieldList, 'parentEvent' => $event])) {
             $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
             $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', 0,
                 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
