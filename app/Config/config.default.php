@@ -100,6 +100,10 @@ $config = array(
         'event_alert_republish_ban'      => true,
         'event_alert_republish_ban_threshold' => 120,
         'event_alert_republish_ban_refresh_on_retry' => true,
+        'user_email_notification_ban'      => true,
+        'user_email_notification_ban_time_threshold' => 120,
+        'user_email_notification_ban_amount_threshold' => 10,
+        'user_email_notification_ban_refresh_on_retry' => true,
         'warning_for_all'                => true,
     ),
     'GnuPG' => array(
