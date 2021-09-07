@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
+App::uses('ServerSyncTool', 'Tools');
 
 /**
  * @property Attribute $Attribute
@@ -127,7 +128,7 @@ class Sighting extends AppModel
 
     /**
      * @param array $sightings
-     * @param int $attributeId
+     * @param int|null $attributeId
      * @param int $eventId
      * @param array $user
      * @return bool
@@ -141,10 +142,32 @@ class Sighting extends AppModel
         // Fetch existing organisations in bulk
         $existingOrganisations = $this->existingOrganisations($sightings);
 
+        if ($attributeId === null) {
+            // If attribute ID is not set, check real ID and also check if user can access that attribute
+            $attributes = $this->Attribute->fetchAttributesSimple($user, [
+                'conditions' => [
+                    'Attribute.uuid' => array_column($sightings, 'attribute_uuid'),
+                    'Attribute.event_id' => $eventId,
+                ],
+                'fields' => ['Attribute.id', 'Attribute.uuid'],
+            ]);
+            $attributes = array_column(array_column($attributes, 'Attribute'), 'id', 'uuid');
+        }
+
         $toSave = [];
         foreach ($sightings as $sighting) {
             if (isset($existingSighting[$sighting['uuid']])) {
                 continue; // already exists, skip
+            }
+
+            if ($attributeId === null) {
+                if (isset($attributes[$sighting['attribute_uuid']])) {
+                    $sighting['attribute_id'] = $attributes[$sighting['attribute_uuid']];
+                } else {
+                    continue; // attribute not exists ar user don't have permission to access it
+                }
+            } else {
+                $sighting['attribute_id'] = $attributeId;
             }
 
             $orgId = 0;
@@ -161,7 +184,6 @@ class Sighting extends AppModel
 
             $sighting['org_id'] = $orgId;
             $sighting['event_id'] = $eventId;
-            $sighting['attribute_id'] = $attributeId;
             $toSave[] = $sighting;
         }
 
@@ -529,6 +551,42 @@ class Sighting extends AppModel
     /**
      * @param array $event
      * @param array $user
+     * @param array $sightingsUuidsToPush
+     * @return Generator<array>
+     */
+    public function fetchUuidsForEventToPush(array $event, array $user, array $sightingsUuidsToPush = [])
+    {
+        $conditions = $this->createConditions($user, $event);
+        if ($conditions === false) {
+            return null;
+        }
+        $conditions['Sighting.event_id'] = $event['Event']['id'];
+        if (!empty($sightingsUuidsToPush)) {
+            $conditions['Sighting.uuid'] = $sightingsUuidsToPush;
+        }
+
+        while (true) {
+            $uuids = $this->find('column', [
+                'conditions' => $conditions,
+                'fields' => ['Sighting.uuid'],
+                'limit' => 250000,
+                'order' => ['Sighting.uuid'],
+            ]);
+            $count = count($uuids);
+            if ($count === 0) {
+                return null;
+            }
+            yield $uuids;
+            if ($count !== 250000) {
+                return;
+            }
+            $conditions['Sighting.uuid >'] = $uuids[$count - 1];
+        }
+    }
+
+    /**
+     * @param array $event Just 'Event' object is enough
+     * @param array $user
      * @param array|int|null $attribute Attribute model or attribute ID
      * @param array|bool $extraConditions
      * @param bool $forSync
@@ -536,7 +594,12 @@ class Sighting extends AppModel
      */
     public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false, $forSync = false)
     {
-        $conditions = array('Sighting.event_id' => $event['Event']['id']);
+        $conditions = $this->createConditions($user, $event);
+        if ($conditions === false) {
+            return [];
+        }
+
+        $conditions['Sighting.event_id'] = $event['Event']['id'];
         if (isset($attribute['Attribute']['id'])) {
             $conditions['Sighting.attribute_id'] = $attribute['Attribute']['id'];
         } elseif (is_numeric($attribute)) {
@@ -548,19 +611,6 @@ class Sighting extends AppModel
             ]);
         }
 
-        $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
-        if (!$ownEvent) {
-            $sightingsPolicy = $this->sightingsPolicy();
-            if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
-                $conditions['Sighting.org_id'] = $user['org_id'];
-            } elseif ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
-                if (!$this->isReporter($event['Event']['id'], $user['org_id'])) {
-                    return array();
-                }
-            } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
-                $conditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
-            }
-        }
         if ($extraConditions !== false) {
             $conditions['AND'] = $extraConditions;
         }
@@ -594,7 +644,7 @@ class Sighting extends AppModel
         return $this->attachOrgToSightings($sightings, $user, $forSync);
     }
 
-    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false)
+    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false, $filters=[])
     {
         if (!in_array($type, array(0, 1, 2))) {
             return 'Invalid type, please change it before you POST 1000000 sightings.';
@@ -628,18 +678,27 @@ class Sighting extends AppModel
             if (!is_array($values)) {
                 $values = array($values);
             }
-            foreach ($values as $value) {
-                foreach (array('value1', 'value2') as $field) {
-                    $conditions['OR'][] = array(
-                        'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value)
-                    );
+            if (empty($filters)) {
+                foreach ($values as $value) {
+                    foreach (array('value1', 'value2') as $field) {
+                        $conditions['OR'][] = array(
+                            'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value)
+                        );
+                    }
                 }
             }
         }
-        $attributes = $this->Attribute->fetchAttributesSimple($user, [
-            'conditions' => $conditions,
-            'fields' => ['Attribute.id', 'Attribute.event_id'],
-        ]);
+        $attributes = [];
+        if (empty($filters)) {
+            $attributes = $this->Attribute->fetchAttributesSimple($user, [
+                'conditions' => $conditions,
+                'fields' => ['Attribute.id', 'Attribute.event_id'],
+            ]);
+        } else {
+            $filters['value'] = $values;
+            $params = $this->Attribute->restSearch($user, 'json', $filters, true);
+            $attributes = $this->Attribute->fetchAttributes($user, $params);
+        }
         if (empty($attributes)) {
             return 'No valid attributes found that match the criteria.';
         }
@@ -672,7 +731,7 @@ class Sighting extends AppModel
             }
             ++$sightingsAdded;
             if ($publish) {
-                $this->Event->publishRouter($sighting['event_id'], null, $user, 'sightings');
+                $this->Event->publishSightingsRouter($sighting['event_id'],  $user);
             }
         }
         return $sightingsAdded;
@@ -1044,43 +1103,94 @@ class Sighting extends AppModel
         }
 
         if ($this->saveMany($toSave)) {
-            $this->Event->publishRouter($event['Event']['id'], $passAlong, $user, 'sightings');
+            $existingUuids = array_column($toSave, 'uuid');
+            $this->Event->publishSightingsRouter($event['Event']['id'], $user, $passAlong, $existingUuids);
             return count($toSave);
         } else {
             return 0;
         }
     }
 
-    public function pullSightings($user, $server)
+    /**
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @return int Number of saved sighting.
+     * @throws Exception
+     */
+    public function pullSightings(array $user, ServerSyncTool $serverSync)
     {
-        $HttpSocket = $this->setupHttpSocket($server);
         $this->Server = ClassRegistry::init('Server');
         try {
-            $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, 'sightings');
+            $remoteEvents = $this->Server->getEventIndexFromServer($serverSync);
         } catch (Exception $e) {
-            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            $this->logException("Could not fetch event IDs from server {$serverSync->server()['Server']['name']}", $e);
             return 0;
         }
+
+        // Remove events from list that do not have published sightings.
+        foreach ($remoteEvents as $k => $remoteEvent) {
+            if ($remoteEvent['sighting_timestamp'] == 0) {
+                unset($remoteEvents[$k]);
+            }
+        }
+
+        // Downloads sightings just from events that exists locally and remote sighting_timestamp is newer than local.
+        $localEvents = $this->Event->find('list', [
+            'fields' => ['Event.uuid', 'Event.sighting_timestamp'],
+            'conditions' => (count($remoteEvents) > 10000) ? [] : ['Event.uuid' => array_column($remoteEvents, 'uuid')],
+        ]);
+
+        $eventUuids = [];
+        foreach ($remoteEvents as $remoteEvent) {
+            if (isset($localEvents[$remoteEvent['uuid']]) && $localEvents[$remoteEvent['uuid']] < $remoteEvent['sighting_timestamp']) {
+                $eventUuids[] = $remoteEvent['uuid'];
+            }
+        }
+        unset($remoteEvents, $localEvents);
+
         $saved = 0;
-        // now process the $eventIds to pull each of the events sequentially
+        // We don't need some of the event data, like correlations and event reports
+        $params = [
+            'deleted' => [0, 1],
+            'excludeGalaxy' => 1,
+            'excludeLocalTags' => 1,
+            'includeAttachments' => 0,
+            'includeEventCorrelations' => 0,
+            'includeFeedCorrelations' => 0,
+            'includeWarninglistHits' => 0,
+            'noEventReports' => 1,
+            'noShadowAttributes' => 1,
+        ];
+        // now process the $eventUuids to pull each of the events sequentially
         // download each event and save sightings
-        foreach ($eventIds as $k => $eventId) {
+        foreach ($eventUuids as $eventUuid) {
             try {
-                $event = $this->Event->downloadEventFromServer($eventId, $server);
+                $event = $serverSync->fetchEvent($eventUuid, $params)->json();
             } catch (Exception $e) {
-                $this->logException("Failed downloading the event $eventId from {$server['Server']['name']}.", $e);
+                $this->logException("Failed downloading the event $eventUuid from {$serverSync->server()['Server']['name']}.", $e);
                 continue;
             }
-            $sightings = array();
-            if (!empty($event) && !empty($event['Event']['Attribute'])) {
+            $sightings = [];
+            if (!empty($event['Event']['Attribute'])) {
                 foreach ($event['Event']['Attribute'] as $attribute) {
                     if (!empty($attribute['Sighting'])) {
                         $sightings = array_merge($sightings, $attribute['Sighting']);
                     }
                 }
             }
-            if (!empty($event) && !empty($sightings)) {
-                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
+            if (!empty($event['Event']['Object'])) {
+                foreach ($event['Event']['Object'] as $object) {
+                    if (!empty($object['Attribute'])) {
+                        foreach ($object['Attribute'] as $attribute) {
+                            if (!empty($attribute['Sighting'])) {
+                                $sightings = array_merge($sightings, $attribute['Sighting']);
+                            }
+                        }
+                    }
+                }
+            }
+            if (!empty($sightings)) {
+                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $serverSync->serverId());
                 if (is_numeric($result)) {
                     $saved += $result;
                 }
@@ -1194,5 +1304,28 @@ class Sighting extends AppModel
         } else {
             return "to_char(date(to_timestamp(Sighting.date_sighting)), 'YYYY-MM-DD')"; // PostgreSQL
         }
+    }
+
+    /**
+     * @param array $user
+     * @param array $event
+     * @return array|false
+     */
+    private function createConditions(array $user, array $event)
+    {
+        $sightingsPolicy = $this->sightingsPolicy();
+        $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
+        if (!$ownEvent) {
+            if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+                return ['Sighting.org_id' => $user['org_id']];
+            } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+                if (!$this->isReporter($event['Event']['id'], $user['org_id'])) {
+                    return false;
+                }
+            } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                return ['Sighting.org_id' => [$user['org_id'], Configure::read('MISP.host_org_id')]];
+            }
+        }
+        return [];
     }
 }

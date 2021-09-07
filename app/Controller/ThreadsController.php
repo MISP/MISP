@@ -12,8 +12,6 @@ class ThreadsController extends AppController
         'Session',
     );
 
-    public $helpers = array('Js' => array('Jquery'));
-
     public $paginate = array(
             'limit' => 60,
     );

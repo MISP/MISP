@@ -12,6 +12,14 @@ if (!String.prototype.startsWith) {
   };
 }
 
+function copyToClipboard(element) {
+    var $temp = $("<input>");
+    $("body").append($temp);
+    $temp.val($(element).val()).select();
+    document.execCommand("copy");
+    $temp.remove();
+}
+
 function stringToRGB(str){
     var hash = 0;
     if (str.length == 0) return hash;
@@ -3282,23 +3290,25 @@ function getRemoteSyncUser(id) {
     var resultContainer = $("#sync_user_test_" + id);
     $.ajax({
         url: baseurl + '/servers/getRemoteUser/' + id,
-        type:'GET',
+        type: 'GET',
         beforeSend: function () {
-            resultContainer.html('Running test...');
+            resultContainer.text('Running test...');
         },
         error: function() {
-            resultContainer.html('Internal error.');
+            resultContainer.html('<span class="red bold">Internal error</span>');
         },
         success: function(response) {
             resultContainer.empty();
-            if (typeof(response.message) != 'undefined') {
+            if (typeof response !== 'object') {
+                resultContainer.html('<span class="red bold">Internal error</span>');
+            } else if ("error" in response) {
                 resultContainer.append(
                     $('<span>')
-                    .attr('class', 'red bold')
-                    .text('Error')
+                        .attr('class', 'red bold')
+                        .text('Error')
                 ).append(
                     $('<span>')
-                    .text(': #' + response.message)
+                        .text(': #' + response.error)
                 );
             } else {
                 Object.keys(response).forEach(function(key) {
@@ -3693,12 +3703,11 @@ function toggleBoolFilter(url, param) {
     xhr({
         type: "get",
         url: url,
-        success:function (data) {
+        success: function (data) {
             $("#attributes_div").html(data);
             querybuilderTool = undefined;
-
         },
-        error:function() {
+        error: function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
         }
     });
@@ -3994,10 +4003,9 @@ function formCategoryChanged(id) {
 }
 
 function malwareCheckboxSetter(context) {
-    idDiv = "#" + context + "Category" +'Div';
     var value = $("#" + context + "Category").val();  // get the selected value
     // set the malware checkbox if the category is in the zip types
-    $("#" + context + "Malware").prop('checked', formZipTypeValues[value] == "true");
+    $("#" + context + "Malware").prop('checked', formZipTypeValues[value]);
 }
 
 function feedFormUpdate() {

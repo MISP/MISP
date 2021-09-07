@@ -4,6 +4,7 @@ App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('ComplexTypeTool', 'Tools');
+App::uses('ServerSyncTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -62,18 +63,6 @@ class ShadowAttribute extends AppModel
     // explanations of certain fields to be used in various views
     public $fieldDescriptions = array(
             'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
-    );
-
-    // if these then a category my have upload to be zipped
-
-    public $zippedDefinitions = array(
-            'malware-sample'
-    );
-
-    // if these then a category my have upload
-
-    public $uploadDefinitions = array(
-            'attachment'
     );
 
     public $order = array("ShadowAttribute.event_id" => "DESC", "ShadowAttribute.type" => "ASC");
@@ -222,12 +211,11 @@ class ShadowAttribute extends AppModel
         if (isset($sa['ShadowAttribute'])) {
             $sa = $sa['ShadowAttribute'];
         }
-        if (in_array($sa['type'], $this->Attribute->nonCorrelatingTypes)) {
+        if (in_array($sa['type'], Attribute::NON_CORRELATING_TYPES, true)) {
             return;
         }
         $this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
         $shadow_attribute_correlations = array();
-        $fields = array('value1', 'value2');
         $correlatingValues = array($sa['value1']);
         if (!empty($sa['value2'])) {
             $correlatingValues[] = $sa['value2'];
@@ -240,7 +228,7 @@ class ShadowAttribute extends AppModel
                                             'Attribute.value1' => $cV,
                                             'Attribute.value2' => $cV
                                     ),
-                                    'Attribute.type !=' => $this->Attribute->nonCorrelatingTypes,
+                                    'Attribute.type !=' => Attribute::NON_CORRELATING_TYPES,
                                     'Attribute.deleted' => 0,
                                     'Attribute.event_id !=' => $sa['event_id']
                             ),
@@ -395,7 +383,7 @@ class ShadowAttribute extends AppModel
 
     public function typeIsMalware($type)
     {
-        return $this->Attribute->typeIsAttachment($type);
+        return $this->Attribute->typeIsMalware($type);
     }
 
     public function typeIsAttachment($type)
@@ -462,7 +450,7 @@ class ShadowAttribute extends AppModel
     public function validateLastSeenValue($fields)
     {
         $ls = $fields['last_seen'];
-        if (is_null($this->data['ShadowAttribute']['first_seen']) || is_null($ls)) {
+        if (!isset($this->data['ShadowAttribute']['first_seen']) || is_null($ls)) {
             return true;
         }
         $converted = $this->Attribute->ISODatetimeToUTC(['ShadowAttribute' => [
@@ -614,7 +602,11 @@ class ShadowAttribute extends AppModel
         return $proposalCount;
     }
 
-    private function __preCaptureMassage($proposal)
+    /**
+     * @param array $proposal
+     * @return array|false
+     */
+    private function __preCaptureMassage(array $proposal)
     {
         if (empty($proposal['event_uuid']) || empty($proposal['Org'])) {
             return false;
@@ -669,49 +661,50 @@ class ShadowAttribute extends AppModel
         return false;
     }
 
-    public function pullProposals($user, $server, $HttpSocket = null)
+    /**
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @return int
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function pullProposals(array $user, ServerSyncTool $serverSync)
     {
-        $version = explode('.', $server['Server']['version']);
-        if (
-            ($version[0] == 2 && $version[1] == 4 && $version[2] < 111)
-        ) {
+        if (!$serverSync->isSupported(ServerSyncTool::FEATURE_PROPOSALS)) {
             return 0;
         }
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
+
         $i = 1;
         $fetchedCount = 0;
-        $chunk_size = 1000;
+        $chunkSize = 1000;
         $timestamp = strtotime("-90 day");
-        while(true) {
-            $uri = sprintf(
-                '%s/shadow_attributes/index/all:1/timestamp:%s/limit:%s/page:%s/deleted[]:0/deleted[]:1.json',
-                $url,
-                $timestamp,
-                $chunk_size,
-                $i
-            );
-            $i += 1;
-            $response = $HttpSocket->get($uri, false, $request);
-            if ($response->code == 200) {
-                $data = json_decode($response->body, true);
-                if (empty($data)) {
-                    return $fetchedCount;
-                }
-                $returnSize = count($data);
-                foreach ($data as $k => $proposal) {
-                    $result = $this->capture($proposal['ShadowAttribute'], $user);
-                    if ($result) {
-                        $fetchedCount += 1;
-                    }
-                }
-                if ($returnSize < $chunk_size) {
-                    return $fetchedCount;
-                }
-            } else {
+        while (true) {
+            try {
+                $data = $serverSync->fetchProposals([
+                    'all' => 1,
+                    'timestamp' => $timestamp,
+                    'limit' => $chunkSize,
+                    'page' => $i,
+                    'deleted' => [0, 1],
+                ])->json();
+            } catch (Exception $e) {
+                $this->logException("Could not fetch page $i of proposals from remote server {$serverSync->server()['Server']['id']}", $e);
                 return $fetchedCount;
             }
+            $returnSize = count($data);
+            if ($returnSize === 0) {
+                return $fetchedCount;
+            }
+            foreach ($data as $proposal) {
+                $result = $this->capture($proposal['ShadowAttribute'], $user);
+                if ($result) {
+                    $fetchedCount++;
+                }
+            }
+            if ($returnSize < $chunkSize) {
+                return $fetchedCount;
+            }
+            $i++;
         }
     }
 

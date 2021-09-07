@@ -351,11 +351,39 @@ class WarninglistsController extends AppController
         if ($this->_isRest()) {
             $warninglist['Warninglist']['WarninglistEntry'] = $warninglist['WarninglistEntry'];
             $warninglist['Warninglist']['WarninglistType'] = $warninglist['WarninglistType'];
-            return $this->RestResponse->viewData($warninglist, $this->response->type());
+            return $this->RestResponse->viewData(['Warninglist' => $warninglist['Warninglist']], $this->response->type());
         }
 
         $this->set('warninglist', $warninglist);
         $this->set('possibleCategories', $this->Warninglist->categories());
+    }
+
+    public function import()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This function only accepts POST requests.'));
+        }
+
+        if (empty($this->request->data)) {
+            throw new BadRequestException(__('No valid data received.'));
+        }
+
+        foreach (['name', 'type', 'version', 'description', 'matching_attributes', 'list'] as $filed) {
+            if (!isset($this->request->data[$filed])) {
+                throw new BadRequestException(__('No valid data received: field `%s` is missing.', $filed));
+            }
+        }
+
+        if (!is_array($this->request->data['list'])) {
+            throw new BadRequestException(__('No valid data received: `list` field is not array'));
+        }
+
+        $id = $this->Warninglist->import($this->request->data);
+        if (is_int($id)) {
+            return $this->RestResponse->saveSuccessResponse('Warninglist', 'import', $id, false, __('Warninglist imported'));
+        } else {
+            return $this->RestResponse->saveFailResponse('Warninglist', 'import', false, $id);
+        }
     }
 
     public function export($id = null)
@@ -377,6 +405,7 @@ class WarninglistsController extends AppController
         ]);
         $output = [
             'name' => $warninglist['Warninglist']['name'],
+            'type' => $warninglist['Warninglist']['type'],
             'version' => $warninglist['Warninglist']['version'],
             'description' => $warninglist['Warninglist']['description'],
             'matching_attributes' => $matchingAttributes,
@@ -427,11 +456,16 @@ class WarninglistsController extends AppController
             $hits = array();
             $warninglists = $this->Warninglist->getEnabled();
             foreach ($data as $dataPoint) {
+                $dataPoint = trim($dataPoint);
                 foreach ($warninglists as $warninglist) {
                     $values = $this->Warninglist->getFilteredEntries($warninglist);
-                    $result = $this->Warninglist->quickCheckValue($values, $dataPoint, $warninglist['Warninglist']['type']);
+                    $result = $this->Warninglist->checkValue($values, $dataPoint, '', $warninglist['Warninglist']['type']);
                     if ($result !== false) {
-                        $hits[$dataPoint][] = array('id' => $warninglist['Warninglist']['id'], 'name' => $warninglist['Warninglist']['name']);
+                        $hits[$dataPoint][] = [
+                            'id' => $warninglist['Warninglist']['id'],
+                            'name' => $warninglist['Warninglist']['name'],
+                            'matched' => $result[0],
+                        ];
                     }
                 }
             }

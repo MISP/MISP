@@ -12,23 +12,23 @@ class ServersController extends AppController
     public $components = array('Security' ,'RequestHandler');   // XXX ACL component
 
     public $paginate = array(
-            'limit' => 60,
-            'recursive' => -1,
-            'contain' => array(
-                    'User' => array(
-                            'fields' => array('User.id', 'User.org_id', 'User.email'),
-                    ),
-                    'Organisation' => array(
-                            'fields' => array('Organisation.name', 'Organisation.id'),
-                    ),
-                    'RemoteOrg' => array(
-                            'fields' => array('RemoteOrg.name', 'RemoteOrg.id'),
-                    ),
+        'limit' => 60,
+        'recursive' => -1,
+        'contain' => array(
+            'User' => array(
+                'fields' => array('User.id', 'User.org_id', 'User.email'),
             ),
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
-            'order' => array(
-                    'Server.priority' => 'ASC'
+            'Organisation' => array(
+                'fields' => array('Organisation.name', 'Organisation.id'),
             ),
+            'RemoteOrg' => array(
+                'fields' => array('RemoteOrg.name', 'RemoteOrg.id'),
+            ),
+        ),
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
+        'order' => array(
+            'Server.priority' => 'ASC'
+        ),
     );
 
     public $uses = array('Server', 'Event');
@@ -52,25 +52,32 @@ class ServersController extends AppController
 
     public function index()
     {
+        // Do not fetch server authkey from DB
+        $fields = $this->Server->schema();
+        unset($fields['authkey']);
+        $fields = array_keys($fields);
+
         if ($this->_isRest()) {
             $params = array(
+                'fields' => $fields,
                 'recursive' => -1,
                 'contain' => array(
-                        'User' => array(
-                                'fields' => array('User.id', 'User.org_id', 'User.email'),
-                        ),
-                        'Organisation' => array(
-                                'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid', 'Organisation.nationality', 'Organisation.sector', 'Organisation.type'),
-                        ),
-                        'RemoteOrg' => array(
-                                'fields' => array('RemoteOrg.id', 'RemoteOrg.name', 'RemoteOrg.uuid', 'RemoteOrg.nationality', 'RemoteOrg.sector', 'RemoteOrg.type'),
-                        ),
+                    'User' => array(
+                        'fields' => array('User.id', 'User.org_id', 'User.email'),
+                    ),
+                    'Organisation' => array(
+                        'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid', 'Organisation.nationality', 'Organisation.sector', 'Organisation.type'),
+                    ),
+                    'RemoteOrg' => array(
+                        'fields' => array('RemoteOrg.id', 'RemoteOrg.name', 'RemoteOrg.uuid', 'RemoteOrg.nationality', 'RemoteOrg.sector', 'RemoteOrg.type'),
+                    ),
                 ),
             );
             $servers = $this->Server->find('all', $params);
             $servers = $this->Server->attachServerCacheTimestamps($servers);
             return $this->RestResponse->viewData($servers, $this->response->type());
         } else {
+            $this->paginate['fields'] = $fields;
             $servers = $this->paginate();
             $servers = $this->Server->attachServerCacheTimestamps($servers);
             $this->set('servers', $servers);
@@ -256,9 +263,6 @@ class ServersController extends AppController
 
     public function add()
     {
-        if (!$this->_isSiteAdmin()) {
-            $this->redirect(array('controller' => 'servers', 'action' => 'index'));
-        }
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
                 if (!isset($this->request->data['Server'])) {
@@ -298,6 +302,8 @@ class ServersController extends AppController
             }
             if (!$fail) {
                 if ($this->_isRest()) {
+                    $defaultPushRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []]]);
+                    $defaultPullRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []], "url_params" => ""]);
                     $defaults = array(
                         'push' => 0,
                         'pull' => 0,
@@ -306,8 +312,8 @@ class ServersController extends AppController
                         'pull_galaxy_clusters' => 0,
                         'caching_enabled' => 0,
                         'json' => '[]',
-                        'push_rules' => '[]',
-                        'pull_rules' => '[]',
+                        'push_rules' => $defaultPushRules,
+                        'pull_rules' => $defaultPullRules,
                         'self_signed' => 0
                     );
                     foreach ($defaults as $default => $dvalue) {
@@ -375,10 +381,10 @@ class ServersController extends AppController
                     }
                     $this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
                     if (empty($this->request->data['Server']['push_rules'])) {
-                        $this->request->data['Server']['push_rules'] = '[]';
+                        $this->request->data['Server']['push_rules'] = $defaultPushRules;
                     }
                     if (empty($this->request->data['Server']['pull_rules'])) {
-                        $this->request->data['Server']['pull_rules'] = '[]';
+                        $this->request->data['Server']['pull_rules'] = $defaultPullRules;
                     }
                     if ($this->Server->save($this->request->data)) {
                         if (isset($this->request->data['Server']['submitted_cert'])) {
@@ -411,27 +417,23 @@ class ServersController extends AppController
             return $this->RestResponse->describe('Servers', 'add', false, $this->response->type());
         } else {
             $organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
+
             $temp = $this->Server->Organisation->find('all', array(
-                    'conditions' => array('local' => true),
-                    'fields' => array('id', 'name'),
-                    'order' => array('lower(Organisation.name) ASC')
+                'fields' => array('id', 'name', 'local'),
+                'order' => array('lower(Organisation.name) ASC')
             ));
+            $allOrgs = [];
             $localOrganisations = array();
-            $allOrgs = array();
-            foreach ($temp as $o) {
-                $localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
-                $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
-            }
-            $temp = $this->Server->Organisation->find('all', array(
-                    'conditions' => array('local' => false),
-                    'fields' => array('id', 'name'),
-                    'order' => array('lower(Organisation.name) ASC')
-            ));
             $externalOrganisations = array();
             foreach ($temp as $o) {
-                $externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+                if ($o['Organisation']['local']) {
+                    $localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+                } else {
+                    $externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+                }
                 $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
             }
+
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
             $this->set('organisationOptions', $organisationOptions);
             $this->set('localOrganisations', $localOrganisations);
@@ -451,9 +453,6 @@ class ServersController extends AppController
             throw new NotFoundException(__('Invalid server'));
         }
         $s = $this->Server->read(null, $id);
-        if (!$this->_isSiteAdmin()) {
-            $this->redirect(array('controller' => 'servers', 'action' => 'index'));
-        }
         if ($this->request->is('post') || $this->request->is('put')) {
             if ($this->_isRest()) {
                 if (!isset($this->request->data['Server'])) {
@@ -589,25 +588,20 @@ class ServersController extends AppController
             return $this->RestResponse->describe('Servers', 'edit', false, $this->response->type());
         } else {
             $organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
+
             $temp = $this->Server->Organisation->find('all', array(
-                    'conditions' => array('local' => true),
-                    'fields' => array('id', 'name'),
-                    'order' => array('lower(Organisation.name) ASC')
+                'fields' => array('id', 'name', 'local'),
+                'order' => array('lower(Organisation.name) ASC')
             ));
+            $allOrgs = [];
             $localOrganisations = array();
-            $allOrgs = array();
-            foreach ($temp as $o) {
-                $localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
-                $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
-            }
-            $temp = $this->Server->Organisation->find('all', array(
-                    'conditions' => array('local' => false),
-                    'fields' => array('id', 'name'),
-                    'order' => array('lower(Organisation.name) ASC')
-            ));
             $externalOrganisations = array();
             foreach ($temp as $o) {
-                $externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+                if ($o['Organisation']['local']) {
+                    $localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+                } else {
+                    $externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+                }
                 $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
             }
 
@@ -641,15 +635,6 @@ class ServersController extends AppController
             throw new NotFoundException(__('Invalid server'));
         }
         $s = $this->Server->read(null, $id);
-        if (!$this->_isSiteAdmin()) {
-            $message = __('You don\'t have the privileges to do that.');
-            if ($this->_isRest()) {
-                throw new MethodNotAllowedException($message);
-            } else {
-                $this->Flash->error($message);
-                $this->redirect(array('controller' => 'servers', 'action' => 'index'));
-            }
-        }
         if ($this->Server->delete()) {
             $message = __('Server deleted');
             if ($this->_isRest()) {
@@ -736,10 +721,6 @@ class ServersController extends AppController
         if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) {
             throw new MethodNotAllowedException(__('You are not authorised to do that.'));
         }
-        $this->Server->id = $id;
-        if (!$this->Server->exists()) {
-            throw new NotFoundException(__('Invalid server'));
-        }
         if (false == $this->Server->data['Server']['pull'] && ($technique == 'full' || $technique == 'incremental')) {
             $error = __('Pull setting not enabled for this server.');
         }
@@ -750,7 +731,7 @@ class ServersController extends AppController
             if (!Configure::read('MISP.background_jobs')) {
                 $result = $this->Server->pull($this->Auth->user(), $id, $technique, $s);
                 if (is_array($result)) {
-                    $success = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]));
+                    $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
                 } else {
                     $error = $result;
                 }
@@ -778,14 +759,14 @@ class ServersController extends AppController
                         array('pull', $this->Auth->user('id'), $id, $technique, $jobId)
                 );
                 $this->Job->saveField('process_id', $process_id);
-                $success = sprintf(__('Pull queued for background execution. Job ID: %s'), $jobId);
+                $success = __('Pull queued for background execution. Job ID: %s', $jobId);
             }
         }
         if ($this->_isRest()) {
             if (!empty($error)) {
-                return $this->RestResponse->saveFailResponse('Servers', 'pull', false, $error, $this->response->type());
+                return $this->RestResponse->saveFailResponse('Servers', 'pull', $id, $error, $this->response->type());
             } else {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'pull', $success, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'pull', $id, $this->response->type(), $success);
             }
         } else {
             if (!empty($error)) {
@@ -818,10 +799,9 @@ class ServersController extends AppController
             throw new MethodNotAllowedException(__('You are not authorised to do that.'));
         }
         if (!Configure::read('MISP.background_jobs')) {
-            $server = $this->Server->read(null, $id);
             App::uses('SyncTool', 'Tools');
             $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
+            $HttpSocket = $syncTool->setupHttpSocket($s);
             $result = $this->Server->push($id, $technique, false, $HttpSocket, $this->Auth->user());
             if ($result === false) {
                 $error = __('The remote server is too outdated to initiate a push towards it. Please notify the hosting organisation of the remote instance.');
@@ -837,7 +817,7 @@ class ServersController extends AppController
                 }
             }
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', __('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1])), $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $id, $this->response->type(), __('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1])));
             } else {
                 $this->set('successes', $result[0]);
                 $this->set('fails', $result[1]);
@@ -926,9 +906,6 @@ class ServersController extends AppController
 
     public function serverSettingsReloadSetting($setting, $id)
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         $pathToSetting = explode('.', $setting);
         if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false || strpos($setting, 'Plugin.Cortex') !== false) {
             $settingObject = $this->Server->getCurrentServerSettings();
@@ -976,13 +953,6 @@ class ServersController extends AppController
         $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed'));
         $proxyErrors = array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed'));
         $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
-        $stixOperational = array(0 => __('Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.'), 1 => __('OK'));
-        $stixVersion = array(0 => __('Incorrect STIX version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $stix2Version = array(0 => __('Incorrect STIX2 version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $cyboxVersion = array(0 => __('Incorrect CyBox version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $mixboxVersion = array(0 => __('Incorrect mixbox version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $maecVersion = array(0 => __('Incorrect maec version installed, found $current, expecting $expected'), 1 => __('OK'));
-        $pymispVersion = array(0 => __('Incorrect PyMISP version installed, found $current, expecting $expected'), 1 => __('OK'));
         $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
         $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
 
@@ -1102,7 +1072,7 @@ class ServersController extends AppController
             }
 
             // check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
-            $stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion, $mixboxVersion, $maecVersion, $stix2Version, $pymispVersion);
+            $stix = $this->Server->stixDiagnostics($diagnostic_errors);
 
             $yaraStatus = $this->Server->yaraDiagnostics($diagnostic_errors);
 
@@ -1140,7 +1110,7 @@ class ServersController extends AppController
 
             $securityAudit = (new SecurityAudit())->run($this->Server);
 
-            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan', 'securityAudit');
+            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan', 'securityAudit');
         } else {
             $view = [];
         }
@@ -1209,11 +1179,12 @@ class ServersController extends AppController
         $this->set('pythonmin', $this->pythonmin);
         $this->set('pythonrec', $this->pythonrec);
         $this->set('pymisp', $this->pymisp);
+        $this->set('title_for_layout', __('Diagnostics'));
     }
 
     public function startWorker($type)
     {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
+        if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
         $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
@@ -1248,7 +1219,7 @@ class ServersController extends AppController
 
     public function stopWorker($pid)
     {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
+        if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
         $this->Server->killWorker($pid, $this->Auth->user());
@@ -1331,20 +1302,20 @@ class ServersController extends AppController
                 $remote_server = $this->Server->find('first', array('conditions' => $conditions));
                 if (!empty($remote_server)) {
                     try {
-                        $remote_event = $this->Event->downloadEventFromServer($this->request->data['Event']['uuid'], $remote_server, null, true);
+                        $remote_event = $this->Event->downloadEventMetadataFromServer($this->request->data['Event']['uuid'], $remote_server);
                     } catch (Exception $e) {
                         $this->Flash->error(__("Issue while contacting the remote server to retrieve event information"));
                         return;
                     }
 
-                    $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $remote_event[0]['uuid']);
+                    $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $remote_event['uuid']);
                     // we record it to avoid re-querying the same server in the 2nd phase
                     if (!empty($local_event)) {
                         $remote_events[] = array(
                             "server_id" => $remote_server['Server']['id'],
                             "server_name" => $remote_server['Server']['name'],
-                            "url" => $remote_server['Server']['url']."/events/view/".$remote_event[0]['id'],
-                            "remote_id" => $remote_event[0]['id']
+                            "url" => $remote_server['Server']['url']."/events/view/".$remote_event['id'],
+                            "remote_id" => $remote_event['id']
                         );
                     }
                 }
@@ -1365,12 +1336,12 @@ class ServersController extends AppController
 
                 $exception = null;
                 try {
-                    $remoteEvent = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $server, null, true);
+                    $remoteEvent = $this->Event->downloadEventMetadataFromServer($local_event['Event']['uuid'], $server);
                 } catch (Exception $e) {
                     $remoteEvent = null;
                     $exception = $e->getMessage();
                 }
-                $remoteEventId = isset($remoteEvent[0]['id']) ? $remoteEvent[0]['id'] : null;
+                $remoteEventId = isset($remoteEvent['id']) ? $remoteEvent['id'] : null;
                 $remote_events[] = array(
                     "server_id" => $server['Server']['id'],
                     "server_name" => $server['Server']['name'],
@@ -1515,7 +1486,7 @@ class ServersController extends AppController
 
     public function restartWorkers()
     {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
+        if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
         $this->Server->restartWorkers($this->Auth->user());
@@ -1527,7 +1498,7 @@ class ServersController extends AppController
 
     public function restartDeadWorkers()
     {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
+        if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
         $this->Server->restartDeadWorkers($this->Auth->user());
@@ -1539,9 +1510,6 @@ class ServersController extends AppController
 
     public function deleteFile($type, $filename)
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         if ($this->request->is('post')) {
             $validItems = $this->Server->getFileRules();
             App::uses('File', 'Utility');
@@ -1563,7 +1531,7 @@ class ServersController extends AppController
 
     public function uploadFile($type)
     {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
+        if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
         $validItems = $this->Server->getFileRules();
@@ -1643,21 +1611,16 @@ class ServersController extends AppController
                 'Authorization' => isset($headers['authorization']) ? 'OK' : 0,
             ],
         ];
-        return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+        return $this->RestResponse->viewData($result, 'json');
     }
 
     public function getRemoteUser($id)
     {
-        $this->Server->id = $id;
-        if (!$this->Server->exists()) {
+        $user = $this->Server->getRemoteUser($id);
+        if ($user === null) {
             throw new NotFoundException(__('Invalid server'));
         }
-        $user = $this->Server->getRemoteUser($id);
-        if (empty($user)) {
-            throw new NotFoundException(__('Invalid user or user not found.'));
-        } else {
-            return $this->RestResponse->viewData($user);
-        }
+        return $this->RestResponse->viewData($user);
     }
 
     public function testConnection($id = false)
@@ -1669,25 +1632,13 @@ class ServersController extends AppController
         $result = $this->Server->runConnectionTest($server);
         if ($result['status'] == 1) {
             if (isset($result['info']['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $result['info']['version'])) {
-                $perm_sync = false;
-                if (isset($result['info']['perm_sync'])) {
-                    $perm_sync = $result['info']['perm_sync'];
-                }
-                $perm_sighting = false;
-                if (isset($result['info']['perm_sighting'])) {
-                    $perm_sighting = $result['info']['perm_sighting'];
-                }
-                App::uses('Folder', 'Utility');
-                $file = new File(ROOT . DS . 'VERSION.json', true);
-                $local_version = json_decode($file->read(), true);
-                $file->close();
+                $perm_sync = isset($result['info']['perm_sync']) ? $result['info']['perm_sync'] : false;
+                $perm_sighting = isset($result['info']['perm_sighting']) ? $result['info']['perm_sighting'] : false;
+                $local_version = $this->Server->checkMISPVersion();
                 $version = explode('.', $result['info']['version']);
                 $mismatch = false;
                 $newer = false;
                 $parts = array('major', 'minor', 'hotfix');
-                if ($version[0] == 2 && $version[1] == 4 && $version[2] > 68) {
-                    $post = $this->Server->runPOSTTest($server);
-                }
                 foreach ($parts as $k => $v) {
                     if (!$mismatch) {
                         if ($version[$k] > $local_version[$v]) {
@@ -1716,8 +1667,8 @@ class ServersController extends AppController
                     'version' => implode('.', $version),
                     'mismatch' => $mismatch,
                     'newer' => $newer,
-                    'post' => isset($post) ? $post['status'] : 'too old',
-                    'response_encoding' => isset($post['content-encoding']) ? $post['content-encoding'] : null,
+                    'post' => isset($result['post']) ? $result['post']['status'] : 'too old',
+                    'response_encoding' => isset($result['post']['content-encoding']) ? $result['post']['content-encoding'] : null,
                     'request_encoding' => isset($result['info']['request_encoding']) ? $result['info']['request_encoding'] : null,
                     'client_certificate' => $result['client_certificate'],
                 ], 'json');
@@ -1730,9 +1681,6 @@ class ServersController extends AppController
 
     public function startZeroMQServer()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         $pubSubTool = $this->Server->getPubSubTool();
         $result = $pubSubTool->restartServer();
         if ($result === true) {
@@ -1744,9 +1692,6 @@ class ServersController extends AppController
 
     public function stopZeroMQServer()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         $pubSubTool = $this->Server->getPubSubTool();
         $result = $pubSubTool->killService();
         if ($result === true) {
@@ -1758,9 +1703,6 @@ class ServersController extends AppController
 
     public function statusZeroMQServer()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         $pubSubTool = $this->Server->getPubSubTool();
         $result = $pubSubTool->statusCheck();
         if (!empty($result)) {
@@ -1774,9 +1716,6 @@ class ServersController extends AppController
 
     public function purgeSessions()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         if ($this->Server->updateDatabase('cleanSessionTable') == false) {
             $this->Flash->error('Could not purge the session table.');
         }
@@ -1785,7 +1724,7 @@ class ServersController extends AppController
 
     public function clearWorkerQueue($worker)
     {
-        if (!$this->_isSiteAdmin() || !$this->request->is('Post') || $this->request->is('ajax')) {
+        if (!$this->request->is('Post') || $this->request->is('ajax')) {
             throw new MethodNotAllowedException();
         }
         $worker_array = array('cache', 'default', 'email', 'prio');
@@ -1803,14 +1742,19 @@ class ServersController extends AppController
         $versionArray = $this->Server->checkMISPVersion();
         $response = [
             'version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'],
-            'perm_sync' => $this->userRole['perm_sync'],
-            'perm_sighting' => $this->userRole['perm_sighting'],
-            'perm_galaxy_editor' => $this->userRole['perm_galaxy_editor'],
+            'pymisp_recommended_version' => $this->pyMispVersion,
+            'perm_sync' => (bool) $this->userRole['perm_sync'],
+            'perm_sighting' => (bool) $this->userRole['perm_sighting'],
+            'perm_galaxy_editor' => (bool) $this->userRole['perm_galaxy_editor'],
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
+            'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
         ];
-        return $this->RestResponse->viewData($response, $this->response->type());
+        return $this->RestResponse->viewData($response, 'json');
     }
 
+    /**
+     * @deprecated Use field `pymisp_recommended_version` from getVersion instead
+     */
     public function getPyMISPVersion()
     {
         $this->set('response', array('version' => $this->pyMispVersion));
@@ -1861,9 +1805,6 @@ class ServersController extends AppController
 
     public function ondemandAction()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('You are not authorised to do that.');
-        }
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $actions = $this->Server->actions_description;
         $default_fields = array(
@@ -1890,10 +1831,6 @@ class ServersController extends AppController
 
     public function updateProgress($ajaxHtml=false)
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('You are not authorised to do that.');
-        }
-
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $dbVersion = $this->AdminSetting->getSetting('db_version');
         $updateProgress = $this->Server->getUpdateProgress();
@@ -1942,9 +1879,6 @@ class ServersController extends AppController
 
     public function updateSubmodule()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         if ($this->request->is('post')) {
             $request = $this->request->data;
             $submodule = $request['Server']['submodule'];
@@ -2009,9 +1943,7 @@ class ServersController extends AppController
     {
         App::uses('SyncTool', 'Tools');
         $params = array();
-        $this->loadModel('RestClientHistory');
-        $this->RestClientHistory->create();
-        $date = new DateTime();
+
         $logHeaders = $request['header'];
         if (!empty(Configure::read('Security.advanced_authkeys'))) {
             $logHeaders = explode("\n", $request['header']);
@@ -2022,11 +1954,20 @@ class ServersController extends AppController
             }
             $logHeaders = implode("\n", $logHeaders);
         }
+
+        if (empty($request['body'])) {
+            $historyBody = '';
+        } else if (strlen($request['body']) > 65535) {
+            $historyBody = ''; // body is too long to save into history table
+        } else {
+            $historyBody = $request['body'];
+        }
+
         $rest_history_item = array(
             'org_id' => $this->Auth->user('org_id'),
             'user_id' => $this->Auth->user('id'),
             'headers' => $logHeaders,
-            'body' => empty($request['body']) ? '' : $request['body'],
+            'body' => $historyBody,
             'url' => $request['url'],
             'http_method' => $request['method'],
             'use_full_path' => empty($request['use_full_path']) ? false : $request['use_full_path'],
@@ -2034,7 +1975,7 @@ class ServersController extends AppController
             'skip_ssl' => $request['skip_ssl_validation'],
             'bookmark' => $request['bookmark'],
             'bookmark_name' => $request['name'],
-            'timestamp' => $date->getTimestamp()
+            'timestamp' => time(),
         );
         if (!empty($request['url'])) {
             if (empty($request['use_full_path']) || empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
@@ -2056,13 +1997,13 @@ class ServersController extends AppController
         $params['timeout'] = 300;
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket($params);
-        $view_data = array();
 
         $temp_headers = empty($request['header']) ? [] : explode("\n", $request['header']);
         $request['header'] = array(
             'Authorization' => $this->Auth->user('authkey'),
             'Accept' => 'application/json',
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'MISP REST Client',
         );
         foreach ($temp_headers as $header) {
             $header = explode(':', $header);
@@ -2108,24 +2049,30 @@ class ServersController extends AppController
         } else {
             return false;
         }
-        $view_data['duration'] = microtime(true) - $start;
-        $view_data['duration'] = round($view_data['duration'] * 1000, 2) . ' ms';
-        $view_data['url'] = $url;
-        $view_data['code'] =  $response->code;
-        $view_data['headers'] = $response->headers;
+        $viewData = [
+            'duration' => round((microtime(true) - $start) * 1000, 2) . ' ms',
+            'url' => $url,
+            'code' => $response->code,
+            'headers' => $response->headers,
+        ];
+
         if (!empty($request['show_result'])) {
-            $view_data['data'] = $response->body;
+            $viewData['data'] = $response->body;
         } else {
             if ($response->isOk()) {
-                $view_data['data'] = 'Success.';
+                $viewData['data'] = 'Success.';
             } else {
-                $view_data['data'] = 'Something went wrong.';
+                $viewData['data'] = 'Something went wrong.';
             }
         }
         $rest_history_item['outcome'] = $response->code;
+
+        $this->loadModel('RestClientHistory');
+        $this->RestClientHistory->create();
         $this->RestClientHistory->save($rest_history_item);
         $this->RestClientHistory->cleanup($this->Auth->user('id'));
-        return $view_data;
+
+        return $viewData;
     }
 
     private function __generatePythonScript($request, $url)
@@ -2386,7 +2333,8 @@ misp.direct_call(relative_path, body)
         }
     }
 
-    public function changePriority($id = false, $direction = 'down') {
+    public function changePriority($id = false, $direction = 'down')
+    {
         $this->Server->id = $id;
         if (!$this->Server->exists()) {
             throw new InvalidArgumentException(__('ID has to be a valid server connection'));
@@ -2409,9 +2357,6 @@ misp.direct_call(relative_path, body)
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException(__('This endpoint expects POST requests.'));
         }
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException(__('Only site admin accounts can release the update lock.'));
-        }
         $this->Server->changeLockState(false);
         $this->Server->resetUpdateFailNumber();
         $this->redirect(array('action' => 'updateProgress'));
@@ -2419,9 +2364,6 @@ misp.direct_call(relative_path, body)
 
     public function dbSchemaDiagnostic()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException(__('Only site admin accounts get the DB schema diagnostic.'));
-        }
         $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($dbSchemaDiagnostics, $this->response->type());

@@ -127,7 +127,7 @@ class LogsController extends AppController
         $event = $event[0];
         $attribute_ids = array();
         $object_ids = array();
-        $proposal_ids = array_column($event['ShadowAttribute'], 'id');;
+        $proposal_ids = array_column($event['ShadowAttribute'], 'id');
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $aa) {
                 $attribute_ids[] = $aa['id'];
@@ -227,8 +227,6 @@ class LogsController extends AppController
         $this->set('eventId', $id);
         $this->set('mayModify', $mayModify);
     }
-
-    public $helpers = array('Js' => array('Jquery'), 'Highlight');
 
     public function admin_search($new = false)
     {

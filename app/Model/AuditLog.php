@@ -98,7 +98,7 @@ class AuditLog extends AppModel
     {
         if (in_array($auditLog['action'], [self::ACTION_TAG, self::ACTION_TAG_LOCAL, self::ACTION_REMOVE_TAG, self::ACTION_REMOVE_TAG_LOCAL], true)) {
             $attached = ($auditLog['action'] === self::ACTION_TAG || $auditLog['action'] === self::ACTION_TAG_LOCAL);
-            $local = ($auditLog['action'] === self::ACTION_TAG_LOCAL || $auditLog['action'] === self::ACTION_REMOVE_TAG_LOCAL) ? 'local' : 'global';
+            $local = ($auditLog['action'] === self::ACTION_TAG_LOCAL || $auditLog['action'] === self::ACTION_REMOVE_TAG_LOCAL) ? __('local') : __('global');
             if ($attached) {
                 return __('Attached %s tag "%s" to %s #%s', $local, $auditLog['model_title'], strtolower($auditLog['model']), $auditLog['model_id']);
             } else {
@@ -108,7 +108,7 @@ class AuditLog extends AppModel
 
         if (in_array($auditLog['action'], [self::ACTION_GALAXY, self::ACTION_GALAXY_LOCAL, self::ACTION_REMOVE_GALAXY, self::ACTION_REMOVE_GALAXY_LOCAL], true)) {
             $attached = ($auditLog['action'] === self::ACTION_GALAXY || $auditLog['action'] === self::ACTION_GALAXY_LOCAL);
-            $local = ($auditLog['action'] === self::ACTION_GALAXY_LOCAL || $auditLog['action'] === self::ACTION_REMOVE_GALAXY_LOCAL) ? 'local' : 'global';
+            $local = ($auditLog['action'] === self::ACTION_GALAXY_LOCAL || $auditLog['action'] === self::ACTION_REMOVE_GALAXY_LOCAL) ? __('local') : __('global');
             if ($attached) {
                 return __('Attached %s galaxy cluster "%s" to %s #%s', $local, $auditLog['model_title'], strtolower($auditLog['model']), $auditLog['model_id']);
             } else {
@@ -347,7 +347,7 @@ class AuditLog extends AppModel
             ]);
         } elseif ($dataSource === 'Database/Postgres') {
             if (!empty($conditions['org_id'])) {
-                $condOrg = 'WHERE org_id = "' . $conditions['org_id'] . '"';
+                $condOrg = sprintf('WHERE org_id = %s', intval($conditions['org_id']));
             } else {
                 $condOrg = '';
             }
@@ -358,7 +358,7 @@ class AuditLog extends AppModel
             $validDates = $this->query($sql);
         }
         $data = [];
-        foreach ($validDates as $k => $date) {
+        foreach ($validDates as $date) {
             $data[(int)$date[0]['Date']] = (int)$date[0]['count'];
         }
         return $data;

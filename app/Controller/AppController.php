@@ -3,6 +3,7 @@ App::uses('ConnectionManager', 'Model');
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
+App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 
 /**
  * Application Controller
@@ -18,15 +19,21 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @property CRUDComponent $CRUD
  * @property IndexFilterComponent $IndexFilter
  * @property RateLimitComponent $RateLimit
+ * @property CompressedRequestHandlerComponent $CompressedRequestHandler
+ * @property DeprecationComponent $Deprecation
  */
 class AppController extends Controller
 {
+    /**
+     * @var string
+     * @deprecated Use modelClass instead
+     */
     public $defaultModel = '';
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
     private $__queryVersion = '130';
-    public $pyMispVersion = '2.4.144';
+    public $pyMispVersion = '2.4.148';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -54,14 +61,10 @@ class AppController extends Controller
     /** @var User */
     public $User;
 
-    public function __construct($id = false, $table = null, $ds = null)
+    public function __construct($request = null, $response = null)
     {
-        parent::__construct($id, $table, $ds);
-
-        $name = get_class($this);
-        $name = str_replace('sController', '', $name);
-        $name = str_replace('Controller', '', $name);
-        $this->defaultModel = $name;
+        parent::__construct($request, $response);
+        $this->defaultModel = $this->modelClass;
     }
 
     public $components = array(
@@ -70,7 +73,7 @@ class AppController extends Controller
                 'authError' => 'Unauthorised access.',
                 'authenticate' => array(
                     'Form' => array(
-                        'passwordHasher' => 'Blowfish',
+                        'passwordHasher' => 'BlowfishConstant',
                         'fields' => array(
                             'username' => 'email'
                         )
@@ -352,7 +355,7 @@ class AppController extends Controller
                 $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
                 if ($this->_isRest()) {
                     $this->response->header('X-Deprecation-Warning', $deprecationWarnings);
-                    $this->components['RestResponse']['deprecationWarnings'] = $deprecationWarnings;
+                    $this->RestResponse->setHeader('X-Deprecation-Warning', $deprecationWarnings);
                 } else {
                     $this->Flash->warning($deprecationWarnings);
                 }
@@ -792,16 +795,11 @@ class AppController extends Controller
 
     public function queryACL($debugType='findMissingFunctionNames', $content = false)
     {
-        $this->autoRender = false;
-        $this->layout = false;
         $validCommands = array('printAllFunctionNames', 'findMissingFunctionNames', 'printRoleAccess');
         if (!in_array($debugType, $validCommands)) {
             throw new MethodNotAllowedException('Invalid function call.');
         }
-        $this->set('data', $this->ACL->$debugType($content));
-        $this->set('flags', JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
-        $this->response->type('json');
-        $this->render('/Servers/json/simple');
+        return $this->RestResponse->viewData($this->ACL->$debugType($content), 'json');
     }
 
     /*
@@ -1525,17 +1523,7 @@ class AppController extends Controller
         if (isset($sessionUser['authkey_id'])) {
             // Reload authkey
             $this->loadModel('AuthKey');
-            $authKey = $this->AuthKey->find('first', [
-                'conditions' => ['id' => $sessionUser['authkey_id'], 'user_id' => $user['id']],
-                'fields' => ['id', 'expiration', 'allowed_ips'],
-                'recursive' => -1,
-            ]);
-            if (empty($authKey)) {
-                throw new RuntimeException("Auth key with ID {$sessionUser['authkey_id']} not exists.");
-            }
-            $user['authkey_id'] = $authKey['AuthKey']['id'];
-            $user['authkey_expiration'] = $authKey['AuthKey']['expiration'];
-            $user['allowed_ips'] = $authKey['AuthKey']['allowed_ips'];
+            $user = $this->AuthKey->updateUserData($user, $sessionUser['authkey_id']);
         }
         if (isset($sessionUser['logged_by_authkey'])) {
             $user['logged_by_authkey'] = $sessionUser['logged_by_authkey'];

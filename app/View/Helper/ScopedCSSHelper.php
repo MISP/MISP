@@ -72,7 +72,7 @@ App::uses('AppHelper', 'View/Helper');
             $styleTagIndex = strpos($html, $htmlStyleTag);
             $closingStyleTagIndex = strpos($html, $styleClosingTag, $styleTagIndex) + strlen($styleClosingTag);
             if ($styleTagIndex !== false && $closingStyleTagIndex !== false && $closingStyleTagIndex > $styleTagIndex) { // enforced scoped css
-                $seed = rand();
+                $seed = mt_rand();
                 $css = substr($html, $styleTagIndex, $closingStyleTagIndex);
                 $html = str_replace($css, "", $html); // remove CSS part
                 $css = str_replace($htmlStyleTag, "", $css); // remove the style node

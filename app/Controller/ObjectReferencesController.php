@@ -1,7 +1,9 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
+/**
+ * @property ObjectReference $ObjectReference
+ */
 class ObjectReferencesController extends AppController
 {
     public $components = array('Security' ,'RequestHandler', 'Session');
@@ -24,20 +26,14 @@ class ObjectReferencesController extends AppController
             throw new MethodNotAllowedException('No object defined.');
         }
         if (Validation::uuid($objectId)) {
-            $temp = $this->ObjectReference->Object->find('first', array(
-                'recursive' => -1,
-                'fields' => array('Object.id'),
-                'conditions' => array('Object.uuid' => $objectId, 'Object.deleted' => 0)
-            ));
-            if (empty($temp)) {
-                throw new NotFoundException('Invalid Object');
-            }
-            $objectId = $temp['Object']['id'];
-        } elseif (!is_numeric($objectId)) {
-            throw new NotFoundException(__('Invalid object'));
+            $conditions = ['Object.uuid' => $objectId];
+        } else {
+            $conditions = ['Object.id' => $objectId];
         }
+        $conditions['Object.deleted'] = 0;
+
         $object = $this->ObjectReference->Object->find('first', array(
-            'conditions' => array('Object.id' => $objectId, 'Object.deleted' => 0),
+            'conditions' => $conditions,
             'recursive' => -1,
             'contain' => array(
                 'Event' => array(
@@ -48,13 +44,12 @@ class ObjectReferencesController extends AppController
         if (empty($object) || !$this->__canModifyEvent($object)) {
             throw new NotFoundException('Invalid object.');
         }
-        $this->set('objectId', $objectId);
+        $this->set('objectId', $object['Object']['id']);
         if ($this->request->is('post')) {
-            $data = array();
             if (!isset($this->request->data['ObjectReference'])) {
                 $this->request->data['ObjectReference'] = $this->request->data;
             }
-            list($referenced_id, $referenced_uuid, $referenced_type) = $this->ObjectReference->getReferencedInfo($this->request->data['ObjectReference']['referenced_uuid'], $object, true, $this->Auth->user());
+            list($referenced_id, $referenced_uuid, $referenced_type) = $this->ObjectReference->getReferencedInfo(trim($this->request->data['ObjectReference']['referenced_uuid']), $object, true, $this->Auth->user());
             $relationship_type = empty($this->request->data['ObjectReference']['relationship_type']) ? '' : $this->request->data['ObjectReference']['relationship_type'];
             if (!empty($this->request->data['ObjectReference']['relationship_type_select']) && $this->request->data['ObjectReference']['relationship_type_select'] !== 'custom') {
                 $relationship_type = $this->request->data['ObjectReference']['relationship_type_select'];
@@ -67,7 +62,7 @@ class ObjectReferencesController extends AppController
                 'event_id' => $object['Event']['id'],
                 'object_uuid' => $object['Object']['uuid'],
                 'source_uuid' => $object['Object']['uuid'],
-                'object_id' => $objectId,
+                'object_id' => $object['Object']['id'],
                 'referenced_type' => $referenced_type,
                 'uuid' => CakeText::uuid()
             );
@@ -115,7 +110,7 @@ class ObjectReferencesController extends AppController
                             'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
                         ),
                         'Object' => array(
-                            'conditions' => array('NOT' => array('Object.id' => $objectId), 'Object.deleted' => 0),
+                            'conditions' => array('NOT' => array('Object.id' => $object['Object']['id']), 'Object.deleted' => 0),
                             'fields' => array('Object.id', 'Object.uuid', 'Object.name', 'Object.meta-category'),
                             'Attribute' => array(
                                 'conditions' => array('Attribute.deleted' => 0),
@@ -142,20 +137,16 @@ class ObjectReferencesController extends AppController
                     }
                 }
                 $this->loadModel('ObjectRelationship');
-                $relationshipsTemp = $this->ObjectRelationship->find('all', array(
-                    'recursive' => -1
+                $relationships = $this->ObjectRelationship->find('column', array(
+                    'recursive' => -1,
+                    'fields' => ['name'],
                 ));
-                $relationships = array();
-                $relationshipMetadata = array();
-                foreach ($relationshipsTemp as $k => $v) {
-                    $relationshipMetadata[$v['ObjectRelationship']['name']] = $v;
-                    $relationships[$v['ObjectRelationship']['name']] = $v['ObjectRelationship']['name'];
-                }
+                $relationships = array_combine($relationships, $relationships);
                 $relationships['custom'] = 'custom';
                 ksort($relationships);
                 $this->set('relationships', $relationships);
                 $this->set('event', $event);
-                $this->set('objectId', $objectId);
+                $this->set('objectId', $object['Object']['id']);
                 $this->layout = 'ajax';
                 $this->render('ajax/add');
             }
@@ -164,21 +155,8 @@ class ObjectReferencesController extends AppController
 
     public function delete($id, $hard = false)
     {
-        if (Validation::uuid($id)) {
-            $temp = $this->ObjectReference->find('first', array(
-                'recursive' => -1,
-                'fields' => array('ObjectReference.id'),
-                'conditions' => array('ObjectReference.uuid' => $id)
-            ));
-            if (empty($temp)) {
-                throw new NotFoundException('Invalid object reference');
-            }
-            $id = $temp['ObjectReference']['id'];
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid object reference'));
-        }
         $objectReference = $this->ObjectReference->find('first', array(
-            'conditions' => array('ObjectReference.id' => $id),
+            'conditions' => Validation::uuid($id) ? ['ObjectReference.uuid' => $id] : ['ObjectReference.id' => $id],
             'recursive' => -1,
             'contain' => array('Object' => array('Event'))
         ));
@@ -188,6 +166,7 @@ class ObjectReferencesController extends AppController
         if (!$this->__canModifyEvent($objectReference['Object'])) {
             throw new ForbiddenException(__('Invalid object reference.'));
         }
+        $id = $objectReference['ObjectReference']['id'];
         if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
             $result = $this->ObjectReference->smartDelete($objectReference['ObjectReference']['id'], $hard);
             if ($result === true) {
@@ -216,30 +195,20 @@ class ObjectReferencesController extends AppController
 
     public function view($id)
     {
-        if (Validation::uuid($id)) {
-            $temp = $this->ObjectReference->find('first', array(
-                'recursive' => -1,
-                'fields' => array('ObjectReference.id'),
-                'conditions' => array('ObjectReference.uuid' => $id)
-            ));
-            if (empty($temp)) {
-                throw new NotFoundException('Invalid object reference');
-            }
-            $id = $temp['ObjectReference']['id'];
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid object reference'));
-        }
         $objectReference = $this->ObjectReference->find('first', array(
-            'conditions' => array('ObjectReference.id' => $id),
+            'conditions' => Validation::uuid($id) ? ['ObjectReference.uuid' => $id] : ['ObjectReference.id' => $id],
             'recursive' => -1,
         ));
         if (empty($objectReference)) {
             throw new NotFoundException(__('Invalid object reference.'));
         }
-        $event = $this->ObjectReference->Object->Event->fetchSimpleEvent($this->Auth->user(), $objectReference['ObjectReference']['event_id'], ['contain' => ['Orgc']]);
-        if (!$event) {
-            throw new NotFoundException(__('Invalid event'));
+        // Check if user can view object that contains this reference
+        $object = $this->ObjectReference->Object->find($this->Auth->user(), [
+            'conditions' => $objectReference['ObjectReference']['object_id'],
+        ]);
+        if (!$object) {
+            throw new NotFoundException(__('Invalid object reference.'));
         }
-        return $this->RestResponse->viewData($objectReference, 'application/json');
+        return $this->RestResponse->viewData($objectReference, 'json');
     }
 }

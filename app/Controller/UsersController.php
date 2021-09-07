@@ -26,8 +26,6 @@ class UsersController extends AppController
         )
     );
 
-    public $helpers = array('Js' => array('Jquery'));
-
     public $toggleableFields = ['disabled', 'autoalert'];
 
     public function beforeFilter()
@@ -1393,9 +1391,9 @@ class UsersController extends AppController
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             $org_ids = array($this->Auth->user('org_id'));
         } else {
-            $org_ids = $this->User->Event->find('list', array(
-                'fields' => array('Event.orgc_id', 'Event.orgc_id'),
-                'group' => array('Event.orgc_id')
+            $org_ids = $this->User->Event->find('column', array(
+                'fields' => array('Event.orgc_id'),
+                'unique' => true,
             ));
         }
         $orgs_temp = $this->User->Organisation->find('list', array(
@@ -1442,20 +1440,28 @@ class UsersController extends AppController
             $temp = $this->User->Event->Attribute->find('all', $params);
             $temp = Hash::combine($temp, '{n}.Attribute.type', '{n}.0.num_types');
             $total = 0;
-            foreach ($temp as $k => $v) {
-                if (intval($v) > $max) {
-                    $max = intval($v);
+            foreach ($temp as $v) {
+                $v = (int) $v;
+                if ($v > $max) {
+                    $max = $v;
                 }
-                $total += intval($v);
+                $total += $v;
             }
-            $data[$org_id]['data'] = $temp;
-            $data[$org_id]['org_name'] = $org_name;
-            $data[$org_id]['total'] = $total;
+            $data[$org_id] = [
+                'data' => $temp,
+                'org_name' => $org_name,
+                'total' => $total,
+            ];
         }
         uasort($data, function ($a, $b) {
             return $b['total'] - $a['total'];
         });
         $data = array_values($data);
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($data, $this->response->type());
+        }
+
         $this->set('data', $data);
         $this->set('max', $max);
         $this->set('selectedTypes', $selectedTypes);
@@ -1469,13 +1475,10 @@ class UsersController extends AppController
         foreach ($sigTypes as $k => $type) {
             $typeDb[$type] = $colours[$k];
         }
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($data, $this->response->type());
-        } else {
-            $this->set('typeDb', $typeDb);
-            $this->set('sigTypes', $sigTypes);
-            $this->layout = 'ajax';
-        }
+
+        $this->set('typeDb', $typeDb);
+        $this->set('sigTypes', $sigTypes);
+        $this->layout = 'ajax';
     }
 
     public function terms()
@@ -1814,41 +1817,51 @@ class UsersController extends AppController
     // shows some statistics about the instance
     public function statistics($page = 'data')
     {
-        $this->set('page', $page);
-        $pages = array('data' => __('Usage data'),
-                       'orgs' => __('Organisations'),
-                       'users' => __('User and Organisation statistics'),
-                       'tags' => __('Tags'),
-                       'attributehistogram' => __('Attribute histogram'),
-                       'sightings' => __('Sightings toplists'),
-                       'galaxyMatrix' => __('Galaxy Matrix'));
-        if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
-            unset($pages['orgs']);
+        @session_write_close(); // loading this page can take long time, so we can close session
+
+        if (!$this->_isRest()) {
+            $pages = [
+                'data' => __('Usage data'),
+                'orgs' => __('Organisations'),
+                'users' => __('User and Organisation statistics'),
+                'tags' => __('Tags'),
+                'attributehistogram' => __('Attribute histogram'),
+                'sightings' => __('Sightings toplists'),
+                'galaxyMatrix' => __('Galaxy Matrix')
+            ];
+            if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+                unset($pages['orgs']);
+            }
+
+            $this->set('page', $page);
+            $this->set('pages', $pages);
         }
-        $this->set('pages', $pages);
-        $result = array();
-        if ($page == 'data') {
+
+        if ($page === 'data') {
             $result = $this->__statisticsData($this->params['named']);
-        } elseif ($page == 'orgs') {
+        } elseif ($page === 'orgs') {
             if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
                 throw new MethodNotAllowedException('This feature is currently disabled.');
             }
             $result = $this->__statisticsOrgs($this->params['named']);
-        } elseif ($page == 'users') {
+        } elseif ($page === 'users') {
             $result = $this->__statisticsUsers($this->params['named']);
-        } elseif ($page == 'tags') {
+        } elseif ($page === 'tags') {
             $result = $this->__statisticsTags($this->params['named']);
-        } elseif ($page == 'attributehistogram') {
+        } elseif ($page === 'attributehistogram') {
             if ($this->_isRest()) {
                 return $this->histogram($selected = null);
             } else {
                 $this->render('statistics_histogram');
             }
-        } elseif ($page == 'sightings') {
+        } elseif ($page === 'sightings') {
             $result = $this->__statisticsSightings($this->params['named']);
-        } elseif ($page == 'galaxyMatrix') {
+        } elseif ($page === 'galaxyMatrix') {
             $result = $this->__statisticsGalaxyMatrix($this->params['named']);
+        } else {
+            throw new NotFoundException("Invalid page");
         }
+
         if ($this->_isRest()) {
             return $result;
         }
@@ -1860,7 +1873,8 @@ class UsersController extends AppController
         $params = array(
             'fields' => array('id', 'name'),
             'recursive' => -1,
-            'conditions' => array()
+            'conditions' => array(),
+            'order' => ['name'],
         );
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             $params['conditions'] = array('Organisation.id' => $this->Auth->user('org_id'));
@@ -1930,37 +1944,37 @@ class UsersController extends AppController
     private function __statisticsSightings($params = array())
     {
         $this->loadModel('Sighting');
-        $conditions = array('Sighting.org_id' => $this->Auth->user('org_id'));
+        $conditions = ['Sighting.org_id' => $this->Auth->user('org_id')];
         if (isset($params['timestamp'])) {
             $conditions['Sighting.date_sighting >'] = $params['timestamp'];
         }
         $sightings = $this->Sighting->find('all', array(
             'conditions' => $conditions,
-            'fields' => array('Sighting.date_sighting', 'Sighting.type', 'Sighting.source', 'Sighting.event_id')
+            'fields' => ['Sighting.type', 'Sighting.source', 'Sighting.event_id'],
         ));
         $data = array();
         $toplist = array();
         $eventids = array();
-        foreach ($sightings as $k => $v) {
+        foreach ($sightings as $v) {
             if ($v['Sighting']['source'] == '') {
                 $v['Sighting']['source'] = 'Undefined';
             }
-            $v['Sighting']['type'] = array('sighting', 'false-positive', 'expiration')[$v['Sighting']['type']];
-            if (isset($data[$v['Sighting']['source']][$v['Sighting']['type']])) {
-                $data[$v['Sighting']['source']][$v['Sighting']['type']]++;
+            $type = array('sighting', 'false-positive', 'expiration')[$v['Sighting']['type']];
+            if (isset($data[$v['Sighting']['source']][$type])) {
+                $data[$v['Sighting']['source']][$type]++;
             } else {
-                $data[$v['Sighting']['source']][$v['Sighting']['type']] = 1;
+                $data[$v['Sighting']['source']][$type] = 1;
             }
             if (!isset($toplist[$v['Sighting']['source']])) {
                 $toplist[$v['Sighting']['source']] = 1;
             } else {
                 $toplist[$v['Sighting']['source']]++;
             }
-            if (!isset($eventids[$v['Sighting']['source']][$v['Sighting']['type']])) {
-                $eventids[$v['Sighting']['source']][$v['Sighting']['type']] = array();
+            if (!isset($eventids[$v['Sighting']['source']][$type])) {
+                $eventids[$v['Sighting']['source']][$type] = [];
             }
-            if (!in_array($v['Sighting']['event_id'], $eventids[$v['Sighting']['source']][$v['Sighting']['type']])) {
-                $eventids[$v['Sighting']['source']][$v['Sighting']['type']][] = $v['Sighting']['event_id'];
+            if (!in_array($v['Sighting']['event_id'], $eventids[$v['Sighting']['source']][$type])) {
+                $eventids[$v['Sighting']['source']][$v['Sighting']['type']][] = $type;
             }
         }
         arsort($toplist);
@@ -2730,30 +2744,7 @@ class UsersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException(__('This endpoint can only be triggered via POST requests.'));
         }
-        $users = $this->User->find('all', [
-            'recursive' => -1,
-            'contain' => ['AuthKey'],
-            'fields' => ['id', 'authkey']
-        ]);
-        $updated = 0;
-        foreach ($users as $user) {
-            if (!empty($user['AuthKey'])) {
-                $currentKeyStart = substr($user['User']['authkey'], 0, 4);
-                $currentKeyEnd = substr($user['User']['authkey'], -4);
-                foreach ($user['AuthKey'] as $authkey) {
-                    if ($authkey['authkey_start'] === $currentKeyStart && $authkey['authkey_end'] === $currentKeyEnd) {
-                        continue 2;
-                    }
-                }
-            }
-            $this->User->AuthKey->create();
-            $this->User->AuthKey->save([
-                'authkey' => $user['User']['authkey'],
-                'expiration' => 0,
-                'user_id' => $user['User']['id']
-            ]);
-            $updated += 1;
-        }
+        $updated = $this->User->updateToAdvancedAuthKeys();
         $message = __('The upgrade process is complete, %s authkey(s) generated.', $updated);
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('User', 'acceptRegistrations', false, $this->response->type(), $message);

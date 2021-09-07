@@ -68,9 +68,10 @@ class SightingsController extends AppController
                 }
                 $type = isset($this->request->data['type']) ? $this->request->data['type'] : '0';
                 $source = isset($this->request->data['source']) ? trim($this->request->data['source']) : '';
+                $filters = !empty($this->request->data['filters']) ? $this->request->data['filters'] : false;
             }
             if (!$error) {
-                $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source, false, true);
+                $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source, false, true, false, $filters);
             }
             if (!is_numeric($result)) {
                 $error = $result;
@@ -354,5 +355,27 @@ class SightingsController extends AppController
         } catch (NotFoundException $e) {
             throw new MethodNotAllowedException($e->getMessage());
         }
+    }
+
+    public function filterSightingUuidsForPush($eventId)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This method is only accessible via POST requests.');
+        }
+
+        $event = $this->Sighting->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
+        if (empty($event)) {
+            throw new NotFoundException("Event not found");
+        }
+
+        $incomingSightingUuids = $this->request->data;
+        $existingSightingUuids = $this->Sighting->find('column', [
+            'fields' => ['Sighting.uuid'],
+            'conditions' => [
+                'Sighting.uuid' => $incomingSightingUuids,
+                'Sighting.event_id' => $event['Event']['id']
+            ],
+        ]);
+        return $this->RestResponse->viewData($existingSightingUuids, $this->response->type());
     }
 }

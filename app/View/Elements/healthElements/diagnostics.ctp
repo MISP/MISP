@@ -1,15 +1,11 @@
 <div style="border:1px solid #dddddd; margin-top:1px; width:95%; padding:10px">
-<?php
-    if (!$dbEncodingStatus):
-?>
-        <div style="font-size:12pt;padding-left:3px;width:100%;background-color:red;color:white;font-weight:bold;"><?php echo __('Incorrect database encoding setting: Your database connection is currently NOT set to UTF-8. Please make sure to uncomment the \'encoding\' => \'utf8\' line in ') . APP; ?>Config/database.php</div>
-<?php
-    endif;
-?>
-    <h3><?php echo __('MISP version');?></h3>
-    <p><?php echo __('Every version of MISP includes a json file with the current version. This is checked against the latest tag on github, if there is a version mismatch the tool will warn you about it. Make sure that you update MISP regularly.');?></p>
-    <div style="background-color:#f7f7f9;width:100%;">
-        <span><?php echo __('Currently installed version…');?>
+    <?php if (!$dbEncodingStatus):?>
+    <div style="font-size:12pt;padding-left:3px;width:100%;background-color:red;color:white;font-weight:bold;"><?= __('Incorrect database encoding setting: Your database connection is currently NOT set to UTF-8. Please make sure to uncomment the \'encoding\' => \'utf8\' line in ') . APP; ?>Config/database.php</div>
+    <?php endif; ?>
+    <h3><?= __('MISP version');?></h3>
+    <p><?= __('Every version of MISP includes a JSON file with the current version. This is checked against the latest tag on GitHub, if there is a version mismatch the tool will warn you about it. Make sure that you update MISP regularly.');?></p>
+    <div class="diagnostics-box" style="width:100%">
+        <span><?= __('Currently installed version…');?>
             <?php
                 $upToDate = isset($version['upToDate']) ? $version['upToDate'] : null;
                 switch ($upToDate) {
@@ -31,7 +27,7 @@
                 }
             ?>
             <span style="color:<?php echo $fontColour; ?>;">
-                <?= (isset($version['current']) ? $version['current'] : __('Unknown')) . ' (' . h($commit) . ')';
+                <?= (isset($version['current']) ? $version['current'] : __('Unknown')) . ' (' . ($commit ? h($commit) : __('Unknown')) . ')';
                 ?>
                 <?php if ($commit === ''): ?>
                     <br>
@@ -40,23 +36,23 @@
                     </span>
                 <?php endif; ?>
             </span>
-        </span><br />
+        </span><br>
         <span><?php echo __('Latest available version…');?>
             <span style="color:<?php echo $fontColour; ?>;">
-                <?= (isset($version['newest']) ? $version['newest'] : __('Unknown')) . ' (' . (isset($latestCommit) ? $latestCommit : __('Unknown')) . ')' ?>
+                <?= (isset($version['newest']) ? $version['newest'] : __('Unknown')) . ' (' . ($latestCommit ? $latestCommit : __('Unknown')) . ')' ?>
             </span>
-        </span><br />
+        </span><br>
         <span><?php echo __('Status…');?>
-            <span style="color:<?php echo $fontColour; ?>;"><?= $versionText ?></span>
-        </span><br />
+            <span style="color:<?= $fontColour; ?>;"><?= $versionText ?></span>
+        </span><br>
         <span><?php echo __('Current branch…');?>
             <?php
                 $branchColour = $branch == '2.4' ? 'green' : 'red bold';
             ?>
             <span class="<?php echo h($branchColour); ?>">
-                <?=($branch == '2.4') ? h($branch) : __('You are not on a branch, Update MISP will fail'); ?>
+                <?= $branch == '2.4' ? h($branch) : __('You are not on a branch, Update MISP will fail'); ?>
             </span>
-        </span><br />
+        </span><br>
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from GitHub');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
         <a title="<?php echo __('Click the following button to go to the update progress page. This page lists all updates that are currently queued and executed.'); ?>" style="margin-left: 5px;" href="<?php echo $baseurl; ?>/servers/updateProgress/"><i class="fas fa-tasks"></i> <?php echo __('View Update Progress');?></a>
@@ -96,7 +92,7 @@
                     $message = __('File ') . $message;
                     $colour = 'red';
                 }
-                echo $file . '…<span style="color:' . $colour . ';">' . $message . '</span><br />';
+                echo $file . '…<span style="color:' . $colour . ';">' . $message . '</span><br>';
             }
         ?>
     </div>
@@ -110,7 +106,7 @@
                     $message = __('File ') . $message;
                     $colour = 'red';
                 }
-                echo $file . '…<span style="color:' . $colour . ';">' . $message . '</span><br />';
+                echo $file . '…<span style="color:' . $colour . ';">' . $message . '</span><br>';
             }
         ?>
     </div>
@@ -299,6 +295,7 @@
         <span class="red bold">Redis is not available. <?= $redisInfo['connection_error'] ?></span>
         <?php endif; ?>
     </div>
+
     <h3><?php echo __('Advanced attachment handler');?></h3>
         <?php echo __('The advanced attachment tools are used by the add attachment functionality to extract additional data about the uploaded sample.');?>
         <div class="diagnostics-box">
@@ -317,6 +314,7 @@
                 endif;
             ?>
         </div>
+
     <h3><?= __('Attachment scan module') ?></h3>
     <div class="diagnostics-box">
         <?php if ($attachmentScan['status']): ?>
@@ -327,55 +325,45 @@
         <b>Reason:</b> <?= $attachmentScan['error'] ?>
         <?php endif; ?>
     </div>
-    <h3><?php echo __('STIX and Cybox libraries');?></h3>
-    <p><?php echo __('Mitre\'s STIX and Cybox python libraries have to be installed in order for MISP\'s STIX export to work. Make sure that you install them (as described in the MISP installation instructions) if you receive an error below.');?><br />
-    <?php echo __('If you run into any issues here, make sure that both STIX and CyBox are installed as described in the INSTALL.txt file. The required versions are');?>:<br />
-    <b>STIX</b>: <?php echo $stix['stix']['expected'];?><br />
-    <b>CyBox</b>: <?php echo $stix['cybox']['expected'];?><br />
-    <b>mixbox</b>: <?php echo $stix['mixbox']['expected'];?><br />
-    <b>maec</b>: <?php echo $stix['maec']['expected'];?><br />
-    <b>STIX2</b>: <?php echo $stix['stix2']['expected'];?><br />
-    <b>PyMISP</b>: <?php echo $stix['pymisp']['expected'];?><br />
-    <?php echo __('Other versions might work but are not tested / recommended.');?></p>
-    <div class="diagnostics-box">
-        <?php
-            $colour = 'green';
-            $testReadError = false;
-            foreach ($readableFiles as $file => $data) {
-                if (substr($file, -strlen('/stixtest.py')) == '/stixtest.py') {
-                    if ($data > 0) {
-                        $colour = 'red';
-                        echo __('STIX and CyBox') . '… <span class="red">' . __('Could not read test script (stixtest.py).') . '</span>';
-                        $testReadError = true;
-                    }
-                }
-            }
-            if (!$testReadError) {
-                $error_count = 0;
-                $libraries = '';
-                foreach (array('stix', 'cybox', 'mixbox', 'maec', 'stix2', 'pymisp') as $package) {
-                    $lib_colour = 'green';
-                    if ($stix[$package]['status'] == 0) {
-                        $lib_colour = 'red';
-                        $error_count += 1;
-                    }
-                    $libraries = $libraries . strtoupper($package) . __(' library version') . '…<span style="color:' . $lib_colour . ';">' . ${$package . 'Version'}[$stix[$package]['status']] . '</span><br />';
-                }
-                if ($stix['operational'] == 0) {
-                    $colour = 'red';
-                    echo '<b>Current libraries status</b>…<span style="color:' . $colour . ';">' . $stixOperational[$stix['operational']] . '</span><br />';
-                } else {
-                    if ($error_count > 0) {
-                        $colour = 'orange';
-                        echo '<b>Current libraries status</b>…<span style="color:' . $colour . ';">Some versions should be updated</span>:<br />';
-                    } else {
-                        echo '<b>Current libraries status</b>…<span style="color:' . $colour . ';">' . $stixOperational[$stix['operational']] . '</span><br />';
-                    }
-                }
-                echo $libraries;
-            }
-        ?>
-    </div>
+
+    <h3><?= __('STIX and Cybox libraries');?></h3>
+    <p><?= __('Mitre\'s STIX and Cybox python libraries have to be installed in order for MISP\'s STIX export to work. Make sure that you install them (as described in the MISP installation instructions) if you receive an error below.');?><br />
+    <?= __('If you run into any issues here, make sure that both STIX and CyBox are installed as described in the INSTALL.txt file.');?><br>
+
+    <?php if ($stix['operational'] === -1): ?>
+        <b class="red"><?= __('Could not run test script (stixtest.py). Please check error logs for more details.') ?></b>
+    <?php else: ?>
+
+    <b><?= __('Current libraries status') ?>:</b>
+    <?php if ($stix['operational'] === 0): ?>
+    <b class="red bold"><?= __('Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.') ?></b>
+    <?php elseif ($stix['invalid_version']): ?>
+    <span class="orange"><?= __('Some versions should be updated.') ?></span>
+    <?php else: ?>
+    <b class="green"><?= __('OK') ?></b>
+    <?php endif ?>
+    <table class="table table-condensed table-bordered" style="width: 400px">
+        <thead>
+            <tr>
+                <th><?= __('Library') ?></th>
+                <th><?= __('Expected version') ?></th>
+                <th><?= __('Installed version') ?></th>
+                <th><?= __('Status') ?></th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($stix as $name => $library): if (!isset($library['expected'])) continue; ?>
+            <tr>
+                <td><?= h($name) ?></td>
+                <td><?= h($library['expected']) ?></td>
+                <td><?= $library['version'] === 0 ? __('Not installed') : h($library['version']) ?></td>
+                <td><?= $library['status'] ? '<i class="green fa fa-check" role="img" aria-label="' .  __('Correct') . '"></i>' : '<i class="red fa fa-times" role="img" aria-label="' .  __('Incorrect') . '"></i>' ?></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+    <?php endif; ?>
+
     <h3><?php echo __('Yara');?></h3>
     <p><?php echo __('This tool tests whether plyara, the library used by the yara export tool is installed or not.');?></p>
     <div class="diagnostics-box">
@@ -402,6 +390,7 @@
             }
         ?>
     </div>
+
     <h3><?php echo __('ZeroMQ');?></h3>
     <p><?php echo __('This tool tests whether the ZeroMQ extension is installed and functional.');?></p>
     <div class="diagnostics-box">

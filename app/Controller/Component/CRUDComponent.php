@@ -161,7 +161,7 @@ class CRUDComponent extends Component
         $query = isset($params['get']) ? $params['get'] : [
             'recursive' => -1,
             'conditions' => [
-                'id' => $id
+                $modelName . '.id' => $id
             ],
         ];
         if (!empty($params['conditions'])) {
@@ -191,7 +191,9 @@ class CRUDComponent extends Component
             }
             if (!empty($params['fields'])) {
                 foreach ($params['fields'] as $field) {
-                    $data[$modelName][$field] = $input[$modelName][$field];
+                    if(isset($input[$modelName][$field])){
+                        $data[$modelName][$field] = $input[$modelName][$field];
+                    }
                 }
             } else {
                 foreach ($input[$modelName] as $field => $fieldData) {

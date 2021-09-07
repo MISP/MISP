@@ -148,7 +148,7 @@
                     'icon' => 'edit',
                     'complex_requirement' => [
                         'function' => function($row) use ($me) {
-                            return $row['Warninglist']['default'] == 0 && $me['Role']['perm_warninglist'];
+                            return $row['Warninglist']['default'] == 0 && ($me['Role']['perm_warninglist'] || $me['Role']['perm_site_admin']);
                         }
                     ]
                 ),

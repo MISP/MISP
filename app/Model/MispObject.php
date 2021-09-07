@@ -6,6 +6,7 @@ App::uses('TmpFileTool', 'Tools');
  * @property Event $Event
  * @property SharingGroup $SharingGroup
  * @property Attribute $Attribute
+ * @property ObjectReference $ObjectReference
  */
 class MispObject extends AppModel
 {
@@ -67,7 +68,8 @@ class MispObject extends AppModel
             'unique' => array(
                 'rule' => 'isUnique',
                 'message' => 'The UUID provided is not unique',
-                'required' => 'create'
+                'required' => true,
+                'on' => 'create'
             ),
         ),
         'first_seen' => array(
@@ -89,12 +91,16 @@ class MispObject extends AppModel
         ),
         'name' => array(
             'stringNotEmpty' => array(
-                'rule' => array('stringNotEmpty')
+                'rule' => array('stringNotEmpty'),
+                'required' => true,
+                'on' => 'create'
             ),
         ),
         'meta-category' => array(
             'stringNotEmpty' => array(
-                'rule' => array('stringNotEmpty')
+                'rule' => array('stringNotEmpty'),
+                'required' => true,
+                'on' => 'create'
             ),
         ),
         'description' => array(
@@ -105,12 +111,16 @@ class MispObject extends AppModel
         'template_uuid' => array(
             'uuid' => array(
                 'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID'
+                'message' => 'Please provide a valid RFC 4122 UUID',
+                'required' => true,
+                'on' => 'create'
             ),
         ),
         'template_version' => array(
             'numeric' => array(
                 'rule' => 'naturalNumber',
+                'required' => true,
+                'on' => 'create'
             )
         ),
     );
@@ -220,7 +230,7 @@ class MispObject extends AppModel
      public function validateLastSeenValue($fields)
      {
          $ls = $fields['last_seen'];
-         if (is_null($this->data['Object']['first_seen']) || is_null($ls)) {
+         if (!isset($this->data['Object']['first_seen']) || is_null($ls)) {
              return true;
          }
          $converted = $this->Attribute->ISODatetimeToUTC(['Object' => [
@@ -350,7 +360,7 @@ class MispObject extends AppModel
         }
     }
 
-    public function checkForDuplicateObjects($object, $eventId)
+    public function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectID)
     {
         $newObjectAttributes = array();
         $existingObjectAttributes = array();
@@ -365,9 +375,12 @@ class MispObject extends AppModel
                     $attribute['value'] = $attribute['value'] . '|' . md5(base64_decode($attribute['data']));
                 }
             }
+            $attributeValueAfterModification = $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value']);
+            $attributeValueAfterModification = $this->Attribute->runRegexp($attribute['type'], $attributeValueAfterModification);
+
             $newObjectAttributes[] = hash(
                 'sha256',
-                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value'])
+                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $attributeValueAfterModification
             );
         }
         $newObjectAttributeCount = count($newObjectAttributes);
@@ -375,6 +388,7 @@ class MispObject extends AppModel
             foreach ($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']] as $previousNewObject) {
                 if ($newObjectAttributeCount === count($previousNewObject)) {
                     if (empty(array_diff($previousNewObject, $newObjectAttributes))) {
+                        $duplicatedObjectID = $previousNewObject['Object']['id'];
                         return true;
                     }
                 }
@@ -406,6 +420,7 @@ class MispObject extends AppModel
                     );
                 }
                 if (empty(array_diff($temp, $newObjectAttributes))) {
+                    $duplicatedObjectID = $existingObject['Object']['id'];
                     return true;
                 }
             }
@@ -415,13 +430,6 @@ class MispObject extends AppModel
 
     public function saveObject($object, $eventId, $template = false, $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
     {
-        if ($breakOnDuplicate) {
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId);
-            if ($duplicate) {
-                return array('value' => array('Duplicate object found. Since breakOnDuplicate is set the object will not be added.'));
-            }
-        }
-        $this->create();
         $templateFields = array(
             'name' => 'name',
             'meta-category' => 'meta-category',
@@ -441,6 +449,14 @@ class MispObject extends AppModel
             }
         }
         $object['Object']['event_id'] = $eventId;
+        if ($breakOnDuplicate) {
+            $duplicatedObjectID = null;
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID);
+            if ($duplicate) {
+                return array('value' => array(__('Duplicate object found (id: %s). Since breakOnDuplicate is set the object will not be added.', $duplicatedObjectID)));
+            }
+        }
+        $this->create();
         $result = false;
         if ($this->save($object)) {
             $result = $this->id;
@@ -492,7 +508,7 @@ class MispObject extends AppModel
         ];
     }
 
-    public function fetchObjectSimple($user, $options = array())
+    public function fetchObjectSimple(array $user, $options = array())
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -877,7 +893,7 @@ class MispObject extends AppModel
                                     $newAttribute['event_id'] = $object['Object']['event_id'];
                                     $newAttribute['object_id'] = $object['Object']['id'];
                                     $newAttribute['timestamp'] = $date->getTimestamp();
-                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => $this->Attribute->editableFields));
+                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => Attribute::EDITABLE_FIELDS));
                                     if ($result) {
                                         $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
                                     }
@@ -919,7 +935,7 @@ class MispObject extends AppModel
                 }
                 foreach ($object['Attribute'] as $origKey => $originalAttribute) {
                     $originalAttribute['deleted'] = 1;
-                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => $this->Attribute->editableFields));
+                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => Attribute::EDITABLE_FIELDS));
                 }
             }
         } else { // we only add the new attribute
@@ -960,24 +976,15 @@ class MispObject extends AppModel
             $object = array('Object' => $object);
         }
         if (!empty($object['Object']['breakOnDuplicate']) || $breakOnDuplicate) {
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId);
+            $duplicatedObjectID = null;
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID);
             if ($duplicate) {
-                $log->create();
-                $log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Object',
-                        'model_id' => 0,
-                        'email' => $user['email'],
-                        'action' => 'add',
-                        'user_id' => $user['id'],
-                        'title' => 'Object dropped due to it being a duplicate and breakOnDuplicate being requested for Event ' . $eventId,
-                        'change' => 'Duplicate object found.',
-                ));
+                $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
+                    __('Object dropped due to it being a duplicate (ID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectID, $eventId),
+                    'Duplicate object found.'
+                );
                 return true;
             }
-        }
-        if (empty($log)) {
-            $log = ClassRegistry::init('Log');
         }
         if (isset($object['Object']['id'])) {
             unset($object['Object']['id']);
@@ -991,22 +998,15 @@ class MispObject extends AppModel
             $partialFails = array();
             if (!empty($object['Object']['Attribute'])) {
                 foreach ($object['Object']['Attribute'] as $attribute) {
-                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, $log);
+                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId);
                 }
             }
             return true;
         } else {
-            $log->create();
-            $log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Object',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'add',
-                    'user_id' => $user['id'],
-                    'title' => 'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['Object']['name'],
-                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object),
-            ));
+            $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
+                'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['Object']['name'],
+                'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object)
+            );
         }
         return 'fail';
     }
@@ -1024,18 +1024,10 @@ class MispObject extends AppModel
             }
             if (empty($object['sharing_group_id'])) {
                 $object_short = (isset($object['meta-category']) ? $object['meta-category'] : 'N/A') . '/' . (isset($object['name']) ? $object['name'] : 'N/A') . ' ' . (isset($object['uuid']) ? $object['uuid'] : 'N/A');
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'MispObject',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'edit',
-                    'user_id' => $user['id'],
-                    'title' => 'Object dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $object_short,
-                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object),
-                ));
+                $this->loadLog()->createLogEntry($user, 'edit', 'MispObject', 0,
+                    'Object dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $object_short,
+                    'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object)
+                );
                 return 'Invalid sharing group choice.';
             }
         }
@@ -1045,20 +1037,11 @@ class MispObject extends AppModel
                 'conditions' => array('Object.uuid' => $object['uuid'])
             ));
             if (empty($existingObject)) {
-                return $this->captureObject($object, $eventId, $user, $log);
+                return $this->captureObject($object, $eventId, $user);
             } else {
                 if ($existingObject['Object']['event_id'] != $eventId) {
-                    $log->create();
-                    $log->save(array(
-                            'org' => $user['Organisation']['name'],
-                            'model' => 'MispObject',
-                            'model_id' => 0,
-                            'email' => $user['email'],
-                            'action' => 'edit',
-                            'user_id' => $user['id'],
-                            'title' => 'Duplicate UUID found in object',
-                            'change' => 'An object was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $object['uuid'] . '. This can also be due to the same object (or an object with the same UUID) existing in a different event)',
-                    ));
+                    $change = 'An object was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $object['uuid'] . '. This can also be due to the same object (or an object with the same UUID) existing in a different event)';
+                    $this->loadLog()->createLogEntry($user, 'edit','MispObject', 0, 'Duplicate UUID found in object', $change);
                     return true;
                 }
                 if (isset($object['timestamp'])) {
@@ -1067,12 +1050,11 @@ class MispObject extends AppModel
                         return true;
                     }
                 } else {
-                    $date = new DateTime();
-                    $object['timestamp'] = $date->getTimestamp();
+                    $object['timestamp'] = time();
                 }
             }
         } else {
-            return $this->captureObject($object, $eventId, $user, $log);
+            return $this->captureObject($object, $eventId, $user);
         }
         // At this point we have an existingObject that we can edit
         $recoverFields = array(
@@ -1098,22 +1080,15 @@ class MispObject extends AppModel
             $object['sharing_group_id'] = $this->SharingGroup->captureSG($object['SharingGroup'], $user);
         }
         if (!$this->save($object)) {
-            $log->create();
-            $log->save(array(
-                'org' => $user['Organisation']['name'],
-                'model' => 'Object',
-                'model_id' => 0,
-                'email' => $user['email'],
-                'action' => 'edit',
-                'user_id' => $user['id'],
-                'title' => 'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['name'],
-                'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object),
-            ));
+            $this->loadLog()->createLogEntry($user, 'edit', 'MispObject', 0,
+                'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['name'],
+                'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object)
+            );
             return $this->validationErrors;
         }
         if (!empty($object['Attribute'])) {
             foreach ($object['Attribute'] as $attribute) {
-                $result = $this->Attribute->editAttribute($attribute, $eventId, $user, $object['id'], $log, $force);
+                $result = $this->Attribute->editAttribute($attribute, $eventId, $user, $object['id'], false, $force);
             }
         }
         return true;

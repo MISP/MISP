@@ -7,7 +7,7 @@ mispmodulesRHEL () {
   [[ "${DIST_VER}" =~ ^[7].* ]] && sudo dnf install openjpeg-devel gcc-c++ poppler-cpp-devel pkgconfig python3-devel redhat-rpm-config -y
 
   # some misp-modules dependencies for RHEL8
-  ([[ "${DISTRI}" == "fedora33" ]] || [[ "${DIST_VER}" =~ ^[8].* ]]) && sudo dnf install openjpeg2-devel gcc-c++ poppler-cpp-devel pkgconfig python3-devel redhat-rpm-config -y
+  ([[ "${DISTRI}" == "fedora33" ]] || [[ "${DISTRI}" == "fedora34" ]] || [[ "${DIST_VER}" =~ ^[8].* ]]) && sudo dnf install openjpeg2-devel gcc-c++ poppler-cpp-devel pkgconfig python3-devel redhat-rpm-config -y
 
   sudo chmod 2777 /usr/local/src
   sudo chown root:users /usr/local/src

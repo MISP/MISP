@@ -28,16 +28,6 @@ class GalaxyClusterRelationTag extends AppModel
         ),
     );
 
-    public function afterSave($created, $options = array())
-    {
-        parent::afterSave($created, $options);
-    }
-
-    public function beforeDelete($cascade = true)
-    {
-        parent::beforeDelete($cascade);
-    }
-
     public function softDelete($id)
     {
         $this->delete($id);
@@ -50,7 +40,7 @@ class GalaxyClusterRelationTag extends AppModel
      * @param  int   $galaxyClusterRelationId
      * @param  array $tags list of tag names to be saved
      * @param  bool  $capture
-     * @return void
+     * @return bool
      */
     public function attachTags(array $user, $galaxyClusterRelationId, array $tags, $capture=false)
     {

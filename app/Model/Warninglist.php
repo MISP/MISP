@@ -17,7 +17,7 @@ class Warninglist extends AppModel
 
     public $actsAs = array(
         'AuditLog',
-            'Containable',
+        'Containable',
     );
 
     public $validate = array(
@@ -126,6 +126,9 @@ class Warninglist extends AppModel
                     }
                 }
             }
+            if (!empty($eventWarnings)) {
+                $this->assignComments($attributes);
+            }
             return $eventWarnings;
         }
 
@@ -196,14 +199,69 @@ class Warninglist extends AppModel
         }
 
         if (!empty($saveToCache)) {
-            $pipe = $redis->multi(Redis::PIPELINE);
+            $pipe = $redis->pipeline();
             foreach ($saveToCache as $attributeKey => $json) {
                 $redis->setex($attributeKey, 8 * 3600, $json); // cache for eight hour
             }
             $pipe->exec();
         }
 
+        if (!empty($eventWarnings)) {
+            $this->assignComments($attributes);
+        }
+
         return $eventWarnings;
+    }
+
+    /**
+     * Assign comments to warninglist hits.
+     * @param array $attributes
+     */
+    private function assignComments(array &$attributes)
+    {
+        $toFetch = [];
+        foreach ($attributes as $attribute) {
+            if (isset($attribute['warnings'])) {
+                foreach ($attribute['warnings'] as $warning) {
+                    $toFetch[$warning['warninglist_id']][] = $warning['match'];
+                }
+            }
+        }
+
+        $conditions = [];
+        foreach ($toFetch as $warninglistId => $values) {
+            $conditions[] = ['AND' => [
+                'warninglist_id' => $warninglistId,
+                'value' => array_unique($values),
+            ]];
+        }
+
+        $entries = $this->WarninglistEntry->find('all', [
+           'conditions' => [
+               'OR' => $conditions,
+               'comment !=' => '',
+           ],
+            'fields' => ['value', 'warninglist_id', 'comment'],
+        ]);
+        if (empty($entries)) {
+            return;
+        }
+
+        $comments = [];
+        foreach ($entries as $entry) {
+            $entry = $entry['WarninglistEntry'];
+            $comments[$entry['warninglist_id']][$entry['value']] = $entry['comment'];
+        }
+
+        foreach ($attributes as &$attribute) {
+            if (isset($attribute['warnings'])) {
+                foreach ($attribute['warnings'] as &$warning) {
+                    if (isset($comments[$warning['warninglist_id']][$warning['match']])) {
+                        $warning['comment'] = $comments[$warning['warninglist_id']][$warning['match']];
+                    }
+                }
+            }
+        }
     }
 
     public function update()
@@ -212,7 +270,7 @@ class Warninglist extends AppModel
         $existingWarninglist = $this->find('all', [
             'fields' => ['id', 'name', 'version', 'enabled'],
             'recursive' => -1,
-            'condition' => ['default' => 1],
+            'conditions' => ['default' => 1],
         ]);
         $existingWarninglist = array_column(array_column($existingWarninglist, 'Warninglist'), null, 'name');
 
@@ -251,11 +309,13 @@ class Warninglist extends AppModel
     public function quickDelete($id)
     {
         $result = $this->WarninglistEntry->deleteAll(
-            array('WarninglistEntry.warninglist_id' => $id)
+            array('WarninglistEntry.warninglist_id' => $id),
+            false
         );
         if ($result) {
             $result = $this->WarninglistType->deleteAll(
-                array('WarninglistType.warninglist_id' => $id)
+                array('WarninglistType.warninglist_id' => $id),
+                false
             );
         }
         if ($result) {
@@ -264,7 +324,39 @@ class Warninglist extends AppModel
         return $result;
     }
 
-    private function __updateList(array $list, array $current)
+    /**
+     * Import single warninglist
+     * @param array $list
+     * @return array|int|string
+     * @throws Exception
+     */
+    public function import(array $list)
+    {
+        $existingWarninglist = $this->find('first', [
+            'fields' => ['id', 'name', 'version', 'enabled', 'default'],
+            'recursive' => -1,
+            'conditions' => ['name' => $list['name']],
+        ]);
+
+        if ($existingWarninglist && $existingWarninglist['Warninglist']['default']) {
+            throw new Exception('It is not possible to modify default warninglist.');
+        }
+
+        $id = $this->__updateList($list, $existingWarninglist ? $existingWarninglist['Warninglist']: [], false);
+        if (is_int($id)) {
+            $this->regenerateWarninglistCaches($id);
+        }
+        return $id;
+    }
+
+    /**
+     * @param array $list
+     * @param array $current
+     * @param bool $default
+     * @return array|int|string
+     * @throws Exception
+     */
+    private function __updateList(array $list, array $current, $default = true)
     {
         $list['enabled'] = 0;
         $warninglist = array();
@@ -272,45 +364,61 @@ class Warninglist extends AppModel
             if ($current['enabled']) {
                 $list['enabled'] = 1;
             }
-            $list['id'] = $current['id']; // keep list ID
+            $warninglist['Warninglist']['id'] = $current['id']; // keep list ID
             $this->quickDelete($current['id']);
         }
         $fieldsToSave = array('name', 'version', 'description', 'type', 'enabled');
         foreach ($fieldsToSave as $fieldToSave) {
             $warninglist['Warninglist'][$fieldToSave] = $list[$fieldToSave];
         }
+        if (!$default) {
+            $warninglist['Warninglist']['default'] = 0;
+        }
         $this->create();
-        if ($this->save($warninglist)) {
-            $db = $this->getDataSource();
-            $values = array();
-            $warninglistId = (int)$this->id;
-            foreach ($list['list'] as $value) {
-                if (!empty($value)) {
-                    $values[] = array('value' => $value, 'warninglist_id' => $warninglistId);
-                }
-            }
-            unset($list['list']);
-            $result = true;
-            foreach (array_chunk($values, 500) as $chunk) {
-                $result = $db->insertMulti('warninglist_entries', array('value', 'warninglist_id'), $chunk);
-            }
-            if (!$result) {
-                return 'Could not insert values.';
-            }
-            if (!empty($list['matching_attributes'])) {
-                $values = array();
-                foreach ($list['matching_attributes'] as $type) {
-                    $values[] = array('type' => $type, 'warninglist_id' => $warninglistId);
-                }
-                $this->WarninglistType->saveMany($values);
-            } else {
-                $this->WarninglistType->create();
-                $this->WarninglistType->save(array('WarninglistType' => array('type' => 'ALL', 'warninglist_id' => $warninglistId)));
-            }
-            return $warninglistId;
-        } else {
+        if (!$this->save($warninglist)) {
             return $this->validationErrors;
         }
+
+        $db = $this->getDataSource();
+        $warninglistId = (int)$this->id;
+        $result = true;
+
+        $keys = array_keys($list['list']);
+        if ($keys === array_keys($keys)) {
+            foreach (array_chunk($list['list'], 500) as $chunk) {
+                $valuesToInsert = [];
+                foreach ($chunk as $value) {
+                    if (!empty($value)) {
+                        $valuesToInsert[] = ['value' => $value, 'warninglist_id' => $warninglistId];
+                    }
+                }
+                $result = $db->insertMulti('warninglist_entries', ['value', 'warninglist_id'], $valuesToInsert);
+            }
+        } else { // import warninglist with comments
+            foreach (array_chunk($list['list'], 500, true) as $chunk) {
+                $valuesToInsert = [];
+                foreach ($chunk as $value => $comment) {
+                    if (!empty($value)) {
+                        $valuesToInsert[] = ['value' => $value, 'comment' => $comment, 'warninglist_id' => $warninglistId];
+                    }
+                }
+                $result = $db->insertMulti('warninglist_entries', ['value', 'comment', 'warninglist_id'], $valuesToInsert);
+            }
+        }
+        if (!$result) {
+            return 'Could not insert values.';
+        }
+
+        if (empty($list['matching_attributes'])) {
+            $list['matching_attributes'] = ['ALL'];
+        }
+        $values = array();
+        foreach ($list['matching_attributes'] as $type) {
+            $values[] = array('type' => $type, 'warninglist_id' => $warninglistId);
+        }
+        $this->WarninglistType->saveMany($values);
+
+        return $warninglistId;
     }
 
     /**
@@ -495,7 +603,7 @@ class Warninglist extends AppModel
         if ($object['to_ids'] || $this->showForAll) {
             foreach ($warninglists as $list) {
                 if (in_array('ALL', $list['types'], true) || in_array($object['type'], $list['types'], true)) {
-                    $result = $this->__checkValue($this->getFilteredEntries($list), $object['value'], $object['type'], $list['Warninglist']['type']);
+                    $result = $this->checkValue($this->getFilteredEntries($list), $object['value'], $object['type'], $list['Warninglist']['type']);
                     if ($result !== false) {
                         $object['warnings'][] = array(
                             'match' => $result[0],
@@ -518,7 +626,7 @@ class Warninglist extends AppModel
      * @param string $listType
      * @return array|false [Matched value, attribute value that matched]
      */
-    private function __checkValue($listValues, $value, $type, $listType)
+    public function checkValue($listValues, $value, $type, $listType)
     {
         if ($type === 'malware-sample' || strpos($type, '|') !== false) {
             $value = explode('|', $value, 2);
@@ -544,11 +652,6 @@ class Warninglist extends AppModel
             }
         }
         return false;
-    }
-
-    public function quickCheckValue($listValues, $value, $type)
-    {
-        return $this->__checkValue($listValues, $value, '', $type) !== false;
     }
 
     /**
@@ -654,7 +757,7 @@ class Warninglist extends AppModel
 
         foreach ($warninglists as $warninglist) {
             if (in_array('ALL', $warninglist['types'], true) || in_array($attribute['type'], $warninglist['types'], true)) {
-                $result = $this->__checkValue($this->getFilteredEntries($warninglist), $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
+                $result = $this->checkValue($this->getFilteredEntries($warninglist), $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
                 if ($result !== false) {
                     return false;
                 }

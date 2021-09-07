@@ -2,9 +2,50 @@
 App::uses('HttpSocketResponse', 'Network/Http');
 App::uses('HttpSocket', 'Network/Http');
 
-class HttpClientJsonException extends Exception
+class HttpSocketHttpException extends Exception
 {
-    /** @var HttpSocketResponse */
+    /** @var HttpSocketResponseExtended */
+    private $response;
+
+    /** @var string|null */
+    private $url;
+
+    /**
+     * @param HttpSocketResponseExtended $response
+     * @param string|null $url
+     */
+    public function __construct(HttpSocketResponseExtended $response, $url = null)
+    {
+        $this->response = $response;
+        $this->url = $url;
+        $message = "Remote server returns HTTP error code $response->code";
+        if ($url) {
+            $message .= " for URL $url";
+        }
+        parent::__construct($message, (int)$response->code);
+    }
+
+    /**
+     * @return HttpSocketResponseExtended
+     */
+    public function getResponse()
+    {
+        return $this->response;
+    }
+
+    /**
+     * Request URL
+     * @return string|null
+     */
+    public function getUrl()
+    {
+        return $this->url;
+    }
+}
+
+class HttpSocketJsonException extends Exception
+{
+    /** @var HttpSocketResponseExtended */
     private $response;
 
     public function __construct($message, HttpSocketResponseExtended $response, Throwable $previous = null)
@@ -14,7 +55,7 @@ class HttpClientJsonException extends Exception
     }
 
     /**
-     * @return HttpSocketResponse
+     * @return HttpSocketResponseExtended
      */
     public function getResponse()
     {
@@ -48,7 +89,7 @@ class HttpSocketResponseExtended extends HttpSocketResponse
                 throw new SocketException("Response should be brotli encoded, but brotli decoding failed.");
             }
         } else if ($contentEncoding) {
-            throw new SocketException("Remote server returns unsupported content encoding '$contentEncoding'");
+            throw new SocketException("Remote server returns unsupported content encoding '$contentEncoding'.");
         }
     }
 
@@ -56,7 +97,7 @@ class HttpSocketResponseExtended extends HttpSocketResponse
      * Decodes JSON string and throws exception if string is not valid JSON.
      *
      * @return array
-     * @throws HttpClientJsonException
+     * @throws HttpSocketJsonException
      */
     public function json()
     {
@@ -72,13 +113,16 @@ class HttpSocketResponseExtended extends HttpSocketResponse
             }
             return $decoded;
         } catch (Exception $e) {
-            throw new HttpClientJsonException('Could not parse response as JSON.', $this, $e);
+            throw new HttpSocketJsonException('Could not parse response as JSON.', $this, $e);
         }
     }
 }
 
 /**
  * Supports response compression and also decodes response as JSON
+ * @method HttpSocketResponseExtended get($uri = null, $query = array(), $request = array())
+ * @method HttpSocketResponseExtended post($uri = null, $data = array(), $request = array())
+ * @method HttpSocketResponseExtended head($uri = null, $query = array(), $request = array())
  */
 class HttpSocketExtended extends HttpSocket
 {
