@@ -180,10 +180,14 @@ class Taxonomy extends AppModel
         if (isset($options['filter'])) {
             $filter = $options['filter'];
         }
+        $conditions = ['Taxonomy.id' => $id];
+        if (!is_numeric($id)) {
+            $conditions = ['Taxonomy.namespace' => trim(mb_strtolower($id))];
+        }
         $taxonomy_params = array(
                 'recursive' => -1,
                 'contain' => array('TaxonomyPredicate' => array('TaxonomyEntry')),
-                'conditions' => array('Taxonomy.id' => $id)
+                'conditions' => $conditions
         );
         $taxonomy = $this->find('first', $taxonomy_params);
         if (empty($taxonomy)) {
