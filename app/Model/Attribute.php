@@ -404,11 +404,9 @@ class Attribute extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        $passedEvent = false;
-        if (isset($options['parentEvent'])) {
-            $passedEvent = $options['parentEvent'];
-        }
-        parent::afterSave($created, $options);
+        // Passing event in `parentEvent` field will speed up correlation
+        $passedEvent = isset($options['parentEvent']) ? $options['parentEvent'] : false;
+
         // add attributeTags via the shorthand ID list
         if (!empty($this->data['Attribute']['tag_ids'])) {
             foreach ($this->data['Attribute']['tag_ids'] as $tag_id) {
