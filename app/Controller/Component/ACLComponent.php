@@ -81,10 +81,13 @@ class ACLComponent extends Component
                 'add' => [],
                 'delete' => [],
                 'download_org' => [],
+                'download_sg' => [],
                 'edit' => [],
                 'index' => [],
                 'preview_orgs' => [],
+                'preview_sharing_groups' => [],
                 'pull_orgs' => [],
+                'pull_sgs' => [],
                 'view' => []
             ],
             'correlationExclusions' => [
