@@ -207,6 +207,8 @@ class TagsController extends AppController
             $users = [0 => 'Unrestricted'] + $users;
             $this->set('users', $users);
         }
+
+        $this->set('menuData', ['menuList' => 'tags', 'menuItem' => 'add']);
     }
 
     public function quickAdd()
@@ -281,8 +283,9 @@ class TagsController extends AppController
         ));
         $users = [0 => 'Unrestricted'] + $users;
         $this->set('users', $users);
-
+        $this->set('menuData', ['menuList' => 'tags', 'menuItem' => 'edit']);
         $this->request->data = $this->Tag->read(null, $id);
+        $this->render('add');
     }
 
     public function delete($id)

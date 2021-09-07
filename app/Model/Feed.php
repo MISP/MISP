@@ -607,7 +607,7 @@ class Feed extends AppModel
                     $results['add']['success'] = $uuid;
                 } else if ($result !== 'blocked') {
                     $results['add']['fail'] = ['uuid' => $uuid, 'reason' => $result];
-                    $this->log("Could not edit event '$uuid' from feed {$feed['Feed']['id']}: $result", LOG_WARNING);
+                    $this->log("Could not edit event '$uuid' from feed {$feed['Feed']['id']}: " . json_encode($result), LOG_WARNING);
                 }
             } catch (Exception $e) {
                 $this->logException("Could not edit event '$uuid' from feed {$feed['Feed']['id']}.", $e);
@@ -928,7 +928,6 @@ class Feed extends AppModel
     {
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         $event = $this->__prepareEvent($event, $feed, $filterRules);
-        $this->Event = ClassRegistry::init('Event');
         return $this->Event->_edit($event, $user, $uuid, $jobId = null);
     }
 

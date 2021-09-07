@@ -245,46 +245,37 @@ class Server extends AppModel
      * @param array $server
      * @param bool $force
      * @return array
+     * @throws InvalidArgumentException
+     * @throws JsonException
      */
     private function __getEventIdListBasedOnPullTechnique($technique, array $server, $force = false)
     {
-        try {
-            if ("full" === $technique) {
-                // get a list of the event_ids on the server
-                $eventIds = $this->getEventIdsFromServer($server, false, null, false, 'events', $force);
-                // reverse array of events, to first get the old ones, and then the new ones
-                return array_reverse($eventIds);
-            } elseif ("update" === $technique) {
-                $eventIds = $this->getEventIdsFromServer($server, false, null, true, 'events', $force);
-                $eventModel = ClassRegistry::init('Event');
-                $localEventUuids = $eventModel->find('column', array(
-                    'fields' => array('Event.uuid'),
-                ));
-                return array_intersect($eventIds, $localEventUuids);
-            } elseif (is_numeric($technique)) {
-                return array(intval($technique));
-            } elseif (Validation::uuid($technique)) {
-                return array($technique);
-            } else {
-                return array('error' => array(4, null));
-            }
-        } catch (HttpException $e) {
-            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
-            if ($e->getCode() === 403) {
-                return array('error' => array(1, null));
-            } else {
-                return array('error' => array(2, $e->getMessage()));
-            }
-        } catch (Exception $e) {
-            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
-            return array('error' => array(2, $e->getMessage()));
+        if ("full" === $technique) {
+            // get a list of the event_ids on the server
+            $eventIds = $this->getEventIdsFromServer($server, false, null, false, 'events', $force);
+            // reverse array of events, to first get the old ones, and then the new ones
+            return array_reverse($eventIds);
+        } elseif ("update" === $technique) {
+            $eventIds = $this->getEventIdsFromServer($server, false, null, true, 'events', $force);
+            $eventModel = ClassRegistry::init('Event');
+            $localEventUuids = $eventModel->find('column', array(
+                'fields' => array('Event.uuid'),
+            ));
+            return array_intersect($eventIds, $localEventUuids);
+        } elseif (is_numeric($technique)) {
+            return array(intval($technique));
+        } elseif (Validation::uuid($technique)) {
+            return array($technique);
         }
+        throw new InvalidArgumentException("Invalid pull technique `$technique`.");
     }
 
     private function __checkIfEventIsBlockedBeforePull($event)
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            if (!isset($this->EventBlocklist)) {
+                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            }
             if ($this->EventBlocklist->isBlocked($event['Event']['uuid'])) {
                 return true;
             }
@@ -391,7 +382,8 @@ class Server extends AppModel
         return $event;
     }
 
-    private function __checkIfEventSaveAble($event) {
+    private function __checkIfEventSaveAble($event)
+    {
         if (!empty($event['Event']['Attribute'])) {
             foreach ($event['Event']['Attribute'] as $attribute) {
                 if (empty($attribute['deleted'])) {
@@ -423,7 +415,7 @@ class Server extends AppModel
         return false;
     }
 
-    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
+    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force = false)
     {
         // check if the event already exist (using the uuid)
         $existingEvent = $eventModel->find('first', [
@@ -442,7 +434,7 @@ class Server extends AppModel
                     $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'add_from_connected_server');
                 }
             } else {
-                $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors, true);
+                $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors);
             }
         } else {
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
@@ -464,12 +456,23 @@ class Server extends AppModel
         }
     }
 
-    private function __pullEvent($eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
+    private function __pullEvent($eventId, &$successes, &$fails, Event $eventModel, ServerSyncTool $serverSync, $user, $jobId, $force = false)
     {
+        $params = [
+            'deleted' => [0, 1],
+            'excludeGalaxy' => 1,
+            'includeEventCorrelations' => 0, // we don't need remote correlations
+            'includeFeedCorrelations' => 0,
+            'includeWarninglistHits' => 0, // we don't need remote warninglist hits
+        ];
+        if (empty($serverSync->server()['Server']['internal'])) {
+            $params['excludeLocalTags'] = 1;
+        }
+
         try {
-            $event = $eventModel->downloadEventFromServer($eventId, $server);
+            $event = $serverSync->fetchEvent($eventId, $params)->json();
         } catch (Exception $e) {
-            $this->logException('Failed downloading the event ' . $eventId, $e);
+            $this->logException("Failed downloading the event $eventId from remote server {$serverSync->serverId()}", $e);
             $fails[$eventId] = __('failed downloading the event');
             return false;
         }
@@ -478,11 +481,11 @@ class Server extends AppModel
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
             }
-            $event = $this->__updatePulledEventBeforeInsert($event, $server, $user);
+            $event = $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user);
             if (!$this->__checkIfEventSaveAble($event)) {
                 $fails[$eventId] = __('Empty event detected.');
             } else {
-                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId, $force);
+                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force);
             }
         } else {
             // error
@@ -505,8 +508,16 @@ class Server extends AppModel
         $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         try {
             $server['Server']['version'] = $serverSync->info()['version'];
-        } catch (HttpSocketHttpException $e) {
-            // ignore for now
+        } catch (Exception $e) {
+            $this->logException("Could not get remote server `{$server['Server']['name']}` version.", $e);
+            if ($e instanceof HttpSocketHttpException && $e->getCode() === 403) {
+                $message = __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.');
+            } else {
+                $message = $e->getMessage();
+            }
+            $title = 'Failed pull from ' . $server['Server']['url'] . ' initiated by ' . $email;
+            $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $title, $message);
+            return $message;
         }
 
         $pulledClusters = 0;
@@ -528,29 +539,23 @@ class Server extends AppModel
                 $job->saveField('message', 'Pulling events.');
             }
         }
-        $eventModel = ClassRegistry::init('Event');
-        $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server, $force);
-        if (!empty($eventIds['error'])) {
-            $errors = array(
-                '1' => __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'),
-                '2' => $eventIds['error'][1],
-                '3' => __('Sorry, this is not yet implemented'),
-                '4' => __('Something went wrong while trying to pull')
-            );
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                'org' => $user['Organisation']['name'],
-                'model' => 'Server',
-                'model_id' => $id,
-                'email' => $user['email'],
-                'action' => 'error',
-                'user_id' => $user['id'],
-                'title' => 'Failed pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
-                'change' => !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.')
-            ));
-            return !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.');
+
+        try {
+            $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server, $force);
+        } catch (Exception $e) {
+            $this->logException("Could not fetch event IDs from server `{$server['Server']['name']}`.", $e);
+            if ($e instanceof HttpSocketHttpException && $e->getCode() === 403) {
+                $message = __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.');
+            } else {
+                $message = $e->getMessage();
+            }
+            $title = 'Failed pull from ' . $server['Server']['url'] . ' initiated by ' . $email;
+            $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $title, $message);
+            return $message;
         }
+
+        /** @var Event $eventModel */
+        $eventModel = ClassRegistry::init('Event');
         $successes = array();
         $fails = array();
         // now process the $eventIds to pull each of the events sequentially
@@ -560,7 +565,7 @@ class Server extends AppModel
                 $job->saveProgress($jobId, __n('Pulling %s event.', 'Pulling %s events.', count($eventIds), count($eventIds)));
             }
             foreach ($eventIds as $k => $eventId) {
-                $this->__pullEvent($eventId, $successes, $fails, $eventModel, $server, $user, $jobId, $force);
+                $this->__pullEvent($eventId, $successes, $fails, $eventModel, $serverSync, $user, $jobId, $force);
                 if ($jobId) {
                     if ($k % 10 == 0) {
                         $job->saveProgress($jobId, null, 10 + 40 * (($k + 1) / count($eventIds)));
@@ -569,19 +574,8 @@ class Server extends AppModel
             }
         }
         if (!empty($fails)) {
-            $this->Log = ClassRegistry::init('Log');
             foreach ($fails as $eventid => $message) {
-                $this->Log->create();
-                $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => $user['email'],
-                    'action' => 'pull',
-                    'user_id' => $user['id'],
-                    'title' => 'Failed to pull event #' . $eventid . '.',
-                    'change' => 'Reason: ' . $message
-                ));
+                $this->loadLog()->createLogEntry($user, 'pull', 'Server', $id, "Failed to pull event #$eventid.", 'Reason: ' . $message);
             }
         }
         if ($jobId) {
@@ -589,12 +583,12 @@ class Server extends AppModel
         }
         $pulledProposals = $pulledSightings = 0;
         if ($technique === 'full' || $technique === 'update') {
-            $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
+            $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $serverSync);
 
             if ($jobId) {
                 $job->saveProgress($jobId, 'Pulling sightings.', 75);
             }
-            $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
+            $pulledSightings = $eventModel->Sighting->pullSightings($user, $serverSync);
         }
         if ($jobId) {
             $job->saveProgress($jobId, 'Pull completed.', 100);
@@ -773,6 +767,28 @@ class Server extends AppModel
     }
 
     /**
+     * @param ServerSyncTool $serverSync
+     * @param bool $ignoreFilterRules Ignore defined server pull rules
+     * @return array
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false)
+    {
+        if (!$ignoreFilterRules) {
+            $filterRules = $this->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
+            if (!empty($filterRules['org']) && !$serverSync->isSupported(ServerSyncTool::FEATURE_ORG_RULE)) {
+                $filterRules['org'] = implode('|', $filterRules['org']);
+            }
+        } else {
+            $filterRules = [];
+        }
+        $filterRules['minimal'] = 1;
+        $filterRules['published'] = 1;
+        return $serverSync->eventIndex($filterRules)->json();
+    }
+
+    /**
      * Get an array of event UUIDs that are present on the remote server.
      *
      * @param array $server
@@ -884,7 +900,8 @@ class Server extends AppModel
         $serverUuids = [];
         foreach ($servers as &$server) {
             try {
-                $uuids = $this->getEventIdsFromServer($server, true, null, true);
+                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+                $uuids = array_column($this->getEventIndexFromServer($serverSync, true), 'uuid');
                 $serverUuids[$server['Server']['id']] = array_flip($uuids);
                 $server['Server']['events_count'] = count($uuids);
             } catch (Exception $e) {
@@ -1188,7 +1205,16 @@ class Server extends AppModel
         return $successes;
     }
 
-    public function syncSightings($HttpSocket, array $server, array $user, Event $eventModel)
+    /**
+     * Push sightings to remote server.
+     * @param HttpSocket $HttpSocket
+     * @param array $server
+     * @param array $user
+     * @param Event $eventModel
+     * @return array
+     * @throws Exception
+     */
+    private function syncSightings($HttpSocket, array $server, array $user, Event $eventModel)
     {
         $successes = array();
         if (!$server['Server']['push_sightings']) {
@@ -1204,6 +1230,14 @@ class Server extends AppModel
         }
         // now process the $eventIds to push each of the events sequentially
         // check each event and push sightings when needed
+        $fakeSyncUser = [
+            'org_id' => $server['Server']['remote_org_id'],
+            'Role' => [
+                'perm_site_admin' => 0,
+            ],
+        ];
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         foreach ($eventUuids as $eventUuid) {
             $event = $eventModel->fetchEvent($user, ['event_uuid' => $eventUuid, 'metadata' => true]);
             if (!empty($event)) {
@@ -1216,11 +1250,21 @@ class Server extends AppModel
                     continue;
                 }
 
-                $sightings = $this->Sighting->attachToEvent($event, $user, null, false, true);
-                $result = $eventModel->uploadSightingsToServer($sightings, $server, $eventUuid, $HttpSocket);
-                if ($result) {
-                    $successes[] = 'Sightings for event ' .  $event['Event']['id'];
+                // Process sightings in batch to keep memory requirements low
+                foreach ($this->Sighting->fetchUuidsForEventToPush($event, $fakeSyncUser) as $batch) {
+                    // Filter out sightings that already exists on remote server
+                    $existingSightings = $serverSync->filterSightingUuidsForPush($event, $batch);
+                    $newSightings = array_diff($batch, $existingSightings);
+                    if (empty($newSightings)) {
+                        continue;
+                    }
+
+                    $conditions = ['Sighting.uuid' => $newSightings];
+                    $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, $conditions, true);
+                    $serverSync->uploadSightings($sightings, $event['Event']['uuid']);
                 }
+
+                $successes[] = 'Sightings for event ' .  $event['Event']['id'];
             }
         }
         return $successes;
@@ -2432,10 +2476,11 @@ class Server extends AppModel
 
     /**
      * @param array $server
+     * @param bool $withPostTest
      * @return array
      * @throws JsonException
      */
-    public function runConnectionTest(array $server)
+    public function runConnectionTest(array $server, $withPostTest = true)
     {
         App::uses('SyncTool', 'Tools');
         try {
@@ -2443,51 +2488,51 @@ class Server extends AppModel
             if ($clientCertificate) {
                 $clientCertificate['valid_from'] = $clientCertificate['valid_from'] ? $clientCertificate['valid_from']->format('c') : __('Not defined');
                 $clientCertificate['valid_to'] = $clientCertificate['valid_to'] ? $clientCertificate['valid_to']->format('c') : __('Not defined');
-                $clientCertificate['public_key_size'] = $clientCertificate['public_key_size'] ?: __('Unknwon');
-                $clientCertificate['public_key_type'] = $clientCertificate['public_key_type'] ?: __('Unknwon');
+                $clientCertificate['public_key_size'] = $clientCertificate['public_key_size'] ?: __('Unknown');
+                $clientCertificate['public_key_type'] = $clientCertificate['public_key_type'] ?: __('Unknown');
             }
         } catch (Exception $e) {
             $clientCertificate = ['error' => $e->getMessage()];
         }
 
-        $HttpSocket = $this->setupHttpSocket($server, null, 5);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/servers/getVersion';
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
 
         try {
-            $response = $HttpSocket->get($uri, false, $request);
-            if ($response === false) {
-                throw new Exception("Connection failed for unknown reason.");
+            $info = $serverSync->info();
+            $response = [
+                'status' => 1,
+                'info' => $info,
+                'client_certificate' => $clientCertificate,
+            ];
+
+            if ($withPostTest) {
+                $response['post'] = $serverSync->isSupported(ServerSyncTool::FEATURE_POST_TEST) ? $this->runPOSTtest($serverSync) : null;
             }
+
+            return $response;
+
+        } catch (HttpSocketHttpException $e) {
+            if ($e->getCode() === 403) {
+                return ['status' => 4, 'client_certificate' => $clientCertificate];
+            } else if ($e->getCode() === 405) {
+                try {
+                    $responseText = $e->getResponse()->json()['message'];
+                    if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') {
+                        return array('status' => 5, 'client_certificate' => $clientCertificate);
+                    } elseif ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') {
+                        return array('status' => 6, 'client_certificate' => $clientCertificate);
+                    }
+                } catch (Exception $e) {
+                    // pass
+                }
+            }
+            $response = $e->getResponse();
+        } catch (HttpSocketJsonException $e) {
+            $response = $e->getResponse();
         } catch (Exception $e) {
             $logTitle = 'Error: Connection test failed. Reason: ' .  $e->getMessage();
             $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $logTitle);
-            return array('status' => 2, 'client_certificate' => $clientCertificate);
-        }
-
-        if ($response->code == '403') {
-            return array('status' => 4, 'client_certificate' => $clientCertificate);
-        } else if ($response->code == '405') {
-            try {
-                $responseText = $this->jsonDecode($response->body)['message'];
-                if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') {
-                    return array('status' => 5, 'client_certificate' => $clientCertificate);
-                } elseif ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') {
-                    return array('status' => 6, 'client_certificate' => $clientCertificate);
-                }
-            } catch (Exception $e) {
-                // pass
-            }
-        } else if ($response->isOk()) {
-            try {
-                $info = $this->jsonDecode($response->body());
-                if (!isset($info['version'])) {
-                    throw new Exception("Server returns JSON response, but doesn't contain required 'version' field.");
-                }
-                return array('status' => 1, 'info' => $info, 'client_certificate' => $clientCertificate);
-            } catch (Exception $e) {
-                // Even if server returns OK status, that doesn't mean that connection to another MISP instance works
-            }
+            return ['status' => 2, 'client_certificate' => $clientCertificate];
         }
 
         $logTitle = 'Error: Connection test failed. Returned data is in the change field.';
@@ -2495,22 +2540,20 @@ class Server extends AppModel
             'response' => ['', $response->body],
             'response-code' => ['', $response->code],
         ]);
-        return array('status' => 3, 'client_certificate' => $clientCertificate);
+        return ['status' => 3, 'client_certificate' => $clientCertificate];
     }
 
     /**
-     * @param array $server
+     * @param ServerSyncTool $serverSync
      * @return array
-     * @throws JsonException
+     * @throws Exception
      */
-    public function runPOSTtest(array $server)
+    private function runPOSTtest(ServerSyncTool $serverSync)
     {
         $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
         if (!$testFile) {
             throw new Exception("Could not load payload for POST test.");
         }
-
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
 
         try {
             $response = $serverSync->postTest($testFile);
@@ -2518,13 +2561,13 @@ class Server extends AppModel
             $rawBody = $response->body;
             $response = $response->json();
         } catch (Exception $e) {
-            $this->logException("Invalid response for remote server {$server['Server']['name']} POST test.", $e);
+            $this->logException("Invalid response for remote server {$serverSync->server()['Server']['name']} POST test.", $e);
             $title = 'Error: POST connection test failed. Reason: ' . $e->getMessage();
-            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $serverSync->serverId(), $title);
             return ['status' => 8];
         }
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
-            if (!empty($repsonse['body']['testString'])) {
+            if (!empty($response['body']['testString'])) {
                 $responseString = $response['body']['testString'];
             } else if (!empty($rawBody)){
                 $responseString = $rawBody;
@@ -2533,7 +2576,7 @@ class Server extends AppModel
             }
 
             $title = 'Error: POST connection test failed due to the message body not containing the expected data. Response: ' . PHP_EOL . PHP_EOL . $responseString;
-            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $serverSync->serverId(), $title);
             return ['status' => 9, 'content-encoding' => $contentEncoding];
         }
         $headers = array('Accept', 'Content-type');
@@ -2541,7 +2584,7 @@ class Server extends AppModel
             if (!isset($response['headers'][$header]) || $response['headers'][$header] !== 'application/json') {
                 $responseHeader = isset($response['headers'][$header]) ? $response['headers'][$header] : 'Header was not set.';
                 $title = 'Error: POST connection test failed due to a header ' . $header . ' not matching the expected value. Expected: "application/json", received "' . $responseHeader . '"';
-                $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
+                $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $serverSync->serverId(), $title);
                 return ['status' => 10, 'content-encoding' => $contentEncoding];
             }
         }
@@ -3295,7 +3338,7 @@ class Server extends AppModel
 
     public function stixDiagnostics(&$diagnostic_errors)
     {
-        $expected = array('stix' => '>1.2.0.9', 'cybox' => '>2.1.0.21', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>2.0', 'pymisp' => '>2.4.120');
+        $expected = array('stix' => '>1.2.0.11', 'cybox' => '>2.1.0.21', 'mixbox' => '>1.0.5', 'maec' => '>4.1.0.17', 'stix2' => '>2.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         try {
@@ -4270,16 +4313,25 @@ class Server extends AppModel
         return $response->body;
     }
 
-    public function attachServerCacheTimestamps($data)
+    /**
+     * @param array $servers
+     * @return array
+     */
+    public function attachServerCacheTimestamps(array $servers)
     {
         $redis = $this->setupRedis();
         if ($redis === false) {
-            return $data;
+            return $servers;
         }
-        foreach ($data as $k => $v) {
-            $data[$k]['Server']['cache_timestamp'] = $redis->get('misp:server_cache_timestamp:' . $data[$k]['Server']['id']);
+        $redis->pipeline();
+        foreach ($servers as $server) {
+            $redis->get('misp:server_cache_timestamp:' . $server['Server']['id']);
         }
-        return $data;
+        $results = $redis->exec();
+        foreach ($servers as $k => $v) {
+            $data[$k]['Server']['cache_timestamp'] = $results[$k];
+        }
+        return $servers;
     }
 
     public function updateJSON()
@@ -4509,50 +4561,40 @@ class Server extends AppModel
         return $success;
     }
 
-    public function queryAvailableSyncFilteringRules($server)
+    public function queryAvailableSyncFilteringRules(array $server)
     {
         $syncFilteringRules = [
             'error' => '',
             'data' => []
         ];
-        $HttpSocket = $this->setupHttpSocket($server, null);
-        $uri = $server['Server']['url'] . '/servers/getAvailableSyncFilteringRules';
-        $request = $this->setupSyncRequest($server);
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
         try {
-            $response = $HttpSocket->get($uri, false, $request);
-            if ($response === false) {
-                $syncFilteringRules['error'] = __('Connection failed for unknown reason.');
-                return $syncFilteringRules;
-            }
-        } catch (SocketException $e) {
-            $syncFilteringRules['error'] = __('Connection failed for unknown reason. Error returned: %s', $e->getMessage());
+            $syncFilteringRules['data'] = $serverSync->getAvailableSyncFilteringRules()->json();
+        } catch (Exception $e) {
+            $syncFilteringRules['error'] = __('Connection failed. Error returned: %s', $e->getMessage());
             return $syncFilteringRules;
         }
 
-        if ($response->isOk()) {
-            $syncFilteringRules['data'] = $this->jsonDecode($response->body());
-        } else {
-            $syncFilteringRules['error'] = __('Reponse was not OK. (HTTP code: %s)', $response->code);
-        }
         return $syncFilteringRules;
     }
 
-    public function getAvailableSyncFilteringRules($user)
+    public function getAvailableSyncFilteringRules(array $user)
     {
-        $this->Organisation = ClassRegistry::init('Organisation');
         $this->Tag = ClassRegistry::init('Tag');
         $organisations = [];
         if ($user['Role']['perm_sharing_group'] || !Configure::read('Security.hide_organisation_index_from_users')) {
-            $organisations = $this->Organisation->find('list', [
-                'fields' => 'name'
+            $organisations = $this->Organisation->find('column', [
+                'fields' => ['name'],
             ]);
         }
-        $tags = $this->Tag->find('list', [
-            'fields' => 'name'
+        $tags = $this->Tag->find('column', [
+            'fields' => ['name'],
         ]);
         return [
-            'organisations' => array_values($organisations),
-            'tags' => array_values($tags),
+            'organisations' => $organisations,
+            'tags' => $tags,
         ];
     }
 

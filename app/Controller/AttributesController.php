@@ -1695,8 +1695,7 @@ class AttributesController extends AppController
         }
 
         // Fetch correlations in one query
-        $sgIds = $this->Attribute->Event->cacheSgids($user, true);
-        $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, $sgIds, false, 'attribute');
+        $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, false, 'attribute');
 
         // `attachFeedCorrelations` method expects different attribute format, so we need to transform that, then process
         // and then take information back to original attribute structure.
@@ -2971,7 +2970,7 @@ class AttributesController extends AppController
             if ($attribute['Attribute']['disable_correlation']) {
                 $attribute['Attribute']['disable_correlation'] = 0;
                 $this->Attribute->save($attribute);
-                ClassRegistry::init('Correlation')->afterSaveCorrelation($attribute['Attribute'], false, $attribute);
+                $this->Attribute->Correlation->afterSaveCorrelation($attribute['Attribute'], false, $attribute);
             } else {
                 $attribute['Attribute']['disable_correlation'] = 1;
                 $this->Attribute->save($attribute);

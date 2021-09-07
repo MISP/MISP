@@ -1027,7 +1027,6 @@ class FeedsController extends AppController
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $passedArgs = array();
-        $hits = array();
         $value = false;
         if ($this->request->is('post')) {
             if (isset($this->request->data['Feed'])) {
@@ -1053,7 +1052,6 @@ class FeedsController extends AppController
         if (is_array($hits)) {
             $customPagination->truncateByPagination($hits, $params);
         }
-        $pageCount = count($hits);
         $this->set('urlparams', $urlparams);
         $this->set('passedArgs', json_encode($passedArgs));
         $this->set('passedArgsArray', $passedArgs);

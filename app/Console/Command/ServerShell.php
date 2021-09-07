@@ -17,7 +17,6 @@ class ServerShell extends AppShell
     public function list()
     {
         $this->ConfigLoad->execute();
-        $res = ['servers'=>[]];
         $servers = $this->Server->find('all', [
             'fields' => ['Server.id', 'Server.name', 'Server.url'],
             'recursive' => 0
@@ -64,7 +63,7 @@ class ServerShell extends AppShell
             die("Server with ID $serverId doesn't exists.");
         }
 
-        $res = @$this->Server->runConnectionTest($server);
+        $res = $this->Server->runConnectionTest($server, false);
         echo json_encode($res) . PHP_EOL;
     }
 
