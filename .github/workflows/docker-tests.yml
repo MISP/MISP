@@ -20,7 +20,7 @@ jobs:
         with:
           php_version: 7.2
           version: 2
-          php_extensions: pcntl curl
+          php_extensions: pcntl curl intl
           args: --working-dir=app/
       - name: Checkout coolacid/docker-misp
         uses: actions/checkout@v2
