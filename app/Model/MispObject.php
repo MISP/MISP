@@ -363,7 +363,6 @@ class MispObject extends AppModel
     public function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectID)
     {
         $newObjectAttributes = array();
-        $existingObjectAttributes = array();
         if (isset($object['Object']['Attribute'])) {
             $attributeArray = $object['Object']['Attribute'];
         } else {
@@ -378,10 +377,7 @@ class MispObject extends AppModel
             $attributeValueAfterModification = $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value']);
             $attributeValueAfterModification = $this->Attribute->runRegexp($attribute['type'], $attributeValueAfterModification);
 
-            $newObjectAttributes[] = hash(
-                'sha256',
-                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $attributeValueAfterModification
-            );
+            $newObjectAttributes[] = sha1($attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $attributeValueAfterModification, true);
         }
         $newObjectAttributeCount = count($newObjectAttributes);
         if (!empty($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']])) {
@@ -409,15 +405,11 @@ class MispObject extends AppModel
                 'conditions' => array('template_uuid' => $object['Object']['template_uuid'], 'Object.deleted' => 0, 'event_id' => $eventId)
             ));
         }
-        $oldObjects = array();
-        foreach ($this->__objectDuplicationCheckCache[$object['Object']['template_uuid']] as $k => $existingObject) {
+        foreach ($this->__objectDuplicationCheckCache[$object['Object']['template_uuid']] as $existingObject) {
             $temp = array();
-            if (!empty($existingObject['Attribute']) && $newObjectAttributeCount == count($existingObject['Attribute'])) {
+            if (!empty($existingObject['Attribute']) && $newObjectAttributeCount === count($existingObject['Attribute'])) {
                 foreach ($existingObject['Attribute'] as $existingAttribute) {
-                    $temp[] = hash(
-                        'sha256',
-                        $existingAttribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value']
-                    );
+                    $temp[] = sha1($existingAttribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value'], true);
                 }
                 if (empty(array_diff($temp, $newObjectAttributes))) {
                     $duplicatedObjectID = $existingObject['Object']['id'];
@@ -969,7 +961,18 @@ class MispObject extends AppModel
         return $this->id;
     }
 
-    public function captureObject($object, $eventId, $user, $log = false, $unpublish = true, $breakOnDuplicate = false)
+    /**
+     * @param array $object
+     * @param int $eventId
+     * @param array $user
+     * @param false $log - Not used anymore
+     * @param bool $unpublish
+     * @param false $breakOnDuplicate
+     * @param array|false $parentEvent
+     * @return bool|string
+     * @throws Exception
+     */
+    public function captureObject($object, $eventId, $user, $log = false, $unpublish = true, $breakOnDuplicate = false, $parentEvent = false)
     {
         $this->create();
         if (!isset($object['Object'])) {
@@ -995,10 +998,9 @@ class MispObject extends AppModel
                 $this->Event->unpublishEvent($eventId);
             }
             $objectId = $this->id;
-            $partialFails = array();
             if (!empty($object['Object']['Attribute'])) {
                 foreach ($object['Object']['Attribute'] as $attribute) {
-                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId);
+                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
                 }
             }
             return true;
@@ -1011,8 +1013,9 @@ class MispObject extends AppModel
         return 'fail';
     }
 
-    public function editObject($object, $eventId, $user, $log, $force = false, &$nothingToChange = false)
+    public function editObject($object, array $event, $user, $log, $force = false, &$nothingToChange = false)
     {
+        $eventId = $event['Event']['id'];
         $object['event_id'] = $eventId;
         if (isset($object['distribution']) && $object['distribution'] == 4) {
             if (!empty($object['SharingGroup'])) {
@@ -1088,7 +1091,7 @@ class MispObject extends AppModel
         }
         if (!empty($object['Attribute'])) {
             foreach ($object['Attribute'] as $attribute) {
-                $result = $this->Attribute->editAttribute($attribute, $eventId, $user, $object['id'], false, $force);
+                $result = $this->Attribute->editAttribute($attribute, $event, $user, $object['id'], false, $force);
             }
         }
         return true;

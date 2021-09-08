@@ -3850,21 +3850,18 @@ class Event extends AppModel
                 $attributeHashes = [];
                 foreach ($data['Event']['Attribute'] as $k => $attribute) {
                     $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
-                    if (isset($attributeHashes[$attributeHash])) {
-                        unset($data['Event']['Attribute'][$k]); // remove duplicate attribute
-                    } else {
+                    if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
                         $attributeHashes[$attributeHash] = true;
                         $data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
                     }
                 }
                 unset($attributeHashes);
-                $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
             }
 
             if (!empty($data['Event']['Object'])) {
                 $referencesToCapture = [];
                 foreach ($data['Event']['Object'] as $object) {
-                    $result = $this->Object->captureObject($object, $this->id, $user, null, false, $breakOnDuplicate);
+                    $result = $this->Object->captureObject($object, $this->id, $user, null, false, $breakOnDuplicate, $parentEvent);
                     if (isset($object['ObjectReference'])) {
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $objectRef['source_uuid'] = $object['uuid'];
@@ -4069,7 +4066,7 @@ class Event extends AppModel
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 foreach ($data['Event']['Attribute'] as $attribute) {
                     $nothingToChange = false;
-                    $result = $this->Attribute->editAttribute($attribute, $this->id, $user, 0, false, $force, $nothingToChange);
+                    $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange);
                     if ($result !== true) {
                         $validationErrors['Attribute'][] = $result;
                     }
@@ -4082,7 +4079,7 @@ class Event extends AppModel
                 $data['Event']['Object'] = array_values($data['Event']['Object']);
                 foreach ($data['Event']['Object'] as $object) {
                     $nothingToChange = false;
-                    $result = $this->Object->editObject($object, $this->id, $user, false, $force, $nothingToChange);
+                    $result = $this->Object->editObject($object, $saveResult, $user, false, $force, $nothingToChange);
                     if ($result !== true) {
                         $validationErrors['Object'][] = $result;
                     }

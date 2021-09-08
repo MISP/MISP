@@ -404,11 +404,9 @@ class Attribute extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        $passedEvent = false;
-        if (isset($options['parentEvent'])) {
-            $passedEvent = $options['parentEvent'];
-        }
-        parent::afterSave($created, $options);
+        // Passing event in `parentEvent` field will speed up correlation
+        $passedEvent = isset($options['parentEvent']) ? $options['parentEvent'] : false;
+
         // add attributeTags via the shorthand ID list
         if (!empty($this->data['Attribute']['tag_ids'])) {
             foreach ($this->data['Attribute']['tag_ids'] as $tag_id) {
@@ -3710,8 +3708,9 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function editAttribute($attribute, $eventId, $user, $objectId, $log = false, $force = false, &$nothingToChange = false)
+    public function editAttribute($attribute, array $event, $user, $objectId, $log = false, $force = false, &$nothingToChange = false)
     {
+        $eventId = $event['Event']['id'];
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId;
         if (isset($attribute['encrypt'])) {
@@ -3788,7 +3787,7 @@ class Attribute extends AppModel
             $fieldList[] = 'object_id';
             $fieldList[] = 'object_relation';
         }
-        if (!$this->save($attribute, array('fieldList' => $fieldList))) {
+        if (!$this->save($attribute, ['fieldList' => $fieldList, 'parentEvent' => $event])) {
             $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
             $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', 0,
                 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
