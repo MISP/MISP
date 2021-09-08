@@ -6222,18 +6222,32 @@ class Event extends AppModel
         return false;
     }
 
+    /**
+     * @param array $user
+     * @param array $attributes
+     * @param int $id Event ID
+     * @param string $default_comment
+     * @param bool $proposals
+     * @param bool $adhereToWarninglists
+     * @param int|false $jobId
+     * @param bool $returnRawResults
+     * @return array|false|string
+     * @throws Exception
+     */
     public function processFreeTextData(array $user, $attributes, $id, $default_comment = '', $proposals = false, $adhereToWarninglists = false, $jobId = false, $returnRawResults = false)
     {
         $event = $this->find('first', array(
             'conditions' => array('id' => $id),
             'recursive' => -1,
-            'fields' => array('orgc_id', 'id', 'uuid'),
+            'fields' => ['Event.id', 'Event.uuid', 'Event.distribution', 'Event.org_id', 'Event.orgc_id', 'Event.sharing_group_id', 'Event.disable_correlation'],
         ));
         if (empty($event)) {
             return false;
         }
         $results = array();
         $objectType = $proposals ? 'ShadowAttribute' : 'Attribute';
+        /** @var Model $model */
+        $model = $this->$objectType;
 
         if ($adhereToWarninglists) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
@@ -6251,15 +6265,15 @@ class Event extends AppModel
             $this->Job = ClassRegistry::init('Job');
             $total = count($attributeSources);
         }
-        foreach ($attributeSources as $sourceKey => $source) {
-            foreach (${$source} as $k => $attribute) {
-                if ($attribute['type'] == 'ip-src/ip-dst') {
+        foreach ($attributeSources as $source) {
+            foreach (${$source} as $attribute) {
+                if ($attribute['type'] === 'ip-src/ip-dst') {
                     $types = array('ip-src', 'ip-dst');
-                } elseif ($attribute['type'] == 'ip-src|port/ip-dst|port') {
+                } elseif ($attribute['type'] === 'ip-src|port/ip-dst|port') {
                     $types = array('ip-src|port', 'ip-dst|port');
-                } elseif ($attribute['type'] == 'malware-sample') {
+                } elseif ($attribute['type'] === 'malware-sample') {
                     if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
-                        $result = $this->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
+                        $result = $this->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType === 'ShadowAttribute' ? true : false);
                         if (!$result['success']) {
                             $failed++;
                             continue;
@@ -6281,13 +6295,13 @@ class Event extends AppModel
                     $types = array($attribute['type']);
                 }
                 foreach ($types as $type) {
-                    $this->$objectType->create();
+                    $model->create();
                     $attribute['type'] = $type;
                     if (empty($attribute['comment'])) {
                         $attribute['comment'] = $default_comment;
                     }
                     $attribute['event_id'] = $id;
-                    if ($objectType == 'ShadowAttribute') {
+                    if ($objectType === 'ShadowAttribute') {
                         $attribute['org_id'] = $user['org_id'];
                         $attribute['event_org_id'] = $event['Event']['orgc_id'];
                         $attribute['email'] = $user['email'];
@@ -6304,13 +6318,13 @@ class Event extends AppModel
                             }
                         }
                     }
-                    $saved_attribute = $this->$objectType->save($attribute);
+                    $saved_attribute = $model->save($attribute, ['parentEvent' => $event]);
                     if ($saved_attribute) {
                         $results[] = $saved_attribute;
                         // If Tags, attach each tags to attribute
                         if (!empty($attribute['tags'])) {
                             foreach (explode(",", $attribute['tags']) as $tagName) {
-                                $tagId = $this->Attribute->AttributeTag->Tag->captureTag(array('name' => trim($tagName)), array('Role' => $user['Role']));
+                                $tagId = $this->Attribute->AttributeTag->Tag->captureTag(array('name' => trim($tagName)), $user);
                                 if ($tagId === false) {
                                     continue;  // user don't have permission to use that tag
                                 }
@@ -6321,7 +6335,7 @@ class Event extends AppModel
                         }
                         $saved++;
                     } else {
-                        $lastError = $this->$objectType->validationErrors;
+                        $lastError = $model->validationErrors;
                         $failed++;
                     }
                 }
@@ -6333,9 +6347,9 @@ class Event extends AppModel
             }
         }
         $emailResult = '';
-        $messageScope = $objectType == 'ShadowAttribute' ? 'proposals' : 'attributes';
+        $messageScope = $objectType === 'ShadowAttribute' ? 'proposals' : 'attributes';
         if ($saved > 0) {
-            if ($objectType != 'ShadowAttribute') {
+            if ($objectType !== 'ShadowAttribute') {
                 $this->unpublishEvent($id);
             } else {
                 if (!$this->ShadowAttribute->sendProposalAlertEmail($id)) {
