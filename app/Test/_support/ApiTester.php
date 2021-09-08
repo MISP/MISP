@@ -27,12 +27,6 @@ class ApiTester extends \Codeception\Actor
      * Define custom actions here
      */
 
-    public function _beforeSuite(array $settings = array()): void
-    {
-        $this->haveMispSetting('Security.advanced_authkeys', '1');
-        $this->haveMispSetting('MISP.live', '1');
-    }
-
     public function haveAuthorizationKey(
         int $orgId = 1,
         int $userId = 1,

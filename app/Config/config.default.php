@@ -1,6 +1,7 @@
 <?php
 $config = array(
     'debug' => 0,
+    'remote_code_coverage_enabled' => 0,
     'Security' => array(
         'level'                             => 'medium',
         'salt'                              => '',

@@ -26,7 +26,8 @@
         "wiremock-php/wiremock-php": "2.27.0",
         "codeception/module-redis": "^1.1",
         "codeception/module-asserts": "^1.3",
-        "cakephp/debug_kit": "^4.0"
+        "cakephp/debug_kit": "^4.0",
+        "codeception/c3": "^2.6"
     },
     "conflict": {
         "symfony/polyfill-php80": "*"
