@@ -17,7 +17,6 @@ class AuditLogsController extends AppController
 
     /** @var string[] */
     private $models = [
-        'AdminSetting',
         'Attribute',
         'Allowedlist',
         'AuthKey',
