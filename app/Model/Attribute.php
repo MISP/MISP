@@ -1718,6 +1718,7 @@ class Attribute extends AppModel
                 'order' => false,
                 'limit' => 11,
                 'flatten' => 1,
+                'contain' => ['AttributeTag' => false],
             );
             $resultArray[$key]['related'] = $this->fetchAttributes($user, $options);
         }
@@ -2767,8 +2768,14 @@ class Attribute extends AppModel
             // We may use a string instead of an array to ask for everything
             // instead of some specific attributes. If so, remove the array from
             // params, as we will later add the string.
-            foreach($options['contain'] as $contain) {
-                if (gettype($contain) == "string" && isset($params['contain'][$contain])) {
+            foreach ($options['contain'] as $key => $contain) {
+                if ($contain === false) {
+                    unset($params['contain'][$key]);
+                    unset($options['contain'][$key]);
+                    if (($key = array_search($key, $params['contain'])) !== false) {
+                        unset($params['contain'][$key]);
+                    }
+                } else if (is_string($contain)) {
                     unset($params['contain'][$contain]);
                 }
             }
@@ -3048,8 +3055,10 @@ class Attribute extends AppModel
     {
         $tagIdsToFetch = [];
         foreach ($attributes as $attribute) {
-            foreach ($attribute['AttributeTag'] as $at) {
-                $tagIdsToFetch[$at['tag_id']] = true;
+            if (!empty($attribute['AttributeTag'])) {
+                foreach ($attribute['AttributeTag'] as $at) {
+                    $tagIdsToFetch[$at['tag_id']] = true;
+                }
             }
         }
 
