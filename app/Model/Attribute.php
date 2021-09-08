@@ -1714,7 +1714,7 @@ class Attribute extends AppModel
                     ],
                     'Attribute.disable_correlation' => 0,
                 ],
-                'fields' => ['Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'],
+                'fields' => ['Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'],
                 'order' => false,
                 'limit' => 11,
                 'flatten' => 1,
