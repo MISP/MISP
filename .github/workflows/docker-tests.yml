@@ -37,13 +37,13 @@ jobs:
       - name: Turn MISP live
         run: docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Live 1"
       - name: Run API test suite
-        continue-on-error: true
+        # continue-on-error: true
         run: |
           sudo chown -R $USER:$USER app/Test/_output/
           pushd app
           make test
-      - name: Debug logs
-        run: |
-          docker ps
-          docker-compose -f docker-misp/docker-compose.yml logs misp
-          docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "tail -n 100 app/tmp/logs/error.log"
+      # - name: Debug logs
+      #   run: |
+      #     docker ps
+      #     docker-compose -f docker-misp/docker-compose.yml logs misp
+      #     docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "tail -n 100 app/tmp/logs/error.log"
