@@ -712,9 +712,6 @@ class Event extends AppModel
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
         }
-        if (!isset($this->Correlation)) {
-            $this->Correlation = ClassRegistry::init('Correlation');
-        }
         // search the correlation table for the event ids of the related events
         // Rules:
         // 1. Event is owned by the user (org_id matches)
@@ -727,7 +724,7 @@ class Event extends AppModel
         //        ii. Atttibute has a distribution between 1-3 (community only, connected communities, all orgs)
         //        iii. Attribute has a sharing group that the user is accessible to view
         $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventId, $sgids);
-        $relatedEventIds = $this->Correlation->find('column', array(
+        $relatedEventIds = $this->Attribute->Correlation->find('column', array(
             'fields' => array('Correlation.event_id'),
             'conditions' => $conditionsCorrelation,
             'unique' => true,
@@ -3143,7 +3140,10 @@ class Event extends AppModel
             return true;
         }
         $banStatus = $this->getEventRepublishBanStatus($id);
-        if ($banStatus['active']) {
+        $banStatusUser = $this->User->checkNotificationBanStatus($user);
+        if ($banStatus['active'] || $banStatusUser['active']) {
+            $logMessage = $banStatus['active'] ? $banStatus['message'] : $banStatusUser['message'];
+            $banError = $banStatus['error'] || $banStatusUser['error'];
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
@@ -3153,9 +3153,9 @@ class Event extends AppModel
                     'email' => $user['email'],
                     'action' => 'publish',
                     'title' => __('E-mail alerts not sent out during publishing'),
-                    'change' => $banStatus['message'],
+                    'change' => $logMessage,
             ));
-            return !$banStatus['error'];
+            return !$banError;
         }
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
@@ -3229,6 +3229,7 @@ class Event extends AppModel
 
         $userCount = count($usersWithAccess);
         $this->UserSetting = ClassRegistry::init('UserSetting');
+        $metadataOnly = Configure::read('MISP.event_alert_metadata_only') || Configure::read('MISP.publish_alerts_summary_only');
         foreach ($usersWithAccess as $k => $user) {
             // Fetch event for user that will receive alert e-mail to respect all ACLs
             $eventForUser = $this->fetchEvent($user, [
@@ -3237,7 +3238,7 @@ class Event extends AppModel
                 'includeEventCorrelations' => true,
                 'noEventReports' => true,
                 'noSightings' => true,
-                'metadata' => Configure::read('MISP.event_alert_metadata_only') ?: false,
+                'metadata' => $metadataOnly,
             ])[0];
 
             if ($this->UserSetting->checkPublishFilter($user, $eventForUser)) {
@@ -3284,11 +3285,7 @@ class Event extends AppModel
         $subjMarkingString = $this->getEmailSubjectMarkForEvent($event);
         $subject = "[" . Configure::read('MISP.org') . " MISP] Event {$event['Event']['id']} - $subject$threatLevel" . strtoupper($subjMarkingString);
 
-        if (!empty(Configure::read('MISP.publish_alerts_summary_only'))) {
-            $template = new SendEmailTemplate('alert_light');
-        } else {
-            $template = new SendEmailTemplate('alert');
-        }
+        $template = new SendEmailTemplate('alert');
         $template->set('event', $event);
         $template->set('user', $user);
         $template->set('oldPublishTimestamp', $oldpublish);
@@ -3853,21 +3850,18 @@ class Event extends AppModel
                 $attributeHashes = [];
                 foreach ($data['Event']['Attribute'] as $k => $attribute) {
                     $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
-                    if (isset($attributeHashes[$attributeHash])) {
-                        unset($data['Event']['Attribute'][$k]); // remove duplicate attribute
-                    } else {
+                    if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
                         $attributeHashes[$attributeHash] = true;
                         $data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
                     }
                 }
                 unset($attributeHashes);
-                $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
             }
 
             if (!empty($data['Event']['Object'])) {
                 $referencesToCapture = [];
                 foreach ($data['Event']['Object'] as $object) {
-                    $result = $this->Object->captureObject($object, $this->id, $user, null, false, $breakOnDuplicate);
+                    $result = $this->Object->captureObject($object, $this->id, $user, null, false, $breakOnDuplicate, $parentEvent);
                     if (isset($object['ObjectReference'])) {
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $objectRef['source_uuid'] = $object['uuid'];
@@ -4072,7 +4066,7 @@ class Event extends AppModel
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 foreach ($data['Event']['Attribute'] as $attribute) {
                     $nothingToChange = false;
-                    $result = $this->Attribute->editAttribute($attribute, $this->id, $user, 0, $this->Log, $force, $nothingToChange);
+                    $result = $this->Attribute->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange);
                     if ($result !== true) {
                         $validationErrors['Attribute'][] = $result;
                     }
@@ -4085,7 +4079,7 @@ class Event extends AppModel
                 $data['Event']['Object'] = array_values($data['Event']['Object']);
                 foreach ($data['Event']['Object'] as $object) {
                     $nothingToChange = false;
-                    $result = $this->Object->editObject($object, $this->id, $user, $this->Log, $force, $nothingToChange);
+                    $result = $this->Object->editObject($object, $saveResult, $user, false, $force, $nothingToChange);
                     if ($result !== true) {
                         $validationErrors['Object'][] = $result;
                     }
@@ -4098,7 +4092,7 @@ class Event extends AppModel
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $nothingToChange = false;
                             $objectRef['source_uuid'] = $object['uuid'];
-                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user, $this->Log, $force, $nothingToChange);
+                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user);
                             if ($result && !$nothingToChange) {
                                 $changed = true;
                             }
@@ -6225,18 +6219,32 @@ class Event extends AppModel
         return false;
     }
 
+    /**
+     * @param array $user
+     * @param array $attributes
+     * @param int $id Event ID
+     * @param string $default_comment
+     * @param bool $proposals
+     * @param bool $adhereToWarninglists
+     * @param int|false $jobId
+     * @param bool $returnRawResults
+     * @return array|false|string
+     * @throws Exception
+     */
     public function processFreeTextData(array $user, $attributes, $id, $default_comment = '', $proposals = false, $adhereToWarninglists = false, $jobId = false, $returnRawResults = false)
     {
         $event = $this->find('first', array(
             'conditions' => array('id' => $id),
             'recursive' => -1,
-            'fields' => array('orgc_id', 'id', 'uuid'),
+            'fields' => ['Event.id', 'Event.uuid', 'Event.distribution', 'Event.org_id', 'Event.orgc_id', 'Event.sharing_group_id', 'Event.disable_correlation'],
         ));
         if (empty($event)) {
             return false;
         }
         $results = array();
         $objectType = $proposals ? 'ShadowAttribute' : 'Attribute';
+        /** @var Model $model */
+        $model = $this->$objectType;
 
         if ($adhereToWarninglists) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
@@ -6254,15 +6262,15 @@ class Event extends AppModel
             $this->Job = ClassRegistry::init('Job');
             $total = count($attributeSources);
         }
-        foreach ($attributeSources as $sourceKey => $source) {
-            foreach (${$source} as $k => $attribute) {
-                if ($attribute['type'] == 'ip-src/ip-dst') {
+        foreach ($attributeSources as $source) {
+            foreach (${$source} as $attribute) {
+                if ($attribute['type'] === 'ip-src/ip-dst') {
                     $types = array('ip-src', 'ip-dst');
-                } elseif ($attribute['type'] == 'ip-src|port/ip-dst|port') {
+                } elseif ($attribute['type'] === 'ip-src|port/ip-dst|port') {
                     $types = array('ip-src|port', 'ip-dst|port');
-                } elseif ($attribute['type'] == 'malware-sample') {
+                } elseif ($attribute['type'] === 'malware-sample') {
                     if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
-                        $result = $this->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
+                        $result = $this->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType === 'ShadowAttribute' ? true : false);
                         if (!$result['success']) {
                             $failed++;
                             continue;
@@ -6284,13 +6292,13 @@ class Event extends AppModel
                     $types = array($attribute['type']);
                 }
                 foreach ($types as $type) {
-                    $this->$objectType->create();
+                    $model->create();
                     $attribute['type'] = $type;
                     if (empty($attribute['comment'])) {
                         $attribute['comment'] = $default_comment;
                     }
                     $attribute['event_id'] = $id;
-                    if ($objectType == 'ShadowAttribute') {
+                    if ($objectType === 'ShadowAttribute') {
                         $attribute['org_id'] = $user['org_id'];
                         $attribute['event_org_id'] = $event['Event']['orgc_id'];
                         $attribute['email'] = $user['email'];
@@ -6307,13 +6315,13 @@ class Event extends AppModel
                             }
                         }
                     }
-                    $saved_attribute = $this->$objectType->save($attribute);
+                    $saved_attribute = $model->save($attribute, ['parentEvent' => $event]);
                     if ($saved_attribute) {
                         $results[] = $saved_attribute;
                         // If Tags, attach each tags to attribute
                         if (!empty($attribute['tags'])) {
                             foreach (explode(",", $attribute['tags']) as $tagName) {
-                                $tagId = $this->Attribute->AttributeTag->Tag->captureTag(array('name' => trim($tagName)), array('Role' => $user['Role']));
+                                $tagId = $this->Attribute->AttributeTag->Tag->captureTag(array('name' => trim($tagName)), $user);
                                 if ($tagId === false) {
                                     continue;  // user don't have permission to use that tag
                                 }
@@ -6324,7 +6332,7 @@ class Event extends AppModel
                         }
                         $saved++;
                     } else {
-                        $lastError = $this->$objectType->validationErrors;
+                        $lastError = $model->validationErrors;
                         $failed++;
                     }
                 }
@@ -6336,9 +6344,9 @@ class Event extends AppModel
             }
         }
         $emailResult = '';
-        $messageScope = $objectType == 'ShadowAttribute' ? 'proposals' : 'attributes';
+        $messageScope = $objectType === 'ShadowAttribute' ? 'proposals' : 'attributes';
         if ($saved > 0) {
-            if ($objectType != 'ShadowAttribute') {
+            if ($objectType !== 'ShadowAttribute') {
                 $this->unpublishEvent($id);
             } else {
                 if (!$this->ShadowAttribute->sendProposalAlertEmail($id)) {

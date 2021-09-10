@@ -30,10 +30,14 @@ class Correlation extends AppModel
      */
     private $oldSchema;
 
+    /** @var bool */
+    private $deadlockAvoidance;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
         $this->oldSchema = $this->schema('date') !== null;
+        $this->deadlockAvoidance = Configure::read('MISP.deadlock_avoidance');
     }
 
     public function correlateValueRouter($value)
@@ -112,7 +116,7 @@ class Correlation extends AppModel
             ],
             'contain' => [
                 'Event' => [
-                    'fields' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id', 'Event.disable_correlation']
+                    'fields' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id']
                 ]
             ],
             'order' => [],
@@ -150,7 +154,7 @@ class Correlation extends AppModel
             ],
             'contain' => [
                 'Event' => [
-                    'fields' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id', 'Event.disable_correlation']
+                    'fields' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id']
                 ]
             ],
             'order' => [],
@@ -163,7 +167,7 @@ class Correlation extends AppModel
         if (
             $a['Attribute']['event_id'] !== $b['Attribute']['event_id']
         ) {
-            if (Configure::read('MISP.deadlock_avoidance')) {
+            if ($this->deadlockAvoidance) {
                 $correlations[] = [
                     'value' => $value,
                     '1_event_id' => $a['Event']['id'],
@@ -250,7 +254,7 @@ class Correlation extends AppModel
             $fields[] = 'info';
         }
 
-        if (Configure::read('MISP.deadlock_avoidance')) {
+        if ($this->deadlockAvoidance) {
             if ($this->oldSchema) {
                 foreach ($correlations as &$correlation) {
                     $correlation['date'] = '1000-01-01'; // Dummy value
@@ -282,12 +286,12 @@ class Correlation extends AppModel
         // ==> DELETE FROM correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id; */
         // first check if it's an update
         if (isset($attribute['id'])) {
-            // FIXME : check that $attribute['id'] is checked correctly so that the user can't remove attributes he shouldn't
-            $dummy = $this->deleteAll(
-                array('OR' => array(
+            $this->deleteAll([
+                'OR' => [
                     'Correlation.1_attribute_id' => $attribute['id'],
-                    'Correlation.attribute_id' => $attribute['id']))
-            );
+                    'Correlation.attribute_id' => $attribute['id']
+                ],
+            ], false);
         }
         if ($attribute['type'] === 'ssdeep') {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
@@ -433,7 +437,7 @@ class Correlation extends AppModel
 
     private function ssdeepCorrelation($a)
     {
-        if (empty($this->FuzzyCorrelateSsdeep)) {
+        if (!isset($this->FuzzyCorrelateSsdeep)) {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
         }
         $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($a['value1'], $a['id']);
@@ -546,19 +550,6 @@ class Correlation extends AppModel
             ));
         }
         return $extraConditions;
-    }
-
-    public function beforeDeleteCorrelation($attribute_id)
-    {
-        // When we remove an attribute we need to
-        // - remove the existing relations related to that attribute, we DO have an id reference
-        // ==> DELETE FROM correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id;
-        $dummy = $this->deleteAll([
-            'OR' => [
-                'Correlation.1_attribute_id' => $attribute_id,
-                'Correlation.attribute_id' => $attribute_id
-            ]
-        ]);
     }
 
     // using Alnitak's solution from http://stackoverflow.com/questions/594112/matching-an-ip-to-a-cidr-mask-in-php5

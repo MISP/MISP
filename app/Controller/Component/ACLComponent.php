@@ -81,10 +81,13 @@ class ACLComponent extends Component
                 'add' => [],
                 'delete' => [],
                 'download_org' => [],
+                'download_sg' => [],
                 'edit' => [],
                 'index' => [],
                 'preview_orgs' => [],
+                'preview_sharing_groups' => [],
                 'pull_orgs' => [],
+                'pull_sgs' => [],
                 'view' => []
             ],
             'correlationExclusions' => [
@@ -647,6 +650,7 @@ class ACLComponent extends Component
                     'disableTag' => array(),
                     'enable' => array(),
                     'index' => array('*'),
+                    'taxonomy_tags' => array('*'),
                     'taxonomyMassConfirmation' => array('perm_tagger'),
                     'taxonomyMassHide' => array('perm_tagger'),
                     'taxonomyMassUnhide' => array('perm_tagger'),

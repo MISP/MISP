@@ -1442,4 +1442,49 @@ class User extends AppModel
         }
         return $updated;
     }
+
+    public function checkNotificationBanStatus(array $user)
+    {
+        $banStatus = [
+            'error' => false,
+            'active' => false,
+            'message' => __('User is not banned to sent email notification')
+        ];
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return $banStatus;
+        }
+        if (Configure::read('MISP.user_email_notification_ban')) {
+            $banThresholdAmount = intval(Configure::read('MISP.user_email_notification_ban_amount_threshold'));
+            $banThresholdMinutes = intval(Configure::read('MISP.user_email_notification_ban_time_threshold'));
+            $banThresholdSeconds = 60 * $banThresholdMinutes;
+            $redis = $this->setupRedis();
+            if ($redis === false) {
+                $banStatus['error'] = true;
+                $banStatus['active'] = true;
+                $banStatus['message'] =  __('Reason: Could not reach redis to chech user email notification ban status.');
+                return $banStatus;
+            }
+
+            $redisKeyAmountThreshold = "misp:user_email_notification_ban_amount:{$user['id']}";
+            $notificationAmount = $redis->get($redisKeyAmountThreshold);
+            if (!empty($notificationAmount)) {
+                $remainingAttempt = $banThresholdAmount - intval($notificationAmount);
+                if ($remainingAttempt <= 0) {
+                    $ttl = $redis->ttl($redisKeyAmountThreshold);
+                    $remainingMinutes = intval($ttl) / 60;
+                    $banStatus['active'] = true;
+                    $banStatus['message'] = __('Reason: User is banned from sending out emails (%s notification tried to be sent). Ban will be lifted in %smin %ssec.', $notificationAmount, floor($remainingMinutes), intval($ttl) % 60);
+                }
+            }
+            $pipe = $redis->multi(Redis::PIPELINE)
+                ->incr($redisKeyAmountThreshold);
+            if (!$banStatus['active']) { // no need to refresh the ttl if the ban is active
+                $pipe->expire($redisKeyAmountThreshold, $banThresholdSeconds);
+            }
+            $pipe->exec();
+            return $banStatus;
+        }
+        $banStatus['message'] = __('User email notification ban setting is not enabled');
+        return $banStatus;
+    }
 }

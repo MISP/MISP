@@ -355,7 +355,7 @@ installCake_RHEL ()
   sudo mkdir /usr/share/httpd/.composer
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
-  $SUDO_WWW php composer.phar install
+  $SUDO_WWW php composer.phar install --no-dev
 
   sudo dnf install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
 

@@ -404,11 +404,9 @@ class Attribute extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        $passedEvent = false;
-        if (isset($options['parentEvent'])) {
-            $passedEvent = $options['parentEvent'];
-        }
-        parent::afterSave($created, $options);
+        // Passing event in `parentEvent` field will speed up correlation
+        $passedEvent = isset($options['parentEvent']) ? $options['parentEvent'] : false;
+
         // add attributeTags via the shorthand ID list
         if (!empty($this->data['Attribute']['tag_ids'])) {
             foreach ($this->data['Attribute']['tag_ids'] as $tag_id) {
@@ -504,7 +502,7 @@ class Attribute extends AppModel
             $this->loadAttachmentTool()->delete($this->data['Attribute']['event_id'], $this->data['Attribute']['id']);
         }
         // update correlation..
-        $this->Correlation->beforeDeleteCorrelation($this->data['Attribute']['id']);
+        $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
         if (!empty($this->data['Attribute']['id'])) {
             if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
                 $pubSubTool = $this->getPubSubTool();
@@ -1714,10 +1712,11 @@ class Attribute extends AppModel
                     ],
                     'Attribute.disable_correlation' => 0,
                 ],
-                'fields' => ['Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'],
+                'fields' => ['Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'],
                 'order' => false,
                 'limit' => 11,
                 'flatten' => 1,
+                'contain' => ['AttributeTag' => false],
             );
             $resultArray[$key]['related'] = $this->fetchAttributes($user, $options);
         }
@@ -2767,8 +2766,14 @@ class Attribute extends AppModel
             // We may use a string instead of an array to ask for everything
             // instead of some specific attributes. If so, remove the array from
             // params, as we will later add the string.
-            foreach($options['contain'] as $contain) {
-                if (gettype($contain) == "string" && isset($params['contain'][$contain])) {
+            foreach ($options['contain'] as $key => $contain) {
+                if ($contain === false) {
+                    unset($params['contain'][$key]);
+                    unset($options['contain'][$key]);
+                    if (($key = array_search($key, $params['contain'])) !== false) {
+                        unset($params['contain'][$key]);
+                    }
+                } else if (is_string($contain)) {
                     unset($params['contain'][$contain]);
                 }
             }
@@ -3048,8 +3053,10 @@ class Attribute extends AppModel
     {
         $tagIdsToFetch = [];
         foreach ($attributes as $attribute) {
-            foreach ($attribute['AttributeTag'] as $at) {
-                $tagIdsToFetch[$at['tag_id']] = true;
+            if (!empty($attribute['AttributeTag'])) {
+                foreach ($attribute['AttributeTag'] as $at) {
+                    $tagIdsToFetch[$at['tag_id']] = true;
+                }
             }
         }
 
@@ -3701,8 +3708,9 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function editAttribute($attribute, $eventId, $user, $objectId, $log = false, $force = false, &$nothingToChange = false)
+    public function editAttribute($attribute, array $event, $user, $objectId, $log = false, $force = false, &$nothingToChange = false)
     {
+        $eventId = $event['Event']['id'];
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId;
         if (isset($attribute['encrypt'])) {
@@ -3716,20 +3724,10 @@ class Attribute extends AppModel
                 'conditions' => array('Attribute.uuid' => $attribute['uuid']),
                 'recursive' => -1,
             ));
-            $this->Log = ClassRegistry::init('Log');
-            if (count($existingAttribute)) {
+            if (!empty($existingAttribute)) {
                 if ($existingAttribute['Attribute']['event_id'] != $eventId || $existingAttribute['Attribute']['object_id'] != $objectId) {
-                    $this->Log->create();
-                    $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Attribute',
-                        'model_id' => 0,
-                        'email' => $user['email'],
-                        'action' => 'edit',
-                        'user_id' => $user['id'],
-                        'title' => 'Duplicate UUID found in attribute',
-                        'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'] . '. This can also be due to the same attribute (or an attribute with the same UUID) existing in a different event / object)',
-                    ));
+                    $change = 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'] . '. This can also be due to the same attribute (or an attribute with the same UUID) existing in a different event / object)';
+                    $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', 0, 'Duplicate UUID found in attribute', $change);
                     return true;
                 }
                 // If a field is not set in the request, just reuse the old value
@@ -3768,23 +3766,15 @@ class Attribute extends AppModel
             }
             if (empty($attribute['sharing_group_id'])) {
                 $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Attribute',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'edit',
-                    'user_id' => $user['id'],
-                    'title' => 'Attribute dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $attribute_short,
-                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
-                ));
+                $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', 0,
+                    'Attribute dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $attribute_short,
+                    'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
+                );
                 return 'Invalid sharing group choice.';
             }
         } else if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-            if ($attribute['distribution'] == 'event') {
+            if ($attribute['distribution'] === 'event') {
                 $attribute['distribution'] = 5;
             }
         }
@@ -3797,24 +3787,15 @@ class Attribute extends AppModel
             $fieldList[] = 'object_id';
             $fieldList[] = 'object_relation';
         }
-        if (!$this->save(array('Attribute' => $attribute), array('fieldList' => $fieldList))) {
+        if (!$this->save($attribute, ['fieldList' => $fieldList, 'parentEvent' => $event])) {
             $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                'org' => $user['Organisation']['name'],
-                'model' => 'Attribute',
-                'model_id' => 0,
-                'email' => $user['email'],
-                'action' => 'edit',
-                'user_id' => $user['id'],
-                'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
-                'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
-            ));
+            $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', 0,
+                'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
+                'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
+            );
             return $this->validationErrors;
         } else {
             if (isset($attribute['Sighting']) && !empty($attribute['Sighting'])) {
-                $this->Sighting = ClassRegistry::init('Sighting');
                 $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
             }
             if ($user['Role']['perm_tagger']) {
@@ -3836,17 +3817,7 @@ class Attribute extends AppModel
                             // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
                             // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
                             if ($user['Role']['perm_tag_editor']) {
-                                $this->Log->create();
-                                $this->Log->save(array(
-                                    'org' => $user['Organisation']['name'],
-                                    'model' => 'Attribute',
-                                    'model_id' => $this->id,
-                                    'email' => $user['email'],
-                                    'action' => 'edit',
-                                    'user_id' => $user['id'],
-                                    'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.',
-                                    'change' => ''
-                                ));
+                                $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', $this->id, 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.');
                             }
                         }
                     }

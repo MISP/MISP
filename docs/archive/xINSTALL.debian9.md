@@ -242,7 +242,7 @@ sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.com
 # ${SUDO_WWW} php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 # ${SUDO_WWW} php composer-setup.php
 # ${SUDO_WWW} php -r "unlink('composer-setup.php');"
-${SUDO_WWW} php composer.phar install
+${SUDO_WWW} php composer.phar install --no-dev
 
 # Enable CakeResque with php-redis
 sudo phpenmod redis

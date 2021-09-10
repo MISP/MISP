@@ -267,7 +267,7 @@ cd ${PATH_TO_MISP}/app
 #${SUDO_WWW} $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 #${SUDO_WWW} $RUN_PHP "php composer-setup.php"
 #${SUDO_WWW} $RUN_PHP -- php -r "unlink('composer-setup.php');"
-${SUDO_WWW} $RUN_PHP "php composer.phar install"
+${SUDO_WWW} $RUN_PHP "php composer.phar install --no-dev"
 
 sudo yum install php-redis -y
 sudo service rh-php70-php-fpm restart

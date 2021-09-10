@@ -173,10 +173,21 @@ class Organisation extends AppModel
         return $results;
     }
 
-    public function captureOrg($org, $user, $force = false)
+    /**
+     * @param array|string $org
+     * @param array $user
+     * @param bool $force
+     * @return int Organisation ID
+     * @throws Exception
+     */
+    public function captureOrg($org, array $user, $force = false)
     {
+        $fieldsToFetch = $force ?
+            ['id', 'uuid', 'type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts'] :
+            ['id', 'uuid'];
+
         if (is_array($org)) {
-            if (isset($org['uuid']) && !empty($org['uuid'])) {
+            if (!empty($org['uuid'])) {
                 $conditions = array('uuid' => $org['uuid']);
                 $uuid = $org['uuid'];
             } else {
@@ -191,6 +202,7 @@ class Organisation extends AppModel
         $existingOrg = $this->find('first', array(
             'recursive' => -1,
             'conditions' => $conditions,
+            'fields' => $fieldsToFetch,
         ));
         if (empty($existingOrg)) {
             $date = date('Y-m-d H:i:s');
@@ -208,6 +220,7 @@ class Organisation extends AppModel
                 $existingOrgByName = $this->find('first', array(
                     'recursive' => -1,
                     'conditions' => array('name' => $name),
+                    'fields' => ['id'],
                 ));
                 if ($existingOrgByName) {
                     $organisation['name'] = $organisation['name'] . '_' . mt_rand(0, 9999);

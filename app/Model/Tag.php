@@ -344,7 +344,7 @@ class Tag extends AppModel
     {
         $existingTag = $this->find('first', array(
             'recursive' => -1,
-            'conditions' => array('LOWER(name)' => strtolower($tag['name'])),
+            'conditions' => array('LOWER(name)' => mb_strtolower($tag['name'])),
             'fields' => ['id', 'org_id', 'user_id'],
         ));
         if (empty($existingTag)) {
@@ -452,7 +452,7 @@ class Tag extends AppModel
         foreach ($tags as $k => $v) {
             $tags[$k]['Tag']['hide_tag'] = 1;
         }
-        return ($this->saveAll($tags));
+        return $this->saveAll($tags);
     }
 
     /**
@@ -542,6 +542,91 @@ class Tag extends AppModel
         return $events;
     }
 
+    /**
+     * @return array
+     */
+    public function duplicateTags()
+    {
+        $tags = $this->find('list', [
+            'fields' => ['id', 'name'],
+            'order' => ['id'],
+        ]);
+        $duplicates = [];
+        $tagsByNormalizedName = [];
+        foreach ($tags as $tagId => $tagName) {
+            $tagId = (int)$tagId;
+            $normalizedName = mb_strtolower(trim($tagName));
+            if (isset($tagsByNormalizedName[$normalizedName])) {
+                $duplicates[$tagId] = $tagsByNormalizedName[$normalizedName];
+            } else {
+                $tagsByNormalizedName[$normalizedName] = $tagId;
+            }
+        }
+        $output = [];
+        foreach ($duplicates as $sourceId => $destinationId) {
+            $output[] = [
+                'source_id' => $sourceId,
+                'source_name' => $tags[$sourceId],
+                'destination_id' => $destinationId,
+                'destination_name' => $tags[$destinationId],
+            ];
+        }
+        return $output;
+    }
+
+    /**
+     * Merge tag $source into $destination. Destination tag will be deleted.
+     * @param int|string $source Tag name or tag ID
+     * @param int|string $destination Tag name or tag ID
+     * @throws Exception
+     */
+    public function mergeTag($source, $destination)
+    {
+        $sourceConditions = is_numeric($source) ? ['Tag.id' => $source] : ['Tag.name' => $source];
+        $destinationConditions = is_numeric($destination) ? ['Tag.id' => $destination] : ['Tag.name' => $destination];
+
+        $sourceTag = $this->find('first', [
+            'conditions' => $sourceConditions,
+            'recursive' => -1,
+            'fields' => ['Tag.id', 'Tag.name'],
+        ]);
+        if (empty($sourceTag)) {
+            throw new Exception("Tag `$source` not found.");
+        }
+
+        $destinationTag = $this->find('first', [
+            'conditions' => $destinationConditions,
+            'recursive' => -1,
+            'fields' => ['Tag.id', 'Tag.name'],
+        ]);
+        if (empty($destinationTag)) {
+            throw new Exception("Tag `$destination` not found.");
+        }
+
+        if ($sourceTag['Tag']['id'] === $destinationTag['Tag']['id']) {
+            throw new Exception("Source and destination tags are same.");
+        }
+
+        $this->AttributeTag->updateAll(['tag_id' => $destinationTag['Tag']['id']], ['tag_id' => $sourceTag['Tag']['id']]);
+        $changedTags = $this->AttributeTag->getAffectedRows();
+        $this->EventTag->updateAll(['tag_id' => $destinationTag['Tag']['id']], ['tag_id' => $sourceTag['Tag']['id']]);
+        $changedTags += $this->EventTag->getAffectedRows();
+
+        $this->delete($sourceTag['Tag']['id']);
+
+        return [
+            'source_tag' => $sourceTag,
+            'destination_tag' => $destinationTag,
+            'changed' => $changedTags,
+        ];
+    }
+
+    /**
+     * @deprecated Not used anywhere
+     * @param $user
+     * @return string
+     * @throws Exception
+     */
     public function fixMitreTags($user)
     {
         $full_print_buffer = '';
