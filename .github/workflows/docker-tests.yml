@@ -31,11 +31,11 @@ jobs:
         run: docker-compose -f docker-misp/docker-compose.yml -f app/Test/docker/docker-compose.tests.yml up --build -d
       - name: Wait for containers to spin up
         continue-on-error: true
-        run: |
-          awk '/Start Workers...finished/{exit}0' < <(docker-compose -f docker-misp/docker-compose.yml logs -f misp)
+        run: awk '/Start Workers...finished/{exit}0' < <(docker-compose -f docker-misp/docker-compose.yml logs -f misp)
+      - name: Run MISP updates
+        run: docker-compose exec -u www-data misp bash -c "app/Console/cake Admin runUpdates"
       - name: Turn MISP live
-        run: |
-          docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Live 1"
+        run: docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Live 1"
       - name: Run API test suite
         continue-on-error: true
         run: |
