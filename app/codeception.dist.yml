@@ -55,7 +55,7 @@ suites:
                       depends: \Helper\Module\Api
                       openapi: "webroot/doc/openapi.yaml"
                 - \Helper\Module\WireMock:
-                      hostname: "localhost"
+                      hostname: "wiremock"
                       port: 8080
             config:
                 PhpBrowser:
