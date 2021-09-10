@@ -15,6 +15,7 @@ final class WireMock extends \Codeception\Module
     protected $config = [
         'hostname' => 'localhost',
         'port' => 8080,
+        'docker' => false
     ];
 
     /** @var WireMockClient */
@@ -68,6 +69,8 @@ final class WireMock extends \Codeception\Module
 
     public function getWireMockBaseUrl(): string
     {
-        return 'http://' . $this->config['hostname'] . ':' . $this->config['port'];
+        $hostname = $this->config['docker'] ? 'wiremock' : $this->config['hostname'];
+
+        return 'http://' . $hostname . ':' . $this->config['port'];
     }
 }
