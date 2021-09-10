@@ -10,7 +10,7 @@ suites:
                       depends: PhpBrowser
                 - \Helper\Module\ExtendedDb:
                       depends: Db
-                      dsn: "mysql:host=127.0.0.1;port=33060;dbname=misp"
+                      dsn: "mysql:host=localhost;port=33060;dbname=misp"
                       user: "misp"
                       password: "example"
                       cleanup: true
@@ -45,7 +45,7 @@ suites:
                           - "TRUNCATE misp.correlations;"
                           - "TRUNCATE misp.logs;"
                 - Redis:
-                      host: "127.0.0.1"
+                      host: "localhost"
                       port: 63790
                       database: 0
                       cleanupBefore: "test"
@@ -55,7 +55,7 @@ suites:
                       depends: \Helper\Module\Api
                       openapi: "webroot/doc/openapi.yaml"
                 - \Helper\Module\WireMock:
-                      hostname: "127.0.0.1"
+                      hostname: "localhost"
                       port: 8080
             config:
                 PhpBrowser:
@@ -64,7 +64,7 @@ suites:
                         Accept: application/json
                         Content-Type: application/json
                 Db:
-                    dsn: "mysql:host=127.0.0.1;port=33060;dbname=misp"
+                    dsn: "mysql:host=localhost;port=33060;dbname=misp"
                     user: "misp"
                     password: "example"
 

@@ -95,6 +95,13 @@ if (!empty($failed)) {
     trigger_error("CakePHP core could not be found. Check the value of CAKE_CORE_INCLUDE_PATH in APP/webroot/index.php. It should point to the directory containing your " . DS . "cake core directory and your " . DS . "vendors root directory.", E_USER_ERROR);
 }
 
+if (Configure::read('debug') == 2) {
+    include ROOT . DS . APP_DIR . '/Vendor/codeception/codeception/autoload.php';
+    define('C3_CODECOVERAGE_ERROR_LOG_FILE', ROOT . DS . APP_DIR . '/tmp/logs/c3_error.log');
+    include ROOT . DS . APP_DIR .  '/c3.php';
+    define('MY_APP_STARTED', true);
+}
+
 App::uses('Dispatcher', 'Routing');
 
 $Dispatcher = new Dispatcher();

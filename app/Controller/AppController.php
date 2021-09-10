@@ -129,7 +129,6 @@ class AppController extends Controller
         }
 
         $this->_setupDebugMode();
-        $this->_setRemoteCodeCoverageAgent();
         $this->_setupDatabaseConnection();
 
         $this->set('ajax', $this->request->is('ajax'));
@@ -1555,14 +1554,5 @@ class AppController extends Controller
             return true;
         }
         return false;
-    }
-
-    private function _setRemoteCodeCoverageAgent() {
-        if (Configure::read('remote_code_coverage_enabled')) {
-            include ROOT . DS . APP_DIR . '/Vendor/codeception/codeception/autoload.php';
-            define('C3_CODECOVERAGE_ERROR_LOG_FILE', ROOT . DS . APP_DIR . '/tmp/logs/c3_error.log');
-            include ROOT . DS . APP_DIR .  '/c3.php';
-            define('MY_APP_STARTED', true);
-        }
     }
 }
