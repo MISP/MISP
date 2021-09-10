@@ -31,19 +31,19 @@ jobs:
         run: docker-compose -f docker-misp/docker-compose.yml -f app/Test/docker/docker-compose.tests.yml up --build -d
       - name: Wait for containers to spin up
         continue-on-error: true
-        run: |
-          awk '/Start Workers...finished/{exit}0' < <(docker-compose -f docker-misp/docker-compose.yml logs -f misp)
+        run: awk '/Start Workers...finished/{exit}0' < <(docker-compose -f docker-misp/docker-compose.yml logs -f misp)
+      - name: Run MISP updates
+        run: docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Admin runUpdates"
       - name: Turn MISP live
-        run: |
-          docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Live 1"
+        run: docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Live 1"
       - name: Run API test suite
-        # continue-on-error: true
+        continue-on-error: true
         run: |
           sudo chown -R $USER:$USER app/Test/_output/
           pushd app
           make test
-      # - name: Debug logs
-      #   run: |
-      #     docker ps
-      #     docker-compose -f docker-misp/docker-compose.yml logs misp
-      #     docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "tail -n 100 app/tmp/logs/error.log"
+      - name: Debug logs
+        run: |
+          docker ps
+          docker-compose -f docker-misp/docker-compose.yml logs misp
+          docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "tail -n 100 app/tmp/logs/error.log"
