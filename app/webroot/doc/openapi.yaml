@@ -108,6 +108,10 @@ tags:
     description: "Users with audit permissions are able to browse or search logs that MISP automatically appends each time certain actions are taken (actions that modify data or if a user logs in and out)."
     externalDocs:
       url: https://www.circl.lu/doc/misp/administration/#using-misp-logs
+  - name: AuthKeys
+    description: "AuthKeys are used to authenticate MISP API requests. AuthKeys can be set to read-only, a single user can have multiple auth keys."
+    externalDocs:
+      url: https://www.circl.lu/doc/misp/automation/#automation-key
 
 paths:
   /attributes/restSearch:
@@ -2113,6 +2117,114 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /auth_keys:
+    get:
+      summary: "Get auth keys"
+      operationId: getAuthKeys
+      tags:
+        - AuthKeys
+      responses:
+        "200":
+          $ref: "#/components/responses/GetAuthKeysResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+    post:
+      summary: "Search auth keys"
+      operationId: searchAuthKeys
+      tags:
+        - AuthKeys
+      requestBody:
+        $ref: "#/components/requestBodies/GetAuthKeyRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/GetAuthKeysResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /auth_keys/add/{userId}:
+    post:
+      summary: "Add auth keys"
+      operationId: addAuthKey
+      tags:
+        - AuthKeys
+      parameters:
+        - $ref: "#/components/parameters/userIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/AddAuthKeyRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AddAuthKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /auth_keys/view/{authKeyId}:
+    get:
+      summary: "View auth key"
+      operationId: getAuthKeyById
+      tags:
+        - AuthKeys
+      parameters:
+        - $ref: "#/components/parameters/authKeyIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/AuthKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /auth_keys/edit/{authKeyId}:
+    post:
+      summary: "Edit auth key"
+      operationId: editAuthKey
+      tags:
+        - AuthKeys
+      parameters:
+        - $ref: "#/components/parameters/authKeyIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/EditAuthKeyRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AuthKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /auth_keys/delete/{authKeyId}:
+    delete:
+      summary: "Delete auth key"
+      operationId: deleteAuthKey
+      tags:
+        - AuthKeys
+      parameters:
+        - $ref: "#/components/parameters/authKeyIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteAuthKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
@@ -3551,7 +3663,7 @@ components:
           type: string
           example: "https://misppriv.circl.lu"
         authkey:
-          $ref: "#/components/schemas/AuthKey"
+          $ref: "#/components/schemas/AuthKeyRaw"
         org_id:
           $ref: "#/components/schemas/OrganisationId"
         push:
@@ -4466,7 +4578,7 @@ components:
           example: "10.0.0.10"
 
     # General
-    AuthKey:
+    AuthKeyRaw:
       type: string
       minLength: 40
       maxLength: 40
@@ -4580,6 +4692,9 @@ components:
       type: boolean
 
     IsLocal:
+      type: boolean
+
+    IsReadOnly:
       type: boolean
 
     Icon:
@@ -4847,6 +4962,49 @@ components:
       nullable: true
       type: string
       example: "filepath"
+
+    # AuthKeys
+    AuthKeyId:
+      type: string
+      pattern: '^\d+$'
+      maxLength: 10
+      example: "12345"
+
+    AuthKey:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/AuthKeyId"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        authkey_start:
+          type: string
+          maxLength: 4
+        authkey_end:
+          type: string
+          maxLength: 4
+        created:
+          $ref: "#/components/schemas/Timestamp"
+        expiration:
+          type: string
+          format: datetime
+          example: "1970-01-01 00:00:00"
+          nullable: true
+        read_only:
+          $ref: "#/components/schemas/IsReadOnly"
+        user_id:
+          $ref: "#/components/schemas/UserId"
+        comment:
+          type: string
+        allowed_ips:
+          type: array
+          items:
+            description: IP address
+            type: string
+            example: "127.0.0.1"
+          nullable: true
+        last_used:
+          $ref: "#/components/schemas/NullableTimestamp"
 
     ApiError:
       type: object
@@ -5178,6 +5336,16 @@ components:
       schema:
         oneOf:
           - $ref: "#/components/schemas/ObjectTemplateId"
+          - $ref: "#/components/schemas/UUID"
+
+    authKeyIdParameter:
+      name: authKeyId
+      in: path
+      description: "UUID or numeric ID of the auth key"
+      required: true
+      schema:
+        oneOf:
+          - $ref: "#/components/schemas/AuthKeyId"
           - $ref: "#/components/schemas/UUID"
 
   securitySchemes:
@@ -5601,7 +5769,7 @@ components:
               uuid:
                 $ref: "#/components/schemas/UUID"
               authkey:
-                $ref: "#/components/schemas/AuthKey"
+                $ref: "#/components/schemas/AuthKeyRaw"
               Organisation:
                 type: object
                 properties:
@@ -5869,6 +6037,82 @@ components:
                 type: string
                 description: "Text search for log ip property"
 
+    GetAuthKeyRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              page:
+                $ref: "#/components/schemas/PageSearchFilter"
+              limit:
+                $ref: "#/components/schemas/LimitSearchFilter"
+              id:
+                $ref: "#/components/schemas/AuthKeyId"
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              authkey_start:
+                description: "Search term matching the first 4 characers of the authkey"
+                type: string
+              authkey_end:
+                description: "Search term matching the last 4 characers of the authkey"
+                type: string
+              created:
+                $ref: "#/components/schemas/DateRestSearchFilter"
+              expiration:
+                $ref: "#/components/schemas/DateRestSearchFilter"
+              read_only:
+                $ref: "#/components/schemas/IsReadOnly"
+              user_id:
+                $ref: "#/components/schemas/UserId"
+              comment:
+                type: string
+              allowed_ips:
+                description: "Stringified JSON array of the IP addresses."
+                type: string
+                example: '["127.0.0.1","127.0.0.2"]'
+              last_used:
+                $ref: "#/components/schemas/DateRestSearchFilter"
+
+    AddAuthKeyRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              read_only:
+                $ref: "#/components/schemas/IsReadOnly"
+              user_id:
+                $ref: "#/components/schemas/UserId"
+              comment:
+                type: string
+              allowed_ips:
+                type: array
+                items:
+                  description: IP address
+                  type: string
+                  example: "127.0.0.1"
+                nullable: true
+
+    EditAuthKeyRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              read_only:
+                $ref: "#/components/schemas/IsReadOnly"
+              comment:
+                type: string
+              allowed_ips:
+                type: array
+                items:
+                  description: IP address
+                  type: string
+                  example: "127.0.0.1"
+                nullable: true
   responses:
     AttributeResponse:
       description: "An attribute"
@@ -7097,7 +7341,7 @@ components:
                   uuid:
                     $ref: "#/components/schemas/UUID"
                   authkey:
-                    $ref: "#/components/schemas/AuthKey"
+                    $ref: "#/components/schemas/AuthKeyRaw"
                   Organisation:
                     type: object
                     properties:
@@ -7657,6 +7901,79 @@ components:
               properties:
                 Log:
                   $ref: "#/components/schemas/Log"
+
+    GetAuthKeysResponse:
+      description: "Get auth keys response"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                AuthKey:
+                  $ref: "#/components/schemas/AuthKey"
+                User:
+                  type: object
+                  properties:
+                    id:
+                      $ref: "#/components/schemas/UserId"
+                    email:
+                      type: string
+                      format: email
+
+    AddAuthKeyResponse:
+      description: "Auth key response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              AuthKey:
+                $ref: "#/components/schemas/AuthKey"
+
+    AuthKeyResponse:
+      description: "Auth key response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              AuthKey:
+                $ref: "#/components/schemas/AuthKey"
+              User:
+                type: object
+                properties:
+                  id:
+                    $ref: "#/components/schemas/UserId"
+                  org_id:
+                    $ref: "#/components/schemas/OrganisationId"
+                    nullable: true
+                  email:
+                    type: string
+                    format: email
+                    nullable: true
+
+    DeleteAuthKeyResponse:
+      description: "Delete auth key response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "AuthKey deleted."
+              message:
+                type: string
+                example: "AuthKey deleted."
+              url:
+                type: string
+                example: "/auth_keys/delete/1234"
 
     ApiErrorResponse:
       description: "Unexpected API error"
