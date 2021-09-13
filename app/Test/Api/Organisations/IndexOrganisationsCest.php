@@ -36,5 +36,6 @@ class IndexOrganisationsCest
 
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson([['Organisation' => $fakeOrg->toResponse()]]);
+        $I->seeInDatabase('organisations', $fakeOrg->toDatabase());
     }
 }

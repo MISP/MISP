@@ -26,7 +26,7 @@ class AuthKeyFixture extends AbstractFixture implements FixtureInterface
             'authkey_end' => substr($authkey, 36, 40),
             'created' => 1617286581,
             'expiration' => 0,
-            'user_id' => 1,
+            'user_id' => '1',
             'comment' => ''
         ];
 
