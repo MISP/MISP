@@ -12,7 +12,7 @@ class ExtendedDb extends \Codeception\Module\Db
     protected function cleanUpDatabases(): void
     {
         foreach ($this->getDatabases() as $databaseKey => $databaseConfig) {
-            if (!$databaseConfig['cleanup_queries']) {
+            if (!isset($databaseConfig['cleanup_queries'])) {
                 $this->_cleanup($databaseKey, $databaseConfig);
             } else {
                 $this->_runCustomCleanupQuery($databaseKey, $databaseConfig);

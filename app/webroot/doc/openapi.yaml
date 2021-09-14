@@ -1530,14 +1530,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /sharing_groups/removeServer/{sharingGroupId}/{serverId}:
+  /sharing_groups/removeServer/{sharingGroupServerId}/{serverId}:
     post:
       summary: "Remove a server from a sharing group"
       operationId: removeServerFromSharingGroup
       tags:
         - Sharing Groups
       parameters:
-        - $ref: "#/components/parameters/sharingGroupIdParameter"
+        - $ref: "#/components/parameters/sharingGroupServerIdParameter"
         - $ref: "#/components/parameters/serverIdParameter"
       responses:
         "200":
@@ -4327,6 +4327,13 @@ components:
       maxLength: 10
       example: "1"
 
+    SharingGroupServerId:
+      type: string
+      nullable: true
+      pattern: '^\d+$|^$'
+      maxLength: 10
+      example: "1"
+
     SharingGroupOrganisationId:
       type: string
       nullable: true
@@ -5217,6 +5224,14 @@ components:
         oneOf:
           - $ref: "#/components/schemas/SharingGroupId"
           - $ref: "#/components/schemas/UUID"
+
+    sharingGroupServerIdParameter:
+      name: sharingGroupServerId
+      in: path
+      description: "UUID or numeric ID of the sharing group server"
+      required: true
+      schema:
+        $ref: "#/components/schemas/SharingGroupServerId"
 
     feedIdParameter:
       name: feedId

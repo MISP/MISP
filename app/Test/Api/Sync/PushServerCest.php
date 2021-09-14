@@ -65,7 +65,7 @@ class PushServerCest
         );
 
         $I->seeResponseMatchesJsonType([
-            'message' => 'string:regex(/^Push queued for background execution. Job ID: [\d]$/)'
+            'message' => 'string:regex(/^Push queued for background execution. Job ID: [\d]+$/)'
         ]);
 
         // TODO: Check job was created in Redis

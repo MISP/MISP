@@ -28,6 +28,7 @@ class RemoveServerFromSharingGroupCest
     {
         $orgId = 1;
         $sharingGroupId = 1;
+        $sharingGroupServerId = 1;
         $I->haveAuthorizationKey($orgId, 1, UserFixture::ROLE_ADMIN);
 
         $sharingGroupId = 1;
@@ -44,13 +45,14 @@ class RemoveServerFromSharingGroupCest
         $I->haveInDatabase(
             'sharing_group_servers',
             [
+                'id' => $sharingGroupServerId,
                 'sharing_group_id' => $sharingGroupId,
                 'server_id' => $orgId,
                 'all_orgs' => false
             ]
         );
 
-        $I->sendPost(sprintf(self::URL, $sharingGroupId, $serverId));
+        $I->sendPost(sprintf(self::URL, $sharingGroupServerId, $serverId));
 
         $I->validateRequest();
         $I->validateResponse();
