@@ -1,0 +1,49 @@
+name: Docker API Tests
+
+on:
+  push:
+    branches: [add-codeception-api-tests]
+
+  workflow_dispatch:
+
+jobs:
+  test-api-dockerized:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout MISP project
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Install PHP dependencies
+        uses: php-actions/composer@v6
+        with:
+          php_version: 7.2
+          version: 2
+          php_extensions: pcntl curl intl
+          args: --working-dir=app/
+      - name: Checkout coolacid/docker-misp
+        uses: actions/checkout@v2
+        with:
+          repository: coolacid/docker-misp
+          path: docker-misp
+      - name: Start MISP docker containers
+        run: docker-compose -f docker-misp/docker-compose.yml -f app/Test/docker/docker-compose.tests.yml up --build -d
+      - name: Wait for containers to spin up
+        continue-on-error: true
+        run: awk '/Start Workers...finished/{exit}0' < <(docker-compose -f docker-misp/docker-compose.yml logs -f misp)
+      - name: Run MISP updates
+        run: docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Admin runUpdates"
+      - name: Turn MISP live
+        run: docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "app/Console/cake Live 1"
+      - name: Run API test suite
+        # continue-on-error: true
+        run: |
+          sudo chown -R $USER:$USER app/Test/_output/
+          pushd app
+          make test
+      # - name: Debug logs
+      #   run: |
+      #     docker ps
+      #     docker-compose -f docker-misp/docker-compose.yml logs misp
+      #     docker-compose -f docker-misp/docker-compose.yml exec -T --user www-data misp bash -c "tail -n 100 app/tmp/logs/error.log"

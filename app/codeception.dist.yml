@@ -1,0 +1,80 @@
+suites:
+    api:
+        actor: ApiTester
+        path: .
+        modules:
+            enabled:
+                - Asserts
+                - \Helper\Module\Api:
+                      url: https://localhost
+                      depends: PhpBrowser
+                - \Helper\Module\ExtendedDb:
+                      depends: Db
+                      dsn: "mysql:host=127.0.0.1;port=33060;dbname=misp"
+                      user: "misp"
+                      password: "example"
+                      cleanup: true
+                      cleanup_queries:
+                          - "DELETE FROM misp.auth_keys;"
+                          - "DELETE FROM misp.attributes;"
+                          - "DELETE FROM misp.events;"
+                          - "DELETE FROM misp.users;"
+                          - "DELETE FROM misp.organisations;"
+                          - "DELETE FROM misp.tags;"
+                          - "DELETE FROM misp.attribute_tags;"
+                          - "DELETE FROM misp.event_tags;"
+                          - "DELETE FROM misp.galaxy_clusters;"
+                          - "DELETE FROM misp.galaxy_elements;"
+                          - "DELETE FROM misp.galaxies;"
+                          - "DELETE FROM misp.jobs;"
+                          - "DELETE FROM misp.servers;"
+                          - "DELETE FROM misp.sharing_groups;"
+                          - "DELETE FROM misp.sharing_group_orgs;"
+                          - "DELETE FROM misp.sharing_group_servers;"
+                          - "DELETE FROM misp.feeds;"
+                          - "DELETE FROM misp.warninglists;"
+                          - "DELETE FROM misp.warninglist_entries;"
+                          - "DELETE FROM misp.warninglist_types;"
+                          - "DELETE FROM misp.objects;"
+                          - "DELETE FROM misp.object_templates;"
+                          - "DELETE FROM misp.object_template_elements;"
+                          - "DELETE FROM misp.noticelists;"
+                          - "DELETE FROM misp.noticelist_entries;"
+                          - "DELETE FROM misp.sightings;"
+                          - "DELETE FROM misp.tags;"
+                          - "DELETE FROM misp.correlations;"
+                          - "DELETE FROM misp.logs;"
+                - Redis:
+                      host: "127.0.0.1"
+                      port: 63790
+                      database: 0
+                      cleanupBefore: "test"
+                - \Helper\Module\MispSettings:
+                      depends: \Helper\Module\Api
+                - \Helper\Module\OpenApiValidator:
+                      depends: \Helper\Module\Api
+                      openapi: "webroot/doc/openapi.yaml"
+                - \Helper\Module\WireMock:
+                      hostname: "localhost"
+                      port: 8080
+                      docker: true
+            config:
+                PhpBrowser:
+                    url: https://localhost
+                    headers:
+                        Accept: application/json
+                        Content-Type: application/json
+                Db:
+                    dsn: "mysql:host=127.0.0.1;port=33060;dbname=misp"
+                    user: "misp"
+                    password: "example"
+
+paths:
+    tests: Test/Api
+    output: Test/_output
+    data: Test/_data
+    support: Test/_support
+
+settings:
+    shuffle: false
+    lint: true

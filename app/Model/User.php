@@ -963,13 +963,13 @@ class User extends AppModel
             if ($simpleReturn) {
                 return true;
             } else {
-                return array('body'=> json_encode(array('saved' => true, 'success' => 'New credentials sent.')),'status'=>200);
+                return array('body'=> json_encode(array('saved' => true, 'success' => 'New credentials sent.')),'status'=>200, 'type' => 'json');
             }
         }
         if ($simpleReturn) {
             return false;
         } else {
-            return array('body'=> json_encode(array('saved' => false, 'errors' => 'There was an error notifying the user. His/her credentials were not altered.')),'status'=>200);
+            return array('body'=> json_encode(array('saved' => false, 'errors' => 'There was an error notifying the user. His/her credentials were not altered.')),'status'=>200, 'type' => 'json');
         }
     }
 

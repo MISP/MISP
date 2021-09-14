@@ -638,7 +638,7 @@ class ServersController extends AppController
         if ($this->Server->delete()) {
             $message = __('Server deleted');
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $id, $this->response->type(), $message);
             } else {
                 $this->Flash->success($message);
                 $this->redirect(array('controller' => 'servers', 'action' => 'index'));
@@ -844,7 +844,7 @@ class ServersController extends AppController
             $this->Job->saveField('process_id', $process_id);
             $message = sprintf(__('Push queued for background execution. Job ID: %s'), $jobId);
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $id, $this->response->type(), $message);
             }
             $this->Flash->success($message);
             $this->redirect(array('action' => 'index'));

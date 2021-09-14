@@ -14,9 +14,23 @@
         "monolog/monolog": "1.24.0"
     },
     "require-dev": {
+        "php": ">=7.2.0,<8.0.0",
         "phpunit/phpunit": "^8",
         "php-parallel-lint/php-parallel-lint": "^1.2",
-        "cakephp/debug_kit": "^2.2.0"
+        "codeception/codeception": "^4.1",
+        "codeception/module-rest": "^1.0.0",
+        "codeception/module-phpbrowser": "^1.0.0",
+        "codeception/module-db": "^1.1",
+        "fzaninotto/faker": "^1.9",
+        "league/openapi-psr7-validator": "^0.15.2",
+        "wiremock-php/wiremock-php": "2.27.0",
+        "codeception/module-redis": "^1.1",
+        "codeception/module-asserts": "^1.3",
+        "cakephp/debug_kit": "^4.0",
+        "codeception/c3": "^2.6"
+    },
+    "conflict": {
+        "symfony/polyfill-php80": "*"
     },
     "suggest": {
         "ext-gd": "For creating image thumbnails",
@@ -29,6 +43,7 @@
         "ext-ssdeep": "For ssdeep hashes correlation",
         "ext-bcmath": "For faster validating IBAN numbers",
         "ext-rdkafka": "Required for publishing events to Kafka broker",
+        "ext-curl": "Required for codeception api tests",
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
         "aws/aws-sdk-php": "To upload samples to S3",
         "jumbojett/openid-connect-php": "For OIDC authentication"
