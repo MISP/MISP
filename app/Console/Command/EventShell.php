@@ -569,7 +569,7 @@ class EventShell extends AppShell
      */
     private function getUser($userId)
     {
-        $user = $this->User->getAuthUser($userId);
+        $user = $this->User->getAuthUser($userId, true);
         if (empty($user)) {
             $this->error("User with ID $userId does not exists.");
         }

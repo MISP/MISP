@@ -440,9 +440,14 @@ class SendEmail
             throw new InvalidArgumentException("Invalid user model provided.");
         }
 
+        // Intentional `array_key_exists` instead of `isset`
+        if (!array_key_exists('gpgkey', $user['User']) || !array_key_exists('certif_public', $user['User'])) {
+            throw new InvalidArgumentException("User without `gpgkey` or `certif_public` field provided.");
+        }
+
         // Check if the e-mail can be encrypted
-        $canEncryptGpg = isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey']);
-        $canEncryptSmime = isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
+        $canEncryptGpg = !empty($user['User']['gpgkey']);
+        $canEncryptSmime = !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
 
         if (Configure::read('GnuPG.onlyencrypted') && !$canEncryptGpg && !$canEncryptSmime) {
             throw new SendEmailException('Encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.');
