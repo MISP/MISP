@@ -30,20 +30,20 @@ class AttributesController extends AppController
         $this->Auth->allow('bro');
 
         // permit reuse of CSRF tokens on the search page.
-        if ('search' == $this->request->params['action']) {
+        if ('search' === $this->request->params['action']) {
             $this->Security->csrfCheck = false;
         }
         $this->Security->unlockedActions[] = 'getMassEditForm';
         $this->Security->unlockedActions[] = 'search';
-        if ($this->action == 'add_attachment') {
+        if ($this->request->action === 'add_attachment') {
             $this->Security->disabledFields = array('values');
         }
         $this->Security->validatePost = true;
 
         // convert uuid to id if present in the url and overwrite id field
-        if (isset($this->params->query['uuid'])) {
+        if (isset($this->request->params->query['uuid'])) {
             $params = array(
-                    'conditions' => array('Attribute.uuid' => $this->params->query['uuid']),
+                    'conditions' => array('Attribute.uuid' => $this->request->params->query['uuid']),
                     'recursive' => 0,
                     'fields' => 'Attribute.id'
                     );

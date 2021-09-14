@@ -124,8 +124,8 @@ class AppController extends Controller
             $this->response->header('X-XSS-Protection', '1; mode=block');
         }
 
-        if (!empty($this->params['named']['sql'])) {
-            $this->sql_dump = intval($this->params['named']['sql']);
+        if (!empty($this->request->params['named']['sql'])) {
+            $this->sql_dump = intval($this->request->params['named']['sql']);
         }
 
         $this->_setupDebugMode();
@@ -169,11 +169,11 @@ class AppController extends Controller
         } else {
             $this->Auth->authenticate[AuthComponent::ALL]['userFields'] = $authUserFields;
         }
-        if (!empty($this->params['named']['disable_background_processing'])) {
+        if (!empty($this->request->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
         }
-        Configure::write('CurrentController', $this->params['controller']);
-        Configure::write('CurrentAction', $this->params['action']);
+        Configure::write('CurrentController', $this->request->params['controller']);
+        Configure::write('CurrentAction', $this->request->params['action']);
         $versionArray = $this->User->checkMISPVersion();
         $this->mispVersion = implode('.', array_values($versionArray));
         $this->Security->blackHoleCallback = 'blackHole';
@@ -211,14 +211,14 @@ class AppController extends Controller
             };
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
-            $this->Security->unlockedActions = array($this->action);
+            $this->Security->unlockedActions = array($this->request->action);
         }
 
         if (
             !$userLoggedIn &&
             (
-                $this->params['controller'] !== 'users' ||
-                $this->params['action'] !== 'register' ||
+                $this->request->params['controller'] !== 'users' ||
+                $this->request->params['action'] !== 'register' ||
                 empty(Configure::read('Security.allow_self_registration'))
             )
         ) {
@@ -345,12 +345,12 @@ class AppController extends Controller
             }
         }
 
-        $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
+        $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->request->action);
         if ($this->_isRest()) {
             $this->__rateLimitCheck();
         }
         if ($this->modelClass !== 'CakeError') {
-            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->action, $this->{$this->modelClass}, $this->Auth->user('id'));
+            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->request->action, $this->{$this->modelClass}, $this->Auth->user('id'));
             if ($deprecationWarnings) {
                 $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
                 if ($this->_isRest()) {
@@ -395,8 +395,8 @@ class AppController extends Controller
 
         // If enabled, allow passing the API key via a named parameter (for crappy legacy systems only)
         $namedParamAuthkey = false;
-        if (Configure::read('Security.allow_unsafe_apikey_named_param') && !empty($this->params['named']['apikey'])) {
-            $namedParamAuthkey = $this->params['named']['apikey'];
+        if (Configure::read('Security.allow_unsafe_apikey_named_param') && !empty($this->request->params['named']['apikey'])) {
+            $namedParamAuthkey = $this->request->params['named']['apikey'];
         }
         // Authenticate user with authkey in Authorization HTTP header
         if (!empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($namedParamAuthkey)) {
@@ -624,7 +624,7 @@ class AppController extends Controller
         if (!isset($actionsToCheck[$controller])) {
             return false;
         }
-        return in_array($this->action, $actionsToCheck[$controller], true);
+        return in_array($this->request->action, $actionsToCheck[$controller], true);
     }
 
     /**
@@ -764,7 +764,7 @@ class AppController extends Controller
         $rateLimitCheck = $this->RateLimit->check(
             $this->Auth->user(),
             $this->request->params['controller'],
-            $this->action,
+            $this->request->action,
             $this->{$this->modelClass},
             $info,
             $this->response->type()
@@ -873,7 +873,7 @@ class AppController extends Controller
 
     protected function _isAutomation()
     {
-        return $this->IndexFilter->isApiFunction($this->params['controller'], $this->params['action']);
+        return $this->IndexFilter->isApiFunction($this->request->params['controller'], $this->request->params['action']);
     }
 
     /**
@@ -937,7 +937,7 @@ class AppController extends Controller
                 $exception = $this->RestResponse->throwException(
                     400,
                     __('Either specify the search terms in the url, or POST a json with the filter parameters.'),
-                    '/' . $this->request->params['controller'] . '/' . $this->action
+                    '/' . $this->request->params['controller'] . '/' . $this->request->action
                 );
                 return false;
             } else {
@@ -1381,7 +1381,7 @@ class AppController extends Controller
         }
         $filterData = array(
             'request' => $this->request,
-            'named_params' => $this->params['named'],
+            'named_params' => $this->request->params['named'],
             'paramArray' => $this->RestSearch->paramArray[$scope],
             'ordered_url_params' => func_get_args()
         );

@@ -79,7 +79,7 @@ class EventsController extends AppController
         }
 
         // convert uuid to id if present in the url, and overwrite id field
-        if (isset($this->params->query['uuid'])) {
+        if (isset($this->request->params->query['uuid'])) {
             $params = array(
                     'conditions' => array('Event.uuid' => $this->params->query['uuid']),
                     'recursive' => 0,
@@ -93,7 +93,7 @@ class EventsController extends AppController
         }
 
         // if not admin or own org, check private as well..
-        if (!$this->_isSiteAdmin() && in_array($this->action, $this->paginationFunctions)) {
+        if (!$this->_isSiteAdmin() && in_array($this->request->action, $this->paginationFunctions, true)) {
             $conditions = $this->Event->createEventConditions($this->Auth->user());
             if ($this->userRole['perm_sync'] && $this->Auth->user('Server')['push_rules']) {
                 $conditions['AND'][] = $this->Event->filterRulesToConditions($this->Auth->user('Server')['push_rules']);
