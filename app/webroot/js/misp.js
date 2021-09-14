@@ -4035,7 +4035,8 @@ function formCategoryChanged(id) {
     if (selectedCategory === "") { // if no category is selected, insert all attribute types
         optionsToPush = {};
         for (var category in category_type_mapping) {
-            for (var type in category_type_mapping[category]) {
+            for (var index in category_type_mapping[category]) {
+                var type = category_type_mapping[category][index];
                 optionsToPush[type] = type;
             }
         }
@@ -4052,6 +4053,15 @@ function formCategoryChanged(id) {
     });
     // enable the form element
     $type.prop('disabled', false);
+}
+
+function formTypeChanged(idPrefix) {
+    var $type = $('#' + idPrefix + 'Type');
+    var currentType = $type.val();
+
+    // Check if current type is correlatable and disable checkbox if yes
+    var nonCorrelatingType = non_correlating_types.indexOf(currentType) !== -1;
+    $('#' + idPrefix + 'DisableCorrelation').prop('disabled', nonCorrelatingType);
 }
 
 function malwareCheckboxSetter(context) {
@@ -4559,16 +4569,16 @@ function checkNoticeList(type) {
     var fields_to_check = {
         "attribute": ["category", "type"]
     }
-    var warnings = [];
-    $('#notice_message').html('<h4>Notices:</h4>');
-    $('#notice_message').hide();
+    var $noticeMessage = $('#notice_message');
+    $noticeMessage.html('<h4>Notices:</h4>');
+    $noticeMessage.hide();
     fields_to_check[type].forEach(function(field_name) {
         if (field_name in notice_list_triggers) {
             var field_value = $('#' + type.ucfirst() + field_name.ucfirst()).val();
             if (field_value in notice_list_triggers[field_name]) {
                 notice_list_triggers[field_name][field_value].forEach(function(notice) {
-                    $('#notice_message').show();
-                    $('#notice_message').append(
+                    $noticeMessage.show();
+                    $noticeMessage.append(
                         $('<div/>')
                             .append($('<span/>').text('['))
                             .append($('<a/>', {href: baseurl + '/noticelists/view/' + notice['list_id'], class:'bold'}).text(notice['list_name']))
