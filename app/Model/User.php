@@ -781,16 +781,16 @@ class User extends AppModel
     }
 
     /**
-     * @param $user - deprecated
      * @param array $params
+     * @return array|bool
      * @throws Crypt_GPG_Exception
      * @throws SendEmailException
      */
-    public function sendEmailExternal($user, array $params)
+    public function sendEmailExternal(array $params)
     {
         $gpg = $this->initializeGpg();
         $sendEmail = new SendEmail($gpg);
-        $sendEmail->sendExternal($params);
+        return $sendEmail->sendExternal($params);
     }
 
     /**
