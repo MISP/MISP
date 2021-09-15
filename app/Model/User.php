@@ -911,6 +911,8 @@ class User extends AppModel
         // Do not include keys, because they are big and usually not necessary
         unset($fields['gpgkey']);
         unset($fields['certif_public']);
+        // Do not fetch password from db, it is automatically fetched by BaseAuthenticate::_findUser
+        unset($fields['password']);
         $fields = array_keys($fields);
 
         foreach ($this->belongsTo as $relatedModel => $foo) {
