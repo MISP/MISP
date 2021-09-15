@@ -8,7 +8,8 @@ echo $this->element('genericElements/Form/genericForm', [
                 'field' => 'user_id',
                 'label' => __('User'),
                 'options' => $dropdownData['user'],
-                'type' => 'dropdown'
+                'type' => 'dropdown',
+                'class' => 'span6'
             ],
             [
                 'field' => 'comment',
@@ -28,6 +29,11 @@ echo $this->element('genericElements/Form/genericForm', [
                 'class' => 'datepicker span6',
                 'placeholder' => "YYYY-MM-DD",
                 'type' => 'text'
+            ],
+            [
+                'field' => 'read_only',
+                'label' => __('Read only (it will be not possible to do any change operation with this token)'),
+                'type' => 'checkbox',
             ]
         ],
         'submit' => [

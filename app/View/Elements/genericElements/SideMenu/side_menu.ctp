@@ -506,11 +506,26 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     ));
                     break;
                 case 'warninglist':
-                    if ($menuItem === 'view') {
+                    if ($menuItem === 'view' || $menuItem === 'edit') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
+                            'url' => $baseurl . '/warninglists/view/' . h($id),
                             'text' => __('View Warninglist')
                         ));
+                        if (!$isDefault && $canAccess('warninglists', 'edit')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', [
+                                'element_id' => 'edit',
+                                'url' => $baseurl . '/warninglists/edit/' . h($id),
+                                'text' => __('Edit Warninglist'),
+                            ]);
+                        }
+                    }
+                    if ($canAccess('warninglists', 'add')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', [
+                            'element_id' => 'add',
+                            'url' => $baseurl . '/warninglists/add',
+                            'text' => __('Add Warninglist'),
+                        ]);
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/warninglists/index',
@@ -533,19 +548,20 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     break;
 
                 case 'noticelist':
-                    if ($menuItem === 'view') {
+                    if ($menuItem === 'view_noticelist') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'view',
+                            'element_id' => 'view_noticelist',
                             'text' => __('View Noticelist')
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'index',
+                        'element_id' => 'list_noticelists',
                         'url' => $baseurl . '/noticelists/index',
                         'text' => __('List Noticelist')
                     ));
                     if ($canAccess('noticelists', 'update')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'element_id' => 'update_noticelists',
                             'url' => $baseurl . '/noticelists/update',
                             'text' => __('Update Noticelists'),
                             'message' => __('Do you wish to continue and update all noticelists?')
@@ -1264,12 +1280,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         if ($menuItem === 'edit' || $menuItem === 'view') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit',
-                                'url' => $baseurl . '/feeds/edit/' . h($feed['Feed']['id']),
+                                'url' => $baseurl . '/feeds/edit/' . h($feedId),
                                 'text' => __('Edit Feed')
                             ));
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'view',
-                                'url' => $baseurl . '/feeds/view/' . h($feed['Feed']['id']),
+                                'url' => $baseurl . '/feeds/view/' . h($feedId),
                                 'text' => __('View Feed')
                             ));
                         } else if ($menuItem === 'previewIndex') {
@@ -1363,7 +1379,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Import Galaxy Clusters')
                         ));
                     }
-                    if ($menuItem === 'view' || $menuItem === 'export' || $menuItem === 'view_cluster') {
+                    if ($menuItem === 'view' || $menuItem === 'export' || $menuItem === 'view_cluster' || $menuItem === 'add_cluster') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'export',
                             'url' => $baseurl . '/galaxies/export/' . h($galaxy['Galaxy']['id']),

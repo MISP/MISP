@@ -13,9 +13,9 @@ class SecurityAudit
     {
         $output = [];
 
-        foreach (['config.php', 'database.php', 'email.php'] as $configFile) {
-            $perms = fileperms(CONFIG . $configFile);
-            if ($perms & 0x0004) {
+        foreach (['config.php', 'config.php.bk', 'database.php', 'email.php'] as $configFile) {
+            $perms = @fileperms(CONFIG . $configFile);
+            if ($perms !== false && $perms & 0x0004) {
                 $output['File permissions'][] = ['error', __('%s config file is readable for any user.', $configFile)];
             }
         }

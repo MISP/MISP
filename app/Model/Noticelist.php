@@ -7,7 +7,7 @@ class Noticelist extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
-            'Containable',
+        'Containable',
     );
 
     public $validate = array(
@@ -20,9 +20,9 @@ class Noticelist extends AppModel
     );
 
     public $hasMany = array(
-            'NoticelistEntry' => array(
-                'dependent' => true
-            )
+        'NoticelistEntry' => array(
+            'dependent' => true
+        )
     );
 
     private $__entries = array();
@@ -30,8 +30,12 @@ class Noticelist extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
-        $this->data['Noticelist']['ref'] = json_encode($this->data['Noticelist']['ref']);
-        $this->data['Noticelist']['geographical_area'] = json_encode($this->data['Noticelist']['geographical_area']);
+        if (isset($this->data['Noticelist']['ref'])) {
+            $this->data['Noticelist']['ref'] = json_encode($this->data['Noticelist']['ref']);
+        }
+        if (isset($this->data['Noticelist']['geographical_area'])) {
+            $this->data['Noticelist']['geographical_area'] = json_encode($this->data['Noticelist']['geographical_area']);
+        }
         return true;
     }
 
@@ -47,9 +51,9 @@ class Noticelist extends AppModel
                 $list['version'] = 1;
             }
             $current = $this->find('first', array(
-                    'conditions' => array('name' => $list['name']),
-                    'recursive' => -1,
-                    'fields' => array('*')
+                'conditions' => array('name' => $list['name']),
+                'recursive' => -1,
+                'fields' => array('*')
             ));
             if (empty($current) || $list['version'] > $current['Noticelist']['version']) {
                 $result = $this->__updateList($list, $current);

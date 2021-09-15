@@ -158,17 +158,17 @@
                         'requirement' => !$isAclRegexp
                     ),
                     array(
-                        'text' => __('List Warninglists'),
+                        'text' => __('Warninglists'),
                         'url' => $baseurl . '/warninglists/index'
                     ),
                     array(
-                        'text' => __('List Noticelists'),
+                        'text' => __('Noticelists'),
                         'url' => $baseurl . '/noticelists/index'
                     ),
                     array(
-                        'text' => __('List Correlation Exclusions'),
-			'url' => $baseurl . '/correlation_exclusions/index',
-			'requirement' => $canAccess('correlation_exclusions', 'index'),
+                        'text' => __('Correlation Exclusions'),
+		            	'url' => $baseurl . '/correlation_exclusions/index',
+	            		'requirement' => $canAccess('correlation_exclusions', 'index'),
                     )
                 )
             ),

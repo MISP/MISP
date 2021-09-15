@@ -15,6 +15,7 @@ class AuditLogBehavior extends ModelBehavior
     /** @var bool */
     private $enabled;
 
+    // Hash is faster that in_array
     private $skipFields = [
         'id' => true,
         'lastpushedid' => true,
@@ -26,7 +27,6 @@ class AuditLogBehavior extends ModelBehavior
         'last_login' => true, // User
         'newsread' => true, // User
         'proposal_email_lock' => true, // Event
-        'warninglist_entry_count' => true, // Warninglist
     ];
 
     private $modelInfo = [

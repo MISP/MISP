@@ -39,8 +39,10 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
      *          'group_one' => 1,
      *       ),
      *      'DefaultOrg' => 'MY_ORG',
+     *      'BlockOrgModifications' => false         // set to true if you wish for the user's organisation never to be updated during login. Especially useful if you manually change organisations in MISP
      *      'DefaultRole' => false                   // set to a specific value if you wish to hard-set users created via ApacheShibbAuth
      *      'BlockRoleModifications' => false        // set to true if you wish for the roles never to be updated during login. Especially *                                               // useful if you manually change roles in MISP
+     *      'BlockOrgModifications' => false        // set to true if you wish for the organizations never to be updated during login. Especially *                                        // useful if you manually change orgs in MISP
      * ),
      * @param CakeRequest $request The request that contains login information.
      * @param CakeResponse $response Unused response object.
@@ -69,12 +71,14 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
         $roleId = -1;
         $org = Configure::read('ApacheShibbAuth.DefaultOrg');
         $useDefaultOrg = Configure::read('ApacheShibbAuth.UseDefaultOrg');
+        $blockOrgModifications = Configure::check('ApacheShibbAuth.BlockOrgModifications') ? Configure::read('ApacheShibbAuth.BlockOrgModifications') : false;
         // Get tags from SSO config
         $mailTag = Configure::read('ApacheShibbAuth.MailTag');
         $orgTag = Configure::read('ApacheShibbAuth.OrgTag');
         $groupTag = Configure::read('ApacheShibbAuth.GroupTag');
         $groupRoleMatching = Configure::read('ApacheShibbAuth.GroupRoleMatching');
         $blockRoleModifications = Configure::check('ApacheShibbAuth.BlockRoleModifications') ? Configure::read('ApacheShibbAuth.BlockRoleModifications') : false;
+        $blockOrgModifications = Configure::check('ApacheShibbAuth.BlockOrgModifications') ? Configure::read('ApacheShibbAuth.BlockOrgModifications') : false;
 
         // Get user values
         if (!isset($_SERVER[$mailTag])) {
@@ -126,7 +130,9 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
             if (!$blockRoleModifications) {
                 $user = $this->updateUserRole($roleChanged, $user, $roleId, $userModel);
             }
-            $user = $this->updateUserOrg($org, $user, $userModel);
+            if (!$blockOrgModifications) {
+                $user = $this->updateUserOrg($org, $user, $userModel);
+            }
             $userModel->extralog($user, 'login');
             return $user;
         }

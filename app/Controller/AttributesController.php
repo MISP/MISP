@@ -18,8 +18,6 @@ class AttributesController extends AppController
             'order' => 'Attribute.event_id DESC'
     );
 
-    public $helpers = array('Js' => array('Jquery'));
-
     public function beforeFilter()
     {
         parent::beforeFilter();
@@ -488,15 +486,29 @@ class AttributesController extends AppController
             foreach ($values['types'] as $type) {
                 if ($this->Attribute->typeIsAttachment($type)) {
                     $selectedCategories[] = $category;
-                    continue 2;
+                    break;
                 }
             }
         }
+
+        // Create list of categories that should be marked as malware sample by default
+        $isMalwareSampleCategory = [];
+        foreach ($selectedCategories as $category) {
+            $possibleMalwareSample = false;
+            foreach ($this->Attribute->categoryDefinitions[$category]['types'] as $type) {
+                if ($this->Attribute->typeIsMalware($type)) {
+                    $possibleMalwareSample = true;
+                    break;
+                }
+            }
+            $isMalwareSampleCategory[$category] = $possibleMalwareSample;
+        }
+
         $categories = $this->_arrayToValuesIndexArray($selectedCategories);
         $this->set('categories', $categories);
 
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-        $this->set('zippedDefinitions', $this->Attribute->zippedDefinitions);
+        $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
         $this->set('advancedExtractionAvailable', $this->Attribute->isAdvancedExtractionAvailable());
 
         // combobox for distribution
@@ -750,6 +762,7 @@ class AttributesController extends AppController
             // check which attribute is newer
             if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
                 $this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
+                $this->request->data['Attribute']['event_id'] = $existingAttribute['Attribute']['event_id'];
                 $dateObj = new DateTime();
                 $skipTimeCheck = false;
                 if (!isset($this->request->data['Attribute']['timestamp'])) {
@@ -777,7 +790,7 @@ class AttributesController extends AppController
                 }
             }
             if ($existingAttribute['Attribute']['object_id']) {
-                $result = $this->Attribute->save($this->request->data, array('fieldList' => $this->Attribute->editableFields));
+                $result = $this->Attribute->save($this->request->data, array('fieldList' => Attribute::EDITABLE_FIELDS));
                 if ($result) {
                     $this->Attribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $attribute['Event']['id'], $capture=true);
                 }
@@ -2571,8 +2584,7 @@ class AttributesController extends AppController
         foreach ($this->Attribute->categoryDefinitions as $cat => $data) {
             $result['category_type_mappings'][$cat] = $data['types'];
         }
-        $this->set('result', $result);
-        $this->set('_serialize', array('result'));
+        return $this->RestResponse->viewData(['result' => $result], 'json');
     }
 
     public function attributeStatistics($type = 'type', $percentage = false)
@@ -2597,12 +2609,7 @@ class AttributesController extends AppController
             }
         }
         ksort($results);
-        $this->autoRender = false;
-        $this->layout = false;
-        $this->set('data', $results);
-        $this->set('flags', JSON_PRETTY_PRINT);
-        $this->response->type('json');
-        $this->render('/Servers/json/simple');
+        return $this->RestResponse->viewData($results, 'json');
     }
 
     public function addTag($id = false, $tag_id = false)

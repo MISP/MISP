@@ -342,24 +342,36 @@ class EventShell extends AppShell
     public function publish_sightings()
     {
         $this->ConfigLoad->execute();
-        $id = $this->args[0];
-        $passAlong = $this->args[1];
-        $jobId = $this->args[2];
-        $userId = $this->args[3];
+        list($id, $passAlong, $jobId, $userId) = $this->args;
         $user = $this->getUser($userId);
-        $job = $this->Job->read(null, $jobId);
-        $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
-        $result = $this->Event->publish_sightings($id, $passAlong);
-        $job['Job']['progress'] = 100;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        if ($result) {
-            $job['Job']['message'] = 'Sightings published.';
-        } else {
-            $job['Job']['message'] = 'Sightings published, but the upload to other instances may have failed.';
+
+        $sightingsUuidsToPush = [];
+        if (isset($this->args[4])) { // push just specific sightings
+            $path = APP . 'tmp/cache/ingest' . DS . $this->args[4];
+            $tempFile = new File($path);
+            $inputData = $tempFile->read();
+            if ($inputData === false) {
+                $this->error("File `$path` not found.");
+            }
+            $sightingsUuidsToPush = $this->Event->jsonDecode($inputData);
+            $tempFile->delete();
         }
-        $this->Job->save($job);
+
+        $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
+        $result = $this->Event->publish_sightings($id, $passAlong, $sightingsUuidsToPush);
+
+        $count = count($sightingsUuidsToPush);
+        $message = $count === 0 ? "All sightings published" : "$count sightings published";
+        if ($result) {
+            $message .= '.';
+        } else {
+            $message .= ', but the upload to other instances may have failed.';
+        }
+        $this->Job->saveStatus($jobId, true, $message);
+
         $log = ClassRegistry::init('Log');
-        $log->createLogEntry($user, 'publish_sightings', 'Event', $id, 'Sightings for event (' . $id . '): published.', 'publish_sightings updated');
+        $title = $count === 0 ? "All sightings for event published."  : "$count sightings for event published.";
+        $log->createLogEntry($user, 'publish_sightings', 'Event', $id, $title, 'publish_sightings updated');
     }
 
     public function publish_galaxy_clusters()
