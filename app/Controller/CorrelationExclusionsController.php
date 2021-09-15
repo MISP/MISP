@@ -53,7 +53,7 @@ class CorrelationExclusionsController extends AppController
             $this->request->data['CorrelationExclusion']['value'] = $params['value'];
         }
         if (!empty($params['comment'])) {
-            $this->request->data['CorrelationExclusion']['value'] = $params['comment'];
+            $this->request->data['CorrelationExclusion']['comment'] = $params['comment'];
         }
         $this->CRUD->add($params);
         if ($this->IndexFilter->isRest()) {
