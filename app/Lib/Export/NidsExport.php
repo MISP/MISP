@@ -7,6 +7,8 @@ class NidsExport
     public $classtype = 'trojan-activity';
 
     public $format = "";   // suricata (default), snort
+    
+    public $supportedObjects = array('network-connection', 'ddos');
 
 	public $checkWhitelist = true;
 
@@ -82,22 +84,32 @@ class NidsExport
 		$rearranged = array();
 		foreach ($objects as $object) {
 			
-			$objectTag = array();
+			#CakeLog::debug("Checking Object");
 			
-			foreach($object['Attribute'] as $attribute) {
+			if(in_array($object['name'], $this->supportedObjects)){ //NOTES: Checking if this is an object supported for the custom export
 			
-				if (!empty($attribute['AttributeTag'])) {
-					$objectTag = array_merge($objectTag, $attribute['AttributeTag']);
-					unset($attribute['AttributeTag']);
+				$objectTag = array();
+				
+				foreach($object['Attribute'] as $attribute) {
+				
+					if (!empty($attribute['AttributeTag'])) {
+						$objectTag = array_merge($objectTag, $attribute['AttributeTag']);
+						unset($attribute['AttributeTag']);
+					}
+					
 				}
 				
-			}
+				$rearranged[] = array(
+					'Attribute' => $object,		//NOTES: Using 'Attribute' instead of 'Object' to comply with function export
+					'AttributeTag' => $objectTag,		//NOTES: Using 'AttributeTag' instead of 'ObjectTag' to comply with function export
+					'Event' => $event['Event']
+				);
+				
+			} else { //NOTES: In case the object is not supported for the custom export, the approach falls back to the attribute case
 			
-			$rearranged[] = array(
-				'Attribute' => $object,		//NOTES: Using 'Attribute' instead of 'Object' to comply with function export
-				'AttributeTag' => $objectTag,		//NOTES: Using 'AttributeTag' instead of 'ObjectTag' to comply with function export
-				'Event' => $event['Event']
-			);
+				$this->__convertFromEventFormat($object['Attribute'], $data, $options, $continue);
+			
+			}
 		
 		}
 		
@@ -253,6 +265,9 @@ class NidsExport
 		        case 'network-connection':
 		            $this->networkConnectionRule($ruleFormat, $item['Attribute'], $sid);
 		            break;
+		        case 'ddos':
+		            $this->ddosRule($ruleFormat, $item['Attribute'], $sid);
+		            break;
 		        default:
 		            break;
 		    }
@@ -269,7 +284,7 @@ class NidsExport
     	$attributes = NidsExport::getObjectAttributes($object);
         
         if(!array_key_exists('layer4-protocol', $attributes)){
-        	$attributes['layer4-protocol'] = 'IP';	// If layer-4 protocol is unknown, we roll-back to layer-3 ('IP')
+        	$attributes['layer4-protocol'] = 'ip';	// If layer-4 protocol is unknown, we roll-back to layer-3 ('ip')
         }
         if(!array_key_exists('ip-src', $attributes)){
         	$attributes['ip-src'] = '$HOME_NET';	// If ip-src is unknown, we roll-back to $HOME_NET
@@ -294,6 +309,45 @@ class NidsExport
             $attributes['ip-dst'],					// dst_ip
             $attributes['dst-port'],					// dst_port
             'Network connection between ' . $attributes['ip-src'] . ' and ' . $attributes['ip-dst'],		// msg
+            '',							// rule_content
+            '',							// tag
+            $sid,							// sid
+            1								// rev
+            );
+        
+    }
+    
+    public function ddosRule($ruleFormat, $object, &$sid)
+    {
+    
+    	$attributes = NidsExport::getObjectAttributes($object);
+        
+        if(!array_key_exists('protocol', $attributes)){
+        	$attributes['protocol'] = 'ip';	// If protocol is unknown, we roll-back to 'ip'
+        }
+        if(!array_key_exists('ip-src', $attributes)){
+        	$attributes['ip-src'] = '$HOME_NET';	// If ip-src is unknown, we roll-back to $HOME_NET
+        }
+        if(!array_key_exists('ip-dst', $attributes)){
+        	$attributes['ip-dst'] = '$HOME_NET';	// If ip-dst is unknown, we roll-back to $HOME_NET
+        }
+        if(!array_key_exists('src-port', $attributes)){
+        	$attributes['src-port'] = 'any';	// If src-port is unknown, we roll-back to 'any'
+        }
+        if(!array_key_exists('dst-port', $attributes)){
+        	$attributes['dst-port'] = 'any';	// If dst-port is unknown, we roll-back to 'any'
+        }
+
+	$this->rules[] = sprintf(
+            $ruleFormat,
+            false,
+            $attributes['protocol'],					// proto
+            $attributes['ip-src'],					// src_ip
+            $attributes['src-port'],					// src_port
+            '->',							// direction
+            $attributes['ip-dst'],					// dst_ip
+            $attributes['dst-port'],					// dst_port
+            'DDOS attack detected between ' . $attributes['ip-src'] . ' and ' . $attributes['ip-dst'],		// msg
             '',							// rule_content
             '',							// tag
             $sid,							// sid
