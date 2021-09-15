@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use \Helper\Fixture\Data\WarninglistFixture;
 use \Helper\Fixture\Data\UserFixture;
-use \Codeception\Scenario;
 
 class ViewWarninglistCest
 {
@@ -23,9 +22,8 @@ class ViewWarninglistCest
         $I->seeResponseIsJson();
     }
 
-    public function testViewIndexReturnsExpectedWarninglist(ApiTester $I, Scenario $scenario): void
+    public function testViewIndexReturnsExpectedWarninglist(ApiTester $I): void
     {
-        $scenario->skip('Warninglists under change, tests currently broken.');
         $orgId = 1;
         $userId = 1;
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);

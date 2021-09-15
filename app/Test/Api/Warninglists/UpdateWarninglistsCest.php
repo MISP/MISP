@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use \Helper\Fixture\Data\WarninglistFixture;
 use \Helper\Fixture\Data\UserFixture;
 use \Codeception\Scenario;
 
@@ -24,7 +23,7 @@ class UpdateWarninglistCest
 
     public function testUpdate(ApiTester $I, Scenario $scenario): void
     {
-        $scenario->skip('Warninglists under change, tests currently broken.');
+        $scenario->skip('/warninglists/updates takes too long.');
         $orgId = 1;
         $userId = 1;
         $warninglistId = 1;
