@@ -913,6 +913,8 @@ class User extends AppModel
         unset($fields['certif_public']);
         // Do not fetch password from db, it is automatically fetched by BaseAuthenticate::_findUser
         unset($fields['password']);
+        // Do not fetch authkey from db, it is sensitive and not need
+        unset($fields['authkey']);
         $fields = array_keys($fields);
 
         foreach ($this->belongsTo as $relatedModel => $foo) {
