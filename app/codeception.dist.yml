@@ -45,6 +45,9 @@ suites:
                           - "DELETE FROM misp.correlations;"
                           - "DELETE FROM misp.logs;"
                           - "DELETE FROM misp.user_settings;"
+                          - "DELETE FROM misp.taxonomies;"
+                          - "DELETE FROM misp.taxonomy_entries;"
+                          - "DELETE FROM misp.taxonomy_predicates;"
                 - Redis:
                       host: "127.0.0.1"
                       port: 63790
@@ -69,6 +72,16 @@ suites:
                     dsn: "mysql:host=127.0.0.1;port=33060;dbname=misp"
                     user: "misp"
                     password: "example"
+
+coverage:
+    enabled: false
+    remote: false
+    include:
+        - "Controller/*"
+        - "Model/*"
+    remote_context_options:
+        ssl:
+            verify_peer: false
 
 paths:
     tests: Test/Api
