@@ -1282,6 +1282,9 @@ class Attribute extends AppModel
             case 'domain|ip':
                 $value = strtolower($value);
                 $parts = explode('|', $value);
+                if (!isset($parts[1])) {
+                    return $value; // not a composite
+                }
                 $parts[0] = trim($parts[0], '.');
                 // Domain is not valid, try to convert to punycode
                 if (!$this->isDomainValid($parts[0]) && function_exists('idn_to_ascii')) {
@@ -1292,10 +1295,9 @@ class Attribute extends AppModel
                 }
                 if (filter_var($parts[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                     // convert IPv6 address to compressed format
-                    $parts[1] = inet_ntop(inet_pton($value));
+                    $parts[1] = inet_ntop(inet_pton($parts[1]));
                 }
-                $value = implode('|', $parts);
-                break;
+                return "$parts[0]|$parts[1]";
             case 'filename|md5':
             case 'filename|sha1':
             case 'filename|imphash':
