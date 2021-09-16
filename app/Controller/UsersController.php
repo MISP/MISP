@@ -45,7 +45,7 @@ class UsersController extends AppController
 
     public function view($id = null)
     {
-        if ("me" == $id) {
+        if ("me" === $id) {
             $id = $this->Auth->user('id');
         }
         if (!$this->_isSiteAdmin() && $this->Auth->user('id') != $id) {
@@ -72,13 +72,6 @@ class UsersController extends AppController
             $user['User']['fingerprint'] = !empty($pgpDetails[4]) ? $pgpDetails[4] : 'N/A';
         }
         if ($this->_isRest()) {
-            unset($user['User']['server_id']);
-            $user['User']['password'] = '*****';
-            $temp = array();
-            foreach ($user['UserSetting'] as $k => $v) {
-                $temp[$v['setting']] = $v['value'];
-            }
-            $user['UserSetting'] = $temp;
             return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
         } else {
             $this->set('user', $user);
@@ -86,13 +79,19 @@ class UsersController extends AppController
         }
     }
 
-    private function __massageUserObject($user)
+    /**
+     * @param array $user
+     * @return array
+     */
+    private function __massageUserObject(array $user)
     {
+        $user['UserSetting'] = array_column($user['UserSetting'], 'value', 'setting');
         unset($user['User']['server_id']);
         if (!empty(Configure::read('Security.advanced_authkeys'))) {
             unset($user['User']['authkey']);
         }
         $user['User']['password'] = '*****';
+        $temp = [];
         $objectsToInclude = array('User', 'Role', 'UserSetting', 'Organisation');
         foreach ($objectsToInclude as $objectToInclude) {
             if (isset($user[$objectToInclude])) {
@@ -2324,9 +2323,6 @@ class UsersController extends AppController
 
     public function verifyGPG($full = false)
     {
-        if (!self::_isSiteAdmin()) {
-            throw new NotFoundException();
-        }
         $user_results = $this->User->verifyGPG($full);
         $this->set('users', $user_results);
     }

@@ -530,12 +530,12 @@ class User extends AppModel
                 $sortedKeys['valid']++;
             }
             if (!$sortedKeys['valid']) {
-                $result[2] = 'The user\'s GnuPG key does not include a valid subkey that could be used for encryption.';
+                $result[2] = 'The user\'s PGP key does not include a valid subkey that could be used for encryption.';
                 if ($sortedKeys['expired']) {
-                    $result[2] .= ' Found ' . $sortedKeys['expired'] . ' subkey(s) that have expired.';
+                    $result[2] .= ' ' . __n('Found %s subkey that have expired.', 'Found %s subkeys that have expired.', $sortedKeys['expired'], $sortedKeys['expired']);
                 }
                 if ($sortedKeys['noEncrypt']) {
-                    $result[2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
+                    $result[2] .= ' ' . __n('Found %s subkey that is sign only.', 'Found %s subkeys that are sign only.', $sortedKeys['noEncrypt'], $sortedKeys['noEncrypt']);
                 }
             } else {
                 $result[0] = true;
@@ -555,6 +555,7 @@ class User extends AppModel
         }
         $users = $this->find('all', array(
             'conditions' => $conditions,
+            'fields' => ['id', 'email', 'gpgkey'],
             'recursive' => -1,
         ));
         if (empty($users)) {
@@ -565,7 +566,7 @@ class User extends AppModel
             return [];
         }
         $results = [];
-        foreach ($users as $k => $user) {
+        foreach ($users as $user) {
             $results[$user['User']['id']] = $this->verifySingleGPG($user);
         }
         return $results;
