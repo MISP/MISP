@@ -323,7 +323,7 @@ class AppController extends Controller
             }
             if (!$this->_isControllerAction(['users' => $preAuthActions, 'servers' => ['cspReport']])) {
                 if (!$this->request->is('ajax')) {
-                    $this->Session->write('pre_login_requested_url', $this->here);
+                    $this->Session->write('pre_login_requested_url', $this->request->here);
                 }
                 $this->_redirectToLogin();
             }
@@ -422,8 +422,6 @@ class AppController extends Controller
                     . str_repeat('*', 32)
                     . substr($authKey, -4);
                 if ($user) {
-                    unset($user['gpgkey']);
-                    unset($user['certif_public']);
                     // User found in the db, add the user info to the session
                     if (Configure::read('MISP.log_auth')) {
                         $this->loadModel('Log');
@@ -435,7 +433,7 @@ class AppController extends Controller
                             'email' => $user['email'],
                             'action' => 'auth',
                             'title' => "Successful authentication using API key ($authKeyToStore)",
-                            'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+                            'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here,
                         );
                         $this->Log->save($log);
                     }
@@ -676,7 +674,7 @@ class AppController extends Controller
         }
 
         if (Configure::read('MISP.log_paranoid') || $userMonitoringEnabled) {
-            $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
+            $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here;
             if (
                 (
                     $this->request->is('post') ||
@@ -1223,8 +1221,6 @@ class AppController extends Controller
                 $temp = $this->checkExternalAuthUser($server[$headerNamespace . $header]);
                 $user['User'] = $temp;
                 if ($user['User']) {
-                    unset($user['User']['gpgkey']);
-                    unset($user['User']['certif_public']);
                     $this->User->updateLoginTimes($user['User']);
                     $this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user['User']);
@@ -1238,7 +1234,7 @@ class AppController extends Controller
                             'email' => $user['User']['email'],
                             'action' => 'auth',
                             'title' => 'Successful authentication using ' . $authName . ' key',
-                            'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+                            'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->request->here,
                         );
                         $this->Log->save($log);
                     }

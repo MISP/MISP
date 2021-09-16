@@ -653,17 +653,26 @@ class User extends AppModel
         );
     }
 
-    // get the current user and rearrange it to be in the same format as in the auth component
-    public function getAuthUser($id)
+    /**
+     * Get the current user and rearrange it to be in the same format as in the auth component.
+     * @param int $id
+     * @param bool $full
+     * @return array|null
+     */
+    public function getAuthUser($id, $full = false)
     {
         if (empty($id)) {
             throw new InvalidArgumentException('Invalid user ID.');
         }
         $conditions = ['User.id' => $id];
-        return $this->getAuthUserByConditions($conditions);
+        return $this->getAuthUserByConditions($conditions, $full);
     }
 
-    // get the current user and rearrange it to be in the same format as in the auth component
+    /**
+     * Get the current user and rearrange it to be in the same format as in the auth component.
+     * @param string $authkey
+     * @return array|null
+     */
     public function getAuthUserByAuthkey($authkey)
     {
         if (empty($authkey)) {
@@ -673,6 +682,10 @@ class User extends AppModel
         return $this->getAuthUserByConditions($conditions);
     }
 
+    /**
+     * @param string $auth_key
+     * @return array|null
+     */
     public function getAuthUserByExternalAuth($auth_key)
     {
         if (empty($auth_key)) {
@@ -686,13 +699,16 @@ class User extends AppModel
     }
 
     /**
+     * Get user model with Role, Organisation and Server, but without PGP and S/MIME keys
      * @param array $conditions
+     * @param bool $full When true, fetch all user fields.
      * @return array|null
      */
-    private function getAuthUserByConditions(array $conditions)
+    private function getAuthUserByConditions(array $conditions, $full = false)
     {
         $user = $this->find('first', [
             'conditions' => $conditions,
+            'fields' => $full ? [] : $this->describeAuthFields(),
             'recursive' => -1,
             'contain' => [
                 'Organisation',
@@ -895,6 +911,10 @@ class User extends AppModel
         // Do not include keys, because they are big and usually not necessary
         unset($fields['gpgkey']);
         unset($fields['certif_public']);
+        // Do not fetch password from db, it is automatically fetched by BaseAuthenticate::_findUser
+        unset($fields['password']);
+        // Do not fetch authkey from db, it is sensitive and not need
+        unset($fields['authkey']);
         $fields = array_keys($fields);
 
         foreach ($this->belongsTo as $relatedModel => $foo) {
