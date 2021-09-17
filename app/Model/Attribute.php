@@ -374,11 +374,10 @@ class Attribute extends AppModel
         // explode value of composite type in value1 and value2
         // or copy value to value1 if not composite type
         if (!empty($this->data['Attribute']['type'])) {
-            $compositeTypes = $this->getCompositeTypes();
             // explode composite types in value1 and value2
-            if (in_array($this->data['Attribute']['type'], $compositeTypes, true)) {
+            if (in_array($this->data['Attribute']['type'], $this->getCompositeTypes(), true)) {
                 $pieces = explode('|', $this->data['Attribute']['value']);
-                if (2 != count($pieces)) {
+                if (2 !== count($pieces)) {
                     throw new InternalErrorException(__('Composite type, but value not explodable'));
                 }
                 $this->data['Attribute']['value1'] = $pieces[0];
@@ -543,30 +542,40 @@ class Attribute extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
-        if (!isset($this->data['Attribute']['type'])) {
+        if (empty($this->data['Attribute']['type'])) {
             $this->validationErrors['type'] = ['No type set.'];
             return false;
         }
+        $type = $this->data['Attribute']['type'];
         if (is_array($this->data['Attribute']['value'])) {
-            $this->validationErrors['type'] = ['Value is an array.'];
+            $this->validationErrors['value'] = ['Value is an array.'];
             return false;
         }
-        App::uses('ComplexTypeTool', 'Tools');
-        $this->data['Attribute']['value'] = ComplexTypeTool::refangValue($this->data['Attribute']['value'], $this->data['Attribute']['type']);
 
         if (!empty($this->data['Attribute']['object_id']) && empty($this->data['Attribute']['object_relation'])) {
-            $this->validationErrors['type'] = ['Object attribute sent, but no object_relation set.'];
+            $this->validationErrors['object_relation'] = ['Object attribute sent, but no object_relation set.'];
             return false;
         }
-        // remove leading and trailing blanks
-        $this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
-        // make some last changes to the inserted value
-        $this->data['Attribute']['value'] = $this->modifyBeforeValidation($this->data['Attribute']['type'], $this->data['Attribute']['value']);
 
-        // set to_ids if it doesn't exist
-        if (empty($this->data['Attribute']['to_ids'])) {
-            $this->data['Attribute']['to_ids'] = 0;
+        // If `value1` or `value2` provided and `value` is empty, merge them into `value` because of validation
+        if (empty($this->data['Attribute']['value'])) {
+            if (!empty($this->data['Attribute']['value1']) && !empty($this->data['Attribute']['value2'])) {
+                $this->data['Attribute']['value'] = "{$this->data['Attribute']['value1']}|{$this->data['Attribute']['value2']}";
+            } else if (!empty($this->data['Attribute']['value1'])) {
+                $this->data['Attribute']['value'] = $this->data['Attribute']['value1'];
+            }
+        }
+
+        // remove leading and trailing blanks and refang value and
+        $this->data['Attribute']['value'] = ComplexTypeTool::refangValue(trim($this->data['Attribute']['value']), $type);
+        // make some changes to the inserted value
+        $this->data['Attribute']['value'] = $this->modifyBeforeValidation($type, $this->data['Attribute']['value']);
+        // Run user defined regexp to attribute value
+        $result = $this->runRegexp($type, $this->data['Attribute']['value']);
+        if ($result === false) {
+            $this->invalidate('value', 'This value is blocked by a regular expression in the import filters.');
+        } else {
+            $this->data['Attribute']['value'] = $result;
         }
 
         if (empty($this->data['Attribute']['comment'])) {
@@ -580,8 +589,7 @@ class Attribute extends AppModel
         }
         // generate timestamp if it doesn't exist
         if (empty($this->data['Attribute']['timestamp'])) {
-            $date = new DateTime();
-            $this->data['Attribute']['timestamp'] = $date->getTimestamp();
+            $this->data['Attribute']['timestamp'] = time();
         }
 
         // parse first_seen different formats
@@ -593,30 +601,21 @@ class Attribute extends AppModel
             $this->data['Attribute']['last_seen'] = $this->data['Attribute']['last_seen'] === '' ? null : $this->data['Attribute']['last_seen'];
         }
 
-        // TODO: add explanatory comment
-        // TODO: i18n?
-        $result = $this->runRegexp($this->data['Attribute']['type'], $this->data['Attribute']['value']);
-        if ($result === false) {
-            $this->invalidate('value', 'This value is blocked by a regular expression in the import filters.');
-        } else {
-            $this->data['Attribute']['value'] = $result;
-        }
-
         // Set defaults for when some of the mandatory fields don't have defaults
         // These fields all have sane defaults either based on another field, or due to server settings
         if (!isset($this->data['Attribute']['distribution'])) {
             $this->data['Attribute']['distribution'] = Configure::read('MISP.default_attribute_distribution');
-            if ($this->data['Attribute']['distribution'] == 'event') {
+            if ($this->data['Attribute']['distribution'] === 'event') {
                 $this->data['Attribute']['distribution'] = 5;
             }
         }
-
-        if (!empty($this->data['Attribute']['type']) && empty($this->data['Attribute']['category'])) {
-            $this->data['Attribute']['category'] = $this->typeDefinitions[$this->data['Attribute']['type']]['default_category'];
+        // If category is not provided, assign default category by type
+        if (empty($this->data['Attribute']['category'])) {
+            $this->data['Attribute']['category'] = $this->typeDefinitions[$type]['default_category'];
         }
 
         if (!isset($this->data['Attribute']['to_ids'])) {
-            $this->data['Attribute']['to_ids'] = $this->typeDefinitions[$this->data['Attribute']['type']]['to_ids'];
+            $this->data['Attribute']['to_ids'] = $this->typeDefinitions[$type]['to_ids'];
         }
 
         if ($this->data['Attribute']['distribution'] != 4) {
@@ -628,8 +627,7 @@ class Attribute extends AppModel
 
     public function validComposite($fields)
     {
-        $compositeTypes = $this->getCompositeTypes();
-        if (in_array($this->data['Attribute']['type'], $compositeTypes, true)) {
+        if (in_array($this->data['Attribute']['type'], $this->getCompositeTypes(), true)) {
             if (substr_count($fields['value'], '|') !== 1) {
                 return false;
             }
@@ -642,7 +640,7 @@ class Attribute extends AppModel
         if (ctype_cntrl($this->data['Attribute']['value'])) {
             return false;
         }
-        if (in_array($this->data['Attribute']['type'], $this->getCompositeTypes())) {
+        if (in_array($this->data['Attribute']['type'], $this->getCompositeTypes(), true)) {
             $values = explode('|', $this->data['Attribute']['value']);
             if (ctype_cntrl($values[0])) {
                 return false;
@@ -696,7 +694,7 @@ class Attribute extends AppModel
         );
 
         $value = $fields['value'];
-        if (in_array($type, $this->getCompositeTypes())) {
+        if (in_array($type, $this->getCompositeTypes(), true)) {
             $value = explode('|', $value);
             $conditions['Attribute.value1'] = $value[0];
             $conditions['Attribute.value2'] = $value[1];
