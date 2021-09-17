@@ -9,10 +9,24 @@ use \Helper\Fixture\FixtureInterface;
 
 class TaxonomyPredicateFixture extends AbstractFixture implements FixtureInterface
 {
+    /** @var TaxonomyEntryFixture[]  */
+    private $entries;
+
     /**
      * @param array<mixed> $attributes
+     * @param array<TaxonomyEntryFixture> $entries
      */
-    public static function fake(array $attributes = []): TaxonomyPredicateFixture
+    public function __construct(array $attributes = [], array $entries = [])
+    {
+        $this->entries = $entries;
+        parent::__construct($attributes);
+    }
+
+    /**
+     * @param array<mixed> $attributes
+     * @param array<TaxonomyEntryFixture> $entries
+     */
+    public static function fake(array $attributes = [], $entries = []): TaxonomyPredicateFixture
     {
         $faker = \Faker\Factory::create();
 
@@ -27,6 +41,16 @@ class TaxonomyPredicateFixture extends AbstractFixture implements FixtureInterfa
             'numerical_value' => null,
         ];
 
-        return new TaxonomyPredicateFixture(array_merge($defaults, $attributes));
+        return new TaxonomyPredicateFixture(array_merge($defaults, $attributes), $entries);
+    }
+    /**
+     * @return array<mixed>
+     */
+    public function toExportResponse(): array
+    {
+        return [
+            'value' => $this->attributes['value'],
+            'expanded' => $this->attributes['expanded'],
+        ];
     }
 }

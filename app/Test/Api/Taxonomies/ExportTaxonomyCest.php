@@ -7,12 +7,12 @@ use \Helper\Fixture\Data\TaxonomyEntryFixture;
 use \Helper\Fixture\Data\TaxonomyPredicateFixture;
 use \Helper\Fixture\Data\UserFixture;
 
-class ViewTaxonomyCest
+class ExportTaxonomyCest
 {
 
-    private const URL = '/taxonomies/view/%s';
+    private const URL = '/taxonomies/export/%s';
 
-    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
+    public function testExportReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $taxonomyId = 1;
         $I->sendGet(sprintf(self::URL, $taxonomyId));
@@ -24,7 +24,7 @@ class ViewTaxonomyCest
         $I->seeResponseIsJson();
     }
 
-    public function testViewReturnsExpectedTaxonomy(ApiTester $I): void
+    public function testExportTaxonomy(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;
@@ -32,16 +32,18 @@ class ViewTaxonomyCest
         $taxonomyPredicateId = 1;
         $I->haveAuthorizationKey($orgId, $userId, UserFixture::ROLE_ADMIN);
 
-        $fakeTaxonomy = TaxonomyFixture::fake(['id' => $taxonomyId, 'namespace' => 'foo']);
-        $fakeTaxonomyPredicate = TaxonomyPredicateFixture::fake([
-            'id' => $taxonomyPredicateId,
-            'taxonomy_id' => $taxonomyId,
-            'value' => 'bar'
-        ]);
         $fakeTaxonomyEntry = TaxonomyEntryFixture::fake([
             'taxonomy_predicate_id' => $taxonomyPredicateId,
-            'value' => 'leet'
         ]);
+        $fakeTaxonomyPredicate = TaxonomyPredicateFixture::fake(
+            [
+                'id' => $taxonomyPredicateId,
+                'taxonomy_id' => $taxonomyId,
+                'value' => 'bar'
+            ],
+            [$fakeTaxonomyEntry]
+        );
+        $fakeTaxonomy = TaxonomyFixture::fake(['id' => $taxonomyId, 'namespace' => 'foo'], [$fakeTaxonomyPredicate]);
         $I->haveInDatabase('taxonomies', $fakeTaxonomy->toDatabase());
         $I->haveInDatabase('taxonomy_predicates', $fakeTaxonomyPredicate->toDatabase());
         $I->haveInDatabase('taxonomy_entries', $fakeTaxonomyEntry->toDatabase());
@@ -53,14 +55,7 @@ class ViewTaxonomyCest
 
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson(
-            [
-                'Taxonomy' => $fakeTaxonomy->toResponse(),
-                'entries' => [
-                    [
-                        'tag' => 'foo:bar="leet"'
-                    ]
-                ]
-            ]
+            $fakeTaxonomy->toExportResponse(),
         );
     }
 }

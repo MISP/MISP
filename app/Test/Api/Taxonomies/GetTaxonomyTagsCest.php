@@ -7,12 +7,12 @@ use \Helper\Fixture\Data\TaxonomyEntryFixture;
 use \Helper\Fixture\Data\TaxonomyPredicateFixture;
 use \Helper\Fixture\Data\UserFixture;
 
-class ViewTaxonomyCest
+class GetTaxonomyTagsCest
 {
 
-    private const URL = '/taxonomies/view/%s';
+    private const URL = '/taxonomies/taxonomy_tags/%s';
 
-    public function testViewReturnsForbiddenWithoutAuthKey(ApiTester $I): void
+    public function testGetTaxonomyTagsReturnsForbiddenWithoutAuthKey(ApiTester $I): void
     {
         $taxonomyId = 1;
         $I->sendGet(sprintf(self::URL, $taxonomyId));
@@ -24,7 +24,7 @@ class ViewTaxonomyCest
         $I->seeResponseIsJson();
     }
 
-    public function testViewReturnsExpectedTaxonomy(ApiTester $I): void
+    public function testGetTaxonomyTags(ApiTester $I): void
     {
         $orgId = 1;
         $userId = 1;
@@ -57,7 +57,9 @@ class ViewTaxonomyCest
                 'Taxonomy' => $fakeTaxonomy->toResponse(),
                 'entries' => [
                     [
-                        'tag' => 'foo:bar="leet"'
+                        'tag' => 'foo:bar="leet"',
+                        'events' => 0,
+                        'attributes' => 0
                     ]
                 ]
             ]
