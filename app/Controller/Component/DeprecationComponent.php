@@ -1,8 +1,6 @@
 <?php
 class DeprecationComponent extends Component
 {
-    public $redis = false;
-
     /*
      *  Deprecated endpoints
      *  - simple controller->action structure
@@ -10,7 +8,8 @@ class DeprecationComponent extends Component
      */
     private $deprecatedEndpoints;
 
-    public function initialize(Controller $controller) {
+    public function initialize(Controller $controller)
+    {
         $this->deprecatedEndpoints = array(
             'attributes' => array(
                 'rpz' => __('Use /attributes/restSearch to export RPZ rules.'),
@@ -40,7 +39,7 @@ class DeprecationComponent extends Component
         );
     }
 
-    public function checkDeprecation($controller, $action, $model, $user_id)
+    public function checkDeprecation($controller, $action, AppModel $model, $user_id)
     {
         if (isset($this->deprecatedEndpoints[$controller][$action])) {
             $this->__logDeprecatedAccess($controller, $action, $model, $user_id);
@@ -51,11 +50,11 @@ class DeprecationComponent extends Component
         return false;
     }
 
-    private function __logDeprecatedAccess($controller, $action, $model, $user_id)
+    private function __logDeprecatedAccess($controller, $action, AppModel $model, $user_id)
     {
-        $this->redis = $model->setupRedis();
-        if ($this->redis) {
-            @$this->redis->hincrby(
+        $redis = $model->setupRedis();
+        if ($redis) {
+            @$redis->hincrby(
                 'misp:deprecation',
                 "$controller:$action:$user_id",
                 1
@@ -64,12 +63,12 @@ class DeprecationComponent extends Component
         return false;
     }
 
-    public function getDeprecatedAccessList($model)
+    public function getDeprecatedAccessList(AppModel $model)
     {
         $rearranged = array();
-        $this->redis = $model->setupRedis();
-        if ($this->redis) {
-            @$result = $this->redis->hGetAll('misp:deprecation');
+        $redis = $model->setupRedis();
+        if ($redis) {
+            $result = $redis->hGetAll('misp:deprecation');
             if (!empty($result)) {
                 foreach ($result as $key => $value) {
                     $key_components = explode(':', $key);
