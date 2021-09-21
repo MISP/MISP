@@ -263,6 +263,7 @@ class AppController extends Controller
             if (!$this->__verifyUser($user))  {
                 $this->_stop(); // just for sure
             }
+            $user = $this->Auth->user(); // user info in session could change, reload user variable
 
             if (isset($user['logged_by_authkey']) && $user['logged_by_authkey'] && !($this->_isRest() || $this->_isAutomation())) {
                 throw new ForbiddenException("When user is authenticated by authkey, just REST request can be processed");
@@ -331,7 +332,7 @@ class AppController extends Controller
             $this->set('me', false);
         }
 
-        if ($this->Auth->user() && $this->_isSiteAdmin()) {
+        if ($user && $this->_isSiteAdmin()) {
             if (Configure::read('Session.defaults') === 'database') {
                 $db = ConnectionManager::getDataSource('default');
                 $sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
@@ -345,12 +346,12 @@ class AppController extends Controller
             }
         }
 
-        $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->request->action);
-        if ($this->_isRest()) {
-            $this->__rateLimitCheck();
+        $this->ACL->checkAccess($user, Inflector::variable($this->request->params['controller']), $this->request->action);
+        if ($this->_isRest() && $user) {
+            $this->__rateLimitCheck($user);
         }
         if ($this->modelClass !== 'CakeError') {
-            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->request->action, $this->{$this->modelClass}, $this->Auth->user('id'));
+            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->request->action, $this->{$this->modelClass}, $user['id']);
             if ($deprecationWarnings) {
                 $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
                 if ($this->_isRest()) {
@@ -363,15 +364,15 @@ class AppController extends Controller
         }
 
         // Notifications and homepage is not necessary for AJAX or REST requests
-        if ($this->Auth->user() && !$this->_isRest() && !$this->request->is('ajax')) {
+        if ($user && !$this->_isRest() && !$this->request->is('ajax')) {
             if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
-                $notifications = $this->User->populateNotifications($this->Auth->user());
+                $notifications = $this->User->populateNotifications($user);
             } else {
-                $notifications = $this->User->populateNotifications($this->Auth->user(), 'fast');
+                $notifications = $this->User->populateNotifications($user, 'fast');
             }
             $this->set('notifications', $notifications);
 
-            $homepage = $this->User->UserSetting->getValueForUser($this->Auth->user('id'), 'homepage');
+            $homepage = $this->User->UserSetting->getValueForUser($user['id'], 'homepage');
             if (!empty($homepage)) {
                 $this->set('homepage', $homepage);
             }
@@ -756,11 +757,11 @@ class AppController extends Controller
         }
     }
 
-    private function __rateLimitCheck()
+    private function __rateLimitCheck(array $user)
     {
         $info = array();
         $rateLimitCheck = $this->RateLimit->check(
-            $this->Auth->user(),
+            $user,
             $this->request->params['controller'],
             $this->request->action,
             $this->{$this->modelClass},

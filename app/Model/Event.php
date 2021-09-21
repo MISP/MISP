@@ -442,7 +442,6 @@ class Event extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
         // analysis - setting correct vars
         if (isset($this->data['Event']['analysis'])) {
             switch ($this->data['Event']['analysis']) {
@@ -468,7 +467,7 @@ class Event extends AppModel
         if (empty($this->data['Event']['uuid'])) {
             $this->data['Event']['uuid'] = CakeText::uuid();
         } else {
-            $this->data['Event']['uuid'] = strtolower($this->data['Event']['uuid'] );
+            $this->data['Event']['uuid'] = strtolower($this->data['Event']['uuid']);
         }
 
         // Convert event ID to uuid if needed
@@ -489,8 +488,7 @@ class Event extends AppModel
 
         // generate timestamp if it doesn't exist
         if (empty($this->data['Event']['timestamp'])) {
-            $date = new DateTime();
-            $this->data['Event']['timestamp'] = $date->getTimestamp();
+            $this->data['Event']['timestamp'] = time();
         }
 
         if (isset($this->data['Event']['publish_timestamp']) && empty($this->data['Event']['publish_timestamp'])) {
@@ -517,8 +515,7 @@ class Event extends AppModel
                 $updateCorrelation['Correlation.sharing_group_id'] = (int)$this->data['Event']['sharing_group_id'];
             }
             if (!empty($updateCorrelation)) {
-                $this->Correlation = ClassRegistry::init('Correlation');
-                $this->Correlation->updateAll($updateCorrelation, ['Correlation.event_id' => (int)$this->data['Event']['id']]);
+                $this->Attribute->Correlation->updateAll($updateCorrelation, ['Correlation.event_id' => (int)$this->data['Event']['id']]);
             }
         }
         if (empty($this->data['Event']['unpublishAction']) && empty($this->data['Event']['skip_zmq']) && Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
@@ -571,11 +568,10 @@ class Event extends AppModel
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
         }
-        $this->Correlation = ClassRegistry::init('Correlation');
         $eventIds = array_column(array_column($events, 'Event'), 'id');
         $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventIds, $sgids);
-        $this->Correlation->virtualFields['count'] = 'count(distinct(Correlation.event_id))';
-        $correlations = $this->Correlation->find('list', array(
+        $this->Attribute->Correlation->virtualFields['count'] = 'count(distinct(Correlation.event_id))';
+        $correlations = $this->Attribute->Correlation->find('list', array(
             'fields' => array('Correlation.1_event_id', 'Correlation.count'),
             'conditions' => $conditionsCorrelation,
             'group' => array('Correlation.1_event_id'),
