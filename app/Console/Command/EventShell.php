@@ -349,7 +349,7 @@ class EventShell extends AppShell
     public function publish()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
+        if (empty($this->args[0]) || empty($this->args[2]) || empty($this->args[3])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish event'] . PHP_EOL);
         }
 
