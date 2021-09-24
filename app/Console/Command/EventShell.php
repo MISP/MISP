@@ -236,7 +236,7 @@ class EventShell extends AppShell
     public function alertemail()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Alert email'] . PHP_EOL);
         }
 
@@ -376,7 +376,7 @@ class EventShell extends AppShell
     public function publish_sightings()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
+        if (empty($this->args[0]) || empty($this->args[2]) || empty($this->args[3])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish sightings'] . PHP_EOL);
         }
 
