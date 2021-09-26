@@ -129,9 +129,9 @@ class AppController extends Controller
             $this->sql_dump = intval($this->request->params['named']['sql']);
         }
 
-        $this->_setupDebugMode();
         $this->_setupDatabaseConnection();
 
+        $this->set('debugMode', Configure::read('debug') >= 1 ? 'debugOn' : 'debugOff');
         $this->set('ajax', $this->request->is('ajax'));
         $this->set('queryVersion', $this->__queryVersion);
         $this->User = ClassRegistry::init('User');
@@ -623,7 +623,7 @@ class AppController extends Controller
         if (!isset($actionsToCheck[$controller])) {
             return false;
         }
-        return in_array($this->request->action, $actionsToCheck[$controller], true);
+        return in_array($this->request->params['action'], $actionsToCheck[$controller], true);
     }
 
     /**
@@ -644,7 +644,7 @@ class AppController extends Controller
 
         $remoteAddress = $this->_remoteIp();
 
-        $pipe = $redis->multi(Redis::PIPELINE);
+        $pipe = $redis->pipeline();
         // keep for 30 days
         $pipe->setex('misp:ip_user:' . $remoteAddress, 60 * 60 * 24 * 30, $user['id']);
         $pipe->sadd('misp:user_ip:' . $user['id'], $remoteAddress);
@@ -802,17 +802,11 @@ class AppController extends Controller
     }
 
     /*
-     * Configure the debugMode view parameter
-     */
-    protected function _setupDebugMode() {
-        $this->set('debugMode', (Configure::read('debug') >= 1) ? 'debugOn' : 'debugOff');
-    }
-
-    /*
      * Setup & validate the database connection configuration
      * @throws Exception if the configured database is not supported.
      */
-    protected function _setupDatabaseConnection() {
+    protected function _setupDatabaseConnection()
+    {
         // check for a supported datasource configuration
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         if (!isset($dataSourceConfig['encoding'])) {
@@ -1236,14 +1230,13 @@ class AppController extends Controller
         }
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
+            if ($returnFormat === 'download') {
+                $returnFormat = 'json';
+            } else if ($returnFormat === 'stix' && $this->IndexFilter->isJson()) {
+                $returnFormat = 'stix-json';
+            }
         } else {
             $returnFormat = 'json';
-        }
-        if ($returnFormat === 'download') {
-            $returnFormat = 'json';
-        }
-        if ($returnFormat === 'stix' && $this->IndexFilter->isJson()) {
-            $returnFormat = 'stix-json';
         }
         $elementCounter = 0;
         $renderView = false;
