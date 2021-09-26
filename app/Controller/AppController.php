@@ -411,7 +411,7 @@ class AppController extends Controller
                 $authKey = trim($authKey);
                 if (preg_match('/^[a-zA-Z0-9]{40}$/', $authKey)) {
                     $foundMispAuthKey = true;
-                    $temp = $this->checkAuthUser($authKey);
+                    $temp = $this->_checkAuthUser($authKey);
                     if ($temp) {
                         $user = $temp;
                         break;
@@ -895,7 +895,7 @@ class AppController extends Controller
     {
         if (strlen($key) === 40) {
             // check if the key is valid -> search for users based on key
-            $user = $this->checkAuthUser($key);
+            $user = $this->_checkAuthUser($key);
             if (!$user) {
                 $exception = $this->RestResponse->throwException(
                     401,
@@ -992,7 +992,7 @@ class AppController extends Controller
         return $data;
     }
 
-    public function checkAuthUser($authkey)
+    protected function _checkAuthUser($authkey)
     {
         if (Configure::read('Security.advanced_authkeys')) {
             $user = $this->User->AuthKey->getAuthUserByAuthKey($authkey);
@@ -1010,160 +1010,13 @@ class AppController extends Controller
         return $user;
     }
 
-    public function checkExternalAuthUser($authkey)
+    private function _checkExternalAuthUser($authkey)
     {
         $user = $this->User->getAuthUserByExternalAuth($authkey);
         if (empty($user)) {
             return false;
         }
         return $user;
-    }
-
-    public function generateCount()
-    {
-        if (!self::_isSiteAdmin() || !$this->request->is('post')) {
-            throw new NotFoundException();
-        }
-        // do one SQL query with the counts
-        // loop over events, update in db
-        $this->loadModel('Attribute');
-        $events = $this->Attribute->find('all', array(
-            'recursive' => -1,
-            'fields' => array('event_id', 'count(event_id) as attribute_count'),
-            'group' => array('Attribute.event_id'),
-            'order' => array('Attribute.event_id ASC'),
-        ));
-        foreach ($events as $k => $event) {
-            $this->Event->read(null, $event['Attribute']['event_id']);
-            $this->Event->set('attribute_count', $event[0]['attribute_count']);
-            $this->Event->save();
-        }
-        $this->Flash->success(__('All done. attribute_count generated from scratch for ' . (isset($k) ? $k : 'no') . ' events.'));
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-    }
-
-    public function pruneDuplicateUUIDs()
-    {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->loadModel('Attribute');
-        $duplicates = $this->Attribute->find('all', array(
-            'fields' => array('Attribute.uuid', 'count(*) as occurance'),
-            'recursive' => -1,
-            'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
-        ));
-        $counter = 0;
-        foreach ($duplicates as $duplicate) {
-            $attributes = $this->Attribute->find('all', array(
-                'recursive' => -1,
-                'conditions' => array('uuid' => $duplicate['Attribute']['uuid'])
-            ));
-            foreach ($attributes as $k => $attribute) {
-                if ($k > 0) {
-                    $this->Attribute->delete($attribute['Attribute']['id']);
-                    $counter++;
-                }
-            }
-        }
-        $this->Server->updateDatabase('makeAttributeUUIDsUnique');
-        $this->Flash->success('Done. Deleted ' . $counter . ' duplicate attribute(s).');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-    }
-
-    public function removeDuplicateEvents()
-    {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->loadModel('Event');
-        $duplicates = $this->Event->find('all', array(
-                'fields' => array('Event.uuid', 'count(*) as occurance'),
-                'recursive' => -1,
-                'group' => array('Event.uuid HAVING COUNT(*) > 1'),
-        ));
-        $counter = 0;
-
-        // load this so we can remove the blocklist item that will be created, this is the one case when we do not want it.
-        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-        }
-
-        foreach ($duplicates as $duplicate) {
-            $events = $this->Event->find('all', array(
-                    'recursive' => -1,
-                    'conditions' => array('uuid' => $duplicate['Event']['uuid'])
-            ));
-            foreach ($events as $k => $event) {
-                if ($k > 0) {
-                    $uuid = $event['Event']['uuid'];
-                    $this->Event->delete($event['Event']['id']);
-                    $counter++;
-                    // remove the blocklist entry that we just created with the event deletion, if the feature is enabled
-                    // We do not want to block the UUID, since we just deleted a copy
-                    if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-                        $this->EventBlocklist->deleteAll(array('EventBlocklist.event_uuid' => $uuid));
-                    }
-                }
-            }
-        }
-        $this->Server->updateDatabase('makeEventUUIDsUnique');
-        $this->Flash->success('Done. Removed ' . $counter . ' duplicate events.');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-    }
-
-    public function updateDatabase($command)
-    {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->loadModel('Server');
-        if (is_numeric($command)) {
-            $command = intval($command);
-        }
-        $this->Server->updateDatabase($command);
-        $this->Flash->success('Done.');
-        if ($liveOff) {
-            $this->redirect(array('controller' => 'servers', 'action' => 'updateProgress'));
-        } else {
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        }
-    }
-
-    public function upgrade2324()
-    {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->loadModel('Server');
-        if (!Configure::read('MISP.background_jobs')) {
-            $this->Server->upgrade2324($this->Auth->user('id'));
-            $this->Flash->success('Done. For more details check the audit logs.');
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        } else {
-            $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'upgrade_24',
-                    'job_input' => 'Old database',
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => 0,
-                    'message' => 'Job created.',
-            );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    array('jobUpgrade24', $jobId, $this->Auth->user('id')),
-                    true
-            );
-            $job->saveField('process_id', $process_id);
-            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        }
     }
 
     private function __preAuthException($message)
@@ -1206,7 +1059,7 @@ class AppController extends Controller
                     $this->Log->save($log);
                     $this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
                 }
-                $temp = $this->checkExternalAuthUser($server[$headerNamespace . $header]);
+                $temp = $this->_checkExternalAuthUser($server[$headerNamespace . $header]);
                 $user['User'] = $temp;
                 if ($user['User']) {
                     $this->User->updateLoginTimes($user['User']);
@@ -1252,17 +1105,6 @@ class AppController extends Controller
         return $result;
     }
 
-    public function cleanModelCaches()
-    {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->loadModel('Server');
-        $this->Server->cleanCacheFiles();
-        $this->Flash->success('Caches cleared.');
-        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));
-    }
-
     private function __sessionMassage()
     {
         if (empty(Configure::read('Session.cookie')) && !empty(Configure::read('MISP.uuid'))) {
@@ -1282,7 +1124,8 @@ class AppController extends Controller
         }
     }
 
-    private function _redirectToLogin() {
+    private function _redirectToLogin()
+    {
         $targetRoute = $this->Auth->loginAction;
         $targetRoute['admin'] = false;
         $this->redirect($targetRoute);

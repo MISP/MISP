@@ -3224,7 +3224,7 @@ class EventsController extends AppController
         $this->layout = 'text/default';
 
         if ($key != 'download') {
-            $user = $this->checkAuthUser($key);
+            $user = $this->_checkAuthUser($key);
             if (!$user) {
                 throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
             }
@@ -5797,6 +5797,29 @@ class EventsController extends AppController
             }
         }
         return $this->RestResponse->viewData($allConflicts);
+    }
+
+    public function generateCount()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException();
+        }
+        // do one SQL query with the counts
+        // loop over events, update in db
+        $this->loadModel('Attribute');
+        $events = $this->Attribute->find('all', array(
+            'recursive' => -1,
+            'fields' => array('event_id', 'count(event_id) as attribute_count'),
+            'group' => array('Attribute.event_id'),
+            'order' => array('Attribute.event_id ASC'),
+        ));
+        foreach ($events as $k => $event) {
+            $this->Event->read(null, $event['Attribute']['event_id']);
+            $this->Event->set('attribute_count', $event[0]['attribute_count']);
+            $this->Event->save();
+        }
+        $this->Flash->success(__('All done. attribute_count generated from scratch for ' . (isset($k) ? $k : 'no') . ' events.'));
+        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
     }
 
     /**
