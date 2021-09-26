@@ -7739,7 +7739,7 @@
     "indexes": {
         "admin_settings": {
             "id": true,
-            "setting": false
+            "setting": true
         },
         "allowedlist": {
             "id": true
