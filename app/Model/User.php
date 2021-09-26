@@ -231,12 +231,8 @@ class User extends AppModel
     {
         parent::__construct($id, $table, $ds);
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $db_version = $this->AdminSetting->find('first', [
-            'recursive' => -1,
-            'conditions' => ['setting' => 'db_version'],
-            'fields' => ['value']
-        ]);
-        if ($db_version['AdminSetting']['value'] >= 62) {
+        $db_version = $this->AdminSetting->getSetting('db_version');
+        if ($db_version >= 62) {
             $this->bindModel([
                 'hasMany' => ['AuthKey']
             ], false);

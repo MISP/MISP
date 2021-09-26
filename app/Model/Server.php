@@ -2806,9 +2806,7 @@ class Server extends AppModel
     public function dbSchemaDiagnostic()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $actualDbVersion = $this->AdminSetting->find('first', array(
-            'conditions' => array('setting' => 'db_version')
-        ))['AdminSetting']['value'];
+        $actualDbVersion = $this->AdminSetting->getSetting('db_version');
         $dataSource = $this->getDataSource()->config['datasource'];
         $schemaDiagnostic = array(
             'dataSource' => $dataSource,
