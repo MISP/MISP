@@ -416,6 +416,17 @@ class AdminShell extends AppShell
         }
     }
 
+    public function redisReady()
+    {
+        try {
+            $redis = $this->Server->setupRedisWithException();
+            $redis->randomKey();
+            $this->out('Successfully connected to Redis.');
+        } catch (Exception $e) {
+            $this->error('Redis connection is not available', $e->getMessage());
+        }
+    }
+
     public function clearBruteforce()
     {
         $this->ConfigLoad->execute();
