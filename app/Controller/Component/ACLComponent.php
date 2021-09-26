@@ -15,17 +15,9 @@ class ACLComponent extends Component
     private $__aclList = array(
             '*' => array(
                     'blackhole' => array(),
-                    'checkAuthUser' => array(),
-                    'checkExternalAuthUser' => array(),
-                    'cleanModelCaches' => array(),
                     'debugACL' => array(),
-                    'generateCount' => array(),
-                    'pruneDuplicateUUIDs' => array(),
                     'queryACL' => array(),
-                    'removeDuplicateEvents' => array(),
                     'restSearch' => array('*'),
-                    'updateDatabase' => array(),
-                    'upgrade2324' => array(),
             ),
             'attributes' => array(
                     'add' => array('perm_add'),
@@ -273,6 +265,7 @@ class ACLComponent extends Component
                     'xml' => array('*'),
                 'addEventLock' => ['perm_auth'],
                 'removeEventLock' => ['perm_auth'],
+                'generateCount' => array(),
             ),
             'favouriteTags' => array(
                 'toggle' => array('*'),
@@ -561,6 +554,11 @@ class ACLComponent extends Component
                     'viewDeprecatedFunctionUse' => array(),
                     'killAllWorkers' => ['perm_site_admin'],
                 'cspReport' => ['*'],
+                'pruneDuplicateUUIDs' => array(),
+                'removeDuplicateEvents' => array(),
+                'upgrade2324' => array(),
+                'cleanModelCaches' => array(),
+                'updateDatabase' => array(),
             ),
             'shadowAttributes' => array(
                     'accept' => array('perm_add'),

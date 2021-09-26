@@ -1784,12 +1784,12 @@ class AttributesController extends AppController
     public function downloadAttachment($key='download', $id)
     {
         if ($key != null && $key != 'download') {
-            $user = $this->checkAuthUser($key);
+            $user = $this->_checkAuthUser($key);
         } else {
             if (!$this->Auth->user()) {
                 throw new UnauthorizedException(__('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.'));
             }
-            $user = $this->checkAuthUser($this->Auth->user('authkey'));
+            $user = $this->_checkAuthUser($this->Auth->user('authkey'));
         }
         // if the user is authorised to use the api key then user will be populated with the user's account
         // in addition we also set a flag indicating whether the user is a site admin or not.
@@ -1927,7 +1927,7 @@ class AttributesController extends AppController
         }
         if ($key != 'download') {
             // check if the key is valid -> search for users based on key
-            $user = $this->checkAuthUser($key);
+            $user = $this->_checkAuthUser($key);
             if (!$user) {
                 throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
             }

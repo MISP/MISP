@@ -466,7 +466,7 @@
     </p>
     <h3><?php echo __('Clean model cache');?></h3>
     <p><?php echo __('If you ever run into issues with missing database fields / tables, please run the following script to clean the model cache.');?></p>
-    <?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">' . __('Clean cache') . '</span>', $baseurl . '/events/cleanModelCaches', array('escape' => false));?>
+    <?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">' . __('Clean cache') . '</span>', $baseurl . '/servers/cleanModelCaches', array('escape' => false));?>
     <?php
         echo sprintf(
             '<h3>%s</h3><p>%s</p><div id="deprecationResults"></div>%s',
