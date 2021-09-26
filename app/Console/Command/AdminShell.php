@@ -136,23 +136,17 @@ class AdminShell extends AppShell
 
     public function updateJSON()
     {
-        $this->ConfigLoad->execute();
-        echo 'Updating all JSON structures.' . PHP_EOL;
+        $this->out('Updating all JSON structures.');
         $results = $this->Server->updateJSON();
         foreach ($results as $type => $result) {
+            $type = Inflector::pluralize(Inflector::humanize($type));
             if ($result !== false) {
-                echo sprintf(
-                    __('%s updated.') . PHP_EOL,
-                    Inflector::pluralize(Inflector::humanize($type))
-                );
+                $this->out(__('%s updated.', $type));
             } else {
-                echo sprintf(
-                    __('Could not update %s.') . PHP_EOL,
-                    Inflector::pluralize(Inflector::humanize($type))
-                );
+                $this->out(__('Could not update %s.', $type));
             }
         }
-        echo 'All JSON structures updated. Thank you and have a very safe and productive day.' . PHP_EOL;
+        $this->out('All JSON structures updated. Thank you and have a very safe and productive day.');
     }
 
     public function updateGalaxies()
@@ -384,16 +378,18 @@ class AdminShell extends AppShell
 
     public function runUpdates()
     {
-        $this->ConfigLoad->execute();
-        $whoami = exec('whoami');
-        $osuser = Configure::read('MISP.osuser');
-        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache' || $whoami === 'wwwrun' || $whoami === 'travis' || $whoami === 'www' || $whoami === $osuser) {
-            echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
+        if (function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
+            $whoami = posix_getpwuid(posix_geteuid())['name'];
+        } else {
+            $whoami = exec('whoami');
+        }
+        if (in_array($whoami, ['httpd', 'www-data', 'apache', 'wwwrun', 'travis', 'www'], true) || $whoami === Configure::read('MISP.osuser')) {
+            $this->out('Executing all updates to bring the database up to date with the current version.');
             $processId = empty($this->args[0]) ? false : $this->args[0];
             $this->Server->runUpdates(true, false, $processId);
-            echo 'All updates completed.' . PHP_EOL;
+            $this->out('All updates completed.');
         } else {
-            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd` or `apache` or `wwwrun` or set MISP.osuser in the configuration.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
+            $this->error('This OS user is not allowed to run this command.', 'Run it under `www-data` or `httpd` or `apache` or `wwwrun` or set MISP.osuser in the configuration.' . PHP_EOL . 'You tried to run this command as: ' . $whoami);
         }
     }
 
@@ -426,7 +422,7 @@ class AdminShell extends AppShell
         $result = $this->Bruteforce->deleteAll($conditions, false, false);
         $target = empty($this->args[0]) ? 'all users' : $this->args[0];
         if ($result) {
-            echo 'Brutefoce entries for ' . $target . ' deleted.' . PHP_EOL;
+            echo 'Bruteforce entries for ' . $target . ' deleted.' . PHP_EOL;
         } else {
             echo 'Something went wrong, could not delete bruteforce entries for ' . $target . '.' . PHP_EOL;
         }
