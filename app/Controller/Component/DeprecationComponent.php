@@ -39,10 +39,19 @@ class DeprecationComponent extends Component
         );
     }
 
+    /**
+     * @param string $controller
+     * @param string $action
+     * @param AppModel $model
+     * @param int|null $user_id
+     * @return false|string
+     */
     public function checkDeprecation($controller, $action, AppModel $model, $user_id)
     {
         if (isset($this->deprecatedEndpoints[$controller][$action])) {
-            $this->__logDeprecatedAccess($controller, $action, $model, $user_id);
+            if ($user_id) {
+                $this->__logDeprecatedAccess($controller, $action, $model, $user_id);
+            }
             if ($this->deprecatedEndpoints[$controller][$action]) {
                 return $this->deprecatedEndpoints[$controller][$action];
             }

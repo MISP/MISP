@@ -21,6 +21,7 @@ App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
  * @property RateLimitComponent $RateLimit
  * @property CompressedRequestHandlerComponent $CompressedRequestHandler
  * @property DeprecationComponent $Deprecation
+ * @property RestSearchComponent $RestSearch
  */
 class AppController extends Controller
 {
@@ -263,7 +264,7 @@ class AppController extends Controller
             if (!$this->__verifyUser($user))  {
                 $this->_stop(); // just for sure
             }
-            $user = $this->Auth->user(); // user info in session could change, reload user variable
+            $user = $this->Auth->user(); // user info in session could change (see __verifyUser) method, so reload user variable
 
             if (isset($user['logged_by_authkey']) && $user['logged_by_authkey'] && !($this->_isRest() || $this->_isAutomation())) {
                 throw new ForbiddenException("When user is authenticated by authkey, just REST request can be processed");
@@ -314,7 +315,6 @@ class AppController extends Controller
             $this->set('aclComponent', $this->ACL);
             $this->userRole = $role;
 
-            $this->set('loggedInUserName', $this->__convertEmailToName($user['email']));
             $this->__accessMonitor($user);
 
         } else {
@@ -347,11 +347,11 @@ class AppController extends Controller
         }
 
         $this->ACL->checkAccess($user, Inflector::variable($this->request->params['controller']), $this->request->action);
-        if ($this->_isRest() && $user) {
+        if ($user && $this->_isRest()) {
             $this->__rateLimitCheck($user);
         }
         if ($this->modelClass !== 'CakeError') {
-            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->request->action, $this->{$this->modelClass}, $user['id']);
+            $deprecationWarnings = $this->Deprecation->checkDeprecation($this->request->params['controller'], $this->request->action, $this->User, $user ? $user['id'] : null);
             if ($deprecationWarnings) {
                 $deprecationWarnings = __('WARNING: This functionality is deprecated and will be removed in the near future. ') . $deprecationWarnings;
                 if ($this->_isRest()) {
@@ -764,7 +764,7 @@ class AppController extends Controller
             $user,
             $this->request->params['controller'],
             $this->request->action,
-            $this->{$this->modelClass},
+            $this->User,
             $info,
             $this->response->type()
         );
@@ -846,17 +846,6 @@ class AppController extends Controller
         $this->set('baseurl', h($baseurl));
     }
 
-    private function __convertEmailToName($email)
-    {
-        $name = explode('@', (string)$email);
-        $name = explode('.', $name[0]);
-        foreach ($name as $key => $value) {
-            $name[$key] = ucfirst($value);
-        }
-        $name = implode(' ', $name);
-        return $name;
-    }
-
     public function blackhole($type=false)
     {
         if ($type === 'csrf') {
@@ -902,9 +891,9 @@ class AppController extends Controller
         return $this->userRole['perm_site_admin'];
     }
 
-    protected function _getApiAuthUser(&$key, &$exception)
+    protected function _getApiAuthUser($key, &$exception)
     {
-        if (strlen($key) == 40) {
+        if (strlen($key) === 40) {
             // check if the key is valid -> search for users based on key
             $user = $this->checkAuthUser($key);
             if (!$user) {
@@ -914,16 +903,15 @@ class AppController extends Controller
                 );
                 return false;
             }
-            $key = 'json';
         } else {
-            if (!$this->Auth->user('id')) {
+            $user = $this->Auth->user();
+            if (!$user) {
                 $exception = $this->RestResponse->throwException(
                     401,
                     __('You have to be logged in to do that.')
                 );
                 return false;
             }
-            $user = $this->Auth->user();
         }
         return $user;
     }
@@ -1007,8 +995,7 @@ class AppController extends Controller
     public function checkAuthUser($authkey)
     {
         if (Configure::read('Security.advanced_authkeys')) {
-            $this->loadModel('AuthKey');
-            $user = $this->AuthKey->getAuthUserByAuthKey($authkey);
+            $user = $this->User->AuthKey->getAuthUserByAuthKey($authkey);
         } else {
             $user = $this->User->getAuthUserByAuthKey($authkey);
         }
@@ -1370,12 +1357,17 @@ class AppController extends Controller
         if ($scope === 'MispObject') {
             $scope = 'Object';
         }
-        if (empty($this->RestSearch->paramArray[$scope])) {
+        if (!isset($this->RestSearch->paramArray[$scope])) {
             throw new NotFoundException(__('RestSearch is not implemented (yet) for this scope.'));
         }
-        if (!isset($this->$scope)) {
-            $this->loadModel($scope);
+
+        $modelName = $scope === 'Object' ? 'MispObject' : $scope;
+        if (!isset($this->$modelName)) {
+            $this->loadModel($modelName);
         }
+        /** @var AppModel $model */
+        $model = $this->$modelName;
+
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->request->params['named'],
@@ -1412,7 +1404,7 @@ class AppController extends Controller
         }
         $elementCounter = 0;
         $renderView = false;
-        $responseType = empty($this->$scope->validFormats[$returnFormat][0]) ? 'json' : $this->$scope->validFormats[$returnFormat][0];
+        $responseType = empty($model->validFormats[$returnFormat][0]) ? 'json' : $model->validFormats[$returnFormat][0];
         // halt execution if we were to query for items above the ID. Blocks the endless caching bug
         if (!empty($filters['page']) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
             if ($this->__cachingOverflow($filters, $scope)) {
@@ -1424,7 +1416,7 @@ class AppController extends Controller
                 ]);
             }
         }
-        $final = $this->$scope->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
         if (!empty($renderView) && !empty($final)) {
             $this->layout = false;
             $final = json_decode($final->intoString(), true);
@@ -1519,8 +1511,7 @@ class AppController extends Controller
         }
         if (isset($sessionUser['authkey_id'])) {
             // Reload authkey
-            $this->loadModel('AuthKey');
-            $user = $this->AuthKey->updateUserData($user, $sessionUser['authkey_id']);
+            $user = $this->User->AuthKey->updateUserData($user, $sessionUser['authkey_id']);
         }
         if (isset($sessionUser['logged_by_authkey'])) {
             $user['logged_by_authkey'] = $sessionUser['logged_by_authkey'];
