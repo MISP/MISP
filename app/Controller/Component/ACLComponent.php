@@ -908,7 +908,6 @@ class ACLComponent extends Component
      * @return true
      * @throws NotFoundException
      * @throws MethodNotAllowedException
-     * @throws InternalErrorException
      */
     public function checkAccess($user, $controller, $action, $checkLoggedActions = true)
     {
@@ -920,16 +919,13 @@ class ACLComponent extends Component
         if ($user && $user['Role']['perm_site_admin']) {
             return true;
         }
-        $aclList = $this->__aclList;
-        foreach ($aclList as $k => $v) {
-            $aclList[$k] = array_change_key_case($v);
+        if (!isset($this->__aclList[$controller])) {
+            throw new NotFoundException('Invalid controller.');
         }
-        if (!isset($aclList[$controller])) {
-            $this->__error(404);
-        }
-        if (isset($aclList[$controller][$action]) && !empty($aclList[$controller][$action])) {
-            $rules = $aclList[$controller][$action];
-            if (in_array('*', $rules)) {
+        $controllerAclList = array_change_key_case($this->__aclList[$controller]);
+        if (!empty($controllerAclList[$action])) {
+            $rules = $controllerAclList[$action];
+            if (in_array('*', $rules, true)) {
                 return true;
             }
             if (isset($rules['OR'])) {
@@ -968,23 +964,7 @@ class ACLComponent extends Component
                 return true;
             }
         }
-        $this->__error(403);
-    }
-
-    /**
-     * @param int $code
-     * @throws InternalErrorException|MethodNotAllowedException|NotFoundException
-     */
-    private function __error($code)
-    {
-        switch ($code) {
-            case 404:
-                throw new NotFoundException('Invalid controller.');
-            case 403:
-                throw new MethodNotAllowedException('You do not have permission to use this functionality.');
-            default:
-                throw new InternalErrorException('Unknown error');
-        }
+        throw new MethodNotAllowedException('You do not have permission to use this functionality.');
     }
 
     private function __findAllFunctions()
