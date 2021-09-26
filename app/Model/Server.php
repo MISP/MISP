@@ -2292,6 +2292,10 @@ class Server extends AppModel
      */
     public function serverSettingsSaveValue($setting, $value)
     {
+        if (!is_writable(APP . 'Config' . DS . 'config.php')) {
+            return false;
+        }
+
         // validate if current config.php is intact:
         $current = file_get_contents(APP . 'Config' . DS . 'config.php');
         $current = trim($current);

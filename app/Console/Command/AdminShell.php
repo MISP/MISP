@@ -10,6 +10,42 @@ class AdminShell extends AppShell
 
     public $tasks = array('ConfigLoad');
 
+    public function getOptionParser()
+    {
+        $parser = parent::getOptionParser();
+
+        $parser->addSubcommand('updateJSON', array(
+            'help' => __('Update the JSON definitions of MISP.'),
+        ));
+        $parser->addSubcommand('setSetting', [
+            'help' => __('Set setting in PHP config file.'),
+            'parser' => [
+                'arguments' => [
+                    'name' => ['help' => __('Setting name'), 'required' => true],
+                    'value' => ['help' => __('Setting value'), 'required' => true],
+                ],
+                'options' => [
+                    'force' => array(
+                        'short' => 'f',
+                        'help' => 'Force the command.',
+                        'default' => false,
+                        'boolean' => true
+                    )
+                ]
+            ],
+        ]);
+        $parser->addSubcommand('live', [
+            'help' => __('Set if MISP instance is live and accessible for users.'),
+            'parser' => [
+                'arguments' => [
+                    'state' => ['help' => __('Set Live state')],
+                ],
+            ],
+        ]);
+
+        return $parser;
+    }
+
     public function jobGenerateCorrelation()
     {
         $this->ConfigLoad->execute();
@@ -136,7 +172,6 @@ class AdminShell extends AppShell
 
     public function updateJSON()
     {
-        $this->ConfigLoad->execute();
         echo 'Updating all JSON structures.' . PHP_EOL;
         $results = $this->Server->updateJSON();
         foreach ($results as $type => $result) {
@@ -508,30 +543,6 @@ class AdminShell extends AppShell
         echo 'Updated, new key:' . PHP_EOL . $authKey . PHP_EOL;
     }
 
-    public function getOptionParser()
-    {
-        $this->ConfigLoad->execute();
-        $parser = parent::getOptionParser();
-
-        $parser->addSubcommand('updateJSON', array(
-            'help' => __('Update the JSON definitions of MISP.'),
-            'parser' => array(
-                'arguments' => array(
-                    'update' => array('help' => __('Update the submodules before ingestion.'), 'short' => 'u', 'boolean' => 1)
-                )
-            )
-        ));
-
-        $parser->addOption('force', array(
-            'short' => 'f',
-            'help' => 'Force the command.',
-            'default' => false,
-            'boolean' => true
-        ));
-
-        return $parser;
-    }
-
     public function recoverSinceLastSuccessfulUpdate()
     {
         $this->ConfigLoad->execute();
@@ -781,6 +792,57 @@ class AdminShell extends AppShell
             foreach ($diagnostics as $info) {
                 $this->out(' - ' . $info['message']);
             }
+        }
+    }
+
+    public function live()
+    {
+        if (isset($this->args[0])) {
+            $value = strtolower($this->args[0]);
+            switch ($value) {
+                case 'true':
+                case '1':
+                    $newStatus = true;
+                    break;
+                case 'false':
+                case '0':
+                    $newStatus = false;
+                    break;
+                default:
+                    $this->error("Invalid state value `{$this->args[0]}`, it must be `true`, `false`, `1`, or `0`.");
+            }
+
+            try {
+                $redis = $this->Server->setupRedisWithException();
+                if ($newStatus) {
+                    $redis->del('misp:live');
+                    $this->out('Set live status to True in Redis.');
+                } else {
+                    $redis->set('misp:live', '0');
+                    $this->out('Set live status to False in Redis.');
+                    return;
+                }
+            } catch (Exception $e) {
+                $this->out('<warning>Redis is not reachable, trying to set MISP.live setting in PHP config file.</warning>');
+            }
+
+            if (Configure::read('MISP.live') != $newStatus) {
+                $success = $this->Server->serverSettingsSaveValue('MISP.live', $newStatus);
+                if (!$success) {
+                    $this->error('Could not set MISP.live in PHP config file.');
+                } else {
+                    $this->out('Set live status in PHP config file.');
+                }
+            } else {
+                $this->out('PHP config value of MISP.live setting match requested state.');
+            }
+
+            $this->out($newStatus ? 'MISP is now live. Users can now log in.' : 'MISP is now disabled. Only site admins can log in.');
+        } else {
+            $this->out('Current status:');
+            $this->out('PHP Config file: ' . (Configure::read('MISP.live') ? 'True' : 'False'));
+            $newStatus = $this->Server->setupRedisWithException()->get('misp:live');
+            $this->out('Redis: ' . ($newStatus !== '0' ? 'True' : 'False'));
         }
     }
 }

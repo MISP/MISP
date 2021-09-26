@@ -247,7 +247,7 @@ class AppController extends Controller
             $this->__logAccess($user);
 
             // Try to run updates
-            if ($user['Role']['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
+            if ($user['Role']['perm_site_admin'] || (!$this->_isRest() && $this->_isLive())) {
                 $this->User->runUpdates();
             }
 
@@ -505,7 +505,7 @@ class AppController extends Controller
         }
 
         // Check if MISP access is enabled
-        if (!Configure::read('MISP.live')) {
+        if (!$this->_isLive()) {
             if (!$user['Role']['perm_site_admin']) {
                 $message = Configure::read('MISP.maintenance_message');
                 if (empty($message)) {
@@ -1380,5 +1380,22 @@ class AppController extends Controller
             return true;
         }
         return false;
+    }
+
+    /**
+     * @return bool True if MISP instance is livve
+     */
+    protected function _isLive()
+    {
+        if (!Configure::read('MISP.live')) {
+            return false;
+        }
+
+        try {
+            $redis = $this->User->setupRedisWithException();
+            return $redis->get('misp:live') !== '0';
+        } catch (Exception $e) {
+            return true;
+        }
     }
 }

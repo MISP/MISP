@@ -1652,9 +1652,7 @@ class AppModel extends Model
 
         // switch MISP instance live to false
         if ($liveOff) {
-            $this->Server = Classregistry::init('Server');
-            $liveSetting = 'MISP.live';
-            $this->Server->serverSettingsSaveValue($liveSetting, false);
+            $this->setLive(false);
         }
         $sql_update_count = count($sqlArray);
         $index_update_count = count($indexArray);
@@ -1761,7 +1759,7 @@ class AppModel extends Model
             $this->cleanCacheFiles();
         }
         if ($liveOff) {
-            $this->Server->serverSettingsSaveValue('MISP.live', true);
+            $this->setLive(true);
         }
         if (!$flagStop && $errorCount == 0) {
             $this->__postUpdate($command);
@@ -1781,6 +1779,29 @@ class AppModel extends Model
             return false;
         }
         return true;
+    }
+
+    /**
+     * Set if misp is live in redis or in config file as fallback
+     * @param bool $isLive
+     */
+    private function setLive($isLive)
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+            if ($isLive) {
+                $redis->del('misp:live');
+            } else {
+                $redis->set('misp:live', '0');
+            }
+        } catch (Exception $e) {
+            // pass
+        }
+
+        if (!isset($this->Server)) {
+            $this->Server = ClassRegistry::init('Server');
+        }
+        $this->Server->serverSettingsSaveValue('MISP.live', $isLive);
     }
 
     // check whether the adminSetting should be updated after the update
