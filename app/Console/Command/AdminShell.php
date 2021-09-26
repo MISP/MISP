@@ -626,11 +626,8 @@ class AdminShell extends AppShell
     {
         $this->ConfigLoad->execute();
         $dbActualSchema = $this->Server->getActualDBSchema();
-        $dbVersion = $this->AdminSetting->find('first', array(
-            'conditions' => array('setting' => 'db_version')
-        ));
+        $dbVersion = $this->AdminSetting->getSetting('db_version');
         if (!empty($dbVersion) && !empty($dbActualSchema['schema'])) {
-            $dbVersion = $dbVersion['AdminSetting']['value'];
             $data = array(
                 'schema' => $dbActualSchema['schema'],
                 'indexes' => $dbActualSchema['indexes'],

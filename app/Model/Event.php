@@ -3532,15 +3532,14 @@ class Event extends AppModel
 
     public function checkEventBlockRules($event)
     {
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $setting = $this->AdminSetting->find('first', [
-            'conditions' => ['setting' => 'eventBlockRule'],
-            'recursive' => -1
-        ]);
-        if (empty($setting) || empty($setting['AdminSetting']['value'])) {
+        if (!isset($this->AdminSetting)) {
+            $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        }
+        $setting = $this->AdminSetting->getSetting('eventBlockRule');
+        if (empty($setting)) {
             return true;
         }
-        $rules = json_decode($setting['AdminSetting']['value'], true);
+        $rules = json_decode($setting, true);
         if (empty($rules)) {
             return true;
         }
