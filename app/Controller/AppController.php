@@ -1383,7 +1383,7 @@ class AppController extends Controller
     }
 
     /**
-     * @return bool True if MISP instance is livve
+     * @return bool True if MISP instance is live
      */
     protected function _isLive()
     {

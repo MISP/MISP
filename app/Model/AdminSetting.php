@@ -31,11 +31,11 @@ class AdminSetting extends AppModel
         }
     }
 
-
     public function getSetting($setting)
     {
         $setting_object = $this->find('first', array(
-                'conditions' => array('setting' => $setting)
+            'conditions' => array('setting' => $setting),
+            'fields' => ['value'],
         ));
         if (!empty($setting_object)) {
             return $setting_object['AdminSetting']['value'];
@@ -44,20 +44,20 @@ class AdminSetting extends AppModel
         }
     }
 
-
-
     public function updatesDone($blocking = false)
     {
         if ($blocking) {
-            $continue = false;
-            while ($continue == false) {
-                $db_version = $this->find('first', array('conditions' => array('setting' => 'db_version')));
-                $continue = empty($this->findUpgrades($db_version['AdminSetting']['value']));
+            while (true) {
+                $db_version = $this->getSetting('db_version');
+                $continue = empty($this->findUpgrades($db_version));
+                if (!$continue) {
+                    return true;
+                }
+                usleep(200000);
             }
-            return true;
         } else {
-            $db_version = $this->find('first', array('conditions' => array('setting' => 'db_version')));
-            return empty($this->findUpgrades($db_version['AdminSetting']['value']));
+            $db_version = $this->getSetting('db_version');
+            return empty($this->findUpgrades($db_version));
         }
     }
 }

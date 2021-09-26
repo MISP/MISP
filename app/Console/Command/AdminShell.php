@@ -3,6 +3,8 @@ App::uses('AppShell', 'Console/Command');
 
 /**
  * @property Server $Server
+ * @property User $User
+ * @property AdminSetting $AdminSetting
  */
 class AdminShell extends AppShell
 {
@@ -371,7 +373,6 @@ class AdminShell extends AppShell
 
     public function setSetting()
     {
-        $this->ConfigLoad->execute();
         $setting_name = !isset($this->args[0]) ? null : $this->args[0];
         $value = !isset($this->args[1]) ? null : $this->args[1];
         if ($value === 'false') {
@@ -434,7 +435,9 @@ class AdminShell extends AppShell
 
     public function getAuthkey()
     {
-        $this->ConfigLoad->execute();
+        if (Configure::read("Security.advanced_authkeys")) {
+            $this->error('Advanced autkeys enabled, it is not possible to get user authkey.');
+        }
         if (empty($this->args[0])) {
             echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin getAuthkey [user_email]' . PHP_EOL;
         } else {
@@ -464,7 +467,6 @@ class AdminShell extends AppShell
 
     public function clearBruteforce()
     {
-        $this->ConfigLoad->execute();
         $conditions = array('Bruteforce.username !=' => '');
         if (!empty($this->args[0])) {
             $conditions = array('Bruteforce.username' => $this->args[0]);
@@ -511,7 +513,7 @@ class AdminShell extends AppShell
     }
 
     /**
-     * @deprecated Use UserShell instead
+     * @deprecated Use UserShell::change_authkey instead
      */
     public function change_authkey()
     {
@@ -639,7 +641,6 @@ class AdminShell extends AppShell
 
     public function dumpCurrentDatabaseSchema()
     {
-        $this->ConfigLoad->execute();
         $dbActualSchema = $this->Server->getActualDBSchema();
         $dbVersion = $this->AdminSetting->find('first', array(
             'conditions' => array('setting' => 'db_version')
@@ -688,6 +689,9 @@ class AdminShell extends AppShell
         );
     }
 
+    /**
+     * @deprecated Use UserShell instead
+     */
     public function IPUser()
     {
         $this->ConfigLoad->execute();
@@ -755,7 +759,6 @@ class AdminShell extends AppShell
 
     public function updateToAdvancedAuthKeys()
     {
-        $this->loadModel('User');
         $updated = $this->User->updateToAdvancedAuthKeys();
         $message = __('The upgrade process is complete, %s authkey(s) generated.', $updated);
         $this->out($message);
