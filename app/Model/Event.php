@@ -3155,24 +3155,12 @@ class Event extends AppModel
         }
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'email',
-                    'job_type' => 'publish_alert_email',
-                    'job_input' => 'Event: ' . $id,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Sending...',
-            );
-            $job->save($data);
-            $jobId = $job->id;
+            $jobId = $job->createJob($user, Job::WORKER_EMAIL, 'publish_alert_email', "Event: $id", 'Sending...');
             $process_id = CakeResque::enqueue(
-                    'email',
-                    'EventShell',
-                    array('alertemail', $user['id'], $jobId, $id, $oldpublish),
-                    true
+                Job::WORKER_EMAIL,
+                'EventShell',
+                array('alertemail', $user['id'], $jobId, $id, $oldpublish),
+                true
             );
             $job->saveField('process_id', $process_id);
             return true;
@@ -4540,17 +4528,9 @@ class Event extends AppModel
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $message = empty($sightingUuids) ? __('Publishing sightings.') : __('Publishing %s sightings.', count($sightingUuids));
-            $job->create();
-            $job->save([
-                'worker' => 'prio',
-                'job_type' => 'publish_event',
-                'job_input' => 'Event ID: ' . $id,
-                'org_id' => $user['org_id'],
-                'org' => $user['Organisation']['name'],
-                'message' => $message,
-            ]);
+            $jobId = $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", $message);
 
-            $command = ['publish_sightings', $id, $passAlong, $job->id, $user['id']];
+            $command = ['publish_sightings', $id, $passAlong, $jobId, $user['id']];
             if (!empty($sightingUuids)) {
                 $randomFileName = $this->generateRandomFileName() . '.json';
                 App::uses('File', 'Utility');
@@ -4562,7 +4542,7 @@ class Event extends AppModel
                 $command[] = $randomFileName;
             }
 
-            $processId = CakeResque::enqueue('prio', 'EventShell', $command, true);
+            $processId = CakeResque::enqueue(Job::WORKER_PRIO, 'EventShell', $command, true);
             $job->saveField('process_id', $processId);
             return $processId;
         }
@@ -4574,31 +4554,17 @@ class Event extends AppModel
     {
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'prio',
-                    'job_type' => 'publish_event',
-                    'job_input' => 'Event ID: ' . $id,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Publishing.'
-            );
-            $job->save($data);
-            $jobId = $job->id;
+            $jobId = $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", 'Publishing.');
             $process_id = CakeResque::enqueue(
-                    'prio',
-                    'EventShell',
-                    array('publish', $id, $passAlong, $jobId, $user['id']),
-                    true
+                Job::WORKER_PRIO,
+                'EventShell',
+                array('publish', $id, $passAlong, $jobId, $user['id']),
+                true
             );
             $job->saveField('process_id', $process_id);
             return $process_id;
-        } else {
-            $result = $this->publish($id, $passAlong);
-            return $result;
         }
+        return $this->publish($id, $passAlong);
     }
 
     public function publish_sightings($id, $passAlong = null, array $sightingsUuidsToPush = [])

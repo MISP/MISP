@@ -99,18 +99,7 @@ class ServerShell extends AppShell
         if (!empty($this->args[3])) {
             $jobId = $this->args[3];
         } else {
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'pull',
-                    'job_input' => 'Server: ' . $serverId,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Pulling.',
-            );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
+            $jobId = $this->Job->createJob($user,Job::WORKER_DEFAULT, 'pull', 'Server: ' . $serverId, 'Pulling.');
         }
         $force = false;
         if (!empty($this->args[4]) && $this->args[4] === 'force') {
@@ -339,20 +328,8 @@ class ServerShell extends AppShell
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];
         } else {
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'cache_feeds',
-                    'job_input' => 'Feed: ' . $scope,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Starting feed caching.',
-            );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
+            $jobId = $this->Job->createJob($user,Job::WORKER_DEFAULT, 'cache_feeds', 'Feed: ' . $scope, 'Starting feed caching.');
         }
-        $this->Job->read(null, $jobId);
         try {
             $result = $this->Feed->cacheFeedInitiator($user, $jobId, $scope);
         } catch (Exception $e) {
