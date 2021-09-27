@@ -2001,7 +2001,7 @@ class AppModel extends Model
         $tables = $db->listSources();
         $requiresLogout = false;
         // if we don't even have an admin table, time to create it.
-        if (!in_array('admin_settings', $tables)) {
+        if (!in_array('admin_settings', $tables, true)) {
             $this->updateDatabase('adminTable');
             $requiresLogout = true;
         } else {
@@ -2054,7 +2054,6 @@ class AppModel extends Model
                 if ($useWorker && Configure::read('MISP.background_jobs')) {
                     $workerIssueCount = 0;
                     $workerDiagnostic = $this->Server->workerDiagnostics($workerIssueCount);
-                    $workerType = '';
                     if (isset($workerDiagnostic['update']['ok']) && $workerDiagnostic['update']['ok']) {
                         $workerType = 'update';
                     } else { // update worker not running, doing the update inline
@@ -2115,7 +2114,7 @@ class AppModel extends Model
                     }
                     if (!empty($job)) {
                         $job['Job']['progress'] = floor($update_done / count($updates) * 100);
-                        $job['Job']['message'] = sprintf(__('Running update %s'), $update);
+                        $job['Job']['message'] = __('Running update %s', $update);
                         $this->Job->save($job);
                     }
                     $dbUpdateSuccess = $this->updateMISP($update);
@@ -2141,7 +2140,7 @@ class AppModel extends Model
                 $this->__queueCleanDB();
             } else {
                 if (!empty($job)) {
-                    $job['Job']['message'] = __('Update done in another worker. Gracefuly stopping.');
+                    $job['Job']['message'] = __('Update done in another worker. Gracefully stopping.');
                 }
             }
             // mark current worker as done, as well as queued workers than manages to pass the locks
@@ -2347,7 +2346,6 @@ class AppModel extends Model
 
     private function __runCleanDB()
     {
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $cleanDB = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'clean_db')));
         if (empty($cleanDB) || $cleanDB['AdminSetting']['value'] == 1) {
             $this->cleanCacheFiles();
