@@ -2292,8 +2292,13 @@ class Server extends AppModel
      */
     public function serverSettingsSaveValue($setting, $value)
     {
+        $configFilePath = APP . 'Config' . DS . 'config.php';
+        if (!is_writable($configFilePath)) {
+            return false; // config file is not writeable
+        }
+
         // validate if current config.php is intact:
-        $current = file_get_contents(APP . 'Config' . DS . 'config.php');
+        $current = file_get_contents($configFilePath);
         $current = trim($current);
         if (strlen($current) < 20) {
             $this->Log = ClassRegistry::init('Log');
@@ -2312,18 +2317,18 @@ class Server extends AppModel
         $safeConfigChanges = empty(Configure::read('MISP.server_settings_skip_backup_rotate'));
         if ($safeConfigChanges) {
             // Create current config file backup
-            copy(APP . 'Config' . DS . 'config.php', APP . 'Config' . DS . 'config.php.bk');
+            copy($configFilePath, APP . 'Config' . DS . 'config.php.bk');
         }
         $settingObject = $this->getCurrentServerSettings();
         foreach ($settingObject as $branchName => $branch) {
             if (!isset($branch['level'])) {
                 foreach ($branch as $settingName => $settingObject) {
-                    if ($setting == $branchName . '.' . $settingName) {
+                    if ($setting === $branchName . '.' . $settingName) {
                         $value = $this->__serverSettingNormaliseValue($settingObject, $value, $setting);
                     }
                 }
             } else {
-                if ($setting == $branchName) {
+                if ($setting === $branchName) {
                     $value = $this->__serverSettingNormaliseValue($branch, $value, $setting);
                 }
             }
@@ -2358,22 +2363,22 @@ class Server extends AppModel
         $settingsString = '<?php' . "\n" . '$config = ' . $settingsString . ';';
 
         if ($safeConfigChanges) {
-            $previous_file_perm = substr(sprintf('%o', fileperms(APP . 'Config' . DS . 'config.php')), -4);
+            $previous_file_perm = substr(sprintf('%o', fileperms($configFilePath)), -4);
             $randomFilename = $this->generateRandomFileName();
             // To protect us from 2 admin users having a concurrent file write to the config file, solar flares and the bogeyman
             if (file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString) === false) {
                 $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', 0, 'Error: Could not create temp config file.');
                 return false;
             }
-            rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
+            rename(APP . 'Config' . DS . $randomFilename, $configFilePath);
             if (function_exists('opcache_reset')) {
                 opcache_reset();
             }
-            chmod(APP . 'Config' . DS . 'config.php', octdec($previous_file_perm));
-            $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
+            chmod($configFilePath, octdec($previous_file_perm));
+            $config_saved = file_get_contents($configFilePath);
             // if the saved config file is empty, restore the backup.
             if (strlen($config_saved) < 20) {
-                copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
+                copy(APP . 'Config' . DS . 'config.php.bk', $configFilePath);
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
                 $this->Log->save(array(
@@ -2388,7 +2393,7 @@ class Server extends AppModel
                 return false;
             }
         } else {
-            file_put_contents(APP . 'Config' . DS . 'config.php', $settingsString);
+            file_put_contents($configFilePath, $settingsString);
             if (function_exists('opcache_reset')) {
                 opcache_reset();
             }
