@@ -8,7 +8,31 @@ class AdminShell extends AppShell
 {
     public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed');
 
-    public $tasks = array('ConfigLoad');
+    public function getOptionParser()
+    {
+        $parser = parent::getOptionParser();
+        $parser->addSubcommand('updateJSON', array(
+            'help' => __('Update the JSON definitions of MISP.'),
+        ));
+        $parser->addSubcommand('setSetting', [
+            'help' => __('Set setting in PHP config file.'),
+            'parser' => [
+                'arguments' => [
+                    'name' => ['help' => __('Setting name'), 'required' => true],
+                    'value' => ['help' => __('Setting value'), 'required' => true],
+                ],
+                'options' => [
+                    'force' => array(
+                        'short' => 'f',
+                        'help' => 'Force the command.',
+                        'default' => false,
+                        'boolean' => true
+                    )
+                ]
+            ],
+        ]);
+        return $parser;
+    }
 
     public function jobGenerateCorrelation()
     {
@@ -330,7 +354,6 @@ class AdminShell extends AppShell
 
     public function setSetting()
     {
-        $this->ConfigLoad->execute();
         $setting_name = !isset($this->args[0]) ? null : $this->args[0];
         $value = !isset($this->args[1]) ? null : $this->args[1];
         if ($value === 'false') {
@@ -395,7 +418,9 @@ class AdminShell extends AppShell
 
     public function getAuthkey()
     {
-        $this->ConfigLoad->execute();
+        if (Configure::read("Security.advanced_authkeys")) {
+            $this->error('Advanced autkeys enabled, it is not possible to get user authkey.');
+        }
         if (empty($this->args[0])) {
             echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin getAuthkey [user_email]' . PHP_EOL;
         } else {
@@ -425,7 +450,6 @@ class AdminShell extends AppShell
 
     public function clearBruteforce()
     {
-        $this->ConfigLoad->execute();
         $conditions = array('Bruteforce.username !=' => '');
         if (!empty($this->args[0])) {
             $conditions = array('Bruteforce.username' => $this->args[0]);
@@ -502,30 +526,6 @@ class AdminShell extends AppShell
             die();
         }
         echo 'Updated, new key:' . PHP_EOL . $authKey . PHP_EOL;
-    }
-
-    public function getOptionParser()
-    {
-        $this->ConfigLoad->execute();
-        $parser = parent::getOptionParser();
-
-        $parser->addSubcommand('updateJSON', array(
-            'help' => __('Update the JSON definitions of MISP.'),
-            'parser' => array(
-                'arguments' => array(
-                    'update' => array('help' => __('Update the submodules before ingestion.'), 'short' => 'u', 'boolean' => 1)
-                )
-            )
-        ));
-
-        $parser->addOption('force', array(
-            'short' => 'f',
-            'help' => 'Force the command.',
-            'default' => false,
-            'boolean' => true
-        ));
-
-        return $parser;
     }
 
     public function recoverSinceLastSuccessfulUpdate()
@@ -673,6 +673,9 @@ class AdminShell extends AppShell
         );
     }
 
+    /**
+     * @deprecated Use UserShell instead
+     */
     public function IPUser()
     {
         $this->ConfigLoad->execute();
