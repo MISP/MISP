@@ -66,6 +66,17 @@ class UserShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('ip_user', [
+            'help' => __('Get user ID for user IP. If multiple users use the same IP, only last user ID will be returned.'),
+            'parser' => [
+                'arguments' => [
+                    'ip' => ['help' => __('IPv4 or IPv6 address.'), 'required' => true],
+                ],
+                'options' => [
+                    'json' => ['help' => __('Output as JSON.'), 'boolean' => true],
+                ],
+            ],
+        ]);
         return $parser;
     }
 
@@ -179,6 +190,47 @@ class UserShell extends AppShell
             $this->out("User #{$user['id']}: {$user['email']}");
             $this->hr();
             $this->out(implode(PHP_EOL, $ips));
+        }
+    }
+
+    public function ip_user()
+    {
+        list($ip) = $this->args;
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            $this->error("IP `$ip` is not valid IPv4 or IPv6 address");
+        }
+
+        if (empty(Configure::read('MISP.log_user_ips'))) {
+            $this->out('<warning>Storing user IP addresses is disabled.</warning>');
+        }
+
+        $userId = $this->User->setupRedisWithException()->get('misp:ip_user:' . $ip);
+        if (empty($userId)) {
+            $this->out('No hits.');
+            $this->_stop();
+        }
+
+        $user = $this->User->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('User.id' => $userId),
+            'fields' => ['id', 'email'],
+        ));
+
+        if (empty($user)) {
+            $this->error("User with ID $userId doesn't exists anymore.");
+        }
+
+        if ($this->params['json']) {
+            $this->out($this->json([
+                'ip' => $ip,
+                'id' => $user['User']['id'],
+                'email' => $user['User']['email'],
+            ]));
+        } else {
+            $this->out(sprintf(
+                '%s==============================%sIP: %s%s==============================%sUser #%s: %s%s==============================%s',
+                PHP_EOL, PHP_EOL, $ip, PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL
+            ));
         }
     }
 
