@@ -5,6 +5,7 @@ App::uses('ServerSyncTool', 'Tools');
 
 /**
  * @property-read array $serverSettings
+ * @property-read array $command_line_functions
  * @property Organisation $Organisation
  */
 class Server extends AppModel
@@ -137,58 +138,6 @@ class Server extends AppModel
             4 => __('Authentication failed'),
             5 => __('Password change required'),
             6 => __('Terms not accepted')
-        );
-
-        $this->command_line_functions = array(
-            'console_admin_tasks' => array(
-                'data' => array(
-                    'Get setting' => 'MISP/app/Console/cake Admin getSetting [setting]',
-                    'Set setting' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
-                    'Get authkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
-                    'Set baseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
-                    'Change password' => 'MISP/app/Console/cake Password [email] [new_password] [--override_password_change]',
-                    'Clear Bruteforce Entries' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
-                    'Run database update' => 'MISP/app/Console/cake Admin updateDatabase',
-                    'Update all JSON structures' => 'MISP/app/Console/cake Admin updateJSON',
-                    'Update Galaxy definitions' => 'MISP/app/Console/cake Admin updateGalaxies',
-                    'Update taxonomy definitions' => 'MISP/app/Console/cake Admin updateTaxonomies',
-                    'Update object templates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
-                    'Update Warninglists' => 'MISP/app/Console/cake Admin updateWarningLists',
-                    'Update Noticelists' => 'MISP/app/Console/cake Admin updateNoticeLists',
-                    'Set default role' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]',
-                    'Get IPs for user ID' => 'MISP/app/Console/cake Admin UserIP [user_id]',
-                    'Get user ID for user IP' => 'MISP/app/Console/cake Admin IPUser [ip]',
-                ),
-                'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
-                'header' => __('Administering MISP via the CLI')
-            ),
-            'console_automation_tasks' => array(
-                'data' => array(
-                    'PullAll' => 'MISP/app/Console/cake Server pullAll [user_id] [full|update]',
-                    'Pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
-                    'PushAll' => 'MISP/app/Console/cake Server pushAll [user_id]',
-                    'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
-                    'Cache server' => 'MISP/app/Console/cake server cacheServer [user_id] [server_id]',
-                    'Cache all servers' => 'MISP/app/Console/cake server cacheServerAll [user_id]',
-                    'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
-                    'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
-                    'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',
-                    'Test' => 'MISP/app/Console/cake Server test [server_id]',
-                    'List' => 'MISP/app/Console/cake Server list'
-                ),
-                'description' => __('If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.'),
-                'header' => __('Automating certain console tasks')
-            ),
-            'worker_management_tasks' => array(
-                'data' => array(
-                    'Get list of workers' => 'MISP/app/Console/cake Admin getWorkers [all|dead]',
-                    'Start a worker' => 'MISP/app/Console/cake Admin startWorker [queue_name]',
-                    'Restart a worker' => 'MISP/app/Console/cake Admin restartWorker [worker_pid]',
-                    'Kill a worker' => 'MISP/app/Console/cake Admin killWorker [worker_pid]',
-                ),
-                'description' => __('The background workers can be managed via the CLI in addition to the UI / API management tools'),
-                'header' => __('Managing the background workers')
-            )
         );
     }
 
@@ -4521,11 +4470,20 @@ class Server extends AppModel
         }
     }
 
+    public function __isset($name)
+    {
+        if ($name === 'serverSettings' || $name === 'command_line_functions') {
+            return true;
+        }
+        return parent::__isset($name);
+    }
+
     public function __get($name)
     {
         if ($name === 'serverSettings') {
-            $this->serverSettings = $this->generateServerSettings();
-            return $this->serverSettings;
+            return $this->serverSettings = $this->generateServerSettings();
+        } else if ($name === 'command_line_functions') {
+            return $this->command_line_functions = $this->generateCommandLineFunctions();
         }
         return parent::__get($name);
     }
@@ -7182,6 +7140,61 @@ class Server extends AppModel
                 'type' => 'boolean',
                 'null' => true
             ),
+        );
+    }
+
+    private function generateCommandLineFunctions()
+    {
+        return array(
+            'console_admin_tasks' => array(
+                'data' => array(
+                    'Get setting' => 'MISP/app/Console/cake Admin getSetting [setting]',
+                    'Set setting' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
+                    'Get authkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
+                    'Set baseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
+                    'Change password' => 'MISP/app/Console/cake Password [email] [new_password] [--override_password_change]',
+                    'Clear Bruteforce Entries' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
+                    'Run database update' => 'MISP/app/Console/cake Admin updateDatabase',
+                    'Update all JSON structures' => 'MISP/app/Console/cake Admin updateJSON',
+                    'Update Galaxy definitions' => 'MISP/app/Console/cake Admin updateGalaxies',
+                    'Update taxonomy definitions' => 'MISP/app/Console/cake Admin updateTaxonomies',
+                    'Update object templates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
+                    'Update Warninglists' => 'MISP/app/Console/cake Admin updateWarningLists',
+                    'Update Noticelists' => 'MISP/app/Console/cake Admin updateNoticeLists',
+                    'Set default role' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]',
+                    'Get IPs for user ID' => 'MISP/app/Console/cake Admin UserIP [user_id]',
+                    'Get user ID for user IP' => 'MISP/app/Console/cake Admin IPUser [ip]',
+                ),
+                'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
+                'header' => __('Administering MISP via the CLI')
+            ),
+            'console_automation_tasks' => array(
+                'data' => array(
+                    'PullAll' => 'MISP/app/Console/cake Server pullAll [user_id] [full|update]',
+                    'Pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
+                    'PushAll' => 'MISP/app/Console/cake Server pushAll [user_id]',
+                    'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
+                    'Cache server' => 'MISP/app/Console/cake server cacheServer [user_id] [server_id]',
+                    'Cache all servers' => 'MISP/app/Console/cake server cacheServerAll [user_id]',
+                    'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
+                    'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
+                    'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',
+                    'Test' => 'MISP/app/Console/cake Server test [server_id]',
+                    'List' => 'MISP/app/Console/cake Server list'
+                ),
+                'description' => __('If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.'),
+                'header' => __('Automating certain console tasks')
+            ),
+            'worker_management_tasks' => array(
+                'data' => array(
+                    'Get list of workers' => 'MISP/app/Console/cake Admin getWorkers [all|dead]',
+                    'Start a worker' => 'MISP/app/Console/cake Admin startWorker [queue_name]',
+                    'Restart a worker' => 'MISP/app/Console/cake Admin restartWorker [worker_pid]',
+                    'Kill a worker' => 'MISP/app/Console/cake Admin killWorker [worker_pid]',
+                ),
+                'description' => __('The background workers can be managed via the CLI in addition to the UI / API management tools'),
+                'header' => __('Managing the background workers')
+            )
         );
     }
 }
