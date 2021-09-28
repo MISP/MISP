@@ -217,9 +217,7 @@ jobs:
       - name: Run PHP tests
         run: |
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
-              ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
-              ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
-              ./app/Vendor/bin/phpunit app/Test/CidrToolTest.php
+              ./app/Vendor/bin/phpunit app/Test/
 
       - name: Run tests
         run: |

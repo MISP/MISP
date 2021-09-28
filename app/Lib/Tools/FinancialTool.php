@@ -89,6 +89,22 @@ class FinancialTool
             'XK' => '20'
     );
 
+    const BTC_BASE32_CONVERT_TABLE = [
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        15, -1, 10, 17, 21, 20, 26, 30,  7,  5, -1, -1, -1, -1, -1, -1,
+        -1, 29, -1, 24, 13, 25,  9,  8, 23, -1, 18, 22, 31, 27, 19, -1,
+        1,  0,  3, 16, 11, 28, 12, 14,  6,  4,  2, -1, -1, -1, -1, -1,
+        -1, 29, -1, 24, 13, 25,  9,  8, 23, -1, 18, 22, 31, 27, 19, -1,
+        1,  0,  3, 16, 11, 28, 12, 14,  6,  4,  2, -1, -1, -1, -1, -1
+    ];
+
+    /**
+     * @param string $type
+     * @param string $value
+     * @return bool
+     */
     public function validateRouter($type, $value)
     {
         $validationRoutes = array(
@@ -99,8 +115,8 @@ class FinancialTool
             'btc' => 'BTC',
             'xmr' => 'XMR'
         );
-        if (in_array($type, array_keys($validationRoutes))) {
-            return $this->{'validate' . strtoupper($validationRoutes[$type])}($value);
+        if (isset($validationRoutes[$type])) {
+            return $this->{'validate' . $validationRoutes[$type]}($value);
         }
         return true;
     }
@@ -128,7 +144,6 @@ class FinancialTool
 
         return (int)$mod;
     }
-
 
     // validating using method described on wikipedia @ https://en.wikipedia.org/wiki/International_Bank_Account_Number#Algorithms
     public function validateIBAN($iban)
@@ -197,11 +212,20 @@ class FinancialTool
         return false;
     }
 
-    // based on the php implementation of the BTC address validation example from
-    // http://rosettacode.org/wiki/Bitcoin/address_validation
+    /**
+     * Based on the php implementation of the BTC address validation example from
+     * http://rosettacode.org/wiki/Bitcoin/address_validation
+     * @param string $address
+     * @return bool
+     */
     public function validateBTC($address)
     {
-        if (strlen($address) < 26 || strlen($address) > 35) {
+        if ($this->validateBtcBech32($address)) {
+            return true;
+        }
+
+        $strlen = strlen($address);
+        if ($strlen < 26 || $strlen > 35) {
             return false;
         }
         $decoded = $this->__decodeBase58($address);
@@ -226,12 +250,48 @@ class FinancialTool
         return true;
     }
 
+    private function validateBtcBech32($address)
+    {
+        if (!preg_match('/^(bc|tb)1([023456789acdefghjklmnpqrstuvwxyz]{11,71})$/i', $address, $match)) {
+            return false;
+        }
+
+        $hrp = strtolower($match[1]);
+
+        $expand1 = [];
+        $expand2 = [];
+        for ($i = 0; $i < strlen($hrp); $i++) {
+            $o = ord($hrp[$i]);
+            $expand1[] = $o >> 5;
+            $expand2[] = $o & 31;
+        }
+        $data = array_merge($expand1, [0], $expand2);
+
+        $chars = strtolower($match[2]);
+        $chars = array_map('ord', str_split($chars));
+        foreach ($chars as $char) {
+            $data[] = ($char & 0x80) ? -1 : self::BTC_BASE32_CONVERT_TABLE[$char];
+        }
+        $generator = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+        $chk = 1;
+        foreach ($data as $char) {
+            $top = $chk >> 25;
+            $chk = ($chk & 0x1ffffff) << 5 ^ $char;
+            for ($j = 0; $j < 5; $j++) {
+                $value = (($top >> $j) & 1) ? $generator[$j] : 0;
+                $chk ^= $value;
+            }
+        }
+
+        return $chk === 1;
+    }
+
     private function __decodeBase58($input)
     {
         $alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
         $out = array_fill(0, 25, 0);
-        for ($i=0;$i<strlen($input);$i++) {
+        for ($i = 0; $i < strlen($input); $i++) {
             $p = strpos($alphabet, $input[$i]);
             if ($p === false) {
                 return false;
@@ -239,7 +299,7 @@ class FinancialTool
             $c = $p;
             for ($j = 25; $j--;) {
                 $c += (int)(58 * $out[$j]);
-                $out[$j] = (int)($c % 256);
+                $out[$j] = $c % 256;
                 $c /= 256;
                 $c = (int)$c;
             }
