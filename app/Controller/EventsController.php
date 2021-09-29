@@ -2185,15 +2185,14 @@ class EventsController extends AppController
 
     public function upload_stix($stix_version = '1')
     {
-        if (!$this->userRole['perm_modify']) {
-            throw new UnauthorizedException(__('You do not have permission to do that.'));
-        }
-        $scriptDir = APP . 'files' . DS . 'scripts';
         if ($this->request->is('post')) {
+            $scriptDir = APP . 'files' . DS . 'scripts';
             if ($this->_isRest()) {
                 $randomFileName = $this->Event->generateRandomFileName();
                 $tempFile = new File($scriptDir . DS . 'tmp' . DS . $randomFileName, true, 0644);
-                $tempFile->write($this->request->input());
+                if (!$tempFile->write($this->request->input())) {
+                    throw new Exception("Could not write content of STIX file.");
+                }
                 $tempFile->close();
                 $result = $this->Event->upload_stix(
                     $this->Auth->user(),
@@ -2203,9 +2202,7 @@ class EventsController extends AppController
                     'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
                     false
                 );
-                if (is_array($result)) {
-                    return $this->RestResponse->saveSuccessResponse('Events', 'upload_stix', false, $this->response->type(), 'STIX document imported, event\'s created: ' . implode(', ', $result) . '.');
-                } elseif (is_numeric($result)) {
+                if (is_numeric($result)) {
                     $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $result));
                     if (!empty($event)) {
                         return $this->RestResponse->viewData($event[0], 'json');
@@ -2219,7 +2216,9 @@ class EventsController extends AppController
                 $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
                 if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
                     $randomFileName = $this->Event->generateRandomFileName();
-                    move_uploaded_file($this->data['Event']['stix']['tmp_name'], $scriptDir . DS . 'tmp' . DS . $randomFileName);
+                    if (!move_uploaded_file($this->data['Event']['stix']['tmp_name'], $scriptDir . DS . 'tmp' . DS . $randomFileName)) {
+                        throw new Exception("Could not move uploaded STIX file.");
+                    }
                     $result = $this->Event->upload_stix(
                         $this->Auth->user(),
                         $scriptDir,
@@ -2228,14 +2227,11 @@ class EventsController extends AppController
                         $original_file,
                         $this->data['Event']['publish']
                     );
-                    if (is_array($result)) {
-                        $this->Flash->success(__('STIX document imported, event\'s created: ' . implode(', ', $result) . '.'));
-                        $this->redirect(array('action' => 'index'));
-                    } elseif (is_numeric($result)) {
+                    if (is_numeric($result)) {
                         $this->Flash->success(__('STIX document imported.'));
                         $this->redirect(array('action' => 'view', $result));
                     } else {
-                        $this->Flash->error(__('Could not import STIX document: ' . $result));
+                        $this->Flash->error(__('Could not import STIX document: %s', $result));
                     }
                 } else {
                     $maxUploadSize = intval(ini_get('post_max_size'));
@@ -2246,13 +2242,7 @@ class EventsController extends AppController
                 }
             }
         }
-
-        if ($stix_version == 2) {
-            $stix_version = '2.x JSON';
-        } else {
-            $stix_version = '1.x XML';
-        }
-        $this->set('stix_version', $stix_version);
+        $this->set('stix_version', $stix_version == 2 ? '2.x JSON' : '1.x XML');
     }
 
     public function merge($target_id=null, $source_id=null)

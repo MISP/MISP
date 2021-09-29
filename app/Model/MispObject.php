@@ -72,6 +72,7 @@ class MispObject extends AppModel
                 'on' => 'create'
             ),
         ),
+        'event_id' => ['numeric'],
         'first_seen' => array(
             'rule' => array('datetimeOrNull'),
             'required' => false,

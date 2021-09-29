@@ -5917,10 +5917,18 @@ class Event extends AppModel
         return $this->save($event);
     }
 
-    public function upload_stix($user, $scriptDir, $filename, $stix_version, $original_file, $publish)
+    /**
+     * @param array $user
+     * @param string $scriptDir
+     * @param string $filename
+     * @param string $stix_version
+     * @param string $original_file
+     * @param bool $publish
+     * @return int|string|array
+     * @throws JsonException
+     */
+    public function upload_stix(array $user, $scriptDir, $filename, $stix_version, $original_file, $publish)
     {
-        App::uses('Folder', 'Utility');
-        App::uses('File', 'Utility');
         $tempFilePath = $scriptDir . DS . 'tmp' . DS . $filename;
         if ($stix_version == '2') {
             $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
@@ -5948,7 +5956,10 @@ class Event extends AppModel
         unlink($tempFilePath);
         if (trim($result) == '1') {
             $data = file_get_contents($output_path);
-            $data = json_decode($data, true);
+            if ($data === false) {
+                throw new Exception("Could not get content of `$output_path` file.");
+            }
+            $data = $this->jsonDecode($data);
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
@@ -5956,12 +5967,12 @@ class Event extends AppModel
             $created_id = false;
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
-            if ($result) {
-                if ($original_file && !is_numeric($result)) {
+            if ($result === true) {
+                if ($original_file) {
                     $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
                 }
                 if ($publish && $user['Role']['perm_publish']) {
-                    $this->publish($this->getID(), null);
+                    $this->publish($created_id);
                 }
                 return $created_id;
             }
@@ -7214,6 +7225,14 @@ class Event extends AppModel
         return $eventIdList;
     }
 
+    /**
+     * @param string $file File content
+     * @param string $original_filename
+     * @param int $event_id
+     * @param string $format
+     * @return bool
+     * @throws Exception
+     */
     public function add_original_file($file, $original_filename, $event_id, $format)
     {
         if (!Configure::check('MISP.default_attribute_distribution') || Configure::read('MISP.default_attribute_distribution') === 'event') {
@@ -7231,7 +7250,9 @@ class Event extends AppModel
             'event_id' => $event_id,
             'distribution' => $distribution
         );
-        $this->Object->save($object);
+        if (!$this->Object->save($object)) {
+            throw new Exception("Could not save object for original file because of validation errors:" . json_encode($this->Object->validationErrors));
+        }
         $object_id = $this->Object->id;
         $attributes = array(
             array(

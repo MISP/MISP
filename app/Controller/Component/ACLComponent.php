@@ -256,7 +256,7 @@ class ACLComponent extends Component
                     'updateGraph' => array('*'),
                     'upload_analysis_file' => array('perm_add'),
                     'upload_sample' => array('AND' => array('perm_auth', 'perm_add')),
-                    'upload_stix' => array('perm_add'),
+                    'upload_stix' => array('perm_modify'),
                     'view' => array('*'),
                     'viewClusterRelations' => array('*'),
                     'viewEventAttributes' => array('*'),
