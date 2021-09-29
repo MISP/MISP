@@ -1518,7 +1518,7 @@ class AttributesController extends AppController
             $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'first_seen', 'last_seen');
             $filterData = array(
                 'request' => $this->request,
-                'named_params' => $this->params['named'],
+                'named_params' => $this->request->params['named'],
                 'paramArray' => $paramArray,
                 'additional_delimiters' => PHP_EOL
             );

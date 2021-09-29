@@ -3902,7 +3902,7 @@ class Attribute extends AppModel
         return $adata;
     }
 
-    public function buildFilterConditions($user, &$params)
+    public function buildFilterConditions(array $user, array &$params)
     {
         $conditions = $this->buildConditions($user);
         if (isset($params['wildcard'])) {
@@ -3915,11 +3915,9 @@ class Attribute extends AppModel
             );
             $conditions['AND'][] = array('OR' => $this->Event->set_filter_wildcard_attributes($params, $temp, $options));
         } else {
-            $attribute_conditions = array();
-            $object_conditions = array();
             if (isset($params['ignore'])) {
-                $params['to_ids'] = array(0, 1);
-                $params['published'] = array(0, 1);
+                unset($params['to_ids']);
+                unset($params['published']);
             }
             $simple_params = array(
                 'Attribute' => array(
