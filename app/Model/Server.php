@@ -733,7 +733,7 @@ class Server extends AppModel
     public function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $scope = 'events', $force = false)
     {
         if (!in_array($scope, ['events', 'sightings'], true)) {
-            throw new InvalidArgumentException("Scope mus be 'events' or 'sightings', '$scope' given.");
+            throw new InvalidArgumentException("Scope must be 'events' or 'sightings', '$scope' given.");
         }
 
         $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules);
@@ -767,16 +767,7 @@ class Server extends AppModel
 
             if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
                 $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
-                $blocklistHits = $this->OrgBlocklist->find('column', array(
-                    'conditions' => array('OrgBlocklist.org_uuid' => array_unique(array_column($eventArray, 'orgc_uuid'))),
-                    'fields' => array('OrgBlocklist.org_uuid'),
-                ));
-                $blocklistHits = array_flip($blocklistHits);
-                foreach ($eventArray as $k => $event) {
-                    if (isset($blocklistHits[$event['orgc_uuid']])) {
-                        unset($eventArray[$k]);
-                    }
-                }
+                $this->OrgBlocklist->removeBlockedEvents($eventArray);
             }
 
             foreach ($eventArray as $k => $event) {
