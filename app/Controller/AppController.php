@@ -145,14 +145,12 @@ class AppController extends Controller
 
         // For fresh installation (salt empty) generate a new salt
         if (!Configure::read('Security.salt')) {
-            $this->loadModel('Server');
-            $this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
+            $this->User->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
         }
 
         // Check if the instance has a UUID, if not assign one.
         if (!Configure::read('MISP.uuid')) {
-            $this->loadModel('Server');
-            $this->Server->serverSettingsSaveValue('MISP.uuid', CakeText::uuid());
+            $this->User->Server->serverSettingsSaveValue('MISP.uuid', CakeText::uuid());
         }
 
         // Check if Apache provides kerberos authentication data
@@ -247,7 +245,7 @@ class AppController extends Controller
             $this->__logAccess($user);
 
             // Try to run updates
-            if ($user['Role']['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
+            if ($user['Role']['perm_site_admin'] || (!$this->_isRest() && $this->_isLive())) {
                 $this->User->runUpdates();
             }
 
@@ -337,8 +335,7 @@ class AppController extends Controller
                 $db = ConnectionManager::getDataSource('default');
                 $sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
                 if (isset($sqlResult[0][0]['session_count']) && $sqlResult[0][0]['session_count'] > 1000) {
-                    $this->loadModel('Server');
-                    $this->Server->updateDatabase('cleanSessionTable');
+                    $this->User->Server->updateDatabase('cleanSessionTable');
                 }
             }
             if (Configure::read('site_admin_debug') && (Configure::read('debug') < 2)) {
@@ -505,12 +502,11 @@ class AppController extends Controller
         }
 
         // Check if MISP access is enabled
-        if (!Configure::read('MISP.live')) {
+        if (!$this->_isLive()) {
             if (!$user['Role']['perm_site_admin']) {
                 $message = Configure::read('MISP.maintenance_message');
                 if (empty($message)) {
-                    $this->loadModel('Server');
-                    $message = $this->Server->serverSettings['MISP']['maintenance_message']['value'];
+                    $message = $this->User->Server->serverSettings['MISP']['maintenance_message']['value'];
                 }
                 if (strpos($message, '$email') && Configure::read('MISP.email')) {
                     $email = Configure::read('MISP.email');
@@ -1380,5 +1376,22 @@ class AppController extends Controller
             return true;
         }
         return false;
+    }
+
+    /**
+     * @return bool True if MISP instance is live
+     */
+    protected function _isLive()
+    {
+        if (!Configure::read('MISP.live')) {
+            return false;
+        }
+
+        try {
+            $redis = $this->User->setupRedisWithException();
+            return $redis->get('misp:live') !== '0';
+        } catch (Exception $e) {
+            return true;
+        }
     }
 }
