@@ -659,15 +659,15 @@ class EventsController extends AppController
         $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
         $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
         $passedArgs = $this->passedArgs;
-        if (isset($this->request->data)) {
+        if (!empty($this->request->data)) {
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
             }
             foreach ($this->request->data as $k => $v) {
-                if (substr($k, 0, 6) === 'search' && in_array(strtolower(substr($k, 6)), $overrideAbleParams)) {
+                if (substr($k, 0, 6) === 'search' && in_array(strtolower(substr($k, 6)), $overrideAbleParams, true)) {
                     unset($this->request->data[$k]);
                     $this->request->data[strtolower(substr($k, 6))] = $v;
-                } else if (in_array(strtolower($k), $overrideAbleParams)) {
+                } else if (in_array(strtolower($k), $overrideAbleParams, true)) {
                     unset($this->request->data[$k]);
                     $this->request->data[strtolower($k)] = $v;
                 }
@@ -742,19 +742,17 @@ class EventsController extends AppController
      * @param array $passedArgs
      * @return CakeResponse
      */
-    private function __indexRestResponse($passedArgs)
+    private function __indexRestResponse(array $passedArgs)
     {
         $rules = array();
-        $fieldNames = array_keys($this->Event->getColumnTypes());
-        $directions = array('ASC', 'DESC');
-        if (isset($passedArgs['sort']) && in_array($passedArgs['sort'], $fieldNames)) {
-            if (isset($passedArgs['direction']) && in_array(strtoupper($passedArgs['direction']), $directions)) {
+        $fieldNames = array_keys($this->Event->schema());
+        if (isset($passedArgs['sort']) && in_array($passedArgs['sort'], $fieldNames, true)) {
+            if (isset($passedArgs['direction']) && in_array(strtoupper($passedArgs['direction']), ['ASC', 'DESC'])) {
                 $rules['order'] = array('Event.' . $passedArgs['sort'] => $passedArgs['direction']);
             } else {
                 $rules['order'] = array('Event.' . $passedArgs['sort'] => 'ASC');
             }
         }
-        $rules['contain'] = $this->paginate['contain'];
         if (isset($this->paginate['conditions'])) {
             $rules['conditions'] = $this->paginate['conditions'];
         }
@@ -764,11 +762,7 @@ class EventsController extends AppController
             $rules['fields'] = array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid');
             $rules['contain'] = array('Orgc.uuid');
         } else {
-            $rules['contain'][] = 'EventTag';
-            // we fetch organisations and sharging groups later to save memory
-            unset($rules['contain']['Org']);
-            unset($rules['contain']['Orgc']);
-            unset($rules['contain']['SharingGroup']);
+            $rules['contain'] = ['EventTag'];
             // Remove user ID from fetched fields
             unset($fieldNames[array_search('user_id', $fieldNames)]);
             $rules['fields'] = $fieldNames;
