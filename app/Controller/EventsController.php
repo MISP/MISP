@@ -1092,7 +1092,7 @@ class EventsController extends AppController
         $filterData = array(
             'request' => $this->request,
             'paramArray' => $this->acceptedFilteringNamedParams,
-            'named_params' => $this->params['named']
+            'named_params' => $this->request->params['named']
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
@@ -1151,8 +1151,8 @@ class EventsController extends AppController
         }
 
         // Site admin can view event as different user
-        if ($this->_isSiteAdmin() && isset($this->params['named']['viewAs'])) {
-            $user = $this->User->getAuthUser($this->params['named']['viewAs']);
+        if ($this->_isSiteAdmin() && isset($this->request->params['named']['viewAs'])) {
+            $user = $this->User->getAuthUser($this->request->params['named']['viewAs']);
             if (empty($user)) {
                 throw new NotFoundException(__("User not found"));
             }
@@ -1282,7 +1282,7 @@ class EventsController extends AppController
         $filterData = array(
             'request' => $this->request,
             'paramArray' => $this->acceptedFilteringNamedParams,
-            'named_params' => $this->params['named']
+            'named_params' => $this->request->params['named']
         );
         $exception = false;
         $warningTagConflicts = array();
@@ -1559,8 +1559,10 @@ class EventsController extends AppController
             throw new NotFoundException(__('Invalid event'));
         }
 
+        $namedParams = $this->request->params['named'];
+
         if ($this->_isRest()) {
-            $conditions['includeAttachments'] = isset($this->params['named']['includeAttachments']) ? $this->params['named']['includeAttachments'] : true;
+            $conditions['includeAttachments'] = isset($namedParams['includeAttachments']) ? $namedParams['includeAttachments'] : true;
         } else {
             $conditions['includeAllTags'] = true;
             $conditions['noEventReports'] = true; // event reports for view are loaded dynamically
@@ -1568,8 +1570,8 @@ class EventsController extends AppController
             $conditions['fetchFullClusters'] = false;
         }
         $deleted = 0;
-        if (isset($this->params['named']['deleted'])) {
-            $deleted = $this->params['named']['deleted'];
+        if (isset($namedParams['deleted'])) {
+            $deleted = $namedParams['deleted'];
         }
         if (isset($this->request->data['deleted'])) {
             $deleted = $this->request->data['deleted'];
@@ -1577,7 +1579,7 @@ class EventsController extends AppController
         if (isset($deleted)) {
             // workaround for old instances trying to pull events with both deleted / non deleted data
             if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == 1) {
-                $conditions['deleted'] = array(0,1);
+                $conditions['deleted'] = array(0, 1);
             } else {
                 if (is_array($deleted)) {
                     $conditions['deleted'] = $deleted;
@@ -1590,28 +1592,28 @@ class EventsController extends AppController
                 }
             }
         }
-        if (isset($this->params['named']['toIDS']) && $this->params['named']['toIDS'] != 0) {
-            $conditions['to_ids'] = $this->params['named']['toIDS'] == 2 ? 0 : 1;
+        if (isset($namedParams['toIDS']) && $namedParams['toIDS'] != 0) {
+            $conditions['to_ids'] = $namedParams['toIDS'] == 2 ? 0 : 1;
         }
-        if (isset($this->params['named']['includeRelatedTags']) && $this->params['named']['includeRelatedTags']) {
+        if (isset($namedParams['includeRelatedTags']) && $namedParams['includeRelatedTags']) {
             $conditions['includeRelatedTags'] = 1;
         }
-        if (!empty($this->params['named']['includeDecayScore'])) {
+        if (!empty($namedParams['includeDecayScore'])) {
             $conditions['includeDecayScore'] = 1;
         }
-        if (isset($this->params['named']['public']) && $this->params['named']['public']) {
+        if (isset($namedParams['public']) && $namedParams['public']) {
             $conditions['distribution'] = array(3, 5);
         }
-        if (!empty($this->params['named']['overrideLimit']) && !$this->_isRest()) {
+        if (!empty($namedParams['overrideLimit']) && !$this->_isRest()) {
             $conditions['overrideLimit'] = 1;
         }
-        if (!empty($this->params['named']['excludeGalaxy'])) {
+        if (!empty($namedParams['excludeGalaxy'])) {
             $conditions['excludeGalaxy'] = 1;
-            if (!empty($this->params['named']['includeCustomGalaxyCluster'])) {
+            if (!empty($namedParams['includeCustomGalaxyCluster'])) {
                 $conditions['includeCustomGalaxyCluster'] = 1;
             }
         }
-        if (!empty($this->params['named']['extended']) || !empty($this->request->data['extended'])) {
+        if (!empty($namedParams['extended']) || !empty($this->request->data['extended'])) {
             $conditions['extended'] = 1;
             $this->set('extended', 1);
         } else {
@@ -1619,35 +1621,35 @@ class EventsController extends AppController
         }
         $conditions['excludeLocalTags'] = false;
         $conditions['includeWarninglistHits'] = true;
-        if (isset($this->params['named']['excludeLocalTags'])) {
-            $conditions['excludeLocalTags'] = $this->params['named']['excludeLocalTags'];
+        if (isset($namedParams['excludeLocalTags'])) {
+            $conditions['excludeLocalTags'] = $namedParams['excludeLocalTags'];
         }
         $conditions['includeFeedCorrelations'] = 1;
         if (!$this->_isRest()) {
             $conditions['includeGranularCorrelations'] = 1;
-        } else if (!empty($this->params['named']['includeGranularCorrelations'])) {
+        } else if (!empty($namedParams['includeGranularCorrelations'])) {
             $conditions['includeGranularCorrelations'] = 1;
         }
-        if (!isset($this->params['named']['includeServerCorrelations'])) {
+        if (!isset($namedParams['includeServerCorrelations'])) {
             $conditions['includeServerCorrelations'] = 1;
             if ($this->_isRest()) {
                 $conditions['includeServerCorrelations'] = 0;
             }
         } else {
-            $conditions['includeServerCorrelations'] = $this->params['named']['includeServerCorrelations'];
+            $conditions['includeServerCorrelations'] = $namedParams['includeServerCorrelations'];
         }
 
         if ($this->_isRest()) {
             foreach (['includeEventCorrelations', 'includeFeedCorrelations', 'includeWarninglistHits', 'noEventReports', 'noShadowAttributes'] as $param) {
-                if (isset($this->request->named[$param])) {
-                    $conditions[$param] = $this->request->named[$param];
+                if (isset($namedParams[$param])) {
+                    $conditions[$param] = $namedParams[$param];
                 }
             }
         }
 
         // Site admin can view event as different user
-        if ($this->_isSiteAdmin() && isset($this->params['named']['viewAs'])) {
-            $user = $this->User->getAuthUser($this->params['named']['viewAs']);
+        if ($this->_isSiteAdmin() && isset($namedParams['viewAs'])) {
+            $user = $this->User->getAuthUser($namedParams['viewAs']);
             if (empty($user)) {
                 throw new NotFoundException(__("User not found"));
             }
@@ -1663,7 +1665,7 @@ class EventsController extends AppController
         $event = $results[0];
 
         // Attach related attributes to proper attribute
-        if (!empty($this->params['named']['includeGranularCorrelations']) && !empty($event['RelatedAttribute'])) {
+        if (!empty($namedParams['includeGranularCorrelations']) && !empty($event['RelatedAttribute'])) {
             foreach ($event['RelatedAttribute'] as $attribute_id => $relation) {
                 foreach ($event['Attribute'] as $k2 => $attribute) {
                     if ((int)$attribute['id'] == $attribute_id) {
@@ -1683,14 +1685,14 @@ class EventsController extends AppController
         }
 
         $this->Event->id = $event['Event']['id'];
-        if (isset($this->params['named']['searchFor']) && $this->params['named']['searchFor'] !== '') {
-            $this->__applyQueryString($event, $this->params['named']['searchFor']);
+        if (isset($namedParams['searchFor']) && $namedParams['searchFor'] !== '') {
+            $this->__applyQueryString($event, $namedParams['searchFor']);
         }
-        if (isset($this->params['named']['taggedAttributes']) && $this->params['named']['taggedAttributes'] !== '') {
-            $this->__applyQueryString($event, $this->params['named']['taggedAttributes'], 'Tag.name');
+        if (isset($namedParams['taggedAttributes']) && $namedParams['taggedAttributes'] !== '') {
+            $this->__applyQueryString($event, $namedParams['taggedAttributes'], 'Tag.name');
         }
-        if (isset($this->params['named']['galaxyAttachedAttributes']) && $this->params['named']['galaxyAttachedAttributes'] !== '') {
-            $this->__applyQueryString($event, $this->params['named']['galaxyAttachedAttributes'], 'Tag.name');
+        if (isset($namedParams['galaxyAttachedAttributes']) && $namedParams['galaxyAttachedAttributes'] !== '') {
+            $this->__applyQueryString($event, $namedParams['galaxyAttachedAttributes'], 'Tag.name');
         }
 
         if ($this->_isRest()) {
@@ -1698,8 +1700,8 @@ class EventsController extends AppController
         }
 
         $this->set('deleted', isset($deleted) ? ($deleted > 0 ? 1 : 0) : 0);
-        $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
-        $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
+        $this->set('includeRelatedTags', (!empty($namedParams['includeRelatedTags'])) ? 1 : 0);
+        $this->set('includeDecayScore', (!empty($namedParams['includeDecayScore'])) ? 1 : 0);
 
         if ($this->_isSiteAdmin() && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
             $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
