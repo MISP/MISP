@@ -191,21 +191,21 @@ class Server extends AppModel
 
     /**
      * @param int|string $technique 'full', 'update', remote event ID or remote event UUID
-     * @param array $server
+     * @param ServerSyncTool $serverSync
      * @param bool $force
-     * @return array
-     * @throws InvalidArgumentException
-     * @throws JsonException
+     * @return array Event UUIDSs or IDs
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
      */
-    private function __getEventIdListBasedOnPullTechnique($technique, array $server, $force = false)
+    private function __getEventIdListBasedOnPullTechnique($technique, ServerSyncTool $serverSync, $force = false)
     {
         if ("full" === $technique) {
             // get a list of the event_ids on the server
-            $eventIds = $this->getEventIdsFromServer($server, false, null, false, 'events', $force);
+            $eventIds = $this->getEventIdsFromServer($serverSync, false, false, 'events', $force);
             // reverse array of events, to first get the old ones, and then the new ones
             return array_reverse($eventIds);
         } elseif ("update" === $technique) {
-            $eventIds = $this->getEventIdsFromServer($server, false, null, true, 'events', $force);
+            $eventIds = $this->getEventIdsFromServer($serverSync, false, true, 'events', $force);
             $eventModel = ClassRegistry::init('Event');
             $localEventUuids = $eventModel->find('column', array(
                 'fields' => array('Event.uuid'),
@@ -490,7 +490,7 @@ class Server extends AppModel
         }
 
         try {
-            $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server, $force);
+            $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $serverSync, $force);
         } catch (Exception $e) {
             $this->logException("Could not fetch event IDs from server `{$server['Server']['name']}`.", $e);
             if ($e instanceof HttpSocketHttpException && $e->getCode() === 403) {
@@ -596,26 +596,6 @@ class Server extends AppModel
             $final = array_merge_recursive($final, $url_params);
         }
         return $final;
-    }
-
-    /**
-     * @param HttpSocket $HttpSocket
-     * @param array $request
-     * @param array $server
-     * @param array $filterRules
-     * @return array
-     * @throws JsonException
-     */
-    private function __orgRuleDowngrade(HttpSocket $HttpSocket, array $request, array $server, array $filterRules)
-    {
-        $uri = $server['Server']['url'] . '/servers/getVersion';
-        $version_response = $HttpSocket->get($uri, false, $request);
-        $version = $this->jsonDecode($version_response->body)['version'];
-        $version = explode('.', $version);
-        if ($version[0] <= 2 && $version[1] <= 4 && $version[0] <= 123) {
-            $filterRules['org'] = implode('|', $filterRules['org']);
-        }
-        return $filterRules;
     }
 
     /**
@@ -740,44 +720,23 @@ class Server extends AppModel
     /**
      * Get an array of event UUIDs that are present on the remote server.
      *
-     * @param array $server
+     * @param ServerSyncTool $serverSync
      * @param bool $all
-     * @param HttpSocket|null $HttpSocket
      * @param bool $ignoreFilterRules
      * @param string $scope 'events' or 'sightings'
      * @param bool $force
      * @return array Array of event UUIDs.
-     * @throws JsonException
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
      * @throws InvalidArgumentException
      */
-    public function getEventIdsFromServer(array $server, $all = false, HttpSocket $HttpSocket = null, $ignoreFilterRules = false, $scope = 'events', $force = false)
+    public function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $scope = 'events', $force = false)
     {
         if (!in_array($scope, ['events', 'sightings'], true)) {
             throw new InvalidArgumentException("Scope mus be 'events' or 'sightings', '$scope' given.");
         }
 
-        if ($ignoreFilterRules) {
-            $filterRules = array();
-        } else {
-            $filterRules = $this->filterRuleToParameter($server['Server']['pull_rules']);
-        }
-
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        if (!empty($filterRules['org'])) {
-            $filterRules = $this->__orgRuleDowngrade($HttpSocket, $request, $server, $filterRules);
-        }
-        $filterRules['minimal'] = 1;
-        $filterRules['published'] = 1;
-
-        $uri = $server['Server']['url'] . '/events/index';
-        $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
-
-        if (!$response->isOk()) {
-            throw new HttpException("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}", intval($response->code));
-        }
-
-        $eventArray = $this->jsonDecode($response->body);
+        $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules);
         // correct $eventArray if just one event
         if (isset($eventArray['id'])) {
             $eventArray = array($eventArray);
@@ -1169,10 +1128,10 @@ class Server extends AppModel
         if (!$server['Server']['push_sightings']) {
             return $successes;
         }
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         $this->Sighting = ClassRegistry::init('Sighting');
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         try {
-            $eventUuids = $this->getEventIdsFromServer($server, true, $HttpSocket, true, 'sightings');
+            $eventUuids = $this->getEventIdsFromServer($serverSync, true, true, 'sightings');
         } catch (Exception $e) {
             $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
             return $successes;
@@ -1186,7 +1145,6 @@ class Server extends AppModel
             ],
         ];
 
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         foreach ($eventUuids as $eventUuid) {
             $event = $eventModel->fetchEvent($user, ['event_uuid' => $eventUuid, 'metadata' => true]);
             if (!empty($event)) {
@@ -1223,11 +1181,12 @@ class Server extends AppModel
     {
         $saModel = ClassRegistry::init('ShadowAttribute');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         if ($sa_id == null) {
             if ($event_id == null) {
                 // event_id is null when we are doing a push
                 try {
-                    $ids = $this->getEventIdsFromServer($server, true, $HttpSocket, true);
+                    $ids = $this->getEventIdsFromServer($serverSync, true, true);
                 } catch (Exception $e) {
                     $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
                     return false;
