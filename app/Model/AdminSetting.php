@@ -31,11 +31,11 @@ class AdminSetting extends AppModel
         }
     }
 
-
     public function getSetting($setting)
     {
         $setting_object = $this->find('first', array(
-                'conditions' => array('setting' => $setting)
+            'conditions' => array('setting' => $setting),
+            'fields' => ['value'],
         ));
         if (!empty($setting_object)) {
             return $setting_object['AdminSetting']['value'];
@@ -43,8 +43,6 @@ class AdminSetting extends AppModel
             return false;
         }
     }
-
-
 
     public function updatesDone($blocking = false)
     {

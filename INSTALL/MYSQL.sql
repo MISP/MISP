@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `admin_settings` (
   `setting` varchar(255) COLLATE utf8_bin NOT NULL,
   `value` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
-  INDEX `setting` (`setting`)
+  UNIQUE INDEX `setting` (`setting`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `allowedlist` (
