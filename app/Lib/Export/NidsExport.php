@@ -96,7 +96,7 @@ class NidsExport
                 );
 
             } else { // In case no custom export exists for the object, the approach falls back to the attribute case
-                $this->__convertFromEventFormat($object['Attribute'], $data, $options, $continue);
+                $this->__convertFromEventFormat($object['Attribute'], $event, $options, $continue);
             }
 
         }
