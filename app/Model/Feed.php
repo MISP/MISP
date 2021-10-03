@@ -1186,13 +1186,10 @@ class Feed extends AppModel
             $data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $value['to_ids'];
             $uniqueValues[$value['value']] = true;
         }
-        $data = array_values($data);
-        foreach ($data as $k => $chunk) {
-            $this->Event->Attribute->create();
-            $this->Event->Attribute->save($chunk);
-            if ($k % 100 === 0) {
-                $this->jobProgress($jobId, null, 50 + round(($k + 1) / count($data) * 50));
-            }
+        $chunks = array_chunk($data, 100);
+        foreach ($chunks as $k => $chunk) {
+            $this->Event->Attribute->saveMany($chunk, ['validate' => true, 'parentEvent' => $event]);
+            $this->jobProgress($jobId, null, 50 + round(($k * 100 + 1) / count($data) * 50));
         }
         if (!empty($data) || !empty($attributesToDelete)) {
             unset($event['Event']['timestamp']);
