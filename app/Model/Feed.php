@@ -167,13 +167,13 @@ class Feed extends AppModel
                 'Event.uuid' => array_keys($manifest),
             ),
             'recursive' => -1,
-            'fields' => array('Event.id', 'Event.uuid', 'Event.timestamp')
+            'fields' => array('Event.uuid', 'Event.timestamp')
         ));
         $result = array('add' => array(), 'edit' => array());
         foreach ($events as $event) {
             $eventUuid = $event['Event']['uuid'];
             if ($event['Event']['timestamp'] < $manifest[$eventUuid]['timestamp']) {
-                $result['edit'][] = array('uuid' => $eventUuid, 'id' => $event['Event']['id']);
+                $result['edit'][] = $eventUuid;
             } else {
                 $this->__cleanupFile($feed, '/' . $eventUuid . '.json');
             }
@@ -705,10 +705,9 @@ class Feed extends AppModel
             $currentItem++;
         }
 
-        foreach ($actions['edit'] as $editTarget) {
-            $uuid = $editTarget['uuid'];
+        foreach ($actions['edit'] as $uuid) {
             try {
-                $result = $this->__updateEventFromFeed($HttpSocket, $feed, $uuid, $editTarget['id'], $user, $filterRules);
+                $result = $this->__updateEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
                 if ($result === true) {
                     $results['add']['success'] = $uuid;
                 } else if ($result !== 'blocked') {
@@ -1024,13 +1023,12 @@ class Feed extends AppModel
      * @param HttpSocket|null $HttpSocket Null can be for local feed
      * @param array $feed
      * @param string $uuid
-     * @param int $eventId
      * @param $user
      * @param array|bool $filterRules
      * @return mixed
      * @throws Exception
      */
-    private function __updateEventFromFeed(HttpSocket $HttpSocket = null, $feed, $uuid, $eventId, $user, $filterRules)
+    private function __updateEventFromFeed(HttpSocket $HttpSocket = null, $feed, $uuid, $user, $filterRules)
     {
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         $event = $this->__prepareEvent($event, $feed, $filterRules);
