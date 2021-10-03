@@ -95,12 +95,7 @@ class Feed extends AppModel
     public function afterSave($created, $options = array())
     {
         if (!$created) {
-            if (file_exists(APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$this->data['Feed']['id'] . '.cache')) {
-                unlink(APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$this->data['Feed']['id'] . '.cache');
-            }
-            if (file_exists(APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$this->data['Feed']['id'] . '.etag')) {
-                unlink(APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$this->data['Feed']['id'] . '.etag');
-            }
+            $this->cleanFileCache((int)$this->data['Feed']['id']);
         }
     }
 
@@ -165,7 +160,7 @@ class Feed extends AppModel
      */
     public function getNewEventUuids($feed, HttpSocket $HttpSocket = null)
     {
-        $manifest = $this->downloadManifest($feed, $HttpSocket);
+        $manifest = $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
         $this->Event = ClassRegistry::init('Event');
         $events = $this->Event->find('all', array(
             'conditions' => array(
@@ -231,6 +226,73 @@ class Feed extends AppModel
     }
 
     /**
+     * @param int $feedId
+     */
+    private function cleanFileCache($feedId)
+    {
+        $cacheDir = APP . 'tmp' . DS . 'cache' . DS;
+        foreach (["misp_feed_{$feedId}_manifest.cache.gz", "misp_feed_{$feedId}_manifest.etag", "misp_feed_$feedId.cache", "misp_feed_$feedId.etag"] as $fileName) {
+            if (file_exists($cacheDir . $fileName)) {
+                unlink($cacheDir . $fileName);
+            }
+        }
+    }
+
+    /**
+     * Get remote manifest for feed with etag checking.
+     * @param array $feed
+     * @param HttpSocketExtended $HttpSocket
+     * @return array
+     * @throws HttpSocketHttpException
+     * @throws JsonException
+     */
+    private function getRemoteManifest(array $feed, HttpSocketExtended $HttpSocket)
+    {
+        $feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$feed['Feed']['id'] . '_manifest.cache.gz';
+        $feedCacheEtag = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$feed['Feed']['id'] . '_manifest.etag';
+
+        $etag = null;
+        if (file_exists($feedCache) && file_exists($feedCacheEtag)) {
+            $etag = file_get_contents($feedCacheEtag);
+        }
+
+        $manifestUrl = $feed['Feed']['url'] . '/manifest.json';
+
+        try {
+            $response = $this->feedGetUriRemote($feed, $manifestUrl, $HttpSocket, $etag);
+        } catch (HttpSocketHttpException $e) {
+            if ($e->getCode() === 304) { // not modified
+                $data = file_get_contents("compress.zlib://$feedCache");
+                if ($data === false) {
+                    return $this->feedGetUriRemote($feed, $manifestUrl, $HttpSocket)->json(); // cache file is not readable, fetch without etag
+                }
+                return $this->jsonDecode($data);
+            } else {
+                throw $e;
+            }
+        }
+
+        if ($response->getHeader('ETag')) {
+            $file = gzopen($feedCache, 'wb1');
+            $savedToCache = gzwrite($file, $response->body);
+            gzclose($file);
+            if ($savedToCache !== false) {
+                file_put_contents($feedCacheEtag, $response->getHeader('ETag'), LOCK_EX); // Save etag to file
+            } else {
+                if (file_exists($feedCacheEtag)) {
+                    unlink($feedCacheEtag);
+                }
+            }
+        } else {
+            if (file_exists($feedCacheEtag)) {
+                unlink($feedCacheEtag);
+            }
+        }
+
+        return $response->json();
+    }
+
+    /**
      * @param array $feed
      * @param HttpSocket|null $HttpSocket Null can be for local feed
      * @return array
@@ -238,7 +300,7 @@ class Feed extends AppModel
      */
     public function getManifest(array $feed, HttpSocket $HttpSocket = null)
     {
-        $events = $this->downloadManifest($feed, $HttpSocket);
+        $events = $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
         $events = $this->__filterEventsIndex($events, $feed);
         return $events;
     }
