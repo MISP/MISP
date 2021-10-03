@@ -92,6 +92,18 @@ class Feed extends AppModel
         return $results;
     }
 
+    public function afterSave($created, $options = array())
+    {
+        if (!$created) {
+            if (file_exists(APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$this->data['Feed']['id'] . '.cache')) {
+                unlink(APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$this->data['Feed']['id'] . '.cache');
+            }
+            if (file_exists(APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$this->data['Feed']['id'] . '.etag')) {
+                unlink(APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$this->data['Feed']['id'] . '.etag');
+            }
+        }
+    }
+
     public function validateInputSource($fields)
     {
         if (!empty($this->data['Feed']['input_source'])) {
@@ -273,7 +285,9 @@ class Feed extends AppModel
         if ($savedToCache !== false && $response->getHeader('ETag')) {
             file_put_contents($feedCacheEtag, $response->getHeader('ETag'), LOCK_EX); // Save etag to file
         } else {
-            unlink($feedCacheEtag);
+            if (file_exists($feedCacheEtag)) {
+                unlink($feedCacheEtag);
+            }
         }
 
         return $response->body;
