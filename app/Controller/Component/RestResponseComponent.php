@@ -9,7 +9,7 @@ class RestResponseComponent extends Component
 
     public $headers = array();
 
-    private $__convertActionToMessage = array(
+    const CONVERT_ACTION_TO_MESSAGE = array(
         'SharingGroup' => array(
             'addOrg' => 'add Organisation to',
             'removeOrg' => 'remove Organisation from',
@@ -473,8 +473,8 @@ class RestResponseComponent extends Component
         $response = array();
         $action = $this->__dissectAdminRouting($action);
         $stringifiedAction = $action['action'];
-        if (isset($this->__convertActionToMessage[$controller][$action['action']])) {
-            $stringifiedAction = $this->__convertActionToMessage[$controller][$action['action']];
+        if (isset(self::CONVERT_ACTION_TO_MESSAGE[$controller][$action['action']])) {
+            $stringifiedAction = self::CONVERT_ACTION_TO_MESSAGE[$controller][$action['action']];
         }
         $response['saved'] = false;
         $response['name'] = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
@@ -640,7 +640,7 @@ class RestResponseComponent extends Component
     private function __dissectAdminRouting($action)
     {
         $admin = false;
-        if (strlen($action) > 6 && substr($action, 0, 6) == 'admin_') {
+        if (strlen($action) > 6 && substr($action, 0, 6) === 'admin_') {
             $action = substr($action, 6);
             $admin = true;
         }
