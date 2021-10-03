@@ -777,7 +777,11 @@ class Server extends AppModel
             }
             if (!$force) {
                 $this->Event = ClassRegistry::init('Event');
-                $this->Event->removeOlder($eventArray, $scope);
+                if ($scope === 'sightings') {
+                    $this->Event->removeOlderBySighting($eventArray);
+                } else {
+                    $this->Event->removeOlder($eventArray);
+                }
             }
             $eventUuids = array_column($eventArray, 'uuid');
         }
