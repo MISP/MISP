@@ -209,7 +209,7 @@ class Feed extends AppModel
     private function downloadManifest($feed, HttpSocket $HttpSocket = null)
     {
         $manifestUrl = $feed['Feed']['url'] . '/manifest.json';
-        $data = $this->feedGetUri($feed, $manifestUrl, $HttpSocket, true);
+        $data = $this->feedGetUri($feed, $manifestUrl, $HttpSocket);
 
         try {
             return $this->jsonDecode($data);
@@ -232,6 +232,54 @@ class Feed extends AppModel
     }
 
     /**
+     * Load remote file with cache support and etag checking.
+     * @param array $feed
+     * @param HttpSocket $HttpSocket
+     * @return string
+     * @throws HttpSocketHttpException
+     */
+    private function getFreetextFeedRemote(array $feed, HttpSocket $HttpSocket)
+    {
+        $feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$feed['Feed']['id'] . '.cache';
+        $feedCacheEtag = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$feed['Feed']['id'] . '.etag';
+
+        $etag = null;
+        if (file_exists($feedCache)) {
+            if (time() - filemtime($feedCache) < 600) {
+                $data = file_get_contents($feedCache);
+                if ($data !== false) {
+                    return $data;
+                }
+            } else if (file_exists($feedCacheEtag)) {
+                $etag = file_get_contents($feedCacheEtag);
+            }
+        }
+
+        try {
+            $response = $this->feedGetUriRemote($feed, $feed['Feed']['url'], $HttpSocket, $etag);
+        } catch (HttpSocketHttpException $e) {
+            if ($e->getCode() === 304) { // not modified
+                $data = file_get_contents($feedCache);
+                if ($data === false) {
+                    return $this->feedGetUriRemote($feed, $feed['Feed']['url'], $HttpSocket); // cache file is not readable, fetch without etag
+                }
+                return $data;
+            } else {
+                throw $e;
+            }
+        }
+
+        $savedToCache = file_put_contents($feedCache, $response->body, LOCK_EX); // Save to cache
+        if ($savedToCache !== false && $response->getHeader('ETag')) {
+            file_put_contents($feedCacheEtag, $response->getHeader('ETag'), LOCK_EX); // Save etag to file
+        } else {
+            unlink($feedCacheEtag);
+        }
+
+        return $response->body;
+    }
+
+    /**
      * @param array $feed
      * @param HttpSocket|null $HttpSocket Null can be for local feed
      * @param string $type
@@ -243,29 +291,11 @@ class Feed extends AppModel
      */
     public function getFreetextFeed($feed, HttpSocket $HttpSocket = null, $type = 'freetext', $page = 1, $limit = 60, &$params = array())
     {
-        $isLocal = $this->isFeedLocal($feed);
-        $data = false;
-
-        if (!$isLocal) {
-            $feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feed['Feed']['id']) . '.cache';
-            if (file_exists($feedCache)) {
-                $file = new File($feedCache);
-                if (time() - $file->lastChange() < 600) {
-                    $data = $file->read();
-                    if ($data === false) {
-                        throw new Exception("Could not read feed cache file '$feedCache'.");
-                    }
-                }
-            }
-        }
-
-        if ($data === false) {
+        if ($this->isFeedLocal($feed)) {
             $feedUrl = $feed['Feed']['url'];
-            $data = $this->feedGetUri($feed, $feedUrl, $HttpSocket, true);
-
-            if (!$isLocal) {
-                file_put_contents($feedCache, $data); // save to cache
-            }
+            $data = $this->feedGetUri($feed, $feedUrl, $HttpSocket);
+        } else {
+            $data = $this->getFreetextFeedRemote($feed, $HttpSocket);
         }
 
         App::uses('ComplexTypeTool', 'Tools');
@@ -891,7 +921,7 @@ class Feed extends AppModel
     {
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
-        return $syncTool->setupHttpSocketFeed($feed);
+        return $syncTool->setupHttpSocketFeed();
     }
 
     /**
@@ -1794,11 +1824,10 @@ class Feed extends AppModel
      * @param array $feed
      * @param string $uri
      * @param HttpSocket|null $HttpSocket Null can be for local feed
-     * @param bool $followRedirect
      * @return string
      * @throws Exception
      */
-    private function feedGetUri($feed, $uri, HttpSocket $HttpSocket = null, $followRedirect = false)
+    private function feedGetUri($feed, $uri, HttpSocket $HttpSocket = null)
     {
         if ($this->isFeedLocal($feed)) {
             if (file_exists($uri)) {
@@ -1812,36 +1841,42 @@ class Feed extends AppModel
             }
         }
 
-        if ($HttpSocket === null) {
-            throw new Exception("Feed {$feed['Feed']['name']} is not local, but HttpSocket is not initialized.");
+        return $this->feedGetUriRemote($feed, $uri, $HttpSocket)->body;
+    }
+
+    /**
+     * @param array $feed
+     * @param string $uri
+     * @param HttpSocket $HttpSocket
+     * @param string|null $etag
+     * @return false|HttpSocketResponse
+     * @throws HttpSocketHttpException
+     */
+    private function feedGetUriRemote(array $feed, $uri, HttpSocket $HttpSocket, $etag = null)
+    {
+        $request = $this->__createFeedRequest($feed['Feed']['headers']);
+        if ($etag) {
+            $request['header']['If-None-Match'] = $etag;
         }
 
-        $request = $this->__createFeedRequest($feed['Feed']['headers']);
-
         try {
-            if ($followRedirect) {
-                $response = $this->getFollowRedirect($HttpSocket, $uri, $request);
-            } else {
-                $response = $HttpSocket->get($uri, array(), $request);
-            }
+            $response = $this->getFollowRedirect($HttpSocket, $uri, $request);
         } catch (Exception $e) {
             throw new Exception("Fetching the '$uri' failed with exception: {$e->getMessage()}", 0, $e);
         }
 
         if ($response->code != 200) { // intentionally !=
-            throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
+            throw new HttpSocketHttpException($response, $uri);
         }
-
-        $data = $response->body;
 
         $contentType = $response->getHeader('Content-Type');
         if ($contentType === 'application/zip') {
             $zipFile = new File($this->tempFileName());
-            $zipFile->write($data);
+            $zipFile->write($response->body);
             $zipFile->close();
 
             try {
-                $data = $this->unzipFirstFile($zipFile);
+                $response->body = $this->unzipFirstFile($zipFile);
             } catch (Exception $e) {
                 throw new Exception("Fetching the '$uri' failed: {$e->getMessage()}");
             } finally {
@@ -1849,7 +1884,7 @@ class Feed extends AppModel
             }
         }
 
-        return $data;
+        return $response;
     }
 
     /**
