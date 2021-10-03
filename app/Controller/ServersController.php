@@ -880,7 +880,7 @@ class ServersController extends AppController
                     }
 
                     // read pem file data
-                    $pemData = (new FileAccessTool())->readFromFile($server['Server'][$subm]['tmp_name'], $server['Server'][$subm]['size']);
+                    $pemData = FileAccessTool::readFromFile($server['Server'][$subm]['tmp_name'], $server['Server'][$subm]['size']);
                 } else {
                     return true;
                 }
