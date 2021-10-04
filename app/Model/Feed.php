@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
 
 class Feed extends AppModel
 {
@@ -232,9 +233,7 @@ class Feed extends AppModel
     {
         $cacheDir = APP . 'tmp' . DS . 'cache' . DS;
         foreach (["misp_feed_{$feedId}_manifest.cache.gz", "misp_feed_{$feedId}_manifest.etag", "misp_feed_$feedId.cache", "misp_feed_$feedId.etag"] as $fileName) {
-            if (file_exists($cacheDir . $fileName)) {
-                unlink($cacheDir . $fileName);
-            }
+            FileAccessTool::deleteFileIfExists($cacheDir . $fileName);
         }
     }
 
@@ -273,20 +272,15 @@ class Feed extends AppModel
         }
 
         if ($response->getHeader('ETag')) {
-            $file = gzopen($feedCache, 'wb1');
-            $savedToCache = gzwrite($file, $response->body);
-            gzclose($file);
-            if ($savedToCache !== false) {
-                file_put_contents($feedCacheEtag, $response->getHeader('ETag'), LOCK_EX); // Save etag to file
-            } else {
-                if (file_exists($feedCacheEtag)) {
-                    unlink($feedCacheEtag);
-                }
+            try {
+                FileAccessTool::writeCompressedFile($feedCache, $response->body);
+                FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('ETag'));
+            } catch (Exception $e) {
+                FileAccessTool::deleteFileIfExists($feedCacheEtag);
+                $this->logException("Could not save file `$feedCache` to cache.", $e, LOG_NOTICE);
             }
         } else {
-            if (file_exists($feedCacheEtag)) {
-                unlink($feedCacheEtag);
-            }
+            FileAccessTool::deleteFileIfExists($feedCacheEtag);
         }
 
         return $response->json();
@@ -343,13 +337,14 @@ class Feed extends AppModel
             }
         }
 
-        $savedToCache = file_put_contents($feedCache, $response->body, LOCK_EX); // Save to cache
-        if ($savedToCache !== false && $response->getHeader('ETag')) {
-            file_put_contents($feedCacheEtag, $response->getHeader('ETag'), LOCK_EX); // Save etag to file
-        } else {
-            if (file_exists($feedCacheEtag)) {
-                unlink($feedCacheEtag);
+        try {
+            FileAccessTool::writeToFile($feedCache, $response->body);
+            if ($response->getHeader('ETag')) {
+                FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('ETag'));
             }
+        } catch (Exception $e) {
+            FileAccessTool::deleteFileIfExists($feedCacheEtag);
+            $this->logException("Could not save file `$feedCache` to cache.", $e, LOG_NOTICE);
         }
 
         return $response->body;
@@ -1128,9 +1123,7 @@ class Feed extends AppModel
     {
         if ($this->isFeedLocal($feed)) {
             if (isset($feed['Feed']['delete_local_file']) && $feed['Feed']['delete_local_file']) {
-                if (file_exists($feed['Feed']['url'] . $file)) {
-                    unlink($feed['Feed']['url'] . $file);
-                }
+                FileAccessTool::deleteFileIfExists($feed['Feed']['url'] . $file);
             }
         }
         return true;
