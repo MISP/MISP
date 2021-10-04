@@ -87,7 +87,8 @@ class misphelper(object):
                 # set expiredTag to hidden if it was accidentally enabled by "enable all"
                 if tag["tag"] == self.expiredTag:
                     if tag["existing_tag"]["Tag"]["hide_tag"] is False:
-                        self.misp.edit_tag(tag["existing_tag"]["Tag"]["id"], hide_tag=True)
+                        tag["existing_tag"]["Tag"]["hide_tag"] = True
+                        self.misp.update_tag(tag["existing_tag"]["Tag"])
                 else:
                     raise Exception("Could not parse retention time/unit from tag: '{}'.".format(tag["tag"]))
 

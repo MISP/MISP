@@ -83,5 +83,7 @@ TRUNCATE `template_element_texts`;
 -- Remove entries from tables and reset index
 DELETE FROM `users` WHERE id > 1;
 ALTER TABLE `users` AUTO_INCREMENT = 2;
+DELETE FROM `auth_keys` WHERE id > 1;
+ALTER TABLE `auth_keys` AUTO_INCREMENT = 2;
 DELETE FROM `organisations` WHERE id > 1;
 ALTER TABLE `organisations` AUTO_INCREMENT = 2;
