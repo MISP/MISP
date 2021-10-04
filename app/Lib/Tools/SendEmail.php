@@ -885,7 +885,7 @@ class SendEmail
      * @param string $content
      * @return File[]
      * @throws SendEmailException
-     * @throws MethodNotAllowedException
+     * @throws Exception
      */
     private function createInputOutputFiles($content)
     {
@@ -897,11 +897,10 @@ class SendEmail
         }
 
         App::uses('FileAccessTool', 'Tools');
-        $fileAccessTool = new FileAccessTool();
-        $inputFile = $fileAccessTool->createTempFile($dir, 'SMIME');
-        $fileAccessTool->writeToFile($inputFile, $content);
+        $inputFile = FileAccessTool::createTempFile($dir, 'SMIME');
+        FileAccessTool::writeToFile($inputFile, $content);
 
-        $outputFile = $fileAccessTool->createTempFile($dir, 'SMIME');
+        $outputFile = FileAccessTool::createTempFile($dir, 'SMIME');
         return array(new File($inputFile), new File($outputFile));
     }
 

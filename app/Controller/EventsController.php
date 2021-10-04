@@ -2168,7 +2168,7 @@ class EventsController extends AppController
 
                 $isXml = $ext === 'xml';
                 App::uses('FileAccessTool', 'Tools');
-                $data = (new FileAccessTool())->readFromFile($file['tmp_name'], $file['size']);
+                $data = FileAccessTool::readFromFile($file['tmp_name'], $file['size']);
                 $takeOwnership = Configure::read('MISP.take_ownership_xml_import')
                     && (isset($this->data['Event']['takeownership']) && $this->data['Event']['takeownership'] == 1);
 
@@ -3119,8 +3119,7 @@ class EventsController extends AppController
             }
 
             App::uses('FileAccessTool', 'Tools');
-            $fileAccessTool = new FileAccessTool();
-            $iocData = $fileAccessTool->readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
+            $iocData = FileAccessTool::readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
         // write
         $attachments_dir = Configure::read('MISP.attachments_dir');
@@ -3140,7 +3139,7 @@ class EventsController extends AppController
 
             // open the xml
             $xmlFilePath = $destPath . DS . $this->data['Event']['submittedioc']['name'];
-            $xmlFileData = $fileAccessTool->readFromFile($xmlFilePath, $this->data['Event']['submittedioc']['size']);
+            $xmlFileData = FileAccessTool::readFromFile($xmlFilePath, $this->data['Event']['submittedioc']['size']);
 
             // Load event and populate the event data
             $this->Event->id = $id;
@@ -4252,11 +4251,10 @@ class EventsController extends AppController
         $successCount = 0;
         $errors = array();
         App::uses('FileAccessTool', 'Tools');
-        $fileAccessTool = new FileAccessTool();
         foreach ($data['files'] as $file) {
             $tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : APP . 'tmp';
-            $tmpfile = $fileAccessTool->createTempFile($tmpdir, $prefix = 'MISP_upload');
-            $fileAccessTool->writeToFile($tmpfile, base64_decode($file['data']));
+            $tmpfile = FileAccessTool::createTempFile($tmpdir, $prefix = 'MISP_upload');
+            FileAccessTool::writeToFile($tmpfile, base64_decode($file['data']));
             $tmpfile = new File($tmpfile);
             if ($advanced) {
                 $result = $this->Event->Attribute->advancedAddMalwareSample(
@@ -4309,7 +4307,7 @@ class EventsController extends AppController
                     }
                 }
             }
-            $fileAccessTool->deleteFile($tmpfile->path);
+            FileAccessTool::deleteFile($tmpfile->path);
         }
         if (!empty($errors)) {
             $this->set('errors', $errors);
@@ -4927,10 +4925,9 @@ class EventsController extends AppController
         foreach ($resultArray as $key => $result) {
             if (isset($result['data'])) {
                 App::uses('FileAccessTool', 'Tools');
-                $fileAccessTool = new FileAccessTool();
                 $tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
-                $tempFile = $fileAccessTool->createTempFile($tmpdir, $prefix = 'MISP');
-                $fileAccessTool->writeToFile($tempFile, $result['data']);
+                $tempFile = FileAccessTool::createTempFile($tmpdir, $prefix = 'MISP');
+                FileAccessTool::writeToFile($tempFile, $result['data']);
                 $resultArray[$key]['data'] = basename($tempFile) . '|' . filesize($tempFile);
             }
         }
@@ -5057,7 +5054,7 @@ class EventsController extends AppController
                             if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($tmpfile->path)) {
                                 $filename = basename($fileupload['name']);
                                 App::uses('FileAccessTool', 'Tools');
-                                $modulePayload['data'] = (new FileAccessTool())->readFromFile($fileupload['tmp_name'], $fileupload['size']);
+                                $modulePayload['data'] = FileAccessTool::readFromFile($fileupload['tmp_name'], $fileupload['size']);
                             } else {
                                 $fail = 'Invalid file upload.';
                             }
