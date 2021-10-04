@@ -50,4 +50,23 @@ class AppShell extends Shell
     {
         return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
+
+    /**
+     * @param mixed $value
+     * @return bool
+     */
+    protected function toBoolean($value)
+    {
+        $value = strtolower($value);
+        switch ($value) {
+            case 'true':
+            case '1':
+                return true;
+            case 'false':
+            case '0':
+                return false;
+            default:
+                $this->error("Invalid state value `$value`, it must be `true`, `false`, `1`, or `0`.");
+        }
+    }
 }

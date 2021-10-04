@@ -31,6 +31,14 @@ class AdminShell extends AppShell
                 ]
             ],
         ]);
+        $parser->addSubcommand('live', [
+            'help' => __('Set if MISP instance is live and accessible for users.'),
+            'parser' => [
+                'arguments' => [
+                    'state' => ['help' => __('Set Live state')],
+                ],
+            ],
+        ]);
         return $parser;
     }
 
@@ -777,6 +785,46 @@ class AdminShell extends AppShell
             foreach ($diagnostics as $info) {
                 $this->out(' - ' . $info['message']);
             }
+        }
+    }
+
+    public function live()
+    {
+        if (isset($this->args[0])) {
+            $newStatus = $this->toBoolean($this->args[0]);
+            $overallSuccess = false;
+            try {
+                $redis = $this->Server->setupRedisWithException();
+                if ($newStatus) {
+                    $redis->del('misp:live');
+                    $this->out('Set live status to True in Redis.');
+                } else {
+                    $redis->set('misp:live', '0');
+                    $this->out('Set live status to False in Redis.');
+                }
+                $overallSuccess = true;
+            } catch (Exception $e) {
+                $this->out('<warning>Redis is not reachable.</warning>');
+            }
+
+            $success = $this->Server->serverSettingsSaveValue('MISP.live', $newStatus);
+            if ($success) {
+                $this->out('Set live status in PHP config file.');
+                $overallSuccess = true;
+            } else {
+                $this->out('<warning>Could not set MISP.live in PHP config file.</warning>');
+            }
+
+            if ($overallSuccess) {
+                $this->out($newStatus ? 'MISP is now live. Users can now log in.' : 'MISP is now disabled. Only site admins can log in.');
+            } else {
+                $this->error('Could not save live status in Redis or PHP config file.');
+            }
+        } else {
+            $this->out('Current status:');
+            $this->out('PHP Config file: ' . (Configure::read('MISP.live') ? 'True' : 'False'));
+            $newStatus = $this->Server->setupRedisWithException()->get('misp:live');
+            $this->out('Redis: ' . ($newStatus !== '0' ? 'True' : 'False'));
         }
     }
 }

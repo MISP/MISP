@@ -1652,9 +1652,7 @@ class AppModel extends Model
 
         // switch MISP instance live to false
         if ($liveOff) {
-            $this->Server = Classregistry::init('Server');
-            $liveSetting = 'MISP.live';
-            $this->Server->serverSettingsSaveValue($liveSetting, false);
+            $this->setLive(false);
         }
         $sql_update_count = count($sqlArray);
         $index_update_count = count($indexArray);
@@ -1676,7 +1674,7 @@ class AppModel extends Model
             } catch (Exception $e) {
                 $this->__setPreUpdateTestState(false);
                 $this->__setUpdateProgress(0, false);
-                $this->__setUpdateResMessages(0, sprintf(__('Issues executing the pre-update test `%s`. The returned error is: %s'), $function_name, $e->getMessage()) . PHP_EOL);
+                $this->__setUpdateResMessages(0, __('Issues executing the pre-update test `%s`. The returned error is: %s', $function_name, $e->getMessage()) . PHP_EOL);
                 $this->__setUpdateError(0);
                 $errorCount++;
                 $exitOnError = true;
@@ -1699,9 +1697,9 @@ class AppModel extends Model
                         'action' => 'update_database',
                         'user_id' => 0,
                         'title' => __('Successfully executed the SQL query for ') . $command,
-                        'change' => sprintf(__('The executed SQL query was: %s'), $sql)
+                        'change' => __('The executed SQL query was: %s', $sql),
                     ));
-                    $this->__setUpdateResMessages($i, sprintf(__('Successfully executed the SQL query for %s'), $command));
+                    $this->__setUpdateResMessages($i, __('Successfully executed the SQL query for %s', $command));
                 } catch (Exception $e) {
                     $errorMessage = $e->getMessage();
                     $this->Log->create();
@@ -1712,7 +1710,7 @@ class AppModel extends Model
                         'email' => 'SYSTEM',
                         'action' => 'update_database',
                         'user_id' => 0,
-                        'title' => sprintf(__('Issues executing the SQL query for %s'), $command),
+                        'title' => __('Issues executing the SQL query for %s', $command),
                         'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $errorMessage
                     );
                     $this->__setUpdateResMessages($i, sprintf(__('Issues executing the SQL query for `%s`. The returned error is: ' . PHP_EOL . '%s'), $command, $errorMessage));
@@ -1743,7 +1741,7 @@ class AppModel extends Model
                         $indexSuccess = $this->__addIndex($iA[0], $iA[1]);
                     }
                     if ($indexSuccess['success']) {
-                        $this->__setUpdateResMessages(count($sqlArray)+$i, __('Successfuly indexed ') . sprintf('%s -> %s', $iA[0], $iA[1]));
+                        $this->__setUpdateResMessages(count($sqlArray)+$i, __('Successfully indexed %s -> %s', $iA[0], $iA[1]));
                     } else {
                         $this->__setUpdateResMessages(count($sqlArray)+$i, sprintf('%s %s %s %s',
                             __('Failed to add index'),
@@ -1761,7 +1759,7 @@ class AppModel extends Model
             $this->cleanCacheFiles();
         }
         if ($liveOff) {
-            $this->Server->serverSettingsSaveValue('MISP.live', true);
+            $this->setLive(true);
         }
         if (!$flagStop && $errorCount == 0) {
             $this->__postUpdate($command);
@@ -1775,12 +1773,35 @@ class AppModel extends Model
                     'email' => 'SYSTEM',
                     'action' => 'update_database',
                     'user_id' => 0,
-                    'title' => sprintf(__('Issues executing the SQL query for %s'), $command),
-                    'change' => __('Database updates stopped as some errors occured and the stop flag is enabled.')
+                    'title' => __('Issues executing the SQL query for %s', $command),
+                    'change' => __('Database updates stopped as some errors occurred and the stop flag is enabled.')
             ));
             return false;
         }
         return true;
+    }
+
+    /**
+     * Set if misp is live in redis or in config file as fallback
+     * @param bool $isLive
+     */
+    private function setLive($isLive)
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+            if ($isLive) {
+                $redis->del('misp:live');
+            } else {
+                $redis->set('misp:live', '0');
+            }
+        } catch (Exception $e) {
+            // pass
+        }
+
+        if (!isset($this->Server)) {
+            $this->Server = ClassRegistry::init('Server');
+        }
+        $this->Server->serverSettingsSaveValue('MISP.live', $isLive);
     }
 
     // check whether the adminSetting should be updated after the update
