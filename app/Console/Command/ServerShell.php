@@ -56,6 +56,11 @@ class ServerShell extends AppShell
 
     public function pullAll()
     {
+        $this->ConfigLoad->execute();
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['PullAll'] . PHP_EOL);
+        }
+
         $userId = $this->args[0];
         $user = $this->getUser($userId);
 
@@ -85,8 +90,9 @@ class ServerShell extends AppShell
     public function pull()
     {
         if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['pull'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Pull'] . PHP_EOL);
         }
+
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $serverId = $this->args[1];
@@ -124,8 +130,9 @@ class ServerShell extends AppShell
     public function push()
     {
         if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['push'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Push'] . PHP_EOL);
         }
+
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $serverId = $this->args[1];
@@ -199,6 +206,7 @@ class ServerShell extends AppShell
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Fetch feeds as local data'] . PHP_EOL);
         }
+
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $feedId = $this->args[1];
@@ -263,8 +271,9 @@ class ServerShell extends AppShell
     public function cacheServer()
     {
         if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['cacheServer'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Cache server'] . PHP_EOL);
         }
+
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $scope = $this->args[1];
@@ -322,6 +331,7 @@ class ServerShell extends AppShell
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Cache feeds for quick lookups'] . PHP_EOL);
         }
+
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $scope = $this->args[1];
@@ -358,6 +368,11 @@ class ServerShell extends AppShell
 
     public function enqueuePull()
     {
+        $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Enqueue pull'] . PHP_EOL);
+        }
+
         $timestamp = $this->args[0];
         $userId = $this->args[1];
         $taskId = $this->args[2];
@@ -416,6 +431,11 @@ class ServerShell extends AppShell
 
     public function enqueueFeedFetch()
     {
+        $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Enqueue feed fetch'] . PHP_EOL);
+        }
+
         $timestamp = $this->args[0];
         $userId = $this->args[1];
         $taskId = $this->args[2];
@@ -461,6 +481,11 @@ class ServerShell extends AppShell
 
     public function enqueueFeedCache()
     {
+        $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Enqueue feed cache'] . PHP_EOL);
+        }
+
         $timestamp = $this->args[0];
         $userId = $this->args[1];
         $taskId = $this->args[2];
@@ -513,6 +538,11 @@ class ServerShell extends AppShell
 
     public function enqueuePush()
     {
+        $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Enqueue push'] . PHP_EOL);
+        }
+
         $timestamp = $this->args[0];
         $taskId = $this->args[1];
         $userId = $this->args[2];

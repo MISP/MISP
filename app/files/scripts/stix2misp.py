@@ -1524,7 +1524,7 @@ def generate_event(filename, tries=0):
 
 def is_from_misp(event):
     try:
-        title = event.header.title
+        title = event.stix_header.title
     except AttributeError:
         return False
     return ('Export from ' in title and 'MISP' in title)
