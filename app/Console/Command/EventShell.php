@@ -1,6 +1,7 @@
 <?php
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
+App::uses('FileAccessTool', 'Tools');
 require_once 'AppShell.php';
 
 /**
@@ -414,14 +415,9 @@ class EventShell extends AppShell
 
         $sightingsUuidsToPush = [];
         if (isset($this->args[4])) { // push just specific sightings
-            $path = APP . 'tmp/cache/ingest' . DS . $this->args[4];
-            $tempFile = new File($path);
-            $inputData = $tempFile->read();
-            if ($inputData === false) {
-                $this->error("File `$path` not found.");
-            }
+            $inputData = FileAccessTool::readFromFile(APP . 'tmp/cache/ingest' . DS . $this->args[4]);
             $sightingsUuidsToPush = $this->Event->jsonDecode($inputData);
-            $tempFile->delete();
+            FileAccessTool::deleteFile(APP . 'tmp/cache/ingest' . DS . $this->args[4]);
         }
 
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
@@ -522,17 +518,14 @@ class EventShell extends AppShell
 
     public function processfreetext()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process free text'] . PHP_EOL);
         }
 
         $inputFile = $this->args[0];
-        $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
-        $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
-        $inputData = $tempFile->read();
+        $inputData = FileAccessTool::readFromFile(APP . 'tmp/cache/ingest' . DS . $inputFile);
+        FileAccessTool::deleteFile(APP . 'tmp/cache/ingest' . DS . $inputFile);
         $inputData = json_decode($inputData, true);
-        $tempFile->delete();
         Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processFreeTextData(
             $inputData['user'],
@@ -548,16 +541,14 @@ class EventShell extends AppShell
 
     public function processmoduleresult()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process module result'] . PHP_EOL);
         }
 
         $inputFile = $this->args[0];
-        $tempDir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
-        $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
-        $inputData = json_decode($tempFile->read(), true);
-        $tempFile->delete();
+        $inputData = FileAccessTool::readFromFile(APP . 'tmp/cache/ingest' . DS . $inputFile);
+        FileAccessTool::deleteFile(APP . 'tmp/cache/ingest' . DS . $inputFile);
+        $inputData = json_decode($inputData, true);
         Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processModuleResultsData(
             $inputData['user'],

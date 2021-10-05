@@ -1,8 +1,8 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
-App::uses('RandomTool', 'Tools');
 App::uses('AttachmentTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
 
@@ -4531,13 +4531,7 @@ class Event extends AppModel
 
             $command = ['publish_sightings', $id, $passAlong, $jobId, $user['id']];
             if (!empty($sightingUuids)) {
-                $randomFileName = $this->generateRandomFileName() . '.json';
-                App::uses('File', 'Utility');
-                $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $randomFileName, true, 0644);
-                $writeResult = $tempFile->write(json_encode($sightingUuids));
-                if (!$writeResult) {
-                    throw new Exception("Could not write file content");
-                }
+                $randomFileName = FileAccessTool::writeToTempFile(json_encode($sightingUuids), APP . 'tmp/cache/ingest');
                 $command[] = $randomFileName;
             }
 
@@ -6789,7 +6783,7 @@ class Event extends AppModel
     public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $proposals = false, $adhereToWarninglists = false, $returnRawResults = false)
     {
         if (Configure::read('MISP.background_jobs') && count($attributes) > 5) { // on background process just big attributes batch
-            list($job, $randomFileName, $tempFile) = $this->__initiateProcessJob($user, $id);
+            $job = $this->__initiateProcessJob($user, $id);
             $tempData = array(
                 'user' => $user,
                 'attributes' => $attributes,
@@ -6800,16 +6794,18 @@ class Event extends AppModel
                 'jobId' => $job->id,
             );
 
-            $writeResult = $tempFile->write(json_encode($tempData));
-            if (!$writeResult) {
+            try {
+                $tmpFilePath = FileAccessTool::writeToTempFile(json_encode($tempData), APP . 'tmp/cache/ingest');
+            } catch (Exception $e) {
+                $this->logException('', $e, LOG_NOTICE);
                 return $this->processFreeTextData($user, $attributes, $id, $default_comment, $proposals, $adhereToWarninglists, false, $returnRawResults);
             }
-            $tempFile->close();
+
             $process_id = CakeResque::enqueue(
-                    'prio',
-                    'EventShell',
-                    array('processfreetext', $randomFileName),
-                    true
+                'prio',
+                'EventShell',
+                array('processfreetext', basename($tmpFilePath)),
+                true
             );
             $job->saveField('process_id', $process_id);
             return 'Freetext ingestion queued for background processing. Attributes will be added to the event as they are being processed.';
@@ -6821,27 +6817,30 @@ class Event extends AppModel
     public function processModuleResultsDataRouter($user, $resolved_data, $id, $default_comment = '', $adhereToWarninglists = false)
     {
         if (Configure::read('MISP.background_jobs')) {
-            list($job, $randomFileName, $tempFile) = $this->__initiateProcessJob($user, $id, 'module_results');
+            $job = $this->__initiateProcessJob($user, $id, 'module_results');
             $tempData = array(
-                    'user' => $user,
-                    'misp_format' => $resolved_data,
-                    'id' => $id,
-                    'default_comment' => $default_comment,
-                    'jobId' => $job->id
+                'user' => $user,
+                'misp_format' => $resolved_data,
+                'id' => $id,
+                'default_comment' => $default_comment,
+                'jobId' => $job->id
             );
-            $writeResult = $tempFile->write(json_encode($tempData));
-            if ($writeResult) {
-                $tempFile->close();
-                $process_id = CakeResque::enqueue(
-                        'prio',
-                        'EventShell',
-                        array('processmoduleresult', $randomFileName),
-                        true
-                );
-                $job->saveField('process_id', $process_id);
-                return 'Module results ingestion queued for background processing. Related data will be added to the event as it is being processed.';
+
+            try {
+                $tmpFilePath = FileAccessTool::writeToTempFile(json_encode($tempData), APP . 'tmp/cache/ingest');
+            } catch (Exception $e) {
+                $this->logException('', $e, LOG_NOTICE);
+                return $this->processModuleResultsData($user, $resolved_data, $id, $default_comment = '');
             }
-            $tempFile->delete();
+
+            $process_id = CakeResque::enqueue(
+                'prio',
+                'EventShell',
+                array('processmoduleresult', basename($tmpFilePath)),
+                true
+            );
+            $job->saveField('process_id', $process_id);
+            return 'Module results ingestion queued for background processing. Related data will be added to the event as it is being processed.';
         }
         return $this->processModuleResultsData($user, $resolved_data, $id, $default_comment = '');
     }
@@ -6861,12 +6860,7 @@ class Event extends AppModel
             'message' => 'Processing...'
         );
         $job->save($data);
-        $randomFileName = $this->generateRandomFileName() . '.json';
-        App::uses('Folder', 'Utility');
-        App::uses('File', 'Utility');
-        $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0755);
-        $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $randomFileName, true, 0644);
-        return array($job, $randomFileName, $tempFile);
+        return $job;
     }
 
     /**

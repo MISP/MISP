@@ -58,7 +58,12 @@ class FileAccessTool
     public static function writeToTempFile($content, $dir = null)
     {
         $tempFile = self::createTempFile($dir);
-        self::writeToFile($tempFile, $content);
+        try {
+            self::writeToFile($tempFile, $content);
+        } catch (Exception $e) {
+            self::deleteFile($tempFile);
+            throw $e;
+        }
         return $tempFile;
     }
 
