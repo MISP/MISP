@@ -77,10 +77,6 @@ class EventBlocklist extends AppModel
      */
     public function isBlocked($eventUuid)
     {
-        $result = $this->find('first', [
-            'conditions' => ['event_uuid' => $eventUuid],
-            'fields' => ['id']
-        ]);
-        return !empty($result);
+        return $this->hasAny(['event_uuid' => $eventUuid]);
     }
 }
