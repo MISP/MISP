@@ -204,10 +204,7 @@ class AttachmentTool
 
         } else {
             $path = $this->attachmentDir() . DS . $path;
-            $file = new File($path, true);
-            if (!$file->write($data)) {
-                throw new Exception("Could not save attachment to file '$path'.");
-            }
+            FileAccessTool::writeToFile($path, $data);
         }
 
         return true;
@@ -306,46 +303,32 @@ class AttachmentTool
     {
         $tempDir = $this->tempDir();
 
-        $contentsFile = new File($tempDir . DS . $md5, true);
-        if (!$contentsFile->write($content)) {
-            throw new Exception("Could not write content to file '{$contentsFile->path}'.");
-        }
-        $contentsFile->close();
+        FileAccessTool::writeToFile($tempDir . DS . $md5, $content);
+        FileAccessTool::writeToFile($tempDir . DS . $md5 . '.filename.txt', $originalFilename);
 
-        $fileNameFile = new File($tempDir . DS . $md5 . '.filename.txt', true);
-        if (!$fileNameFile->write($originalFilename)) {
-            throw new Exception("Could not write original file name to file '{$fileNameFile->path}'.");
-        }
-        $fileNameFile->close();
-
-        $zipFile = new File($tempDir . DS . $md5 . '.zip');
+        $zipFile = $tempDir . DS . $md5 . '.zip';
 
         $exec = [
             'zip',
             '-j', // junk (don't record) directory names
             '-P', // use standard encryption
             self::ZIP_PASSWORD,
-            escapeshellarg($zipFile->path),
-            escapeshellarg($contentsFile->path),
-            escapeshellarg($fileNameFile->path),
+            escapeshellarg($zipFile),
+            escapeshellarg($tempDir . DS . $md5),
+            escapeshellarg($tempDir . DS . $md5 . '.filename.txt'),
         ];
 
         try {
             $this->execute($exec);
-            $zipContent = $zipFile->read();
-            if ($zipContent === false) {
-                throw new Exception("Could not read content of newly created ZIP file.");
-            }
-
-            return $zipContent;
+            return FileAccessTool::readFromFile($zipFile);
 
         } catch (Exception $e) {
-            throw new Exception("Could not create encrypted ZIP file '{$zipFile->path}'.", 0, $e);
+            throw new Exception("Could not create encrypted ZIP file '$zipFile'.", 0, $e);
 
         } finally {
-            $fileNameFile->delete();
-            $contentsFile->delete();
-            $zipFile->delete();
+            FileAccessTool::deleteFile($tempDir . DS . $md5);
+            FileAccessTool::deleteFile($tempDir . DS . $md5 . '.filename.txt');
+            FileAccessTool::deleteFile($zipFile);
         }
     }
 
