@@ -563,30 +563,6 @@ class AdminShell extends AppShell
         echo 'Updated, new key:' . PHP_EOL . $authKey . PHP_EOL;
     }
 
-    public function getOptionParser()
-    {
-        $this->ConfigLoad->execute();
-
-        $parser = parent::getOptionParser();
-        $parser->addSubcommand('updateJSON', array(
-            'help' => __('Update the JSON definitions of MISP.'),
-            'parser' => array(
-                'arguments' => array(
-                    'update' => array('help' => __('Update the submodules before ingestion.'), 'short' => 'u', 'boolean' => 1)
-                )
-            )
-        ));
-
-        $parser->addOption('force', array(
-            'short' => 'f',
-            'help' => 'Force the command.',
-            'default' => false,
-            'boolean' => true
-        ));
-
-        return $parser;
-    }
-
     public function recoverSinceLastSuccessfulUpdate()
     {
         $this->ConfigLoad->execute();
