@@ -1,6 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
+App::uses('FileAccessTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -2167,7 +2168,6 @@ class EventsController extends AppController
                 }
 
                 $isXml = $ext === 'xml';
-                App::uses('FileAccessTool', 'Tools');
                 $data = FileAccessTool::readFromFile($file['tmp_name'], $file['size']);
                 $takeOwnership = Configure::read('MISP.take_ownership_xml_import')
                     && (isset($this->data['Event']['takeownership']) && $this->data['Event']['takeownership'] == 1);
@@ -2190,12 +2190,7 @@ class EventsController extends AppController
         if ($this->request->is('post')) {
             $scriptDir = APP . 'files' . DS . 'scripts';
             if ($this->_isRest()) {
-                $randomFileName = $this->Event->generateRandomFileName();
-                $tempFile = new File($scriptDir . DS . 'tmp' . DS . $randomFileName, true, 0644);
-                if (!$tempFile->write($this->request->input())) {
-                    throw new Exception("Could not write content of STIX file.");
-                }
-                $tempFile->close();
+                $randomFileName = basename(FileAccessTool::writeToTempFile($this->request->input(), $scriptDir . DS . 'tmp'));
                 $result = $this->Event->upload_stix(
                     $this->Auth->user(),
                     $scriptDir,
@@ -3118,7 +3113,6 @@ class EventsController extends AppController
                 throw new Exception(__('Filename not allowed.'));
             }
 
-            App::uses('FileAccessTool', 'Tools');
             $iocData = FileAccessTool::readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
         // write
@@ -4250,7 +4244,6 @@ class EventsController extends AppController
         }
         $successCount = 0;
         $errors = array();
-        App::uses('FileAccessTool', 'Tools');
         foreach ($data['files'] as $file) {
             $tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : APP . 'tmp';
             $tmpfile = FileAccessTool::createTempFile($tmpdir, $prefix = 'MISP_upload');
@@ -4924,7 +4917,6 @@ class EventsController extends AppController
         $this->Event->Attribute->fetchRelated($this->Auth->user(), $resultArray);
         foreach ($resultArray as $key => $result) {
             if (isset($result['data'])) {
-                App::uses('FileAccessTool', 'Tools');
                 $tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
                 $tempFile = FileAccessTool::createTempFile($tmpdir, $prefix = 'MISP');
                 FileAccessTool::writeToFile($tempFile, $result['data']);
@@ -5053,7 +5045,6 @@ class EventsController extends AppController
                             $tmpfile = new File($fileupload['tmp_name']);
                             if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($tmpfile->path)) {
                                 $filename = basename($fileupload['name']);
-                                App::uses('FileAccessTool', 'Tools');
                                 $modulePayload['data'] = FileAccessTool::readFromFile($fileupload['tmp_name'], $fileupload['size']);
                             } else {
                                 $fail = 'Invalid file upload.';

@@ -1,5 +1,6 @@
 <?php
 App::uses('AWSS3Client', 'Tools');
+App::uses('FileAccessTool', 'Tools');
 
 class AttachmentTool
 {
@@ -146,11 +147,7 @@ class AttachmentTool
             $s3 = $this->loadS3Client();
             $content = $s3->download($path);
 
-            $file = new File($this->tempFileName());
-            if (!$file->write($content)) {
-                throw new Exception("Could not write temporary file '{$file->path}'.");
-            }
-
+            $file = new File(FileAccessTool::writeToTempFile($content));
         } else {
             $filepath = $this->attachmentDir() . DS . $path;
             $file = new File($filepath);
@@ -395,12 +392,6 @@ class AttachmentTool
     public function checkAdvancedExtractionStatus($pythonBin)
     {
         return $this->executeAndParseJsonOutput([$pythonBin, self::ADVANCED_EXTRACTION_SCRIPT_PATH, '-c']);
-    }
-
-    private function tempFileName()
-    {
-        $randomName = (new RandomTool())->random_str(false, 12);
-        return $this->tempDir() . DS . $randomName;
     }
 
     /**

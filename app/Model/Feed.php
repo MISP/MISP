@@ -1836,16 +1836,13 @@ class Feed extends AppModel
 
         $contentType = $response->getHeader('Content-Type');
         if ($contentType === 'application/zip') {
-            $zipFile = new File($this->tempFileName());
-            $zipFile->write($data);
-            $zipFile->close();
-
             try {
+                $zipFile = FileAccessTool::writeToTempFile($data);
                 $data = $this->unzipFirstFile($zipFile);
             } catch (Exception $e) {
                 throw new Exception("Fetching the '$uri' failed: {$e->getMessage()}");
             } finally {
-                $zipFile->delete();
+                FileAccessTool::deleteFile($zipFile);
             }
         }
 
@@ -1951,18 +1948,18 @@ class Feed extends AppModel
     }
 
     /**
-     * @param File $zipFile
+     * @param string $zipFile
      * @return string Uncompressed data
      * @throws Exception
      */
-    private function unzipFirstFile(File $zipFile)
+    private function unzipFirstFile($zipFile)
     {
         if (!class_exists('ZipArchive')) {
             throw new Exception('ZIP archive decompressing is not supported. ZIP extension is missing in PHP.');
         }
 
         $zip = new ZipArchive();
-        $result = $zip->open($zipFile->pwd());
+        $result = $zip->open($zipFile);
         if ($result !== true) {
             $errorCodes = [
                 ZipArchive::ER_EXISTS => 'file already exists',
@@ -1990,18 +1987,15 @@ class Feed extends AppModel
 
         $zip->close();
 
-        $destinationFile = $this->tempFileName();
-        $result = copy("zip://{$zipFile->pwd()}#$filename", $destinationFile);
+        $destinationFile = FileAccessTool::createTempFile();
+        $result = copy("zip://$zipFile#$filename", $destinationFile);
         if ($result === false) {
             throw new Exception("Remote server returns ZIP file, that contains '$filename' file, but this file cannot be extracted.");
         }
 
-        $unzipped = new File($destinationFile);
-        $data = $unzipped->read();
-        if ($data === false) {
-            throw new Exception("Couldn't read extracted file content.");
-        }
-        $unzipped->delete();
+        $data = FileAccessTool::readFromFile($destinationFile);
+        FileAccessTool::deleteFile($destinationFile);
+
         return $data;
     }
 }

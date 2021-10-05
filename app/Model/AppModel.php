@@ -3167,15 +3167,6 @@ class AppModel extends Model
     }
 
     /**
-     * Generates random file name in tmp dir.
-     * @return string
-     */
-    protected function tempFileName()
-    {
-        return $this->tempDir() . DS . $this->generateRandomFileName();
-    }
-
-    /**
      * @return string
      */
     protected function tempDir()

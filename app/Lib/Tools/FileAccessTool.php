@@ -1,16 +1,18 @@
 <?php
-
 class FileAccessTool
 {
     /**
      * Creates temporary file, but you have to delete it after use.
-     * @param string $dir
+     * @param string|null $dir
      * @param string $prefix
-     * @return string
+     * @return string Path to temp file
      * @throws Exception
      */
-    public static function createTempFile($dir, $prefix = 'MISP')
+    public static function createTempFile($dir = null, $prefix = 'MISP-')
     {
+        if ($dir === null) {
+            $dir = Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
+        }
         $tempFile = tempnam($dir, $prefix);
         if ($tempFile === false) {
             throw new Exception("An error has occurred while attempt to create a temporary file in path `$dir`.");
@@ -42,8 +44,22 @@ class FileAccessTool
     public static function writeToFile($file, $content)
     {
         if (file_put_contents($file, $content, LOCK_EX) === false) {
-            throw new Exception("An error has occurred while attempt to write to file `$file`.");
+            $freeSpace = disk_free_space($file);
+            throw new Exception("An error has occurred while attempt to write to file `$file`. Maybe not enough space? ($freeSpace bytes left)");
         }
+    }
+
+    /**
+     * @param mixed $content
+     * @param string|null $dir
+     * @return string Path to temp file
+     * @throws Exception
+     */
+    public static function writeToTempFile($content, $dir = null)
+    {
+        $tempFile = self::createTempFile($dir);
+        self::writeToFile($tempFile, $content);
+        return $tempFile;
     }
 
     /**

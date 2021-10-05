@@ -1,7 +1,5 @@
 <?php
-
 App::uses('AppModel', 'Model');
-App::uses('RandomTool', 'Tools');
 
 class Template extends AppModel
 {
@@ -71,10 +69,5 @@ class Template extends AppModel
             }
             return false;
         }
-    }
-
-    public function generateRandomFileName()
-    {
-        return (new RandomTool())->random_str(false, 12);
     }
 }
