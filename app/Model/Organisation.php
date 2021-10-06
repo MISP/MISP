@@ -114,10 +114,10 @@ class Organisation extends AppModel
         $date = date('Y-m-d H:i:s');
         if (array_key_exists('restricted_to_domain', $this->data['Organisation'])) {
             if (!is_array($this->data['Organisation']['restricted_to_domain'])) {
-                $this->data['Organisation']['restricted_to_domain'] = str_replace('\r', '', $this->data['Organisation']['restricted_to_domain']);
-                $this->data['Organisation']['restricted_to_domain'] = explode('\n', $this->data['Organisation']['restricted_to_domain']);
+                $this->data['Organisation']['restricted_to_domain'] = str_replace("\r", '', $this->data['Organisation']['restricted_to_domain']);
+                $this->data['Organisation']['restricted_to_domain'] = explode("\n", $this->data['Organisation']['restricted_to_domain']);
             }
-            
+
             $this->data['Organisation']['restricted_to_domain'] = array_values(
                 array_filter(
                     array_map('trim', $this->data['Organisation']['restricted_to_domain'])
