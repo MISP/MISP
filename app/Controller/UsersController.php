@@ -713,7 +713,7 @@ class UsersController extends AppController
                             $fail = false;
                         }
                     }
-                    if ($abortPost) {
+                    if ($fail) {
                         $this->Flash->error(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
                     }
                 }
