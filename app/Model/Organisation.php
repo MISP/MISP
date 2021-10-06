@@ -217,11 +217,7 @@ class Organisation extends AppModel
             // We want to create a new organisation for pushed data, even if the same org name exists
             // Alter the name if the name is already taken by a random string
             if (isset($uuid)) {
-                $existingOrgByName = $this->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array('name' => $name),
-                    'fields' => ['id'],
-                ));
+                $existingOrgByName = $this->hasAny(['name' => $name]);
                 if ($existingOrgByName) {
                     $organisation['name'] = $organisation['name'] . '_' . mt_rand(0, 9999);
                 }

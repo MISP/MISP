@@ -3227,6 +3227,21 @@ class AppModel extends Model
     }
 
     /**
+     * Faster version of default `hasAny` method
+     * @param array|null $conditions
+     * @return bool
+     */
+    public function hasAny($conditions = null)
+    {
+        return (bool)$this->find('first', array(
+            'fields' => [$this->alias . '.' . $this->primaryKey],
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'callbacks' => false,
+        ));
+    }
+
+    /**
      * @return AttachmentTool
      */
     protected function loadAttachmentTool()

@@ -6544,18 +6544,14 @@ class Event extends AppModel
                     if (isset($recovered_uuids[$reference['referenced_uuid']])) {
                         $reference['referenced_uuid'] = $recovered_uuids[$reference['referenced_uuid']];
                     }
-                    $current_reference = $this->Object->ObjectReference->find('first', array(
-                        'conditions' => [
-                            'ObjectReference.object_id' => $object_id,
-                            'ObjectReference.referenced_uuid' => $reference['referenced_uuid'],
-                            'ObjectReference.relationship_type' => $reference['relationship_type'],
-                            'ObjectReference.event_id' => $id,
-                            'ObjectReference.deleted' => 0,
-                        ],
-                        'recursive' => -1,
-                        'fields' => ['ObjectReference.id'],
-                    ));
-                    if (!empty($current_reference)) {
+                    $current_reference = $this->Object->ObjectReference->hasAny([
+                        'ObjectReference.object_id' => $object_id,
+                        'ObjectReference.referenced_uuid' => $reference['referenced_uuid'],
+                        'ObjectReference.relationship_type' => $reference['relationship_type'],
+                        'ObjectReference.event_id' => $id,
+                        'ObjectReference.deleted' => 0,
+                    ]);
+                    if ($current_reference) {
                         continue; // Reference already exists, skip.
                     }
                     list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
