@@ -53,6 +53,7 @@ $config = array(
         'Attributes_Values_Filter_In_Event' => 'id, uuid, value, comment, type, category, Tag.name',
         'python_bin'                     => null,
         'external_baseurl'               => '',
+        'forceHTTPSforPreLoginRequestedURL' => false,
         'showCorrelationsOnIndex'        => true,
         'default_event_tag_collection'   => 0,
         'language'                       => 'eng',
