@@ -2670,6 +2670,30 @@ class Attribute extends AppModel
     }
 
     /**
+     * @param array $user
+     * @param array $options
+     * @return array
+     */
+    public function fetchAttributeSimple(array $user, array $options = [])
+    {
+        $query = [
+            'recursive' => -1,
+            'conditions' => $this->buildConditions($user),
+            'contain' => ['Event', 'Object'], // by default include Event and Object, because it is required for conditions
+        ];
+        if (isset($options['conditions'])) {
+            $query['conditions']['AND'][] = $options['conditions'];
+        }
+        if (isset($options['fields'])) {
+            $query['fields'] = $options['fields'];
+        }
+        if (isset($options['contain'])) {
+            $query['contain'] = $options['contain'];
+        }
+        return $this->find('first', $query);
+    }
+
+    /**
      * Fetches attributes that $user can see.
      *
      * @param array $user
