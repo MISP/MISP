@@ -1303,6 +1303,11 @@ class UsersController extends AppController
     {
         // Events list
         $url = $this->Session->consume('pre_login_requested_url');
+        if (!empty(Configure::read('MISP.forceHTTPSforPreLoginRequestedURL')) && !empty($url)) {
+            if (substr($url, 0, 7) === "http://") {
+                $url = sprintf('https://%s', substr($url, 7));
+            }
+        }
         if (empty($url)) {
             $homepage = $this->User->UserSetting->getValueForUser($this->Auth->user('id'), 'homepage');
             if (!empty($homepage)) {
