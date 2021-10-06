@@ -2954,13 +2954,10 @@ class AttributesController extends AppController
         if ($this->request->is('post')) {
             if ($attribute['Attribute']['disable_correlation']) {
                 $attribute['Attribute']['disable_correlation'] = 0;
-                $this->Attribute->save($attribute);
-                $this->Attribute->Correlation->afterSaveCorrelation($attribute['Attribute'], false, $attribute);
             } else {
                 $attribute['Attribute']['disable_correlation'] = 1;
-                $this->Attribute->save($attribute);
-                $this->Attribute->purgeCorrelations($attribute['Event']['id'], $attribute['Attribute']['id']);
             }
+            $this->Attribute->save($attribute, ['parentEvent' => $attribute]);
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('attributes', 'toggleCorrelation', $id, false, 'Correlation ' . ($attribute['Attribute']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
             } else {

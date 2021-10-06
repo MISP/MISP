@@ -2350,22 +2350,17 @@ class Attribute extends AppModel
         return $attributeCount;
     }
 
-    public function purgeCorrelations($eventId = false, $attributeId = false)
+    public function purgeCorrelations($eventId = false)
     {
         if (!$eventId) {
             $this->query('TRUNCATE TABLE correlations;');
-        } elseif (!$attributeId) {
-            $this->Correlation->deleteAll(
-                array('OR' => array(
-                'Correlation.1_event_id' => $eventId,
-                'Correlation.event_id' => $eventId))
-            );
         } else {
-            $this->Correlation->deleteAll(
-                array('OR' => array(
-                'Correlation.1_attribute_id' => $attributeId,
-                'Correlation.attribute_id' => $attributeId))
-            );
+            $this->Correlation->deleteAll([
+                'OR' => array(
+                    'Correlation.1_event_id' => $eventId,
+                    'Correlation.event_id' => $eventId,
+                )
+            ], false);
         }
     }
 
