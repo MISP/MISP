@@ -4975,6 +4975,14 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
+                'forceHTTPSforPreLoginRequestedURL' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('If enabled, any requested URL before login will have their HTTP part replaced by HTTPS. This can be usefull if MISP is running behind a reverse proxy responsible for SSL and communicating unencrypted with MISP.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
                 'event_alert_metadata_only' => [
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Send just event metadata (attributes and objects will be omitted) for event alert.'),
