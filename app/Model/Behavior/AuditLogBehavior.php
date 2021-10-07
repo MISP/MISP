@@ -188,8 +188,12 @@ class AuditLogBehavior extends ModelBehavior
         if (!$this->enabled) {
             return true;
         }
-        $model->recursive = -1;
-        $model->read();
+
+        $this->old = $model->find('first', [
+            'conditions' => array($model->alias . '.' . $model->primaryKey => $model->id),
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
         return true;
     }
 
@@ -198,6 +202,8 @@ class AuditLogBehavior extends ModelBehavior
         if (!$this->enabled) {
             return;
         }
+        $model->data = $this->old;
+        $this->old = null;
         if ($model->name === 'Event') {
             $eventId = $model->id;
         } else {
