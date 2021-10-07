@@ -517,7 +517,7 @@ class Attribute extends AppModel
 
     public function afterDelete()
     {
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst')) && strpos($this->data['Attribute']['value'], '/')) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && strpos($this->data['Attribute']['value'], '/')) {
             $this->setCIDRList();
         }
         if (isset($this->data['Attribute']['event_id'])) {
