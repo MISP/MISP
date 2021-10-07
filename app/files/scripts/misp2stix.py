@@ -22,10 +22,15 @@ import json
 import sys
 import traceback
 from pathlib import Path
-from stix.core import STIXPackage
 from typing import Union
 
-sys.path.append(str(Path(__file__).resolve().parent / 'misp-stix'))
+_current_path = Path(__file__).resolve().parent
+sys.path.insert(0, str(_current_path.parents[2] / 'cti-python-stix2'))
+sys.path.insert(1, str(_current_path / 'python-stix'))
+sys.path.insert(2, str(_current_path / 'python-cybox'))
+sys.path.insert(3, str(_current_path / 'mixbox'))
+sys.path.insert(4, str(_current_path / 'misp-stix'))
+from stix.core import STIXPackage
 from misp_stix_converter import MISPtoSTIX1EventsParser, _get_json_events, _get_xml_events
 
 

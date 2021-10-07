@@ -5,7 +5,12 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).resolve().parent / 'misp-stix'))
+_current_path = Path(__file__).resolve().parent
+sys.path.insert(0, str(_current_path.parents[2] / 'cti-python-stix2'))
+sys.path.insert(1, str(_current_path / 'python-stix'))
+sys.path.insert(2, str(_current_path / 'python-cybox'))
+sys.path.insert(3, str(_current_path / 'mixbox'))
+sys.path.insert(4, str(_current_path / 'misp-stix'))
 from misp_stix_converter import stix1_framing, stix20_framing, stix21_framing
 
 
