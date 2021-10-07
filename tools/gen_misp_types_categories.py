@@ -102,7 +102,7 @@ for folder in folders:
 # - read the JSON in python
 with open('../app/Model/Attribute.php', 'r') as f:
     attribute_php_file = f.read()
-re_match = re.search(r'\$this->categoryDefinitions\s?=\s?([^;]+);', attribute_php_file)
+re_match = re.search(r'function generateCategoryDefinitions\(\)\s*{\s*return(.*?\));\s*}', attribute_php_file, flags=re.MULTILINE + re.DOTALL)
 php_code_template = '''
 function __($s) {{ return $s; }}
 echo json_encode({});
@@ -113,7 +113,7 @@ category_definitions = json.loads(category_definitions_binary.decode('utf-8'))
 categories = list(category_definitions.keys())
 categories.sort()
 
-re_match = re.search(r'\$this->typeDefinitions\s?=\s?([^;]+);', attribute_php_file)
+re_match = re.search(r'function generateTypeDefinitions\(\)\s*{\s*return(.*?\));\s*}', attribute_php_file, flags=re.MULTILINE + re.DOTALL)
 php_code = php_code_template.format(re_match.group(1))
 type_definitions_binary = subprocess.run(['php', '-r', php_code], stdout=subprocess.PIPE).stdout
 type_definitions = json.loads(type_definitions_binary.decode('utf-8'))

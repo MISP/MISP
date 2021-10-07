@@ -50,15 +50,33 @@ class EventBlocklist extends AppModel
     }
 
     /**
+     * @param array $eventArray
+     */
+    public function removeBlockedEvents(array &$eventArray)
+    {
+        // When event array contains a lot events, it is more efficient to fetch all blocked events
+        $conditions = (count($eventArray) > 10000) ? [] : ['EventBlocklist.event_uuid' => array_column($eventArray, 'uuid')];
+        $blocklistHits = $this->find('column', [
+            'conditions' => $conditions,
+            'fields' => ['EventBlocklist.event_uuid'],
+        ]);
+        if (empty($blocklistHits)) {
+            return;
+        }
+        $blocklistHits = array_flip($blocklistHits);
+        foreach ($eventArray as $k => $event) {
+            if (isset($blocklistHits[$event['uuid']])) {
+                unset($eventArray[$k]);
+            }
+        }
+    }
+
+    /**
      * @param string $eventUuid
      * @return bool
      */
     public function isBlocked($eventUuid)
     {
-        $result = $this->find('first', [
-            'conditions' => ['event_uuid' => $eventUuid],
-            'fields' => ['id']
-        ]);
-        return !empty($result);
+        return $this->hasAny(['event_uuid' => $eventUuid]);
     }
 }

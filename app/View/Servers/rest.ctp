@@ -56,7 +56,7 @@
                 )
             ));
         ?>
-        <div class="input clear" style="width:100%;" /draggable="">
+        <div class="input clear" style="width:100%;">
         <?php
             echo $this->Form->input('url', array(
                 'label' => __('Relative path to query'),
@@ -100,25 +100,24 @@
         <div class="input clear" style="width:100%;">
         <?php
             echo $this->Form->input('header', array(
-                    'type' => 'textarea',
-                    'label' => __('HTTP headers'),
-                    'div' => 'input clear',
-                    'class' => 'input-xxlarge',
-                    'default' => !empty($this->request->data['Server']['header']) ? $this->request->data['Server']['header'] : $header
+                'type' => 'textarea',
+                'label' => __('HTTP headers'),
+                'div' => 'input clear',
+                'class' => 'input-xxlarge',
+                'default' => !empty($this->request->data['Server']['header']) ? $this->request->data['Server']['header'] : $header
             ));
         ?>
 
         <div class="clear">
             <div id="qb-div" class="dashboard_element hidden" style="max-width: calc(100% - 400px); max-width: calc(100% - 400px); padding: 10px; border: 1px solid #DCC896; margin: 10px; background-color: #fffcf6;">
                 <div class="selected-path-container">
-                    <h3 id="selected-path" >---</h3>
+                    <h3 id="selected-path">---</h3>
                 </div>
                 <div id="querybuilder"></div>
                     <button id="btn-inject" type="button" class="btn btn-success"><i class="fa fa-mail-forward" style="transform: scaleX(-1);"></i><?php echo __(' Inject')?></button>
-                    <button id="btn-apply" type="button" class="btn btn-default"><i class="fa fa-list-alt"></i><?php echo __(' Show rules')?> </button>
+                    <button id="btn-apply" type="button" class="btn btn-default"><i class="fa fa-list-alt"></i><?php echo __(' Show rules')?></button>
             </div>
         </div>
-
 
         <div class="input clear" style="width:100%;">
         <?php
@@ -158,18 +157,23 @@
             }
             echo '</div>';
         }
-        if (!empty($data['data'])):
-            echo sprintf('<h3>%s</h3>', __('Response'));
-            echo sprintf('<div><span class="bold">%s</span>: %s</div>', __('Queried URL'), h($data['url']));
-            echo sprintf('<div><span class="bold">%s</span>: %d</div>', __('Response code'), h($data['code']));
-            echo sprintf('<div><span class="bold">%s</span>: %s</div>', __('Request duration'), h($data['duration']));
-            echo sprintf('<div class="bold">%s</div>', __('Headers'));
+        if (!empty($data['data'])): ?>
+            <h3><?= __('Response') ?></h3>
+            <div><span class="bold"><?= __('Queried URL') ?></span>: <?= h($data['url']) ?></div>
+            <div><span class="bold"><?= __('Response code') ?></span>: <?= h($data['code']) ?></div>
+            <div><span class="bold"><?= __('Request duration') ?></span>: <?= h($data['duration']) ?></div>
+            <div class="bold"><?= __('Response headers') ?></div>
+            <div style="margin-left: 1em">
+            <?php
             foreach ($data['headers'] as $header => $value) {
                 if (is_array($value)) {
-                  $value = implode(',', $value);
+                    $value = implode(',', $value);
                 }
-                echo sprintf('&nbsp;&nbsp;<span class="bold">%s</span>: <span id="header-%s">%s</span><br />', h($header), h($header), h($value));
+                echo '<b>' . h($header) . '</b>: <span id="header-' . h($header) . '">' . h($value) . '</span><br>';
             }
+            ?>
+            </div>
+            <?php
             $format_toggles = '';
             foreach ($formats as $k => $format) {
                 $position = '';
@@ -182,7 +186,9 @@
                 $format_toggles .= sprintf('<span class="btn btn-inverse qet toggle%s format-toggle-button" data-toggle-type="%s">%s</span>', $position, $format, $format);
             }
             echo sprintf('<div style="padding-bottom:24px;">%s</div>', $format_toggles);
-            echo sprintf('<div class="hidden" id="rest-response-hidden-container">%s</div>', h($data['data']));
+            echo '<div class="hidden" id="rest-response-hidden-container">';
+            echo h($data['data']);
+            echo '</div>';
             echo '<div id="rest-response-container"></div>';
         endif;
     ?>
@@ -216,9 +222,9 @@
 ?>
 
 <script type="text/javascript">
-    var allValidApis = <?php echo json_encode($allValidApis); ?>;
-    var fieldsConstraint = <?php echo json_encode($allValidApisFieldsContraint); ?>;
-    $(document).ready(function() {
+    var allValidApis = <?= json_encode($allValidApis); ?>;
+    var fieldsConstraint = <?= json_encode($allValidApisFieldsContraint); ?>;
+    $(function() {
         populate_rest_history('history');
         populate_rest_history('bookmark');
         toggleRestClientBookmark();

@@ -274,8 +274,13 @@ class ComplexTypeTool
 
     private function __checkForBTC($input)
     {
-        if (preg_match("#^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$#i", $input['raw'])) {
-            return array('types' => array('btc'), 'categories' => array('Financial fraud'), 'to_ids' => true, 'default_type' => 'btc', 'value' => $input['raw']);
+        if (preg_match("#^([13][a-km-zA-HJ-NP-Z1-9]{25,34})|(bc|tb)1([023456789acdefghjklmnpqrstuvwxyz]{11,71})$#i", $input['raw'])) {
+            return [
+                'types' => ['btc'],
+                'to_ids' => true,
+                'default_type' => 'btc',
+                'value' => $input['raw'],
+            ];
         }
         return false;
     }
@@ -305,7 +310,7 @@ class ComplexTypeTool
         // handle prepared composite values with the filename|hash format
         if (strpos($input['raw'], '|')) {
             $compositeParts = explode('|', $input['raw']);
-            if (count($compositeParts) == 2) {
+            if (count($compositeParts) === 2) {
                 if ($this->__resolveFilename($compositeParts[0])) {
                     $hash = $this->__resolveHash($compositeParts[1]);
                     if ($hash) {
@@ -372,7 +377,6 @@ class ComplexTypeTool
         if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input['raw'])) {
             return [
                 'types' => ['vulnerability'],
-                'categories' => ['External analysis'],
                 'to_ids' => false,
                 'default_type' => 'vulnerability',
                 'value' => strtoupper($input['raw']), // 'CVE' must be uppercase
@@ -381,7 +385,7 @@ class ComplexTypeTool
         // Phone numbers - for automatic recognition, needs to start with + or include dashes
         if ($input['raw'][0] === '+' || strpos($input['raw'], '-')) {
             if (!preg_match('#^[0-9]{4}-[0-9]{2}-[0-9]{2}$#i', $input['raw']) && preg_match("#^(\+)?([0-9]{1,3}(\(0\))?)?[0-9\/\-]{5,}[0-9]$#i", $input['raw'])) {
-                return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'categories' => array('Other'), 'to_ids' => false, 'default_type' => 'phone-number', 'value' => $input['raw']);
+                return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'to_ids' => false, 'default_type' => 'phone-number', 'value' => $input['raw']);
             }
         }
         return false;
@@ -471,7 +475,7 @@ class ComplexTypeTool
             $temp = explode('\\', $input['raw']);
             if (strpos(end($temp), '.') || preg_match('/^.:/i', $temp[0])) {
                 if ($this->__resolveFilename(end($temp))) {
-                    return array('types' => array('filename'), 'categories' => array('Payload installation'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $input['raw']);
+                    return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $input['raw']);
                 }
             } else if (!empty($temp[0])) {
                 return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey', 'value' => $input['raw']);

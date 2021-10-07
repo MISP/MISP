@@ -17,7 +17,6 @@ class AuditLogsController extends AppController
 
     /** @var string[] */
     private $models = [
-        'AdminSetting',
         'Attribute',
         'Allowedlist',
         'AuthKey',
@@ -498,7 +497,7 @@ class AuditLogsController extends AppController
             'Galaxy' => 'galaxies',
             'Organisation' => 'organisation',
             'Warninglist' => 'warninglists',
-            'User' => 'admin/user',
+            'User' => 'admin/users',
             'Role' => 'roles',
             'EventReport' => 'eventReports',
             'SharingGroup' => 'sharing_groups',
