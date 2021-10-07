@@ -40,3 +40,15 @@
 	path = app/files/scripts/misp-stix
 	url = git@github.com:misp/misp-stix.git
 	branch = dev
+[submodule "app/files/scripts/python-stix"]
+	path = app/files/scripts/python-stix
+	url = https://github.com/STIXProject/python-stix
+[submodule "app/files/scripts/python-cybox"]
+	path = app/files/scripts/python-cybox
+	url = https://github.com/CybOXProject/python-cybox
+[submodule "app/files/scripts/mixbox"]
+	path = app/files/scripts/mixbox
+	url = https://github.com/CybOXProject/mixbox
+[submodule "app/files/scripts/python-maec"]
+	path = app/files/scripts/python-maec
+	url = https://github.com/MAECProject/python-maec
