@@ -1155,14 +1155,19 @@ class MispObject extends AppModel
         return true;
     }
 
+    /**
+     * @param int $id
+     * @param false|int $timestamp
+     * @return array|bool|mixed|null
+     * @throws Exception
+     */
     public function updateTimestamp($id, $timestamp = false)
     {
-        $date = new DateTime();
         $object = $this->find('first', array(
             'recursive' => -1,
             'conditions' => array('Object.id' => $id)
         ));
-        $object['Object']['timestamp'] = $timestamp == false ? $date->getTimestamp() : $timestamp;
+        $object['Object']['timestamp'] = $timestamp === false ? time() : $timestamp;
         $object['Object']['skip_zmq'] = 1;
         $object['Object']['skip_kafka'] = 1;
         $result = $this->save($object);

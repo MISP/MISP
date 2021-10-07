@@ -649,7 +649,7 @@ class Taxonomy extends AppModel
         $prefixIsFree = true;
         foreach ($tagNameList as $tagName) {
             $tagShortened = $this->stripLastTagComponent($tagName);
-            if ($newTagShortened == $tagShortened) {
+            if ($newTagShortened === $tagShortened) {
                 $prefixIsFree = false;
                 break;
             }
