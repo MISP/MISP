@@ -22,7 +22,6 @@ import os
 import time
 import io
 import pymisp
-import stix2
 import stix2misp_mapping
 from collections import defaultdict
 from copy import deepcopy
@@ -31,6 +30,10 @@ _misp_dir = Path(os.path.realpath(__file__)).parents[4]
 _misp_objects_path = _misp_dir / 'app' / 'files' / 'misp-objects' / 'objects'
 _misp_types = pymisp.AbstractMISP().describe_types.get('types')
 from pymisp import MISPEvent, MISPObject, MISPAttribute
+
+_scripts_path = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_scripts_path / 'cti-python-stix2'))
+import stix2
 
 
 class StixParser():

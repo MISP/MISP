@@ -233,34 +233,9 @@ installCoreRHEL7 () {
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
 
-  cd $PATH_TO_MISP/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
-
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   UMASK=$(umask)
   umask 0022
-
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  cd $PATH_TO_MISP/app/files/scripts/python-stix
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install mixbox to accommodate the new STIX dependencies:
-  cd $PATH_TO_MISP/app/files/scripts/mixbox
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install STIX2.0 library to support STIX 2.0 export:
-  cd $PATH_TO_MISP/cti-python-stix2
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install maec
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U maec
 
   # install zmq
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq
