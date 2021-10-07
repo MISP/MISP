@@ -636,6 +636,8 @@ class StixParser():
     def parse_pe_section(self, section):
         section_object = MISPObject('pe-section', misp_objects_path_custom=_MISP_objects_path)
         header_hashes = section.header_hashes
+        if header_hashes is None:
+            header_hashes = section.data_hashes
         for h in header_hashes:
             hash_type, hash_value, hash_relation = self.handle_hashes_attribute(h)
             section_object.add_attribute(**{"type": hash_type, "value": hash_value, "object_relation": hash_relation})
