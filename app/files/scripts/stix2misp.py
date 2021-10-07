@@ -23,11 +23,18 @@ import uuid
 import base64
 import pymisp
 import stix2misp_mapping
+from operator import attrgetter
+from collections import defaultdict
+from pathlib import Path
+
+_current_path = Path(__file__).resolve().parent
+sys.path.insert(0, str(_current_path / 'python-stix'))
+sys.path.insert(1, str(_current_path / 'python-cybox'))
+sys.path.insert(2, str(_current_path / 'mixbox'))
+sys.path.insert(3, str(_current_path / 'python-maec'))
 import stix.extensions.marking.ais
 from mixbox.namespaces import NamespaceNotFoundError
-from operator import attrgetter
 from stix.core import STIXPackage
-from collections import defaultdict
 try:
     import stix_edh
 except ImportError:
