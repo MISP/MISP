@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Union
 
 _scripts_path = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(_scripts_path.parents[2] / 'cti-python-stix2'))
+sys.path.insert(0, str(_scripts_path / 'cti-python-stix2'))
 sys.path.insert(1, str(_scripts_path / 'python-stix'))
 sys.path.insert(2, str(_scripts_path / 'python-cybox'))
 sys.path.insert(3, str(_scripts_path / 'mixbox'))
