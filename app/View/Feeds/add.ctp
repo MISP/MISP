@@ -141,6 +141,13 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'dropdown'
             ],
             [
+                'field' => 'sharing_group_id',
+                'label' => __('Sharing Group'),
+                'div' => ['id' => 'SGContainer', 'style' => 'display:none', 'class' => 'optionalField'],
+                'options' => $dropdownData['sharingGroups'],
+                'type' => 'dropdown'
+            ],
+            [
                 'field' => 'tag_id',
                 'label' => __('Default Tag'),
                 'options' => $dropdownData['tags'],
@@ -174,7 +181,7 @@ if (!$ajax) {
 <script type="text/javascript">
     $(document).ready(function() {
         feedFormUpdate();
-        $("#FeedSourceFormat, #FeedFixedEvent, #FeedInputSource").change(function() {
+        $("#FeedSourceFormat, #FeedFixedEvent, #FeedInputSource, #FeedDistribution").change(function() {
             feedFormUpdate();
         });
     });
