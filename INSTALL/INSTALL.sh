@@ -1037,7 +1037,7 @@ gitPullAllRCLOCAL () {
 # Main composer function
 composer () {
   sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
-  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install"
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install --no-dev"
 }
 
 
@@ -1455,7 +1455,7 @@ installCake () {
   # Make composer cache happy
   # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
   sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
-  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ;php composer.phar install"
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ;php composer.phar install --no-dev"
 
   # Enable CakeResque with php-redis
   sudo phpenmod redis
@@ -2507,7 +2507,7 @@ installCake_RHEL ()
   sudo mkdir /usr/share/httpd/.composer
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
-  $SUDO_WWW php composer.phar install
+  $SUDO_WWW php composer.phar install --no-dev
 
   sudo dnf install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
 

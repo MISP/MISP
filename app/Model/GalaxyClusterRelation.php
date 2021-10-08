@@ -1,6 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property GalaxyClusterRelationTag $GalaxyClusterRelationTag
+ */
 class GalaxyClusterRelation extends AppModel
 {
     public $useTable = 'galaxy_cluster_relations';
@@ -24,14 +27,14 @@ class GalaxyClusterRelation extends AppModel
         ),
         'galaxy_cluster_uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
-                'message' => 'Please provide a valid UUID'
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
             ),
         ),
         'referenced_galaxy_cluster_uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
-                'message' => 'Please provide a valid UUID'
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
             ),
         ),
         'distribution' => array(
@@ -59,12 +62,6 @@ class GalaxyClusterRelation extends AppModel
     public $hasMany = array(
         'GalaxyClusterRelationTag' => array('dependent' => true),
     );
-
-    public function beforeValidate($options = array())
-    {
-        parent::beforeValidate();
-        return true;
-    }
 
     public function afterFind($results, $primary = false)
     {

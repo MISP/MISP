@@ -47,7 +47,7 @@
         }
         //$params['class'] = sprintf('form-control %s', $params['class']);
         foreach ($fieldData as $k => $fd) {
-            if (!isset($simpleFieldAllowlist) || in_array($k, $simpleFieldAllowlist) || strpos($k, 'data-') === 0) {
+            if (!isset($simpleFieldAllowlist) || in_array($k, $simpleFieldAllowlist, true) || strpos($k, 'data-') === 0) {
                 $params[$k] = $fd;
             }
         }

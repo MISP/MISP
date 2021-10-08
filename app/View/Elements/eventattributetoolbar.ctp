@@ -224,7 +224,6 @@
                         ),
                         'active' => $advancedFilteringActive,
                         'onClick' => 'triggerEventFilteringTool',
-                        'onClickParams' > array('this')
                     )
                 )
             ),

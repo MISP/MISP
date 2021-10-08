@@ -437,7 +437,7 @@
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -448,7 +448,7 @@
                 "numeric_precision": null,
                 "collation_name": null,
                 "column_type": "varbinary(16)",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -470,7 +470,7 @@
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
                 "column_type": "varchar(255)",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -514,7 +514,7 @@
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
                 "column_type": "text",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -525,7 +525,7 @@
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -536,7 +536,7 @@
                 "numeric_precision": null,
                 "collation_name": null,
                 "column_type": "blob",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             }
         ],
@@ -1008,28 +1008,6 @@
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "date",
-                "is_nullable": "NO",
-                "data_type": "date",
-                "character_maximum_length": null,
-                "numeric_precision": null,
-                "collation_name": null,
-                "column_type": "date",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "info",
-                "is_nullable": "NO",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "text",
                 "column_default": null,
                 "extra": ""
             }
@@ -7761,7 +7739,7 @@
     "indexes": {
         "admin_settings": {
             "id": true,
-            "setting": false
+            "setting": true
         },
         "allowedlist": {
             "id": true
@@ -7823,7 +7801,7 @@
         },
         "correlation_exclusions": {
             "id": true,
-            "value": false
+            "value": true
         },
         "dashboards": {
             "id": true,
@@ -7857,7 +7835,7 @@
         },
         "event_blocklists": {
             "id": true,
-            "event_uuid": false,
+            "event_uuid": true,
             "event_orgc": false
         },
         "event_delegations": {
@@ -7907,7 +7885,7 @@
         "galaxies": {
             "id": true,
             "name": false,
-            "uuid": false,
+            "uuid": true,
             "type": false,
             "namespace": false
         },
@@ -8027,7 +8005,7 @@
         "organisations": {
             "id": true,
             "uuid": true,
-            "name": false
+            "name": true
         },
         "org_blocklists": {
             "id": true,
@@ -8115,13 +8093,13 @@
             "attribute_id": false,
             "event_id": false,
             "org_id": false,
-            "uuid": false,
+            "uuid": true,
             "source": false,
             "type": false
         },
         "tags": {
             "id": true,
-            "name": false,
+            "name": true,
             "org_id": false,
             "user_id": false,
             "numerical_value": false
@@ -8183,7 +8161,7 @@
         },
         "users": {
             "id": true,
-            "email": false,
+            "email": true,
             "org_id": false,
             "server_id": false
         },

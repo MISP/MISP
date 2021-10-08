@@ -8,7 +8,39 @@ class AdminShell extends AppShell
 {
     public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed');
 
-    public $tasks = array('ConfigLoad');
+    public function getOptionParser()
+    {
+        $parser = parent::getOptionParser();
+        $parser->addSubcommand('updateJSON', array(
+            'help' => __('Update the JSON definitions of MISP.'),
+        ));
+        $parser->addSubcommand('setSetting', [
+            'help' => __('Set setting in PHP config file.'),
+            'parser' => [
+                'arguments' => [
+                    'name' => ['help' => __('Setting name'), 'required' => true],
+                    'value' => ['help' => __('Setting value'), 'required' => true],
+                ],
+                'options' => [
+                    'force' => array(
+                        'short' => 'f',
+                        'help' => 'Force the command.',
+                        'default' => false,
+                        'boolean' => true
+                    )
+                ]
+            ],
+        ]);
+        $parser->addSubcommand('live', [
+            'help' => __('Set if MISP instance is live and accessible for users.'),
+            'parser' => [
+                'arguments' => [
+                    'state' => ['help' => __('Set Live state')],
+                ],
+            ],
+        ]);
+        return $parser;
+    }
 
     public function jobGenerateCorrelation()
     {
@@ -153,23 +185,17 @@ class AdminShell extends AppShell
 
     public function updateJSON()
     {
-        $this->ConfigLoad->execute();
-        echo 'Updating all JSON structures.' . PHP_EOL;
+        $this->out('Updating all JSON structures.');
         $results = $this->Server->updateJSON();
         foreach ($results as $type => $result) {
+            $type = Inflector::pluralize(Inflector::humanize($type));
             if ($result !== false) {
-                echo sprintf(
-                    __('%s updated.') . PHP_EOL,
-                    Inflector::pluralize(Inflector::humanize($type))
-                );
+                $this->out(__('%s updated.', $type));
             } else {
-                echo sprintf(
-                    __('Could not update %s.') . PHP_EOL,
-                    Inflector::pluralize(Inflector::humanize($type))
-                );
+                $this->out(__('Could not update %s.', $type));
             }
         }
-        echo 'All JSON structures updated. Thank you and have a very safe and productive day.' . PHP_EOL;
+        $this->out('All JSON structures updated. Thank you and have a very safe and productive day.');
     }
 
     public function updateGalaxies()
@@ -361,7 +387,6 @@ class AdminShell extends AppShell
 
     public function setSetting()
     {
-        $this->ConfigLoad->execute();
         $setting_name = !isset($this->args[0]) ? null : $this->args[0];
         $value = !isset($this->args[1]) ? null : $this->args[1];
         if ($value === 'false') {
@@ -410,22 +435,26 @@ class AdminShell extends AppShell
 
     public function runUpdates()
     {
-        $this->ConfigLoad->execute();
-        $whoami = exec('whoami');
-        $osuser = Configure::read('MISP.osuser');
-        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache' || $whoami === 'wwwrun' || $whoami === 'travis' || $whoami === 'www' || $whoami === $osuser) {
-            echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
+        if (function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
+            $whoami = posix_getpwuid(posix_geteuid())['name'];
+        } else {
+            $whoami = exec('whoami');
+        }
+        if (in_array($whoami, ['httpd', 'www-data', 'apache', 'wwwrun', 'travis', 'www'], true) || $whoami === Configure::read('MISP.osuser')) {
+            $this->out('Executing all updates to bring the database up to date with the current version.');
             $processId = empty($this->args[0]) ? false : $this->args[0];
             $this->Server->runUpdates(true, false, $processId);
-            echo 'All updates completed.' . PHP_EOL;
+            $this->out('All updates completed.');
         } else {
-            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd` or `apache` or `wwwrun` or set MISP.osuser in the configuration.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
+            $this->error('This OS user is not allowed to run this command.', 'Run it under `www-data` or `httpd` or `apache` or `wwwrun` or set MISP.osuser in the configuration.' . PHP_EOL . 'You tried to run this command as: ' . $whoami);
         }
     }
 
     public function getAuthkey()
     {
-        $this->ConfigLoad->execute();
+        if (Configure::read("Security.advanced_authkeys")) {
+            $this->error('Advanced autkeys enabled, it is not possible to get user authkey.');
+        }
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get authkey'] . PHP_EOL);
         } else {
@@ -442,9 +471,19 @@ class AdminShell extends AppShell
         }
     }
 
+    public function redisReady()
+    {
+        try {
+            $redis = $this->Server->setupRedisWithException();
+            $redis->randomKey();
+            $this->out('Successfully connected to Redis.');
+        } catch (Exception $e) {
+            $this->error('Redis connection is not available', $e->getMessage());
+        }
+    }
+
     public function clearBruteforce()
     {
-        $this->ConfigLoad->execute();
         $conditions = array('Bruteforce.username !=' => '');
         if (!empty($this->args[0])) {
             $conditions = array('Bruteforce.username' => $this->args[0]);
@@ -452,7 +491,7 @@ class AdminShell extends AppShell
         $result = $this->Bruteforce->deleteAll($conditions, false, false);
         $target = empty($this->args[0]) ? 'all users' : $this->args[0];
         if ($result) {
-            echo 'Brutefoce entries for ' . $target . ' deleted.' . PHP_EOL;
+            echo 'Bruteforce entries for ' . $target . ' deleted.' . PHP_EOL;
         } else {
             echo 'Something went wrong, could not delete bruteforce entries for ' . $target . '.' . PHP_EOL;
         }
@@ -490,6 +529,9 @@ class AdminShell extends AppShell
         return PHP_EOL . '---------------------------------------------------------------' . PHP_EOL;
     }
 
+    /**
+     * @deprecated Use UserShell instead
+     */
     public function change_authkey()
     {
         $this->ConfigLoad->execute();
@@ -519,30 +561,6 @@ class AdminShell extends AppShell
             die();
         }
         echo 'Updated, new key:' . PHP_EOL . $authKey . PHP_EOL;
-    }
-
-    public function getOptionParser()
-    {
-        $this->ConfigLoad->execute();
-
-        $parser = parent::getOptionParser();
-        $parser->addSubcommand('updateJSON', array(
-            'help' => __('Update the JSON definitions of MISP.'),
-            'parser' => array(
-                'arguments' => array(
-                    'update' => array('help' => __('Update the submodules before ingestion.'), 'short' => 'u', 'boolean' => 1)
-                )
-            )
-        ));
-
-        $parser->addOption('force', array(
-            'short' => 'f',
-            'help' => 'Force the command.',
-            'default' => false,
-            'boolean' => true
-        ));
-
-        return $parser;
     }
 
     public function recoverSinceLastSuccessfulUpdate()
@@ -642,11 +660,8 @@ class AdminShell extends AppShell
     {
         $this->ConfigLoad->execute();
         $dbActualSchema = $this->Server->getActualDBSchema();
-        $dbVersion = $this->AdminSetting->find('first', array(
-            'conditions' => array('setting' => 'db_version')
-        ));
+        $dbVersion = $this->AdminSetting->getSetting('db_version');
         if (!empty($dbVersion) && !empty($dbActualSchema['schema'])) {
-            $dbVersion = $dbVersion['AdminSetting']['value'];
             $data = array(
                 'schema' => $dbActualSchema['schema'],
                 'indexes' => $dbActualSchema['indexes'],
@@ -661,6 +676,9 @@ class AdminShell extends AppShell
         }
     }
 
+    /**
+     * @deprecated Use UserShell instead
+     */
     public function UserIP()
     {
         $this->ConfigLoad->execute();
@@ -686,6 +704,9 @@ class AdminShell extends AppShell
         );
     }
 
+    /**
+     * @deprecated Use UserShell instead
+     */
     public function IPUser()
     {
         $this->ConfigLoad->execute();
@@ -790,6 +811,46 @@ class AdminShell extends AppShell
             foreach ($diagnostics as $info) {
                 $this->out(' - ' . $info['message']);
             }
+        }
+    }
+
+    public function live()
+    {
+        if (isset($this->args[0])) {
+            $newStatus = $this->toBoolean($this->args[0]);
+            $overallSuccess = false;
+            try {
+                $redis = $this->Server->setupRedisWithException();
+                if ($newStatus) {
+                    $redis->del('misp:live');
+                    $this->out('Set live status to True in Redis.');
+                } else {
+                    $redis->set('misp:live', '0');
+                    $this->out('Set live status to False in Redis.');
+                }
+                $overallSuccess = true;
+            } catch (Exception $e) {
+                $this->out('<warning>Redis is not reachable.</warning>');
+            }
+
+            $success = $this->Server->serverSettingsSaveValue('MISP.live', $newStatus);
+            if ($success) {
+                $this->out('Set live status in PHP config file.');
+                $overallSuccess = true;
+            } else {
+                $this->out('<warning>Could not set MISP.live in PHP config file.</warning>');
+            }
+
+            if ($overallSuccess) {
+                $this->out($newStatus ? 'MISP is now live. Users can now log in.' : 'MISP is now disabled. Only site admins can log in.');
+            } else {
+                $this->error('Could not save live status in Redis or PHP config file.');
+            }
+        } else {
+            $this->out('Current status:');
+            $this->out('PHP Config file: ' . (Configure::read('MISP.live') ? 'True' : 'False'));
+            $newStatus = $this->Server->setupRedisWithException()->get('misp:live');
+            $this->out('Redis: ' . ($newStatus !== '0' ? 'True' : 'False'));
         }
     }
 }

@@ -171,7 +171,11 @@ if (isset($object['validationIssue'])) {
 if (isset($object['warnings'])) {
     $temp = '';
     foreach ($object['warnings'] as $warning) {
-        $temp .= '<span class="bold">' . h($warning['match']) . ':</span> <span class="red">' . h($warning['warninglist_name']) . '</span><br>';
+        $temp .= '<span class="bold">' . h($warning['match']) . ':</span> <span class="red">' . h($warning['warninglist_name']) . '</span>';
+        if (isset($warning['comment'])) {
+            $temp .= ' (' . h($warning['comment']) . ')';
+        }
+        $temp .= '<br>';
     }
     echo ' <span aria-label="' . __('warning') . '" role="img" tabindex="0" class="fa fa-exclamation-triangle" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
 }

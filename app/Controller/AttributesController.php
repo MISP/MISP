@@ -30,20 +30,20 @@ class AttributesController extends AppController
         $this->Auth->allow('bro');
 
         // permit reuse of CSRF tokens on the search page.
-        if ('search' == $this->request->params['action']) {
+        if ('search' === $this->request->params['action']) {
             $this->Security->csrfCheck = false;
         }
         $this->Security->unlockedActions[] = 'getMassEditForm';
         $this->Security->unlockedActions[] = 'search';
-        if ($this->action == 'add_attachment') {
+        if ($this->request->action === 'add_attachment') {
             $this->Security->disabledFields = array('values');
         }
         $this->Security->validatePost = true;
 
         // convert uuid to id if present in the url and overwrite id field
-        if (isset($this->params->query['uuid'])) {
+        if (isset($this->request->params->query['uuid'])) {
             $params = array(
-                    'conditions' => array('Attribute.uuid' => $this->params->query['uuid']),
+                    'conditions' => array('Attribute.uuid' => $this->request->params->query['uuid']),
                     'recursive' => 0,
                     'fields' => 'Attribute.id'
                     );
@@ -1518,7 +1518,7 @@ class AttributesController extends AppController
             $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'first_seen', 'last_seen');
             $filterData = array(
                 'request' => $this->request,
-                'named_params' => $this->params['named'],
+                'named_params' => $this->request->params['named'],
                 'paramArray' => $paramArray,
                 'additional_delimiters' => PHP_EOL
             );
@@ -1695,8 +1695,7 @@ class AttributesController extends AppController
         }
 
         // Fetch correlations in one query
-        $sgIds = $this->Attribute->Event->cacheSgids($user, true);
-        $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, $sgIds, false, 'attribute');
+        $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, false, 'attribute');
 
         // `attachFeedCorrelations` method expects different attribute format, so we need to transform that, then process
         // and then take information back to original attribute structure.
@@ -1785,12 +1784,12 @@ class AttributesController extends AppController
     public function downloadAttachment($key='download', $id)
     {
         if ($key != null && $key != 'download') {
-            $user = $this->checkAuthUser($key);
+            $user = $this->_checkAuthUser($key);
         } else {
             if (!$this->Auth->user()) {
                 throw new UnauthorizedException(__('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.'));
             }
-            $user = $this->checkAuthUser($this->Auth->user('authkey'));
+            $user = $this->_checkAuthUser($this->Auth->user('authkey'));
         }
         // if the user is authorised to use the api key then user will be populated with the user's account
         // in addition we also set a flag indicating whether the user is a site admin or not.
@@ -1928,7 +1927,7 @@ class AttributesController extends AppController
         }
         if ($key != 'download') {
             // check if the key is valid -> search for users based on key
-            $user = $this->checkAuthUser($key);
+            $user = $this->_checkAuthUser($key);
             if (!$user) {
                 throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
             }
@@ -2623,7 +2622,7 @@ class AttributesController extends AppController
         );
         $RearrangeTool = new RequestRearrangeTool();
         $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
-        $local = empty($this->params['named']['local']) ? 0 : 1;
+        $local = empty($this->request->params['named']['local']) ? 0 : 1;
         if (!$this->request->is('post')) {
             if ($id === false) {
                 throw new NotFoundException(__('Invalid attribute'));
@@ -2661,10 +2660,7 @@ class AttributesController extends AppController
                     if (empty($tagCollection)) {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
                     }
-                    $tag_id_list = array();
-                    foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
-                        $tag_id_list[] = $tagCollectionTag['tag_id'];
-                    }
+                    $tag_id_list = array_column($tagCollection[0]['TagCollectionTag'], 'tag_id');
                 } else {
                     // try to parse json array
                     $tag_ids = json_decode($tag_id);
@@ -2678,9 +2674,7 @@ class AttributesController extends AppController
                                 if (empty($tagCollection)) {
                                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
                                 }
-                                foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
-                                    $tag_id_list[] = $tagCollectionTag['tag_id'];
-                                }
+                                $tag_id_list = array_column($tagCollection[0]['TagCollectionTag'], 'tag_id');
                             } else {
                                 $tag_id_list[] = $tag_id;
                             }
@@ -2705,90 +2699,68 @@ class AttributesController extends AppController
             if (empty($tag_id_list)) {
                 $tag_id_list = array($tag_id);
             }
+
+            $conditions = ['Tag.id' => $tag_id_list];
+            if (!$this->_isSiteAdmin()) {
+                $conditions['Tag.org_id'] = array(0, $this->Auth->user('org_id'));
+                $conditions['Tag.user_id'] = array(0, $this->Auth->user('id'));
+            }
+            $tags = $this->Attribute->AttributeTag->Tag->find('list', array(
+                'conditions' => $conditions,
+                'fields' => ['Tag.id', 'Tag.name'],
+            ));
+
             $success = 0;
             $fails = 0;
             $this->Taxonomy = ClassRegistry::init('Taxonomy');
             foreach ($idList as $id) {
-                $attributes = $this->Attribute->fetchAttributes(
-                    $this->Auth->user(),
-                    array(
-                        'conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0),
-                        'flatten' => 1,
-                        'contain' => array('Event.orgc_id')
-                    )
-                );
-                if (empty($attributes)) {
+                $attribute = $this->Attribute->fetchAttributeSimple($this->Auth->user(), [
+                    'conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0),
+                ]);
+                if (empty($attribute)) {
                     throw new NotFoundException(__('Invalid attribute'));
-                } else {
-                    $attribute = $attributes[0];
                 }
-                $eventId = $attribute['Attribute']['event_id'];
-                $event = $this->Attribute->Event->find('first', array(
-                    'conditions' => array('Event.id' => $eventId),
-                    'recursive' => -1
-                ));
-                if (!$this->__canModifyTag($event, $local)) {
+                if (!$this->__canModifyTag($attribute, $local)) {
                     $fails++;
                     continue;
                 }
                 if (!$this->_isRest()) {
-                    $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
+                    $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Event']['id']);
                 }
+                $changeTimestamp = false;
                 foreach ($tag_id_list as $tag_id) {
-                    $conditions = ['Tag.id' => $tag_id];
-                    if (!$this->_isSiteAdmin()) {
-                        $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
-                        $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
-                    }
-                    $tag = $this->Attribute->AttributeTag->Tag->find('first', array(
-                        'conditions' => $conditions,
-                        'recursive' => -1,
-                        'fields' => array('Tag.name')
-                    ));
-                    if (!$tag) {
+                    if (!isset($tags[$tag_id])) {
                         // Tag not found or user don't have permission to add it.
                         $fails++;
                         continue;
                     }
-                    $found = $this->Attribute->AttributeTag->find('first', array(
-                        'conditions' => array(
-                            'attribute_id' => $id,
-                            'tag_id' => $tag_id
-                        ),
-                        'recursive' => -1,
-                    ));
-                    $this->autoRender = false;
-                    if (!empty($found)) {
+                    $tagName = $tags[$tag_id];
+                    $found = $this->Attribute->AttributeTag->hasAny([
+                        'attribute_id' => $id,
+                        'tag_id' => $tag_id,
+                    ]);
+                    if ($found) {
                         // Tag is already assigned to given attribute.
                         $fails++;
                         continue;
                     }
-                    $tagsOnAttribute = $this->Attribute->AttributeTag->find('all', array(
+                    $tagsOnAttribute = $this->Attribute->AttributeTag->find('column', array(
                         'conditions' => array(
                             'AttributeTag.attribute_id' => $id,
-                            'AttributeTag.local' => $local
+                            'AttributeTag.local' => $local,
                         ),
                         'contain' => 'Tag',
                         'fields' => array('Tag.name'),
-                        'recursive' => -1
                     ));
-                    $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnAttribute, '{n}.Tag.name'));
+                    $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tagName, $tagsOnAttribute);
                     if (!$exclusiveTestPassed) {
                         $fails++;
                         continue;
                     }
                     $this->Attribute->AttributeTag->create();
-                    if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId, 'local' => $local))) {
+                    if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $attribute['Event']['id'], 'local' => $local))) {
                         if (!$local) {
-                            $event['Event']['published'] = 0;
-                            $date = new DateTime();
-                            $event['Event']['timestamp'] = $date->getTimestamp();
-                            $result = $this->Attribute->Event->save($event);
-                            $attribute['Attribute']['timestamp'] = $date->getTimestamp();
-                            if ($attribute['Attribute']['object_id'] != 0) {
-                                $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
-                            }
-                            $this->Attribute->save($attribute);
+                            $changeTimestamp = true;
                         }
                         $log = ClassRegistry::init('Log');
                         $log->createLogEntry(
@@ -2800,7 +2772,7 @@ class AttributesController extends AppController
                                 'Attached%s tag (%s) "%s" to attribute (%s)',
                                 $local ? ' local' : '',
                                 $tag_id,
-                                $tag['Tag']['name'],
+                                $tagName,
                                 $id
                             ),
                             sprintf(
@@ -2815,8 +2787,20 @@ class AttributesController extends AppController
                         $fails++;
                     }
                 }
+
+                if ($changeTimestamp) {
+                    $attribute['Event']['published'] = 0;
+                    $date = new DateTime();
+                    $attribute['Event']['timestamp'] = $date->getTimestamp();
+                    $result = $this->Attribute->Event->save($attribute['Event']);
+                    $attribute['Attribute']['timestamp'] = $date->getTimestamp();
+                    if ($attribute['Attribute']['object_id'] != 0) {
+                        $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
+                    }
+                    $this->Attribute->save($attribute['Attribute']);
+                }
             }
-            if ($fails == 0) {
+            if ($fails === 0) {
                 $message = __n('Tag added.', '%s tags added', $success, $success);
                 return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message, 'check_publish' => true)), 'status' => 200, 'type' => 'json'));
             } else {
@@ -2824,7 +2808,7 @@ class AttributesController extends AppController
                 if ($success > 0) {
                     $message .= __n(' However, %s tag was added.', ' However, %s tags were added.', $success, $success);
                 }
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
+                return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
             }
         }
     }
@@ -2970,13 +2954,10 @@ class AttributesController extends AppController
         if ($this->request->is('post')) {
             if ($attribute['Attribute']['disable_correlation']) {
                 $attribute['Attribute']['disable_correlation'] = 0;
-                $this->Attribute->save($attribute);
-                ClassRegistry::init('Correlation')->afterSaveCorrelation($attribute['Attribute'], false, $attribute);
             } else {
                 $attribute['Attribute']['disable_correlation'] = 1;
-                $this->Attribute->save($attribute);
-                $this->Attribute->purgeCorrelations($attribute['Event']['id'], $attribute['Attribute']['id']);
             }
+            $this->Attribute->save($attribute, ['parentEvent' => $attribute]);
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('attributes', 'toggleCorrelation', $id, false, 'Correlation ' . ($attribute['Attribute']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
             } else {

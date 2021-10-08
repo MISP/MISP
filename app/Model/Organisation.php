@@ -36,7 +36,8 @@ class Organisation extends AppModel
         'uuid' => array(
             'unique' => array(
                 'rule' => 'isUnique',
-                'message' => 'An organisation with this UUID already exists.'
+                'message' => 'An organisation with this UUID already exists.',
+                'on' => 'create',
             ),
             'uuid' => array(
                 'rule' => 'uuid',
@@ -113,10 +114,10 @@ class Organisation extends AppModel
         $date = date('Y-m-d H:i:s');
         if (array_key_exists('restricted_to_domain', $this->data['Organisation'])) {
             if (!is_array($this->data['Organisation']['restricted_to_domain'])) {
-                $this->data['Organisation']['restricted_to_domain'] = str_replace('\r', '', $this->data['Organisation']['restricted_to_domain']);
-                $this->data['Organisation']['restricted_to_domain'] = explode('\n', $this->data['Organisation']['restricted_to_domain']);
+                $this->data['Organisation']['restricted_to_domain'] = str_replace("\r", '', $this->data['Organisation']['restricted_to_domain']);
+                $this->data['Organisation']['restricted_to_domain'] = explode("\n", $this->data['Organisation']['restricted_to_domain']);
             }
-            
+
             $this->data['Organisation']['restricted_to_domain'] = array_values(
                 array_filter(
                     array_map('trim', $this->data['Organisation']['restricted_to_domain'])
@@ -172,10 +173,21 @@ class Organisation extends AppModel
         return $results;
     }
 
-    public function captureOrg($org, $user, $force = false)
+    /**
+     * @param array|string $org
+     * @param array $user
+     * @param bool $force
+     * @return int Organisation ID
+     * @throws Exception
+     */
+    public function captureOrg($org, array $user, $force = false)
     {
+        $fieldsToFetch = $force ?
+            ['id', 'uuid', 'type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts'] :
+            ['id', 'uuid'];
+
         if (is_array($org)) {
-            if (isset($org['uuid']) && !empty($org['uuid'])) {
+            if (!empty($org['uuid'])) {
                 $conditions = array('uuid' => $org['uuid']);
                 $uuid = $org['uuid'];
             } else {
@@ -188,28 +200,26 @@ class Organisation extends AppModel
         }
 
         $existingOrg = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => $conditions,
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => $fieldsToFetch,
         ));
         if (empty($existingOrg)) {
             $date = date('Y-m-d H:i:s');
             $organisation = array(
-                    'name' => $name,
-                    'local' => 0,
-                    'created_by' => $user['id'],
-                    'date_modified' => $date,
-                    'date_created' => $date
+                'name' => $name,
+                'local' => 0,
+                'created_by' => $user['id'],
+                'date_modified' => $date,
+                'date_created' => $date
             );
             // If we have the UUID set, then we have only made sure that the org doesn't exist by UUID
             // We want to create a new organisation for pushed data, even if the same org name exists
             // Alter the name if the name is already taken by a random string
             if (isset($uuid)) {
-                $existingOrgByName = $this->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array('name' => $name),
-                ));
+                $existingOrgByName = $this->hasAny(['name' => $name]);
                 if ($existingOrgByName) {
-                    $organisation['name'] = $organisation['name'] . '_' . rand(0, 9999);
+                    $organisation['name'] = $organisation['name'] . '_' . mt_rand(0, 9999);
                 }
                 $organisation['uuid'] = $uuid;
             }

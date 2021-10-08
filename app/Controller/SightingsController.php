@@ -68,9 +68,10 @@ class SightingsController extends AppController
                 }
                 $type = isset($this->request->data['type']) ? $this->request->data['type'] : '0';
                 $source = isset($this->request->data['source']) ? trim($this->request->data['source']) : '';
+                $filters = !empty($this->request->data['filters']) ? $this->request->data['filters'] : false;
             }
             if (!$error) {
-                $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source, false, true);
+                $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source, false, true, false, $filters);
             }
             if (!is_numeric($result)) {
                 $error = $result;

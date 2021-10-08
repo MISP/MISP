@@ -1,9 +1,10 @@
 <?php
-/*
+/**
  * Reset a password
  *
  * arg0 = email
  * arg1 = new password
+ * @deprecated Use UserShell instead
  */
 class AuthkeyShell extends AppShell {
 

@@ -30,8 +30,8 @@
     }
     if (!empty($data['persistUrlParams'])) {
         foreach ($data['persistUrlParams'] as $persistedParam) {
-            if (!empty($passedArgs[$persistedParam])) {
-                $data['paginatorOptions']['url'][] = $passedArgs[$persistedParam];
+            if (!empty($passedArgsArray[$persistedParam])) {
+                $data['paginatorOptions']['url'][] = $passedArgsArray[$persistedParam];
             }
         }
     }

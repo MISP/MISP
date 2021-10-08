@@ -29,6 +29,9 @@
         'div' => array('style' => 'width:120px !important;'),
         'label' => false
     ));
+    echo $this->Form->input('filters', array(
+        'placeholder' => __('{ "to_ids": 1, "tags": ["tlp:white"] }'),
+    ));
 ?>
 <span id="submitButton" role="button" tabindex="0" aria-label="<?php echo __('Add sighting');?>" title="<?php echo __('Add sighting');?>" class="btn btn-primary" onClick="submitPopoverForm('<?php echo h($id);?>', 'addSighting', '<?php echo h($event_id); ?>')"><?php echo __('Add');?></span>
 <div class="input clear"></div>

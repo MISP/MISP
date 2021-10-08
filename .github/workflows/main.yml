@@ -193,9 +193,6 @@ jobs:
               python3 -m virtualenv -p python3 ./venv
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
-              pushd cti-python-stix2
-              pip install .
-              popd
               pushd PyMISP
               pip install .[fileobjects,email]
               popd
@@ -217,9 +214,7 @@ jobs:
       - name: Run PHP tests
         run: |
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
-              ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
-              ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
-              ./app/Vendor/bin/phpunit app/Test/CidrToolTest.php
+              ./app/Vendor/bin/phpunit app/Test/
 
       - name: Run tests
         run: |
@@ -242,6 +237,7 @@ jobs:
               poetry run python tests/testlive_comprehensive.py
               poetry add lxml
               poetry run python ../tests/testlive_security.py -v
+              poetry run python ../tests/testlive_sync.py
               poetry run python tests/test_mispevent.py
               popd
               cp PyMISP/tests/keys.py PyMISP/examples/events/

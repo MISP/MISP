@@ -336,6 +336,9 @@ class EventReportsController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             $filters = $this->EventReport->jsonDecode($this->data['EventReport']['filters']);
             $options['conditions'] = $filters;
+            $options['conditions'] = array_filter($filters, function($v) {
+                return $v !== '';
+            });
             $options['event_id'] = $eventId;
             App::uses('ReportFromEvent', 'EventReport');
             $optionFields = array_keys((new ReportFromEvent())->acceptedOptions);

@@ -56,7 +56,13 @@ echo $this->element(
                 'url_params' => ['Cerebrate.id'],
                 'title' => __('Organisations'),
                 'elementId' => 'preview_orgs_container'
-            ]
+            ],
+            [
+                'url' => '/cerebrates/preview_sharing_groups/{{0}}/',
+                'url_params' => ['Cerebrate.id'],
+                'title' => __('Sharing Groups'),
+                'elementId' => 'preview_sgs_container'
+            ],
         ]
     ]
 );
