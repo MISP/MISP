@@ -38,8 +38,8 @@
 	url = https://github.com/MISP/misp-opendata
 [submodule "app/files/scripts/misp-stix"]
 	path = app/files/scripts/misp-stix
-	url = git@github.com:misp/misp-stix.git
-	branch = dev
+    url = https://github.com/misp/misp-stix.git
+    branch = main
 [submodule "app/files/scripts/python-stix"]
 	path = app/files/scripts/python-stix
 	url = https://github.com/STIXProject/python-stix
