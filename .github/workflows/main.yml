@@ -193,6 +193,10 @@ jobs:
               python3 -m virtualenv -p python3 ./venv
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
+              export PYTHONPATH=$PYTHONPATH:./app/files/scripts
+              pushd ./app/files/scripts/cti-python-stix2
+              pip install .
+              popd
               pushd PyMISP
               pip install .[fileobjects,email]
               popd
