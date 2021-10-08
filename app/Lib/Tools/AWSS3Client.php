@@ -1,6 +1,7 @@
 <?php
 
 use Aws\S3\S3Client;
+use Aws\Exception\AwsException;
 
 class AWSS3Client
 {
@@ -14,7 +15,9 @@ class AWSS3Client
                 'bucket_name' => 'my-malware-bucket',
                 'region' => 'eu-west-1',
                 'aws_access_key' => '',
-                'aws_secret_key' => ''
+                'aws_secret_key' => '',
+                'aws_endpoint' => '',
+                'aws_compatible' => false
         );
 
         // We have 2 situations
@@ -39,10 +42,39 @@ class AWSS3Client
     public function initTool()
     {
         $settings = $this->__getSetSettings();
-        $s3 = new Aws\S3\S3Client([
-            'version' => 'latest',
-            'region' => $settings['region']
-        ]);
+        if ($settings['aws_compatible']) {
+            $s3 = new Aws\S3\S3Client([
+                 'version' => 'latest',
+                 'region' => $settings['region'],
+                 // MinIO compatibility
+                 // Reference: https://docs.min.io/docs/how-to-use-aws-sdk-for-php-with-minio-server.html
+                 'endpoint' => $settings['aws_endpoint'],
+                 'use_path_style_endpoint' => true,
+                 // This line should points to server certificate
+                 // Generically, this verify is set to false so that any certificate is valid
+                 // Reference: 
+                 //   - https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_configuration.html
+                 //   - https://docs.guzzlephp.org/en/5.3/clients.html#verify
+                 // Example: 
+                 // -- Verify certificate
+                 //    'http'    => ['verify' => '/usr/lib/ssl/certs/minio.pem'],
+                 // -- Do not verify certificate, securitywise, this option is not recommended, however due to 
+                 //    internal deployment scheme it is acceptable risk to set this to false
+                 //    'http'    => ['verify' => false],
+                 // -- Verify againts  built in CA certificates
+                 //    'http'    => ['verify' => true],
+                 'http'    => ['verify' => false],
+                 'credentials' => [
+                    'key'    => $settings['aws_access_key'],
+                    'secret' => $settings['aws_secret_key'],
+                 ],
+            ]);
+        } else {
+             $s3 = new Aws\S3\S3Client([
+                'version' => 'latest',
+                'region' => $settings['region']
+            ]);
+        }
 
         $this->__client = $s3;
         $this->__settings = $settings;
@@ -68,12 +100,16 @@ class AWSS3Client
 
     public function download($key)
     {
-        $result = $this->__client->getObject([
-            'Bucket' => $this->__settings['bucket_name'],
-            'Key' => $key
-        ]);
+        try {
+            $result = $this->__client->getObject([
+                'Bucket' => $this->__settings['bucket_name'],
+                'Key' => $key
+            ]);
 
-        return $result['Body'];
+            return $result['Body'];
+        } catch (AwsException $e) {
+            throw new NotFoundException('Could not download object ' . $e->getMessage());
+        }
     }
 
     public function delete($key)

@@ -6691,9 +6691,25 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
+                'S3_aws_compatible' => array(
+                    'level' => 2,
+                    'description' => __('Use external AWS compatible system such as MinIO'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'S3_aws_endpoint' => array(
+                    'level' => 2,
+                    'description' => __('External AWS compatible endpoint such as MinIO'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
                 'S3_bucket_name' => array(
                     'level' => 2,
-                    'description' => __('Bucket name to upload to'),
+                    'description' => __('Bucket name to upload to, please make sure that the bucket exists. We will not create the bucket for you'),
                     'value' => '',
                     'errorMessage' => '',
                     'test' => 'testForEmpty',
