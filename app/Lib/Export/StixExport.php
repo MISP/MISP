@@ -28,8 +28,8 @@ class StixExport
 
     public function setDefaultFilters($filters)
     {
-        $sane_version = (!empty($filters['version']) && in_array($filters['version'], $this->__sane_versions));
-        $this->__version = $sane_version ? $filters['version'] : $this->__default_version;
+        $sane_version = (!empty($filters['stix-version']) && in_array($filters['stix-version'], $this->__sane_versions));
+        $this->__version = $sane_version ? $filters['stix-version'] : $this->__default_version;
     }
 
     public function handler($data, $options = array())
