@@ -39,7 +39,7 @@
 [submodule "app/files/scripts/misp-stix"]
 	path = app/files/scripts/misp-stix
     url = https://github.com:misp/misp-stix.git
-	branch = dev
+    branch = main
 [submodule "app/files/scripts/python-stix"]
 	path = app/files/scripts/python-stix
 	url = https://github.com/STIXProject/python-stix
