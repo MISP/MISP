@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
 
 /**
  * @property-read array $serverSettings
@@ -2141,11 +2142,10 @@ class Server extends AppModel
             }
         }
         $value = trim($value);
-        if ($setting['type'] == 'boolean') {
-            $value = ($value ? true : false);
-        }
-        if ($setting['type'] == 'numeric') {
-            $value = intval($value);
+        if ($setting['type'] === 'boolean') {
+            $value = (bool)$value;
+        } else if ($setting['type'] === 'numeric') {
+            $value = (int)($value);
         }
         if (!empty($setting['test'])) {
             $testResult = $this->{$setting['test']}($value);
@@ -2159,27 +2159,25 @@ class Server extends AppModel
                 $errorMessage = $testResult;
             }
             return $errorMessage;
-        } else {
-            $oldValue = Configure::read($setting['name']);
-            $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
-            if ($settingSaveResult) {
-                $this->Log = ClassRegistry::init('Log');
-                $change = array($setting['name'] => array($oldValue, $value));
-                $this->Log->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting changed', $change);
+        }
+        $oldValue = Configure::read($setting['name']);
+        $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
+        if ($settingSaveResult) {
+            $change = array($setting['name'] => array($oldValue, $value));
+            $this->loadLog()->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting changed', $change);
 
-                // execute after hook
-                if (isset($setting['afterHook'])) {
-                    $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value));
-                    if ($afterResult !== true) {
-                        $change = 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult;
-                        $this->Log->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting issue', $change);
-                        return $afterResult;
-                    }
+            // execute after hook
+            if (isset($setting['afterHook'])) {
+                $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value));
+                if ($afterResult !== true) {
+                    $change = 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult;
+                    $this->loadLog()->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting issue', $change);
+                    return $afterResult;
                 }
-                return true;
-            } else {
-                return __('Something went wrong. MISP tried to save a malformed config file. Setting change reverted.');
             }
+            return true;
+        } else {
+            return __('Something went wrong. MISP tried to save a malformed config file. Setting change reverted.');
         }
     }
 
@@ -2197,26 +2195,18 @@ class Server extends AppModel
         }
 
         // validate if current config.php is intact:
-        $current = file_get_contents($configFilePath);
-        $current = trim($current);
-        if (strlen($current) < 20) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                'org' => 'SYSTEM',
-                'model' => 'Server',
-                'model_id' => 0,
-                'email' => 'SYSTEM',
-                'action' => 'error',
-                'user_id' => 0,
-                'title' => 'Error: Tried to modify server settings but current config is broken.',
-            ));
+        $current = FileAccessTool::readFromFile($configFilePath);
+        if (strlen(trim($current)) < 20) {
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', 0, 'Error: Tried to modify server settings but current config is broken.');
             return false;
         }
         $safeConfigChanges = empty(Configure::read('MISP.server_settings_skip_backup_rotate'));
         if ($safeConfigChanges) {
+            $backupFilePath = APP . 'Config' . DS . 'config.backup.php';
             // Create current config file backup
-            copy($configFilePath, APP . 'Config' . DS . 'config.php.bk');
+            if (!copy($configFilePath, $backupFilePath)) {
+                throw new Exception("Could not create config backup `$backupFilePath`.");
+            }
         }
         $settingObject = $this->getCurrentServerSettings();
         foreach ($settingObject as $branchName => $branch) {
@@ -2263,36 +2253,32 @@ class Server extends AppModel
 
         if ($safeConfigChanges) {
             $previous_file_perm = substr(sprintf('%o', fileperms($configFilePath)), -4);
-            $randomFilename = $this->generateRandomFileName();
-            // To protect us from 2 admin users having a concurrent file write to the config file, solar flares and the bogeyman
-            if (file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString) === false) {
+            try {
+                $tmpFile = FileAccessTool::writeToTempFile($settingsString);
+            } catch (Exception $e) {
+                $this->logException('Could not create temp config file.', $e);
                 $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', 0, 'Error: Could not create temp config file.');
                 return false;
             }
-            rename(APP . 'Config' . DS . $randomFilename, $configFilePath);
+            if (!rename($tmpFile, $configFilePath)) {
+                FileAccessTool::deleteFile($tmpFile);
+                throw new Exception("Could not rename `$tmpFile` to config file `$configFilePath`.");
+            }
             if (function_exists('opcache_reset')) {
                 opcache_reset();
             }
             chmod($configFilePath, octdec($previous_file_perm));
-            $config_saved = file_get_contents($configFilePath);
+            $config_saved = FileAccessTool::readFromFile($configFilePath);
             // if the saved config file is empty, restore the backup.
             if (strlen($config_saved) < 20) {
-                copy(APP . 'Config' . DS . 'config.php.bk', $configFilePath);
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => 0,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
-                ));
+                rename($backupFilePath, $configFilePath);
+                $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', 0, 'Error: Something went wrong saving the config file, reverted to backup file.');
                 return false;
+            } else {
+                FileAccessTool::deleteFile($backupFilePath);
             }
         } else {
-            file_put_contents($configFilePath, $settingsString);
+            FileAccessTool::writeToFile($configFilePath, $settingsString);
             if (function_exists('opcache_reset')) {
                 opcache_reset();
             }
