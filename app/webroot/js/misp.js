@@ -4043,6 +4043,7 @@ function feedFormUpdate() {
         $('#DeleteLocalFileDiv').hide();
         $('#HeadersDiv').show();
     }
+    feedDistributionChange();
 }
 
 function setContextFields() {
