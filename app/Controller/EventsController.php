@@ -3693,11 +3693,7 @@ class EventsController extends AppController
     {
         if ($distribution === false) {
             if (Configure::read('MISP.default_attribute_distribution') != null) {
-                if (Configure::read('MISP.default_attribute_distribution') == 'event') {
-                    $distribution = 5;
-                } else {
-                    $distribution = Configure::read('MISP.default_attribute_distribution');
-                }
+                $distribution = $this->Event->Attribute->defaultDistribution();
             } else {
                 $distribution = 0;
             }

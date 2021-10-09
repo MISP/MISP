@@ -289,12 +289,7 @@ class AttributesController extends AppController
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
-        $initialDistribution = 5;
-        $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
-        if ($configuredDistribution != null && $configuredDistribution != 'event') {
-            $initialDistribution = $configuredDistribution;
-        }
-        $this->set('initialDistribution', $initialDistribution);
+        $this->set('initialDistribution', $this->Attribute->defaultDistribution());
         $fieldDesc = array();
         $distributionLevels = $this->Attribute->distributionLevels;
         if (empty($sgs)) {

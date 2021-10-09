@@ -610,10 +610,7 @@ class Attribute extends AppModel
         // Set defaults for when some of the mandatory fields don't have defaults
         // These fields all have sane defaults either based on another field, or due to server settings
         if (!isset($this->data['Attribute']['distribution'])) {
-            $this->data['Attribute']['distribution'] = Configure::read('MISP.default_attribute_distribution');
-            if ($this->data['Attribute']['distribution'] === 'event') {
-                $this->data['Attribute']['distribution'] = 5;
-            }
+            $this->data['Attribute']['distribution'] = $this->defaultDistribution();
         }
         // If category is not provided, assign default category by type
         if (empty($this->data['Attribute']['category'])) {
@@ -3287,14 +3284,7 @@ class Attribute extends AppModel
 
     public function saveAttributes($attributes, $user)
     {
-        $defaultDistribution = 5;
-        if (Configure::read('MISP.default_attribute_distribution') != null) {
-            if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-                $defaultDistribution = 5;
-            } else {
-                $defaultDistribution = Configure::read('MISP.default_attribute_distribution');
-            }
-        }
+        $defaultDistribution = $this->defaultDistribution();
         $saveResult = true;
         foreach ($attributes as $attribute) {
             if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
@@ -3499,14 +3489,7 @@ class Attribute extends AppModel
 
     public function fetchDistributionData($user)
     {
-        $initialDistribution = 5;
-        if (Configure::read('MISP.default_attribute_distribution') != null) {
-            if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-                $initialDistribution = 5;
-            } else {
-                $initialDistribution = Configure::read('MISP.default_attribute_distribution');
-            }
-        }
+        $initialDistribution = $this->defaultDistribution();
         $sgs = $this->SharingGroup->fetchAllAuthorised($user, 'name', 1);
         $distributionLevels = $this->distributionLevels;
         if (empty($sgs)) {
@@ -3654,10 +3637,7 @@ class Attribute extends AppModel
         }
         $this->create();
         if (!isset($attribute['distribution'])) {
-            $attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-            if ($attribute['distribution'] == 'event') {
-                $attribute['distribution'] = 5;
-            }
+            $attribute['distribution'] = $this->defaultDistribution();
         }
         $params = array(
             'fieldList' => $this->captureFields
@@ -3778,10 +3758,7 @@ class Attribute extends AppModel
                 return 'Invalid sharing group choice.';
             }
         } else if (!isset($attribute['distribution'])) {
-            $attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-            if ($attribute['distribution'] === 'event') {
-                $attribute['distribution'] = 5;
-            }
+            $attribute['distribution'] = $this->defaultDistribution();
         }
         $fieldList = self::EDITABLE_FIELDS;
         if (empty($existingAttribute)) {
@@ -4247,6 +4224,23 @@ class Attribute extends AppModel
             $typeCategoryMapping[$k] = array_values($v);
         }
         return $typeCategoryMapping;
+    }
+
+    /**
+     * Fetch default distribution from `MISP.default_attribute_distribution` setting. If this setting is not defined,
+     * default distribution is `5` (Inherit event)
+     * @return int
+     */
+    public function defaultDistribution()
+    {
+        static $distribution;
+        if ($distribution === null) {
+            $distribution = Configure::read('MISP.default_attribute_distribution');
+            if ($distribution === null || $distribution === 'event') {
+                $distribution = 5;
+            }
+        }
+        return $distribution;
     }
 
     public function __isset($name)

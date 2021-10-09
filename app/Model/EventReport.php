@@ -82,10 +82,7 @@ class EventReport extends AppModel
         // Set defaults for when some of the mandatory fields don't have defaults
         // These fields all have sane defaults either based on another field, or due to server settings
         if (!isset($this->data['EventReport']['distribution'])) {
-            $this->data['EventReport']['distribution'] = Configure::read('MISP.default_attribute_distribution');
-            if ($this->data['EventReport']['distribution'] == 'event') {
-                $this->data['EventReport']['distribution'] = 5;
-            }
+            $this->data['EventReport']['distribution'] = $this->Event->Attribute->defaultDistribution();
         }
         return true;
     }

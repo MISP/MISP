@@ -5657,13 +5657,7 @@ class Event extends AppModel
 
     public function handleMispFormatFromModuleResult(&$result)
     {
-        $defaultDistribution = 5;
-        if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
-            $defaultDistribution = Configure::read('MISP.default_attribute_distribution');
-            if ($defaultDistribution == 'event') {
-                $defaultDistribution = 5;
-            }
-        }
+        $defaultDistribution = $this->Attribute->defaultDistribution();
         $event = array();
         if (!empty($result['results']['Attribute'])) {
             $attributes = array();
@@ -7179,11 +7173,7 @@ class Event extends AppModel
      */
     public function add_original_file($file, $original_filename, $event_id, $format)
     {
-        if (!Configure::check('MISP.default_attribute_distribution') || Configure::read('MISP.default_attribute_distribution') === 'event') {
-            $distribution = 5;
-        } else {
-            $distribution = Configure::read('MISP.default_attribute_distribution');
-        }
+        $distribution = $this->Attribute->defaultDistribution();
         $this->Object->create();
         $object = array(
             'name' => 'original-imported-file',
