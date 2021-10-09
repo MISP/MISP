@@ -444,8 +444,13 @@ class Attribute extends AppModel
         }
         $result = true;
         // if the 'data' field is set on the $this->data then save the data to the correct file
-        if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
-            $result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']); // TODO : is this correct?
+        if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type'])) {
+            if (!empty($this->data['Attribute']['data_raw'])) {
+                $this->data['Attribute']['data'] = $this->data['Attribute']['data_raw'];
+                $result = $this->saveAttachment($this->data['Attribute']);
+            } elseif (!empty($this->data['Attribute']['data'])) {
+                $result = $this->saveBase64EncodedAttachment($this->data['Attribute']); // TODO : is this correct?
+            }
         }
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable');
         $kafkaTopic = Configure::read('Plugin.Kafka_attribute_notifications_topic');
@@ -3586,11 +3591,11 @@ class Attribute extends AppModel
             if (isset($v['data'])) {
                 $attribute['data'] = $result['data'];
             }
-            if ($k == 'malware-sample') {
+            if ($k === 'malware-sample') {
                 $attribute['value'] = $filename . '|' . $result['md5'];
-            } elseif ($k == 'size-in-bytes') {
+            } elseif ($k === 'size-in-bytes') {
                 $attribute['value'] = $tmpfile->size();
-            } elseif ($k == 'filename') {
+            } elseif ($k === 'filename') {
                 $attribute['value'] = $filename;
             } else {
                 $attribute['value'] = $result[$v['type']];
@@ -3637,7 +3642,7 @@ class Attribute extends AppModel
     public function captureAttribute($attribute, $eventId, $user, $objectId = false, $log = false, $parentEvent = false, &$validationErrors = false, $params = array())
     {
         $attribute['event_id'] = $eventId;
-        $attribute['object_id'] = $objectId ? $objectId : 0;
+        $attribute['object_id'] = $objectId ?: 0;
         if (!isset($attribute['to_ids'])) {
             $attribute['to_ids'] = $this->typeDefinitions[$attribute['type']]['to_ids'];
         }

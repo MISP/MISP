@@ -435,7 +435,7 @@ class AttributesController extends AppController
                             'category' => $this->request->data['Attribute']['category'],
                             'type' => 'attachment',
                             'event_id' => $event['Event']['id'],
-                            'data' => base64_encode($tmpfile->read()),
+                            'data_raw' => $tmpfile->read(),
                             'comment' => $this->request->data['Attribute']['comment'],
                             'to_ids' => 0,
                             'distribution' => $this->request->data['Attribute']['distribution'],
