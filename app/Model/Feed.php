@@ -74,6 +74,8 @@ class Feed extends AppModel
         'url_params' => ''
     ];
 
+    const CACHE_DIR = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS;
+
     /*
      *  Cleanup of empty belongsto relationships
      */
@@ -231,9 +233,8 @@ class Feed extends AppModel
      */
     private function cleanFileCache($feedId)
     {
-        $cacheDir = APP . 'tmp' . DS . 'cache' . DS;
         foreach (["misp_feed_{$feedId}_manifest.cache.gz", "misp_feed_{$feedId}_manifest.etag", "misp_feed_$feedId.cache", "misp_feed_$feedId.etag"] as $fileName) {
-            FileAccessTool::deleteFileIfExists($cacheDir . $fileName);
+            FileAccessTool::deleteFileIfExists(self::CACHE_DIR . $fileName);
         }
     }
 
@@ -247,8 +248,8 @@ class Feed extends AppModel
      */
     private function getRemoteManifest(array $feed, HttpSocketExtended $HttpSocket)
     {
-        $feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$feed['Feed']['id'] . '_manifest.cache.gz';
-        $feedCacheEtag = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$feed['Feed']['id'] . '_manifest.etag';
+        $feedCache = self::CACHE_DIR . 'misp_feed_' . (int)$feed['Feed']['id'] . '_manifest.cache.gz';
+        $feedCacheEtag = self::CACHE_DIR . 'misp_feed_' . (int)$feed['Feed']['id'] . '_manifest.etag';
 
         $etag = null;
         if (file_exists($feedCache) && file_exists($feedCacheEtag)) {
@@ -308,8 +309,8 @@ class Feed extends AppModel
      */
     private function getFreetextFeedRemote(array $feed, HttpSocket $HttpSocket)
     {
-        $feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$feed['Feed']['id'] . '.cache';
-        $feedCacheEtag = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . (int)$feed['Feed']['id'] . '.etag';
+        $feedCache = self::CACHE_DIR . 'misp_feed_' . (int)$feed['Feed']['id'] . '.cache';
+        $feedCacheEtag = self::CACHE_DIR . 'misp_feed_' . (int)$feed['Feed']['id'] . '.etag';
 
         $etag = null;
         if (file_exists($feedCache)) {
@@ -872,7 +873,7 @@ class Feed extends AppModel
     public function downloadEventFromFeed(array $feed, $uuid)
     {
         $filerRules = $this->__prepareFilterRules($feed);
-        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket($feed);
+        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         return $this->__prepareEvent($event, $feed, $filerRules);
     }
@@ -987,7 +988,7 @@ class Feed extends AppModel
         return $filterRules;
     }
 
-    private function __setupHttpSocket($feed)
+    private function __setupHttpSocket()
     {
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
@@ -1062,7 +1063,7 @@ class Feed extends AppModel
             $this->data['Feed']['settings'] = json_decode($this->data['Feed']['settings'], true);
         }
 
-        $HttpSocket = $this->isFeedLocal($this->data) ? null : $this->__setupHttpSocket($this->data);
+        $HttpSocket = $this->isFeedLocal($this->data) ? null : $this->__setupHttpSocket();
         if ($this->data['Feed']['source_format'] === 'misp') {
             $this->jobProgress($jobId, 'Fetching event manifest.');
             try {
@@ -1330,7 +1331,7 @@ class Feed extends AppModel
 
     private function __cacheFeed($feed, $redis, $jobId = false)
     {
-        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket($feed);
+        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
         if ($feed['Feed']['source_format'] === 'misp') {
             return $this->__cacheMISPFeed($feed, $redis, $HttpSocket, $jobId);
         } else {
@@ -1895,11 +1896,7 @@ class Feed extends AppModel
     {
         if ($this->isFeedLocal($feed)) {
             if (file_exists($uri)) {
-                $data = file_get_contents($uri);
-                if ($data === false) {
-                    throw new Exception("Could not read local file '$uri'.");
-                }
-                return $data;
+                return FileAccessTool::readFromFile($uri);
             } else {
                 throw new Exception("Local file '$uri' doesn't exists.");
             }
@@ -1967,7 +1964,7 @@ class Feed extends AppModel
         for ($i = 0; $i < $iterations; $i++) {
             $response = $HttpSocket->get($url, array(), $request);
             if ($response->isRedirect()) {
-                $HttpSocket = $this->__setupHttpSocket(null); // Replace $HttpSocket with fresh instance
+                $HttpSocket = $this->__setupHttpSocket(); // Replace $HttpSocket with fresh instance
                 $url = trim($response->getHeader('Location'), '=');
             } else {
                 return $response;
