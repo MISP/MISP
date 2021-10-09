@@ -447,10 +447,10 @@ class Attribute extends AppModel
         if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type'])) {
             if (!empty($this->data['Attribute']['data_raw'])) {
                 $this->data['Attribute']['data'] = $this->data['Attribute']['data_raw'];
-                $result = $this->saveAttachment($this->data['Attribute']);
             } elseif (!empty($this->data['Attribute']['data'])) {
-                $result = $this->saveBase64EncodedAttachment($this->data['Attribute']); // TODO : is this correct?
+                $this->data['Attribute']['data'] = base64_decode($this->data['Attribute']['data']);
             }
+            $result = $this->saveAttachment($this->data['Attribute']);
         }
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable');
         $kafkaTopic = Configure::read('Plugin.Kafka_attribute_notifications_topic');
@@ -1545,8 +1545,18 @@ class Attribute extends AppModel
         return $this->loadAttachmentTool()->getFile($attribute['event_id'], $attribute['id'], $path_suffix);
     }
 
-    public function saveAttachment($attribute, $path_suffix='')
+    /**
+     * @param array $attribute
+     * @param string $path_suffix
+     * @return bool
+     * @throws Exception
+     */
+    private function saveAttachment(array $attribute, $path_suffix='')
     {
+        if ($attribute['data'] === false) {
+            $this->log("Invalid attachment data provided for attribute with ID {$attribute['id']}.");
+            return false;
+        }
         $result = $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
         if ($result) {
             $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
@@ -1568,12 +1578,6 @@ class Attribute extends AppModel
             $this->log($e->getMessage(), LOG_NOTICE);
             return '';
         }
-    }
-
-    public function saveBase64EncodedAttachment($attribute)
-    {
-        $attribute['data'] = base64_decode($attribute['data']);
-        return $this->saveAttachment($attribute);
     }
 
     /**

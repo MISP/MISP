@@ -7207,7 +7207,7 @@ class Event extends AppModel
                 'distribution' => $distribution,
                 'object_relation' => 'imported-sample',
                 'value' => $original_filename,
-                'data' => base64_encode($file),
+                'data_raw' => $file,
                 'object_id' => $object_id,
                 'disable_correlation' => true
             ),
