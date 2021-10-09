@@ -3192,6 +3192,28 @@ class Attribute extends AppModel
     }
 
     /**
+     * @param string $originalFilename
+     * @param string $content
+     * @param array $hashTypes
+     * @return array
+     */
+    private function handleMaliciousRaw($originalFilename, $content, array $hashTypes)
+    {
+        $attachmentTool = $this->loadAttachmentTool();
+        $hashes = $attachmentTool->computeHashes($content, $hashTypes);
+        try {
+            $encrypted = $attachmentTool->encrypt($originalFilename, $content, $hashes['md5']);
+        } catch (Exception $e) {
+            $this->logException("Could not create encrypted malware sample.", $e);
+            return ['success' => false];
+        }
+
+        $hashes['success'] = true;
+        $hashes['data_raw'] = $encrypted;
+        return $hashes;
+    }
+
+    /**
      * @return bool Return true if at least one advanced extraction tool is available
      */
     public function isAdvancedExtractionAvailable()
@@ -3529,7 +3551,7 @@ class Attribute extends AppModel
     public function simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile)
     {
         $attributes = array(
-            'malware-sample' => array('type' => 'malware-sample', 'data' => 1, 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0, 'object_relation' => 'malware-sample'),
+            'malware-sample' => array('type' => 'malware-sample', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0, 'object_relation' => 'malware-sample'),
             'filename' => array('type' => 'filename', 'category' => '', 'to_ids' => 0, 'disable_correlation' => 0, 'object_relation' => 'filename'),
             'md5' => array('type' => 'md5', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0, 'object_relation' => 'md5'),
             'sha1' => array('type' => 'sha1', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0, 'object_relation' => 'sha1'),
@@ -3537,16 +3559,14 @@ class Attribute extends AppModel
             'size-in-bytes' => array('type' => 'size-in-bytes', 'category' => 'Other', 'to_ids' => 0, 'disable_correlation' => 1, 'object_relation' => 'size-in-bytes')
         );
         $hashes = array('md5', 'sha1', 'sha256');
-        $this->Object = ClassRegistry::init('MispObject');
-        $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
-        $current = $this->ObjectTemplate->find('first', array(
+        $current = $this->Object->ObjectTemplate->find('first', array(
             'fields' => array('MAX(version) AS version', 'uuid'),
             'conditions' => array('uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215'),
             'recursive' => -1,
             'group' => array('uuid')
         ));
         if (!empty($current)) {
-            $object_template = $this->ObjectTemplate->find('first', array(
+            $object_template = $this->Object->ObjectTemplate->find('first', array(
                 'conditions' => array(
                     'ObjectTemplate.uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215',
                     'ObjectTemplate.version' => $current[0]['version']
@@ -3576,7 +3596,7 @@ class Attribute extends AppModel
             'event_id' => $event_id,
             'comment' => !empty($attribute_settings['comment']) ? $attribute_settings['comment'] : ''
         );
-        $result = $this->handleMaliciousBase64($event_id, $filename, base64_encode($tmpfile->read()), $hashes);
+        $result = $this->handleMaliciousRaw($filename, $tmpfile->read(), $hashes);
         foreach ($attributes as $k => $v) {
             $attribute = array(
                 'distribution' => 5,
@@ -3588,11 +3608,9 @@ class Attribute extends AppModel
                 'event_id' => $event_id,
                 'object_relation' => $v['object_relation']
             );
-            if (isset($v['data'])) {
-                $attribute['data'] = $result['data'];
-            }
             if ($k === 'malware-sample') {
                 $attribute['value'] = $filename . '|' . $result['md5'];
+                $attribute['data_raw'] = $result['data_raw'];
             } elseif ($k === 'size-in-bytes') {
                 $attribute['value'] = $tmpfile->size();
             } elseif ($k === 'filename') {
