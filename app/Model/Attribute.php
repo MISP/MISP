@@ -3326,42 +3326,6 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function saveAndEncryptAttribute($attribute, $user = false)
-    {
-        $hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
-        if ($attribute['encrypt']) {
-            $result = $this->handleMaliciousBase64($attribute['event_id'], $attribute['value'], $attribute['data'], array_keys($hashes));
-            if (!$result['success']) {
-                return 'Could not handle the sample';
-            }
-            foreach ($hashes as $hash => $typeName) {
-                if (!$result[$hash]) {
-                    continue;
-                }
-                $attributeToSave = array(
-                    'Attribute' => array(
-                        'value' => $attribute['value'] . '|' . $result[$hash],
-                        'category' => $attribute['category'],
-                        'type' => $typeName,
-                        'event_id' => $attribute['event_id'],
-                        'comment' => $attribute['comment'],
-                        'to_ids' => 1,
-                        'distribution' => $attribute['distribution'],
-                        'sharing_group_id' => isset($attribute['sharing_group_id']) ? $attribute['sharing_group_id'] : 0,
-                    )
-                );
-                if ($hash == 'md5') {
-                    $attributeToSave['Attribute']['data'] = $result['data'];
-                }
-                $this->create();
-                if (!$this->save($attributeToSave)) {
-                    return $this->validationErrors;
-                }
-            }
-        }
-        return true;
-    }
-
     private function __createTagSubQuery($tag_id, $blocked = false, $scope = 'Event', $limitAttributeHitsTo = 'event')
     {
         $conditionKey = $blocked ? array('NOT' => array('EventTag.tag_id' => $tag_id)) : array('EventTag.tag_id' => $tag_id);
