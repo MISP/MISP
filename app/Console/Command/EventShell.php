@@ -522,17 +522,15 @@ class EventShell extends AppShell
 
     public function processfreetext()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process free text'] . PHP_EOL);
         }
 
         $inputFile = $this->args[0];
-        $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
-        $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
-        $inputData = $tempFile->read();
-        $inputData = json_decode($inputData, true);
-        $tempFile->delete();
+        $inputFile = $inputFile[0] === '/' ? $inputFile : APP . 'tmp/cache/ingest' . DS . $inputFile;
+        $inputData = FileAccessTool::readFromFile($inputFile);
+        $inputData = $this->Event->jsonDecode($inputData);
+        FileAccessTool::deleteFile($inputFile);
         Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processFreeTextData(
             $inputData['user'],
@@ -548,16 +546,15 @@ class EventShell extends AppShell
 
     public function processmoduleresult()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process module result'] . PHP_EOL);
         }
 
         $inputFile = $this->args[0];
-        $tempDir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
-        $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
-        $inputData = json_decode($tempFile->read(), true);
-        $tempFile->delete();
+        $inputFile = $inputFile[0] === '/' ? $inputFile : APP . 'tmp/cache/ingest' . DS . $inputFile;
+        $inputData = FileAccessTool::readFromFile($inputFile);
+        $inputData = $this->Event->jsonDecode($inputData);
+        FileAccessTool::deleteFile($inputFile);
         Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processModuleResultsData(
             $inputData['user'],
