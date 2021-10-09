@@ -8,6 +8,7 @@ require_once 'AppShell.php';
  * @property Event $Event
  * @property Job $Job
  * @property Tag $Tag
+ * @property Server $Server
  */
 class EventShell extends AppShell
 {
@@ -279,8 +280,7 @@ class EventShell extends AppShell
 
     public function contactemail()
     {
-        $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
+        if (empty($this->args[0]) || empty($this->args[1]) || !isset($this->args[2]) ||
             empty($this->args[3]) || empty($this->args[4])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Contact email'] . PHP_EOL);
         }
@@ -289,11 +289,11 @@ class EventShell extends AppShell
         $message = $this->args[1];
         $all = $this->args[2];
         $userId = $this->args[3];
-        $processId = $this->args[4];
+        $jobId = $this->args[4];
 
         $user = $this->getUser($userId);
         $result = $this->Event->sendContactEmail($id, $message, $all, $user);
-        $this->Job->saveStatus($processId, $result);
+        $this->Job->saveStatus($jobId, $result);
     }
 
     public function postsemail()
