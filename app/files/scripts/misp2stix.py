@@ -51,8 +51,6 @@ def _process_misp_files(orgname: str, version: str, return_format:str, input_nam
         parser = MISPtoSTIX1EventsParser(orgname, version)
         for name in input_names[:-1]:
             parser.parse_json_content(name)
-            with open(f'{name}.out', 'wt', encoding='utf-8') as f:
-                f.write(f'')
         name = input_names[-1]
         parser.parse_json_content(name)
         with open(f'{name}.out', 'wt', encoding='utf-8') as f:
