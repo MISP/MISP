@@ -445,9 +445,10 @@ class Attribute extends AppModel
         $result = true;
         // if the 'data' field is set on the $this->data then save the data to the correct file
         if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type'])) {
-            if (!empty($this->data['Attribute']['data_raw'])) {
+            if (isset($this->data['Attribute']['data_raw'])) {
                 $this->data['Attribute']['data'] = $this->data['Attribute']['data_raw'];
-            } elseif (!empty($this->data['Attribute']['data'])) {
+                unset($this->data['Attribute']['data_raw']);
+            } elseif (isset($this->data['Attribute']['data'])) {
                 $this->data['Attribute']['data'] = base64_decode($this->data['Attribute']['data']);
             }
             $result = $this->saveAttachment($this->data['Attribute']);
@@ -3295,7 +3296,7 @@ class Attribute extends AppModel
             }
         }
         $saveResult = true;
-        foreach ($attributes as $k => $attribute) {
+        foreach ($attributes as $attribute) {
             if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
                 $attribute = $this->onDemandEncrypt($attribute);
             }
@@ -3314,14 +3315,26 @@ class Attribute extends AppModel
         return $saveResult;
     }
 
-    public function onDemandEncrypt($attribute)
+    /**
+     * @param array $attribute
+     * @return array
+     */
+    public function onDemandEncrypt(array $attribute)
     {
         if (strpos($attribute['value'], '|') !== false) {
             $temp = explode('|', $attribute['value']);
             $attribute['value'] = $temp[0];
         }
-        $result = $this->handleMaliciousBase64($attribute['event_id'], $attribute['value'], $attribute['data'], array('md5'));
-        $attribute['data'] = $result['data'];
+
+        $content = base64_decode($attribute['data']);
+        if ($content === false) {
+            $this->log("Invalid attachment data provided for attribute with ID {$attribute['id']}.");
+            return $attribute;
+        }
+
+        $result = $this->handleMaliciousRaw($attribute['value'], $content, array('md5'));
+        $attribute['data_raw'] = $result['data_raw'];
+        unset($attribute['data']);
         $attribute['value'] = $attribute['value'] . '|' . $result['md5'];
         return $attribute;
     }
@@ -3637,9 +3650,7 @@ class Attribute extends AppModel
             }
         }
         if (isset($attribute['encrypt'])) {
-            $result = $this->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
-            $attribute['data'] = $result['data'];
-            $attribute['value'] = $attribute['value'] . '|' . $result['md5'];
+            $attribute = $this->onDemandEncrypt($attribute);
         }
         $this->create();
         if (!isset($attribute['distribution'])) {
@@ -3710,9 +3721,7 @@ class Attribute extends AppModel
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId;
         if (isset($attribute['encrypt'])) {
-            $result = $this->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
-            $attribute['data'] = $result['data'];
-            $attribute['value'] = $attribute['value'] . '|' . $result['md5'];
+            $attribute = $this->onDemandEncrypt($attribute);
         }
         unset($attribute['id']);
         if (isset($attribute['uuid'])) {
