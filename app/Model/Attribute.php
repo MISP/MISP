@@ -678,7 +678,7 @@ class Attribute extends AppModel
      */
     public function valueIsUnique($fields)
     {
-        if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
+        if (!empty($this->data['Attribute']['deleted'])) {
             return true;
         }
         // We escape this rule for objects as we can have the same category/type/value combination in different objects
@@ -686,14 +686,11 @@ class Attribute extends AppModel
             return true;
         }
 
-        $eventId = $this->data['Attribute']['event_id'];
-        $category = $this->data['Attribute']['category'];
         $type = $this->data['Attribute']['type'];
-
         $conditions = array(
-            'Attribute.event_id' => $eventId,
+            'Attribute.event_id' => $this->data['Attribute']['event_id'],
             'Attribute.type' => $type,
-            'Attribute.category' => $category,
+            'Attribute.category' => $this->data['Attribute']['category'],
             'Attribute.deleted' => 0,
             'Attribute.object_id' => 0,
         );
@@ -711,18 +708,7 @@ class Attribute extends AppModel
             $conditions['Attribute.id !='] = $this->data['Attribute']['id'];
         }
 
-        $params = array(
-            'recursive' => -1,
-            'fields' => array('id'),
-            'conditions' => $conditions,
-            'order' => false,
-        );
-        if (!empty($this->find('first', $params))) {
-            // value isn't unique
-            return false;
-        }
-        // value is unique
-        return true;
+        return !$this->hasAny($conditions);
     }
 
     public function validateTypeValue($fields)
