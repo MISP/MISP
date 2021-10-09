@@ -35,7 +35,14 @@ class FileAccessTool
             $content = file_get_contents($file, false, null, 0, $fileSize);
         }
         if ($content === false) {
-            throw new Exception("An error has occurred while attempt to read file `$file`.");
+            if (!file_exists($file)) {
+                $message = "file doesn't exists";
+            } else if (!is_readable($file)) {
+                $message = "file is not readable";
+            } else {
+                $message = 'unknown error';
+            }
+            throw new Exception("An error has occurred while attempt to read file `$file`: $message.");
         }
         return $content;
     }
