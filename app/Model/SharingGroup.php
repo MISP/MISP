@@ -69,10 +69,8 @@ class SharingGroup extends AppModel
         'access' => array()
     );
 
-
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
         if (empty($this->data['SharingGroup']['uuid'])) {
             $this->data['SharingGroup']['uuid'] = CakeText::uuid();
         } else {
@@ -86,12 +84,7 @@ class SharingGroup extends AppModel
             $this->data['SharingGroup']['active'] = 0;
         }
         $this->data['SharingGroup']['modified'] = $date;
-        $sameNameSG = $this->find('first', array(
-            'conditions' => array('SharingGroup.name' => $this->data['SharingGroup']['name']),
-            'recursive' => -1,
-            'fields' => array('SharingGroup.name')
-        ));
-        if (!empty($sameNameSG) && !isset($this->data['SharingGroup']['id'])) {
+        if (!isset($this->data['SharingGroup']['id']) && $this->hasAny(['SharingGroup.name' => $this->data['SharingGroup']['name']])) {
             $this->data['SharingGroup']['name'] = $this->data['SharingGroup']['name'] . '_' . mt_rand(0, 9999);
         }
         return true;
