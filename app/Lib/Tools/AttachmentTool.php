@@ -380,6 +380,56 @@ class AttachmentTool
         return $this->executeAndParseJsonOutput([$pythonBin, self::ADVANCED_EXTRACTION_SCRIPT_PATH, '-c']);
     }
 
+    /**
+     * @param string $data
+     * @param int $maxWidth
+     * @param int $maxHeight
+     * @return string
+     * @throws Exception
+     */
+    public function resizeImage($data, $maxWidth, $maxHeight)
+    {
+        $image = imagecreatefromstring($data);
+        if ($image === false) {
+            throw new Exception("Image is not valid.");
+        }
+
+        $currentWidth = imagesx($image);
+        $currentHeight = imagesy($image);
+
+        // Compute thumbnail size with keeping ratio
+        if ($currentWidth > $currentHeight) {
+            $newWidth = min($currentWidth, $maxWidth);
+            $divisor = $currentWidth / $newWidth;
+            $newHeight = floor($currentHeight / $divisor);
+        } else {
+            $newHeight = min($currentHeight, $maxHeight);
+            $divisor = $currentHeight / $newHeight;
+            $newWidth = floor($currentWidth / $divisor);
+        }
+
+        $imageThumbnail = imagecreatetruecolor($newWidth, $newHeight);
+
+        // Allow transparent background
+        imagealphablending($imageThumbnail, false);
+        imagesavealpha($imageThumbnail, true);
+        $transparent = imagecolorallocatealpha($imageThumbnail, 255, 255, 255, 127);
+        imagefilledrectangle($imageThumbnail, 0, 0, $newWidth, $newHeight, $transparent);
+
+        // Resize image
+        imagecopyresampled($imageThumbnail, $image, 0, 0, 0, 0, $newWidth, $newHeight, $currentWidth, $currentHeight);
+        imagedestroy($image);
+
+        // Output image to string
+        ob_start();
+        imagepng($imageThumbnail, null, 9);
+        $imageData = ob_get_contents();
+        ob_end_clean();
+        imagedestroy($imageThumbnail);
+
+        return $imageData;
+    }
+
     private function tempFileName()
     {
         $randomName = (new RandomTool())->random_str(false, 12);

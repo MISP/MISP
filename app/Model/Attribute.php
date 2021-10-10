@@ -1611,7 +1611,7 @@ class Attribute extends AppModel
 
             // Thumbnail doesn't exists, we need to generate it
             $imageData = $this->getAttachment($attribute['Attribute']);
-            $imageData = $this->resizeImage($imageData, $maxWidth, $maxHeight);
+            $imageData = $this->loadAttachmentTool()->resizeImage($imageData, $maxWidth, $maxHeight);
 
             // Save just when requested default thumbnail size
             if ($maxWidth == 200 && $maxHeight == 200) {
@@ -1621,56 +1621,6 @@ class Attribute extends AppModel
         } else {
             $imageData = $this->getAttachment($attribute['Attribute']);
         }
-
-        return $imageData;
-    }
-
-    /**
-     * @param string $data
-     * @param int $maxWidth
-     * @param int $maxHeight
-     * @return string
-     * @throws Exception
-     */
-    public function resizeImage($data, $maxWidth, $maxHeight)
-    {
-        $image = imagecreatefromstring($data);
-        if ($image === false) {
-            throw new Exception("Image is not valid.");
-        }
-
-        $currentWidth = imagesx($image);
-        $currentHeight = imagesy($image);
-
-        // Compute thumbnail size with keeping ratio
-        if ($currentWidth > $currentHeight) {
-            $newWidth = min($currentWidth, $maxWidth);
-            $divisor = $currentWidth / $newWidth;
-            $newHeight = floor($currentHeight / $divisor);
-        } else {
-            $newHeight = min($currentHeight, $maxHeight);
-            $divisor = $currentHeight / $newHeight;
-            $newWidth = floor($currentWidth / $divisor);
-        }
-
-        $imageThumbnail = imagecreatetruecolor($newWidth, $newHeight);
-
-        // Allow transparent background
-        imagealphablending($imageThumbnail, false);
-        imagesavealpha($imageThumbnail, true);
-        $transparent = imagecolorallocatealpha($imageThumbnail, 255, 255, 255, 127);
-        imagefilledrectangle($imageThumbnail, 0, 0, $newWidth, $newHeight, $transparent);
-
-        // Resize image
-        imagecopyresampled($imageThumbnail, $image, 0, 0, 0, 0, $newWidth, $newHeight, $currentWidth, $currentHeight);
-        imagedestroy($image);
-
-        // Output image to string
-        ob_start();
-        imagepng($imageThumbnail, null, 9);
-        $imageData = ob_get_contents();
-        ob_end_clean();
-        imagedestroy($imageThumbnail);
 
         return $imageData;
     }
