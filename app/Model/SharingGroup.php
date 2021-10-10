@@ -535,36 +535,6 @@ class SharingGroup extends AppModel
         return false;
     }
 
-    public function getSGSyncRules($sg)
-    {
-        $results = array(
-            'conditional' => array(),
-            'full' => array(),
-            'orgs' => array(),
-            'no_server_settings' => false
-        );
-        if (isset($sg['SharingGroupServer'])) {
-            foreach ($sg['SharingGroupServer'] as $server) {
-                if ($server['server_id'] != 0) {
-                    if ($server['all_orgs']) {
-                        $results['full'][] = $server['id'];
-                    } else {
-                        $results['conditional'][] = $server['id'];
-                    }
-                }
-            }
-            if (empty($results['full']) && empty($results['conditional'])) {
-                return false;
-            }
-        } else {
-            $results['no_server_settings'] = true;
-        }
-        foreach ($sg['SharingGroupOrg'] as $org) {
-            $results['orgs'][] = $org['Organisation']['uuid'];
-        }
-        return $results;
-    }
-
     /*
      * Capture a sharing group
      * Return false if something goes wrong
