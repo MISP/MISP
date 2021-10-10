@@ -4900,33 +4900,6 @@ class Event extends AppModel
         return true;
     }
 
-    // convenience method to check whether a user can see an event
-    public function checkIfAuthorised($user, $id)
-    {
-        if (!isset($user['id'])) {
-            throw new MethodNotAllowedException('Invalid user.');
-        }
-        $this->id = $id;
-        if (!$this->exists()) {
-            return false;
-        }
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        $event = $this->find('first', array(
-            'conditions' => array('id' => $id),
-            'recursive' => -1,
-            'fields' => array('id', 'sharing_group_id', 'distribution', 'org_id')
-        ));
-        if ($event['Event']['org_id'] == $user['org_id'] || ($event['Event']['distribution'] > 0 && $event['Event']['distribution'] < 4)) {
-            return true;
-        }
-        if ($event['Event']['distribution'] == 4 && $this->SharingGroup->checkIfAuthorised($user, $event['Event']['sharing_group_id'])) {
-            return true;
-        }
-        return false;
-    }
-
     // expects a date string in the YYYY-MM-DD format
     // returns the passed string or false if the format is invalid
     // based on the fix provided by stevengoosensB
