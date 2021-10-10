@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property Event $Event
+ * @property Tag $Tag
  */
 class EventTag extends AppModel
 {

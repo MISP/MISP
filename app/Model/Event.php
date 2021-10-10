@@ -3390,7 +3390,7 @@ class Event extends AppModel
 
     // When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
     // or which we need to update. All of that is controlled in this method.
-    private function __captureObjects($data, $user, $server=false)
+    private function __captureObjects($data, array $user, $server=false)
     {
         // First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
         if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4) {
@@ -3442,78 +3442,102 @@ class Event extends AppModel
         }
 
         $event_tag_ids = array();
+        $capturedTags = []; // cache captured tag
+        $eventTags = [];
         if (isset($data['Event']['EventTag'])) {
             if (isset($data['Event']['EventTag']['id'])) {
                 $data['Event']['EventTag'] = array($data['Event']['EventTag']);
             }
-            $eventTags = array();
-            foreach ($data['Event']['EventTag'] as $k => $tag) {
-                $temp = $this->EventTag->Tag->captureTag($data['Event']['EventTag'][$k]['Tag'], $user);
-                if ($temp && !in_array($temp, $event_tag_ids)) {
-                    $eventTags[] = array('tag_id' => $temp);
-                    $event_tag_ids[] = $temp;
+            foreach ($data['Event']['EventTag'] as $tag) {
+                $tagId = $this->captureTagWithCache($tag['Tag'], $user, $capturedTags);
+                if ($tagId && !in_array($tagId, $event_tag_ids)) {
+                    $eventTags[] = array('tag_id' => $tagId);
+                    $event_tag_ids[] = $tagId;
                 }
-                unset($data['Event']['EventTag'][$k]);
             }
-            $data['Event']['EventTag'] = $eventTags;
-        } else {
-            $data['Event']['EventTag'] = array();
         }
         if (isset($data['Event']['Tag'])) {
             if (isset($data['Event']['Tag']['name'])) {
                 $data['Event']['Tag'] = array($data['Event']['Tag']);
             }
             foreach ($data['Event']['Tag'] as $tag) {
-                $tag_id = $this->EventTag->Tag->captureTag($tag, $user);
+                $tag_id = $this->captureTagWithCache($tag, $user, $capturedTags);
                 if ($tag_id && !in_array($tag_id, $event_tag_ids)) {
-                    $data['Event']['EventTag'][] = array('tag_id' => $tag_id);
+                    $eventTags[] = array('tag_id' => $tag_id);
                     $event_tag_ids[] = $tag_id;
                 }
             }
             unset($data['Event']['Tag']);
         }
+        $data['Event']['EventTag'] = $eventTags;
 
         if (!empty($data['Event']['Attribute'])) {
-            $data['Event']['Attribute'] = $this->__captureAttributeTags($data['Event']['Attribute'], $user);
+            $data['Event']['Attribute'] = $this->__captureAttributeTags($data['Event']['Attribute'], $user, $capturedTags);
         }
         if (!empty($data['Event']['Object'])) {
             foreach ($data['Event']['Object'] as $k => $object) {
-                if (!empty($data['Event']['Object'][$k]['Attribute'])) {
-                    $data['Event']['Object'][$k]['Attribute'] = $this->__captureAttributeTags($data['Event']['Object'][$k]['Attribute'], $user);
+                if (!empty($object['Attribute'])) {
+                    $data['Event']['Object'][$k]['Attribute'] = $this->__captureAttributeTags($object['Attribute'], $user, $capturedTags);
                 }
             }
         }
         return $data;
     }
 
-    private function __captureAttributeTags($attributes, $user)
+    /**
+     * @param array $tag
+     * @param array $user
+     * @param array $capturedTags
+     * @return false|int
+     * @throws Exception
+     */
+    private function captureTagWithCache(array $tag, array $user, array &$capturedTags)
+    {
+        $tagName = $tag['name'];
+        if (isset($capturedTags[$tagName])) {
+            $tagId = $capturedTags[$tagName];
+        } else {
+            $tagId = (int)$this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
+            if ($tagId) {
+                $capturedTags[$tagName] = $tagId;
+            }
+        }
+        return $tagId;
+    }
+
+    /**
+     * Capture tags for attributes and replace tags just by IDs
+     * @param array $attributes
+     * @param array $user
+     * @param array $capturedTags
+     * @return array
+     * @throws Exception
+     */
+    private function __captureAttributeTags(array $attributes, array $user, array &$capturedTags)
     {
         foreach ($attributes as $k => $a) {
-            if (isset($attributes[$k]['AttributeTag'])) {
-                if (isset($attributes[$k]['AttributeTag']['id'])) {
-                    $attributes[$k]['AttributeTag'] = array($attributes[$k]['AttributeTag']);
+            $attributeTags = [];
+            if (isset($a['AttributeTag'])) {
+                if (isset($a['AttributeTag']['id'])) {
+                    $a['AttributeTag'] = array($a['AttributeTag']);
                 }
-                $attributeTags = array();
-                foreach ($attributes[$k]['AttributeTag'] as $tk => $tag) {
-                    $attributeTags[] = array('tag_id' => $this->Attribute->AttributeTag->Tag->captureTag($attributes[$k]['AttributeTag'][$tk]['Tag'], $user));
-                    unset($attributes[$k]['AttributeTag'][$tk]);
+                foreach ($a['AttributeTag'] as $tag) {
+                    $attributeTags[] = array('tag_id' => $this->captureTagWithCache($tag['Tag'], $user, $capturedTags));
                 }
-                $attributes[$k]['AttributeTag'] = $attributeTags;
-            } else {
-                $attributes[$k]['AttributeTag'] = array();
             }
-            if (isset($attributes[$k]['Tag'])) {
-                if (isset($attributes[$k]['Tag']['name'])) {
-                    $attributes[$k]['Tag'] = array($attributes[$k]['Tag']);
+            if (isset($a['Tag'])) {
+                if (isset($a['Tag']['name'])) {
+                    $a['Tag'] = array($a['Tag']);
                 }
-                foreach ($attributes[$k]['Tag'] as $tag) {
-                    $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
-                    if ($tag_id) {
-                        $attributes[$k]['AttributeTag'][] = array('tag_id' => $tag_id);
+                foreach ($a['Tag'] as $tag) {
+                    $tagId = $this->captureTagWithCache($tag, $user, $capturedTags);
+                    if ($tagId) {
+                        $attributeTags[] = array('tag_id' => $tagId);
                     }
                 }
                 unset($attributes[$k]['Tag']);
             }
+            $attributes[$k]['AttributeTag'] = $attributeTags;
         }
         return $attributes;
     }
