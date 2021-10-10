@@ -260,9 +260,7 @@ class SharingGroup extends AppModel
                 'fields' => $orgFields,
                 'conditions' => ['id' => array_keys($orgsToFetch)],
             ]);
-            foreach ($orgs as $org) {
-                $orgsById[$org['Organisation']['id']] = $org['Organisation'];
-            }
+            $orgsById = array_column(array_column($orgs, 'Organisation'), null, 'id');
         }
 
         $serversById = [];
@@ -272,9 +270,7 @@ class SharingGroup extends AppModel
                 'fields' => $serverFields,
                 'conditions' => ['id' => array_keys($serverToFetch)],
             ]);
-            foreach ($servers as $server) {
-                $serversById[$server['Server']['id']] = $server['Server'];
-            }
+            $serversById = array_column(array_column($servers, 'Server'), null, 'id');
         }
 
         foreach ($sharingGroups as &$sg) {

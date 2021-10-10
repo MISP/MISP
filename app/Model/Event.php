@@ -3388,9 +3388,16 @@ class Event extends AppModel
         return $element;
     }
 
-    // When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
-    // or which we need to update. All of that is controlled in this method.
-    private function __captureObjects($data, array $user, $server=false)
+    /**
+     * When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
+     * or which we need to update. All of that is controlled in this method.
+     * @param array $data
+     * @param array $user
+     * @param array|false $server
+     * @return array
+     * @throws Exception
+     */
+    private function __captureObjects(array $data, array $user, $server=false)
     {
         // First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
         if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4) {
@@ -3497,8 +3504,9 @@ class Event extends AppModel
         if (isset($capturedTags[$tagName])) {
             $tagId = $capturedTags[$tagName];
         } else {
-            $tagId = (int)$this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
+            $tagId = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
             if ($tagId) {
+                $tagId = (int)$tagId;
                 $capturedTags[$tagName] = $tagId;
             }
         }
