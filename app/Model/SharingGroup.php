@@ -304,7 +304,6 @@ class SharingGroup extends AppModel
     // 3. Sync users
     //    a. as long as they are at least users of the SG (they can circumvent the extend rule to
     //       avoid situations where no one can create / edit an SG on an instance after a push)
-
     public function checkIfAuthorisedToSave($user, $sg)
     {
         if (isset($sg[0])) {
@@ -318,8 +317,9 @@ class SharingGroup extends AppModel
         }
         // First let us find out if we already have the SG
         $local = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('uuid' => $sg['uuid'])
+            'recursive' => -1,
+            'conditions' => array('uuid' => $sg['uuid']),
+            'fields' => ['id'],
         ));
         if (empty($local)) {
             $orgCheck = false;
@@ -332,6 +332,7 @@ class SharingGroup extends AppModel
                     if ($org['Organisation']['uuid'] == $user['Organisation']['uuid']) {
                         if ($user['Role']['perm_sync'] || $org['extend'] == 1) {
                             $orgCheck = true;
+                            break;
                         }
                     }
                 }
@@ -396,20 +397,12 @@ class SharingGroup extends AppModel
                 return true;
             }
         }
-        $sgo = $this->SharingGroupOrg->find('first', array(
-                'conditions' => array(
-                        'sharing_group_id' => $id,
-                        'org_id' => $user['org_id'],
-                        'extend' => 1,
-                ),
-                'recursive' => -1,
-                'fields' => array('id', 'org_id', 'extend')
+
+        return $this->SharingGroupOrg->hasAny(array(
+            'sharing_group_id' => $id,
+            'org_id' => $user['org_id'],
+            'extend' => 1,
         ));
-        if (empty($sgo)) {
-            return false;
-        } else {
-            return true;
-        }
     }
 
     public function checkIfExists($uuid)
