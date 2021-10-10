@@ -99,22 +99,16 @@ class SharingGroup extends AppModel
 
     public function beforeDelete($cascade = false)
     {
-        $countEvent = $this->Event->find('count', array(
-                'recursive' => -1,
-                'conditions' => array('sharing_group_id' => $this->id)
-        ));
-        $countThread = $this->Thread->find('count', array(
-                'recursive' => -1,
-                'conditions' => array('sharing_group_id' => $this->id)
-        ));
-        $countAttribute = $this->Attribute->find('count', array(
-                'recursive' => -1,
-                'conditions' => array('sharing_group_id' => $this->id)
-        ));
-        if (($countEvent + $countThread + $countAttribute) == 0) {
-            return true;
+        if ($this->Event->hasAny(['sharing_group_id' => $this->id])) {
+            return false;
         }
-        return false;
+        if ($this->Thread->hasAny(['sharing_group_id' => $this->id])) {
+            return false;
+        }
+        if ($this->Attribute->hasAny(['sharing_group_id' => $this->id])) {
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -431,11 +425,7 @@ class SharingGroup extends AppModel
 
     public function checkIfExists($uuid)
     {
-        return !empty($this->SharingGroup->find('first', array(
-            'conditions' => array('SharingGroup.uuid' => $uuid),
-            'recursive' => -1,
-            'fields' => array('SharingGroup.id')
-        )));
+        return $this->hasAny(['SharingGroup.uuid' => $uuid]);
     }
 
     // returns true if the SG exists and the user is allowed to see it
