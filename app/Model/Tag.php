@@ -386,25 +386,6 @@ class Tag extends AppModel
         return $existingTag['Tag']['id'];
     }
 
-    // find all tags that belong to a given eventId
-    public function findEventTags($eventId)
-    {
-        $tags = array();
-        $params = array(
-                'recursive' => 1,
-                'contain' => 'EventTag',
-        );
-        $result = $this->find('all', $params);
-        foreach ($result as $tag) {
-            foreach ($tag['EventTag'] as $eventTag) {
-                if ($eventTag['event_id'] == $eventId) {
-                    $tags[] = $tag['Tag'];
-                }
-            }
-        }
-        return $tags;
-    }
-
     public function random_color()
     {
         $colour = '#';
