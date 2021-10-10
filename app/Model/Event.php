@@ -15,6 +15,7 @@ App::uses('SendEmailTemplate', 'Tools');
  * @property EventTag $EventTag
  * @property SharingGroup $SharingGroup
  * @property ThreatLevel $ThreatLevel
+ * @property Sighting $Sighting
  */
 class Event extends AppModel
 {
@@ -585,7 +586,6 @@ class Event extends AppModel
     public function attachSightingsCountToEvents(array $user, array $events)
     {
         $eventIds = array_column(array_column($events, 'Event'), 'id');
-        $this->Sighting = ClassRegistry::init('Sighting');
         $this->Sighting->virtualFields['count'] = 'count(Sighting.id)';
         $sightings = $this->Sighting->find('list', array(
             'fields' => array('Sighting.event_id', 'Sighting.count'),
@@ -2113,9 +2113,6 @@ class Event extends AppModel
         $sharingGroupData = $options['sgReferenceOnly'] ? [] : $this->__cacheSharingGroupData($user, $useCache);
 
         // Initialize classes that will be necessary during event fetching
-        if ((empty($options['metadata']) && empty($options['noSightings'])) && !isset($this->Sighting)) {
-            $this->Sighting = ClassRegistry::init('Sighting');
-        }
         if (!empty($options['includeDecayScore']) && !isset($this->DecayingModel)) {
             $this->DecayingModel = ClassRegistry::init('DecayingModel');
         }
@@ -3901,7 +3898,6 @@ class Event extends AppModel
             }
             // zeroq: check if sightings are attached and add to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
-                $this->Sighting = ClassRegistry::init('Sighting');
                 $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
             }
             if ($fromXml) {
@@ -4160,7 +4156,6 @@ class Event extends AppModel
             }
             // zeroq: if sightings then attach to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
-                $this->Sighting = ClassRegistry::init('Sighting');
                 $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
             }
             // if published -> do the actual publishing
@@ -4393,16 +4388,13 @@ class Event extends AppModel
      * @param array $server
      * @param array $event
      * @param array $sightingsUuidsToPush
-     * @throws HttpClientJsonException
+     * @throws HttpSocketJsonException
      * @throws JsonException
      * @throws Exception
      */
     private function pushSightingsToServer(array $server, array $event, array $sightingsUuidsToPush = [])
     {
         App::uses('ServerSyncTool', 'Tools');
-        if (!isset($this->Sighting)) {
-            $this->Sighting = ClassRegistry::init('Sighting');
-        }
         $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         try {
             if ($serverSync->eventExists($event) === false) {
