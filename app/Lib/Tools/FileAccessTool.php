@@ -50,13 +50,20 @@ class FileAccessTool
     /**
      * @param string $file
      * @param mixed $content
-     * @param int $flags
+     * @param bool $createFolder
      * @throws Exception
      */
-    public static function writeToFile($file, $content, $flags = LOCK_EX)
+    public static function writeToFile($file, $content, $createFolder = false)
     {
-        if (file_put_contents($file, $content, $flags) === false) {
-            $freeSpace = disk_free_space($file);
+        $dir = dirname($file);
+        if ($createFolder && !is_dir($dir)) {
+            if (!mkdir($dir, 0766, true)) {
+                throw new Exception("An error has occurred while attempt to create directory `$dir`.");
+            }
+        }
+
+        if (file_put_contents($file, $content, LOCK_EX) === false) {
+            $freeSpace = disk_free_space($dir);
             throw new Exception("An error has occurred while attempt to write to file `$file`. Maybe not enough space? ($freeSpace bytes left)");
         }
     }
@@ -70,11 +77,10 @@ class FileAccessTool
     public static function writeToTempFile($content, $dir = null)
     {
         $tempFile = self::createTempFile($dir);
-        try {
-            self::writeToFile($tempFile, $content, 0); // Lock is not need
-        } catch (Exception $e) {
+        if (file_put_contents($tempFile, $content) === false) {
             self::deleteFile($tempFile);
-            throw $e;
+            $freeSpace = disk_free_space(dirname($tempFile));
+            throw new Exception("An error has occurred while attempt to write to file `$tempFile`. Maybe not enough space? ($freeSpace bytes left)");
         }
         return $tempFile;
     }

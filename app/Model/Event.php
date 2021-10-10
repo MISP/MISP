@@ -397,32 +397,32 @@ class Event extends AppModel
                 'event_orgc' => $orgc['Orgc']['name'],
                 'comment' => __('Automatically blocked by deleting event'),
             ));
+        }
 
-            if (!empty($this->data['Event']['id'])) {
-                if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
-                    $pubSubTool = $this->getPubSubTool();
-                    $pubSubTool->event_save(array('Event' => $this->data['Event']), 'delete');
+        if (!empty($this->data['Event']['id'])) {
+            if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                $pubSubTool = $this->getPubSubTool();
+                $pubSubTool->event_save(array('Event' => $this->data['Event']), 'delete');
+            }
+            if (Configure::read('Plugin.Kafka_enable')) {
+                $kafkaEventTopic = Configure::read('Plugin.Kafka_event_notifications_topic');
+                if(Configure::read('Plugin.Kafka_event_notifications_enable') && !empty($kafkaEventTopic)) {
+                    $kafkaPubTool = $this->getKafkaPubTool();
+                    $kafkaPubTool->publishJson($kafkaEventTopic, array('Event' => $this->data['Event']), 'delete');
                 }
-                if (Configure::read('Plugin.Kafka_enable')) {
-                    $kafkaEventTopic = Configure::read('Plugin.Kafka_event_notifications_topic');
-                    if(Configure::read('Plugin.Kafka_event_notifications_enable') && !empty($kafkaEventTopic)) {
-                        $kafkaPubTool = $this->getKafkaPubTool();
-                        $kafkaPubTool->publishJson($kafkaEventTopic, array('Event' => $this->data['Event']), 'delete');
-                    }
-                    $kafkaPubTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
-                    if (!empty($this->data['Event']['published']) && Configure::read('Plugin.Kafka_event_publish_notifications_enable') && !empty($kafkaPubTopic)) {
-                        $hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
-                        if (!empty($hostOrg)) {
-                            $user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
-                            $params = array('eventid' => $this->data['Event']['id']);
-                            if (Configure::read('Plugin.Kafka_include_attachments')) {
-                                $params['includeAttachments'] = 1;
-                            }
-                            $fullEvent = $this->fetchEvent($user, $params);
-                            if (!empty($fullEvent)) {
-                                $kafkaPubTool = $this->getKafkaPubTool();
-                                $kafkaPubTool->publishJson($kafkaPubTopic, $fullEvent[0], 'delete');
-                            }
+                $kafkaPubTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
+                if (!empty($this->data['Event']['published']) && Configure::read('Plugin.Kafka_event_publish_notifications_enable') && !empty($kafkaPubTopic)) {
+                    $hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
+                    if (!empty($hostOrg)) {
+                        $user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
+                        $params = array('eventid' => $this->data['Event']['id']);
+                        if (Configure::read('Plugin.Kafka_include_attachments')) {
+                            $params['includeAttachments'] = 1;
+                        }
+                        $fullEvent = $this->fetchEvent($user, $params);
+                        if (!empty($fullEvent)) {
+                            $kafkaPubTool = $this->getKafkaPubTool();
+                            $kafkaPubTool->publishJson($kafkaPubTopic, $fullEvent[0], 'delete');
                         }
                     }
                 }
@@ -460,7 +460,7 @@ class Event extends AppModel
         }
 
         if (!isset($this->data['Event']['threat_level_id'])) {
-            $this->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : 4;
+            $this->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ?: 4;
         }
 
         // generate UUID if it doesn't exist
@@ -5657,13 +5657,7 @@ class Event extends AppModel
 
     public function handleMispFormatFromModuleResult(&$result)
     {
-        $defaultDistribution = 5;
-        if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
-            $defaultDistribution = Configure::read('MISP.default_attribute_distribution');
-            if ($defaultDistribution == 'event') {
-                $defaultDistribution = 5;
-            }
-        }
+        $defaultDistribution = $this->Attribute->defaultDistribution();
         $event = array();
         if (!empty($result['results']['Attribute'])) {
             $attributes = array();
@@ -7179,11 +7173,7 @@ class Event extends AppModel
      */
     public function add_original_file($file, $original_filename, $event_id, $format)
     {
-        if (!Configure::check('MISP.default_attribute_distribution') || Configure::read('MISP.default_attribute_distribution') === 'event') {
-            $distribution = 5;
-        } else {
-            $distribution = Configure::read('MISP.default_attribute_distribution');
-        }
+        $distribution = $this->Attribute->defaultDistribution();
         $this->Object->create();
         $object = array(
             'name' => 'original-imported-file',
@@ -7207,7 +7197,7 @@ class Event extends AppModel
                 'distribution' => $distribution,
                 'object_relation' => 'imported-sample',
                 'value' => $original_filename,
-                'data' => base64_encode($file),
+                'data_raw' => $file,
                 'object_id' => $object_id,
                 'disable_correlation' => true
             ),

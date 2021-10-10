@@ -289,12 +289,7 @@ class AttributesController extends AppController
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
-        $initialDistribution = 5;
-        $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
-        if ($configuredDistribution != null && $configuredDistribution != 'event') {
-            $initialDistribution = $configuredDistribution;
-        }
-        $this->set('initialDistribution', $initialDistribution);
+        $this->set('initialDistribution', $this->Attribute->defaultDistribution());
         $fieldDesc = array();
         $distributionLevels = $this->Attribute->distributionLevels;
         if (empty($sgs)) {
@@ -435,7 +430,7 @@ class AttributesController extends AppController
                             'category' => $this->request->data['Attribute']['category'],
                             'type' => 'attachment',
                             'event_id' => $event['Event']['id'],
-                            'data' => base64_encode($tmpfile->read()),
+                            'data_raw' => $tmpfile->read(),
                             'comment' => $this->request->data['Attribute']['comment'],
                             'to_ids' => 0,
                             'distribution' => $this->request->data['Attribute']['distribution'],
