@@ -551,7 +551,6 @@ class SharingGroup extends AppModel
         if (!empty($server) && !empty($server['Server']['local'])) {
             $syncLocal = true;
         }
-        $this->Log = ClassRegistry::init('Log');
         $existingSG = !isset($sg['uuid']) ? null : $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('SharingGroup.uuid' => $sg['uuid']),
@@ -562,7 +561,6 @@ class SharingGroup extends AppModel
                 )
         ));
         $forceUpdate = false;
-        $sg_id = 0;
         if (empty($existingSG)) {
             if (!$user['Role']['perm_sharing_group']) {
                 return false;
@@ -572,7 +570,7 @@ class SharingGroup extends AppModel
                 return false;
             }
         } else {
-            $existingCaptureResult = $this->captureSGExisting($user, $existingSG, $sg, $syncLocal);
+            $existingCaptureResult = $this->captureSGExisting($user, $existingSG, $sg);
             if ($existingCaptureResult !== true) {
                 return $existingCaptureResult;
             }
@@ -593,17 +591,16 @@ class SharingGroup extends AppModel
 
     /*
      * Capture updates for an existing sharing group
-     * Return true if updates are occuring
+     * Return true if updates are occurring
      * Return false if something goes wrong
      * Return an integer if no update is done but the sharing group can be attached
      *
      * @param array $user
      * @param array $existingSG
      * @param array $sg
-     * @param boolean syncLocal
      * @return int || false || true
      */
-    public function captureSGExisting($user, $existingSG, $sg, $syncLocal)
+    private function captureSGExisting($user, $existingSG, $sg)
     {
         if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id']) && !$user['Role']['perm_sync']) {
             return false;
@@ -640,7 +637,7 @@ class SharingGroup extends AppModel
      * @param boolean syncLocal
      * @return int || false
      */
-    public function captureSGNew($user, $sg, $syncLocal)
+    private function captureSGNew($user, $sg, $syncLocal)
     {
         // check if current user is contained in the SG and we are in a local sync setup
         if (!empty($sg['uuid'])) {
@@ -657,25 +654,14 @@ class SharingGroup extends AppModel
             !($user['Role']['perm_sync'] && $syncLocal ) &&
             !$authorisedToSave
         ) {
-            $this->Log->create();
-            $entry = array(
-                'org' => $user['Organisation']['name'],
-                'model' => 'SharingGroup',
-                'model_id' => 0,
-                'email' => $user['email'],
-                'action' => 'error',
-                'user_id' => $user['id'],
-                'title' => "Tried to save a sharing group with UUID '{$sg['uuid']}' but the user does not belong to it."
-            );
-            $this->Log->save($entry);
+            $this->loadLog()->createLogEntry($user, 'error', 'SharingGroup', 0, "Tried to save a sharing group with UUID '{$sg['uuid']}' but the user does not belong to it.");
             return false;
         }
-        $this->create();
-        $newSG = array();
-        $date = date('Y-m-d H:i:s');
         if (empty($sg['name'])) {
             return false;
         }
+        $this->create();
+        $date = date('Y-m-d H:i:s');
         $newSG = [
             'name' => $sg['name'],
             'releasability' => !isset($sg['releasability']) ? '' : $sg['releasability'],
