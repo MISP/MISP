@@ -3864,11 +3864,11 @@ class Event extends AppModel
             ));
             if (!empty($data['Event']['Attribute'])) {
                 $attributeHashes = [];
-                foreach ($data['Event']['Attribute'] as $k => $attribute) {
+                foreach ($data['Event']['Attribute'] as $attribute) {
                     $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
                     if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
                         $attributeHashes[$attributeHash] = true;
-                        $data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                        $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
                     }
                 }
                 unset($attributeHashes);
@@ -3910,9 +3910,9 @@ class Event extends AppModel
             if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
                 // do the necessary actions to publish the event (email, upload,...)
                 if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
-                    $this->sendAlertEmailRouter($this->getID(), $user);
+                    $this->sendAlertEmailRouter($this->id, $user);
                 }
-                $this->publish($this->getID(), $passAlong);
+                $this->publish($this->id, $passAlong);
             }
             if (empty($data['Event']['locked']) && !empty(Configure::read('MISP.default_event_tag_collection'))) {
                 $this->TagCollection = ClassRegistry::init('TagCollection');
