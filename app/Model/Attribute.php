@@ -454,9 +454,8 @@ class Attribute extends AppModel
             $result = $this->saveAttachment($this->data['Attribute']);
         }
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_attribute_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_attribute_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('attribute');
+        if ($pubToZmq || $kafkaTopic) {
             $attribute = $this->fetchAttribute($this->id);
             if (!empty($attribute)) {
                 $user = array(
@@ -481,7 +480,7 @@ class Attribute extends AppModel
                     $pubSubTool->attribute_save($attribute, $action);
                     unset($attribute['Attribute']['data']);
                 }
-                if ($pubToKafka) {
+                if ($kafkaTopic) {
                     if (Configure::read('Plugin.Kafka_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
                         $attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
                     }
@@ -513,8 +512,8 @@ class Attribute extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->attribute_save($this->data, 'delete');
             }
-            $kafkaTopic = Configure::read('Plugin.Kafka_attribute_notifications_topic');
-            if (Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_attribute_notifications_enable') && !empty($kafkaTopic)) {
+            $kafkaTopic = $this->kafkaTopic('attribute');
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $this->data, 'delete');
             }

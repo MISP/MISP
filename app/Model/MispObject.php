@@ -300,11 +300,8 @@ class MispObject extends AppModel
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') &&
             Configure::read('Plugin.ZeroMQ_object_notifications_enable') &&
             empty($this->data['Object']['skip_zmq']);
-        $kafkaTopic = Configure::read('Plugin.Kafka_object_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') &&
-            Configure::read('Plugin.Kafka_object_notifications_enable') &&
-            !empty($kafkaTopic) &&
-            empty($this->data['Object']['skip_kafka']);
+        $kafkaTopic = $this->kafkaTopic('object');
+        $pubToKafka = $kafkaTopic && empty($this->data['Object']['skip_kafka']);
         if ($pubToZmq || $pubToKafka) {
             $object = $this->find('first', array(
                 'conditions' => array('Object.id' => $this->id),
