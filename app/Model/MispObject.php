@@ -991,28 +991,25 @@ class MispObject extends AppModel
                 return true;
             }
         }
-        if (isset($object['Object']['id'])) {
-            unset($object['Object']['id']);
-        }
+        unset($object['Object']['id']);
         $object['Object']['event_id'] = $eventId;
-        if ($this->save($object)) {
-            if ($unpublish) {
-                $this->Event->unpublishEvent($eventId);
-            }
-            $objectId = $this->id;
-            if (!empty($object['Object']['Attribute'])) {
-                foreach ($object['Object']['Attribute'] as $attribute) {
-                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
-                }
-            }
-            return true;
-        } else {
+        if (!$this->save($object)) {
             $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
                 'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['Object']['name'],
                 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object)
             );
+            return 'fail';
         }
-        return 'fail';
+        if ($unpublish) {
+            $this->Event->unpublishEvent($eventId);
+        }
+        $objectId = $this->id;
+        if (!empty($object['Object']['Attribute'])) {
+            foreach ($object['Object']['Attribute'] as $attribute) {
+                $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
+            }
+        }
+        return true;
     }
 
     public function editObject($object, array $event, $user, $log, $force = false, &$nothingToChange = false)
