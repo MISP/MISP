@@ -3609,14 +3609,15 @@ class Attribute extends AppModel
                 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
             );
         } else {
-            if (isset($attribute['AttributeTag'])) {
+            if (!empty($attribute['AttributeTag'])) {
+                $toSave = [];
                 foreach ($attribute['AttributeTag'] as $at) {
                     unset($at['id']);
-                    $this->AttributeTag->create();
                     $at['attribute_id'] = $this->id;
                     $at['event_id'] = $eventId;
-                    $this->AttributeTag->save($at);
+                    $toSave[] = $at;
                 }
+                $this->AttributeTag->saveMany($toSave, ['validate' => true]);
             }
             if (isset($attribute['Tag'])) {
                 if (!empty($attribute['Tag']['name'])) {

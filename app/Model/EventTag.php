@@ -10,16 +10,14 @@ class EventTag extends AppModel
     public $actsAs = array('AuditLog', 'Containable');
 
     public $validate = array(
-        'event_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-        ),
-        'tag_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-        ),
+        'event_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+        ],
+        'tag_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+        ],
     );
 
     public $belongsTo = array(

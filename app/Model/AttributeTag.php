@@ -9,18 +9,20 @@ class AttributeTag extends AppModel
 {
     public $actsAs = array('AuditLog', 'Containable');
 
-    public $validate = array(
-        'attribute_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-        ),
-        'tag_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-        ),
-    );
+    public $validate = [
+        'attribute_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+        ],
+        'event_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+        ],
+        'tag_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+        ],
+    ];
 
     public $belongsTo = array(
         'Attribute' => array(
@@ -381,5 +383,4 @@ class AttributeTag extends AppModel
         $attribute_tags_name['tags'] = array_diff_key($attribute_tags_name['tags'], $attribute_tags_name['clusters']); // de-dup if needed.
         return $attribute_tags_name;
     }
-
 }

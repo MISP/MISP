@@ -3850,12 +3850,13 @@ class Event extends AppModel
                         'change' => ''
                 ));
             }
-            if (isset($data['Event']['EventTag'])) {
+            if (!empty($data['Event']['EventTag'])) {
+                $toSave = [];
                 foreach ($data['Event']['EventTag'] as $et) {
-                    $this->EventTag->create();
                     $et['event_id'] = $this->id;
-                    $this->EventTag->save($et);
+                    $toSave[] = $et;
                 }
+                $this->EventTag->saveMany($toSave, ['validate' => true]);
             }
             $parentEvent = $this->find('first', array(
                 'conditions' => array('Event.id' => $this->id),
