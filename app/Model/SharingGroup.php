@@ -428,11 +428,18 @@ class SharingGroup extends AppModel
         return $this->hasAny(['SharingGroup.uuid' => $uuid]);
     }
 
-    // returns true if the SG exists and the user is allowed to see it
+    /**
+     * Returns true if the SG exists and the user is allowed to see it
+     * @param array $user
+     * @param int|string $id SG ID or UUID
+     * @param bool $adminCheck
+     * @return bool|mixed
+     */
     public function checkIfAuthorised($user, $id, $adminCheck = true)
     {
-        if (isset($this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id])) {
-            return $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id];
+        $adminCheck = (bool)$adminCheck;
+        if (isset($this->__sgAuthorisationCache['access'][$adminCheck][$id])) {
+            return $this->__sgAuthorisationCache['access'][$adminCheck][$id];
         }
         if (Validation::uuid($id)) {
             $sgid = $this->find('first', array(
@@ -443,6 +450,7 @@ class SharingGroup extends AppModel
             if (empty($sgid)) {
                 return false;
             }
+            $uuid = $id;
             $id = $sgid['SharingGroup']['id'];
         } else {
             if (!$this->exists($id)) {
@@ -452,12 +460,15 @@ class SharingGroup extends AppModel
         if (!isset($user['id'])) {
             throw new MethodNotAllowedException('Invalid user.');
         }
-        if (($adminCheck && $user['Role']['perm_site_admin']) || $this->SharingGroupServer->checkIfAuthorised($id) || $this->SharingGroupOrg->checkIfAuthorised($id, $user['org_id'])) {
-            $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id] = true;
-            return true;
+        $authorized = ($adminCheck && $user['Role']['perm_site_admin']) ||
+            $this->SharingGroupServer->checkIfAuthorised($id) ||
+            $this->SharingGroupOrg->checkIfAuthorised($id, $user['org_id']);
+        $this->__sgAuthorisationCache['access'][$adminCheck][$id] = $authorized;
+        if (isset($uuid)) {
+            // If uuid was provided, cache also result by UUID to make check faster
+            $this->__sgAuthorisationCache['access'][$adminCheck][$uuid] = $authorized;
         }
-        $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id] = false;
-        return false;
+        return $authorized;
     }
 
     /**
