@@ -885,7 +885,7 @@ class Event extends AppModel
      * This function receives the reference of the variable, so no return is required as it directly
      * modifies the original data.
      */
-    public function cleanupEventArrayFromXML(&$data)
+    private function cleanupEventArrayFromXML(&$data)
     {
         $objects = array('Attribute', 'ShadowAttribute', 'Object');
         foreach ($objects as $object) {
@@ -3775,32 +3775,11 @@ class Event extends AppModel
                 if ($fromXml) {
                     $data = $this->__captureObjects($data, $user, $server);
                 }
-                if ($data === false) {
-                    $failedCapture = true;
-                }
             }
         } else {
             if ($fromXml) {
                 $data = $this->__captureObjects($data, $user, $server);
             }
-            if ($data === false) {
-                $failedCapture = true;
-            }
-        }
-        if (!empty($failedCapture)) {
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Event',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'add',
-                    'user_id' => $user['id'],
-                    'title' => 'Event could not be saved due to a failed sharing group capture.',
-                    'change' => ''
-            ));
-            $validationErrors['Event'] = 'Issues saving a Sharing Group.';
-            return json_encode($validationErrors);
         }
         $fieldList = array(
             'org_id',
