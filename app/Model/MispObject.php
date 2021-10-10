@@ -967,14 +967,13 @@ class MispObject extends AppModel
      * @param array $object
      * @param int $eventId
      * @param array $user
-     * @param false $log - Not used anymore
      * @param bool $unpublish
      * @param false $breakOnDuplicate
      * @param array|false $parentEvent
      * @return bool|string
      * @throws Exception
      */
-    public function captureObject($object, $eventId, $user, $log = false, $unpublish = true, $breakOnDuplicate = false, $parentEvent = false)
+    public function captureObject($object, $eventId, $user, $unpublish = true, $breakOnDuplicate = false, $parentEvent = false)
     {
         $this->create();
         if (!isset($object['Object'])) {
