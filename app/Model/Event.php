@@ -3367,6 +3367,12 @@ class Event extends AppModel
         return $template;
     }
 
+    /**
+     * @param array $element
+     * @param array $user
+     * @param bool|false $server
+     * @return array
+     */
     public function captureSGForElement($element, $user, $server=false)
     {
         if (isset($element['SharingGroup'])) {
@@ -3388,45 +3394,35 @@ class Event extends AppModel
     /**
      * When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
      * or which we need to update. All of that is controlled in this method.
-     * @param array $data
+     * @param array $event
      * @param array $user
      * @param array|false $server
      * @return array
      * @throws Exception
      */
-    private function __captureObjects(array $data, array $user, $server=false)
+    private function __captureObjects(array $event, array $user, $server=false)
     {
         // First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
-        if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4) {
-            $data['Event'] = $this->captureSGForElement($data['Event'], $user, $server);
+        if (isset($event['distribution']) && $event['distribution'] == 4) {
+            $event = $this->captureSGForElement($event, $user, $server);
         }
-        if (!empty($data['Event']['Attribute'])) {
-            foreach ($data['Event']['Attribute'] as $k => $a) {
-                unset($data['Event']['Attribute']['id']);
+        if (!empty($event['Attribute'])) {
+            foreach ($event['Attribute'] as $k => $a) {
+                unset($event['Attribute']['id']);
                 if (isset($a['distribution']) && $a['distribution'] == 4) {
-                    $data['Event']['Attribute'][$k] = $this->captureSGForElement($a, $user, $server);
-                    if ($data['Event']['Attribute'][$k] === false) {
-                        unset($data['Event']['Attribute']);
-                    }
+                    $event['Attribute'][$k] = $this->captureSGForElement($a, $user, $server);
                 }
             }
         }
-        if (!empty($data['Event']['Object'])) {
-            foreach ($data['Event']['Object'] as $k => $o) {
+        if (!empty($event['Object'])) {
+            foreach ($event['Object'] as $k => $o) {
                 if (isset($o['distribution']) && $o['distribution'] == 4) {
-                    $data['Event']['Object'][$k] = $this->captureSGForElement($o, $user, $server);
-                    if ($data['Event']['Object'][$k] === false) {
-                        unset($data['Event']['Object'][$k]);
-                        continue;
-                    }
+                    $event['Object'][$k] = $this->captureSGForElement($o, $user, $server);
                 }
                 if (!empty($o['Attribute'])) {
                     foreach ($o['Attribute'] as $k2 => $a) {
                         if (isset($a['distribution']) && $a['distribution'] == 4) {
-                            $data['Event']['Object'][$k]['Attribute'][$k2] = $this->captureSGForElement($a, $user, $server);
-                            if ($data['Event']['Object'][$k]['Attribute'][$k2] === false) {
-                                unset($data['Event']['Object'][$k]['Attribute'][$k2]);
-                            }
+                            $event['Object'][$k]['Attribute'][$k2] = $this->captureSGForElement($a, $user, $server);
                         }
                     }
                 }
@@ -3435,24 +3431,24 @@ class Event extends AppModel
 
         // first we want to see how the creator organisation is encoded
         // The options here are either by passing an organisation object along or simply passing a string along
-        if (isset($data['Event']['Orgc'])) {
-            $data['Event']['orgc_id'] = $this->Orgc->captureOrg($data['Event']['Orgc'], $user);
-            unset($data['Event']['Orgc']);
-        } elseif (isset($data['Event']['orgc'])) {
-            $data['Event']['orgc_id'] = $this->Orgc->captureOrg($data['Event']['orgc'], $user);
-            unset($data['Event']['orgc']);
+        if (isset($event['Orgc'])) {
+            $event['orgc_id'] = $this->Orgc->captureOrg($event['Orgc'], $user);
+            unset($event['Orgc']);
+        } elseif (isset($event['orgc'])) {
+            $event['orgc_id'] = $this->Orgc->captureOrg($event['orgc'], $user);
+            unset($event['orgc']);
         } else {
-            $data['Event']['orgc_id'] = $user['org_id'];
+            $event['orgc_id'] = $user['org_id'];
         }
 
         $event_tag_ids = array();
         $capturedTags = []; // cache captured tag
         $eventTags = [];
-        if (isset($data['Event']['EventTag'])) {
-            if (isset($data['Event']['EventTag']['id'])) {
-                $data['Event']['EventTag'] = array($data['Event']['EventTag']);
+        if (isset($event['EventTag'])) {
+            if (isset($event['EventTag']['id'])) {
+                $event['EventTag'] = array($event['EventTag']);
             }
-            foreach ($data['Event']['EventTag'] as $tag) {
+            foreach ($event['EventTag'] as $tag) {
                 $tagId = $this->captureTagWithCache($tag['Tag'], $user, $capturedTags);
                 if ($tagId && !in_array($tagId, $event_tag_ids)) {
                     $eventTags[] = array('tag_id' => $tagId);
@@ -3460,32 +3456,32 @@ class Event extends AppModel
                 }
             }
         }
-        if (isset($data['Event']['Tag'])) {
-            if (isset($data['Event']['Tag']['name'])) {
-                $data['Event']['Tag'] = array($data['Event']['Tag']);
+        if (isset($event['Tag'])) {
+            if (isset($event['Tag']['name'])) {
+                $event['Tag'] = array($event['Tag']);
             }
-            foreach ($data['Event']['Tag'] as $tag) {
+            foreach ($event['Tag'] as $tag) {
                 $tag_id = $this->captureTagWithCache($tag, $user, $capturedTags);
                 if ($tag_id && !in_array($tag_id, $event_tag_ids)) {
                     $eventTags[] = array('tag_id' => $tag_id);
                     $event_tag_ids[] = $tag_id;
                 }
             }
-            unset($data['Event']['Tag']);
+            unset($event['Tag']);
         }
-        $data['Event']['EventTag'] = $eventTags;
+        $event['EventTag'] = $eventTags;
 
-        if (!empty($data['Event']['Attribute'])) {
-            $data['Event']['Attribute'] = $this->__captureAttributeTags($data['Event']['Attribute'], $user, $capturedTags);
+        if (!empty($event['Attribute'])) {
+            $event['Attribute'] = $this->__captureAttributeTags($event['Attribute'], $user, $capturedTags);
         }
-        if (!empty($data['Event']['Object'])) {
-            foreach ($data['Event']['Object'] as $k => $object) {
+        if (!empty($event['Object'])) {
+            foreach ($event['Object'] as $k => $object) {
                 if (!empty($object['Attribute'])) {
-                    $data['Event']['Object'][$k]['Attribute'] = $this->__captureAttributeTags($object['Attribute'], $user, $capturedTags);
+                    $event['Object'][$k]['Attribute'] = $this->__captureAttributeTags($object['Attribute'], $user, $capturedTags);
                 }
             }
         }
-        return $data;
+        return $event;
     }
 
     /**
@@ -3771,15 +3767,10 @@ class Event extends AppModel
                     $created_id = $existingEvent['Event']['id'];
                 }
                 return $existingEvent['Event']['id'];
-            } else {
-                if ($fromXml) {
-                    $data = $this->__captureObjects($data, $user, $server);
-                }
             }
-        } else {
-            if ($fromXml) {
-                $data = $this->__captureObjects($data, $user, $server);
-            }
+        }
+        if ($fromXml) {
+            $data['Event'] = $this->__captureObjects($data['Event'], $user, $server);
         }
         $fieldList = array(
             'org_id',
