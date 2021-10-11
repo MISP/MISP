@@ -430,31 +430,33 @@ class Organisation extends AppModel
     }
 
     /**
-     * @param array $event
+     * Attach organisations to evnet
+     * @param array $data
      * @param array $fields
      * @return array
      */
-    public function attachOrgs($data, $fields, $scope = 'Event')
+    public function attachOrgs($data, $fields)
     {
+        $event = $data['Event'];
         $toFetch = [];
-        if (!isset($this->__orgCache[$data[$scope]['orgc_id']])) {
-            $toFetch[] = $data[$scope]['orgc_id'];
+        if (!isset($this->__orgCache[$event['orgc_id']])) {
+            $toFetch[] = $event['orgc_id'];
         }
-        if (!isset($this->__orgCache[$data[$scope]['org_id']]) && $data[$scope]['org_id'] != $data[$scope]['orgc_id']) {
-            $toFetch[] = $data[$scope]['org_id'];
+        if (!isset($this->__orgCache[$event['org_id']]) && $event['org_id'] != $event['orgc_id']) {
+            $toFetch[] = $event['org_id'];
         }
         if (!empty($toFetch)) {
             $orgs = $this->find('all', array(
                 'conditions' => array('id' => $toFetch),
                 'recursive' => -1,
-                'fields' => $fields
+                'fields' => $fields,
             ));
             foreach ($orgs as $org) {
                 $this->__orgCache[$org[$this->alias]['id']] = $org[$this->alias];
             }
         }
-        $data['Orgc'] = $this->__orgCache[$data[$scope]['orgc_id']];
-        $data['Org'] = $this->__orgCache[$data[$scope]['org_id']];
+        $data['Orgc'] = $this->__orgCache[$event['orgc_id']];
+        $data['Org'] = $this->__orgCache[$event['org_id']];
         return $data;
     }
 
@@ -516,12 +518,8 @@ class Organisation extends AppModel
             // Check if there is event from given org that can current user see
             $eventConditions = $this->Event->createEventConditions($user);
             $eventConditions['AND']['Event.orgc_id'] = $orgId;
-            $event = $this->Event->find('first', array(
-                'fields' => array('Event.id'),
-                'recursive' => -1,
-                'conditions' => $eventConditions,
-            ));
-            if (empty($event)) {
+            $event = $this->Event->hasAny($eventConditions);
+            if (!$event) {
                 $proposalConditions = $this->Event->ShadowAttribute->buildConditions($user);
                 $proposalConditions['AND']['ShadowAttribute.org_id'] = $orgId;
                 $proposal = $this->Event->ShadowAttribute->find('first', array(
