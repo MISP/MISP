@@ -460,7 +460,7 @@ class Organisation extends AppModel
 
     public function getOrgIdsFromMeta($metaConditions)
     {
-        $orgIds = $this->find('list', array(
+        $orgIds = $this->find('column', array(
             'conditions' => $metaConditions,
             'fields' => array('id'),
             'recursive' => -1
@@ -468,7 +468,7 @@ class Organisation extends AppModel
         if (empty($orgIds)) {
             return array(-1);
         }
-        return array_values($orgIds);
+        return $orgIds;
     }
 
     public function checkDesiredOrg($suggestedOrg, $registration)
