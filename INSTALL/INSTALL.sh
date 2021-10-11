@@ -1403,6 +1403,9 @@ installCore () {
     sudo mkdir /var/www/.cache/
     sudo chown ${WWW_USER}:${WWW_USER} /var/www/.cache
 
+    # install python-stix dependencies
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ordered-set python-dateutil six weakrefmethod
+
     debug "Install PyMISP"
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/PyMISP
 
@@ -2347,6 +2350,9 @@ installCoreRHEL7 () {
   UMASK=$(umask)
   umask 0022
 
+  # install python-stix dependencies
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install ordered-set python-dateutil six weakrefmethod
+
   # install zmq
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq
 
@@ -2457,6 +2463,9 @@ installCoreRHEL8 () {
 
   UMASK=$(umask)
   umask 0022
+
+  # install python-stix dependencies
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install ordered-set python-dateutil six weakrefmethod
 
   # install zmq, redis
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq redis

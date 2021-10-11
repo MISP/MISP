@@ -237,6 +237,9 @@ installCoreRHEL7 () {
   UMASK=$(umask)
   umask 0022
 
+  # install python-stix dependencies
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install ordered-set python-dateutil six weakrefmethod
+
   # install zmq
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq
 
