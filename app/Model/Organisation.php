@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('ConnectionManager', 'Model');
+App::uses('FileAccessTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -574,16 +575,18 @@ class Organisation extends AppModel
         return [];
     }
 
+    /**
+     * @return array
+     */
     private function getCountryGalaxyCluster()
     {
         static $list;
         if (!$list) {
-            $file = new File(APP . '/files/misp-galaxy/clusters/country.json');
-            if ($file->exists()) {
-                $list = $this->jsonDecode($file->read())['values'];
-                $file->close();
-            } else {
-                $this->log("MISP Galaxy are not updated, countries will not be available.", LOG_WARNING);
+            try {
+                $content = FileAccessTool::readFromFile(APP . '/files/misp-galaxy/clusters/country.json');
+                $list = $this->jsonDecode($content)['values'];
+            } catch (Exception $e) {
+                $this->logException("MISP Galaxy are not updated, countries will not be available.", $e, LOG_WARNING);
                 $list = [];
             }
         }
