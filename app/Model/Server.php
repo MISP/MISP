@@ -3823,36 +3823,47 @@ class Server extends AppModel
         $status = array();
         foreach ($submodules_names as $submodule_name_info) {
             $submodule_name_info = explode(' ', $submodule_name_info);
-            $superproject_submodule_commit_id = $submodule_name_info[0];
-            $submodule_name = $submodule_name_info[1];
+            list($superproject_submodule_commit_id, $submodule_name) = $submodule_name_info;
             $temp = $this->getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id);
-            if ( !empty($temp) ) {
+            if (!empty($temp) ) {
                 $status[$submodule_name] = $temp;
             }
         }
         return $status;
     }
 
-    private function _isAcceptedSubmodule($submodule) {
-        $accepted_submodules_names = array('PyMISP',
+    private function _isAcceptedSubmodule($submodule)
+    {
+        $accepted_submodules_names = array(
+            'PyMISP',
             'app/files/misp-galaxy',
             'app/files/taxonomies',
             'app/files/misp-objects',
             'app/files/noticelists',
             'app/files/warninglists',
             'app/files/misp-decaying-models',
-            'cti-python-stix2'
+            'app/files/scripts/cti-python-stix2',
+            'app/files/scripts/misp-opendata',
+            'app/files/scripts/python-maec',
+            'app/files/scripts/python-stix',
+
         );
-        return in_array($submodule, $accepted_submodules_names);
+        return in_array($submodule, $accepted_submodules_names, true);
     }
 
-    public function getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id) {
+    /**
+     * @param string $submodule_name
+     * @param string $superproject_submodule_commit_id
+     * @return array
+     */
+    private function getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id)
+    {
         $status = array();
         if ($this->_isAcceptedSubmodule($submodule_name)) {
             $path = APP . '../' . $submodule_name;
             $submodule_name=(strpos($submodule_name, '/') >= 0 ? explode('/', $submodule_name) : $submodule_name);
             $submodule_name=end($submodule_name);
-            $submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
+            //$submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
             exec(sprintf('cd %s; git rev-parse HEAD', $path), $submodule_current_commit_id);
             if (!empty($submodule_current_commit_id[0])) {
                 $submodule_current_commit_id = $submodule_current_commit_id[0];
