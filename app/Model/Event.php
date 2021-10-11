@@ -3651,7 +3651,21 @@ class Event extends AppModel
         return $results;
     }
 
-    // Low level function to add an Event based on an Event $data array
+    /**
+     * Low level function to add an Event based on an Event $data array.
+     *
+     * @param array $data
+     * @param bool $fromXml
+     * @param array $user
+     * @param int $org_id
+     * @param int|null $passAlong Server ID or null
+     * @param bool $fromPull
+     * @param int|null $jobId
+     * @param int $created_id
+     * @param array $validationErrors
+     * @return bool|int|string True when new event was created, int when event with the same uuid already exists, string when validation errors
+     * @throws Exception
+     */
     public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false && isset($data['Event']['uuid'])) {
@@ -5878,10 +5892,10 @@ class Event extends AppModel
         $shell_command .= ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $result = shell_exec($shell_command);
         $result = preg_split("/\r\n|\n|\r/", trim($result));
-        $result = end($result);
+        $result = trim(end($result));
         $tempFile = file_get_contents($tempFilePath);
         unlink($tempFilePath);
-        if (trim($result) == '1') {
+        if ($result === '1') {
             $data = file_get_contents($output_path);
             if ($data === false) {
                 throw new Exception("Could not get content of `$output_path` file.");
@@ -5902,24 +5916,26 @@ class Event extends AppModel
                     $this->publish($created_id);
                 }
                 return $created_id;
+            } else if (is_numeric($result)) {
+                return __('Event with the same UUID already exists.');
+            } else if (is_string($result)) {
+                return $result;
             }
             return $validationIssues;
+        } else if ($result === '2') {
+            $response = __('Issues while loading the stix file. ');
+        } elseif ($result === '3') {
+            $response = __('Issues with the maec library. ');
         } else {
-            if (trim($result) == '2') {
-                $response = __('Issues while loading the stix file. ');
-            } elseif (trim($result) == '3') {
-                $response = __('Issues with the maec library. ');
-            } else {
-                $response = __('Issues executing the ingestion script or invalid input. ');
-            }
-            if (!$user['Role']['perm_site_admin']) {
-                $response .= __('Please ask your administrator to ');
-            } else {
-                $response .= __('Please ');
-            }
-            $response .= ' ' . __('check whether the dependencies for STIX are met via the diagnostic tool.');
-            return $response;
+            $response = __('Issues executing the ingestion script or invalid input. ');
         }
+        if (!$user['Role']['perm_site_admin']) {
+            $response .= __('Please ask your administrator to ');
+        } else {
+            $response .= __('Please ');
+        }
+        $response .= ' ' . __('check whether the dependencies for STIX are met via the diagnostic tool.');
+        return $response;
     }
 
     private function __getTagNamesFromSynonyms($scriptDir)
