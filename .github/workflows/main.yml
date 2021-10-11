@@ -197,10 +197,13 @@ jobs:
               pushd ./app/files/scripts/cti-python-stix2
               pip install .
               popd
+              pushd ./app/files/scripts/python-stix
+              pip install .
+              popd
               pushd PyMISP
               pip install .[fileobjects,email]
               popd
-              pip install stix zmq redis plyara
+              pip install zmq redis plyara
               deactivate
 
       - name: Test if apache is working
