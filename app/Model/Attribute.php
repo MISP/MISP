@@ -454,9 +454,8 @@ class Attribute extends AppModel
             $result = $this->saveAttachment($this->data['Attribute']);
         }
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_attribute_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_attribute_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('attribute');
+        if ($pubToZmq || $kafkaTopic) {
             $attribute = $this->fetchAttribute($this->id);
             if (!empty($attribute)) {
                 $user = array(
@@ -481,7 +480,7 @@ class Attribute extends AppModel
                     $pubSubTool->attribute_save($attribute, $action);
                     unset($attribute['Attribute']['data']);
                 }
-                if ($pubToKafka) {
+                if ($kafkaTopic) {
                     if (Configure::read('Plugin.Kafka_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
                         $attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
                     }
@@ -513,8 +512,8 @@ class Attribute extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->attribute_save($this->data, 'delete');
             }
-            $kafkaTopic = Configure::read('Plugin.Kafka_attribute_notifications_topic');
-            if (Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_attribute_notifications_enable') && !empty($kafkaTopic)) {
+            $kafkaTopic = $this->kafkaTopic('attribute');
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $this->data, 'delete');
             }
@@ -1611,7 +1610,7 @@ class Attribute extends AppModel
 
             // Thumbnail doesn't exists, we need to generate it
             $imageData = $this->getAttachment($attribute['Attribute']);
-            $imageData = $this->resizeImage($imageData, $maxWidth, $maxHeight);
+            $imageData = $this->loadAttachmentTool()->resizeImage($imageData, $maxWidth, $maxHeight);
 
             // Save just when requested default thumbnail size
             if ($maxWidth == 200 && $maxHeight == 200) {
@@ -1621,56 +1620,6 @@ class Attribute extends AppModel
         } else {
             $imageData = $this->getAttachment($attribute['Attribute']);
         }
-
-        return $imageData;
-    }
-
-    /**
-     * @param string $data
-     * @param int $maxWidth
-     * @param int $maxHeight
-     * @return string
-     * @throws Exception
-     */
-    public function resizeImage($data, $maxWidth, $maxHeight)
-    {
-        $image = imagecreatefromstring($data);
-        if ($image === false) {
-            throw new Exception("Image is not valid.");
-        }
-
-        $currentWidth = imagesx($image);
-        $currentHeight = imagesy($image);
-
-        // Compute thumbnail size with keeping ratio
-        if ($currentWidth > $currentHeight) {
-            $newWidth = min($currentWidth, $maxWidth);
-            $divisor = $currentWidth / $newWidth;
-            $newHeight = floor($currentHeight / $divisor);
-        } else {
-            $newHeight = min($currentHeight, $maxHeight);
-            $divisor = $currentHeight / $newHeight;
-            $newWidth = floor($currentWidth / $divisor);
-        }
-
-        $imageThumbnail = imagecreatetruecolor($newWidth, $newHeight);
-
-        // Allow transparent background
-        imagealphablending($imageThumbnail, false);
-        imagesavealpha($imageThumbnail, true);
-        $transparent = imagecolorallocatealpha($imageThumbnail, 255, 255, 255, 127);
-        imagefilledrectangle($imageThumbnail, 0, 0, $newWidth, $newHeight, $transparent);
-
-        // Resize image
-        imagecopyresampled($imageThumbnail, $image, 0, 0, 0, 0, $newWidth, $newHeight, $currentWidth, $currentHeight);
-        imagedestroy($image);
-
-        // Output image to string
-        ob_start();
-        imagepng($imageThumbnail, null, 9);
-        $imageData = ob_get_contents();
-        ob_end_clean();
-        imagedestroy($imageThumbnail);
 
         return $imageData;
     }
@@ -3659,14 +3608,15 @@ class Attribute extends AppModel
                 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
             );
         } else {
-            if (isset($attribute['AttributeTag'])) {
+            if (!empty($attribute['AttributeTag'])) {
+                $toSave = [];
                 foreach ($attribute['AttributeTag'] as $at) {
                     unset($at['id']);
-                    $this->AttributeTag->create();
                     $at['attribute_id'] = $this->id;
                     $at['event_id'] = $eventId;
-                    $this->AttributeTag->save($at);
+                    $toSave[] = $at;
                 }
+                $this->AttributeTag->saveMany($toSave, ['validate' => true]);
             }
             if (isset($attribute['Tag'])) {
                 if (!empty($attribute['Tag']['name'])) {
@@ -3776,31 +3726,30 @@ class Attribute extends AppModel
                 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
             );
             return $this->validationErrors;
-        } else {
-            if (isset($attribute['Sighting']) && !empty($attribute['Sighting'])) {
-                $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
-            }
-            if ($user['Role']['perm_tagger']) {
-                /*
-                    We should uncomment the line below in the future once we have tag soft-delete
-                    A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
-                    has a version below x
-                */
-                // $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
-                if (isset($attribute['Tag'])) {
-                    foreach ($attribute['Tag'] as $tag) {
-                        $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
-                        if ($tag_id) {
-                            $tag['id'] = $tag_id;
-                            // fix the IDs here
-                            $this->AttributeTag->handleAttributeTag($this->id, $attribute['event_id'], $tag);
-                        } else {
-                            // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
-                            // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
-                            // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
-                            if ($user['Role']['perm_tag_editor']) {
-                                $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', $this->id, 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.');
-                            }
+        }
+        if (!empty($attribute['Sighting'])) {
+            $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
+        }
+        if ($user['Role']['perm_tagger']) {
+            /*
+                We should uncomment the line below in the future once we have tag soft-delete
+                A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
+                has a version below x
+            */
+            // $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
+            if (isset($attribute['Tag'])) {
+                foreach ($attribute['Tag'] as $tag) {
+                    $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
+                    if ($tag_id) {
+                        $tag['id'] = $tag_id;
+                        // fix the IDs here
+                        $this->AttributeTag->handleAttributeTag($this->id, $attribute['event_id'], $tag);
+                    } else {
+                        // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
+                        // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
+                        // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
+                        if ($user['Role']['perm_tag_editor']) {
+                            $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', $this->id, 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.');
                         }
                     }
                 }

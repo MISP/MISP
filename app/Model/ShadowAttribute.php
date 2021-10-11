@@ -868,7 +868,7 @@ class ShadowAttribute extends AppModel
 
             // Thumbnail doesn't exists, we need to generate it
             $imageData = $this->getAttachment($shadowAttribute['ShadowAttribute']);
-            $imageData = $this->Attribute->resizeImage($imageData, $maxWidth, $maxHeight);
+            $imageData = $this->loadAttachmentTool()->resizeImage($imageData, $maxWidth, $maxHeight);
 
             // Save just when requested default thumbnail size
             if ($maxWidth == 200 && $maxHeight == 200) {

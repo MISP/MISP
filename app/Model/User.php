@@ -279,9 +279,8 @@ class User extends AppModel
     public function afterSave($created, $options = array())
     {
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_user_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_user_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('user');
+        if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->data)) {
                 $user = $this->data;
                 if (!isset($user['User'])) {
@@ -311,7 +310,7 @@ class User extends AppModel
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->modified($user, 'user', $action);
                 }
-                if ($pubToKafka) {
+                if ($kafkaTopic) {
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $user, $action);
                 }

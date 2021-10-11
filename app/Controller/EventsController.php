@@ -1981,13 +1981,13 @@ class EventsController extends AppController
             }
             if (!empty($this->data)) {
                 if (!isset($this->request->data['Event']['distribution'])) {
-                    $this->request->data['Event']['distribution'] = Configure::read('MISP.default_event_distribution') ? Configure::read('MISP.default_event_distribution') : 0;
+                    $this->request->data['Event']['distribution'] = Configure::read('MISP.default_event_distribution') ?: 0;
                 }
                 if (!isset($this->request->data['Event']['analysis'])) {
                     $this->request->data['Event']['analysis'] = 0;
                 }
                 if (!isset($this->request->data['Event']['threat_level_id'])) {
-                    $this->request->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : 4;
+                    $this->request->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ?: 4;
                 }
                 if (!isset($this->request->data['Event']['date'])) {
                     $this->request->data['Event']['date'] = date('Y-m-d');
