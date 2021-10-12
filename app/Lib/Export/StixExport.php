@@ -1,4 +1,6 @@
 <?php
+App::uses('JSONConverterTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
 
 abstract class StixExport
 {
@@ -19,7 +21,8 @@ abstract class StixExport
     private $__current_filename = null;
     private $__empty_file = null;
     private $__framing = null;
-    private $__stix_file = null;
+    /** @var TmpFileTool */
+    private $__stix_file;
     private $__tmp_file = null;
     private $__n_attributes = 0;
 
@@ -42,9 +45,9 @@ abstract class StixExport
                 $attributes_count += count($_object['Attribute']);
             }
         }
-        App::uses('JSONConverterTool', 'Tools');
+
         $converter = new JSONConverterTool();
-        $event = $converter->convert($data);
+        $event = json_encode($converter->convert($data, false, true)); // we don't need pretty printed JSON
         if ($this->__n_attributes + $attributes_count < $this->__attributes_limit) {
             $this->__tmp_file->append($this->__n_attributes == 0 ? $event : ',' . $event);
             $this->__n_attributes += $attributes_count;
@@ -77,10 +80,8 @@ abstract class StixExport
             $this->__return_format = 'xml';
         }
         $framing_cmd = $this->__initiate_framing_params();
-        $randomFileName = $this->__generateRandomFileName();
         $this->__framing = json_decode(shell_exec($framing_cmd), true);
-        $this->__stix_file = new File($this->__tmp_dir . $randomFileName . '.' . $this->__return_type);
-        unset($randomFileName);
+        $this->__stix_file = new TmpFileTool();
         $this->__stix_file->write($this->__framing['header']);
         $this->__initialize_misp_file();
         return '';
@@ -104,18 +105,16 @@ abstract class StixExport
             $error = $decoded && !empty($decoded['error']) ? $decoded['error'] : $result;
             return 'Error while processing your query: ' . $error;
         }
-        foreach ($this->__filenames as $f => $filename) {
+        foreach ($this->__filenames as $filename) {
             $file = new File($this->__tmp_dir . $filename . '.out');
             $stix_event = ($this->__return_type == 'stix') ? $file->read() : substr($file->read(), 1, -1);
             $file->close();
             $file->delete();
             @unlink($this->__tmp_dir . $filename);
-            $this->__stix_file->append($stix_event . $this->__framing['separator']);
+            $this->__stix_file->write($stix_event . $this->__framing['separator']);
             unset($stix_event);
         }
-        $stix_event = $this->__stix_file->read();
-        $this->__stix_file->close();
-        $this->__stix_file->delete();
+        $stix_event = $this->__stix_file->intoString();
         $sep_len = strlen($this->__framing['separator']);
         $stix_event = (empty($this->__filenames) ? $stix_event : substr($stix_event, 0, -$sep_len)) . $this->__framing['footer'];
         return $stix_event;
@@ -141,11 +140,9 @@ abstract class StixExport
 
     private function __delete_temporary_files()
     {
-        foreach ($this->__filenames as $f => $filename) {
+        foreach ($this->__filenames as $filename) {
             @unlink($this->__tmp_dir . $filename);
         }
-        $this->__stix_file->close();
-        $this->__stix_file->delete();
     }
 
     /**
