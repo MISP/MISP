@@ -3616,7 +3616,11 @@ class Attribute extends AppModel
                     $at['event_id'] = $eventId;
                     $toSave[] = $at;
                 }
-                $this->AttributeTag->saveMany($toSave, ['validate' => true]);
+                if (!$this->AttributeTag->saveMany($toSave, ['validate' => true])) {
+                    $this->log("Could not save tags when capturing attribute with ID {$this->id}.", LOG_WARNING);
+                } else if (!empty($this->AttributeTag->validationErrors)) {
+                    $this->log("Could not save some tags when capturing attribute with ID {$this->id}: " . json_encode($this->AttributeTag->validationErrors), LOG_WARNING);
+                }
             }
             if (isset($attribute['Tag'])) {
                 if (!empty($attribute['Tag']['name'])) {
