@@ -10,10 +10,11 @@ abstract class StixExport
     );
     protected $__return_format = 'json';
     protected $__scripts_dir = APP . 'files/scripts/';
-    protected $__tmp_dir = APP . 'files/scripts/tmp/';
     protected $__framing_script = APP . 'files/scripts/misp_framing.py';
     protected $__end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
     protected $__return_type = null;
+
+    /** @var array Full paths to files to convert */
     protected $__filenames = array();
     protected $__default_filters = null;
     protected $__version = null;
@@ -34,7 +35,7 @@ abstract class StixExport
 
     public function setDefaultFilters($filters)
     {
-        $sane_version = (!empty($filters['stix-version']) && in_array($filters['stix-version'], $this->__sane_versions));
+        $sane_version = !empty($filters['stix-version']) && in_array($filters['stix-version'], $this->__sane_versions, true);
         $this->__version = $sane_version ? $filters['stix-version'] : $this->__default_version;
     }
 
@@ -54,9 +55,8 @@ abstract class StixExport
             $this->__n_attributes += $attributes_count;
             $this->__empty_file = false;
         } elseif  ($attributes_count > $this->__attributes_limit) {
-            $randomFileName = $this->__generateRandomFileName();
-            FileAccessTool::writeToFile($this->__tmp_dir . $randomFileName, $event);
-            $this->__filenames[] = $randomFileName;
+            $filePath = FileAccessTool::writeToTempFile( $event);
+            $this->__filenames[] = $filePath;
         } else {
             $this->__tmp_file->append(']}');
             $this->__tmp_file->close();
@@ -71,9 +71,9 @@ abstract class StixExport
     public function header($options = array())
     {
         $this->__return_type = $options['returnFormat'];
-        if ($this->__return_type == 'stix-json') {
+        if ($this->__return_type === 'stix-json') {
             $this->__return_type = 'stix';
-        } else if ($this->__return_type == 'stix') {
+        } else if ($this->__return_type === 'stix') {
             $this->__return_format = 'xml';
         }
         $framing_cmd = $this->__initiate_framing_params();
@@ -85,7 +85,7 @@ abstract class StixExport
     }
 
     /**
-     * @return string|TmpFileTool
+     * @return TmpFileTool
      * @throws Exception
      */
     public function footer()
@@ -98,18 +98,16 @@ abstract class StixExport
             $this->__tmp_file->close();
             $this->__filenames[] = $this->__current_filename;
         }
-        $filenames = implode(' ' . $this->__tmp_dir, $this->__filenames);
-        $result = $this->__parse_misp_events($filenames);
+        $result = $this->__parse_misp_events($this->__filenames);
         $decoded = json_decode($result, true);
         if (!isset($decoded['success']) || !$decoded['success']) {
             $this->__delete_temporary_files();
             $error = $decoded && !empty($decoded['error']) ? $decoded['error'] : $result;
-            return 'Error while processing your query: ' . $error;
+            throw new Exception('Error while processing your query during STIX export: ' . $error);
         }
         foreach ($this->__filenames as $filename) {
-            $stix_event = FileAccessTool::readFromFile($this->__tmp_dir . $filename . '.out');
+            $stix_event = FileAccessTool::readAndDelete($filename . '.out');
             $stix_event = $this->__return_type === 'stix' ? $stix_event : substr($stix_event, 1, -1);
-            FileAccessTool::deleteFile($this->__tmp_dir . $filename . '.out');
             $this->__stix_file->writeWithSeparator($stix_event, $this->__framing['separator']);
         }
 
@@ -124,8 +122,8 @@ abstract class StixExport
 
     private function __initialize_misp_file()
     {
-        $this->__current_filename = $this->__generateRandomFileName();
-        $this->__tmp_file = new File($this->__tmp_dir . $this->__current_filename, true, 0644);
+        $this->__current_filename = FileAccessTool::createTempFile();
+        $this->__tmp_file = new File($this->__current_filename);
         $this->__tmp_file->write('{"response": [');
         $this->__empty_file = true;
     }
@@ -138,7 +136,7 @@ abstract class StixExport
     private function __delete_temporary_files()
     {
         foreach ($this->__filenames as $filename) {
-            @unlink($this->__tmp_dir . $filename);
+            FileAccessTool::deleteFileIfExists($filename);
         }
     }
 
@@ -153,7 +151,14 @@ abstract class StixExport
         return $this->Server->getPythonVersion();
     }
 
-    abstract protected function __parse_misp_events($filenames);
+    /**
+     * @param array $filenames Paths to files to process
+     * @return string|false|null
+     */
+    abstract protected function __parse_misp_events(array $filenames);
 
+    /**
+     * @return string
+     */
     abstract protected function __initiate_framing_params();
 }

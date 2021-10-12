@@ -49,6 +49,18 @@ class FileAccessTool
 
     /**
      * @param string $file
+     * @return string
+     * @throws Exception
+     */
+    public static function readAndDelete($file)
+    {
+        $content = self::readFromFile($file);
+        self::deleteFile($file);
+        return $content;
+    }
+
+    /**
+     * @param string $file
      * @param mixed $content
      * @param bool $createFolder
      * @throws Exception
