@@ -254,7 +254,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'title' => __('Soft delete attribute'),
                 'requirement' => $isSiteAdmin,
                 'complex_requirement' => [
-                    'function' => function ($object, $isSiteAdmin, $me) {
+                    'function' => function ($object) use ($isSiteAdmin, $me) {
                         return (
                             (
                                 $isSiteAdmin ||
@@ -272,7 +272,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'title' => __('Permanently delete attribute'),
                 'requirement' => $isSiteAdmin,
                 'complex_requirement' => [
-                    'function' => function ($object, $isSiteAdmin, $me) {
+                    'function' => function ($object) use ($isSiteAdmin, $me) {
                         return (
                             (
                                 $isSiteAdmin ||

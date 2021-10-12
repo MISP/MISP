@@ -14,7 +14,7 @@ $objectId = intval($attribute['id']);
             'attributeId' => $attribute['id'],
             'tags' => $attribute['AttributeTag'],
             'tagAccess' => ($isSiteAdmin || $mayModify),
-            'localTagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id')),
+            'localTagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id')),
             'context' => 'event',
             'scope' => 'attribute',
             'tagConflicts' => isset($attribute['tagConflicts']) ? $attribute['tagConflicts'] : array()
