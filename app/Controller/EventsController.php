@@ -1959,9 +1959,6 @@ class EventsController extends AppController
 
     public function add()
     {
-        if (!$this->userRole['perm_add']) {
-            throw new MethodNotAllowedException(__('You do not have permissions to create events.'));
-        }
         $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
@@ -1984,13 +1981,13 @@ class EventsController extends AppController
             }
             if (!empty($this->data)) {
                 if (!isset($this->request->data['Event']['distribution'])) {
-                    $this->request->data['Event']['distribution'] = Configure::read('MISP.default_event_distribution') ? Configure::read('MISP.default_event_distribution') : 0;
+                    $this->request->data['Event']['distribution'] = Configure::read('MISP.default_event_distribution') ?: 0;
                 }
                 if (!isset($this->request->data['Event']['analysis'])) {
                     $this->request->data['Event']['analysis'] = 0;
                 }
                 if (!isset($this->request->data['Event']['threat_level_id'])) {
-                    $this->request->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : 4;
+                    $this->request->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ?: 4;
                 }
                 if (!isset($this->request->data['Event']['date'])) {
                     $this->request->data['Event']['date'] = date('Y-m-d');
@@ -2031,11 +2028,8 @@ class EventsController extends AppController
                 $validationErrors = array();
                 $created_id = 0;
                 $add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '', null, false, null, $created_id, $validationErrors);
-                if ($add === true && !is_numeric($add)) {
+                if ($add === true) {
                     if ($this->_isRest()) {
-                        if ($add === 'blocked') {
-                            throw new ForbiddenException(__('Event blocked by local blocklist.'));
-                        }
                         // REST users want to see the newly created event
                         $metadata = $this->request->param('named.metadata');
                         $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $created_id, 'metadata' => $metadata]);
@@ -2056,6 +2050,15 @@ class EventsController extends AppController
                             $this->response->send();
                             throw new NotFoundException(__('Event already exists, if you would like to edit it, use the url in the location header.'));
                         }
+
+                        if ($add === 'blocked') {
+                            throw new ForbiddenException(__('Event blocked by organisation blocklist.'));
+                        } else if ($add === 'Blocked by blocklist') {
+                            throw new ForbiddenException(__('Event blocked by event blocklist.'));
+                        } else if ($add === 'Blocked by event block rules') {
+                            throw new ForbiddenException(__('Blocked by event block rules.'));
+                        }
+
                         // # TODO i18n?
                         return $this->RestResponse->saveFailResponse('Events', 'add', false, $validationErrors, $this->response->type());
                     } else {
@@ -2098,9 +2101,9 @@ class EventsController extends AppController
         }
 
         // combobox for risks
-        $threat_levels = $this->Event->ThreatLevel->find('all');
-        $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-        $fieldDesc['threat_level_id'] = Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.description');
+        $threat_levels = array_column($this->Event->ThreatLevel->find('all'), 'ThreatLevel');
+        $this->set('threatLevels', array_column($threat_levels, 'name', 'id'));
+        $fieldDesc['threat_level_id'] = array_column($threat_levels, 'description', 'id');
 
         // combobox for analysis
         $this->set('sharingGroups', $sgs);
@@ -2110,9 +2113,7 @@ class EventsController extends AppController
         foreach ($analysisLevels as $key => $value) {
             $fieldDesc['analysis'][$key] = $this->Event->analysisDescriptions[$key]['formdesc'];
         }
-        if (!$this->_isRest()) {
-            $this->Flash->info(__('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'));
-        }
+        $this->Flash->info(__('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'));
         $this->set('fieldDesc', $fieldDesc);
         if (isset($this->params['named']['extends'])) {
             $this->set('extends_uuid', $this->params['named']['extends']);
@@ -3692,11 +3693,7 @@ class EventsController extends AppController
     {
         if ($distribution === false) {
             if (Configure::read('MISP.default_attribute_distribution') != null) {
-                if (Configure::read('MISP.default_attribute_distribution') == 'event') {
-                    $distribution = 5;
-                } else {
-                    $distribution = Configure::read('MISP.default_attribute_distribution');
-                }
+                $distribution = $this->Event->Attribute->defaultDistribution();
             } else {
                 $distribution = 0;
             }

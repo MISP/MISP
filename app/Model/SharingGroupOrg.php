@@ -86,14 +86,9 @@ class SharingGroupOrg extends AppModel
     // pass a sharing group ID and an organisation ID, returns true if it has a matching attached organisation object
     public function checkIfAuthorised($id, $org_id)
     {
-        $sg = $this->find('first', array(
-                'conditions' => array('sharing_group_id' => $id, 'org_id' => $org_id),
-                'recursive' => -1,
-                'fields' => array('id'),
-        ));
-        if (!empty($sg)) {
-            return true;
-        }
-        return false;
+        return $this->hasAny([
+            'sharing_group_id' => $id,
+            'org_id' => $org_id,
+        ]);
     }
 }

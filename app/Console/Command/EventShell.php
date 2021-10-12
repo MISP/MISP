@@ -8,6 +8,7 @@ require_once 'AppShell.php';
  * @property Event $Event
  * @property Job $Job
  * @property Tag $Tag
+ * @property Server $Server
  */
 class EventShell extends AppShell
 {
@@ -279,8 +280,7 @@ class EventShell extends AppShell
 
     public function contactemail()
     {
-        $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
+        if (empty($this->args[0]) || empty($this->args[1]) || !isset($this->args[2]) ||
             empty($this->args[3]) || empty($this->args[4])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Contact email'] . PHP_EOL);
         }
@@ -289,11 +289,11 @@ class EventShell extends AppShell
         $message = $this->args[1];
         $all = $this->args[2];
         $userId = $this->args[3];
-        $processId = $this->args[4];
+        $jobId = $this->args[4];
 
         $user = $this->getUser($userId);
         $result = $this->Event->sendContactEmail($id, $message, $all, $user);
-        $this->Job->saveStatus($processId, $result);
+        $this->Job->saveStatus($jobId, $result);
     }
 
     public function postsemail()
@@ -522,17 +522,15 @@ class EventShell extends AppShell
 
     public function processfreetext()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process free text'] . PHP_EOL);
         }
 
         $inputFile = $this->args[0];
-        $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
-        $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
-        $inputData = $tempFile->read();
-        $inputData = json_decode($inputData, true);
-        $tempFile->delete();
+        $inputFile = $inputFile[0] === '/' ? $inputFile : APP . 'tmp/cache/ingest' . DS . $inputFile;
+        $inputData = FileAccessTool::readFromFile($inputFile);
+        $inputData = $this->Event->jsonDecode($inputData);
+        FileAccessTool::deleteFile($inputFile);
         Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processFreeTextData(
             $inputData['user'],
@@ -548,16 +546,15 @@ class EventShell extends AppShell
 
     public function processmoduleresult()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process module result'] . PHP_EOL);
         }
 
         $inputFile = $this->args[0];
-        $tempDir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
-        $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
-        $inputData = json_decode($tempFile->read(), true);
-        $tempFile->delete();
+        $inputFile = $inputFile[0] === '/' ? $inputFile : APP . 'tmp/cache/ingest' . DS . $inputFile;
+        $inputData = FileAccessTool::readFromFile($inputFile);
+        $inputData = $this->Event->jsonDecode($inputData);
+        FileAccessTool::deleteFile($inputFile);
         Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processModuleResultsData(
             $inputData['user'],
