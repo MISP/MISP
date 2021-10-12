@@ -5379,13 +5379,3 @@ $('td.rotate').hover(function() {
     var t = parseInt($(this).index()) + 1;
     $table.find('td:nth-child(' + t + ')').css('background-color', '');
 });
-
-$.ajaxSetup({
-    xhrFields: {
-        withCredentials: true
-    },
-    headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-    },
-});
-
