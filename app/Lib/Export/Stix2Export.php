@@ -11,16 +11,14 @@ class Stix2Export extends StixExport
 
     protected function __initiate_framing_params()
     {
-        $my_server = ClassRegistry::init('Server');
-        return $my_server->getPythonVersion() . ' ' . $this->__framing_script . ' stix2 -v ' . $this->__version . ' --uuid ' . escapeshellarg(CakeText::uuid()) . $this->__end_of_cmd;
+        return $this->pythonBin() . ' ' . $this->__framing_script . ' stix2 -v ' . $this->__version . ' --uuid ' . escapeshellarg(CakeText::uuid()) . $this->__end_of_cmd;
     }
 
     protected function __parse_misp_events($filenames)
     {
         $scriptFile = $this->__scripts_dir . $this->__script_name;
         $filenames = implode(' ' . $this->__tmp_dir, $this->__filenames);
-        $my_server = ClassRegistry::init('Server');
-        $result = shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . '-v ' . $this->__version . ' -i ' . $this->__tmp_dir . $filenames . $this->__end_of_cmd);
+        $result = shell_exec($this->pythonBin() . ' ' . $scriptFile . '-v ' . $this->__version . ' -i ' . $this->__tmp_dir . $filenames . $this->__end_of_cmd);
         $result = preg_split("/\r\n|\n|\r/", trim($result));
         return end($result);
     }

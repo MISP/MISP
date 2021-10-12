@@ -1,6 +1,6 @@
 <?php
 
-class StixExport
+abstract class StixExport
 {
     public $additional_params = array(
         'includeEventTags' => 1,
@@ -25,6 +25,8 @@ class StixExport
 
     public $non_restrictive_export = true;
     public $use_default_filters = true;
+
+    private $Server;
 
     public function setDefaultFilters($filters)
     {
@@ -144,5 +146,16 @@ class StixExport
         }
         $this->__stix_file->close();
         $this->__stix_file->delete();
+    }
+
+    /**
+     * @return string
+     */
+    protected function pythonBin()
+    {
+        if (!isset($this->Server)) {
+            $this->Server = ClassRegistry::init('Server');
+        }
+        return $this->Server->getPythonVersion();
     }
 }
