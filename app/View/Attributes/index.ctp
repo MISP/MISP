@@ -133,14 +133,23 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'url_params_data_paths' => [
                     'Attribute.id'
                 ],
-                'icon' => 'comment'
+                'icon' => 'comment',
+                'complex_requirement' => [
+                    'function' => function ($object) use ($isSiteAdmin, $me) {
+                        return $isSiteAdmin || ($object['Event']['orgc_id'] !== $me['org_id']);
+                    }
+                ]
             ],
             [
                 'onclick' => "deleteObject('shadow_attributes', 'delete', '[onclick_params_data_path]');",
                 'onclick_params_data_path' => 'Attribute.id',
                 'icon' => 'trash',
                 'title' => __('Propose deletion'),
-                'requirement' => $isSiteAdmin,
+                'complex_requirement' => [
+                    'function' => function ($object) use ($isSiteAdmin, $me) {
+                        return $isSiteAdmin || ($object['Event']['orgc_id'] !== $me['org_id']);
+                    }
+                ]
             ],
             [
                 'title' => __('Propose enrichment'),
@@ -148,8 +157,12 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/ShadowAttribute\');',
                 'onclick_params_data_path' => 'Attribute.id',
                 'complex_requirement' => [
-                    'function' => function ($object) use ($modules) {
-                        return isset($modules) && isset($object['Attribute']['type']);
+                    'function' => function ($object) use ($modules, $isSiteAdmin, $me) {
+                        return (
+                            ($isSiteAdmin || ($object['Event']['orgc_id'] !== $me['org_id'])) &&
+                            isset($cortex_modules) &&
+                            isset($cortex_modules['types'][$object['type']])
+                        );
                     },
                     'options' => [
                         'datapath' => [
@@ -164,8 +177,12 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/ShadowAttribute/Cortex\');',
                 'onclick_params_data_path' => 'Attribute.id',
                 'complex_requirement' => [
-                    'function' => function ($object) use ($cortex_modules) {
-                        return isset($cortex_modules) && isset($cortex_modules['types'][$object['type']]);
+                    'function' => function ($object) use ($cortex_modules, $isSiteAdmin, $me) {
+                        return (
+                            ($isSiteAdmin || ($object['Event']['orgc_id'] !== $me['org_id'])) &&
+                            isset($cortex_modules) &&
+                            isset($cortex_modules['types'][$object['type']])
+                        );
                     },
                     'options' => [
                         'datapath' => [
@@ -175,7 +192,8 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 ],
             ],
             [
-                'icon' => 'grip-lines-vertical'
+                'icon' => 'grip-lines-vertical',
+                'requirement' => $isSiteAdmin
             ],
             [
                 'title' => __('Add enrichment'),
@@ -183,8 +201,12 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Attribute\');',
                 'onclick_params_data_path' => 'Attribute.id',
                 'complex_requirement' => [
-                    'function' => function ($object) use ($modules) {
-                        return isset($modules) && isset($object['Attribute']['type']);
+                    'function' => function ($object) use ($modules, $isSiteAdmin, $me) {
+                        return (
+                            ($isSiteAdmin || ($object['Event']['orgc_id'] === $me['org_id'])) &&
+                            isset($cortex_modules) &&
+                            isset($cortex_modules['types'][$object['type']])
+                        );
                     },
                     'options' => [
                         'datapath' => [
@@ -199,8 +221,12 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Attribute/Cortex\');',
                 'onclick_params_data_path' => 'Attribute.id',
                 'complex_requirement' => [
-                    'function' => function ($object) use ($cortex_modules) {
-                        return isset($cortex_modules) && isset($cortex_modules['types'][$object['type']]);
+                    'function' => function ($object) use ($cortex_modules, $isSiteAdmin, $me) {
+                        return (
+                            ($isSiteAdmin || ($object['Event']['orgc_id'] === $me['org_id'])) &&
+                            isset($cortex_modules) &&
+                            isset($cortex_modules['types'][$object['type']])
+                        );
                     },
                     'options' => [
                         'datapath' => [
@@ -214,7 +240,12 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'url_params_data_paths' => [
                     'Attribute.id'
                 ],
-                'icon' => 'edit'
+                'icon' => 'edit',
+                'complex_requirement' => [
+                    'function' => function ($object) use ($isSiteAdmin, $me) {
+                        return $isSiteAdmin || ($object['Event']['orgc_id'] === $me['org_id']);
+                    }
+                ]
             ],
             [
                 'onclick' => "deleteObject('attributes', 'delete', '[onclick_params_data_path]');",
@@ -223,8 +254,14 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'title' => __('Soft delete attribute'),
                 'requirement' => $isSiteAdmin,
                 'complex_requirement' => [
-                    'function' => function ($object) {
-                        return !empty($object['Event']['publish_timestamp']);
+                    'function' => function ($object, $isSiteAdmin, $me) {
+                        return (
+                            (
+                                $isSiteAdmin ||
+                                $object['Event']['orgc_id'] !== $me['org_id'])
+                            ) &&
+                            !empty($object['Event']['publish_timestamp']
+                        );
                     },
                 ]
             ],
@@ -235,8 +272,14 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'title' => __('Permanently delete attribute'),
                 'requirement' => $isSiteAdmin,
                 'complex_requirement' => [
-                    'function' => function ($object) {
-                        return empty($object['Event']['publish_timestamp']);
+                    'function' => function ($object, $isSiteAdmin, $me) {
+                        return (
+                            (
+                                $isSiteAdmin ||
+                                $object['Event']['orgc_id'] !== $me['org_id'])
+                            ) &&
+                            empty($object['Event']['publish_timestamp']
+                        );
                     },
                 ]
             ]
