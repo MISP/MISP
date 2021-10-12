@@ -1,7 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
-App::uses('RandomTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
 App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
@@ -4544,14 +4544,8 @@ class Event extends AppModel
 
             $command = ['publish_sightings', $id, $passAlong, $jobId, $user['id']];
             if (!empty($sightingUuids)) {
-                $randomFileName = $this->generateRandomFileName() . '.json';
-                App::uses('File', 'Utility');
-                $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $randomFileName, true, 0644);
-                $writeResult = $tempFile->write(json_encode($sightingUuids));
-                if (!$writeResult) {
-                    throw new Exception("Could not write file content");
-                }
-                $command[] = $randomFileName;
+                $filePath = FileAccessTool::writeToTempFile(json_encode($sightingUuids));
+                $command[] = $filePath;
             }
 
             $processId = CakeResque::enqueue(Job::WORKER_PRIO, 'EventShell', $command, true);
