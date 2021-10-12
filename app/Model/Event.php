@@ -3837,7 +3837,11 @@ class Event extends AppModel
                     $et['event_id'] = $this->id;
                     $toSave[] = $et;
                 }
-                $this->EventTag->saveMany($toSave, ['validate' => true]);
+                if (!$this->EventTag->saveMany($toSave, ['validate' => true])) {
+                    $this->log("Could not save tags when capturing event with ID {$this->id}.", LOG_WARNING);
+                } else if (!empty($this->EventTag->validationErrors)) {
+                    $this->log("Could not save some tags when capturing event with ID {$this->id}: " . json_encode($this->EventTag->validationErrors), LOG_WARNING);
+                }
             }
             $parentEvent = $this->find('first', array(
                 'conditions' => array('Event.id' => $this->id),
