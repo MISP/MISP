@@ -23,6 +23,7 @@ abstract class StixExport
     private $__framing = null;
     /** @var TmpFileTool */
     private $__stix_file;
+    /** @var File */
     private $__tmp_file = null;
     private $__n_attributes = 0;
 
@@ -83,6 +84,10 @@ abstract class StixExport
         return '';
     }
 
+    /**
+     * @return string|TmpFileTool
+     * @throws Exception
+     */
     public function footer()
     {
         if ($this->__empty_file) {
@@ -105,13 +110,11 @@ abstract class StixExport
             $stix_event = FileAccessTool::readFromFile($this->__tmp_dir . $filename . '.out');
             $stix_event = $this->__return_type === 'stix' ? $stix_event : substr($stix_event, 1, -1);
             FileAccessTool::deleteFile($this->__tmp_dir . $filename . '.out');
-            $this->__stix_file->write($stix_event . $this->__framing['separator']);
-            unset($stix_event);
+            $this->__stix_file->writeWithSeparator($stix_event, $this->__framing['separator']);
         }
-        $stix_event = $this->__stix_file->intoString();
-        $sep_len = strlen($this->__framing['separator']);
-        $stix_event = (empty($this->__filenames) ? $stix_event : substr($stix_event, 0, -$sep_len)) . $this->__framing['footer'];
-        return $stix_event;
+
+        $this->__stix_file->write($this->__framing['footer']);
+        return $this->__stix_file;
     }
 
     public function separator()
