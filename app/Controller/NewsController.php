@@ -1,16 +1,16 @@
 <?php
-App::uses('AppController', 'Controller');
+App::uses('AppController', 'Controller', 'CRUD');
 
 class NewsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
 
     public $paginate = array(
-            'limit' => 5,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
-            'order' => array(
-                'News.id' => 'DESC'
-            ),
+        'limit' => 5,
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'order' => array(
+            'News.id' => 'DESC'
+        ),
     );
 
     public function index()
@@ -69,22 +69,15 @@ class NewsController extends AppController
             $this->request->data = $this->News->read(null, $id);
             $this->set('newsItem', $this->request->data);
         }
+        $this->render('add');
     }
 
     public function delete($id)
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
+        $this->defaultModel = 'News';
+        $this->CRUD->delete($id);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        $this->News->id = $id;
-        if (!$this->News->exists()) {
-            throw new NotFoundException('Invalid news item');
-        }
-        if ($this->News->delete()) {
-            $this->Flash->success(__('News item deleted.'));
-            $this->redirect(array('action' => 'index'));
-        }
-        $this->Flash->error(__('News item could not be deleted.'));
-        $this->redirect(array('action' => 'index'));
     }
 }
