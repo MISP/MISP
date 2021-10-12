@@ -128,11 +128,6 @@ abstract class StixExport
         $this->__empty_file = true;
     }
 
-    private function __generateRandomFileName()
-    {
-        return (new RandomTool())->random_str(false, 12);
-    }
-
     private function __delete_temporary_files()
     {
         foreach ($this->__filenames as $filename) {
