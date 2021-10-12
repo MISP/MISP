@@ -1135,7 +1135,7 @@ function loadAttributeTags(id) {
         dataType:"html",
         cache: false,
         success:function (data) {
-            $("#Attribute_"+id+"_tr .attributeTagContainer").html(data);
+            $("#Attribute_"+id+".attributeTagContainer").html(data);
         },
         error: xhrFailCallback,
         url: baseurl + "/tags/showAttributeTag/" + id

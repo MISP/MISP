@@ -101,6 +101,7 @@ class AttributesController extends AppController
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+        $this->set('distributionLevels', $this->Attribute->distributionLevels);
     }
 
     public function add($eventId = false)
@@ -1640,6 +1641,7 @@ class AttributesController extends AppController
             $this->set('isSearch', 1);
             $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
             $this->set('shortDist', $this->Attribute->shortDist);
+            $this->set('distributionLevels', $this->Attribute->distributionLevels);
             $this->render('index');
         }
         if (isset($attributeTags)) {
