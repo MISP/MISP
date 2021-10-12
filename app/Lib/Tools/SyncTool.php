@@ -38,7 +38,7 @@ class SyncTool
         return $this->createHttpSocket($params);
     }
 
-    public function setupHttpSocketFeed($feed = null)
+    public function setupHttpSocketFeed()
     {
         return $this->createHttpSocket(['compress' => true]);
     }

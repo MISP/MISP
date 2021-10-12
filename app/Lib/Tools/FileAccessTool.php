@@ -4,13 +4,16 @@ class FileAccessTool
 {
     /**
      * Creates temporary file, but you have to delete it after use.
-     * @param string $dir
+     * @param string|null $dir
      * @param string $prefix
      * @return string
      * @throws Exception
      */
-    public static function createTempFile($dir, $prefix = 'MISP')
+    public static function createTempFile($dir = null, $prefix = 'MISP')
     {
+        if ($dir === null) {
+            $dir = Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
+        }
         $tempFile = tempnam($dir, $prefix);
         if ($tempFile === false) {
             throw new Exception("An error has occurred while attempt to create a temporary file in path `$dir`.");
@@ -26,10 +29,20 @@ class FileAccessTool
      */
     public static function readFromFile($file, $fileSize = -1)
     {
-        $fileSize = $fileSize === -1 ? null : $fileSize;
-        $content = file_get_contents($file, false, null, 0, $fileSize);
+        if ($fileSize === -1) {
+            $content = file_get_contents($file);
+        } else {
+            $content = file_get_contents($file, false, null, 0, $fileSize);
+        }
         if ($content === false) {
-            throw new Exception("An error has occurred while attempt to read file `$file`.");
+            if (!file_exists($file)) {
+                $message = "file doesn't exists";
+            } else if (!is_readable($file)) {
+                $message = "file is not readable";
+            } else {
+                $message = 'unknown error';
+            }
+            throw new Exception("An error has occurred while attempt to read file `$file`: $message.");
         }
         return $content;
     }
@@ -37,13 +50,39 @@ class FileAccessTool
     /**
      * @param string $file
      * @param mixed $content
+     * @param bool $createFolder
      * @throws Exception
      */
-    public static function writeToFile($file, $content)
+    public static function writeToFile($file, $content, $createFolder = false)
     {
-        if (file_put_contents($file, $content, LOCK_EX) === false) {
-            throw new Exception("An error has occurred while attempt to write to file `$file`.");
+        $dir = dirname($file);
+        if ($createFolder && !is_dir($dir)) {
+            if (!mkdir($dir, 0766, true)) {
+                throw new Exception("An error has occurred while attempt to create directory `$dir`.");
+            }
         }
+
+        if (file_put_contents($file, $content, LOCK_EX) === false) {
+            $freeSpace = disk_free_space($dir);
+            throw new Exception("An error has occurred while attempt to write to file `$file`. Maybe not enough space? ($freeSpace bytes left)");
+        }
+    }
+
+    /**
+     * @param mixed $content
+     * @param string|null $dir
+     * @return string Path to temp file
+     * @throws Exception
+     */
+    public static function writeToTempFile($content, $dir = null)
+    {
+        $tempFile = self::createTempFile($dir);
+        if (file_put_contents($tempFile, $content) === false) {
+            self::deleteFile($tempFile);
+            $freeSpace = disk_free_space(dirname($tempFile));
+            throw new Exception("An error has occurred while attempt to write to file `$tempFile`. Maybe not enough space? ($freeSpace bytes left)");
+        }
+        return $tempFile;
     }
 
     /**
