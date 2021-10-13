@@ -2189,14 +2189,11 @@ class EventsController extends AppController
     public function upload_stix($stix_version = '1')
     {
         if ($this->request->is('post')) {
-            $scriptDir = APP . 'files' . DS . 'scripts';
             if ($this->_isRest()) {
-                $randomFileName = $this->Event->generateRandomFileName();
-                FileAccessTool::writeToFile($scriptDir . DS . 'tmp' . DS . $randomFileName, $this->request->input());
+                $filePath = FileAccessTool::writeToTempFile($this->request->input());
                 $result = $this->Event->upload_stix(
                     $this->Auth->user(),
-                    $scriptDir,
-                    $randomFileName,
+                    $filePath,
                     $stix_version,
                     'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
                     false
@@ -2214,14 +2211,13 @@ class EventsController extends AppController
             } else {
                 $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
                 if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
-                    $randomFileName = $this->Event->generateRandomFileName();
-                    if (!move_uploaded_file($this->data['Event']['stix']['tmp_name'], $scriptDir . DS . 'tmp' . DS . $randomFileName)) {
+                    $filePath = FileAccessTool::createTempFile();
+                    if (!move_uploaded_file($this->data['Event']['stix']['tmp_name'], $filePath)) {
                         throw new Exception("Could not move uploaded STIX file.");
                     }
                     $result = $this->Event->upload_stix(
                         $this->Auth->user(),
-                        $scriptDir,
-                        $randomFileName,
+                        $filePath,
                         $stix_version,
                         $original_file,
                         $this->data['Event']['publish']

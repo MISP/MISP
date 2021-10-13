@@ -1540,7 +1540,7 @@ def is_from_misp(event):
 
 
 def main(args):
-    filename = '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
+    filename = args[1] if args[1][0] == '/' else '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
     event = generate_event(filename)
     from_misp = is_from_misp(event)
     stix_parser = StixFromMISPParser() if from_misp else ExternalStixParser()
