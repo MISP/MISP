@@ -2192,11 +2192,7 @@ class EventsController extends AppController
             $scriptDir = APP . 'files' . DS . 'scripts';
             if ($this->_isRest()) {
                 $randomFileName = $this->Event->generateRandomFileName();
-                $tempFile = new File($scriptDir . DS . 'tmp' . DS . $randomFileName, true, 0644);
-                if (!$tempFile->write($this->request->input())) {
-                    throw new Exception("Could not write content of STIX file.");
-                }
-                $tempFile->close();
+                FileAccessTool::writeToFile($scriptDir . DS . 'tmp' . DS . $randomFileName, $this->request->input());
                 $result = $this->Event->upload_stix(
                     $this->Auth->user(),
                     $scriptDir,

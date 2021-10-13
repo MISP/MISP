@@ -5892,15 +5892,11 @@ class Event extends AppModel
         $tempFile = file_get_contents($tempFilePath);
         unlink($tempFilePath);
         if ($result === '1') {
-            $data = file_get_contents($output_path);
-            if ($data === false) {
-                throw new Exception("Could not get content of `$output_path` file.");
-            }
+            $data = FileAccessTool::readAndDelete($output_path);
             $data = $this->jsonDecode($data);
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
-            unlink($output_path);
             $created_id = false;
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
