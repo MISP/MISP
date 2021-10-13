@@ -5884,9 +5884,7 @@ class Event extends AppModel
         }
         $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution'));
         $synonymsToTagNames = $this->__getTagNamesFromSynonyms($scriptDir);
-        if ($synonymsToTagNames) {
-            $shell_command .= ' ' . $synonymsToTagNames;
-        }
+        $shell_command .= ' ' . $synonymsToTagNames;
         $shell_command .= ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $result = shell_exec($shell_command);
         $result = preg_split("/\r\n|\n|\r/", trim($result));
@@ -5936,11 +5934,16 @@ class Event extends AppModel
         return $response;
     }
 
+    /**
+     * @param string $scriptDir
+     * @return string
+     * @throws Exception
+     */
     private function __getTagNamesFromSynonyms($scriptDir)
     {
         $synonymsToTagNames = $scriptDir . DS . 'tmp' . DS . 'synonymsToTagNames.json';
         if (!file_exists($synonymsToTagNames) || (time() - filemtime($synonymsToTagNames)) > 600) {
-            if (empty($this->GalaxyCluster)) {
+            if (!isset($this->GalaxyCluster)) {
                 $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
             }
             $clusters = $this->GalaxyCluster->find('all', array(
@@ -5959,21 +5962,19 @@ class Event extends AppModel
                 'conditions' => array('key' => 'synonyms')
             ));
             $idToSynonyms = array();
-            foreach($synonyms as $synonym) {
+            foreach ($synonyms as $synonym) {
                 $idToSynonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym['GalaxyElement']['value'];
             }
             $mapping = array();
-            foreach($clusters as $cluster) {
+            foreach ($clusters as $cluster) {
                 $mapping[$cluster['GalaxyCluster']['value']][] = $cluster['GalaxyCluster']['tag_name'];
                 if (!empty($idToSynonyms[$cluster['GalaxyCluster']['id']])) {
-                    foreach($idToSynonyms[$cluster['GalaxyCluster']['id']] as $synonym) {
+                    foreach ($idToSynonyms[$cluster['GalaxyCluster']['id']] as $synonym) {
                         $mapping[$synonym][] = $cluster['GalaxyCluster']['tag_name'];
                     }
                 }
             }
-            $file = new File($synonymsToTagNames, true, 0644);
-            $file->write(json_encode($mapping));
-            $file->close();
+            FileAccessTool::writeToFile($synonymsToTagNames, json_encode($mapping));
         }
         return $synonymsToTagNames;
     }
