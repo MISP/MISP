@@ -3915,7 +3915,7 @@ class Attribute extends AppModel
         }
         App::uses($this->validFormats[$returnFormat][1], 'Export');
         $exportTool = new $this->validFormats[$returnFormat][1]();
-        if (!empty($exportTool->use_default_filters)) {
+        if (method_exists($exportTool, 'setDefaultFilters')) {
             $exportTool->setDefaultFilters($filters);
         }
         if (empty($exportTool->non_restrictive_export)) {
