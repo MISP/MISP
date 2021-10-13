@@ -29,7 +29,6 @@ abstract class StixExport
     private $__n_attributes = 0;
 
     public $non_restrictive_export = true;
-    public $use_default_filters = true;
 
     private $Server;
 
