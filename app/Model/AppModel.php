@@ -3168,23 +3168,6 @@ class AppModel extends Model
     }
 
     /**
-     * Generates random file name in tmp dir.
-     * @return string
-     */
-    protected function tempFileName()
-    {
-        return $this->tempDir() . DS . $this->generateRandomFileName();
-    }
-
-    /**
-     * @return string
-     */
-    protected function tempDir()
-    {
-        return Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
-    }
-
-    /**
      * Decodes JSON string and throws exception if string is not valid JSON or if is not array.
      *
      * @param string $json

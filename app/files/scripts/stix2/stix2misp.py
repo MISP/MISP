@@ -2061,7 +2061,7 @@ def from_misp(stix_objects):
 
 
 def main(args):
-    filename = Path(os.path.dirname(args[0]), args[1])
+    filename = args[1] if args[1][0] == '/' else Path(os.path.dirname(args[0]), args[1])
     with open(filename, 'rt', encoding='utf-8') as f:
         event = stix2.parse(f.read(), allow_custom=True, interoperability=True)
     stix_parser = StixFromMISPParser() if from_misp(event.objects) else ExternalStixParser()
