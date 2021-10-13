@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::uses('FileAccessTool', 'Tools');
 App::uses('AttachmentTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
 
@@ -5865,6 +5866,7 @@ class Event extends AppModel
      * @return int|string|array
      * @throws JsonException
      * @throws InvalidArgumentException
+     * @throws Exception
      */
     public function upload_stix(array $user, $file, $stix_version, $original_file, $publish)
     {
@@ -5970,7 +5972,7 @@ class Event extends AppModel
                     }
                 }
             }
-            FileAccessTool::writeToFile($synonymsToTagNames, json_encode($mapping));
+            FileAccessTool::writeToFile($synonymsToTagNames, JsonTool::encode($mapping));
         }
         return $synonymsToTagNames;
     }
@@ -6773,7 +6775,7 @@ class Event extends AppModel
             );
 
             try {
-                $filePath = FileAccessTool::writeToTempFile(json_encode($tempData));
+                $filePath = FileAccessTool::writeToTempFile(JsonTool::encode($tempData));
                 $process_id = CakeResque::enqueue(
                     Job::WORKER_PRIO,
                     'EventShell',
@@ -6805,7 +6807,7 @@ class Event extends AppModel
             );
 
             try {
-                $filePath = FileAccessTool::writeToTempFile(json_encode($tempData));
+                $filePath = FileAccessTool::writeToTempFile(JsonTool::encode($tempData));
                 $process_id = CakeResque::enqueue(
                     Job::WORKER_PRIO,
                     'EventShell',
