@@ -1,5 +1,4 @@
 <?php
-
 App::uses('StixExport', 'Export');
 
 class Stix2Export extends StixExport
@@ -7,7 +6,6 @@ class Stix2Export extends StixExport
     protected $__attributes_limit = 15000;
     protected $__default_version = '2.0';
     protected $__sane_versions = array('2.0', '2.1');
-    private $__script_name = 'stix2/misp2stix2.py ';
 
     protected function __initiate_framing_params()
     {
@@ -16,9 +14,9 @@ class Stix2Export extends StixExport
 
     protected function __parse_misp_events(array $filenames)
     {
-        $scriptFile = $this->__scripts_dir . $this->__script_name;
+        $scriptFile = $this->__scripts_dir . 'stix2/misp2stix2.py';
         $filenames = implode(' ', $filenames);
-        $result = shell_exec($this->pythonBin() . ' ' . $scriptFile . '-v ' . $this->__version . ' -i ' . $filenames . $this->__end_of_cmd);
+        $result = shell_exec($this->pythonBin() . ' ' . $scriptFile . ' -v ' . $this->__version . ' -i ' . $filenames . $this->__end_of_cmd);
         $result = preg_split("/\r\n|\n|\r/", trim($result));
         return end($result);
     }

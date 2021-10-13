@@ -16,14 +16,10 @@ abstract class StixExport
 
     /** @var array Full paths to files to convert */
     protected $__filenames = array();
-    protected $__default_filters = null;
     protected $__version = null;
 
     private $__current_filename = null;
     private $__empty_file = null;
-    private $__framing = null;
-    /** @var TmpFileTool */
-    private $__stix_file;
     /** @var File */
     private $__tmp_file = null;
     private $__n_attributes = 0;
@@ -40,21 +36,21 @@ abstract class StixExport
 
     public function handler($data, $options = array())
     {
-        $attributes_count = count($data['Attribute']);
-        foreach ($data['Object'] as $_object) {
-            if (isset($_object['Attribute'])) {
-                $attributes_count += count($_object['Attribute']);
+        $attributesCount = count($data['Attribute']);
+        foreach ($data['Object'] as $object) {
+            if (isset($object['Attribute'])) {
+                $attributesCount += count($object['Attribute']);
             }
         }
 
         $converter = new JSONConverterTool();
         $event = json_encode($converter->convert($data, false, true)); // we don't need pretty printed JSON
-        if ($this->__n_attributes + $attributes_count < $this->__attributes_limit) {
+        if ($this->__n_attributes + $attributesCount < $this->__attributes_limit) {
             $this->__tmp_file->append($this->__n_attributes === 0 ? $event : ',' . $event);
-            $this->__n_attributes += $attributes_count;
+            $this->__n_attributes += $attributesCount;
             $this->__empty_file = false;
-        } elseif  ($attributes_count > $this->__attributes_limit) {
-            $filePath = FileAccessTool::writeToTempFile( $event);
+        } elseif  ($attributesCount > $this->__attributes_limit) {
+            $filePath = FileAccessTool::writeToTempFile($event);
             $this->__filenames[] = $filePath;
         } else {
             $this->__tmp_file->append(']}');
@@ -62,7 +58,7 @@ abstract class StixExport
             $this->__filenames[] = $this->__current_filename;
             $this->__initialize_misp_file();
             $this->__tmp_file->append($event);
-            $this->__n_attributes = $attributes_count;
+            $this->__n_attributes = $attributesCount;
         }
         return '';
     }
@@ -75,10 +71,6 @@ abstract class StixExport
         } else if ($this->__return_type === 'stix') {
             $this->__return_format = 'xml';
         }
-        $framing_cmd = $this->__initiate_framing_params();
-        $this->__framing = json_decode(shell_exec($framing_cmd), true);
-        $this->__stix_file = new TmpFileTool();
-        $this->__stix_file->write($this->__framing['header']);
         $this->__initialize_misp_file();
         return '';
     }
@@ -104,14 +96,18 @@ abstract class StixExport
             $error = $decoded && !empty($decoded['error']) ? $decoded['error'] : $result;
             throw new Exception('Error while processing your query during STIX export: ' . $error);
         }
-        foreach ($this->__filenames as $filename) {
-            $stix_event = FileAccessTool::readAndDelete($filename . '.out');
-            $stix_event = $this->__return_type === 'stix' ? $stix_event : substr($stix_event, 1, -1);
-            $this->__stix_file->writeWithSeparator($stix_event, $this->__framing['separator']);
-        }
 
-        $this->__stix_file->write($this->__framing['footer']);
-        return $this->__stix_file;
+        $framing = $this->getFraming();
+
+        $stixFile = new TmpFileTool();
+        $stixFile->write($framing['header']);
+        foreach ($this->__filenames as $filename) {
+            $stixEvent = FileAccessTool::readAndDelete($filename . '.out');
+            $stixEvent = $this->__return_type === 'stix' ? $stixEvent : substr($stixEvent, 1, -1);
+            $stixFile->writeWithSeparator($stixEvent, $framing['separator']);
+        }
+        $stixFile->write($framing['footer']);
+        return $stixFile;
     }
 
     public function separator()
@@ -132,6 +128,20 @@ abstract class StixExport
         foreach ($this->__filenames as $filename) {
             FileAccessTool::deleteFileIfExists($filename);
         }
+    }
+
+    /**
+     * @return array
+     * @throws Exception
+     */
+    private function getFraming()
+    {
+        $framingCmd = $this->__initiate_framing_params();
+        $framing = json_decode(shell_exec($framingCmd), true);
+        if ($framing === null || isset($framing['error'])) {
+            throw new Exception("Could not get results from framing cmd when exporting STIX file.");
+        }
+        return $framing;
     }
 
     /**
