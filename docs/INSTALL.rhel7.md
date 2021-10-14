@@ -219,6 +219,7 @@ installCoreRHEL7 () {
   cd $PATH_TO_MISP
 
   # Fetch submodules
+  $SUDO_WWW git submodule sync
   $SUDO_WWW git submodule update --init --recursive
   # Make git ignore filesystem permission differences for submodules
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
