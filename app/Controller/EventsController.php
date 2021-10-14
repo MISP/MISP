@@ -383,14 +383,18 @@ class EventsController extends AppController
                         continue 2;
                     }
 
+                    $this->Event->Org->virtualFields = [
+                        'upper_name' => 'UPPER(name)',
+                        'lower_uuid' => 'LOWER(name)',
+                    ];
                     $orgs = array_column($this->Event->Org->find('all', [
-                        'fields' => ['Org.id', 'UPPER(Org.name)', 'LOWER(Org.uuid)'],
+                        'fields' => ['Org.id', 'Org.upper_name', 'Org.lower_uuid'],
                         'recursive' => -1,
                     ]), 'Org');
-
-                    $orgByName = array_column($orgs, null, 'name');
-                    $orgByUuid = array_column($orgs, null, 'uuid');
-
+                    unset($this->Event->Org->virtualFields['upper_name']);
+                    unset($this->Event->Org->virtualFields['lower_uuid']);
+                    $orgByName = array_column($orgs, null, 'upper_name');
+                    $orgByUuid = array_column($orgs, null, 'lower_uuid');
                     // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
                     $pieces = is_array($v) ? $v : explode('|', $v);
                     $test = array();
