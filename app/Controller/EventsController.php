@@ -392,8 +392,8 @@ class EventsController extends AppController
                         'recursive' => -1,
                     ]), 'Org');
                     $this->Event->Org->virtualFields = [];
-                    $orgByName = array_column($orgs, null, 'upper_name');
-                    $orgByUuid = array_column($orgs, null, 'lower_uuid');
+                    $orgByName = array_column($orgs, 'id', 'upper_name');
+                    $orgByUuid = array_column($orgs, 'id', 'lower_uuid');
                     // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
                     $pieces = is_array($v) ? $v : explode('|', $v);
                     $test = array();
@@ -403,10 +403,10 @@ class EventsController extends AppController
                             if (is_numeric($piece)) {
                                 $orgId = $piece;
                             } else if (Validation::uuid($piece)) {
-                                $orgId = isset($orgByUuid[$piece]) ? $orgByUuid[$piece]['id'] : null;
+                                $orgId = isset($orgByUuid[$piece]) ? $orgByUuid[$piece] : null;
                             } else {
                                 $orgName = mb_strtoupper($piece);
-                                $orgId = isset($orgByName[$orgName]) ? $orgByName[$orgName]['id'] : null;
+                                $orgId = isset($orgByName[$orgName]) ? $orgByName[$orgName] : null;
                             }
                             if ($orgId) {
                                 $this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => $orgId);
@@ -416,10 +416,10 @@ class EventsController extends AppController
                                 $test['OR'][] = array('Event.orgc_id' => array('Event.orgc_id' => $piece));
                             } else {
                                 if (Validation::uuid($piece)) {
-                                    $orgId = isset($orgByUuid[$piece]) ? $orgByUuid[$piece]['id'] : null;
+                                    $orgId = isset($orgByUuid[$piece]) ? $orgByUuid[$piece] : null;
                                 } else {
                                     $orgName = mb_strtoupper($piece);
-                                    $orgId = isset($orgByName[$orgName]) ? $orgByName[$orgName]['id'] : null;
+                                    $orgId = isset($orgByName[$orgName]) ? $orgByName[$orgName] : null;
                                 }
                                 if ($orgId) {
                                     $test['OR'][] = array('Event.orgc_id' => $orgId);
