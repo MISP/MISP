@@ -152,6 +152,25 @@ class TestComprehensive(unittest.TestCase):
 
         self.user_misp_connector.delete_event(event)
 
+    def test_search_index_by_email_admin(self):
+        index = self.user_misp_connector.search_index(email="no_existing_exmail@example.com")
+        self.assertEqual(len(index), 0, index)
+
+        index = self.user_misp_connector.search_index(email=self.test_usr.email)
+        self.assertEqual(len(index), 0, index)
+
+        event = create_simple_event()
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        index = self.user_misp_connector.search_index(email=self.test_usr.email)
+        self.assertEqual(len(index), 1, index)
+
+        index = self.user_misp_connector.search_index(email="testusr@user")
+        self.assertEqual(len(index), 1, index)
+
+        self.user_misp_connector.delete_event(event)
+
     def test_search_index_minimal(self):
         # pythonify is not supported for minimal results
         self.user_misp_connector.global_pythonify = False
