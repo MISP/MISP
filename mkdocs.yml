@@ -76,7 +76,7 @@ nav:
       - 'Warning': 'xINSTALL.md'
       - 'Debian 10': 'xINSTALL.debian10.md'
       - 'Tsurugi Linux': 'xINSTALL.tsurugi.md'
-      - 'OpenBSD 6.8': 'xINSTALL.OpenBSD.md'
+      - 'OpenBSD 7.0': 'xINSTALL.OpenBSD.md'
     - Config Guides:
       - 'Elastic Search Logging': 'CONFIG.elasticsearch-logging.md'
       - 'Amazon S3 attachments': 'CONFIG.s3-attachments.md'
