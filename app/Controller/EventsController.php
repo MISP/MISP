@@ -548,9 +548,20 @@ class EventsController extends AppController
                     $v = $filterString;
                     break;
                 case 'email':
-                    if ($v == "" || (strtolower($this->Auth->user('email')) !== strtolower(trim($v)) && !$this->_isSiteAdmin())) {
+                    if ($v == "") {
                         continue 2;
                     }
+
+                    if (!$this->_isSiteAdmin()) {
+                        // Special case to filter own events
+                        if (strtolower($this->Auth->user('email')) === strtolower(trim($v))) {
+                            $this->paginate['conditions']['AND'][] = ['Event.user_id' => $this->Auth->user('id')];
+                            break;
+                        } else {
+                            continue 2;
+                        }
+                    }
+
                     // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
                     $pieces = explode('|', $v);
                     $test = array();
