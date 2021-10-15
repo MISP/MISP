@@ -138,6 +138,8 @@ class TestComprehensive(unittest.TestCase):
         self.assertEqual(len(index), 1, "One event should exists")
         self.assertEqual(index[0].uuid, event.uuid)
 
+        self.user_misp_connector.delete_event(event)
+
     def test_search_index_by_tag(self):
         tags = self.user_misp_connector.search_tags("tlp:red", True)
 
@@ -174,21 +176,21 @@ class TestComprehensive(unittest.TestCase):
         self.user_misp_connector.delete_event(event)
 
     def test_search_index_by_email_admin(self):
-        index = self.user_misp_connector.search_index(email="no_existing_exmail@example.com")
+        index = self.admin_misp_connector.search_index(email="no_existing_exmail@example.com")
         self.assertEqual(len(index), 0, index)
 
-        index = self.user_misp_connector.search_index(email=self.test_usr.email)
+        index = self.admin_misp_connector.search_index(email=self.test_usr.email)
         self.assertEqual(len(index), 0, index)
 
         event = create_simple_event()
         event = self.user_misp_connector.add_event(event)
         check_response(event)
 
-        index = self.user_misp_connector.search_index(email=self.test_usr.email)
+        index = self.admin_misp_connector.search_index(email=self.test_usr.email)
         self.assertEqual(len(index), 1, index)
 
         # Search by partial match
-        index = self.user_misp_connector.search_index(email="testusr@user")
+        index = self.admin_misp_connector.search_index(email="testusr@user")
         self.assertEqual(len(index), 1, index)
 
         self.user_misp_connector.delete_event(event)
