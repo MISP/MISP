@@ -121,6 +121,23 @@ class TestComprehensive(unittest.TestCase):
 
         self.user_misp_connector.delete_event(event)
 
+    def test_search_index_by_attribute(self):
+        event = create_simple_event()
+
+        index = self.user_misp_connector.search_index(attribute=event.attributes[0].value)
+        self.assertEqual(len(index), 0, "No event should exists")
+
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        index = self.user_misp_connector.search_index(attribute=event.attributes[0].value)
+        self.assertEqual(len(index), 1, "One event should exists")
+        self.assertEqual(index[0].uuid, event.uuid)
+
+        index = self.user_misp_connector.search_index(attribute=event.attributes[0].value.upper())
+        self.assertEqual(len(index), 1, "One event should exists")
+        self.assertEqual(index[0].uuid, event.uuid)
+
     def test_search_index_by_tag(self):
         tags = self.user_misp_connector.search_tags("tlp:red", True)
 
