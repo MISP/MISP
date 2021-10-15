@@ -90,9 +90,9 @@ abstract class StixExport
             $this->__filenames[] = $this->__current_filename;
         }
         $result = $this->__parse_misp_events($this->__filenames);
+        $this->__delete_temporary_files();
         $decoded = json_decode($result, true);
         if (!isset($decoded['success']) || !$decoded['success']) {
-            $this->__delete_temporary_files();
             $error = $decoded && !empty($decoded['error']) ? $decoded['error'] : $result;
             throw new Exception('Error while processing your query during STIX export: ' . $error);
         }
