@@ -292,6 +292,9 @@ class EventsController extends AppController
                     if ($v === 2 || $v === '2') { // both
                         continue 2;
                     }
+                    if (is_array($v) && in_array(0, $v) && in_array(1, $v)) {
+                        continue 2; // both
+                    }
                     $this->paginate['conditions']['AND'][] = array('Event.published' => $v);
                     break;
                 case 'hasproposal':

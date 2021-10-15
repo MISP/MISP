@@ -170,6 +170,7 @@ class TestComprehensive(unittest.TestCase):
         index = self.user_misp_connector.search_index(email=self.test_usr.email)
         self.assertEqual(len(index), 1, index)
 
+        # Search by partial match
         index = self.user_misp_connector.search_index(email="testusr@user")
         self.assertEqual(len(index), 1, index)
 
@@ -191,8 +192,21 @@ class TestComprehensive(unittest.TestCase):
         for event in minimal:
             self.assertFalse(event["published"], "No event should be published.")
 
-        minimal_published = self.user_misp_connector.search_index(minimal=True, published=True)
-        self.assertEqual(len(minimal_published), 0, "No event should be published.")
+    def test_search_index_minimal_published(self):
+        # pythonify is not supported for minimal results
+        self.user_misp_connector.global_pythonify = False
+
+        index = self.user_misp_connector.search_index(minimal=True, published=True)
+        self.assertEqual(len(index), 0, "No event should be published.")
+
+        index = self.user_misp_connector.search_index(minimal=True)
+        not_published = self.user_misp_connector.search_index(minimal=True, published=0)
+        both_2 = self.user_misp_connector.search_index(minimal=True, published=2)
+        both_array = self.user_misp_connector.search_index(minimal=True, published=[0, 1])
+
+        self.assertEqual(len(index), len(not_published))
+        self.assertEqual(len(index), len(both_2))
+        self.assertEqual(len(index), len(both_array))
 
     def test_search_index_minimal_by_org(self):
         # pythonify is not supported for minimal results
