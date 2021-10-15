@@ -17,6 +17,7 @@ App::uses('SendEmailTemplate', 'Tools');
  * @property SharingGroup $SharingGroup
  * @property ThreatLevel $ThreatLevel
  * @property Sighting $Sighting
+ * @property Organisation $Org
  */
 class Event extends AppModel
 {
