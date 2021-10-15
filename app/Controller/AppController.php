@@ -1224,6 +1224,9 @@ class AppController extends Controller
         if ($user === false) {
             return $exception;
         }
+
+        session_write_close(); // Rest search can be longer, so close session to allow concurrent requests
+
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
             if ($returnFormat === 'download') {
