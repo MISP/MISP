@@ -744,9 +744,23 @@ class EventsController extends AppController
      */
     private function __indexRestResponse(array $passedArgs)
     {
-        $rules = array();
-        $fieldNames = array_keys($this->Event->schema());
-        if (isset($passedArgs['sort']) && in_array($passedArgs['sort'], $fieldNames, true)) {
+        $fieldNames = $this->Event->schema();
+        $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);
+        if ($minimal) {
+            $rules = [
+                'recursive' => -1,
+                'fields' => array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid'),
+                'contain' => array('Orgc.uuid'),
+            ];
+        } else {
+            // Remove user ID from fetched fields
+            unset($fieldNames['user_id']);
+            $rules = [
+                'contain' => ['EventTag'],
+                'fields' => array_keys($fieldNames),
+            ];
+        }
+        if (isset($passedArgs['sort']) && isset($fieldNames[$passedArgs['sort']])) {
             if (isset($passedArgs['direction']) && in_array(strtoupper($passedArgs['direction']), ['ASC', 'DESC'])) {
                 $rules['order'] = array('Event.' . $passedArgs['sort'] => $passedArgs['direction']);
             } else {
@@ -755,17 +769,6 @@ class EventsController extends AppController
         }
         if (isset($this->paginate['conditions'])) {
             $rules['conditions'] = $this->paginate['conditions'];
-        }
-        $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);
-        if ($minimal) {
-            $rules['recursive'] = -1;
-            $rules['fields'] = array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid');
-            $rules['contain'] = array('Orgc.uuid');
-        } else {
-            $rules['contain'] = ['EventTag'];
-            // Remove user ID from fetched fields
-            unset($fieldNames[array_search('user_id', $fieldNames)]);
-            $rules['fields'] = $fieldNames;
         }
         $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
         foreach ($paginationRules as $paginationRule) {
