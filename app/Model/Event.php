@@ -6977,7 +6977,18 @@ class Event extends AppModel
         }
     }
 
-    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
+    /**
+     * @param array $user
+     * @param string $returnFormat
+     * @param array $filters
+     * @param bool $paramsOnly
+     * @param int|false $jobId
+     * @param int $elementCounter
+     * @param bool $renderView
+     * @return TmpFileTool
+     * @throws Exception
+     */
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
@@ -7089,9 +7100,12 @@ class Event extends AppModel
                 }
             }
         }
-        unset($result);
-        unset($temp);
-        $tmpfile->write($exportTool->footer($exportToolParams));
+        $footer = $exportTool->footer($exportToolParams);
+        if ($footer instanceof TmpFileTool) {
+            return $footer; // Some exports returns TmpFileTool with all data when ends, so we can just pass the file as output
+        }
+
+        $tmpfile->write($footer);
         return $tmpfile;
     }
 
