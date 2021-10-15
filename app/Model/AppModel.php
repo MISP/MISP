@@ -3013,10 +3013,10 @@ class AppModel extends Model
         }
         $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1);
         $lastChar = strtolower(substr($delta, -1));
-        if (!is_numeric($lastChar) && array_key_exists($lastChar, $multiplierArray)) {
+        if (!is_numeric($lastChar) && isset($multiplierArray[$lastChar])) {
             $multiplier = $multiplierArray[$lastChar];
             $delta = substr($delta, 0, -1);
-        } else if(strtotime($delta) !== false) {
+        } else if (strtotime($delta) !== false) {
             return strtotime($delta);
         } else {
             // invalid filter, make sure we don't return anything

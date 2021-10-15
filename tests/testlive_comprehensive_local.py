@@ -74,7 +74,7 @@ class TestComprehensive(unittest.TestCase):
 
         # Create test event
         event = create_simple_event()
-        event = self.user_misp_connector.add_event(event, pythonify=True)
+        event = self.user_misp_connector.add_event(event)
         check_response(event)
 
         # Search by org name
@@ -99,6 +99,135 @@ class TestComprehensive(unittest.TestCase):
 
         self.user_misp_connector.delete_event(event)
 
+    def test_search_index_by_info(self):
+        event = create_simple_event()
+        event.info = uuid.uuid4()
+
+        # No event should exists
+        index = self.user_misp_connector.search_index(eventinfo=event.info)
+        self.assertEqual(len(index), 0, "No event should exists")
+
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        # One event should exists
+        index = self.user_misp_connector.search_index(eventinfo=event.info)
+        self.assertEqual(len(index), 1)
+        self.assertEqual(index[0].uuid, event.uuid)
+
+        index = self.user_misp_connector.search_index(eventinfo="!" + str(event.info))
+        for index_event in index:
+            self.assertNotEqual(event.uuid, index_event.uuid, index)
+
+        self.user_misp_connector.delete_event(event)
+
+    def test_search_index_by_all(self):
+        event = create_simple_event()
+
+        index = self.user_misp_connector.search_index(all=event.attributes[0].value)
+        self.assertEqual(len(index), 0, "No event should exists")
+
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        index = self.user_misp_connector.search_index(all=event.attributes[0].value)
+        self.assertEqual(len(index), 1, "One event should exists")
+        self.assertEqual(index[0].uuid, event.uuid)
+
+        index = self.user_misp_connector.search_index(all=event.attributes[0].value.upper())
+        self.assertEqual(len(index), 1, "One event should exists")
+        self.assertEqual(index[0].uuid, event.uuid)
+
+        self.user_misp_connector.delete_event(event)
+
+    def test_search_index_by_attribute(self):
+        event = create_simple_event()
+
+        index = self.user_misp_connector.search_index(attribute=event.attributes[0].value)
+        self.assertEqual(len(index), 0, "No event should exists")
+
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        index = self.user_misp_connector.search_index(attribute=event.attributes[0].value)
+        self.assertEqual(len(index), 1, "One event should exists")
+        self.assertEqual(index[0].uuid, event.uuid)
+
+        index = self.user_misp_connector.search_index(attribute=event.attributes[0].value.upper())
+        self.assertEqual(len(index), 1, "One event should exists")
+        self.assertEqual(index[0].uuid, event.uuid)
+
+        self.user_misp_connector.delete_event(event)
+
+    def test_search_index_by_tag(self):
+        tags = self.user_misp_connector.search_tags("tlp:red", True)
+
+        index = self.user_misp_connector.search_index(tags="tlp:red")
+        self.assertEqual(len(index), 0, "No event should exists")
+
+        index = self.user_misp_connector.search_index(tags=tags[0].id)
+        self.assertEqual(len(index), 0, "No event should exists")
+
+        event = create_simple_event()
+        event.add_tag("tlp:red")
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        index = self.user_misp_connector.search_index(tags="tlp:red")
+        self.assertEqual(len(index), 1, "One event should exists")
+
+        index = self.user_misp_connector.search_index(tags="tlp:red|not_exists")
+        self.assertEqual(len(index), 1, "One event should exists")
+
+        index = self.user_misp_connector.search_index(tags=["tlp:red", "not_exists"])
+        self.assertEqual(len(index), 1, "One event should exists")
+
+        index = self.user_misp_connector.search_index(tags=tags[0].id)
+        self.assertEqual(len(index), 1, "One event should exists")
+
+        index = self.user_misp_connector.search_index(tags="!tlp:red")
+        for index_event in index:
+            self.assertNotEqual(event.uuid, index_event.uuid, index)
+
+        index = self.user_misp_connector.search_index(tags="!" + str(tags[0].id))
+        for index_event in index:
+            self.assertNotEqual(event.uuid, index_event.uuid, index)
+
+        self.user_misp_connector.delete_event(event)
+
+    def test_search_index_by_email(self):
+        index = self.user_misp_connector.search_index(email=self.test_usr.email)
+        self.assertEqual(len(index), 0, index)
+
+        event = create_simple_event()
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        index = self.user_misp_connector.search_index(email=self.test_usr.email)
+        self.assertEqual(len(index), 1, "One event should exists")
+
+        self.user_misp_connector.delete_event(event)
+
+    def test_search_index_by_email_admin(self):
+        index = self.admin_misp_connector.search_index(email="no_existing_exmail@example.com")
+        self.assertEqual(len(index), 0, index)
+
+        index = self.admin_misp_connector.search_index(email=self.test_usr.email)
+        self.assertEqual(len(index), 0, index)
+
+        event = create_simple_event()
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        index = self.admin_misp_connector.search_index(email=self.test_usr.email)
+        self.assertEqual(len(index), 1, index)
+
+        # Search by partial match
+        index = self.admin_misp_connector.search_index(email="testusr@user")
+        self.assertEqual(len(index), 1, index)
+
+        self.user_misp_connector.delete_event(event)
+
     def test_search_index_minimal(self):
         # pythonify is not supported for minimal results
         self.user_misp_connector.global_pythonify = False
@@ -115,8 +244,25 @@ class TestComprehensive(unittest.TestCase):
         for event in minimal:
             self.assertFalse(event["published"], "No event should be published.")
 
-        minimal_published = self.user_misp_connector.search_index(minimal=True, published=True)
-        self.assertEqual(len(minimal_published), 0, "No event should be published.")
+    def test_search_index_minimal_published(self):
+        # pythonify is not supported for minimal results
+        self.user_misp_connector.global_pythonify = False
+
+        index = self.user_misp_connector.search_index(minimal=True, published=True)
+        self.assertEqual(len(index), 0, "No event should be published.")
+
+        index = self.user_misp_connector.search_index(minimal=True)
+        not_published = self.user_misp_connector.search_index(minimal=True, published=0)
+        both_2 = self.user_misp_connector.search_index(minimal=True, published=2)
+        both_array = self.user_misp_connector.search_index(minimal=True, published=[0, 1])
+
+        self.assertEqual(len(index), len(not_published))
+        self.assertEqual(len(index), len(both_2))
+        self.assertEqual(len(index), len(both_array))
+
+    def test_search_index_minimal_by_org(self):
+        # pythonify is not supported for minimal results
+        self.user_misp_connector.global_pythonify = False
 
         # Create test event
         event = create_simple_event()

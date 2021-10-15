@@ -115,7 +115,7 @@ class EventsController extends AppController
         $excludeIDs = [];
         if (!empty($value)) {
             if (!is_array($value)) {
-                $pieces = explode('|', strtolower($value));
+                $pieces = explode('|', mb_strtolower($value));
             } else {
                 $pieces = $value;
             }
@@ -131,8 +131,8 @@ class EventsController extends AppController
             if (!empty($include)) {
                 $includeConditions = [];
                 foreach ($include as $i) {
-                    $includeConditions['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
-                    $includeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
+                    $includeConditions['OR'][] = array('Attribute.value1 LIKE' => $i);
+                    $includeConditions['OR'][] = array('Attribute.value2 LIKE' => $i);
                 }
 
                 $includeIDs = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
@@ -146,8 +146,8 @@ class EventsController extends AppController
             if (!empty($exclude)) {
                 $excludeConditions = [];
                 foreach ($exclude as $e) {
-                    $excludeConditions['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
-                    $excludeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
+                    $excludeConditions['OR'][] = array('Attribute.value1 LIKE' => $e);
+                    $excludeConditions['OR'][] = array('Attribute.value2 LIKE' => $e);
                 }
 
                 $excludeIDs = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
@@ -257,9 +257,10 @@ class EventsController extends AppController
     /**
      * @param array $passedArgs
      * @param string $urlparams
+     * @param bool $nothing True when nothing should be fetched from database
      * @return array
      */
-    private function __setIndexFilterConditions(array $passedArgs, &$urlparams)
+    private function __setIndexFilterConditions(array $passedArgs, &$urlparams, &$nothing = false)
     {
         $passedArgsArray = array();
         foreach ($passedArgs as $k => $v) {
@@ -275,8 +276,8 @@ class EventsController extends AppController
             $searchTerm = strtolower(substr($k, 6));
             switch ($searchTerm) {
                 case 'all':
-                    if (!empty($passedArgs['searchall'])) {
-                        $this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($passedArgs['searchall']));
+                    if (!empty($v)) {
+                        $this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($v));
                     }
                     break;
                 case 'attribute':
@@ -291,6 +292,9 @@ class EventsController extends AppController
                 case 'published':
                     if ($v === 2 || $v === '2') { // both
                         continue 2;
+                    }
+                    if (is_array($v) && in_array(0, $v) && in_array(1, $v)) {
+                        continue 2; // both
                     }
                     $this->paginate['conditions']['AND'][] = array('Event.published' => $v);
                     break;
@@ -312,7 +316,7 @@ class EventsController extends AppController
                     $eventidConditions = array();
                     foreach ($pieces as $piece) {
                         $piece = trim($piece);
-                        if ($piece[0] == '!') {
+                        if ($piece[0] === '!') {
                             if (strlen($piece) === 37) {
                                 $eventidConditions['NOT']['uuid'][] = substr($piece, 1);
                             } else {
@@ -424,7 +428,7 @@ class EventsController extends AppController
                                 if ($orgId) {
                                     $test['OR'][] = array('Event.orgc_id' => $orgId);
                                 } else {
-                                    $test['OR'][] = array('Event.orgc_id' => -1);
+                                    $nothing = true;
                                 }
                             }
                         }
@@ -435,7 +439,7 @@ class EventsController extends AppController
                     $pieces = explode('|', $v);
                     $test = array();
                     foreach ($pieces as $piece) {
-                        if ($piece[0] == '!') {
+                        if ($piece[0] === '!') {
                             $this->paginate['conditions']['AND'][] = array('Event.sharing_group_id !=' => substr($piece, 1));
                         } else {
                             $test['OR'][] = array('Event.sharing_group_id' => $piece);
@@ -453,10 +457,10 @@ class EventsController extends AppController
                     $pieces = explode('|', $v);
                     $test = array();
                     foreach ($pieces as $piece) {
-                        if ($piece[0] == '!') {
-                            $this->paginate['conditions']['AND'][] = array('lower(Event.info) NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
+                        if ($piece[0] === '!') {
+                            $this->paginate['conditions']['AND'][] = array('lower(Event.info) NOT LIKE' => '%' . mb_strtolower(substr($piece, 1)) . '%');
                         } else {
-                            $test['OR'][] = array('lower(Event.info) LIKE' => '%' . strtolower($piece) . '%');
+                            $test['OR'][] = array('lower(Event.info) LIKE' => '%' . mb_strtolower($piece) . '%');
                         }
                     }
                     $this->paginate['conditions']['AND'][] = $test;
@@ -469,14 +473,13 @@ class EventsController extends AppController
                     $pieces = is_array($v) ? $v : explode('|', $v);
                     $filterString = "";
                     $expectOR = false;
-                    $setOR = false;
                     $tagRules = [];
                     foreach ($pieces as $piece) {
-                        if ($piece[0] == '!') {
+                        if ($piece[0] === '!') {
                             if (is_numeric(substr($piece, 1))) {
-                                $conditions = array('OR' => array('Tag.id' => substr($piece, 1)));
+                                $conditions = array('Tag.id' => substr($piece, 1));
                             } else {
-                                $conditions = array('OR' => array('Tag.name' => substr($piece, 1)));
+                                $conditions = array('Tag.name' => substr($piece, 1));
                             }
                             $tagName = $this->Event->EventTag->Tag->find('first', array(
                                 'conditions' => $conditions,
@@ -491,26 +494,18 @@ class EventsController extends AppController
                                 $filterString .= '!' . $piece;
                                 continue;
                             }
-                            $block = $this->Event->EventTag->find('column', array(
-                                'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
-                                'fields' => ['EventTag.event_id'],
-                            ));
-                            if (!empty($block)) {
-                                $sqlSubQuery = 'Event.id NOT IN (' . implode(",", $block) . ')';
-                                $tagRules['AND'][] = $sqlSubQuery;
-                            }
+                            $tagRules['block'][] = $tagName['Tag']['id'];
                             if ($filterString != "") {
                                 $filterString .= "|";
                             }
-                            $filterString .= '!' . (isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece);
+                            $filterString .= '!' . $tagName['Tag']['name'];
                         } else {
                             $expectOR = true;
                             if (is_numeric($piece)) {
-                                $conditions = array('OR' => array('Tag.id' => $piece));
+                                $conditions = array('Tag.id' => $piece);
                             } else {
-                                $conditions = array('OR' => array('Tag.name' => $piece));
+                                $conditions = array('Tag.name' => $piece);
                             }
-
                             $tagName = $this->Event->EventTag->Tag->find('first', array(
                                 'conditions' => $conditions,
                                 'fields' => array('id', 'name'),
@@ -523,61 +518,87 @@ class EventsController extends AppController
                                 $filterString .= $piece;
                                 continue;
                             }
-
-                            $allow = $this->Event->EventTag->find('column', array(
-                                'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
-                                'fields' => ['EventTag.event_id'],
-                            ));
-                            if (!empty($allow)) {
-                                $setOR = true;
-                                $sqlSubQuery = 'Event.id IN (' . implode(",", $allow) . ')';
-                                $tagRules['OR'][] = $sqlSubQuery;
-                            }
+                            $tagRules['include'][] = $tagName['Tag']['id'];
                             if ($filterString != "") {
                                 $filterString .= "|";
                             }
-                            $filterString .= isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece;
+                            $filterString .= $tagName['Tag']['name'];
                         }
                     }
-                    $this->paginate['conditions']['AND'][] = $tagRules;
-                    // If we have a list of OR-d arguments, we expect to end up with a list of allowed event IDs
-                    // If we don't however, it means that none of the tags was found. To prevent displaying the entire event index in this case:
-                    if ($expectOR && !$setOR) {
-                        $this->paginate['conditions']['AND'][] = array('Event.id' => -1);
+
+                    if (!empty($tagRules['block'])) {
+                        $block = $this->Event->EventTag->find('column', array(
+                            'conditions' => array('EventTag.tag_id' => $tagRules['block']),
+                            'fields' => ['EventTag.event_id'],
+                        ));
+                        if (!empty($block)) {
+                            $this->paginate['conditions']['AND'][] = 'Event.id NOT IN (' . implode(",", $block) . ')';
+                        }
                     }
+
+                    if (!empty($tagRules['include'])) {
+                        $include = $this->Event->EventTag->find('column', array(
+                            'conditions' => array('EventTag.tag_id' => $tagRules['include']),
+                            'fields' => ['EventTag.event_id'],
+                        ));
+                        if (!empty($include)) {
+                            $this->paginate['conditions']['AND'][] = 'Event.id IN (' . implode(",", $include) . ')';
+                        } else {
+                            $nothing = true;
+                        }
+                    } else if ($expectOR) {
+                        // If we have a list of OR-d arguments, we expect to end up with a list of allowed event IDs
+                        // If we don't however, it means that none of the tags was found. To prevent displaying the entire event index in this case:
+                        $nothing = true;
+                    }
+
                     $v = $filterString;
                     break;
                 case 'email':
-                    if ($v == "" || (strtolower($this->Auth->user('email')) !== strtolower(trim($v)) && !$this->_isSiteAdmin())) {
+                    if ($v == "") {
                         continue 2;
                     }
+
+                    if (!$this->_isSiteAdmin()) {
+                        // Special case to filter own events
+                        if (strtolower($this->Auth->user('email')) === strtolower(trim($v))) {
+                            $this->paginate['conditions']['AND'][] = ['Event.user_id' => $this->Auth->user('id')];
+                            break;
+                        } else {
+                            $nothing = true;
+                            continue 2;
+                        }
+                    }
+
                     // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
                     $pieces = explode('|', $v);
-                    $test = array();
+                    $usersToMatch = array();
+                    $positiveQuery = false;
                     foreach ($pieces as $piece) {
                         if ($piece[0] === '!') {
                             $users = $this->Event->User->find('column', array(
-                                'recursive' => -1,
                                 'fields' => array('User.id'),
-                                'conditions' => array('lower(User.email) LIKE' => '%' . strtolower(substr($piece, 1)) . '%')
+                                'conditions' => array('User.email LIKE' => '%' . strtolower(substr($piece, 1)) . '%')
                             ));
                             if (!empty($users)) {
                                 $this->paginate['conditions']['AND'][] = array('Event.user_id !=' => $users);
                             }
                         } else {
+                            $positiveQuery = true;
                             $users = $this->Event->User->find('column', array(
-                                'recursive' => -1,
                                 'fields' => array('User.id'),
-                                'conditions' => array('lower(User.email) LIKE' => '%' . strtolower($piece) . '%')
+                                'conditions' => array('User.email LIKE' => '%' . strtolower($piece) . '%')
                             ));
-                            if (!empty($users)) {
-                                $test['OR'][] = array('Event.user_id' => $users);
-                            }
+                            $usersToMatch = array_merge($usersToMatch, $users);
                         }
                     }
 
-                    if (!empty($test)) {
-                        $this->paginate['conditions']['AND'][] = $test;
+                    if ($positiveQuery) {
+                        if (empty($usersToMatch)) {
+                            $nothing = true;
+                        } else {
+                            $this->paginate['conditions']['AND'][] = ['Event.user_id' => array_unique($usersToMatch)];
+                        }
                     }
                     break;
                 case 'distribution':
@@ -596,7 +617,7 @@ class EventsController extends AppController
                     } else {
                         $terms = $this->Event->distributionLevels;
                     }
-                    $pieces = is_array($v) ? $v :  explode('|', $v);
+                    $pieces = is_array($v) ? $v : explode('|', $v);
                     $test = array();
                     foreach ($pieces as $piece) {
                         if ($filterString != "") {
@@ -615,7 +636,7 @@ class EventsController extends AppController
                     break;
                 case 'minimal':
                     $tableName = $this->Event->EventReport->table;
-                    $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
+                    $eventReportQuery = sprintf('EXISTS (SELECT id FROM %s WHERE %s.event_id = Event.id AND %s.deleted = 0)', $tableName, $tableName, $tableName);
                     $this->paginate['conditions']['AND'][] = [
                         'OR' => [
                             ['Event.attribute_count >' => 0],
@@ -664,11 +685,16 @@ class EventsController extends AppController
         }
 
         // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
-        $passedArgsArray = $this->__setIndexFilterConditions($passedArgs, $urlparams);
+        $nothing = false;
+        $passedArgsArray = $this->__setIndexFilterConditions($passedArgs, $urlparams, $nothing);
         $this->loadModel('GalaxyCluster');
 
         // for REST, don't use the pagination. With this, we'll escape the limit of events shown on the index.
         if ($this->_isRest()) {
+            if ($nothing) {
+                return $this->RestResponse->viewData([], $this->response->type(), false, false, false, ['X-Result-Count' => 0]);
+            }
+
             $rules = array();
             $fieldNames = array_keys($this->Event->getColumnTypes());
             $directions = array('ASC', 'DESC');
@@ -793,6 +819,10 @@ class EventsController extends AppController
         $this->paginate['contain'][] = 'EventTag';
         if ($this->_isSiteAdmin()) {
             $this->paginate['contain'][] = 'User.email';
+        }
+
+        if ($nothing) {
+            $this->paginate['conditions']['AND'][] = ['Event.id' => -1]; // do not fetch any event
         }
 
         $events = $this->paginate();
