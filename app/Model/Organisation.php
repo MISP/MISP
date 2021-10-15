@@ -150,7 +150,7 @@ class Organisation extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_organisation_notifications_enable')) {
+        if ($this->pubToZmq('organisation')) {
             $pubSubTool = $this->getPubSubTool();
             $pubSubTool->modified($this->data, 'organisation');
         }

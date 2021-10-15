@@ -480,7 +480,7 @@ class Attribute extends AppModel
                 $result = $this->saveAttachment($attribute);
             }
         }
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable');
+        $pubToZmq = $this->pubToZmq('attribute');
         $kafkaTopic = $this->kafkaTopic('attribute');
         if ($pubToZmq || $kafkaTopic) {
             $attributeForPublish = $this->fetchAttribute($this->id);
@@ -532,7 +532,7 @@ class Attribute extends AppModel
         // update correlation..
         $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
         if (!empty($this->data['Attribute']['id'])) {
-            if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
+            if ($this->pubToZmq('attribute')) {
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->attribute_save($this->data, 'delete');
             }
