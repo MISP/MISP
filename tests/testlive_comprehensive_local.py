@@ -74,7 +74,7 @@ class TestComprehensive(unittest.TestCase):
 
         # Create test event
         event = create_simple_event()
-        event = self.user_misp_connector.add_event(event, pythonify=True)
+        event = self.user_misp_connector.add_event(event)
         check_response(event)
 
         # Search by org name
@@ -96,6 +96,47 @@ class TestComprehensive(unittest.TestCase):
         self.assertEqual(len(index_org), len(index_org_lower))
         self.assertEqual(len(index_org), len(index_org_uuid))
         self.assertEqual(len(index_org), len(index_org_id))
+
+        self.user_misp_connector.delete_event(event)
+
+    def test_search_index_by_info(self):
+        event = create_simple_event()
+        event.info = uuid.uuid4()
+
+        # No event should exists
+        index = self.user_misp_connector.search_index(eventinfo=event.info)
+        self.assertGreater(len(index), 0)
+
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        # One event should exists
+        index = self.user_misp_connector.search_index(eventinfo=event.info)
+        self.assertGreater(len(index), 1)
+        self.assertEqual(index[0].uuid, event.uuid)
+
+        self.user_misp_connector.delete_event(event)
+
+    def test_search_index_by_tag(self):
+        tags = self.user_misp_connector.search_tags("tlp:red", True)
+        print(tags)
+
+        index = self.user_misp_connector.search_index(tags="tlp:red")
+        self.assertGreater(len(index), 0, "No event should exists")
+
+        index = self.user_misp_connector.search_index(tags=tags[0].id)
+        self.assertGreater(len(index), 0, "No event should exists")
+
+        event = create_simple_event()
+        event.add_tag("tlp:red")
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        index = self.user_misp_connector.search_index(tags="tlp:red")
+        self.assertGreater(len(index), 1, "One event should exists")
+
+        index = self.user_misp_connector.search_index(tags=tags[0].id)
+        self.assertGreater(len(index), 1, "One event should exists")
 
         self.user_misp_connector.delete_event(event)
 
