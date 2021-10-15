@@ -19,8 +19,6 @@ class User extends AppModel
 {
     public $displayField = 'email';
 
-    public $orgField = array('Organisation', 'name');
-
     public $validate = array(
         'role_id' => array(
             'numeric' => array(
