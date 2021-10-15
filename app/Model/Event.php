@@ -409,7 +409,7 @@ class Event extends AppModel
             }
             if (Configure::read('Plugin.Kafka_enable')) {
                 $kafkaEventTopic = Configure::read('Plugin.Kafka_event_notifications_topic');
-                if(Configure::read('Plugin.Kafka_event_notifications_enable') && !empty($kafkaEventTopic)) {
+                if (Configure::read('Plugin.Kafka_event_notifications_enable') && !empty($kafkaEventTopic)) {
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaEventTopic, array('Event' => $this->data['Event']), 'delete');
                 }
@@ -431,9 +431,6 @@ class Event extends AppModel
                 }
             }
         }
-
-        // delete all of the event->tag combinations that involve the deleted event
-        $this->EventTag->deleteAll(array('event_id' => $this->id));
 
         try {
             $this->loadAttachmentTool()->deleteAll($this->id);
