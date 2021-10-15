@@ -10,7 +10,6 @@ foreach ($event['Related' . $scope][$object['id']] as $k => $relatedAttribute) {
     $relatedEvents[$relatedAttribute['id']] = true;
   }
 }
-$event['Related' . $scope][$object['id']] = array_values($event['Related' . $scope][$object['id']]);
 $count = count($event['Related' . $scope][$object['id']]);
 foreach ($event['Related' . $scope][$object['id']] as $relatedAttribute) {
   if ($i == 4 && $count > 5) {
@@ -33,7 +32,7 @@ foreach ($event['Related' . $scope][$object['id']] as $relatedAttribute) {
   }
   $link = $this->Html->link(
     $relatedAttribute['id'],
-    array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['id']),
+    array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']),
     array('class' => ($relatedAttribute['org_id'] == $me['org_id']) ? $linkColour : 'blue')
   );
   echo sprintf(
