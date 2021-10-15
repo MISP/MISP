@@ -115,7 +115,7 @@ class EventsController extends AppController
         $excludeIDs = [];
         if (!empty($value)) {
             if (!is_array($value)) {
-                $pieces = explode('|', strtolower($value));
+                $pieces = explode('|', mb_strtolower($value));
             } else {
                 $pieces = $value;
             }
@@ -131,8 +131,8 @@ class EventsController extends AppController
             if (!empty($include)) {
                 $includeConditions = [];
                 foreach ($include as $i) {
-                    $includeConditions['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
-                    $includeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
+                    $includeConditions['OR'][] = array('Attribute.value1 LIKE' => $i);
+                    $includeConditions['OR'][] = array('Attribute.value2 LIKE' => $i);
                 }
 
                 $includeIDs = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
@@ -146,8 +146,8 @@ class EventsController extends AppController
             if (!empty($exclude)) {
                 $excludeConditions = [];
                 foreach ($exclude as $e) {
-                    $excludeConditions['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
-                    $excludeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
+                    $excludeConditions['OR'][] = array('Attribute.value1 LIKE' => $e);
+                    $excludeConditions['OR'][] = array('Attribute.value2 LIKE' => $e);
                 }
 
                 $excludeIDs = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
@@ -564,11 +564,11 @@ class EventsController extends AppController
 
                     // if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
                     $pieces = explode('|', $v);
-                    $test = array();
+                    $usersToMatch = array();
+                    $positiveQuery = false;
                     foreach ($pieces as $piece) {
                         if ($piece[0] === '!') {
                             $users = $this->Event->User->find('column', array(
-                                'recursive' => -1,
                                 'fields' => array('User.id'),
                                 'conditions' => array('User.email LIKE' => '%' . strtolower(substr($piece, 1)) . '%')
                             ));
@@ -576,19 +576,18 @@ class EventsController extends AppController
                                 $this->paginate['conditions']['AND'][] = array('Event.user_id !=' => $users);
                             }
                         } else {
+                            $positiveQuery = true;
                             $users = $this->Event->User->find('column', array(
-                                'recursive' => -1,
                                 'fields' => array('User.id'),
                                 'conditions' => array('User.email LIKE' => '%' . strtolower($piece) . '%')
                             ));
-                            if (!empty($users)) {
-                                $test['OR'][] = array('Event.user_id' => $users);
-                            }
+                            $usersToMatch = array_merge($usersToMatch, $users);
                         }
                     }
 
-                    if (!empty($test)) {
-                        $this->paginate['conditions']['AND'][] = $test;
+                    if ($positiveQuery) {
+                        $usersToMatch = empty($usersToMatch) ? -1 : array_unique($usersToMatch);
+                        $this->paginate['conditions']['AND'][] = ['Event.user_id' => $usersToMatch];
                     }
                     break;
                 case 'distribution':
