@@ -185,6 +185,14 @@ class TestComprehensive(unittest.TestCase):
         index = self.user_misp_connector.search_index(tags=tags[0].id)
         self.assertEqual(len(index), 1, "One event should exists")
 
+        index = self.user_misp_connector.search_index(tags="!tlp:red")
+        for index_event in index:
+            self.assertNotEqual(event.uuid, index_event.uuid, index)
+
+        index = self.user_misp_connector.search_index(tags="!" + str(tags[0].id))
+        for index_event in index:
+            self.assertNotEqual(event.uuid, index_event.uuid, index)
+
         self.user_misp_connector.delete_event(event)
 
     def test_search_index_by_email(self):
