@@ -105,6 +105,15 @@ class TestComprehensive(unittest.TestCase):
 
         minimal = self.user_misp_connector.search_index(minimal=True)
         self.assertGreater(len(minimal), 0)
+        minimal_event = minimal[0]
+        self.assertIn("id", minimal_event)
+        self.assertIn("timestamp", minimal_event)
+        self.assertIn("sighting_timestamp", minimal_event)
+        self.assertIn("published", minimal_event)
+        self.assertIn("uuid", minimal_event)
+        self.assertIn("orgc_uuid", minimal_event)
+        for event in minimal:
+            self.assertFalse(event["published"], "No event should be published.")
 
         minimal_published = self.user_misp_connector.search_index(minimal=True, published=True)
         self.assertEqual(len(minimal_published), 0, "No event should be published.")
@@ -126,11 +135,19 @@ class TestComprehensive(unittest.TestCase):
         for event in minimal_org:
             self.assertEqual(event["orgc_uuid"], self.test_org.uuid)
 
+        # Search by non exists org name
+        minimal_org_non_existing = self.user_misp_connector.search_index(minimal=True, org="Test Org that doesn't exists")
+        self.assertEqual(len(minimal_org_non_existing), 0)
+
         # Search by org uuid
         minimal_org_uuid = self.user_misp_connector.search_index(minimal=True, org=self.test_org.uuid)
         self.assertGreater(len(minimal_org), 0)
         for event in minimal_org:
             self.assertEqual(event["orgc_uuid"], self.test_org.uuid)
+
+        # Search by non existing uuid
+        minimal_org_uuid_non_existing = self.user_misp_connector.search_index(minimal=True, org=uuid.uuid4())
+        self.assertEqual(len(minimal_org_uuid_non_existing), 0)
 
         # Search by org ID
         minimal_org_id = self.user_misp_connector.search_index(minimal=True, org=self.test_org.id)
@@ -141,6 +158,16 @@ class TestComprehensive(unittest.TestCase):
         self.assertEqual(len(minimal_org), len(minimal_org_lower))
         self.assertEqual(len(minimal_org), len(minimal_org_uuid))
         self.assertEqual(len(minimal_org), len(minimal_org_id))
+
+        # Search not by org
+        minimal_org_not = self.user_misp_connector.search_index(minimal=True, org="!Test Org")
+        minimal_org_lower_not = self.user_misp_connector.search_index(minimal=True, org="!test org")
+        minimal_org_uuid_not = self.user_misp_connector.search_index(minimal=True, org="!" + self.test_org.uuid)
+        minimal_org_id_not = self.user_misp_connector.search_index(minimal=True, org="!" + self.test_org.id)
+
+        self.assertEqual(len(minimal_org_not), len(minimal_org_lower_not))
+        self.assertEqual(len(minimal_org_not), len(minimal_org_uuid_not))
+        self.assertEqual(len(minimal_org_not), len(minimal_org_id_not))
 
         self.user_misp_connector.delete_event(event)
 
