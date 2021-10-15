@@ -115,6 +115,10 @@ class TestComprehensive(unittest.TestCase):
         self.assertEqual(len(index), 1)
         self.assertEqual(index[0].uuid, event.uuid)
 
+        index = self.user_misp_connector.search_index(eventinfo="!" + str(event.info))
+        for index_event in index:
+            self.assertNotEqual(event.uuid, index_event.uuid, index)
+
         self.user_misp_connector.delete_event(event)
 
     def test_search_index_by_tag(self):
