@@ -413,7 +413,7 @@ class EventsController extends AppController
                             }
                         } else {
                             if (is_numeric($piece)) {
-                                $test['OR'][] = array('Event.orgc_id' => array('Event.orgc_id' => $piece));
+                                $test['OR'][] = array('Event.orgc_id' => $piece);
                             } else {
                                 if (Validation::uuid($piece)) {
                                     $orgId = isset($orgByUuid[$piece]) ? $orgByUuid[$piece] : null;
