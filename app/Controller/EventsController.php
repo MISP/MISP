@@ -257,9 +257,10 @@ class EventsController extends AppController
     /**
      * @param array $passedArgs
      * @param string $urlparams
+     * @param bool $nothing True when nothing should be fetched from database
      * @return array
      */
-    private function __setIndexFilterConditions(array $passedArgs, &$urlparams)
+    private function __setIndexFilterConditions(array $passedArgs, &$urlparams, &$nothing = false)
     {
         $passedArgsArray = array();
         foreach ($passedArgs as $k => $v) {
@@ -427,7 +428,7 @@ class EventsController extends AppController
                                 if ($orgId) {
                                     $test['OR'][] = array('Event.orgc_id' => $orgId);
                                 } else {
-                                    $test['OR'][] = array('Event.orgc_id' => -1);
+                                    $nothing = true;
                                 }
                             }
                         }
@@ -472,7 +473,6 @@ class EventsController extends AppController
                     $pieces = is_array($v) ? $v : explode('|', $v);
                     $filterString = "";
                     $expectOR = false;
-                    $setOR = false;
                     $tagRules = [];
                     foreach ($pieces as $piece) {
                         if ($piece[0] === '!') {
@@ -506,7 +506,6 @@ class EventsController extends AppController
                             } else {
                                 $conditions = array('Tag.name' => $piece);
                             }
-
                             $tagName = $this->Event->EventTag->Tag->find('first', array(
                                 'conditions' => $conditions,
                                 'fields' => array('id', 'name'),
@@ -519,7 +518,6 @@ class EventsController extends AppController
                                 $filterString .= $piece;
                                 continue;
                             }
-                            $setOR = true;
                             $tagRules['include'][] = $tagName['Tag']['id'];
                             if ($filterString != "") {
                                 $filterString .= "|";
@@ -533,7 +531,9 @@ class EventsController extends AppController
                             'conditions' => array('EventTag.tag_id' => $tagRules['block']),
                             'fields' => ['EventTag.event_id'],
                         ));
-                        $this->paginate['conditions']['AND'][] = 'Event.id NOT IN (' . implode(",", $block) . ')';
+                        if (!empty($block)) {
+                            $this->paginate['conditions']['AND'][] = 'Event.id NOT IN (' . implode(",", $block) . ')';
+                        }
                     }
 
                     if (!empty($tagRules['include'])) {
@@ -541,14 +541,17 @@ class EventsController extends AppController
                             'conditions' => array('EventTag.tag_id' => $tagRules['include']),
                             'fields' => ['EventTag.event_id'],
                         ));
-                        $this->paginate['conditions']['AND'][] = 'Event.id IN (' . implode(",", $include) . ')';;
+                        if (!empty($include)) {
+                            $this->paginate['conditions']['AND'][] = 'Event.id IN (' . implode(",", $include) . ')';
+                        } else {
+                            $nothing = true;
+                        }
+                    } else if ($expectOR) {
+                        // If we have a list of OR-d arguments, we expect to end up with a list of allowed event IDs
+                        // If we don't however, it means that none of the tags was found. To prevent displaying the entire event index in this case:
+                        $nothing = true;
                     }
 
-                    // If we have a list of OR-d arguments, we expect to end up with a list of allowed event IDs
-                    // If we don't however, it means that none of the tags was found. To prevent displaying the entire event index in this case:
-                    if ($expectOR && !$setOR) {
-                        $this->paginate['conditions']['AND'][] = array('Event.id' => -1);
-                    }
                     $v = $filterString;
                     break;
                 case 'email':
@@ -562,6 +565,7 @@ class EventsController extends AppController
                             $this->paginate['conditions']['AND'][] = ['Event.user_id' => $this->Auth->user('id')];
                             break;
                         } else {
+                            $nothing = true;
                             continue 2;
                         }
                     }
@@ -590,8 +594,11 @@ class EventsController extends AppController
                     }
 
                     if ($positiveQuery) {
-                        $usersToMatch = empty($usersToMatch) ? -1 : array_unique($usersToMatch);
-                        $this->paginate['conditions']['AND'][] = ['Event.user_id' => $usersToMatch];
+                        if (empty($usersToMatch)) {
+                            $nothing = true;
+                        } else {
+                            $this->paginate['conditions']['AND'][] = ['Event.user_id' => array_unique($usersToMatch)];
+                        }
                     }
                     break;
                 case 'distribution':
@@ -678,11 +685,16 @@ class EventsController extends AppController
         }
 
         // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
-        $passedArgsArray = $this->__setIndexFilterConditions($passedArgs, $urlparams);
+        $nothing = false;
+        $passedArgsArray = $this->__setIndexFilterConditions($passedArgs, $urlparams, $nothing);
         $this->loadModel('GalaxyCluster');
 
         // for REST, don't use the pagination. With this, we'll escape the limit of events shown on the index.
         if ($this->_isRest()) {
+            if ($nothing) {
+                return $this->RestResponse->viewData([], $this->response->type(), false, false, false, ['X-Result-Count' => 0]);
+            }
+
             $rules = array();
             $fieldNames = array_keys($this->Event->getColumnTypes());
             $directions = array('ASC', 'DESC');
@@ -807,6 +819,10 @@ class EventsController extends AppController
         $this->paginate['contain'][] = 'EventTag';
         if ($this->_isSiteAdmin()) {
             $this->paginate['contain'][] = 'User.email';
+        }
+
+        if ($nothing) {
+            $this->paginate['conditions']['AND'][] = ['Event.id' => -1]; // do not fetch any event
         }
 
         $events = $this->paginate();
