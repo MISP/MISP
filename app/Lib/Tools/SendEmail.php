@@ -440,9 +440,14 @@ class SendEmail
             throw new InvalidArgumentException("Invalid user model provided.");
         }
 
+        // Intentional `array_key_exists` instead of `isset`
+        if (!array_key_exists('gpgkey', $user['User']) || !array_key_exists('certif_public', $user['User'])) {
+            throw new InvalidArgumentException("User without `gpgkey` or `certif_public` field provided.");
+        }
+
         // Check if the e-mail can be encrypted
-        $canEncryptGpg = isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey']);
-        $canEncryptSmime = isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
+        $canEncryptGpg = !empty($user['User']['gpgkey']);
+        $canEncryptSmime = !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
 
         if (Configure::read('GnuPG.onlyencrypted') && !$canEncryptGpg && !$canEncryptSmime) {
             throw new SendEmailException('Encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.');
@@ -880,7 +885,7 @@ class SendEmail
      * @param string $content
      * @return File[]
      * @throws SendEmailException
-     * @throws MethodNotAllowedException
+     * @throws Exception
      */
     private function createInputOutputFiles($content)
     {
@@ -892,11 +897,10 @@ class SendEmail
         }
 
         App::uses('FileAccessTool', 'Tools');
-        $fileAccessTool = new FileAccessTool();
-        $inputFile = $fileAccessTool->createTempFile($dir, 'SMIME');
-        $fileAccessTool->writeToFile($inputFile, $content);
+        $inputFile = FileAccessTool::createTempFile($dir, 'SMIME');
+        FileAccessTool::writeToFile($inputFile, $content);
 
-        $outputFile = $fileAccessTool->createTempFile($dir, 'SMIME');
+        $outputFile = FileAccessTool::createTempFile($dir, 'SMIME');
         return array(new File($inputFile), new File($outputFile));
     }
 

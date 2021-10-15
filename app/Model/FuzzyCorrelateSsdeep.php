@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+
 class FuzzyCorrelateSsdeep extends AppModel
 {
     public $useTable = 'fuzzy_correlate_ssdeep';
@@ -7,14 +8,6 @@ class FuzzyCorrelateSsdeep extends AppModel
     public $recursive = -1;
 
     public $actsAs = array('Containable');
-
-    public $validate = array();
-
-    public function beforeValidate($options = array())
-    {
-        parent::beforeValidate();
-        return true;
-    }
 
     public function ssdeep_prepare($hash)
     {
@@ -25,11 +18,11 @@ class FuzzyCorrelateSsdeep extends AppModel
             if (!in_array($hash[$i], $chars)) {
                 $chars[] = $hash[$i];
             }
-        };
+        }
         $search = true;
         while ($search) {
             $search = false;
-            foreach ($chars as $k => $c) {
+            foreach ($chars as $c) {
                 if (strpos($hash, $c . $c . $c . $c)) {
                     $hash = str_replace($c . $c . $c . $c, $c . $c . $c, $hash);
                     $search = true;
@@ -58,7 +51,7 @@ class FuzzyCorrelateSsdeep extends AppModel
             $temp = base64_decode($temp);
             $temp = $temp . "\x00\x00\x00";
             $temp = base64_encode($temp);
-            if (!in_array($temp, $results)) {
+            if (!in_array($temp, $results, true)) {
                 $results[] = $temp;
             }
         }
@@ -72,12 +65,12 @@ class FuzzyCorrelateSsdeep extends AppModel
         // Original algo from article https://www.virusbulletin.com/virusbulletin/2015/11/optimizing-ssdeep-use-scale
         // also propose to insert chunk size to database, but current database schema doesn't contain that column.
         // This optimisation can be add in future versions.
-        $result = $this->find('list', array(
+        $result = $this->find('column', array(
             'conditions' => array(
                 'FuzzyCorrelateSsdeep.chunk' => array_merge($chunks[1], $chunks[2]),
             ),
-            'fields' => array('FuzzyCorrelateSsdeep.attribute_id', 'FuzzyCorrelateSsdeep.attribute_id'),
-            'group' => 'FuzzyCorrelateSsdeep.attribute_id', // remove duplicates at database side
+            'fields' => array('FuzzyCorrelateSsdeep.attribute_id'),
+            'unique' => true,
         ));
         
         $to_save = array();
@@ -86,7 +79,7 @@ class FuzzyCorrelateSsdeep extends AppModel
                 $to_save[] = array('attribute_id' => $attribute_id, 'chunk' => $chunk);
             }
         }
-        $this->saveAll($to_save);
+        $this->saveMany($to_save);
         return $result;
     }
 
@@ -101,7 +94,7 @@ class FuzzyCorrelateSsdeep extends AppModel
             $this->query('TRUNCATE TABLE fuzzy_correlate_ssdeep;');
         } elseif (!$attributeId) {
             $this->Attribute = ClassRegistry::init('Attribute');
-            $attributeId = $this->Attribute->find('list', array(
+            $attributeId = $this->Attribute->find('column', array(
                 'conditions' => array(
                     'Attribute.event_id' => $eventId,
                     'Attribute.type' => 'ssdeep',

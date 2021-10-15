@@ -8,19 +8,29 @@ class StixExport
     );
     protected $__return_format = 'json';
     protected $__scripts_dir = APP . 'files/scripts/';
+    protected $__tmp_dir = APP . 'files/scripts/tmp/';
+    protected $__framing_script = APP . 'files/scripts/misp_framing.py';
     protected $__end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
     protected $__return_type = null;
+    protected $__filenames = array();
+    protected $__default_filters = null;
+    protected $__version = null;
 
     private $__current_filename = null;
     private $__empty_file = null;
     private $__framing = null;
     private $__stix_file = null;
-    private $__tmp_dir = null;
     private $__tmp_file = null;
     private $__n_attributes = 0;
-    private $__filenames = array();
 
     public $non_restrictive_export = true;
+    public $use_default_filters = true;
+
+    public function setDefaultFilters($filters)
+    {
+        $sane_version = (!empty($filters['stix-version']) && in_array($filters['stix-version'], $this->__sane_versions));
+        $this->__version = $sane_version ? $filters['stix-version'] : $this->__default_version;
+    }
 
     public function handler($data, $options = array())
     {
@@ -34,7 +44,7 @@ class StixExport
         $converter = new JSONConverterTool();
         $event = $converter->convert($data);
         if ($this->__n_attributes + $attributes_count < $this->__attributes_limit) {
-            ($this->__n_attributes == 0) ? $this->__tmp_file->append($event) : $this->__tmp_file->append(',' . $event);
+            $this->__tmp_file->append($this->__n_attributes == 0 ? $event : ',' . $event);
             $this->__n_attributes += $attributes_count;
             $this->__empty_file = false;
         } else {
@@ -64,9 +74,8 @@ class StixExport
         } else if ($this->__return_type == 'stix') {
             $this->__return_format = 'xml';
         }
-        $framing_cmd = $this->initiate_framing_params();
+        $framing_cmd = $this->__initiate_framing_params();
         $randomFileName = $this->__generateRandomFileName();
-        $this->__tmp_dir = $this->__scripts_dir . 'tmp/';
         $this->__framing = json_decode(shell_exec($framing_cmd), true);
         $this->__stix_file = new File($this->__tmp_dir . $randomFileName . '.' . $this->__return_type);
         unset($randomFileName);
@@ -85,14 +94,15 @@ class StixExport
             $this->__tmp_file->close();
             array_push($this->__filenames, $this->__current_filename);
         }
+        $filenames = implode(' ' . $this->__tmp_dir, $this->__filenames);
+        $result = $this->__parse_misp_events($filenames);
+        $decoded = json_decode($result, true);
+        if (!isset($decoded['success']) || !$decoded['success']) {
+            $this->__delete_temporary_files();
+            $error = $decoded && !empty($decoded['error']) ? $decoded['error'] : $result;
+            return 'Error while processing your query: ' . $error;
+        }
         foreach ($this->__filenames as $f => $filename) {
-            $result = $this->__parse_misp_events($filename);
-            $decoded = json_decode($result, true);
-            if (!isset($decoded['success']) || !$decoded['success']) {
-                $this->__delete_temporary_files($f);
-                $error = $decoded && !empty($decoded['error']) ? $decoded['error'] : $result;
-                return 'Error while processing your query: ' . $error;
-            }
             $file = new File($this->__tmp_dir . $filename . '.out');
             $stix_event = ($this->__return_type == 'stix') ? $file->read() : substr($file->read(), 1, -1);
             $file->close();
@@ -127,12 +137,10 @@ class StixExport
         return (new RandomTool())->random_str(false, 12);
     }
 
-    private function __delete_temporary_files($index)
+    private function __delete_temporary_files()
     {
         foreach ($this->__filenames as $f => $filename) {
-            if ($index >= $f) {
-                @unlink($this->__tmp_dir . $filename);
-            }
+            @unlink($this->__tmp_dir . $filename);
         }
         $this->__stix_file->close();
         $this->__stix_file->delete();

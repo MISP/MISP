@@ -31,7 +31,7 @@ class EventReport extends AppModel
             'unique' => array(
                 'rule' => 'isUnique',
                 'message' => 'The UUID provided is not unique',
-                'required' => 'create'
+                'on' => 'create'
             )
         ),
         'distribution' => array(
@@ -82,10 +82,7 @@ class EventReport extends AppModel
         // Set defaults for when some of the mandatory fields don't have defaults
         // These fields all have sane defaults either based on another field, or due to server settings
         if (!isset($this->data['EventReport']['distribution'])) {
-            $this->data['EventReport']['distribution'] = Configure::read('MISP.default_attribute_distribution');
-            if ($this->data['EventReport']['distribution'] == 'event') {
-                $this->data['EventReport']['distribution'] = 5;
-            }
+            $this->data['EventReport']['distribution'] = $this->Event->Attribute->defaultDistribution();
         }
         return true;
     }
@@ -811,24 +808,26 @@ class EventReport extends AppModel
         }
 
         foreach ($clusters as $cluster) {
-            $cluster['GalaxyCluster']['colour'] = '#0088cc';
-            $tagName = $cluster['GalaxyCluster']['tag_name'];
-            $found = $this->isValidReplacementTag($content, $tagName);
-            if ($found) {
-                $replacedContext[$tagName][$tagName] = $cluster['GalaxyCluster'];
-            }
-            $toSearch = ' ' . $cluster['GalaxyCluster']['value'] . ' ';
-            $found = strpos($originalContent, $toSearch) !== false;
-            if ($found) {
-                $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
-            }
-            if ($options['synonyms']) {
-                foreach ($cluster['GalaxyElement'] as $element) {
-                    if (strlen($element['value']) >= $options['synonyms_min_characters']) {
-                        $toSearch = ' ' . $element['value'] . ' ';
-                        $found = strpos($content, $toSearch) !== false;
-                        if ($found) {
-                            $replacedContext[$element['value']][$tagName] = $cluster['GalaxyCluster'];
+            if (strlen($cluster['GalaxyCluster']['value']) > 2) {
+                $cluster['GalaxyCluster']['colour'] = '#0088cc';
+                $tagName = $cluster['GalaxyCluster']['tag_name'];
+                $found = $this->isValidReplacementTag($content, $tagName);
+                if ($found) {
+                    $replacedContext[$tagName][$tagName] = $cluster['GalaxyCluster'];
+                }
+                $toSearch = ' ' . $cluster['GalaxyCluster']['value'] . ' ';
+                $found = strpos($originalContent, $toSearch) !== false;
+                if ($found) {
+                    $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
+                }
+                if ($options['synonyms']) {
+                    foreach ($cluster['GalaxyElement'] as $element) {
+                        if (strlen($element['value']) >= $options['synonyms_min_characters']) {
+                            $toSearch = ' ' . $element['value'] . ' ';
+                            $found = strpos($content, $toSearch) !== false;
+                            if ($found) {
+                                $replacedContext[$element['value']][$tagName] = $cluster['GalaxyCluster'];
+                            }
                         }
                     }
                 }
@@ -842,23 +841,25 @@ class EventReport extends AppModel
                 'contain' => $clusterContain
             ]);
             foreach ($attackClusters as $cluster) {
-                $cluster['GalaxyCluster']['colour'] = '#0088cc';
-                $tagName = $cluster['GalaxyCluster']['tag_name'];
-                $toSearch = ' ' . $cluster['GalaxyCluster']['value'] . ' ';
-                $found = strpos($content, $toSearch) !== false;
-                if ($found) {
-                    $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
-                } else {
-                    $clusterParts = explode(' - ', $cluster['GalaxyCluster']['value'], 2);
-                    $toSearch = ' ' . $clusterParts[0] . ' ';
+                if (strlen($cluster['GalaxyCluster']['value']) > 2) {
+                    $cluster['GalaxyCluster']['colour'] = '#0088cc';
+                    $tagName = $cluster['GalaxyCluster']['tag_name'];
+                    $toSearch = ' ' . $cluster['GalaxyCluster']['value'] . ' ';
                     $found = strpos($content, $toSearch) !== false;
                     if ($found) {
-                        $replacedContext[$clusterParts[0]][$tagName] = $cluster['GalaxyCluster'];
-                    } else if (isset($clusterParts[1])) {
-                        $toSearch = ' ' . $clusterParts[1] . ' ';
+                        $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
+                    } else {
+                        $clusterParts = explode(' - ', $cluster['GalaxyCluster']['value'], 2);
+                        $toSearch = ' ' . $clusterParts[0] . ' ';
                         $found = strpos($content, $toSearch) !== false;
                         if ($found) {
-                            $replacedContext[$clusterParts[1]][$tagName] = $cluster['GalaxyCluster'];
+                            $replacedContext[$clusterParts[0]][$tagName] = $cluster['GalaxyCluster'];
+                        } elseif (isset($clusterParts[1])) {
+                            $toSearch = ' ' . $clusterParts[1] . ' ';
+                            $found = strpos($content, $toSearch) !== false;
+                            if ($found) {
+                                $replacedContext[$clusterParts[1]][$tagName] = $cluster['GalaxyCluster'];
+                            }
                         }
                     }
                 }

@@ -2,51 +2,127 @@
 
 class FileAccessTool
 {
-    private $__fileErrorMsgPrefix = 'An error has occurred while attempting to ';
-
-    public function createTempFile($dir, $prefix = 'MISP')
+    /**
+     * Creates temporary file, but you have to delete it after use.
+     * @param string|null $dir
+     * @param string $prefix
+     * @return string
+     * @throws Exception
+     */
+    public static function createTempFile($dir = null, $prefix = 'MISP')
     {
+        if ($dir === null) {
+            $dir = Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
+        }
         $tempFile = tempnam($dir, $prefix);
-        $this->__checkForFalse($tempFile, 'create a temporary file in path "' . $dir);
+        if ($tempFile === false) {
+            throw new Exception("An error has occurred while attempt to create a temporary file in path `$dir`.");
+        }
         return $tempFile;
     }
 
-    public function readFromFile($file, $fileSize = -1)
+    /**
+     * @param string $file
+     * @param int $fileSize
+     * @return string
+     * @throws Exception
+     */
+    public static function readFromFile($file, $fileSize = -1)
     {
-        $this->__checkForFalse($file, 'create file "' . $file);
-        $fileHandle = fopen($file, 'rb');
-        $this->__checkForFalse($fileHandle, 'access file "' . $file);
         if ($fileSize === -1) {
-            $fileSize = filesize($file);
-            $this->__checkForFalse($fileHandle, 'get filesize from file "' . $file);
+            $content = file_get_contents($file);
+        } else {
+            $content = file_get_contents($file, false, null, 0, $fileSize);
         }
-        $readResult = fread($fileHandle, $fileSize);
-        $this->__checkForFalse($fileHandle, 'read from file "' . $file);
-        fclose($fileHandle);
-        return $readResult;
+        if ($content === false) {
+            if (!file_exists($file)) {
+                $message = "file doesn't exists";
+            } else if (!is_readable($file)) {
+                $message = "file is not readable";
+            } else {
+                $message = 'unknown error';
+            }
+            throw new Exception("An error has occurred while attempt to read file `$file`: $message.");
+        }
+        return $content;
     }
 
-    public function writeToFile($file, $content)
+    /**
+     * @param string $file
+     * @param mixed $content
+     * @param bool $createFolder
+     * @throws Exception
+     */
+    public static function writeToFile($file, $content, $createFolder = false)
     {
-        $this->__checkForFalse($file, 'create file "' . $file);
-        $fileHandle = fopen($file, 'wb');
-        $this->__checkForFalse($fileHandle, 'access file "' . $file);
-        $writeResult = fwrite($fileHandle, $content);
-        $this->__checkForFalse($writeResult, 'write to file "' . $file);
-        fclose($fileHandle);
-        return $file;
+        $dir = dirname($file);
+        if ($createFolder && !is_dir($dir)) {
+            if (!mkdir($dir, 0766, true)) {
+                throw new Exception("An error has occurred while attempt to create directory `$dir`.");
+            }
+        }
+
+        if (file_put_contents($file, $content, LOCK_EX) === false) {
+            $freeSpace = disk_free_space($dir);
+            throw new Exception("An error has occurred while attempt to write to file `$file`. Maybe not enough space? ($freeSpace bytes left)");
+        }
     }
 
-    private function __checkForFalse($result, $errorMsgPart)
+    /**
+     * @param mixed $content
+     * @param string|null $dir
+     * @return string Path to temp file
+     * @throws Exception
+     */
+    public static function writeToTempFile($content, $dir = null)
     {
+        $tempFile = self::createTempFile($dir);
+        if (file_put_contents($tempFile, $content) === false) {
+            self::deleteFile($tempFile);
+            $freeSpace = disk_free_space(dirname($tempFile));
+            throw new Exception("An error has occurred while attempt to write to file `$tempFile`. Maybe not enough space? ($freeSpace bytes left)");
+        }
+        return $tempFile;
+    }
+
+    /**
+     * @param string $file
+     * @param mixed $content
+     * @throws Exception
+     */
+    public static function writeCompressedFile($file, $content)
+    {
+        $res = gzopen($file, 'wb1');
+        if ($res === false) {
+            throw new Exception("An error has occurred while attempt to open file `$file` for writing.");
+        }
+        $result = gzwrite($res, $content);
         if ($result === false) {
-            throw new MethodNotAllowedException($this->__fileErrorMsgPrefix . $errorMsgPart . '".');
+            throw new Exception("An error has occurred while attempt to write into file `$file`.");
         }
+        gzclose($res);
+        return $result;
     }
 
-    public function deleteFile($file)
+    /**
+     * @param string $file
+     * @return bool
+     */
+    public static function deleteFile($file)
     {
-        unlink($file);
-        return true;
+        return unlink($file);
+    }
+
+    /**
+     * @param string $file
+     * @return bool
+     */
+    public static function deleteFileIfExists($file)
+    {
+        if (file_exists($file)) {
+            return unlink($file);
+        } else {
+            return true;
+        }
     }
 }

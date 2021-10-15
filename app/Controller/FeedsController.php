@@ -673,7 +673,7 @@ class FeedsController extends AppController
         $passedArgs = array();
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocketFeed($feed);
+        $HttpSocket = $syncTool->setupHttpSocketFeed();
         try {
             $events = $this->Feed->getManifest($feed, $HttpSocket);
         } catch (Exception $e) {
@@ -682,28 +682,25 @@ class FeedsController extends AppController
         }
 
         if (!empty($this->params['named']['searchall'])) {
-            $searchAll = trim(strtolower($this->params['named']['searchall']));
+            $searchAll = trim(mb_strtolower($this->params['named']['searchall']));
             foreach ($events as $uuid => $event) {
-                $found = false;
                 if ($uuid === $searchAll) {
-                    $found = true;
+                    continue;
                 }
-                if (!$found && strpos(strtolower($event['info']), $searchAll) !== false) {
-                    $found = true;
+                if (strpos(mb_strtolower($event['info']), $searchAll) !== false) {
+                    continue;
                 }
-                if (!$found && strpos(strtolower($event['Orgc']['name']), $searchAll) !== false) {
-                    $found = true;
+                if (strpos(mb_strtolower($event['Orgc']['name']), $searchAll) !== false) {
+                    continue;
                 }
-                if (!$found && !empty($event['Tag'])) {
+                if (!empty($event['Tag'])) {
                     foreach ($event['Tag'] as $tag) {
-                        if (strpos(strtolower($tag['name']), $searchAll) !== false) {
-                            $found = true;
+                        if (strpos(mb_strtolower($tag['name']), $searchAll) !== false) {
+                            continue 2;
                         }
                     }
                 }
-                if (!$found) {
-                    unset($events[$uuid]);
-                }
+                unset($events[$uuid]);
             }
         }
         foreach ($filterParams as $k => $filter) {
@@ -722,9 +719,7 @@ class FeedsController extends AppController
         $params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
         $this->params->params['paging'] = array($this->modelClass => $params);
         $events = $customPagination->sortArray($events, $params, true);
-        if (is_array($events)) {
-            $customPagination->truncateByPagination($events, $params);
-        }
+        $customPagination->truncateByPagination($events, $params);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($events, $this->response->type());
         }
@@ -1027,7 +1022,6 @@ class FeedsController extends AppController
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $passedArgs = array();
-        $hits = array();
         $value = false;
         if ($this->request->is('post')) {
             if (isset($this->request->data['Feed'])) {
@@ -1053,7 +1047,6 @@ class FeedsController extends AppController
         if (is_array($hits)) {
             $customPagination->truncateByPagination($hits, $params);
         }
-        $pageCount = count($hits);
         $this->set('urlparams', $urlparams);
         $this->set('passedArgs', json_encode($passedArgs));
         $this->set('passedArgsArray', $passedArgs);

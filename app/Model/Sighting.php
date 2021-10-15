@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
+App::uses('ServerSyncTool', 'Tools');
 
 /**
  * @property Attribute $Attribute
@@ -76,11 +77,9 @@ class Sighting extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        parent::afterSave($created, $options = array());
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_sighting_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_sighting_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('sighting');
+        if ($pubToZmq || $kafkaTopic) {
             $user = array(
                 'org_id' => -1,
                 'Role' => array(
@@ -92,7 +91,7 @@ class Sighting extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->sighting_save($sighting, 'add');
             }
-            if ($pubToKafka) {
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $sighting, 'add');
             }
@@ -104,9 +103,8 @@ class Sighting extends AppModel
     {
         parent::beforeDelete();
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_sighting_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_sighting_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('sighting');
+        if ($pubToZmq || $kafkaTopic) {
             $user = array(
                 'org_id' => -1,
                 'Role' => array(
@@ -118,7 +116,7 @@ class Sighting extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->sighting_save($sighting, 'delete');
             }
-            if ($pubToKafka) {
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $sighting, 'delete');
             }
@@ -643,7 +641,7 @@ class Sighting extends AppModel
         return $this->attachOrgToSightings($sightings, $user, $forSync);
     }
 
-    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false)
+    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false, $filters=[])
     {
         if (!in_array($type, array(0, 1, 2))) {
             return 'Invalid type, please change it before you POST 1000000 sightings.';
@@ -677,18 +675,27 @@ class Sighting extends AppModel
             if (!is_array($values)) {
                 $values = array($values);
             }
-            foreach ($values as $value) {
-                foreach (array('value1', 'value2') as $field) {
-                    $conditions['OR'][] = array(
-                        'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value)
-                    );
+            if (empty($filters)) {
+                foreach ($values as $value) {
+                    foreach (array('value1', 'value2') as $field) {
+                        $conditions['OR'][] = array(
+                            'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value)
+                        );
+                    }
                 }
             }
         }
-        $attributes = $this->Attribute->fetchAttributesSimple($user, [
-            'conditions' => $conditions,
-            'fields' => ['Attribute.id', 'Attribute.event_id'],
-        ]);
+        $attributes = [];
+        if (empty($filters)) {
+            $attributes = $this->Attribute->fetchAttributesSimple($user, [
+                'conditions' => $conditions,
+                'fields' => ['Attribute.id', 'Attribute.event_id'],
+            ]);
+        } else {
+            $filters['value'] = $values;
+            $params = $this->Attribute->restSearch($user, 'json', $filters, true);
+            $attributes = $this->Attribute->fetchAttributes($user, $params);
+        }
         if (empty($attributes)) {
             return 'No valid attributes found that match the criteria.';
         }
@@ -1101,36 +1108,86 @@ class Sighting extends AppModel
         }
     }
 
-    public function pullSightings($user, $server)
+    /**
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @return int Number of saved sighting.
+     * @throws Exception
+     */
+    public function pullSightings(array $user, ServerSyncTool $serverSync)
     {
-        $HttpSocket = $this->setupHttpSocket($server);
         $this->Server = ClassRegistry::init('Server');
         try {
-            $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, 'sightings');
+            $remoteEvents = $this->Server->getEventIndexFromServer($serverSync);
         } catch (Exception $e) {
-            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            $this->logException("Could not fetch event IDs from server {$serverSync->server()['Server']['name']}", $e);
             return 0;
         }
+
+        // Remove events from list that do not have published sightings.
+        foreach ($remoteEvents as $k => $remoteEvent) {
+            if ($remoteEvent['sighting_timestamp'] == 0) {
+                unset($remoteEvents[$k]);
+            }
+        }
+
+        // Downloads sightings just from events that exists locally and remote sighting_timestamp is newer than local.
+        $localEvents = $this->Event->find('list', [
+            'fields' => ['Event.uuid', 'Event.sighting_timestamp'],
+            'conditions' => (count($remoteEvents) > 10000) ? [] : ['Event.uuid' => array_column($remoteEvents, 'uuid')],
+        ]);
+
+        $eventUuids = [];
+        foreach ($remoteEvents as $remoteEvent) {
+            if (isset($localEvents[$remoteEvent['uuid']]) && $localEvents[$remoteEvent['uuid']] < $remoteEvent['sighting_timestamp']) {
+                $eventUuids[] = $remoteEvent['uuid'];
+            }
+        }
+        unset($remoteEvents, $localEvents);
+
         $saved = 0;
-        // now process the $eventIds to pull each of the events sequentially
+        // We don't need some of the event data, like correlations and event reports
+        $params = [
+            'deleted' => [0, 1],
+            'excludeGalaxy' => 1,
+            'excludeLocalTags' => 1,
+            'includeAttachments' => 0,
+            'includeEventCorrelations' => 0,
+            'includeFeedCorrelations' => 0,
+            'includeWarninglistHits' => 0,
+            'noEventReports' => 1,
+            'noShadowAttributes' => 1,
+        ];
+        // now process the $eventUuids to pull each of the events sequentially
         // download each event and save sightings
-        foreach ($eventIds as $k => $eventId) {
+        foreach ($eventUuids as $eventUuid) {
             try {
-                $event = $this->Event->downloadEventFromServer($eventId, $server);
+                $event = $serverSync->fetchEvent($eventUuid, $params)->json();
             } catch (Exception $e) {
-                $this->logException("Failed downloading the event $eventId from {$server['Server']['name']}.", $e);
+                $this->logException("Failed downloading the event $eventUuid from {$serverSync->server()['Server']['name']}.", $e);
                 continue;
             }
-            $sightings = array();
-            if (!empty($event) && !empty($event['Event']['Attribute'])) {
+            $sightings = [];
+            if (!empty($event['Event']['Attribute'])) {
                 foreach ($event['Event']['Attribute'] as $attribute) {
                     if (!empty($attribute['Sighting'])) {
                         $sightings = array_merge($sightings, $attribute['Sighting']);
                     }
                 }
             }
-            if (!empty($event) && !empty($sightings)) {
-                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
+            if (!empty($event['Event']['Object'])) {
+                foreach ($event['Event']['Object'] as $object) {
+                    if (!empty($object['Attribute'])) {
+                        foreach ($object['Attribute'] as $attribute) {
+                            if (!empty($attribute['Sighting'])) {
+                                $sightings = array_merge($sightings, $attribute['Sighting']);
+                            }
+                        }
+                    }
+                }
+            }
+            if (!empty($sightings)) {
+                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $serverSync->serverId());
                 if (is_numeric($result)) {
                     $saved += $result;
                 }

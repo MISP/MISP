@@ -32,12 +32,14 @@ echo $this->element('genericElements/Form/genericForm', array(
                 'field' => 'matching_attributes',
                 'type' => 'dropdown',
                 'multiple' => 'multiple',
+                'class' => 'span6',
             ),
             array(
                 'label' => __('Values (one value per line, for value comment use #)'),
                 'field' => 'entries',
                 'type' => 'textarea',
                 'rows' => 10,
+                'class' => 'span8',
             ),
         ),
         'submit' => array(

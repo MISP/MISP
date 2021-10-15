@@ -8,6 +8,10 @@ class Job extends AppModel
         STATUS_FAILED = 3,
         STATUS_COMPLETED = 4;
 
+    const WORKER_EMAIL = 'email',
+        WORKER_PRIO = 'prio',
+        WORKER_DEFAULT = 'default';
+
     public $belongsTo = array(
         'Org' => array(
             'className' => 'Organisation',
@@ -19,7 +23,6 @@ class Job extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
         $date = date('Y-m-d H:i:s');
         if (empty($this->data['Job']['id'])) {
             $this->data['Job']['date_created'] = $date;
@@ -65,6 +68,33 @@ class Job extends AppModel
         }
         $this->saveField('process_id', $process_id);
         return $id;
+    }
+
+    /**
+     * @param array|string $user
+     * @param string $worker
+     * @param string $jobType
+     * @param string$jobInput
+     * @param string $message
+     * @return int Job ID
+     * @throws Exception
+     */
+    public function createJob($user, $worker, $jobType, $jobInput, $message = '')
+    {
+        $job = [
+            'worker' => $worker,
+            'status' => 0,
+            'retries' => 0,
+            'org_id' => $user === 'SYSTEM' ? 0 : $user['org_id'],
+            'job_type' => $jobType,
+            'job_input' => $jobInput,
+            'message' => $message,
+        ];
+        $this->create();
+        if (!$this->save($job, ['atomic' => false])) { // no need to start transaction for single insert
+            throw new Exception("Could not save job.");
+        }
+        return (int)$this->id;
     }
 
     /**

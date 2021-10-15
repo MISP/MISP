@@ -70,9 +70,8 @@ jobs:
               # Repo is missing for unknown reason
               LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
               sudo apt-get -y install curl python3 python3-zmq python3-requests python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version libfuzzy-dev
-              sudo pip3 install virtualenv # virtualenv must be instaled from pip and not from ubuntu pacckages
-              sudo pip3 install --upgrade -r requirements.txt
-              curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+              sudo pip3 install virtualenv # virtualenv must be instaled from pip and not from ubuntu packages
+              curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | python -
               sudo chown $USER:www-data $HOME/.composer
               pushd app
               sudo -H -u $USER php composer.phar install --no-progress
@@ -167,12 +166,16 @@ jobs:
 
       - name: Update Galaxies
         run: sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'
+
       - name: Update Taxonomies
         run: sudo -E su $USER -c 'app/Console/cake Admin updateTaxonomies'
+
       - name: Update Warninglists
         run: sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'
+
       - name: Update Noticelists
         run: sudo -E su $USER -c 'app/Console/cake Admin updateNoticeLists'
+
       - name: Update Object Templates
         run: sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates 1'
 
@@ -193,7 +196,8 @@ jobs:
               python3 -m virtualenv -p python3 ./venv
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
-              pushd cti-python-stix2
+              export PYTHONPATH=$PYTHONPATH:./app/files/scripts
+              pushd ./app/files/scripts/cti-python-stix2
               pip install .
               popd
               pushd PyMISP
@@ -214,16 +218,21 @@ jobs:
               cat tests/keys.py
               popd
 
+      - name: Build test
+        run: |
+              . ./venv/bin/activate
+              pip install git+https://github.com/kbandla/pydeep.git
+              pushd tests
+              ./build-test.sh
+
       - name: Run PHP tests
         run: |
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
-              ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
-              ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
-              ./app/Vendor/bin/phpunit app/Test/CidrToolTest.php
+              ./app/Vendor/bin/phpunit app/Test/
 
       - name: Run tests
         run: |
-              source $HOME/.poetry/env # enable poetry binary
+              export PATH=$HOME/.local/env:$PATH # enable poetry binary
 
               # Ensure the perms of config files
               sudo chown -R $USER:www-data `pwd`/app/Config
@@ -242,6 +251,7 @@ jobs:
               poetry run python tests/testlive_comprehensive.py
               poetry add lxml
               poetry run python ../tests/testlive_security.py -v
+              poetry run python ../tests/testlive_sync.py
               poetry run python tests/test_mispevent.py
               popd
               cp PyMISP/tests/keys.py PyMISP/examples/events/

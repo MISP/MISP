@@ -9,10 +9,14 @@
     if (!empty($field['url_params_data_paths'])) {
         if (is_array($field['url_params_data_paths'])) {
             $temp = array();
-            foreach ($field['url_params_data_paths'] as $path) {
+            foreach ($field['url_params_data_paths'] as $k => $path) {
                 $extracted_value = Hash::extract($row, $path);
                 if (!empty($extracted_value)) {
-                    $temp[] = h($extracted_value[0]);
+                    if (is_string($k)) { // associative array, use cake's parameter
+                        $temp[] = h($k) . ':' . h($extracted_value[0]);
+                    } else {
+                        $temp[] = h($extracted_value[0]);
+                    }
                 }
             }
             $url_param_data_paths = implode('/', $temp);

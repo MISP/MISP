@@ -150,12 +150,13 @@ class AuditLogBehavior extends ModelBehavior
         $modelName = $model->name === 'MispObject' ? 'Object' : $model->name;
 
         if ($modelName === 'AttributeTag' || $modelName === 'EventTag') {
-            $action = $model->data[$model->alias]['local'] ? AuditLog::ACTION_TAG_LOCAL : AuditLog::ACTION_TAG;
+            $isLocal = isset($model->data[$model->alias]['local']) ? $model->data[$model->alias]['local'] : false;
+            $action = $isLocal ? AuditLog::ACTION_TAG_LOCAL : AuditLog::ACTION_TAG;
             $tagInfo = $this->getTagInfo($model, $model->data[$model->alias]['tag_id']);
             if ($tagInfo) {
                 $modelTitle = $tagInfo['tag_name'];
                 if ($tagInfo['is_galaxy']) {
-                    $action = $model->data[$model->alias]['local'] ? AuditLog::ACTION_GALAXY_LOCAL : AuditLog::ACTION_GALAXY;
+                    $action = $isLocal ? AuditLog::ACTION_GALAXY_LOCAL : AuditLog::ACTION_GALAXY;
                     if ($tagInfo['galaxy_cluster_name']) {
                         $modelTitle = $tagInfo['galaxy_cluster_name'];
                     }
@@ -188,8 +189,12 @@ class AuditLogBehavior extends ModelBehavior
         if (!$this->enabled) {
             return true;
         }
-        $model->recursive = -1;
-        $model->read();
+
+        $this->old = $model->find('first', [
+            'conditions' => array($model->alias . '.' . $model->primaryKey => $model->id),
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
         return true;
     }
 
@@ -198,6 +203,8 @@ class AuditLogBehavior extends ModelBehavior
         if (!$this->enabled) {
             return;
         }
+        $model->data = $this->old;
+        $this->old = null;
         if ($model->name === 'Event') {
             $eventId = $model->id;
         } else {
@@ -219,12 +226,13 @@ class AuditLogBehavior extends ModelBehavior
         $id = $model->id;
 
         if ($modelName === 'AttributeTag' || $modelName === 'EventTag') {
-            $action = $model->data[$model->alias]['local'] ? AuditLog::ACTION_REMOVE_TAG_LOCAL : AuditLog::ACTION_REMOVE_TAG;
+            $isLocal = isset($model->data[$model->alias]['local']) ? $model->data[$model->alias]['local'] : false;
+            $action = $isLocal ? AuditLog::ACTION_REMOVE_TAG_LOCAL : AuditLog::ACTION_REMOVE_TAG;
             $tagInfo = $this->getTagInfo($model, $model->data[$model->alias]['tag_id']);
             if ($tagInfo) {
                 $modelTitle = $tagInfo['tag_name'];
                 if ($tagInfo['is_galaxy']) {
-                    $action = $model->data[$model->alias]['local'] ? AuditLog::ACTION_REMOVE_GALAXY_LOCAL : AuditLog::ACTION_REMOVE_GALAXY;
+                    $action = $isLocal ? AuditLog::ACTION_REMOVE_GALAXY_LOCAL : AuditLog::ACTION_REMOVE_GALAXY;
                     if ($tagInfo['galaxy_cluster_name']) {
                         $modelTitle = $tagInfo['galaxy_cluster_name'];
                     }

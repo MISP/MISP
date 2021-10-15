@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: 2.4.144
+  version: 2.4.148
   title: MISP Automation API
   description: |
 
@@ -46,7 +46,7 @@ info:
     * [GitHub project FAQ](https://github.com/MISP/MISP/wiki/Frequently-Asked-Questions)
 
 servers:
-  - url: /
+  - url: https://misp.local
 tags:
   - name: Attributes
     description: "Attributes in MISP can be network indicators (e.g. IP address), system indicators (e.g. a string in memory) or even bank account details."
@@ -104,6 +104,20 @@ tags:
     description: "Notice lists to inform MISP users of the legal, privacy, policy or even technical implications of using specific attributes, categories or objects."
     externalDocs:
       url: https://www.circl.lu/doc/misp/noticelists/
+  - name: Logs
+    description: "Users with audit permissions are able to browse or search logs that MISP automatically appends each time certain actions are taken (actions that modify data or if a user logs in and out)."
+    externalDocs:
+      url: https://www.circl.lu/doc/misp/administration/#using-misp-logs
+  - name: AuthKeys
+    description: "AuthKeys are used to authenticate MISP API requests. AuthKeys can be set to read-only, a single user can have multiple auth keys."
+    externalDocs:
+      url: https://www.circl.lu/doc/misp/automation/#automation-key
+  - name: UserSettings
+    description: "User settings enables users to customize different MISP features, such as UI elements and default API behaviors."
+  - name: Taxonomies
+    description: "MISP Taxonomies is a set of common classification libraries to tag, classify and organise information. Taxonomy allows to express the same vocabulary among a distributed set of users and organisations."
+    externalDocs:
+      url: https://www.circl.lu/doc/misp/taxonomy/#taxonomies
 
 paths:
   /attributes/restSearch:
@@ -945,6 +959,24 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /admin/logs:
+    post:
+      summary: "Get instance logs"
+      operationId: getLogs
+      tags:
+        - Logs
+      requestBody:
+        $ref: "#/components/requestBodies/GetLogsRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/GetLogsResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /organisations:
     get:
       summary: "Get organisations"
@@ -985,6 +1017,8 @@ paths:
       operationId: addServer
       tags:
         - Servers
+      requestBody:
+        $ref: "#/components/requestBodies/AddServerRequest"
       responses:
         "200":
           $ref: "#/components/responses/ServerResponse"
@@ -1003,6 +1037,8 @@ paths:
         - Servers
       parameters:
         - $ref: "#/components/parameters/serverIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/EditServerRequest"
       responses:
         "200":
           $ref: "#/components/responses/ServerResponse"
@@ -1500,14 +1536,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /sharing_groups/removeServer/{sharingGroupId}/{serverId}:
+  /sharing_groups/removeServer/{sharingGroupServerId}/{serverId}:
     post:
       summary: "Remove a server from a sharing group"
       operationId: removeServerFromSharingGroup
       tags:
         - Sharing Groups
       parameters:
-        - $ref: "#/components/parameters/sharingGroupIdParameter"
+        - $ref: "#/components/parameters/sharingGroupServerIdParameter"
         - $ref: "#/components/parameters/serverIdParameter"
       responses:
         "200":
@@ -1815,14 +1851,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /noticelists/toggleEnable:
+  /noticelists/toggleEnable/{noticelistId}:
     post:
       summary: "Enable/disable noticelist"
       operationId: toggleEnableNoticelist
       tags:
         - Noticelists
-      requestBody:
-        $ref: "#/components/requestBodies/ToggleEnableNoticelistRequest"
+      parameters:
+        - $ref: "#/components/parameters/noticelistIdParameter"
       responses:
         "200":
           $ref: "#/components/responses/NoticelistToggleEnableResponse"
@@ -1918,6 +1954,24 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/SightingListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /sightings/add:
+    post:
+      summary: "Add sightings of a list of values"
+      operationId: addSightingByValue
+      tags:
+        - Sightings
+      requestBody:
+        $ref: "#/components/requestBodies/AddSightingsRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/SightingResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
@@ -2069,19 +2123,533 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /auth_keys:
+    get:
+      summary: "Get auth keys"
+      operationId: getAuthKeys
+      tags:
+        - AuthKeys
+      responses:
+        "200":
+          $ref: "#/components/responses/GetAuthKeysResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+    post:
+      summary: "Search auth keys"
+      operationId: searchAuthKeys
+      tags:
+        - AuthKeys
+      requestBody:
+        $ref: "#/components/requestBodies/GetAuthKeyRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/GetAuthKeysResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /auth_keys/add/{userId}:
+    post:
+      summary: "Add auth keys"
+      operationId: addAuthKey
+      tags:
+        - AuthKeys
+      parameters:
+        - $ref: "#/components/parameters/userIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/AddAuthKeyRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AddAuthKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /auth_keys/view/{authKeyId}:
+    get:
+      summary: "View auth key"
+      operationId: getAuthKeyById
+      tags:
+        - AuthKeys
+      parameters:
+        - $ref: "#/components/parameters/authKeyIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/AuthKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /auth_keys/edit/{authKeyId}:
+    post:
+      summary: "Edit auth key"
+      operationId: editAuthKey
+      tags:
+        - AuthKeys
+      parameters:
+        - $ref: "#/components/parameters/authKeyIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/EditAuthKeyRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AuthKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /auth_keys/delete/{authKeyId}:
+    delete:
+      summary: "Delete auth key"
+      operationId: deleteAuthKey
+      tags:
+        - AuthKeys
+      parameters:
+        - $ref: "#/components/parameters/authKeyIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteAuthKeyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /user_settings:
+    get:
+      summary: "Get user settings"
+      operationId: getUserSettings
+      tags:
+        - UserSettings
+      responses:
+        "200":
+          $ref: "#/components/responses/GetUserSettingsResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+    post:
+      summary: "Search user settings"
+      operationId: searchUserSettings
+      tags:
+        - UserSettings
+      requestBody:
+        $ref: "#/components/requestBodies/GetUserSettingRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/GetUserSettingsResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /user_settings/view/{userSettingId}:
+    get:
+      summary: "Get user setting by id"
+      operationId: getUserSettingById
+      tags:
+        - UserSettings
+      parameters:
+        - $ref: "#/components/parameters/userSettingIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/UserSettingResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /user_settings/setSetting/{userId}/{userSettingName}:
+    post:
+      summary: "Set user setting"
+      operationId: setUserSetting
+      tags:
+        - UserSettings
+      parameters:
+        - $ref: "#/components/parameters/userIdParameter"
+        - $ref: "#/components/parameters/userSettingNameParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/SetUserSettingRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/UserSettingResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /user_settings/getSetting/{userId}/{userSettingName}:
+    get:
+      summary: "Get user setting by id"
+      operationId: getUserSettingByName
+      tags:
+        - UserSettings
+      parameters:
+        - $ref: "#/components/parameters/userIdParameter"
+        - $ref: "#/components/parameters/userSettingNameParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/UserSettingResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /user_settings/delete/{userSettingId}:
+    delete:
+      summary: "Delete user setting by id"
+      operationId: deleteUserSettingById
+      tags:
+        - UserSettings
+      parameters:
+        - $ref: "#/components/parameters/userSettingIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteUserSettingResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /taxonomies:
+    get:
+      summary: "Get taxonomies"
+      operationId: getTaxonomies
+      tags:
+        - Taxonomies
+      responses:
+        "200":
+          $ref: "#/components/responses/GetTaxonomiesResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /taxonomies/view/{taxonomyIdParameter}:
+    get:
+      summary: "Get a taxonomy by ID"
+      operationId: getTaxonomyById
+      tags:
+        - Taxonomies
+      responses:
+        "200":
+          $ref: "#/components/responses/TaxonomiesResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /taxonomies/enable/{taxonomyIdParameter}:
+    post:
+      summary: "Enable taxonomy"
+      operationId: enableTaxonomy
+      tags:
+        - Taxonomies
+      responses:
+        "200":
+          $ref: "#/components/responses/EnableTaxonomyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /taxonomies/disable/{taxonomyIdParameter}:
+    post:
+      summary: "Disable taxonomy"
+      operationId: disableTaxonomy
+      tags:
+        - Taxonomies
+      responses:
+        "200":
+          $ref: "#/components/responses/DisableTaxonomyResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /taxonomies/update:
+    post:
+      summary: "Update taxonomies"
+      operationId: updateTaxonomies
+      tags:
+        - Taxonomies
+      responses:
+        "200":
+          $ref: "#/components/responses/UpdateTaxonomiesResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /taxonomies/taxonomy_tags/{taxonomyIdParameter}:
+    get:
+      summary: "Get a taxonomy extended with tags used in events and attributes."
+      operationId: getTaxonomyTags
+      tags:
+        - Taxonomies
+      responses:
+        "200":
+          $ref: "#/components/responses/GetTaxonomyTagsResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /taxonomies/export/{taxonomyIdParameter}:
+    get:
+      summary: "Export taxonomy."
+      operationId: exportTaxonomy
+      tags:
+        - Taxonomies
+      responses:
+        "200":
+          $ref: "#/components/responses/ExportTaxonomyTagsResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
 components:
   schemas:
     # Attributes
     AttributeId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
     AttributeType:
       type: string
       maxLength: 100
-      example: "ip-src"
+      enum:
+        - "md5"
+        - "sha1"
+        - "sha256"
+        - "filename"
+        - "pdb"
+        - "filename|md5"
+        - "filename|sha1"
+        - "filename|sha256"
+        - "ip-src"
+        - "ip-dst"
+        - "hostname"
+        - "domain"
+        - "domain|ip"
+        - "email"
+        - "email-src"
+        - "eppn"
+        - "email-dst"
+        - "email-subject"
+        - "email-attachment"
+        - "email-body"
+        - "float"
+        - "git-commit-id"
+        - "url"
+        - "http-method"
+        - "user-agent"
+        - "ja3-fingerprint-md5"
+        - "jarm-fingerprint"
+        - "favicon-mmh3"
+        - "hassh-md5"
+        - "hasshserver-md5"
+        - "regkey"
+        - "regkey|value"
+        - "AS"
+        - "snort"
+        - "bro"
+        - "zeek"
+        - "community-id"
+        - "pattern-in-file"
+        - "pattern-in-traffic"
+        - "pattern-in-memory"
+        - "pattern-filename"
+        - "pgp-public-key"
+        - "pgp-private-key"
+        - "yara"
+        - "stix2-pattern"
+        - "sigma"
+        - "gene"
+        - "kusto-query"
+        - "mime-type"
+        - "identity-card-number"
+        - "cookie"
+        - "vulnerability"
+        - "cpe"
+        - "weakness"
+        - "attachment"
+        - "malware-sample"
+        - "link"
+        - "comment"
+        - "text"
+        - "hex"
+        - "other"
+        - "named pipe"
+        - "mutex"
+        - "process-state"
+        - "target-user"
+        - "target-email"
+        - "target-machine"
+        - "target-org"
+        - "target-location"
+        - "target-external"
+        - "btc"
+        - "dash"
+        - "xmr"
+        - "iban"
+        - "bic"
+        - "bank-account-nr"
+        - "aba-rtn"
+        - "bin"
+        - "cc-number"
+        - "prtn"
+        - "phone-number"
+        - "threat-actor"
+        - "campaign-name"
+        - "campaign-id"
+        - "malware-type"
+        - "uri"
+        - "authentihash"
+        - "vhash"
+        - "ssdeep"
+        - "imphash"
+        - "telfhash"
+        - "pehash"
+        - "impfuzzy"
+        - "sha224"
+        - "sha384"
+        - "sha512"
+        - "sha512/224"
+        - "sha512/256"
+        - "sha3-224"
+        - "sha3-256"
+        - "sha3-384"
+        - "sha3-512"
+        - "tlsh"
+        - "cdhash"
+        - "filename|authentihash"
+        - "filename|vhash"
+        - "filename|ssdeep"
+        - "filename|imphash"
+        - "filename|impfuzzy"
+        - "filename|pehash"
+        - "filename|sha224"
+        - "filename|sha384"
+        - "filename|sha512"
+        - "filename|sha512/224"
+        - "filename|sha512/256"
+        - "filename|sha3-224"
+        - "filename|sha3-256"
+        - "filename|sha3-384"
+        - "filename|sha3-512"
+        - "filename|tlsh"
+        - "windows-scheduled-task"
+        - "windows-service-name"
+        - "windows-service-displayname"
+        - "whois-registrant-email"
+        - "whois-registrant-phone"
+        - "whois-registrant-name"
+        - "whois-registrant-org"
+        - "whois-registrar"
+        - "whois-creation-date"
+        - "x509-fingerprint-sha1"
+        - "x509-fingerprint-md5"
+        - "x509-fingerprint-sha256"
+        - "dns-soa-email"
+        - "size-in-bytes"
+        - "counter"
+        - "datetime"
+        - "port"
+        - "ip-dst|port"
+        - "ip-src|port"
+        - "hostname|port"
+        - "mac-address"
+        - "mac-eui-64"
+        - "email-dst-display-name"
+        - "email-src-display-name"
+        - "email-header"
+        - "email-reply-to"
+        - "email-x-mailer"
+        - "email-mime-boundary"
+        - "email-thread-index"
+        - "email-message-id"
+        - "github-username"
+        - "github-repository"
+        - "github-organisation"
+        - "jabber-id"
+        - "twitter-id"
+        - "dkim"
+        - "dkim-signature"
+        - "first-name"
+        - "middle-name"
+        - "last-name"
+        - "full-name"
+        - "date-of-birth"
+        - "place-of-birth"
+        - "gender"
+        - "passport-number"
+        - "passport-country"
+        - "passport-expiration"
+        - "redress-number"
+        - "nationality"
+        - "visa-number"
+        - "issue-date-of-the-visa"
+        - "primary-residence"
+        - "country-of-residence"
+        - "special-service-request"
+        - "frequent-flyer-number"
+        - "travel-details"
+        - "payment-details"
+        - "place-port-of-original-embarkation"
+        - "place-port-of-clearance"
+        - "place-port-of-onward-foreign-destination"
+        - "passenger-name-record-locator-number"
+        - "mobile-application-id"
+        - "chrome-extension-id"
+        - "cortex"
+        - "boolean"
+        - "anonymised"
 
     AttributeValue:
       type: string
@@ -2091,7 +2659,23 @@ components:
     AttributeCategory:
       type: string
       maxLength: 255
-      example: "Payload delivery"
+      enum:
+        - "Internal reference"
+        - "Targeting data"
+        - "Antivirus detection"
+        - "Payload delivery"
+        - "Artifacts dropped"
+        - "Payload installation"
+        - "Persistence mechanism"
+        - "Network activity"
+        - "Payload type"
+        - "Attribution"
+        - "External analysis"
+        - "Financial fraud"
+        - "Support Tool"
+        - "Social network"
+        - "Person"
+        - "Other"
 
     AttributeComment:
       type: string
@@ -2114,7 +2698,6 @@ components:
         object_id:
           $ref: "#/components/schemas/ObjectId"
         object_relation:
-          nullable: true
           $ref: "#/components/schemas/NullableObjectRelation"
         category:
           $ref: "#/components/schemas/AttributeCategory"
@@ -2159,10 +2742,8 @@ components:
             data:
               $ref: "#/components/schemas/AttributeAttachment"
             event_uuid:
-              nullable: true
               $ref: "#/components/schemas/UUID"
             decay_score:
-              nullable: true
               $ref: "#/components/schemas/DecayScoreList"
 
     AttributeList:
@@ -2230,6 +2811,111 @@ components:
               - "hex"
               - "other"
 
+    AttributeRestSearchFilter:
+      type: object
+      properties:
+        page:
+          $ref: "#/components/schemas/PageSearchFilter"
+        limit:
+          $ref: "#/components/schemas/LimitSearchFilter"
+        value:
+          $ref: "#/components/schemas/AttributeValue"
+        type:
+          $ref: "#/components/schemas/AttributeType"
+        category:
+          $ref: "#/components/schemas/AttributeCategory"
+        org:
+          oneOf:
+            - $ref: "#/components/schemas/OrganisationId"
+            - $ref: "#/components/schemas/OrganisationName"
+        tags:
+          $ref: "#/components/schemas/TagsRestSearchFilter"
+        from:
+          $ref: "#/components/schemas/DateRestSearchFilter"
+        to:
+          $ref: "#/components/schemas/DateRestSearchFilter"
+        last:
+          $ref: "#/components/schemas/LastRestSearchFilter"
+        eventid:
+          $ref: "#/components/schemas/EventId"
+        withAttachments:
+          description: "Extends the response with the base64 representation of the attachment, if there is one"
+          type: boolean
+          default: false
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        publish_timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        published:
+          $ref: "#/components/schemas/PublishedFlag"
+        timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        attribute_timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        enforceWarninglist:
+          $ref: "#/components/schemas/EnforceWarninglistRestSearchFilter"
+        to_ids:
+          $ref: "#/components/schemas/ToIDS"
+        deleted:
+          $ref: "#/components/schemas/SoftDeletedFlag"
+        event_timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        threat_level_id:
+          $ref: "#/components/schemas/ThreatLevelId"
+        eventinfo:
+          description: "Quick event description"
+          type: string
+        decayingModel:
+          description: "Specify the decaying model from which the decaying score should be calculated"
+          type: string
+        score:
+          description: "An alias to override on-the-fly the threshold of the decaying model"
+          type: string
+        first_seen:
+          description: "Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
+          type: string
+        last_seen:
+          description: "Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
+          type: string
+        includeEventUuid:
+          $ref: "#/components/schemas/IncludeEventUUIDRestSearchFlag"
+        includeEventTags:
+          $ref: "#/components/schemas/IncludeEventTagsRestSearchFlag"
+        includeProposals:
+          $ref: "#/components/schemas/IncludeProposalsRestSearchFlag"
+        requested_attributes:
+          $ref: "#/components/schemas/RequestedAttributesRestSearchFilter"
+        includeContext:
+          $ref: "#/components/schemas/IncludeContextRestSearchFlag"
+        headerless:
+          $ref: "#/components/schemas/HeaderlessRestSearchFlag"
+        includeWarninglistHits:
+          $ref: "#/components/schemas/IncludeWarninglistHitsRestSearchFlag"
+        attackGalaxy:
+          $ref: "#/components/schemas/AttackGalaxyRestSearchFilter"
+        object_relation:
+          $ref: "#/components/schemas/ObjectRelationRestSearchFilter"
+        includeSightings:
+          $ref: "#/components/schemas/IncludeSightingDbRestSearchFlag"
+        includeCorrelations:
+          $ref: "#/components/schemas/IncludeCorrelationsRestSearchFlag"
+        modelOverrides:
+          $ref: "#/components/schemas/ModelOverridesRestSearchFilter"
+        includeDecayScore:
+          description: "Include all enabled decaying score"
+          type: boolean
+          default: false
+        includeFullModel:
+          description: "Include all model information of matching events in the response"
+          type: boolean
+          default: false
+        excludeDecayed:
+          description: "Should the decayed elements by excluded"
+          type: boolean
+          default: false
+        returnFormat:
+          $ref: "#/components/schemas/AttributesRestSearchReturnFormat"
+
     # Decay Models
     DecayingModelParameters:
       type: object
@@ -2263,7 +2949,7 @@ components:
       properties:
         id:
           type: string
-          format: int32
+          pattern: '^\d+$'
           maxLength: 10
           example: "12345"
         name:
@@ -2277,7 +2963,7 @@ components:
       properties:
         id:
           type: string
-          format: int32
+          pattern: '^\d+$'
           maxLength: 10
           example: "12345"
         uuid:
@@ -2345,7 +3031,7 @@ components:
     # Events
     EventId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2356,7 +3042,7 @@ components:
 
     EventAttributeCount:
       type: string
-      format: int64
+      pattern: '^\d+$'
       example: "321"
 
     EventProposalEmailLock:
@@ -2374,7 +3060,7 @@ components:
 
     EventTagId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2413,6 +3099,9 @@ components:
           $ref: "#/components/schemas/OrganisationId"
         uuid:
           $ref: "#/components/schemas/UUID"
+        date:
+          type: string
+          example: "1991-01-15"
         published:
           $ref: "#/components/schemas/PublishedFlag"
         analysis:
@@ -2437,6 +3126,9 @@ components:
           $ref: "#/components/schemas/DisableCorrelationFlag"
         extends_uuid:
           $ref: "#/components/schemas/ExtendsUUID"
+        event_creator_email:
+          type: string
+          format: email
 
     Event:
       allOf:
@@ -2451,6 +3143,8 @@ components:
         - $ref: "#/components/schemas/Event"
         - type: object
           properties:
+            Feed:
+              $ref: "#/components/schemas/Feed"
             Org:
               $ref: "#/components/schemas/EventOrganisation"
             Orgc:
@@ -2466,11 +3160,20 @@ components:
                 properties:
                   Event:
                     $ref: "#/components/schemas/ExtendedEvent"
-            EventTag:
-              $ref: "#/components/schemas/EventTagList"
-      required:
-        - Org
-        - Orgc
+            Galaxy:
+              type: array
+              items:
+                $ref: "#/components/schemas/Galaxy"
+            Object:
+              type: array
+              items:
+                $ref: "#/components/schemas/Object"
+            EventReport:
+              type: array
+              items:
+                $ref: "#/components/schemas/EventReport"
+            Tag:
+              $ref: "#/components/schemas/TagList"
 
     CreatedEvent:
       type: object
@@ -2579,7 +3282,7 @@ components:
     # Objects
     ObjectId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2596,7 +3299,7 @@ components:
 
     ObjectTemplateVersion:
       type: string
-      format: int32
+      pattern: '^\d+$'
       example: "1"
 
     ObjectRelation:
@@ -2667,14 +3370,14 @@ components:
 
     ObjectTemplateId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
     # Sightings
     SightingId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2712,7 +3415,7 @@ components:
     # Galaxies
     GalaxyId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2774,7 +3477,7 @@ components:
 
     GalaxyClusterId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2812,7 +3515,7 @@ components:
 
     GalaxyElementId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -2842,9 +3545,6 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/GalaxyElement"
-
-    GalaxyClusterRelation:
-      type: object # TODO describe
 
     GalaxyClusterRelationList:
       type: array
@@ -2916,8 +3616,6 @@ components:
           properties:
             Galaxy:
               $ref: "#/components/schemas/Galaxy"
-            GalaxyElement:
-              $ref: "#/components/schemas/GalaxyElementList"
             GalaxyClusterRelation:
               $ref: "#/components/schemas/GalaxyClusterRelationList"
             Org:
@@ -2957,7 +3655,6 @@ components:
             - type: boolean
             - $ref: "#/components/schemas/GalaxyClusterVersion"
         uuid:
-          description: "Collection UUID."
           $ref: "#/components/schemas/UUID"
         source:
           $ref: "#/components/schemas/GalaxyClusterSource"
@@ -2969,7 +3666,6 @@ components:
               description:
                 $ref: "#/components/schemas/GalaxyClusterDescription"
               uuid:
-                description: "Galaxy Cluster UUID."
                 $ref: "#/components/schemas/UUID"
               value:
                 $ref: "#/components/schemas/GalaxyClusterValue"
@@ -3010,7 +3706,7 @@ components:
     # Tags
     TagId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -3027,7 +3723,7 @@ components:
     TagNumericalValue:
       type: string
       nullable: true
-      format: int32
+      pattern: '^\d+$'
       example: "12345"
 
     HideTagFlag:
@@ -3074,7 +3770,7 @@ components:
 
     TagCollectionId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -3091,15 +3787,28 @@ components:
     # Taxonomies
     TaxonomyId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
     TaxonomyPredicateId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
+
+    TaxonomyNamespace:
+      type: string
+      example: "tlp"
+
+    TaxonomyDescription:
+      type: string
+      example: "Disclosure is not limited.  Sources may use TLP:WHITE when information carries minimal or no foreseeable risk of misuse, in accordance with applicable rules and procedures for public release. Subject to standard copyright rules, TLP:WHITE information may be distributed without restriction."
+
+    TaxonomyVersion:
+      type: string
+      pattern: '^\d+$'
+      example: "5"
 
     Taxonomy:
       type: object
@@ -3107,21 +3816,30 @@ components:
         id:
           $ref: "#/components/schemas/TaxonomyId"
         namespace:
-          type: string
-          example: "tlp"
+          $ref: "#/components/schemas/TaxonomyNamespace"
         description:
-          type: string
-          example: "Disclosure is not limited.  Sources may use TLP:WHITE when information carries minimal or no foreseeable risk of misuse, in accordance with applicable rules and procedures for public release. Subject to standard copyright rules, TLP:WHITE information may be distributed without restriction."
+          $ref: "#/components/schemas/TaxonomyDescription"
         version:
-          type: string
-          format: int32
-          example: "5"
+          $ref: "#/components/schemas/TaxonomyVersion"
+
         enabled:
           type: boolean
         exclusive:
           type: boolean
         required:
           type: boolean
+
+    TaxonomyPredicateValue:
+      type: string
+      example: "white"
+
+    TaxonomyPredicateExpanded:
+      type: string
+      example: "(TLP:WHITE) Information can be shared publicly in accordance with the law."
+
+    TaxonomyPredicateDescription:
+      type: string
+      example: "Disclosure is not limited.  Sources may use TLP:WHITE when information carries minimal or no foreseeable risk of misuse, in accordance with applicable rules and procedures for public release. Subject to standard copyright rules, TLP:WHITE information may be distributed without restriction."
 
     TaxonomyPredicate:
       type: object
@@ -3131,31 +3849,83 @@ components:
         taxonomy_id:
           $ref: "#/components/schemas/TaxonomyId"
         value:
-          type: string
-          example: "white"
+          $ref: "#/components/schemas/TaxonomyPredicateValue"
         expanded:
-          type: string
-          example: "(TLP:WHITE) Information can be shared publicly in accordance with the law."
+          $ref: "#/components/schemas/TaxonomyPredicateExpanded"
         colour:
           type: string
           example: "#ffffff"
         description:
-          type: string
-          example: Disclosure is not limited.  Sources may use TLP:WHITE when information carries minimal or no foreseeable risk of misuse, in accordance with applicable rules and procedures for public release. Subject to standard copyright rules, TLP:WHITE information may be distributed without restriction.
+          $ref: "#/components/schemas/TaxonomyPredicateDescription"
         exclusive:
           type: boolean
         numerical_value:
           type: integer
           nullable: true
 
+    TaxonomyPredicateExport:
+      type: object
+      properties:
+        value:
+          $ref: "#/components/schemas/TaxonomyPredicateValue"
+        expanded:
+          $ref: "#/components/schemas/TaxonomyPredicateExpanded"
+
+    TaxonomyEntryExport:
+      type: object
+      properties:
+        value:
+          type: string
+          example: "spam"
+        expanded:
+          type: string
+          example: "spam"
+        description:
+          type: string
+          example: "Spam or ‘unsolicited bulk e-mail’, meaning that the recipient has not granted verifiable permission for the message to be sent and that the message is sent as part of a larger collection of messages, all having identical content."
+
+    TaxonomyValueExport:
+      type: object
+      properties:
+        predicate:
+          $ref: "#/components/schemas/TaxonomyPredicateValue"
+        entry:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxonomyEntryExport"
+
+    TaxonomyEntry:
+      type: object
+      properties:
+        tag:
+          $ref: "#/components/schemas/TagName"
+        expanded:
+          type: string
+        description:
+          type: string
+        exclusive_predicate:
+          type: boolean
+        existing_tag:
+          type: boolean
+
+    ExtendedTaxonomyEntry:
+      allOf:
+        - $ref: "#/components/schemas/UserNoId"
+        - type: object
+          properties:
+            events:
+              type: number
+            attributes:
+              type: number
+
     # Users
     UserId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
-    UserDashboardSetting:
+    DashboardUserSetting:
       type: object
       properties:
         widget:
@@ -3166,34 +3936,131 @@ components:
           properties:
             x:
               type: string
-              format: int32
+              pattern: '^\d+$'
               example: "0"
             y:
               type: string
-              format: int32
+              pattern: '^\d+$'
               example: "0"
             width:
               type: string
-              format: int32
+              pattern: '^\d+$'
               example: "2"
             height:
               type: string
-              format: int32
+              pattern: '^\d+$'
               example: "2"
+
+    PublishAlertFilterUserSetting:
+      type: object
+      example:
+        - "AND":
+            - "NOT":
+                - "EventTag.name":
+                    - "%osint%"
+            - "OR":
+                - "Tag.name":
+                    - "tlp:green"
+                    - "tlp:amber"
+                    - "tlp:red"
+                    - "%privint%"
+
+    DashboardAccessUserSetting:
+      type: boolean
+
+    HomepageUserSetting:
+      type: object
+      properties:
+        path:
+          type: string
+          example: "/events/index"
+
+    DefaultRestSearchParametersUserSetting:
+      type: object
+      example:
+        - "AND":
+            - "NOT":
+                - "EventTag.name":
+                    - "%osint%"
+            - "OR":
+                - "Tag.name":
+                    - "tlp:green"
+                    - "tlp:amber"
+                    - "tlp:red"
+                    - "%privint%"
+
+    TagNumbericalValueOverrideUserSetting:
+      type: object
+      example:
+        - "false-positive:risk='medium'": 99
+
+    EventIndexHideColumnsUserSetting:
+      type: array
+      items:
+        type: string
+        example: "clusters"
+
+    UserSettingId:
+      type: string
+      pattern: '^\d+$'
+      maxLength: 10
+      example: "12345"
+
+    UserSettingName:
+      type: string
+      enum:
+        - "publish_alert_filter"
+        - "dashboard_access"
+        - "dashboard"
+        - "homepage"
+        - "default_restsearch_parameters"
+        - "tag_numerical_value_override"
+        - "event_index_hide_columns"
 
     UserSetting:
       type: object
       properties:
+        id:
+          $ref: "#/components/schemas/UserSettingId"
+        setting:
+          $ref: "#/components/schemas/UserSettingName"
+        value:
+          anyOf:
+            - $ref: "#/components/schemas/DashboardUserSetting"
+            - $ref: "#/components/schemas/PublishAlertFilterUserSetting"
+            - $ref: "#/components/schemas/DashboardAccessUserSetting"
+            - $ref: "#/components/schemas/HomepageUserSetting"
+            - $ref: "#/components/schemas/DefaultRestSearchParametersUserSetting"
+            - $ref: "#/components/schemas/TagNumbericalValueOverrideUserSetting"
+            - $ref: "#/components/schemas/EventIndexHideColumnsUserSetting"
+        user_id:
+          $ref: "#/components/schemas/UserId"
+        timestamp:
+          $ref: "#/components/schemas/Timestamp"
+
+    ViewUserSettings:
+      type: object
+      properties:
+        publish_alert_filter:
+          $ref: "#/components/schemas/PublishAlertFilterUserSetting"
+        dashboard_access:
+          $ref: "#/components/schemas/DashboardAccessUserSetting"
         dashboard:
           type: array
           items:
-            $ref: "#/components/schemas/UserDashboardSetting"
+            $ref: "#/components/schemas/DashboardUserSetting"
+        homepage:
+          $ref: "#/components/schemas/HomepageUserSetting"
+        default_restsearch_parameters:
+          $ref: "#/components/schemas/DefaultRestSearchParametersUserSetting"
+        tag_numerical_value_override:
+          $ref: "#/components/schemas/TagNumbericalValueOverrideUserSetting"
+        event_index_hide_columns:
+          $ref: "#/components/schemas/EventIndexHideColumnsUserSetting"
 
     UserNoId:
       type: object
       properties:
-        id:
-          $ref: "#/components/schemas/UserId"
         org_id:
           $ref: "#/components/schemas/OrganisationId"
         server_id:
@@ -3220,7 +4087,7 @@ components:
           nullable: true
         nids_sid:
           type: string
-          format: int32
+          pattern: '^\d+$'
           maxLength: 10
           example: "4000000"
         termsaccepted:
@@ -3232,7 +4099,6 @@ components:
         change_pw:
           description: "Password change required."
           type: string
-          format: int32
           enum:
             - "0"
             - "1"
@@ -3273,7 +4139,7 @@ components:
             Role:
               $ref: "#/components/schemas/Role"
             UserSetting:
-              $ref: "#/components/schemas/UserSetting"
+              $ref: "#/components/schemas/ViewUserSettings"
 
     UserListItem:
       type: object
@@ -3298,7 +4164,7 @@ components:
     # Organisations
     OrganisationId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -3319,9 +4185,11 @@ components:
         name:
           $ref: "#/components/schemas/OrganisationName"
         date_created:
-          $ref: "#/components/schemas/Timestamp"
+          type: string
+          example: "2021-06-14 14:29:19"
         date_modified:
-          $ref: "#/components/schemas/Timestamp"
+          type: string
+          example: "2021-06-14 14:29:19"
         description:
           type: string
         type:
@@ -3350,7 +4218,7 @@ components:
         user_count:
           type: string
           nullable: true
-          format: int32
+          pattern: '^\d+$'
           example: "3"
         created_by_email:
           nullable: true
@@ -3378,7 +4246,7 @@ components:
     # Servers
     ServerId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "12345"
 
@@ -3396,7 +4264,7 @@ components:
           type: string
           example: "https://misppriv.circl.lu"
         authkey:
-          $ref: "#/components/schemas/AuthKey"
+          $ref: "#/components/schemas/AuthKeyRaw"
         org_id:
           $ref: "#/components/schemas/OrganisationId"
         push:
@@ -3412,13 +4280,13 @@ components:
         lastpulledid:
           type: string
           nullable: true
-          format: int32
+          pattern: '^\d+$'
           maxLength: 10
           example: "12345"
         lastpushedid:
           type: string
           nullable: true
-          format: int32
+          pattern: '^\d+$'
           maxLength: 10
           example: "12345"
         organization:
@@ -3459,7 +4327,7 @@ components:
         priority:
           type: string
           nullable: true
-          format: int32
+          pattern: '^\d+$'
           maxLength: 10
           example: "1"
         cache_timestamp:
@@ -3509,6 +4377,7 @@ components:
         value:
           anyOf:
             - type: integer
+              format: int32
               example: 300
             - type: string
 
@@ -3523,6 +4392,8 @@ components:
           example: ">1.2.0.9"
         status:
           type: integer
+          format: int32
+          minimum: 0
           example: 1
 
     DatabaseTableDiagnostics:
@@ -3549,6 +4420,7 @@ components:
             - type: string
             - type: boolean
             - type: number
+
         errorMessage:
           type: string
           nullable: true
@@ -3601,7 +4473,13 @@ components:
           nullable: true
           anyOf:
             - type: object
+            - type: string
             - type: array
+              items:
+                type: string
+            - type: array
+              items:
+                type: object
 
     Worker:
       type: object
@@ -3651,7 +4529,7 @@ components:
     # Feeds
     FeedId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "3"
 
@@ -3802,7 +4680,7 @@ components:
     # Warninglists
     WarninglistId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "3"
 
@@ -3811,7 +4689,7 @@ components:
       properties:
         id:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "1234"
         value:
           type: string
@@ -3840,13 +4718,13 @@ components:
           type: string
         version:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "10"
         enabled:
           type: boolean
         warninglist_entry_count:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "1234"
         valid_attributes:
           description: "List of comma separated warninglist types."
@@ -3876,7 +4754,7 @@ components:
     # Noticelists
     NoticelistId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "3"
 
@@ -3885,7 +4763,7 @@ components:
       properties:
         id:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "1234"
         noticelist_id:
           $ref: "#/components/schemas/NoticelistId"
@@ -3939,13 +4817,13 @@ components:
           type: string
         version:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "10"
         enabled:
           type: boolean
         warninglist_entry_count:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "1234"
         valid_attributes:
           description: "List of comma separated warninglist types."
@@ -3959,7 +4837,7 @@ components:
     # Roles
     RoleId:
       type: string
-      format: int32
+      pattern: '^\d+$'
       maxLength: 10
       example: "3"
 
@@ -4022,21 +4900,21 @@ components:
         memory_limit:
           type: string
           nullable: true
-          format: int32
+          pattern: '^\d+$|^$'
         max_execution_time:
           type: string
           nullable: true
-          format: int32
+          pattern: '^\d+$|^$'
         restricted_to_site_admin:
           type: boolean
         enforce_rate_limit:
           type: boolean
         rate_limit_count:
           type: string
-          format: int32
+          pattern: '^\d+$'
         permission:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "3"
         permission_description:
           type: string
@@ -4046,14 +4924,21 @@ components:
     SharingGroupId:
       type: string
       nullable: true
-      format: int32
+      pattern: '^\d+$|^$'
+      maxLength: 10
+      example: "1"
+
+    SharingGroupServerId:
+      type: string
+      nullable: true
+      pattern: '^\d+$|^$'
       maxLength: 10
       example: "1"
 
     SharingGroupOrganisationId:
       type: string
       nullable: true
-      format: int32
+      pattern: '^\d+$|^$'
       maxLength: 10
       example: "1"
 
@@ -4074,8 +4959,6 @@ components:
     SlimSharingGroupNoId:
       type: object
       properties:
-        id:
-          $ref: "#/components/schemas/SharingGroupId"
         uuid:
           $ref: "#/components/schemas/UUID"
         name:
@@ -4090,7 +4973,7 @@ components:
           type: boolean
         org_count:
           type: string
-          format: int32
+          pattern: '^\d+$'
           example: "6"
 
     SlimSharingGroup:
@@ -4194,8 +5077,116 @@ components:
         deletable:
           type: boolean
 
+    # Logs
+    LogActionType:
+      type: string
+      enum:
+        - "accept"
+        - "accept_delegation"
+        - "acceptRegistrations"
+        - "add"
+        - "admin_email"
+        - "attachTags"
+        - "auth"
+        - "auth_fail"
+        - "blocklisted"
+        - "captureRelations"
+        - "change_pw"
+        - "delete"
+        - "disable"
+        - "discard"
+        - "discardRegistrations"
+        - "edit"
+        - "email"
+        - "enable"
+        - "enrichment"
+        - "error"
+        - "export"
+        - "fetchEvent"
+        - "file_upload"
+        - "galaxy"
+        - "include_formula"
+        - "login"
+        - "login_fail"
+        - "logout"
+        - "merge"
+        - "pruneUpdateLogs"
+        - "publish"
+        - "publish_sightings"
+        - "publish alert"
+        - "pull"
+        - "purge_events"
+        - "push"
+        - "registration"
+        - "registration_error"
+        - "remove_dead_workers"
+        - "request"
+        - "request_delegation"
+        - "reset_auth_key"
+        - "send_mail"
+        - "security"
+        - "serverSettingsEdit"
+        - "tag"
+        - "undelete"
+        - "update"
+        - "update_database"
+        - "update_db_worker"
+        - "upgrade_24"
+        - "upload_sample"
+        - "version_warning"
+        - "warning"
+        - "wipe_default"
+    LogId:
+      type: string
+      pattern: '^\d+$'
+      maxLength: 10
+      example: "12345"
+
+    LogTitle:
+      type: string
+      example: "Attribute (448272) from Event (1): Other/text foo"
+
+    LogChange:
+      type: string
+      example: "name () => (ORGNAME)"
+
+    LogDescription:
+      type: string
+      example: 'Organisation "ORGNAME" (1) added by User "SYSTEM" (0).'
+
+    Log:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/LogId"
+        title:
+          $ref: "#/components/schemas/LogTitle"
+        created:
+          type: string
+          format: datetime
+        model:
+          $ref: "#/components/schemas/ModelName"
+        model_id:
+          $ref: "#/components/schemas/ModelId"
+        action:
+          $ref: "#/components/schemas/LogActionType"
+        user_id:
+          $ref: "#/components/schemas/UserId"
+        change:
+          $ref: "#/components/schemas/LogChange"
+        email:
+          type: string
+          format: email
+        org:
+          $ref: "#/components/schemas/OrganisationName"
+        description:
+          $ref: "#/components/schemas/LogDescription"
+        ip:
+          type: string
+          example: "10.0.0.10"
+
     # General
-    AuthKey:
+    AuthKeyRaw:
       type: string
       minLength: 40
       maxLength: 40
@@ -4203,7 +5194,6 @@ components:
 
     DistributionLevelId:
       type: string
-      format: int32
       enum: ["0", "1", "2", "3", "4", "5"]
       description: >
         Who will be able to see this event once it becomes published and eventually when it becomes pulled:
@@ -4216,7 +5206,6 @@ components:
 
     ThreatLevelId:
       type: string
-      format: int32
       enum: ["1", "2", "3", "4"]
       description: >
         Represents the threat level.
@@ -4227,7 +5216,6 @@ components:
 
     AnalysisLevelId:
       type: string
-      format: int32
       enum: ["0", "1", "2"]
       description: >
         Represents the analysis maturity level.
@@ -4253,27 +5241,26 @@ components:
 
     Timestamp:
       type: string
-      format: int64
+      pattern: '^\d+$'
       default: "0"
       example: "1617875568"
 
     NullableTimestamp:
       nullable: true
       type: string
-      format: int64
+      pattern: '^\d+$|^$'
       default: "0"
       example: "1617875568"
 
     MicroTimestamp:
       type: string
-      format: int64
-      default: null
+      pattern: '^\d+$'
       example: "1581984000000000"
 
     NullableMicroTimestamp:
       nullable: true
       type: string
-      format: int64
+      pattern: '^\d+$|^$'
       default: null
       example: "1581984000000000"
 
@@ -4315,6 +5302,9 @@ components:
     IsLocal:
       type: boolean
 
+    IsReadOnly:
+      type: boolean
+
     Icon:
       type: string
       maxLength: 255
@@ -4351,6 +5341,14 @@ components:
       description: "You can use any of the valid time related filters (examples: 7d, timestamps, [14d, 7d] for ranges, etc.)"
       type: string
       nullable: true
+
+    DateIntervalRestSearchFilter:
+      description: "Interval described by two dates"
+      type: array
+      minimum: 2
+      maximum: 2
+      items:
+        $ref: "#/components/schemas/DateRestSearchFilter"
 
     LastRestSearchFilter:
       description: "Published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
@@ -4432,6 +5430,95 @@ components:
     ModelOverridesRestSearchFilter:
       $ref: "#/components/schemas/DecayingModelParameters"
 
+    ModelId:
+      type: string
+      pattern: '^\d+$'
+      maxLength: 10
+      example: "12345"
+
+    ModelName:
+      type: string
+      enum:
+        - "AdminSetting"
+        - "Allowedlist"
+        - "AttachmentScan"
+        - "Attribute"
+        - "AttributeTag"
+        - "AuditLog"
+        - "AuthKey"
+        - "Bruteforce"
+        - "Cerebrate"
+        - "Community"
+        - "CorrelationExclusion"
+        - "Correlation"
+        - "Dashboard"
+        - "DecayingModelMapping"
+        - "DecayingModel"
+        - "EventBlocklist"
+        - "EventDelegation"
+        - "EventGraph"
+        - "EventLock"
+        - "Event"
+        - "EventReport"
+        - "EventTag"
+        - "FavouriteTag"
+        - "Feed"
+        - "FuzzyCorrelateSsdeep"
+        - "GalaxyClusterBlocklist"
+        - "GalaxyCluster"
+        - "GalaxyClusterRelation"
+        - "GalaxyClusterRelationTag"
+        - "GalaxyElement"
+        - "Galaxy"
+        - "Inbox"
+        - "Job"
+        - "Log"
+        - "MispObject"
+        - "Module"
+        - "News"
+        - "NoticelistEntry"
+        - "Noticelist"
+        - "NotificationLog"
+        - "ObjectReference"
+        - "ObjectRelationship"
+        - "ObjectTemplateElement"
+        - "ObjectTemplate"
+        - "Organisation"
+        - "OrgBlocklist"
+        - "Post"
+        - "Regexp"
+        - "RestClientHistory"
+        - "Role"
+        - "Server"
+        - "ShadowAttribute"
+        - "SharingGroupElement"
+        - "SharingGroupOrg"
+        - "SharingGroup"
+        - "SharingGroupServer"
+        - "SightingdbOrg"
+        - "Sightingdb"
+        - "Sighting"
+        - "TagCollection"
+        - "TagCollectionTag"
+        - "Tag"
+        - "Task"
+        - "TaxonomyEntry"
+        - "Taxonomy"
+        - "TaxonomyPredicate"
+        - "TemplateElementAttribute"
+        - "TemplateElementFile"
+        - "TemplateElement"
+        - "TemplateElementText"
+        - "Template"
+        - "TemplateTag"
+        - "Thread"
+        - "ThreatLevel"
+        - "User"
+        - "UserSetting"
+        - "WarninglistEntry"
+        - "Warninglist"
+        - "WarninglistType"
+
     EventsRestSearchReturnFormat:
       description: "Format of the response payload"
       type: string
@@ -4483,6 +5570,49 @@ components:
       nullable: true
       type: string
       example: "filepath"
+
+    # AuthKeys
+    AuthKeyId:
+      type: string
+      pattern: '^\d+$'
+      maxLength: 10
+      example: "12345"
+
+    AuthKey:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/AuthKeyId"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        authkey_start:
+          type: string
+          maxLength: 4
+        authkey_end:
+          type: string
+          maxLength: 4
+        created:
+          $ref: "#/components/schemas/Timestamp"
+        expiration:
+          type: string
+          format: datetime
+          example: "1970-01-01 00:00:00"
+          nullable: true
+        read_only:
+          $ref: "#/components/schemas/IsReadOnly"
+        user_id:
+          $ref: "#/components/schemas/UserId"
+        comment:
+          type: string
+        allowed_ips:
+          type: array
+          items:
+            description: IP address
+            type: string
+            example: "127.0.0.1"
+          nullable: true
+        last_used:
+          $ref: "#/components/schemas/NullableTimestamp"
 
     ApiError:
       type: object
@@ -4675,7 +5805,7 @@ components:
       required: true
       schema:
         type: string
-        format: int32
+        pattern: '^\d+$'
 
     settingNameParameter:
       name: settingName
@@ -4695,6 +5825,14 @@ components:
         oneOf:
           - $ref: "#/components/schemas/SharingGroupId"
           - $ref: "#/components/schemas/UUID"
+
+    sharingGroupServerIdParameter:
+      name: sharingGroupServerId
+      in: path
+      description: "UUID or numeric ID of the sharing group server"
+      required: true
+      schema:
+        $ref: "#/components/schemas/SharingGroupServerId"
 
     feedIdParameter:
       name: feedId
@@ -4784,7 +5922,6 @@ components:
       description: "`0` to show attribute count, `1` for showing percentages"
       schema:
         type: integer
-        default: 0
 
     objectIdParameter:
       name: objectId
@@ -4797,7 +5934,7 @@ components:
           - $ref: "#/components/schemas/UUID"
 
     hardDeleteParameter:
-      name: objectId
+      name: hardDelete
       in: path
       description: "`1` for hard delete the entity, `0` for soft deletion."
       required: true
@@ -4816,6 +5953,40 @@ components:
         oneOf:
           - $ref: "#/components/schemas/ObjectTemplateId"
           - $ref: "#/components/schemas/UUID"
+
+    authKeyIdParameter:
+      name: authKeyId
+      in: path
+      description: "UUID or numeric ID of the auth key"
+      required: true
+      schema:
+        oneOf:
+          - $ref: "#/components/schemas/AuthKeyId"
+          - $ref: "#/components/schemas/UUID"
+
+    userSettingIdParameter:
+      name: userSettingId
+      in: path
+      description: "UUID or numeric ID of the user setting"
+      required: true
+      schema:
+        $ref: "#/components/schemas/UserSettingId"
+
+    userSettingNameParameter:
+      name: userSettingName
+      in: path
+      description: "Name of the user setting"
+      required: true
+      schema:
+        $ref: "#/components/schemas/UserSettingName"
+
+    taxonomyIdParameter:
+      name: taxonomyId
+      in: path
+      description: "Numeric ID of the taxonomy"
+      required: true
+      schema:
+        $ref: "#/components/schemas/TaxonomyId"
 
   securitySchemes:
     ApiKeyAuth:
@@ -4848,7 +6019,6 @@ components:
       content:
         application/json:
           schema:
-            type: object
             $ref: "#/components/schemas/Attribute"
 
     RestSearchAttributesRequest:
@@ -4856,110 +6026,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              page:
-                $ref: "#/components/schemas/PageSearchFilter"
-              limit:
-                $ref: "#/components/schemas/LimitSearchFilter"
-              value:
-                $ref: "#/components/schemas/AttributeValue"
-              type:
-                $ref: "#/components/schemas/AttributeType"
-              category:
-                $ref: "#/components/schemas/AttributeCategory"
-              org:
-                oneOf:
-                  - $ref: "#/components/schemas/OrganisationId"
-                  - $ref: "#/components/schemas/OrganisationName"
-              tags:
-                $ref: "#/components/schemas/TagsRestSearchFilter"
-              from:
-                $ref: "#/components/schemas/DateRestSearchFilter"
-              to:
-                $ref: "#/components/schemas/DateRestSearchFilter"
-              last:
-                $ref: "#/components/schemas/LastRestSearchFilter"
-              eventid:
-                $ref: "#/components/schemas/EventId"
-              withAttachments:
-                description: "Extends the response with the base64 representation of the attachment, if there is one"
-                type: boolean
-                default: false
-              uuid:
-                $ref: "#/components/schemas/UUID"
-              publish_timestamp:
-                $ref: "#/components/schemas/Timestamp"
-              published:
-                $ref: "#/components/schemas/PublishedFlag"
-              timestamp:
-                $ref: "#/components/schemas/Timestamp"
-              attribute_timestamp:
-                $ref: "#/components/schemas/Timestamp"
-              enforceWarninglist:
-                $ref: "#/components/schemas/EnforceWarninglistRestSearchFilter"
-              to_ids:
-                $ref: "#/components/schemas/ToIDS"
-              deleted:
-                $ref: "#/components/schemas/SoftDeletedFlag"
-              event_timestamp:
-                description: "The timestamp at which the event was last modified"
-                $ref: "#/components/schemas/Timestamp"
-              threat_level_id:
-                $ref: "#/components/schemas/ThreatLevelId"
-              eventinfo:
-                description: "Quick event description"
-                type: string
-              decayingModel:
-                description: "Specify the decaying model from which the decaying score should be calculated"
-                type: string
-              score:
-                description: "An alias to override on-the-fly the threshold of the decaying model"
-                type: string
-              first_seen:
-                description: "Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
-                type: string
-              last_seen:
-                description: "Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
-                type: string
-              includeEventUuid:
-                $ref: "#/components/schemas/IncludeEventUUIDRestSearchFlag"
-              includeEventTags:
-                $ref: "#/components/schemas/IncludeEventTagsRestSearchFlag"
-              includeProposals:
-                $ref: "#/components/schemas/IncludeProposalsRestSearchFlag"
-              requested_attributes:
-                $ref: "#/components/schemas/RequestedAttributesRestSearchFilter"
-              includeContext:
-                $ref: "#/components/schemas/IncludeContextRestSearchFlag"
-              headerless:
-                $ref: "#/components/schemas/HeaderlessRestSearchFlag"
-              includeWarninglistHits:
-                $ref: "#/components/schemas/IncludeWarninglistHitsRestSearchFlag"
-              attackGalaxy:
-                $ref: "#/components/schemas/AttackGalaxyRestSearchFilter"
-              object_relation:
-                $ref: "#/components/schemas/ObjectRelationRestSearchFilter"
-              includeSightings:
-                $ref: "#/components/schemas/IncludeSightingDbRestSearchFlag"
-              includeCorrelations:
-                $ref: "#/components/schemas/IncludeCorrelationsRestSearchFlag"
-              modelOverrides:
-                $ref: "#/components/schemas/ModelOverridesRestSearchFilter"
-              includeDecayScore:
-                description: "Include all enabled decaying score"
-                type: boolean
-                default: false
-              includeFullModel:
-                description: "Include all model information of matching events in the response"
-                type: boolean
-                default: false
-              excludeDecayed:
-                description: "Should the decayed elements by excluded"
-                type: boolean
-                default: false
-              returnFormat:
-                $ref: "#/components/schemas/AttributesRestSearchReturnFormat"
+            $ref: "#/components/schemas/AttributeRestSearchFilter"
 
     AddEventRequest:
       required: true
@@ -5025,10 +6092,7 @@ components:
                 nullable: true
                 example: "Phishing campaing"
               tag:
-                description: "Filter events by matching the event tags with a given tag name"
-                nullable: true
                 $ref: "#/components/schemas/TagName"
-                example: "tlp:white"
               tags:
                 description: "Filter events by matching *any* of the event tags of a given list of tag names"
                 type: array
@@ -5145,7 +6209,6 @@ components:
               to_ids:
                 $ref: "#/components/schemas/ToIDS"
               deleted:
-                description: "Include deleted elements"
                 $ref: "#/components/schemas/SoftDeletedFlag"
               excludeLocalTags:
                 $ref: "#/components/schemas/ExcludeLocalTagsRestSearchFilter"
@@ -5307,6 +6370,18 @@ components:
                   type: string
                   format: hostname
 
+    AddServerRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ServerNoId"
+
+    EditServerRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Server"
+
     EditServerSettingRequest:
       content:
         application/json:
@@ -5334,7 +6409,7 @@ components:
               uuid:
                 $ref: "#/components/schemas/UUID"
               authkey:
-                $ref: "#/components/schemas/AuthKey"
+                $ref: "#/components/schemas/AuthKeyRaw"
               Organisation:
                 type: object
                 properties:
@@ -5530,6 +6605,21 @@ components:
                     object_relation:
                       $ref: "#/components/schemas/ObjectRelation"
 
+    AddSightingsRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              values:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttributeValue"
+              timestamp:
+                $ref: "#/components/schemas/NullableTimestamp"
+              filters:
+                $ref: "#/components/schemas/AttributeRestSearchFilter"
+
     AddTagRequest:
       content:
         application/json:
@@ -5541,6 +6631,154 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/TagNoId"
+
+    GetLogsRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              page:
+                $ref: "#/components/schemas/PageSearchFilter"
+              limit:
+                $ref: "#/components/schemas/LimitSearchFilter"
+              id:
+                $ref: "#/components/schemas/LogId"
+              title:
+                $ref: "#/components/schemas/LogTitle"
+              created:
+                oneOf:
+                  - $ref: "#/components/schemas/DateRestSearchFilter"
+                  - $ref: "#/components/schemas/DateIntervalRestSearchFilter"
+              model:
+                $ref: "#/components/schemas/ModelName"
+              model_id:
+                $ref: "#/components/schemas/ModelId"
+              action:
+                $ref: "#/components/schemas/LogActionType"
+              user_id:
+                $ref: "#/components/schemas/UserId"
+              change:
+                type: string
+                description: "Text search for log change property"
+                example: "%name () => (ORGNAME)%"
+              email:
+                type: string
+                format: email
+              org:
+                type: string
+                description: "Text search for log organisation name property"
+                example: "ORG_%"
+              description:
+                type: string
+                description: "Text search for log change property"
+                example: "%updated by User%"
+              ip:
+                type: string
+                description: "Text search for log ip property"
+
+    GetAuthKeyRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              page:
+                $ref: "#/components/schemas/PageSearchFilter"
+              limit:
+                $ref: "#/components/schemas/LimitSearchFilter"
+              id:
+                $ref: "#/components/schemas/AuthKeyId"
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              authkey_start:
+                description: "Search term matching the first 4 characers of the authkey"
+                type: string
+              authkey_end:
+                description: "Search term matching the last 4 characers of the authkey"
+                type: string
+              created:
+                $ref: "#/components/schemas/DateRestSearchFilter"
+              expiration:
+                $ref: "#/components/schemas/DateRestSearchFilter"
+              read_only:
+                $ref: "#/components/schemas/IsReadOnly"
+              user_id:
+                $ref: "#/components/schemas/UserId"
+              comment:
+                type: string
+              allowed_ips:
+                description: "Stringified JSON array of the IP addresses."
+                type: string
+                example: '["127.0.0.1","127.0.0.2"]'
+              last_used:
+                $ref: "#/components/schemas/DateRestSearchFilter"
+
+    AddAuthKeyRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              uuid:
+                $ref: "#/components/schemas/UUID"
+              read_only:
+                $ref: "#/components/schemas/IsReadOnly"
+              user_id:
+                $ref: "#/components/schemas/UserId"
+              comment:
+                type: string
+              allowed_ips:
+                type: array
+                items:
+                  description: IP address
+                  type: string
+                  example: "127.0.0.1"
+                nullable: true
+
+    EditAuthKeyRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              read_only:
+                $ref: "#/components/schemas/IsReadOnly"
+              comment:
+                type: string
+              allowed_ips:
+                type: array
+                items:
+                  description: IP address
+                  type: string
+                  example: "127.0.0.1"
+                nullable: true
+
+    GetUserSettingRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                $ref: "#/components/schemas/UserSettingId"
+              setting:
+                $ref: "#/components/schemas/UserSettingName"
+              user_id:
+                $ref: "#/components/schemas/UserId"
+
+    SetUserSettingRequest:
+      content:
+        application/json:
+          schema:
+            anyOf:
+              - $ref: "#/components/schemas/DashboardUserSetting"
+              - $ref: "#/components/schemas/PublishAlertFilterUserSetting"
+              - $ref: "#/components/schemas/DashboardAccessUserSetting"
+              - $ref: "#/components/schemas/HomepageUserSetting"
+              - $ref: "#/components/schemas/DefaultRestSearchParametersUserSetting"
+              - $ref: "#/components/schemas/TagNumbericalValueOverrideUserSetting"
+              - $ref: "#/components/schemas/EventIndexHideColumnsUserSetting"
 
   responses:
     AttributeResponse:
@@ -5752,9 +6990,7 @@ components:
       content:
         application/json:
           schema:
-            oneOf:
-              - $ref: "#/components/schemas/ExtendedEventList"
-              - $ref: "#/components/schemas/SlimEventList"
+            $ref: "#/components/schemas/ExtendedEventList"
 
     ExtendedEventResponse:
       description: "An event with extended properties"
@@ -5801,7 +7037,7 @@ components:
                 example: "https://misp.local/events/alert/1"
               id:
                 type: string
-                format: int32
+                pattern: '^\d+$'
 
     UnpublishEventResponse:
       description: "Unpublish event response"
@@ -6233,10 +7469,13 @@ components:
                 type: string
                 example: "2.4.142"
               perm_sync:
+                nullable: true
                 type: boolean
               perm_sighting:
+                nullable: true
                 type: boolean
               perm_galaxy_editor:
+                nullable: true
                 type: boolean
               request_encoding:
                 type: array
@@ -6370,6 +7609,7 @@ components:
                     example: "Database/Mysql"
                   actual_db_version:
                     type: string
+                    pattern: '^\d+$'
                     example: "68"
                   checked_table_column:
                     type: array
@@ -6379,18 +7619,28 @@ components:
                   diagnostic:
                     type: object
                   diagnostic_index:
-                    type: array
-                    items:
-                      type: object
+                    anyOf:
+                      - type: object
+                        example:
+                          "event_reports":
+                            "event_id":
+                              "message": "Column `event_id` is indexed but should not"
+                              "sql": "DROP INDEX `event_id` ON event_reports;"
+                      - type: array
+                        items:
+                          type: object
+                        example: []
                   expected_db_version:
                     type: string
-                    example: "67"
+                    pattern: '^\d+$'
+                    example: "70"
                   error:
                     type: string
                   update_locked:
                     type: boolean
                   remaining_lock_time:
                     type: number
+                    example: 0
                   update_fail_number_reached:
                     type: boolean
                   indexes:
@@ -6758,7 +8008,7 @@ components:
                   uuid:
                     $ref: "#/components/schemas/UUID"
                   authkey:
-                    $ref: "#/components/schemas/AuthKey"
+                    $ref: "#/components/schemas/AuthKeyRaw"
                   Organisation:
                     type: object
                     properties:
@@ -7144,8 +8394,16 @@ components:
               saved:
                 type: boolean
               success:
+                type: boolean
+              name:
                 type: string
-                example: "Noticelist enabled"
+                example: "Noticelist enabled."
+              message:
+                type: string
+                example: "Noticelist enabled."
+              url:
+                type: string
+                example: "/noticelists/toggleEnable/1"
 
     UpdateNoticelistsResponse:
       description: "Toggle enable noticelist response"
@@ -7298,6 +8556,267 @@ components:
             type: array
             items:
               $ref: "#/components/schemas/ExtendedTag"
+
+    GetLogsResponse:
+      description: "Get logs response"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                Log:
+                  $ref: "#/components/schemas/Log"
+
+    GetAuthKeysResponse:
+      description: "Get auth keys response"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                AuthKey:
+                  $ref: "#/components/schemas/AuthKey"
+                User:
+                  type: object
+                  properties:
+                    id:
+                      $ref: "#/components/schemas/UserId"
+                    email:
+                      type: string
+                      format: email
+
+    AddAuthKeyResponse:
+      description: "Auth key response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              AuthKey:
+                $ref: "#/components/schemas/AuthKey"
+
+    AuthKeyResponse:
+      description: "Auth key response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              AuthKey:
+                $ref: "#/components/schemas/AuthKey"
+              User:
+                type: object
+                properties:
+                  id:
+                    $ref: "#/components/schemas/UserId"
+                  org_id:
+                    $ref: "#/components/schemas/OrganisationId"
+                    nullable: true
+                  email:
+                    type: string
+                    format: email
+                    nullable: true
+
+    DeleteAuthKeyResponse:
+      description: "Delete auth key response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "AuthKey deleted."
+              message:
+                type: string
+                example: "AuthKey deleted."
+              url:
+                type: string
+                example: "/auth_keys/delete/1234"
+
+    GetUserSettingsResponse:
+      description: "Get user settings response"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                UserSetting:
+                  $ref: "#/components/schemas/UserSetting"
+
+    UserSettingResponse:
+      description: "Get user setting response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              UserSetting:
+                $ref: "#/components/schemas/UserSetting"
+
+    DeleteUserSettingResponse:
+      description: "Delete user setting response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "Setting deleted."
+              message:
+                type: string
+                example: "Setting deleted."
+              url:
+                type: string
+                example: "/user_settings/delete/1234"
+
+    GetTaxonomiesResponse:
+      description: "Get taxonomies response"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                Taxonomy:
+                  $ref: "#/components/schemas/Taxonomy"
+                total_count:
+                  type: integer
+                  description: "Amount of related tags to this taxonomy."
+                current_count:
+                  type: integer
+                  description: "Amount of active related tags to this taxonomy."
+
+    TaxonomiesResponse:
+      description: "Get taxonomy response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Taxonomy:
+                $ref: "#/components/schemas/Taxonomy"
+              entries:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaxonomyEntry"
+
+    EnableTaxonomyResponse:
+      description: "Enable taxonomy response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "Taxonomy enabled"
+              message:
+                type: string
+                example: "Taxonomy enabled"
+              url:
+                type: string
+                example: "/taxonomies/enable/1234"
+
+    DisableTaxonomyResponse:
+      description: "Disable taxonomy response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "Taxonomy disabled"
+              message:
+                type: string
+                example: "Taxonomy disabled"
+              url:
+                type: string
+                example: "/taxonomies/disabled/1234"
+
+    UpdateTaxonomiesResponse:
+      description: "Update taxonomies response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "Successfully updated 120 taxonomy libraries."
+              message:
+                type: string
+                example: "Successfully updated 120 taxonomy libraries."
+              url:
+                type: string
+                example: "/taxonomies/update"
+
+    GetTaxonomyTagsResponse:
+      description: "Get taxonomy tags response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Taxonomy:
+                $ref: "#/components/schemas/Taxonomy"
+              entries:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExtendedTaxonomyEntry"
+
+    ExportTaxonomyTagsResponse:
+      description: "Export taxonomy response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              namespace:
+                $ref: "#/components/schemas/TaxonomyNamespace"
+              description:
+                $ref: "#/components/schemas/TaxonomyDescription"
+              version:
+                type: integer
+              exclusive:
+                type: boolean
+              predicates:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaxonomyPredicateExport"
+              values:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaxonomyValueExport"
 
     ApiErrorResponse:
       description: "Unexpected API error"

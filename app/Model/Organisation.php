@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('ConnectionManager', 'Model');
+App::uses('FileAccessTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -36,7 +37,8 @@ class Organisation extends AppModel
         'uuid' => array(
             'unique' => array(
                 'rule' => 'isUnique',
-                'message' => 'An organisation with this UUID already exists.'
+                'message' => 'An organisation with this UUID already exists.',
+                'on' => 'create',
             ),
             'uuid' => array(
                 'rule' => 'uuid',
@@ -113,10 +115,10 @@ class Organisation extends AppModel
         $date = date('Y-m-d H:i:s');
         if (array_key_exists('restricted_to_domain', $this->data['Organisation'])) {
             if (!is_array($this->data['Organisation']['restricted_to_domain'])) {
-                $this->data['Organisation']['restricted_to_domain'] = str_replace('\r', '', $this->data['Organisation']['restricted_to_domain']);
-                $this->data['Organisation']['restricted_to_domain'] = explode('\n', $this->data['Organisation']['restricted_to_domain']);
+                $this->data['Organisation']['restricted_to_domain'] = str_replace("\r", '', $this->data['Organisation']['restricted_to_domain']);
+                $this->data['Organisation']['restricted_to_domain'] = explode("\n", $this->data['Organisation']['restricted_to_domain']);
             }
-            
+
             $this->data['Organisation']['restricted_to_domain'] = array_values(
                 array_filter(
                     array_map('trim', $this->data['Organisation']['restricted_to_domain'])
@@ -172,10 +174,21 @@ class Organisation extends AppModel
         return $results;
     }
 
-    public function captureOrg($org, $user, $force = false)
+    /**
+     * @param array|string $org
+     * @param array $user
+     * @param bool $force
+     * @return int Organisation ID
+     * @throws Exception
+     */
+    public function captureOrg($org, array $user, $force = false)
     {
+        $fieldsToFetch = $force ?
+            ['id', 'uuid', 'type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts'] :
+            ['id', 'uuid'];
+
         if (is_array($org)) {
-            if (isset($org['uuid']) && !empty($org['uuid'])) {
+            if (!empty($org['uuid'])) {
                 $conditions = array('uuid' => $org['uuid']);
                 $uuid = $org['uuid'];
             } else {
@@ -188,28 +201,26 @@ class Organisation extends AppModel
         }
 
         $existingOrg = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => $conditions,
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => $fieldsToFetch,
         ));
         if (empty($existingOrg)) {
             $date = date('Y-m-d H:i:s');
             $organisation = array(
-                    'name' => $name,
-                    'local' => 0,
-                    'created_by' => $user['id'],
-                    'date_modified' => $date,
-                    'date_created' => $date
+                'name' => $name,
+                'local' => 0,
+                'created_by' => $user['id'],
+                'date_modified' => $date,
+                'date_created' => $date
             );
             // If we have the UUID set, then we have only made sure that the org doesn't exist by UUID
             // We want to create a new organisation for pushed data, even if the same org name exists
             // Alter the name if the name is already taken by a random string
             if (isset($uuid)) {
-                $existingOrgByName = $this->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array('name' => $name),
-                ));
+                $existingOrgByName = $this->hasAny(['name' => $name]);
                 if ($existingOrgByName) {
-                    $organisation['name'] = $organisation['name'] . '_' . rand(0, 9999);
+                    $organisation['name'] = $organisation['name'] . '_' . mt_rand(0, 9999);
                 }
                 $organisation['uuid'] = $uuid;
             }
@@ -419,37 +430,39 @@ class Organisation extends AppModel
     }
 
     /**
-     * @param array $event
+     * Attach organisations to evnet
+     * @param array $data
      * @param array $fields
      * @return array
      */
-    public function attachOrgs($data, $fields, $scope = 'Event')
+    public function attachOrgs($data, $fields)
     {
+        $event = $data['Event'];
         $toFetch = [];
-        if (!isset($this->__orgCache[$data[$scope]['orgc_id']])) {
-            $toFetch[] = $data[$scope]['orgc_id'];
+        if (!isset($this->__orgCache[$event['orgc_id']])) {
+            $toFetch[] = $event['orgc_id'];
         }
-        if (!isset($this->__orgCache[$data[$scope]['org_id']]) && $data[$scope]['org_id'] != $data[$scope]['orgc_id']) {
-            $toFetch[] = $data[$scope]['org_id'];
+        if (!isset($this->__orgCache[$event['org_id']]) && $event['org_id'] != $event['orgc_id']) {
+            $toFetch[] = $event['org_id'];
         }
         if (!empty($toFetch)) {
             $orgs = $this->find('all', array(
                 'conditions' => array('id' => $toFetch),
                 'recursive' => -1,
-                'fields' => $fields
+                'fields' => $fields,
             ));
             foreach ($orgs as $org) {
                 $this->__orgCache[$org[$this->alias]['id']] = $org[$this->alias];
             }
         }
-        $data['Orgc'] = $this->__orgCache[$data[$scope]['orgc_id']];
-        $data['Org'] = $this->__orgCache[$data[$scope]['org_id']];
+        $data['Orgc'] = $this->__orgCache[$event['orgc_id']];
+        $data['Org'] = $this->__orgCache[$event['org_id']];
         return $data;
     }
 
     public function getOrgIdsFromMeta($metaConditions)
     {
-        $orgIds = $this->find('list', array(
+        $orgIds = $this->find('column', array(
             'conditions' => $metaConditions,
             'fields' => array('id'),
             'recursive' => -1
@@ -457,7 +470,7 @@ class Organisation extends AppModel
         if (empty($orgIds)) {
             return array(-1);
         }
-        return array_values($orgIds);
+        return $orgIds;
     }
 
     public function checkDesiredOrg($suggestedOrg, $registration)
@@ -505,12 +518,8 @@ class Organisation extends AppModel
             // Check if there is event from given org that can current user see
             $eventConditions = $this->Event->createEventConditions($user);
             $eventConditions['AND']['Event.orgc_id'] = $orgId;
-            $event = $this->Event->find('first', array(
-                'fields' => array('Event.id'),
-                'recursive' => -1,
-                'conditions' => $eventConditions,
-            ));
-            if (empty($event)) {
+            $event = $this->Event->hasAny($eventConditions);
+            if (!$event) {
                 $proposalConditions = $this->Event->ShadowAttribute->buildConditions($user);
                 $proposalConditions['AND']['ShadowAttribute.org_id'] = $orgId;
                 $proposal = $this->Event->ShadowAttribute->find('first', array(
@@ -564,16 +573,18 @@ class Organisation extends AppModel
         return [];
     }
 
+    /**
+     * @return array
+     */
     private function getCountryGalaxyCluster()
     {
         static $list;
         if (!$list) {
-            $file = new File(APP . '/files/misp-galaxy/clusters/country.json');
-            if ($file->exists()) {
-                $list = $this->jsonDecode($file->read())['values'];
-                $file->close();
-            } else {
-                $this->log("MISP Galaxy are not updated, countries will not be available.", LOG_WARNING);
+            try {
+                $content = FileAccessTool::readFromFile(APP . '/files/misp-galaxy/clusters/country.json');
+                $list = $this->jsonDecode($content)['values'];
+            } catch (Exception $e) {
+                $this->logException("MISP Galaxy are not updated, countries will not be available.", $e, LOG_WARNING);
                 $list = [];
             }
         }

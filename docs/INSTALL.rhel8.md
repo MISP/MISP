@@ -265,13 +265,6 @@ installCoreRHEL8 () {
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
 
-  cd $PATH_TO_MISP/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
-
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  $SUDO_WWW git config core.filemode false
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'fedora34' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
   ([[ ${DISTRI} == 'centos8stream' ]] || [[ ${DISTRI} == 'centos8' ]] || [[ ${DISTRI} == 'rocky8.4' ]]) && sudo dnf install cmake -y && CMAKE_BIN='cmake'
@@ -279,25 +272,8 @@ installCoreRHEL8 () {
   UMASK=$(umask)
   umask 0022
 
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  cd $PATH_TO_MISP/app/files/scripts/python-stix
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install mixbox to accommodate the new STIX dependencies:
-  cd $PATH_TO_MISP/app/files/scripts/mixbox
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install STIX2.0 library to support STIX 2.0 export:
-  cd $PATH_TO_MISP/cti-python-stix2
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install maec, zmq, redis
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U maec zmq redis
+  # install zmq, redis
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq redis
 
   # install magic, pydeep
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
@@ -355,7 +331,7 @@ installCake_RHEL ()
   sudo mkdir /usr/share/httpd/.composer
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
-  $SUDO_WWW php composer.phar install
+  $SUDO_WWW php composer.phar install --no-dev
 
   sudo dnf install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
 

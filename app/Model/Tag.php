@@ -106,11 +106,9 @@ class Tag extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        parent::afterSave($created, $options);
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('tag');
+        if ($pubToZmq || $kafkaTopic) {
             $tag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Tag.id' => $this->id)
@@ -120,7 +118,7 @@ class Tag extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->tag_save($tag, $action);
             }
-            if ($pubToKafka) {
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $tag, $action);
             }
@@ -130,9 +128,8 @@ class Tag extends AppModel
     public function beforeDelete($cascade = true)
     {
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('tag');
+        if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->id)) {
                 $tag = $this->find('first', array(
                     'recursive' => -1,
@@ -142,7 +139,7 @@ class Tag extends AppModel
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->tag_save($tag, 'delete');
                 }
-                if ($pubToKafka) {
+                if ($kafkaTopic) {
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $tag, 'delete');
                 }
@@ -333,11 +330,19 @@ class Tag extends AppModel
         return $ids;
     }
 
+    /**
+     * @param array $tag
+     * @param array $user
+     * @param bool $force
+     * @return false|int
+     * @throws Exception
+     */
     public function captureTag($tag, $user, $force=false)
     {
         $existingTag = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('LOWER(name)' => strtolower($tag['name']))
+            'recursive' => -1,
+            'conditions' => array('LOWER(name)' => mb_strtolower($tag['name'])),
+            'fields' => ['id', 'org_id', 'user_id'],
         ));
         if (empty($existingTag)) {
             if ($force || $user['Role']['perm_tag_editor']) {
@@ -346,12 +351,12 @@ class Tag extends AppModel
                     $tag['colour'] = $this->random_color();
                 }
                 $tag = array(
-                        'name' => $tag['name'],
-                        'colour' => $tag['colour'],
-                        'exportable' => isset($tag['exportable']) ? $tag['exportable'] : 1,
-                        'org_id' => 0,
-                        'user_id' => 0,
-                        'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0
+                    'name' => $tag['name'],
+                    'colour' => $tag['colour'],
+                    'exportable' => isset($tag['exportable']) ? $tag['exportable'] : 1,
+                    'org_id' => 0,
+                    'user_id' => 0,
+                    'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0
                 );
                 $this->save($tag);
                 return $this->id;
@@ -376,25 +381,6 @@ class Tag extends AppModel
             }
         }
         return $existingTag['Tag']['id'];
-    }
-
-    // find all tags that belong to a given eventId
-    public function findEventTags($eventId)
-    {
-        $tags = array();
-        $params = array(
-                'recursive' => 1,
-                'contain' => 'EventTag',
-        );
-        $result = $this->find('all', $params);
-        foreach ($result as $tag) {
-            foreach ($tag['EventTag'] as $eventTag) {
-                if ($eventTag['event_id'] == $eventId) {
-                    $tags[] = $tag['Tag'];
-                }
-            }
-        }
-        return $tags;
     }
 
     public function random_color()
@@ -444,7 +430,7 @@ class Tag extends AppModel
         foreach ($tags as $k => $v) {
             $tags[$k]['Tag']['hide_tag'] = 1;
         }
-        return ($this->saveAll($tags));
+        return $this->saveAll($tags);
     }
 
     /**
@@ -534,6 +520,91 @@ class Tag extends AppModel
         return $events;
     }
 
+    /**
+     * @return array
+     */
+    public function duplicateTags()
+    {
+        $tags = $this->find('list', [
+            'fields' => ['id', 'name'],
+            'order' => ['id'],
+        ]);
+        $duplicates = [];
+        $tagsByNormalizedName = [];
+        foreach ($tags as $tagId => $tagName) {
+            $tagId = (int)$tagId;
+            $normalizedName = mb_strtolower(trim($tagName));
+            if (isset($tagsByNormalizedName[$normalizedName])) {
+                $duplicates[$tagId] = $tagsByNormalizedName[$normalizedName];
+            } else {
+                $tagsByNormalizedName[$normalizedName] = $tagId;
+            }
+        }
+        $output = [];
+        foreach ($duplicates as $sourceId => $destinationId) {
+            $output[] = [
+                'source_id' => $sourceId,
+                'source_name' => $tags[$sourceId],
+                'destination_id' => $destinationId,
+                'destination_name' => $tags[$destinationId],
+            ];
+        }
+        return $output;
+    }
+
+    /**
+     * Merge tag $source into $destination. Destination tag will be deleted.
+     * @param int|string $source Tag name or tag ID
+     * @param int|string $destination Tag name or tag ID
+     * @throws Exception
+     */
+    public function mergeTag($source, $destination)
+    {
+        $sourceConditions = is_numeric($source) ? ['Tag.id' => $source] : ['Tag.name' => $source];
+        $destinationConditions = is_numeric($destination) ? ['Tag.id' => $destination] : ['Tag.name' => $destination];
+
+        $sourceTag = $this->find('first', [
+            'conditions' => $sourceConditions,
+            'recursive' => -1,
+            'fields' => ['Tag.id', 'Tag.name'],
+        ]);
+        if (empty($sourceTag)) {
+            throw new Exception("Tag `$source` not found.");
+        }
+
+        $destinationTag = $this->find('first', [
+            'conditions' => $destinationConditions,
+            'recursive' => -1,
+            'fields' => ['Tag.id', 'Tag.name'],
+        ]);
+        if (empty($destinationTag)) {
+            throw new Exception("Tag `$destination` not found.");
+        }
+
+        if ($sourceTag['Tag']['id'] === $destinationTag['Tag']['id']) {
+            throw new Exception("Source and destination tags are same.");
+        }
+
+        $this->AttributeTag->updateAll(['tag_id' => $destinationTag['Tag']['id']], ['tag_id' => $sourceTag['Tag']['id']]);
+        $changedTags = $this->AttributeTag->getAffectedRows();
+        $this->EventTag->updateAll(['tag_id' => $destinationTag['Tag']['id']], ['tag_id' => $sourceTag['Tag']['id']]);
+        $changedTags += $this->EventTag->getAffectedRows();
+
+        $this->delete($sourceTag['Tag']['id']);
+
+        return [
+            'source_tag' => $sourceTag,
+            'destination_tag' => $destinationTag,
+            'changed' => $changedTags,
+        ];
+    }
+
+    /**
+     * @deprecated Not used anywhere
+     * @param $user
+     * @return string
+     * @throws Exception
+     */
     public function fixMitreTags($user)
     {
         $full_print_buffer = '';

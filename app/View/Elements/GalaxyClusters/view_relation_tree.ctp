@@ -2,7 +2,7 @@
 echo $this->element('genericElements/assetLoader', array(
     'js' => array('d3')
 ));
-$random = rand();
+$random = mt_rand();
 $randomClass = "relation-{$random}";
 ?>
 

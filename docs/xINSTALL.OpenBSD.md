@@ -383,7 +383,7 @@ doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/kbandla/
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/htdocs/MISP/app
 doas mkdir /var/www/.composer ; doas chown www:www /var/www/.composer
-${SUDO_WWW} env HOME=/var/www php composer.phar install
+${SUDO_WWW} env HOME=/var/www php composer.phar install --no-dev
 
 # To use the scheduler worker for scheduled tasks, do the following:
 ${SUDO_WWW} cp -f /var/www/htdocs/MISP/INSTALL/setup/config.php /var/www/htdocs/MISP/app/Plugin/CakeResque/Config/config.php

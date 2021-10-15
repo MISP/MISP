@@ -15,17 +15,9 @@ class ACLComponent extends Component
     private $__aclList = array(
             '*' => array(
                     'blackhole' => array(),
-                    'checkAuthUser' => array(),
-                    'checkExternalAuthUser' => array(),
-                    'cleanModelCaches' => array(),
                     'debugACL' => array(),
-                    'generateCount' => array(),
-                    'pruneDuplicateUUIDs' => array(),
                     'queryACL' => array(),
-                    'removeDuplicateEvents' => array(),
                     'restSearch' => array('*'),
-                    'updateDatabase' => array(),
-                    'upgrade2324' => array(),
             ),
             'attributes' => array(
                     'add' => array('perm_add'),
@@ -81,10 +73,13 @@ class ACLComponent extends Component
                 'add' => [],
                 'delete' => [],
                 'download_org' => [],
+                'download_sg' => [],
                 'edit' => [],
                 'index' => [],
                 'preview_orgs' => [],
+                'preview_sharing_groups' => [],
                 'pull_orgs' => [],
+                'pull_sgs' => [],
                 'view' => []
             ],
             'correlationExclusions' => [
@@ -235,7 +230,7 @@ class ACLComponent extends Component
                     'index' => array('*'),
                     'importChoice' => array('*'),
                     'importModule' => array('*'),
-                    'massDelete' => array('perm_site_admin'),
+                    'massDelete' => array(),
                     'merge' => array('perm_modify'),
                     'nids' => array('*'),
                     'proposalEventIndex' => array('*'),
@@ -245,11 +240,11 @@ class ACLComponent extends Component
                     'pushEventToKafka' => array('perm_publish_kafka'),
                     'pushProposals' => array('perm_sync'),
                     'queryEnrichment' => array('perm_add'),
-                    'recoverEvent' => array('perm_site_admin'),
+                    'recoverEvent' => array(),
                     'removePivot' => array('*'),
                     'removeTag' => array('perm_tagger'),
                     'reportValidationIssuesEvents' => array(),
-                    'restoreDeletedEvents' => array('perm_site_admin'),
+                    'restoreDeletedEvents' => array(),
                     'restSearch' => array('*'),
                     'runTaxonomyExclusivityCheck' => array('*'),
                     'saveFreeText' => array('perm_add'),
@@ -261,7 +256,7 @@ class ACLComponent extends Component
                     'updateGraph' => array('*'),
                     'upload_analysis_file' => array('perm_add'),
                     'upload_sample' => array('AND' => array('perm_auth', 'perm_add')),
-                    'upload_stix' => array('perm_add'),
+                    'upload_stix' => array('perm_modify'),
                     'view' => array('*'),
                     'viewClusterRelations' => array('*'),
                     'viewEventAttributes' => array('*'),
@@ -270,6 +265,7 @@ class ACLComponent extends Component
                     'xml' => array('*'),
                 'addEventLock' => ['perm_auth'],
                 'removeEventLock' => ['perm_auth'],
+                'generateCount' => array(),
             ),
             'favouriteTags' => array(
                 'toggle' => array('*'),
@@ -289,29 +285,20 @@ class ACLComponent extends Component
                     'fetchSelectedFromFreetextIndex' => array(),
                     'getEvent' => array(),
                     'importFeeds' => array(),
-                    'index' => ['OR' => [
-                        'host_org_user',
-                        'perm_site_admin',
-                    ]],
-                    'loadDefaultFeeds' => array('perm_site_admin'),
+                    'index' => ['host_org_user'],
+                    'loadDefaultFeeds' => array(),
                     'previewEvent' => array('*'),
                     'previewIndex' => array('*'),
-                    'searchCaches' => ['OR' => [
-                        'host_org_user',
-                        'perm_site_admin',
-                    ]],
-                    'toggleSelected' => array('perm_site_admin'),
-                    'view' => ['OR' => [
-                        'host_org_user',
-                        'perm_site_admin',
-                    ]],
+                    'searchCaches' => ['host_org_user'],
+                    'toggleSelected' => array(),
+                    'view' => ['host_org_user'],
             ),
             'galaxies' => array(
                 'attachCluster' => array('perm_tagger'),
                 'attachMultipleClusters' => array('perm_tagger'),
                 'delete' => array(),
-                'disable' => array('perm_site_admin'),
-                'enable' => array('perm_site_admin'),
+                'disable' => array(),
+                'enable' => array(),
                 'export' => array('*'),
                 'forkTree' => array('*'),
                 'index' => array('*'),
@@ -322,7 +309,7 @@ class ACLComponent extends Component
                 'selectGalaxyNamespace' => array('perm_tagger'),
                 'selectCluster' => array('perm_tagger'),
                 'showGalaxies' => array('*'),
-                'toggle' => array('perm_site_admin'),
+                'toggle' => array(),
                 'update' => array(),
                 'view' => array('*'),
                 'viewGraph' => array('*'),
@@ -442,7 +429,7 @@ class ACLComponent extends Component
                 'view' => array('*'),
                 'viewElements' => array('*'),
                 'index' => array('*'),
-                'update' => array('perm_site_admin')
+                'update' => array()
             ),
             'objectTemplateElements' => array(
                 'viewElements' => array('*')
@@ -472,7 +459,7 @@ class ACLComponent extends Component
                     'add' => array('not_read_only_authkey'),
                     'delete' => array('not_read_only_authkey'),
                     'edit' => array('not_read_only_authkey'),
-                    'pushMessageToZMQ' => array('perm_site_admin')
+                    'pushMessageToZMQ' => array()
             ),
             'regexp' => array(
                     'admin_add' => array('perm_regexp_access'),
@@ -519,10 +506,7 @@ class ACLComponent extends Component
                     'getSubmoduleQuickUpdateForm' => array(),
                     'getWorkers' => array(),
                     'getVersion' => array('perm_auth'),
-                    'idTranslator' => ['OR' => [
-                        'host_org_user',
-                        'perm_site_admin',
-                    ]],
+                    'idTranslator' => ['host_org_user'],
                     'import' => array(),
                     'index' => array(),
                     'ondemandAction' => array(),
@@ -533,10 +517,10 @@ class ACLComponent extends Component
                     'pull' => array(),
                     'purgeSessions' => array(),
                     'push' => array(),
-                    'queryAvailableSyncFilteringRules' => array('*'),
+                    'queryAvailableSyncFilteringRules' => array(),
                     'releaseUpdateLock' => array(),
                     'resetRemoteAuthKey' => array(),
-                    'removeOrphanedCorrelations' => array('perm_site_admin'),
+                    'removeOrphanedCorrelations' => array(),
                     'rest' => array('perm_auth'),
                     'openapi' => array('*'),
                     'restartDeadWorkers' => array(),
@@ -556,8 +540,13 @@ class ACLComponent extends Component
                     'updateSubmodule' => array(),
                     'uploadFile' => array(),
                     'viewDeprecatedFunctionUse' => array(),
-                    'killAllWorkers' => ['perm_site_admin'],
+                    'killAllWorkers' => [],
                 'cspReport' => ['*'],
+                'pruneDuplicateUUIDs' => array(),
+                'removeDuplicateEvents' => array(),
+                'upgrade2324' => array(),
+                'cleanModelCaches' => array(),
+                'updateDatabase' => array(),
             ),
             'shadowAttributes' => array(
                     'accept' => array('perm_add'),
@@ -647,10 +636,11 @@ class ACLComponent extends Component
                     'disableTag' => array(),
                     'enable' => array(),
                     'index' => array('*'),
+                    'taxonomy_tags' => array('*'),
                     'taxonomyMassConfirmation' => array('perm_tagger'),
                     'taxonomyMassHide' => array('perm_tagger'),
                     'taxonomyMassUnhide' => array('perm_tagger'),
-                    'toggleRequired' => array('perm_site_admin'),
+                    'toggleRequired' => array(),
                     'update' => array(),
                     'import' => [],
                     'export' => ['*'],
@@ -684,7 +674,7 @@ class ACLComponent extends Component
                     'viewEvent' => array('*'),
             ),
             'users' => array(
-                    'acceptRegistrations' => array('perm_site_admin'),
+                    'acceptRegistrations' => array(),
                     'admin_add' => ['AND' => ['perm_admin', 'add_user_enabled']],
                     'admin_delete' => array('perm_admin'),
                     'admin_edit' => array('perm_admin'),
@@ -692,7 +682,7 @@ class ACLComponent extends Component
                     'admin_filterUserIndex' => array('perm_admin'),
                     'admin_index' => array('perm_admin'),
                     'admin_massToggleField' => array('perm_admin'),
-                    'admin_monitor' => array('perm_site_admin'),
+                    'admin_monitor' => array(),
                     'admin_quickEmail' => array('perm_admin'),
                     'admin_view' => array('perm_admin'),
                     'attributehistogram' => array('*'),
@@ -701,7 +691,7 @@ class ACLComponent extends Component
                     'checkIfLoggedIn' => array('*'),
                     'dashboard' => array('*'),
                     'delete' => array('perm_admin'),
-                    'discardRegistrations' => array('perm_site_admin'),
+                    'discardRegistrations' => array(),
                     'downloadTerms' => array('*'),
                     'edit' => array('self_management_enabled'),
                     'email_otp' => array('*'),
@@ -712,7 +702,7 @@ class ACLComponent extends Component
                     'login' => array('*'),
                     'logout' => array('*'),
                     'register' => array('*'),
-                    'registrations' => array('perm_site_admin'),
+                    'registrations' => array(),
                     'resetAllSyncAuthKeys' => array(),
                     'resetauthkey' => ['AND' => ['self_management_enabled', 'perm_auth', 'not_read_only_authkey']],
                     'request_API' => array('*'),
@@ -906,7 +896,6 @@ class ACLComponent extends Component
      * @return true
      * @throws NotFoundException
      * @throws MethodNotAllowedException
-     * @throws InternalErrorException
      */
     public function checkAccess($user, $controller, $action, $checkLoggedActions = true)
     {
@@ -918,16 +907,13 @@ class ACLComponent extends Component
         if ($user && $user['Role']['perm_site_admin']) {
             return true;
         }
-        $aclList = $this->__aclList;
-        foreach ($aclList as $k => $v) {
-            $aclList[$k] = array_change_key_case($v);
+        if (!isset($this->__aclList[$controller])) {
+            throw new NotFoundException('Invalid controller.');
         }
-        if (!isset($aclList[$controller])) {
-            $this->__error(404);
-        }
-        if (isset($aclList[$controller][$action]) && !empty($aclList[$controller][$action])) {
-            $rules = $aclList[$controller][$action];
-            if (in_array('*', $rules)) {
+        $controllerAclList = array_change_key_case($this->__aclList[$controller]);
+        if (!empty($controllerAclList[$action])) {
+            $rules = $controllerAclList[$action];
+            if (in_array('*', $rules, true)) {
                 return true;
             }
             if (isset($rules['OR'])) {
@@ -966,23 +952,7 @@ class ACLComponent extends Component
                 return true;
             }
         }
-        $this->__error(403);
-    }
-
-    /**
-     * @param int $code
-     * @throws InternalErrorException|MethodNotAllowedException|NotFoundException
-     */
-    private function __error($code)
-    {
-        switch ($code) {
-            case 404:
-                throw new NotFoundException('Invalid controller.');
-            case 403:
-                throw new MethodNotAllowedException('You do not have permission to use this functionality.');
-            default:
-                throw new InternalErrorException('Unknown error');
-        }
+        throw new MethodNotAllowedException('You do not have permission to use this functionality.');
     }
 
     private function __findAllFunctions()

@@ -32,9 +32,6 @@ class JSONConverterTool
             }
         }
         $result = array('Object' => $object['Object']);
-        if (isset($event['errors'])) {
-            $result = array_merge($result, array('errors' => $event['errors']));
-        }
         if ($raw) {
             return $result;
         }

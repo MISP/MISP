@@ -38,10 +38,6 @@ class ObjectReference extends AppModel
         )
     );
 
-
-    public $validate = array(
-    );
-
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -49,8 +45,7 @@ class ObjectReference extends AppModel
             $this->data['ObjectReference']['uuid'] = CakeText::uuid();
         }
         if (empty($this->data['ObjectReference']['timestamp'])) {
-            $date = new DateTime();
-            $this->data['ObjectReference']['timestamp'] = $date->getTimestamp();
+            $this->data['ObjectReference']['timestamp'] = time();
         }
         if (!isset($this->data['ObjectReference']['comment'])) {
             $this->data['ObjectReference']['comment'] = '';
@@ -61,9 +56,8 @@ class ObjectReference extends AppModel
     public function afterSave($created, $options = array())
     {
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_reference_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_object_reference_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_object_reference_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('object_reference');
+        if ($pubToZmq || $kafkaTopic) {
             $object_reference = $this->find('first', array(
                 'conditions' => array('ObjectReference.id' => $this->id),
                 'recursive' => -1
@@ -76,7 +70,7 @@ class ObjectReference extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->object_reference_save($object_reference, $action);
             }
-            if ($pubToKafka) {
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $object_reference, $action);
             }
@@ -176,11 +170,8 @@ class ObjectReference extends AppModel
         return true;
     }
 
-    public function captureReference($reference, $eventId, $user, $log = false)
+    public function captureReference($reference, $eventId, $user)
     {
-        if ($log == false) {
-            $log = ClassRegistry::init('Log');
-        }
         if (isset($reference['uuid'])) {
             $existingReference = $this->find('first', array(
                 'conditions' => array('ObjectReference.uuid' => $reference['uuid']),
@@ -216,7 +207,8 @@ class ObjectReference extends AppModel
         }
         $sourceObject = $this->Object->find('first', array(
             'recursive' => -1,
-            'conditions' => $conditions
+            'conditions' => $conditions,
+            'fields' => ['Object.id', 'Object.uuid', 'Object.event_id'],
         ));
         if (isset($reference['referenced_uuid'])) {
             $conditions[0] = array('Attribute.uuid' => $reference['referenced_uuid']);

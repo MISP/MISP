@@ -239,7 +239,7 @@ cd $PATH_TO_MISP/app
 #('composer-setup.php'); } echo PHP_EOL;"
 #sudo -u www env HOME=/tmp php composer-setup.php
 #sudo -u www php -r "unlink('composer-setup.php');"
-sudo -u www HOME=/tmp php composer.phar install
+sudo -u www HOME=/tmp php composer.phar install --no-dev
 
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www cp -f $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php

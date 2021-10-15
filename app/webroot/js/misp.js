@@ -12,6 +12,14 @@ if (!String.prototype.startsWith) {
   };
 }
 
+function copyToClipboard(element) {
+    var $temp = $("<input>");
+    $("body").append($temp);
+    $temp.val($(element).val()).select();
+    document.execCommand("copy");
+    $temp.remove();
+}
+
 function stringToRGB(str){
     var hash = 0;
     if (str.length == 0) return hash;
@@ -1127,7 +1135,7 @@ function loadAttributeTags(id) {
         dataType:"html",
         cache: false,
         success:function (data) {
-            $("#Attribute_"+id+"_tr .attributeTagContainer").html(data);
+            $("#Attribute_"+id+".attributeTagContainer").html(data);
         },
         error: xhrFailCallback,
         url: baseurl + "/tags/showAttributeTag/" + id
@@ -2228,7 +2236,7 @@ function runIndexQuickFilterFixed(preserveParams, url, target) {
         delete preserveParams[searchKey]
     }
     for (var key in preserveParams) {
-        if (typeof key == 'number') {
+        if (!isNaN(key)) {
             url += "/" + preserveParams[key];
         } else if (key !== 'page') {
             url += "/" + key + ":" + preserveParams[key];
@@ -3695,12 +3703,11 @@ function toggleBoolFilter(url, param) {
     xhr({
         type: "get",
         url: url,
-        success:function (data) {
+        success: function (data) {
             $("#attributes_div").html(data);
             querybuilderTool = undefined;
-
         },
-        error:function() {
+        error: function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
         }
     });
@@ -4036,6 +4043,7 @@ function feedFormUpdate() {
         $('#DeleteLocalFileDiv').hide();
         $('#HeadersDiv').show();
     }
+    feedDistributionChange();
 }
 
 function setContextFields() {

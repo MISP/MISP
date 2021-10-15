@@ -21,8 +21,9 @@
             )
         ),
         sprintf(
-            '<div id="%s" class="accordion-body collapse"><div id="%s" class="accordion-inner" data-url="%s">&nbsp;</div></div>',
+            '<div id="%s" class="accordion-body collapse %s"><div id="%s" class="accordion-inner" data-url="%s">&nbsp;</div></div>',
             h($elementId) . '-collapse',
+            !empty($open) ? 'in' : '',
             h($elementId) . '-collapse-inner',
             h($url)
         )
@@ -49,5 +50,8 @@
                 }
             });
         });
+        <?php if (!empty($open)): ?>
+        $(elementId).collapse('show')
+        <?php endif; ?>
     });
 </script>
