@@ -161,9 +161,17 @@ class TestComprehensive(unittest.TestCase):
 
         # Search not by org
         minimal_org_not = self.user_misp_connector.search_index(minimal=True, org="!Test Org")
+        for event in minimal_org_not:
+            self.assertNotEqual(event["orgc_uuid"], self.test_org.uuid)
         minimal_org_lower_not = self.user_misp_connector.search_index(minimal=True, org="!test org")
+        for event in minimal_org_lower_not:
+            self.assertNotEqual(event["orgc_uuid"], self.test_org.uuid)
         minimal_org_uuid_not = self.user_misp_connector.search_index(minimal=True, org="!" + self.test_org.uuid)
+        for event in minimal_org_uuid_not:
+            self.assertNotEqual(event["orgc_uuid"], self.test_org.uuid)
         minimal_org_id_not = self.user_misp_connector.search_index(minimal=True, org="!" + self.test_org.id)
+        for event in minimal_org_id_not:
+            self.assertNotEqual(event["orgc_uuid"], self.test_org.uuid)
 
         self.assertEqual(len(minimal_org_not), len(minimal_org_lower_not))
         self.assertEqual(len(minimal_org_not), len(minimal_org_uuid_not))
