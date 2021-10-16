@@ -923,7 +923,7 @@ class Event extends AppModel
             return 'The distribution level of this event blocks it from being pushed.';
         }
 
-        $push = $this->Server->checkVersionCompatibility($server, false, $HttpSocket);
+        $push = $this->Server->checkVersionCompatibility($server, false);
         if (empty($push['canPush'])) {
             return 'The remote user is not a sync user - the upload of the event has been blocked.';
         }
