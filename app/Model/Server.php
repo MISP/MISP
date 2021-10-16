@@ -444,12 +444,22 @@ class Server extends AppModel
         return true;
     }
 
-    public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
+    /**
+     * @param array $user
+     * @param string $technique
+     * @param array $server
+     * @param int|false $jobId
+     * @param bool $force
+     * @return array|string
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws JsonException
+     */
+    public function pull(array $user, $technique, array $server, $jobId = false, $force = false)
     {
         if ($jobId) {
             Configure::write('CurrentUserId', $user['id']);
             $job = ClassRegistry::init('Job');
-            $job->read(null, $jobId);
             $email = "Scheduled job";
         } else {
             $email = $user['email'];
@@ -474,19 +484,17 @@ class Server extends AppModel
         if (!empty($server['Server']['pull_galaxy_clusters'])) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
             if ($jobId) {
-                $job->saveField('message', $technique == 'pull_relevant_clusters' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
+                $job->saveProgress($jobId, $technique === 'pull_relevant_clusters' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
             }
             $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
-            if ($technique == 'pull_relevant_clusters') {
+            if ($technique === 'pull_relevant_clusters') {
                 if ($jobId) {
-                    $job->saveField('progress', 100);
-                    $job->saveField('message', 'Pulling complete.');
+                    $job->saveStatus($jobId, true, 'Pulling complete.');
                 }
                 return array(array(), array(), 0, 0, $pulledClusters);
             }
             if ($jobId) {
-                $job->saveField('progress', 10);
-                $job->saveField('message', 'Pulling events.');
+                $job->saveProgress($jobId, 'Pulling events.', 10);
             }
         }
 
@@ -516,16 +524,12 @@ class Server extends AppModel
             }
             foreach ($eventIds as $k => $eventId) {
                 $this->__pullEvent($eventId, $successes, $fails, $eventModel, $serverSync, $user, $jobId, $force);
-                if ($jobId) {
-                    if ($k % 10 == 0) {
-                        $job->saveProgress($jobId, null, 10 + 40 * (($k + 1) / count($eventIds)));
-                    }
+                if ($jobId && $k % 10 === 0) {
+                    $job->saveProgress($jobId, null, 10 + 40 * (($k + 1) / count($eventIds)));
                 }
             }
-        }
-        if (!empty($fails)) {
             foreach ($fails as $eventid => $message) {
-                $this->loadLog()->createLogEntry($user, 'pull', 'Server', $id, "Failed to pull event #$eventid.", 'Reason: ' . $message);
+                $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], "Failed to pull event #$eventid.", 'Reason: ' . $message);
             }
         }
         if ($jobId) {
@@ -541,27 +545,18 @@ class Server extends AppModel
             $pulledSightings = $eventModel->Sighting->pullSightings($user, $serverSync);
         }
         if ($jobId) {
-            $job->saveProgress($jobId, 'Pull completed.', 100);
+            $job->saveStatus($jobId, true, 'Pull completed.');
         }
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
-        $this->Log->save(array(
-            'org' => $user['Organisation']['name'],
-            'model' => 'Server',
-            'model_id' => $id,
-            'email' => $user['email'],
-            'action' => 'pull',
-            'user_id' => $user['id'],
-            'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
-            'change' => sprintf(
-                '%s events, %s proposals, %s sightings and %s galaxyClusters pulled or updated. %s events failed or didn\'t need an update.',
-                count($successes),
-                $pulledProposals,
-                $pulledSightings,
-                $pulledClusters,
-                count($fails)
-            )
-        ));
+
+        $change = sprintf(
+            '%s events, %s proposals, %s sightings and %s galaxyClusters pulled or updated. %s events failed or didn\'t need an update.',
+            count($successes),
+            $pulledProposals,
+            $pulledSightings,
+            $pulledClusters,
+            count($fails)
+        );
+        $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email, $change);
         return array($successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters);
     }
 
@@ -731,7 +726,7 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws InvalidArgumentException
      */
-    public function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $scope = 'events', $force = false)
+    private function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $scope = 'events', $force = false)
     {
         if (!in_array($scope, ['events', 'sightings'], true)) {
             throw new InvalidArgumentException("Scope must be 'events' or 'sightings', '$scope' given.");
