@@ -2012,8 +2012,7 @@ class AppModel extends Model
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->Job = ClassRegistry::init('Job');
-        $this->Log = ClassRegistry::init('Log');
-        $this->Server = ClassRegistry::init('Server');
+
         $db = ConnectionManager::getDataSource('default');
         $tables = $db->listSources();
         $requiresLogout = false;
@@ -2023,7 +2022,10 @@ class AppModel extends Model
             $requiresLogout = true;
         } else {
             $this->__runCleanDB();
-            $db_version = $this->AdminSetting->find('all', array('conditions' => array('setting' => 'db_version')));
+            $db_version = $this->AdminSetting->find('all', [
+                'conditions' => array('setting' => 'db_version'),
+                'fields' => ['id', 'value'],
+            ]);
             if (count($db_version) > 1) {
                 // we rgan into a bug where we have more than one db_version entry. This bug happened in some rare circumstances around 2.4.50-2.4.57
                 foreach ($db_version as $k => $v) {
@@ -2042,6 +2044,8 @@ class AppModel extends Model
                 $job = null;
             }
             if (!empty($updates)) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Server = ClassRegistry::init('Server');
                 // Exit if updates are locked.
                 // This is not as reliable as a real lock implementation
                 // However, as all updates are re-playable, there is no harm if they
@@ -2363,16 +2367,10 @@ class AppModel extends Model
 
     private function __runCleanDB()
     {
-        $cleanDB = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'clean_db')));
-        if (empty($cleanDB) || $cleanDB['AdminSetting']['value'] == 1) {
+        $cleanDB = $this->AdminSetting->getSetting('clean_db');
+        if (empty($cleanDB) || $cleanDB == 1) {
             $this->cleanCacheFiles();
-            if (empty($cleanDB)) {
-                $this->AdminSetting->create();
-                $cleanDB = array('AdminSetting' => array('setting' => 'clean_db', 'value' => 0));
-            } else {
-                $cleanDB['AdminSetting']['value'] = 0;
-            }
-            $this->AdminSetting->save($cleanDB);
+            $this->AdminSetting->changeSetting('clean_db', 0);
         }
     }
 
