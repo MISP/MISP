@@ -132,7 +132,8 @@ class AppController extends Controller
         $this->_setupDatabaseConnection();
 
         $this->set('debugMode', Configure::read('debug') >= 1 ? 'debugOn' : 'debugOff');
-        $this->set('ajax', $this->request->is('ajax'));
+        $isAjax = $this->request->is('ajax');
+        $this->set('ajax', $isAjax);
         $this->set('queryVersion', $this->__queryVersion);
         $this->User = ClassRegistry::init('User');
 
@@ -245,7 +246,7 @@ class AppController extends Controller
             $this->__logAccess($user);
 
             // Try to run updates
-            if ($user['Role']['perm_site_admin'] || (!$this->_isRest() && $this->_isLive())) {
+            if ($user['Role']['perm_site_admin'] || (!$this->_isRest() && !$isAjax && $this->_isLive())) {
                 $this->User->runUpdates();
             }
 
@@ -321,7 +322,7 @@ class AppController extends Controller
                 $preAuthActions[] = 'email_otp';
             }
             if (!$this->_isControllerAction(['users' => $preAuthActions, 'servers' => ['cspReport']])) {
-                if (!$this->request->is('ajax')) {
+                if (!$isAjax) {
                     $this->Session->write('pre_login_requested_url', $this->request->here);
                 }
                 $this->_redirectToLogin();
@@ -361,7 +362,7 @@ class AppController extends Controller
         }
 
         // Notifications and homepage is not necessary for AJAX or REST requests
-        if ($user && !$this->_isRest() && !$this->request->is('ajax')) {
+        if ($user && !$this->_isRest() && !$isAjax) {
             if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
                 $notifications = $this->User->populateNotifications($user);
             } else {
