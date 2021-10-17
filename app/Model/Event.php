@@ -1769,6 +1769,9 @@ class Event extends AppModel
     // includeAttachments: true will attach the attachments to the attributes in the data field
     public function fetchEvent($user, $options = array(), $useCache = false)
     {
+        if (!isset($user['org_id'])) {
+            throw new InvalidArgumentException('There was an error with the user account (missing `org_id` field).');
+        }
         if (isset($options['Event.id'])) {
             $options['eventid'] = $options['Event.id'];
         }
@@ -1788,14 +1791,14 @@ class Event extends AppModel
             'disableSiteAdmin',
             'metadata',
             'enforceWarninglist', // return just attributes that contains no warnings
-            'sgReferenceOnly',
+            'sgReferenceOnly', // do not fetch additional information about sharing groups
             'flatten',
             'blockedAttributeTags',
             'eventsExtendingUuid',
             'extended',
             'extensionList',
             'excludeGalaxy',
-            'includeCustomGalaxyCluster', // not used
+            // 'includeCustomGalaxyCluster', // not used
             'includeRelatedTags',
             'excludeLocalTags',
             'includeDecayScore',
@@ -1854,9 +1857,6 @@ class Event extends AppModel
                 $conditions['AND'][] = array('Event.id' => -1);
             }
         }
-        if (!isset($user['org_id'])) {
-            throw new Exception('There was an error with the user account.');
-        }
         $isSiteAdmin = $user['Role']['perm_site_admin'];
         if (isset($options['disableSiteAdmin']) && $options['disableSiteAdmin']) {
             $isSiteAdmin = false;
@@ -1865,11 +1865,8 @@ class Event extends AppModel
         $conditionsObjects = array();
         $conditionsEventReport = array();
 
-        if ($options['flatten']) {
-            $flatten = true;
-        } else {
-            $flatten = false;
-        }
+        $flatten = (bool)$options['flatten'];
+
         // restricting to non-private or same org if the user is not a site-admin.
         $sgids = $this->cacheSgids($user, $useCache);
         if (!$isSiteAdmin) {
@@ -2111,7 +2108,8 @@ class Event extends AppModel
             return array();
         }
 
-        $sharingGroupData = $options['sgReferenceOnly'] ? [] : $this->__cacheSharingGroupData($user, $useCache);
+        $sharingGroupReferenceOnly = (bool)$options['sgReferenceOnly'];
+        $sharingGroupData = $sharingGroupReferenceOnly ? [] : $this->__cacheSharingGroupData($user, $useCache);
 
         // Initialize classes that will be necessary during event fetching
         if (!empty($options['includeDecayScore']) && !isset($this->DecayingModel)) {
@@ -2168,9 +2166,9 @@ class Event extends AppModel
             $this->__attachTags($event, $justExportableTags);
             $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters']);
             $event = $this->Orgc->attachOrgs($event, $fieldsOrg);
-            if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
-                if (!empty($sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'])) {
-                    $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
+            if (!$sharingGroupReferenceOnly && $event['Event']['sharing_group_id']) {
+                if (isset($sharingGroupData[$event['Event']['sharing_group_id']])) {
+                    $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']];
                 }
             }
 
@@ -2228,7 +2226,9 @@ class Event extends AppModel
                     $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit, 'Server');
                 }
                 $event = $this->__filterBlockedAttributesByTags($event, $options, $user);
-                $event['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Attribute'], $sharingGroupData);
+                if (!$sharingGroupReferenceOnly) {
+                    $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
+                }
 
                 $proposalBlockAttributes = Configure::read('MISP.proposals_block_attributes');
                 // move all object attributes to a temporary container
@@ -2284,7 +2284,9 @@ class Event extends AppModel
                 $event['Attribute'] = array_values($event['Attribute']);
             }
             if (!empty($event['Object'])) {
-                $event['Object'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'], $sharingGroupData);
+                if (!$sharingGroupReferenceOnly) {
+                    $event['Object'] = $this->__attachSharingGroups($event['Object'], $sharingGroupData);
+                }
                 foreach ($event['Object'] as $objectKey => $objectValue) {
                     if (isset($tempObjectAttributeContainer[$objectValue['id']])) {
                         $event['Object'][$objectKey]['Attribute'] = $tempObjectAttributeContainer[$objectValue['id']];
@@ -2292,8 +2294,8 @@ class Event extends AppModel
                 }
                 unset($tempObjectAttributeContainer);
             }
-            if (!empty($event['EventReport'])) {
-                $event['EventReport'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['EventReport'], $sharingGroupData);
+            if (!$sharingGroupReferenceOnly && !empty($event['EventReport'])) {
+                $event['EventReport'] = $this->__attachSharingGroups($event['EventReport'], $sharingGroupData);
             }
             if (!empty($event['ShadowAttribute'])) {
                 if ($isSiteAdmin && $options['includeFeedCorrelations']) {
@@ -2624,15 +2626,12 @@ class Event extends AppModel
         return $event;
     }
 
-    private function __attachSharingGroups($doAttach, $data, $sharingGroupData)
+    private function __attachSharingGroups($data, $sharingGroupData)
     {
-        if (!$doAttach) {
-            return $data;
-        }
         foreach ($data as $k => $v) {
             if ($v['distribution'] == 4) {
                 if (isset($sharingGroupData[$v['sharing_group_id']])) {
-                    $data[$k]['SharingGroup'] = $sharingGroupData[$v['sharing_group_id']]['SharingGroup'];
+                    $data[$k]['SharingGroup'] = $sharingGroupData[$v['sharing_group_id']];
                 } else {
                     unset($data[$k]); // current user could not fetch the sharing_group
                 }
@@ -5779,7 +5778,7 @@ class Event extends AppModel
         } else {
             $sharingGroupDataTemp = $this->SharingGroup->fetchAllAuthorised($user, 'simplified');
             $sharingGroupData = array();
-            foreach ($sharingGroupDataTemp as $k => $v) {
+            foreach ($sharingGroupDataTemp as $v) {
                 if (isset($v['Organisation'])) {
                     $v['SharingGroup']['Organisation'] = $v['Organisation'];
                 }
@@ -5798,7 +5797,7 @@ class Event extends AppModel
                         }
                     }
                 }
-                $sharingGroupData[$v['SharingGroup']['id']] = array('SharingGroup' => $v['SharingGroup']);
+                $sharingGroupData[$v['SharingGroup']['id']] = $v['SharingGroup'];
             }
             if ($useCache) {
                 $this->assetCache['sharingGroupData'] = $sharingGroupData;
