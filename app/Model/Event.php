@@ -2131,13 +2131,6 @@ class Event extends AppModel
         // Precache current user email
         $userEmails = empty($user['id']) ? [] : [$user['id'] => $user['email']];
 
-        // Do some refactoring with the event
-        $fields = array(
-            'common' => array('distribution', 'sharing_group_id', 'uuid'),
-            'Attribute' => array('value', 'type', 'category', 'to_ids'),
-            'Object' => array('name', 'meta-category')
-        );
-
         if (!$options['includeAllTags']) {
             $justExportableTags = true;
         } else {
@@ -2169,7 +2162,7 @@ class Event extends AppModel
                 $this->Warninglist->attachWarninglistToAttributes($event['ShadowAttribute']);
                 $event['warnings'] = $eventWarnings;
             }
-            $this->__attachReferences($event, $fields);
+            $this->__attachReferences($event);
             $this->__attachTags($event, $justExportableTags);
             $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters']);
             $event = $this->Orgc->attachOrgs($event, $fieldsOrg);
@@ -6940,13 +6933,19 @@ class Event extends AppModel
      * we just find proper element in event.
      *
      * @param array $event
-     * @param array $fields
      */
-    private function __attachReferences(array &$event, array $fields)
+    private function __attachReferences(array &$event)
     {
         if (!isset($event['Object'])) {
             return;
         }
+
+        $fieldsToCopy = array(
+            'common' => array('distribution', 'sharing_group_id', 'uuid'),
+            'Attribute' => array('value', 'type', 'category', 'to_ids'),
+            'Object' => array('name', 'meta-category')
+        );
+
         foreach ($event['Object'] as $k => $object) {
             foreach ($object['ObjectReference'] as $k2 => $reference) {
                 // find referenced object in current event
@@ -6962,7 +6961,7 @@ class Event extends AppModel
                 if ($found) {
                     // copy requested fields
                     $reference = [];
-                    foreach (array_merge($fields['common'], $fields[$type]) as $field) {
+                    foreach (array_merge($fieldsToCopy['common'], $fieldsToCopy[$type]) as $field) {
                         $reference[$field] = $found[$field];
                     }
                     $event['Object'][$k]['ObjectReference'][$k2][$type] = $reference;
