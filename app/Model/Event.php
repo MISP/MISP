@@ -96,20 +96,14 @@ class Event extends AppModel
 
     public $validate = array(
         'org_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-            'numeric' => array(
-                'rule' => array('numeric'),
-            ),
+            'rule' => 'numeric',
+            'required' => true,
+            'allowEmpty' => false,
         ),
         'orgc_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-            'numeric' => array(
-                    'rule' => array('numeric'),
-            ),
+            'rule' => 'numeric',
+            'required' => true,
+            'allowEmpty' => false,
         ),
         'date' => array(
             'date' => array(
@@ -134,21 +128,21 @@ class Event extends AppModel
                 'required' => true,
                 //'last' => false, // Stop validation after this rule
                 //'on' => 'create', // Limit validation to 'create' or 'update' operations
-                )
+            )
         ),
         'sharing_group_id' => array(
             'rule' => array('sharingGroupRequired'),
-                'message' => 'If the distribution is set to "Sharing Group", a sharing group has to be selected.',
-                //'required' => true,
-                //'allowEmpty' => true
+            'message' => 'If the distribution is set to "Sharing Group", a sharing group has to be selected.',
+            //'required' => true,
+            //'allowEmpty' => true
         ),
         'analysis' => array(
             'rule' => array('inList', array('0', '1', '2')),
-                'message' => 'Options : 0, 1, 2 (for Initial, Ongoing, Completed)',
-                //'allowEmpty' => false,
-                'required' => true,
-                //'last' => false, // Stop validation after this rule
-                //'on' => 'create', // Limit validation to 'create' or 'update' operations
+            'message' => 'Options : 0, 1, 2 (for Initial, Ongoing, Completed)',
+            //'allowEmpty' => false,
+            'required' => true,
+            //'last' => false, // Stop validation after this rule
+            //'on' => 'create', // Limit validation to 'create' or 'update' operations
         ),
         'info' => array(
             'valueNotEmpty' => array(
