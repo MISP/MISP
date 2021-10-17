@@ -2200,7 +2200,7 @@ class Event extends AppModel
                 }
                 $results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
             }
-            if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute']) && isset($options['includeAttachments']) && $options['includeAttachments']) {
+            if (!empty($event['ShadowAttribute']) && $options['includeAttachments']) {
                 foreach ($event['ShadowAttribute'] as $k => $sa) {
                     if ($this->ShadowAttribute->typeIsAttachment($sa['type'])) {
                         $encodedFile = $this->ShadowAttribute->base64EncodeAttachment($sa);
@@ -2208,7 +2208,7 @@ class Event extends AppModel
                     }
                 }
             }
-            if (isset($event['Attribute'])) {
+            if (!empty($event['Attribute'])) {
                 if ($options['includeFeedCorrelations']) {
                     if (!empty($options['overrideLimit'])) {
                         $overrideLimit = true;
@@ -2314,6 +2314,15 @@ class Event extends AppModel
                     }
                     $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit, 'Server');
                 }
+
+                // remove proposals to attributes that we cannot see
+                // if the shadow attribute wasn't moved within an attribute before, this is the case
+                foreach ($event['ShadowAttribute'] as $k => $sa) {
+                    if (!empty($sa['old_id'])) {
+                        unset($event['ShadowAttribute'][$k]);
+                    }
+                }
+                $event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
             }
             if (empty($options['metadata']) && empty($options['noSightings'])) {
                 $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
@@ -2321,16 +2330,6 @@ class Event extends AppModel
             if ($options['includeSightingdb']) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
                 $event = $this->Sightingdb->attachToEvent($event, $user);
-            }
-            // remove proposals to attributes that we cannot see
-            // if the shadow attribute wasn't moved within an attribute before, this is the case
-            if (isset($event['ShadowAttribute'])) {
-                foreach ($event['ShadowAttribute'] as $k => $sa) {
-                    if (!empty($sa['old_id'])) {
-                        unset($event['ShadowAttribute'][$k]);
-                    }
-                }
-                $event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
             }
         }
         if ($options['extended']) {
