@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('JsonTool', 'Tools');
 
 class Module extends AppModel
 {
@@ -234,28 +235,27 @@ class Module extends AppModel
      * @param array|null $postData
      * @param string $moduleFamily
      * @return array
-     * @throws JsonException
+     * @throws HttpSocketJsonException
+     * @throws Exception
      */
     public function sendRequest($uri, $timeout, $postData = null, $moduleFamily = 'Enrichment')
     {
-        $url = $this->__getModuleServer($moduleFamily);
-        if (!$url) {
+        $serverUrl = $this->__getModuleServer($moduleFamily);
+        if (!$serverUrl) {
             throw new Exception("Module type $moduleFamily is not enabled.");
         }
-        App::uses('HttpSocket', 'Network/Http');
+        App::uses('HttpSocketExtended', 'Tools');
+        $httpSocketSetting = ['timeout' => $timeout];
         $sslSettings = array('ssl_verify_peer', 'ssl_verify_host', 'ssl_allow_self_signed', 'ssl_verify_peer', 'ssl_cafile');
         foreach ($sslSettings as $sslSetting) {
-            if (Configure::check('Plugin.' . $moduleFamily . '_' . $sslSetting) && Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting) !== '') {
-                $settings[$sslSetting] = Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting);
+            $value = Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting);
+            if ($value && $value !== '') {
+                $httpSocketSetting[$sslSetting] = $value;
             }
         }
-        $httpSocket = new HttpSocket(['timeout' => $timeout]);
-        $request = array(
-            'header' => array(
-                'Content-Type' => 'application/json',
-            )
-        );
-        if ($moduleFamily == 'Cortex') {
+        $httpSocket = new HttpSocketExtended($httpSocketSetting);
+        $request = [];
+        if ($moduleFamily === 'Cortex') {
             if (!empty(Configure::read('Plugin.' . $moduleFamily . '_authkey'))) {
                 $request['header']['Authorization'] = 'Bearer ' . Configure::read('Plugin.' . $moduleFamily . '_authkey');
             }
@@ -264,26 +264,23 @@ class Module extends AppModel
             if (!is_array($postData)) {
                 throw new InvalidArgumentException("Post data must be array, " . gettype($postData) . " given.");
             }
-            $post = json_encode($postData);
-            $response = $httpSocket->post($url . $uri, $post, $request);
+            $post = JsonTool::encode($postData);
+            $request['header']['Content-Type'] = 'application/json';
+            $response = $httpSocket->post($serverUrl . $uri, $post, $request);
         } else {
-            if ($moduleFamily == 'Cortex') {
-                unset($request['header']['Content-Type']);
-            }
-            $response = $httpSocket->get($url . $uri, false, $request);
+            $response = $httpSocket->get($serverUrl . $uri, false, $request);
         }
         if (!$response->isOk()) {
-            if ($httpSocket->lastError()) {
-                throw new Exception("Failed to get response from $moduleFamily module: " . $httpSocket->lastError['str']);
-            }
-            throw new Exception("Failed to get response from $moduleFamily module: HTTP $response->reasonPhrase", (int)$response->code);
+            $e = new HttpSocketHttpException($response, $serverUrl . $uri);
+            throw new Exception("Failed to get response from `$moduleFamily` module", 0, $e);
         }
-        return $this->jsonDecode($response->body);
+        return $response->json();
     }
 
     /**
      * @param string $moduleFamily
      * @return array
+     * @throws JsonException
      */
     public function getModuleSettings($moduleFamily = 'Enrichment')
     {
