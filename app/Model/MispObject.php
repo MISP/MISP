@@ -255,38 +255,37 @@ class MispObject extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
-        if (empty($this->data[$this->alias]['comment'])) {
-            $this->data[$this->alias]['comment'] = "";
+        $object = &$this->data['Object'];
+        if (empty($object['comment'])) {
+            $object['comment'] = "";
         }
         // generate UUID if it doesn't exist
-        if (empty($this->data[$this->alias]['uuid'])) {
-            $this->data[$this->alias]['uuid'] = CakeText::uuid();
+        if (empty($object['uuid'])) {
+            $object['uuid'] = CakeText::uuid();
         }
         // generate timestamp if it doesn't exist
-        if (empty($this->data[$this->alias]['timestamp'])) {
-            $date = new DateTime();
-            $this->data[$this->alias]['timestamp'] = $date->getTimestamp();
+        if (empty($object['timestamp'])) {
+            $object['timestamp'] = time();
         }
         // parse first_seen different formats
-        if (isset($this->data[$this->alias]['first_seen'])) {
-            $this->data[$this->alias]['first_seen'] = $this->data[$this->alias]['first_seen'] === '' ? null : $this->data[$this->alias]['first_seen'];
+        if (isset($object['first_seen'])) {
+            $object['first_seen'] = $object['first_seen'] === '' ? null : $object['first_seen'];
         }
         // parse last_seen different formats
-        if (isset($this->data[$this->alias]['last_seen'])) {
-            $this->data[$this->alias]['last_seen'] = $this->data[$this->alias]['last_seen'] === '' ? null : $this->data[$this->alias]['last_seen'];
+        if (isset($object['last_seen'])) {
+            $object['last_seen'] = $object['last_seen'] === '' ? null : $object['last_seen'];
         }
-        if (empty($this->data[$this->alias]['template_version'])) {
-            $this->data[$this->alias]['template_version'] = 1;
+        if (empty($object['template_version'])) {
+            $object['template_version'] = 1;
         }
-        if (isset($this->data[$this->alias]['deleted']) && empty($this->data[$this->alias]['deleted'])) {
-            $this->data[$this->alias]['deleted'] = 0;
+        if (isset($object['deleted']) && empty($object['deleted'])) {
+            $object['deleted'] = 0;
         }
-        if (!isset($this->data[$this->alias]['distribution']) || $this->data['Object']['distribution'] != 4) {
-            $this->data['Object']['sharing_group_id'] = 0;
+        if (!isset($object['distribution']) || $object['distribution'] != 4) {
+            $object['sharing_group_id'] = 0;
         }
-        if (!isset($this->data[$this->alias]['distribution'])) {
-            $this->data['Object']['distribution'] = 5;
+        if (!isset($object['distribution'])) {
+            $object['distribution'] = 5;
         }
         return true;
     }
