@@ -7218,9 +7218,8 @@ class Event extends AppModel
                 'disable_correlation' => true
             )
         );
-        foreach ($attributes as $attribute) {
-            $this->Attribute->create();
-            $this->Attribute->save($attribute);
+        if (!$this->Attribute->saveMany($attributes)) {
+            throw new Exception("Could not save attributes for original file because of validation errors:" . json_encode($this->Attribute->validationErrors));
         }
         return true;
     }
