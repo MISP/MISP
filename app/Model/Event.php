@@ -142,7 +142,6 @@ class Event extends AppModel
                 //'required' => true,
                 //'allowEmpty' => true
         ),
-
         'analysis' => array(
             'rule' => array('inList', array('0', '1', '2')),
                 'message' => 'Options : 0, 1, 2 (for Initial, Ongoing, Completed)',
@@ -465,9 +464,7 @@ class Event extends AppModel
         }
 
         // generate UUID if it doesn't exist
-        if (empty($event['uuid'])) {
-            $event['uuid'] = CakeText::uuid();
-        } else {
+        if (!empty($event['uuid'])) {
             $event['uuid'] = strtolower($event['uuid']);
         }
 
@@ -506,6 +503,15 @@ class Event extends AppModel
         if (!isset($event['distribution']) || $event['distribution'] != 4) {
             $event['sharing_group_id'] = 0;
         }
+    }
+
+    public function beforeSave($options = [])
+    {
+        // generate UUID if not provided
+        if (empty($this->data['Event']['uuid'])) {
+            $this->data['Event']['uuid'] = CakeText::uuid();
+        }
+        return true;
     }
 
     public function afterSave($created, $options = array())

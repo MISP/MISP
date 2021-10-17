@@ -362,6 +362,9 @@ class Attribute extends AppModel
 
     public function beforeSave($options = array())
     {
+        if (empty($this->data['Attribute']['uuid'])) {
+            $this->data['Attribute']['uuid'] = CakeText::uuid();
+        }
         if (!empty($this->data['Attribute']['id'])) {
             $this->old = $this->find('first', array(
                 'recursive' => -1,
@@ -603,10 +606,7 @@ class Attribute extends AppModel
         if (empty($attribute['comment'])) {
             $attribute['comment'] = "";
         }
-        // generate UUID if it doesn't exist
-        if (empty($attribute['uuid'])) {
-            $attribute['uuid'] = CakeText::uuid();
-        } else {
+        if (!empty($attribute['uuid'])) {
             $attribute['uuid'] = strtolower($attribute['uuid']);
         }
         // generate timestamp if it doesn't exist
@@ -628,6 +628,9 @@ class Attribute extends AppModel
         if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = $this->defaultDistribution();
         }
+        if ($attribute['distribution'] != 4) {
+            $attribute['sharing_group_id'] = 0;
+        }
         // If category is not provided, assign default category by type
         if (empty($attribute['category'])) {
             $attribute['category'] = $this->typeDefinitions[$type]['default_category'];
@@ -635,10 +638,6 @@ class Attribute extends AppModel
 
         if (!isset($attribute['to_ids'])) {
             $attribute['to_ids'] = $this->typeDefinitions[$type]['to_ids'];
-        }
-
-        if ($attribute['distribution'] != 4) {
-            $attribute['sharing_group_id'] = 0;
         }
         // return true, otherwise the object cannot be saved
         return true;

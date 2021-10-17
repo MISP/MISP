@@ -69,7 +69,6 @@ class MispObject extends AppModel
             'unique' => array(
                 'rule' => 'isUnique',
                 'message' => 'The UUID provided is not unique',
-                'required' => true,
                 'on' => 'create'
             ),
         ),
@@ -249,7 +248,12 @@ class MispObject extends AppModel
         return $results;
     }
 
-    public function beforeSave($options = array()) {
+    public function beforeSave($options = array())
+    {
+        // generate UUID if it doesn't exist
+        if (empty($this->data['Object']['uuid'])) {
+            $this->data['Object']['uuid'] = CakeText::uuid();
+        }
         $this->data = $this->Attribute->ISODatetimeToUTC($this->data, $this->alias);
     }
 
@@ -258,10 +262,6 @@ class MispObject extends AppModel
         $object = &$this->data['Object'];
         if (empty($object['comment'])) {
             $object['comment'] = "";
-        }
-        // generate UUID if it doesn't exist
-        if (empty($object['uuid'])) {
-            $object['uuid'] = CakeText::uuid();
         }
         // generate timestamp if it doesn't exist
         if (empty($object['timestamp'])) {
