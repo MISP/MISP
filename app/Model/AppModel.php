@@ -1951,19 +1951,6 @@ class AppModel extends Model
         return true;
     }
 
-    public function valueIsJsonOrNull($value)
-    {
-        $field = array_keys($value);
-        $field = $field[0];
-        if (!is_null($value[$field])) {
-            $json_decoded = json_decode($value[$field]);
-            if ($json_decoded === null) {
-                return __('Invalid JSON.');
-            }
-        }
-        return true;
-    }
-
     public function valueIsID($value)
     {
         $field = array_keys($value);
