@@ -5846,19 +5846,21 @@ class Event extends AppModel
     {
         $event = $this->find('first', array(
             'recursive' => -1,
-            'conditions' => array('Event.id' => $id)
+            'conditions' => array('Event.id' => $id),
+            'fields' => ['id', 'info'], // info is required because of SysLogLogableBehavior
         ));
         if (empty($event)) {
             return false;
         }
+        $fields = ['published', 'timestamp'];
         $event['Event']['published'] = 0;
-        $date = new DateTime();
-        $event['Event']['timestamp'] = $date->getTimestamp();
+        $event['Event']['timestamp'] = time();
         if ($proposalLock) {
             $event['Event']['proposal_email_lock'] = 0;
+            $fields[] = 'proposal_email_lock';
         }
         $event['Event']['unpublishAction'] = true;
-        return $this->save($event);
+        return $this->save($event, true, $fields);
     }
 
     /**
