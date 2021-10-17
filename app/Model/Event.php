@@ -442,65 +442,69 @@ class Event extends AppModel
 
     public function beforeValidate($options = array())
     {
+        $event = &$this->data['Event'];
         // analysis - setting correct vars
-        if (isset($this->data['Event']['analysis'])) {
-            switch ($this->data['Event']['analysis']) {
+        if (isset($event['analysis'])) {
+            switch ($event['analysis']) {
                 case 'Initial':
-                    $this->data['Event']['analysis'] = 0;
+                    $event['analysis'] = 0;
                     break;
                 case 'Ongoing':
-                    $this->data['Event']['analysis'] = 1;
+                    $event['analysis'] = 1;
                     break;
                 case 'Completed':
-                    $this->data['Event']['analysis'] = 2;
+                    $event['analysis'] = 2;
                     break;
             }
         } else {
-            $this->data['Event']['analysis'] = 0;
+            $event['analysis'] = 0;
         }
 
-        if (!isset($this->data['Event']['threat_level_id'])) {
-            $this->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ?: 4;
+        if (!isset($event['threat_level_id'])) {
+            $event['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ?: 4;
         }
 
         // generate UUID if it doesn't exist
-        if (empty($this->data['Event']['uuid'])) {
-            $this->data['Event']['uuid'] = CakeText::uuid();
+        if (empty($event['uuid'])) {
+            $event['uuid'] = CakeText::uuid();
         } else {
-            $this->data['Event']['uuid'] = strtolower($this->data['Event']['uuid']);
+            $event['uuid'] = strtolower($event['uuid']);
         }
 
         // Convert event ID to uuid if needed
-        if (!empty($this->data['Event']['extends_uuid']) && is_numeric($this->data['Event']['extends_uuid'])) {
-            $extended_event = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Event.id' => $this->data['Event']['extends_uuid']),
-                'fields' => array('Event.uuid')
-            ));
-            if (empty($extended_event)) {
-                $this->data['Event']['extends_uuid'] = '';
+        if (!empty($event['extends_uuid'])) {
+            if (is_numeric($event['extends_uuid'])) {
+                $extended_event = $this->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('Event.id' => $event['extends_uuid']),
+                    'fields' => array('Event.uuid')
+                ));
+                if (empty($extended_event)) {
+                    $event['extends_uuid'] = '';
+                    $this->invalidate('extends_uuid', 'Invalid event ID provided.');
+                } else {
+                    $event['extends_uuid'] = $extended_event['Event']['uuid'];
+                }
             } else {
-                $this->data['Event']['extends_uuid'] = $extended_event['Event']['uuid'];
+                $event['extends_uuid'] = strtolower($event['extends_uuid']);
             }
-        } else if (!empty($this->data['Event']['extends_uuid'])) {
-            $this->data['Event']['extends_uuid'] = strtolower($this->data['Event']['extends_uuid']);
         }
 
         // generate timestamp if it doesn't exist
-        if (empty($this->data['Event']['timestamp'])) {
-            $this->data['Event']['timestamp'] = time();
+        if (empty($event['timestamp'])) {
+            $event['timestamp'] = time();
         }
 
-        if (isset($this->data['Event']['publish_timestamp']) && empty($this->data['Event']['publish_timestamp'])) {
-            $this->data['Event']['publish_timestamp'] = 0;
+        if (isset($event['publish_timestamp']) && empty($event['publish_timestamp'])) {
+            $event['publish_timestamp'] = 0;
         }
 
-        if (empty($this->data['Event']['date'])) {
-            $this->data['Event']['date'] = date('Y-m-d');
+        if (empty($event['date'])) {
+            $event['date'] = date('Y-m-d');
         }
 
-        if (!isset($this->data['Event']['distribution']) || $this->data['Event']['distribution'] != 4) {
-            $this->data['Event']['sharing_group_id'] = 0;
+        if (!isset($event['distribution']) || $event['distribution'] != 4) {
+            $event['sharing_group_id'] = 0;
         }
     }
 
