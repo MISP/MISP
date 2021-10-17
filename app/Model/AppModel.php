@@ -2368,7 +2368,7 @@ class AppModel extends Model
     private function __runCleanDB()
     {
         $cleanDB = $this->AdminSetting->getSetting('clean_db');
-        if (empty($cleanDB) || $cleanDB == 1) {
+        if ($cleanDB === false || $cleanDB == 1) {
             $this->cleanCacheFiles();
             $this->AdminSetting->changeSetting('clean_db', 0);
         }
