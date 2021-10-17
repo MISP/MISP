@@ -3,6 +3,21 @@
 class FileAccessTool
 {
     /**
+     * @param string $path
+     * @param int $permissions
+     * @throws Exception
+     */
+    public static function createFile($path, $permissions = 0600)
+    {
+        if (!file_exists($path)) {
+            if (!touch($path)) {
+                throw new Exception("Could not create file `$path`.");
+            }
+        }
+        @chmod($path, $permissions); // hide error if current user is not file owner
+    }
+
+    /**
      * Creates temporary file, but you have to delete it after use.
      * @param string|null $dir
      * @param string $prefix
