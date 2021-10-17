@@ -1,6 +1,7 @@
 <?php
 App::uses('JSONConverterTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 abstract class StixExport
 {
@@ -44,7 +45,7 @@ abstract class StixExport
         }
 
         $converter = new JSONConverterTool();
-        $event = json_encode($converter->convert($data, false, true)); // we don't need pretty printed JSON
+        $event = JsonTool::encode($converter->convert($data, false, true)); // we don't need pretty printed JSON
         if ($this->__n_attributes + $attributesCount < $this->__attributes_limit) {
             $this->__tmp_file->append($this->__n_attributes === 0 ? $event : ',' . $event);
             $this->__n_attributes += $attributesCount;
