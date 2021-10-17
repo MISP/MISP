@@ -1931,8 +1931,7 @@ class AppModel extends Model
     // alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
     public function valueNotEmpty($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
+        $field = array_keys($value)[0];
         $value = trim($value[$field]);
         if (!empty($value)) {
             return true;
@@ -1942,8 +1941,7 @@ class AppModel extends Model
 
     public function valueIsJson($value)
     {
-        $value = array_values($value);
-        $value = $value[0];
+        $value = array_values($value)[0];
         $json_decoded = json_decode($value);
         if ($json_decoded === null) {
             return __('Invalid JSON.');
@@ -1953,8 +1951,7 @@ class AppModel extends Model
 
     public function valueIsID($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
+        $field = array_keys($value)[0];
         if (!is_numeric($value[$field]) || $value[$field] < 0) {
             return 'Invalid ' . ucfirst($field) . ' ID';
         }
@@ -1963,8 +1960,7 @@ class AppModel extends Model
 
     public function stringNotEmpty($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
+        $field = array_keys($value)[0];
         $value = trim($value[$field]);
         if (!isset($value) || ($value == false && $value !== "0")) {
             return ucfirst($field) . ' cannot be empty.';
