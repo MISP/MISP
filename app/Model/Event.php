@@ -510,27 +510,28 @@ class Event extends AppModel
 
     public function afterSave($created, $options = array())
     {
+        $event = $this->data['Event'];
         if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
             $updateCorrelation = [];
-            if (isset($this->data['Event']['distribution'])) {
-                $updateCorrelation['Correlation.distribution'] = (int)$this->data['Event']['distribution'];
+            if (isset($event['distribution']) && (empty($options['fieldList']) || in_array('distribution', $options['fieldList']))) {
+                $updateCorrelation['Correlation.distribution'] = (int)$event['distribution'];
             }
-            if (isset($this->data['Event']['sharing_group_id'])) {
-                $updateCorrelation['Correlation.sharing_group_id'] = (int)$this->data['Event']['sharing_group_id'];
+            if (isset($event['sharing_group_id']) && (empty($options['fieldList']) || in_array('sharing_group_id', $options['fieldList']))) {
+                $updateCorrelation['Correlation.sharing_group_id'] = (int)$event['sharing_group_id'];
             }
             if (!empty($updateCorrelation)) {
-                $this->Attribute->Correlation->updateAll($updateCorrelation, ['Correlation.event_id' => (int)$this->data['Event']['id']]);
+                $this->Attribute->Correlation->updateAll($updateCorrelation, ['Correlation.event_id' => (int)$event['id']]);
             }
         }
-        if (empty($this->data['Event']['unpublishAction']) && empty($this->data['Event']['skip_zmq']) && Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+        if (empty($event['unpublishAction']) && empty($event['skip_zmq']) && Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
             $pubSubTool = $this->getPubSubTool();
-            $event = $this->quickFetchEvent($this->data['Event']['id']);
+            $eventForZmq = $this->quickFetchEvent($event['id']);
             if (!empty($event)) {
-                $pubSubTool->event_save($event, $created ? 'add' : 'edit');
+                $pubSubTool->event_save($eventForZmq, $created ? 'add' : 'edit');
             }
         }
-        if (empty($this->data['Event']['unpublishAction']) && empty($this->data['Event']['skip_kafka'])) {
-            $this->publishKafkaNotification('event', $this->quickFetchEvent($this->data['Event']['id']), $created ? 'add' : 'edit');
+        if (empty($event['unpublishAction']) && empty($event['skip_kafka'])) {
+            $this->publishKafkaNotification('event', $this->quickFetchEvent($event['id']), $created ? 'add' : 'edit');
         }
     }
 
