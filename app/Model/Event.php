@@ -1870,8 +1870,8 @@ class Event extends AppModel
         } else {
             $flatten = false;
         }
-        $sgids = $this->cacheSgids($user, $useCache);
         // restricting to non-private or same org if the user is not a site-admin.
+        $sgids = $this->cacheSgids($user, $useCache);
         if (!$isSiteAdmin) {
             // if delegations are enabled, check if there is an event that the current user might see because of the request itself
             if (Configure::read('MISP.delegation')) {
@@ -1881,7 +1881,7 @@ class Event extends AppModel
             $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
             $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
             $eventReportCondSelect = '(SELECT events.org_id FROM events WHERE events.id = EventReport.event_id)';
-            if ($this->getDataSource()->config['datasource'] == 'Database/Postgres') {
+            if ($this->getDataSource()->config['datasource'] === 'Database/Postgres') {
                 $schemaName = $this->getDataSource()->config['schema'];
                 $attributeCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Attribute"."event_id")', $schemaName, $schemaName, $schemaName);
                 $objectCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Object"."event_id")', $schemaName, $schemaName, $schemaName);
@@ -1963,7 +1963,7 @@ class Event extends AppModel
                 if ($deleted_value === 'only') {
                     $deleted_value = 1;
                 }
-                $options['deleted'][$deleted_key] = intval($deleted_value);
+                $options['deleted'][$deleted_key] = (int)$deleted_value;
             }
             if (!$user['Role']['perm_sync']) {
                 foreach ($softDeletables as $softDeletable) {
@@ -1980,17 +1980,21 @@ class Event extends AppModel
                         'OR' => array(
                             'AND' => array(
                                 sprintf('(SELECT events.org_id FROM events WHERE events.id = %s.event_id)', $softDeletable) => $user['org_id'],
-                                sprintf('%s.deleted', $softDeletable) => $options['deleted']
+                                "$softDeletable.deleted" => $options['deleted'],
                             ),
                             $deletion_subconditions
                         )
                     );
                 }
             } else {
-                foreach ($softDeletables as $softDeletable) {
-                    ${'conditions' . $softDeletable . 's'}['AND'][] = array(
-                        sprintf('%s.deleted', $softDeletable) => $options['deleted']
-                    );
+                // MySQL couldn't optimise query, so it is better just skip this condition
+                $both = in_array(0, $options['deleted']) && in_array(1, $options['deleted']);
+                if (!$both) {
+                    foreach ($softDeletables as $softDeletable) {
+                        ${'conditions' . $softDeletable . 's'}['AND'][] = [
+                            "$softDeletable.deleted" => $options['deleted'],
+                        ];
+                    }
                 }
             }
         } else {
