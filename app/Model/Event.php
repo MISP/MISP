@@ -2137,7 +2137,7 @@ class Event extends AppModel
             $justExportableTags = false;
         }
 
-        foreach ($results as $eventKey => &$event) {
+        foreach ($results as &$event) {
             /*
             // REMOVING THIS FOR NOW - users should see data they own, even if they're not in the sharing group.
             if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
@@ -2190,15 +2190,15 @@ class Event extends AppModel
             }
             // Let's find all the related events and attach it to the event itself
             if ($options['includeEventCorrelations']) {
-                $results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
+                $event['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
             }
             // Let's also find all the relations for the attributes - this won't be in the xml export though
             if (!empty($options['includeGranularCorrelations'])) {
-                $results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id']);
+                $event['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id']);
                 if (!empty($options['includeRelatedTags'])) {
-                    $results[$eventKey] = $this->includeRelatedTags($results[$eventKey], $options);
+                    $event = $this->includeRelatedTags($event, $options);
                 }
-                $results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
+                $event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
             }
             if (!empty($event['ShadowAttribute']) && $options['includeAttachments']) {
                 foreach ($event['ShadowAttribute'] as $k => $sa) {
@@ -2262,16 +2262,16 @@ class Event extends AppModel
                         foreach ($event['ShadowAttribute'] as $k => $sa) {
                             if (!empty($sa['old_id'])) {
                                 if ($event['ShadowAttribute'][$k]['old_id'] == $attribute['id']) {
-                                    $results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
-                                    unset($results[$eventKey]['ShadowAttribute'][$k]);
+                                    $event['Attribute'][$key]['ShadowAttribute'][] = $sa;
+                                    unset($event['ShadowAttribute'][$k]);
                                 }
                             }
                         }
                     }
                     if ($proposalBlockAttributes && !empty($options['allow_proposal_blocking'])) {
-                        foreach ($results[$eventKey]['Attribute'][$key]['ShadowAttribute'] as $sa) {
+                        foreach ($event['Attribute'][$key]['ShadowAttribute'] as $sa) {
                             if ($sa['proposal_to_delete'] || $sa['to_ids'] == 0) {
-                                unset($results[$eventKey]['Attribute'][$key]);
+                                unset($event['Attribute'][$key]);
                                 continue;
                             }
                         }
