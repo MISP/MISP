@@ -563,81 +563,82 @@ class Attribute extends AppModel
 
     public function beforeValidate($options = array())
     {
-        if (empty($this->data['Attribute']['type'])) {
+        $attribute = &$this->data['Attribute'];
+        if (empty($attribute['type'])) {
             $this->validationErrors['type'] = ['No type set.'];
             return false;
         }
-        $type = $this->data['Attribute']['type'];
-        if (is_array($this->data['Attribute']['value'])) {
+        $type = $attribute['type'];
+        if (is_array($attribute['value'])) {
             $this->validationErrors['value'] = ['Value is an array.'];
             return false;
         }
 
-        if (!empty($this->data['Attribute']['object_id']) && empty($this->data['Attribute']['object_relation'])) {
+        if (!empty($attribute['object_id']) && empty($attribute['object_relation'])) {
             $this->validationErrors['object_relation'] = ['Object attribute sent, but no object_relation set.'];
             return false;
         }
 
         // If `value1` or `value2` provided and `value` is empty, merge them into `value` because of validation
-        if (empty($this->data['Attribute']['value'])) {
-            if (!empty($this->data['Attribute']['value1']) && !empty($this->data['Attribute']['value2'])) {
-                $this->data['Attribute']['value'] = "{$this->data['Attribute']['value1']}|{$this->data['Attribute']['value2']}";
-            } else if (!empty($this->data['Attribute']['value1'])) {
-                $this->data['Attribute']['value'] = $this->data['Attribute']['value1'];
+        if (empty($attribute['value'])) {
+            if (!empty($attribute['value1']) && !empty($attribute['value2'])) {
+                $attribute['value'] = "{$attribute['value1']}|{$attribute['value2']}";
+            } else if (!empty($attribute['value1'])) {
+                $attribute['value'] = $attribute['value1'];
             }
         }
 
         // remove leading and trailing blanks and refang value and
-        $this->data['Attribute']['value'] = ComplexTypeTool::refangValue(trim($this->data['Attribute']['value']), $type);
+        $attribute['value'] = ComplexTypeTool::refangValue(trim($attribute['value']), $type);
         // make some changes to the inserted value
-        $this->data['Attribute']['value'] = $this->modifyBeforeValidation($type, $this->data['Attribute']['value']);
+        $attribute['value'] = $this->modifyBeforeValidation($type, $attribute['value']);
         // Run user defined regexp to attribute value
-        $result = $this->runRegexp($type, $this->data['Attribute']['value']);
+        $result = $this->runRegexp($type, $attribute['value']);
         if ($result === false) {
             $this->invalidate('value', 'This value is blocked by a regular expression in the import filters.');
         } else {
-            $this->data['Attribute']['value'] = $result;
+            $attribute['value'] = $result;
         }
 
-        if (empty($this->data['Attribute']['comment'])) {
-            $this->data['Attribute']['comment'] = "";
+        if (empty($attribute['comment'])) {
+            $attribute['comment'] = "";
         }
         // generate UUID if it doesn't exist
-        if (empty($this->data['Attribute']['uuid'])) {
-            $this->data['Attribute']['uuid'] = CakeText::uuid();
+        if (empty($attribute['uuid'])) {
+            $attribute['uuid'] = CakeText::uuid();
         } else {
-            $this->data['Attribute']['uuid'] = strtolower($this->data['Attribute']['uuid']);
+            $attribute['uuid'] = strtolower($attribute['uuid']);
         }
         // generate timestamp if it doesn't exist
-        if (empty($this->data['Attribute']['timestamp'])) {
-            $this->data['Attribute']['timestamp'] = time();
+        if (empty($attribute['timestamp'])) {
+            $attribute['timestamp'] = time();
         }
 
         // parse first_seen different formats
-        if (isset($this->data['Attribute']['first_seen'])) {
-            $this->data['Attribute']['first_seen'] = $this->data['Attribute']['first_seen'] === '' ? null : $this->data['Attribute']['first_seen'];
+        if (isset($attribute['first_seen'])) {
+            $attribute['first_seen'] = $attribute['first_seen'] === '' ? null : $attribute['first_seen'];
         }
         // parse last_seen different formats
-        if (isset($this->data['Attribute']['last_seen'])) {
-            $this->data['Attribute']['last_seen'] = $this->data['Attribute']['last_seen'] === '' ? null : $this->data['Attribute']['last_seen'];
+        if (isset($attribute['last_seen'])) {
+            $attribute['last_seen'] = $attribute['last_seen'] === '' ? null : $attribute['last_seen'];
         }
 
         // Set defaults for when some of the mandatory fields don't have defaults
         // These fields all have sane defaults either based on another field, or due to server settings
-        if (!isset($this->data['Attribute']['distribution'])) {
-            $this->data['Attribute']['distribution'] = $this->defaultDistribution();
+        if (!isset($attribute['distribution'])) {
+            $attribute['distribution'] = $this->defaultDistribution();
         }
         // If category is not provided, assign default category by type
-        if (empty($this->data['Attribute']['category'])) {
-            $this->data['Attribute']['category'] = $this->typeDefinitions[$type]['default_category'];
+        if (empty($attribute['category'])) {
+            $attribute['category'] = $this->typeDefinitions[$type]['default_category'];
         }
 
-        if (!isset($this->data['Attribute']['to_ids'])) {
-            $this->data['Attribute']['to_ids'] = $this->typeDefinitions[$type]['to_ids'];
+        if (!isset($attribute['to_ids'])) {
+            $attribute['to_ids'] = $this->typeDefinitions[$type]['to_ids'];
         }
 
-        if ($this->data['Attribute']['distribution'] != 4) {
-            $this->data['Attribute']['sharing_group_id'] = 0;
+        if ($attribute['distribution'] != 4) {
+            $attribute['sharing_group_id'] = 0;
         }
         // return true, otherwise the object cannot be saved
         return true;
