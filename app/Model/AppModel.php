@@ -2923,11 +2923,6 @@ class AppModel extends Model
         return $val / (1024 * 1024);
     }
 
-    public function getDefaultAttachments_dir()
-    {
-        return APP . 'files';
-    }
-
     private function __bumpReferences()
     {
         $this->Event = ClassRegistry::init('Event');
