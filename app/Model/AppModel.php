@@ -1933,8 +1933,8 @@ class AppModel extends Model
     {
         $field = array_keys($value);
         $field = $field[0];
-        $value[$field] = trim($value[$field]);
-        if (!empty($value[$field])) {
+        $value = trim($value[$field]);
+        if (!empty($value)) {
             return true;
         }
         return ucfirst($field) . ' cannot be empty.';
@@ -1942,9 +1942,9 @@ class AppModel extends Model
 
     public function valueIsJson($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
-        $json_decoded = json_decode($value[$field]);
+        $value = array_values($value);
+        $value = $value[0];
+        $json_decoded = json_decode($value);
         if ($json_decoded === null) {
             return __('Invalid JSON.');
         }
@@ -1965,8 +1965,8 @@ class AppModel extends Model
     {
         $field = array_keys($value);
         $field = $field[0];
-        $value[$field] = trim($value[$field]);
-        if (!isset($value[$field]) || ($value[$field] == false && $value[$field] !== "0")) {
+        $value = trim($value[$field]);
+        if (!isset($value) || ($value == false && $value !== "0")) {
             return ucfirst($field) . ' cannot be empty.';
         }
         return true;
