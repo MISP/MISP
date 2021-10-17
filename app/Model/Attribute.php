@@ -742,21 +742,17 @@ class Attribute extends AppModel
     // check whether the variable is null or datetime
     public function datetimeOrNull($fields)
     {
-        $k = array_keys($fields)[0];
-        $seen = $fields[$k];
-        try {
-            new DateTime($seen);
-            $returnValue = true;
-        } catch (Exception $e) {
-            $returnValue = false;
+        $seen = array_values($fields)[0];
+        if ($seen === null) {
+            return true;
         }
-        return $returnValue || is_null($seen);
+        return strtotime($seen) !== false;
     }
 
     public function validateLastSeenValue($fields)
     {
         $ls = $fields['last_seen'];
-        if (!isset($this->data['Attribute']['first_seen']) || is_null($ls)) {
+        if (!isset($this->data['Attribute']['first_seen']) || $ls === null) {
             return true;
         }
         $converted = $this->ISODatetimeToUTC(['Attribute' => [
@@ -1410,7 +1406,7 @@ class Attribute extends AppModel
                 break;
             case 'datetime':
                 try {
-                    $value = (new DateTime($value))->setTimezone(new DateTimeZone('GMT'))->format('Y-m-d\TH:i:s.uO'); // ISO8601 formating with microseconds
+                    $value = (new DateTime($value, new DateTimeZone('GMT')))->format('Y-m-d\TH:i:s.uO'); // ISO8601 formating with microseconds
                 } catch (Exception $e) {
                     // silently skip. Rejection will be done in runValidation()
                 }
@@ -1698,8 +1694,7 @@ class Attribute extends AppModel
     {
         // convert into utc and micro sec
         if (!empty($data[$alias]['first_seen'])) {
-            $d = new DateTime($data[$alias]['first_seen']);
-            $d->setTimezone(new DateTimeZone('GMT'));
+            $d = new DateTime($data[$alias]['first_seen'], new DateTimeZone('GMT'));
             $fs_sec = $d->format('U');
             $fs_micro = $d->format('u');
             $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
@@ -1707,8 +1702,7 @@ class Attribute extends AppModel
             $data[$alias]['first_seen'] = $fs;
         }
         if (!empty($data[$alias]['last_seen'])) {
-            $d = new DateTime($data[$alias]['last_seen']);
-            $d->setTimezone(new DateTimeZone('GMT'));
+            $d = new DateTime($data[$alias]['last_seen'], new DateTimeZone('GMT'));
             $ls_sec = $d->format('U');
             $ls_micro = $d->format('u');
             $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);

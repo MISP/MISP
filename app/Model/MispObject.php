@@ -216,23 +216,19 @@ class MispObject extends AppModel
     }
 
      // check whether the variable is null or datetime
-     public function datetimeOrNull($fields)
-     {
-         $k = array_keys($fields)[0];
-         $seen = $fields[$k];
-         try {
-             new DateTime($seen);
-             $returnValue = true;
-         } catch (Exception $e) {
-             $returnValue = false;
-         }
-         return $returnValue || is_null($seen);
-     }
+    public function datetimeOrNull($fields)
+    {
+        $seen = array_values($fields)[0];
+        if ($seen === null) {
+            return true;
+        }
+        return strtotime($seen) !== false;
+    }
 
      public function validateLastSeenValue($fields)
      {
          $ls = $fields['last_seen'];
-         if (!isset($this->data['Object']['first_seen']) || is_null($ls)) {
+         if (!isset($this->data['Object']['first_seen']) || $ls === null) {
              return true;
          }
          $converted = $this->Attribute->ISODatetimeToUTC(['Object' => [
