@@ -3,9 +3,6 @@ App::uses('AuditLog', 'Model');
 
 class AuditLogBehavior extends ModelBehavior
 {
-    /** @var array */
-    private $config;
-
     /** @var array|null */
     private $old;
 
@@ -57,7 +54,6 @@ class AuditLogBehavior extends ModelBehavior
 
     public function setup(Model $model, $config = [])
     {
-        $this->config = $config;
         // Generate model info for attribute and proposals
         $attributeInfo = function (array $new, array $old) {
             $category = isset($new['category']) ? $new['category'] : $old['category'];
