@@ -3202,10 +3202,7 @@ class EventsController extends AppController
             $iocData = FileAccessTool::readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
         // write
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-            if (empty($attachments_dir)) {
-            $attachments_dir = $this->Event->getDefaultAttachments_dir();
-        }
+        $attachments_dir = Configure::read('MISP.attachments_dir') ?: (APP . 'files');
         $rootDir = $attachments_dir . DS . $id . DS;
             App::uses('Folder', 'Utility');
             $dir = new Folder($rootDir . 'ioc', true);
