@@ -1132,10 +1132,11 @@ function removeEventTag(event, tag) {
 
 function loadAttributeTags(id) {
     $.ajax({
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data) {
-            $("#Attribute_"+id+".attributeTagContainer").html(data);
+        success: function (data) {
+            // different approach for event view and attribute view
+            $("#Attribute_" + id + "_tr .attributeTagContainer, [data-primary-id=" + id + "] .attributeTagContainer").html(data);
         },
         error: xhrFailCallback,
         url: baseurl + "/tags/showAttributeTag/" + id
