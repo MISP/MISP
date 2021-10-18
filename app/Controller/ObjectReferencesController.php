@@ -70,7 +70,7 @@ class ObjectReferencesController extends AppController
             $this->ObjectReference->create();
             $result = $this->ObjectReference->save(array('ObjectReference' => $data));
             if ($result) {
-                $this->ObjectReference->updateTimestamps($this->id, $data);
+                $this->ObjectReference->updateTimestamps($data);
                 if ($this->_isRest()) {
                     $object = $this->ObjectReference->find("first", array(
                         'recursive' => -1,
