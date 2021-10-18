@@ -1728,6 +1728,9 @@ coreCAKE () {
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.block_old_event_alert" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.block_old_event_alert_age" ""
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.block_old_event_alert_by_date" ""
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.event_alert_republish_ban" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.event_alert_republish_ban_threshold" 5
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.event_alert_republish_ban_refresh_on_retry" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.incoming_tags_disabled_by_default" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.maintenance_message" "Great things are happening! MISP is undergoing maintenance, but will return shortly. You can contact the administration at \$email."
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.footermidleft" "This is an initial install"
@@ -2332,6 +2335,7 @@ installCoreRHEL7 () {
   cd $PATH_TO_MISP
 
   # Fetch submodules
+  $SUDO_WWW git submodule sync
   $SUDO_WWW git submodule update --init --recursive
   # Make git ignore filesystem permission differences for submodules
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
