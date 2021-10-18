@@ -1351,9 +1351,9 @@ class Event extends AppModel
         return $data;
     }
 
-    public function quickDelete($event)
+    public function quickDelete(array $event)
     {
-        $id = $event['Event']['id'];
+        $id = (int)$event['Event']['id'];
         $this->Thread = ClassRegistry::init('Thread');
         $thread = $this->Thread->find('first', array(
             'conditions' => array('Thread.event_id' => $id),
@@ -1440,7 +1440,8 @@ class Event extends AppModel
         foreach ($relations as $relation) {
             $queryTool->quickDelete($relation['table'], $relation['foreign_key'], $relation['value'], $this);
         }
-        return $this->delete($id, false);
+        $this->set($event);
+        return $this->delete(null, false);
     }
 
     public function createEventConditions($user)
