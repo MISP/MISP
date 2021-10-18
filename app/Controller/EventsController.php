@@ -2609,8 +2609,7 @@ class EventsController extends AppController
             foreach ($idList as $eid) {
                 $event = $this->Event->find('first', array(
                     'conditions' => Validation::uuid($eid) ? ['Event.uuid' => $eid] : ['Event.id' => $eid],
-                    'fields' => array('Event.orgc_id', 'Event.id', 'Event.user_id'),
-                    'recursive' => -1
+                    'recursive' => -1,
                 ));
                 if (empty($event)) {
                     $fails[] = $eid; // event not found
