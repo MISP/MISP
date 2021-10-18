@@ -4225,7 +4225,11 @@ function checkAndSetPublishedInfo(skip_reload) {
     if (typeof skip_reload === "undefined") {
         skip_reload = false;
     }
-    var id = $('#hiddenSideMenuData').data('event-id');
+    var $el = $('#hiddenSideMenuData');
+    if ($el.length === 0) {
+        return;
+    }
+    var id = $el.data('event-id');
     if (id !== 'undefined' && !skip_reload) {
         $.get(baseurl + "/events/checkPublishedStatus/" + id, function(data) {
             if (data == 1) {
