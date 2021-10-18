@@ -121,29 +121,31 @@ class AuditLogBehavior extends ModelBehavior
         } else {
             $id = null;
         }
+        
+        $data = $model->data[$model->alias];
 
         if ($created) {
             $action = AuditLog::ACTION_ADD;
         } else {
             $action = AuditLog::ACTION_EDIT;
-            if (isset($model->data[$model->alias]['deleted'])) {
-                if ($model->data[$model->alias]['deleted']) {
+            if (isset($data['deleted'])) {
+                if ($data['deleted']) {
                     $action = AuditLog::ACTION_SOFT_DELETE;
-                } else if (!$model->data[$model->alias]['deleted'] && $this->old[$model->alias]['deleted']) {
+                } else if ($this->old[$model->alias]['deleted']) {
                     $action = AuditLog::ACTION_UNDELETE;
                 }
             }
         }
 
-        $changedFields = $this->changedFields($model, isset($options['fieldList']) ? $options['fieldList'] : null);
+        $changedFields = $this->changedFields($model, $options['fieldList']);
         if (empty($changedFields)) {
             return;
         }
 
         if ($model->name === 'Event') {
             $eventId = $id;
-        } else if (isset($model->data[$model->alias]['event_id'])) {
-            $eventId = $model->data[$model->alias]['event_id'];
+        } else if (isset($data['event_id'])) {
+            $eventId = $data['event_id'];
         } else if (isset($this->old[$model->alias]['event_id'])) {
             $eventId = $this->old[$model->alias]['event_id'];
         } else {
@@ -154,9 +156,9 @@ class AuditLogBehavior extends ModelBehavior
         if (isset($this->modelInfo[$model->name])) {
             $modelTitleField = $this->modelInfo[$model->name];
             if (is_callable($modelTitleField)) {
-                $modelTitle = $modelTitleField($model->data[$model->alias], isset($this->old[$model->alias]) ? $this->old[$model->alias] : []);
-            } else if (isset($model->data[$model->alias][$modelTitleField])) {
-                $modelTitle = $model->data[$model->alias][$modelTitleField];
+                $modelTitle = $modelTitleField($data, isset($this->old[$model->alias]) ? $this->old[$model->alias] : []);
+            } else if (isset($data[$modelTitleField])) {
+                $modelTitle = $data[$modelTitleField];
             } else if ($this->old[$model->alias][$modelTitleField]) {
                 $modelTitle = $this->old[$model->alias][$modelTitleField];
             }
@@ -165,9 +167,9 @@ class AuditLogBehavior extends ModelBehavior
         $modelName = $model->name === 'MispObject' ? 'Object' : $model->name;
 
         if ($modelName === 'AttributeTag' || $modelName === 'EventTag') {
-            $isLocal = isset($model->data[$model->alias]['local']) ? $model->data[$model->alias]['local'] : false;
+            $isLocal = isset($data['local']) ? $data['local'] : false;
             $action = $isLocal ? AuditLog::ACTION_TAG_LOCAL : AuditLog::ACTION_TAG;
-            $tagInfo = $this->getTagInfo($model, $model->data[$model->alias]['tag_id']);
+            $tagInfo = $this->getTagInfo($model, $data['tag_id']);
             if ($tagInfo) {
                 $modelTitle = $tagInfo['tag_name'];
                 if ($tagInfo['is_galaxy']) {
@@ -177,7 +179,7 @@ class AuditLogBehavior extends ModelBehavior
                     }
                 }
             }
-            $id = $modelName === 'AttributeTag' ? $model->data[$model->alias]['attribute_id'] : $model->data[$model->alias]['event_id'];
+            $id = $modelName === 'AttributeTag' ? $data['attribute_id'] : $data['event_id'];
             $modelName = $modelName === 'AttributeTag' ? 'Attribute' : 'Event';
         }
 
