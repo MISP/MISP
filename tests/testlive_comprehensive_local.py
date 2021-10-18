@@ -325,6 +325,19 @@ class TestComprehensive(unittest.TestCase):
 
         self.user_misp_connector.delete_event(event)
 
+    def test_delete_event_blocklist(self):
+        check_response(self.admin_misp_connector.set_server_setting('MISP.enableEventBlocklisting', 1))
+
+        # Create test event
+        event = create_simple_event()
+        event = self.user_misp_connector.add_event(event, pythonify=True)
+        check_response(event)
+
+        # Delete event
+        check_response(self.user_misp_connector.delete_event(event))
+
+        check_response(self.admin_misp_connector.set_server_setting('MISP.enableEventBlocklisting', 0))
+
 
 if __name__ == '__main__':
     unittest.main()
