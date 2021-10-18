@@ -82,7 +82,7 @@ class AuditLogBehavior extends ModelBehavior
         $fieldToFetch = [];
         if (!empty($options['fieldList'])) {
             foreach ($options['fieldList'] as $field) {
-                if (!isset($this->skipFields[$field])) {
+                if (!isset(self::SKIP_FIELDS[$field])) {
                     $fieldToFetch[] = $field;
                 }
             }
