@@ -342,42 +342,40 @@ class AttributeTag extends AppModel
         return $allClusters;
     }
 
-    public function extractAttributeTagsNameFromEvent(&$event, $to_extract='both')
+    /**
+     * @param array $event
+     * @return array|array[]
+     */
+    public function extractAttributeTagsNameFromEvent(array $event)
     {
-        $attribute_tags_name = array('tags' => array(), 'clusters' => array());
-        foreach ($event['Attribute'] as $i => $attribute) {
-            if ($to_extract == 'tags' || $to_extract == 'both') {
-                foreach ($attribute['AttributeTag'] as $tag) {
-                    $attribute_tags_name['tags'][] = $tag['Tag']['name'];
-                }
+        $extractedTags = [];
+        $extractedClusters = [];
+
+        foreach ($event['Attribute'] as $attribute) {
+            foreach ($attribute['AttributeTag'] as $tag) {
+                $extractedTags[$tag['Tag']['id']] = $tag['Tag']['name'];
             }
-            if ($to_extract == 'clusters' || $to_extract == 'both') {
-                foreach ($attribute['Galaxy'] as $galaxy) {
-                    foreach ($galaxy['GalaxyCluster'] as $cluster) {
-                        $attribute_tags_name['clusters'][] = $cluster['tag_name'];
-                    }
+            foreach ($attribute['Galaxy'] as $galaxy) {
+                foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                    $extractedClusters[$cluster['tag_id']] = $cluster['tag_name'];
                 }
             }
         }
-        foreach ($event['Object'] as $i => $object) {
+        foreach ($event['Object'] as $object) {
             if (!empty($object['Attribute'])) {
-                foreach ($object['Attribute'] as $j => $object_attribute) {
-                    if ($to_extract == 'tags' || $to_extract == 'both') {
-                        foreach ($object_attribute['AttributeTag'] as $tag) {
-                            $attribute_tags_name['tags'][] = $tag['Tag']['name'];
-                        }
+                foreach ($object['Attribute'] as $object_attribute) {
+                    foreach ($object_attribute['AttributeTag'] as $tag) {
+                        $extractedTags[$tag['Tag']['id']] = $tag['Tag']['name'];
                     }
-                    if ($to_extract == 'clusters' || $to_extract == 'both') {
-                        foreach ($object_attribute['Galaxy'] as $galaxy) {
-                            foreach ($galaxy['GalaxyCluster'] as $cluster) {
-                                $attribute_tags_name['clusters'][] = $cluster['tag_name'];
-                            }
+                    foreach ($object_attribute['Galaxy'] as $galaxy) {
+                        foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                            $extractedClusters[$cluster['tag_id']] = $cluster['tag_name'];
                         }
                     }
                 }
             }
         }
-        $attribute_tags_name['tags'] = array_diff_key($attribute_tags_name['tags'], $attribute_tags_name['clusters']); // de-dup if needed.
-        return $attribute_tags_name;
+        $extractedTags = array_diff_key($extractedTags, $extractedClusters); // de-dup if needed.
+        return ['tags' => $extractedTags, 'clusters' => $extractedClusters];
     }
 }
