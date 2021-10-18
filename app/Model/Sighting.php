@@ -77,11 +77,9 @@ class Sighting extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        parent::afterSave($created, $options = array());
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_sighting_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_sighting_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('sighting');
+        if ($pubToZmq || $kafkaTopic) {
             $user = array(
                 'org_id' => -1,
                 'Role' => array(
@@ -93,7 +91,7 @@ class Sighting extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->sighting_save($sighting, 'add');
             }
-            if ($pubToKafka) {
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $sighting, 'add');
             }
@@ -105,9 +103,8 @@ class Sighting extends AppModel
     {
         parent::beforeDelete();
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_sighting_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_sighting_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('sighting');
+        if ($pubToZmq || $kafkaTopic) {
             $user = array(
                 'org_id' => -1,
                 'Role' => array(
@@ -119,7 +116,7 @@ class Sighting extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->sighting_save($sighting, 'delete');
             }
-            if ($pubToKafka) {
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $sighting, 'delete');
             }

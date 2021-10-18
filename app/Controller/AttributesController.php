@@ -101,6 +101,7 @@ class AttributesController extends AppController
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+        $this->set('distributionLevels', $this->Attribute->distributionLevels);
     }
 
     public function add($eventId = false)
@@ -110,9 +111,6 @@ class AttributesController extends AppController
         }
         if ($eventId === false) {
             throw new MethodNotAllowedException(__('No event ID set.'));
-        }
-        if (!$this->userRole['perm_add']) {
-            throw new MethodNotAllowedException(__('You do not have permissions to create attributes'));
         }
         $event = $this->Attribute->Event->fetchSimpleEvent($this->Auth->user(), $eventId, ['contain' => ['Orgc']]);
         if (!$event) {
@@ -169,19 +167,19 @@ class AttributesController extends AppController
             $inserted_ids = array();
             foreach ($attributes as $k => $attribute) {
                 $validationErrors = array();
-                $this->Attribute->captureAttribute($attribute, $event['Event']['id'], $this->Auth->user(), false, false, false, $validationErrors, $this->params['named']);
+                $this->Attribute->captureAttribute($attribute, $event['Event']['id'], $this->Auth->user(), false, false, $event, $validationErrors, $this->params['named']);
                 if (empty($validationErrors)) {
                     $inserted_ids[] = $this->Attribute->id;
-                    $successes +=1;
+                    $successes++;
                 } else {
                     $fails["attribute_" . $k] = $validationErrors;
                 }
             }
-            if (!empty($successes)) {
+            if ($successes !== 0) {
                 $this->Attribute->Event->unpublishEvent($event['Event']['id']);
             }
             if ($this->_isRest()) {
-                if (!empty($successes)) {
+                if ($successes !== 0) {
                     $attributes = $this->Attribute->find('all', array(
                         'recursive' => -1,
                         'conditions' => array('Attribute.id' => $inserted_ids),
@@ -191,7 +189,7 @@ class AttributesController extends AppController
                             )
                         )
                     ));
-                    if (count($attributes) == 1) {
+                    if (count($attributes) === 1) {
                         $attributes = $attributes[0];
                     } else {
                         $result = array('Attribute' => array());
@@ -286,15 +284,9 @@ class AttributesController extends AppController
         $categories = $this->_arrayToValuesIndexArray($categories);
         $this->set('categories', $categories);
 
-        $this->loadModel('SharingGroup');
-        $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+        $sgs = $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true);
         $this->set('sharingGroups', $sgs);
-        $initialDistribution = 5;
-        $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
-        if ($configuredDistribution != null && $configuredDistribution != 'event') {
-            $initialDistribution = $configuredDistribution;
-        }
-        $this->set('initialDistribution', $initialDistribution);
+        $this->set('initialDistribution', $this->Attribute->defaultDistribution());
         $fieldDesc = array();
         $distributionLevels = $this->Attribute->distributionLevels;
         if (empty($sgs)) {
@@ -317,7 +309,7 @@ class AttributesController extends AppController
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
         $this->set('event', $event);
-        $this->set('action', $this->action);
+        $this->set('action', $this->request->action);
     }
 
     public function download($id = null)
@@ -435,7 +427,7 @@ class AttributesController extends AppController
                             'category' => $this->request->data['Attribute']['category'],
                             'type' => 'attachment',
                             'event_id' => $event['Event']['id'],
-                            'data' => base64_encode($tmpfile->read()),
+                            'data_raw' => $tmpfile->read(),
                             'comment' => $this->request->data['Attribute']['comment'],
                             'to_ids' => 0,
                             'distribution' => $this->request->data['Attribute']['distribution'],
@@ -1649,6 +1641,7 @@ class AttributesController extends AppController
             $this->set('isSearch', 1);
             $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
             $this->set('shortDist', $this->Attribute->shortDist);
+            $this->set('distributionLevels', $this->Attribute->distributionLevels);
             $this->render('index');
         }
         if (isset($attributeTags)) {

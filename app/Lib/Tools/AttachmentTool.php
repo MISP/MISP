@@ -207,10 +207,7 @@ class AttachmentTool
 
         } else {
             $path = $this->attachmentDir() . DS . $path;
-            $file = new File($path, true);
-            if (!$file->write($data)) {
-                throw new Exception("Could not save attachment to file '$path'.");
-            }
+            FileAccessTool::writeToFile($path, $data, true);
         }
 
         return true;
@@ -309,46 +306,32 @@ class AttachmentTool
     {
         $tempDir = $this->tempDir();
 
-        $contentsFile = new File($tempDir . DS . $md5, true);
-        if (!$contentsFile->write($content)) {
-            throw new Exception("Could not write content to file '{$contentsFile->path}'.");
-        }
-        $contentsFile->close();
+        FileAccessTool::writeToFile($tempDir . DS . $md5, $content);
+        FileAccessTool::writeToFile($tempDir . DS . $md5 . '.filename.txt', $originalFilename);
 
-        $fileNameFile = new File($tempDir . DS . $md5 . '.filename.txt', true);
-        if (!$fileNameFile->write($originalFilename)) {
-            throw new Exception("Could not write original file name to file '{$fileNameFile->path}'.");
-        }
-        $fileNameFile->close();
-
-        $zipFile = new File($tempDir . DS . $md5 . '.zip');
+        $zipFile = $tempDir . DS . $md5 . '.zip';
 
         $exec = [
             'zip',
             '-j', // junk (don't record) directory names
             '-P', // use standard encryption
             self::ZIP_PASSWORD,
-            escapeshellarg($zipFile->path),
-            escapeshellarg($contentsFile->path),
-            escapeshellarg($fileNameFile->path),
+            escapeshellarg($zipFile),
+            escapeshellarg($tempDir . DS . $md5),
+            escapeshellarg($tempDir . DS . $md5 . '.filename.txt'),
         ];
 
         try {
             $this->execute($exec);
-            $zipContent = $zipFile->read();
-            if ($zipContent === false) {
-                throw new Exception("Could not read content of newly created ZIP file.");
-            }
-
-            return $zipContent;
+            return FileAccessTool::readFromFile($zipFile);
 
         } catch (Exception $e) {
-            throw new Exception("Could not create encrypted ZIP file '{$zipFile->path}'.", 0, $e);
+            throw new Exception("Could not create encrypted ZIP file '$zipFile'.", 0, $e);
 
         } finally {
-            $fileNameFile->delete();
-            $contentsFile->delete();
-            $zipFile->delete();
+            FileAccessTool::deleteFile($tempDir . DS . $md5);
+            FileAccessTool::deleteFile($tempDir . DS . $md5 . '.filename.txt');
+            FileAccessTool::deleteFile($zipFile);
         }
     }
 
@@ -395,6 +378,56 @@ class AttachmentTool
     public function checkAdvancedExtractionStatus($pythonBin)
     {
         return $this->executeAndParseJsonOutput([$pythonBin, self::ADVANCED_EXTRACTION_SCRIPT_PATH, '-c']);
+    }
+
+    /**
+     * @param string $data
+     * @param int $maxWidth
+     * @param int $maxHeight
+     * @return string
+     * @throws Exception
+     */
+    public function resizeImage($data, $maxWidth, $maxHeight)
+    {
+        $image = imagecreatefromstring($data);
+        if ($image === false) {
+            throw new Exception("Image is not valid.");
+        }
+
+        $currentWidth = imagesx($image);
+        $currentHeight = imagesy($image);
+
+        // Compute thumbnail size with keeping ratio
+        if ($currentWidth > $currentHeight) {
+            $newWidth = min($currentWidth, $maxWidth);
+            $divisor = $currentWidth / $newWidth;
+            $newHeight = floor($currentHeight / $divisor);
+        } else {
+            $newHeight = min($currentHeight, $maxHeight);
+            $divisor = $currentHeight / $newHeight;
+            $newWidth = floor($currentWidth / $divisor);
+        }
+
+        $imageThumbnail = imagecreatetruecolor($newWidth, $newHeight);
+
+        // Allow transparent background
+        imagealphablending($imageThumbnail, false);
+        imagesavealpha($imageThumbnail, true);
+        $transparent = imagecolorallocatealpha($imageThumbnail, 255, 255, 255, 127);
+        imagefilledrectangle($imageThumbnail, 0, 0, $newWidth, $newHeight, $transparent);
+
+        // Resize image
+        imagecopyresampled($imageThumbnail, $image, 0, 0, 0, 0, $newWidth, $newHeight, $currentWidth, $currentHeight);
+        imagedestroy($image);
+
+        // Output image to string
+        ob_start();
+        imagepng($imageThumbnail, null, 9);
+        $imageData = ob_get_contents();
+        ob_end_clean();
+        imagedestroy($imageThumbnail);
+
+        return $imageData;
     }
 
     private function tempFileName()
