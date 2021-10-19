@@ -7,6 +7,7 @@ echo '<div class="index">';
 echo $this->element('/genericElements/IndexTable/index_table', [
     'data' => [
         'title' => __('Attributes'),
+        'primary_id_path' => 'Attribute.id',
         'data' => $attributes,
         'fields' => [
             [

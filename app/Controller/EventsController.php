@@ -1997,7 +1997,7 @@ class EventsController extends AppController
         $activeRules = array();
         foreach ($filters as $k => $v) {
             if (isset($this->defaultFilteringRules[$k]) && $this->defaultFilteringRules[$k] != $v) {
-                $activeRules[$k] = 1;
+                $activeRules[$k] = $v;
             }
         }
         return array('active' => $activeRules > 0 ? $res : false, 'activeRules' => $activeRules);
