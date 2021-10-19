@@ -19,7 +19,7 @@
             [
  *               'title' => '',
  *               'url' => '', //cakephp compatible url, can be actual url or array for the constructor
- *               'collapsed' => 0|1  // defaults to 0, whether to display it by default or not
+ *               'open' => true|false  // defaults to false, whether to display it by default or not
  *               'loadOn' => 'ready|expand'  // load the data directly or only when expanded from a collapsed state
  *
  *          ],
@@ -64,7 +64,7 @@
             );
         }
     }
-    $ajaxLists = '';
+    $ajaxLists = '<br/>';
     if (!empty($children)) {
         foreach ($children as $child) {
             $ajaxLists .= $this->element(

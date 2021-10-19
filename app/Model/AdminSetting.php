@@ -6,7 +6,6 @@ class AdminSetting extends AppModel
     public $useTable = 'admin_settings';
 
     public $actsAs = array(
-        'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',
             'userKey' => 'user_id',
@@ -19,24 +18,35 @@ class AdminSetting extends AppModel
 
     public function changeSetting($setting, $value = false)
     {
-        $setting_object = $this->find('first', array(
-            'conditions' => array('setting' => $setting)
+        $existing = $this->find('first', array(
+            'conditions' => array('setting' => $setting),
+            'fields' => ['id'],
         ));
-        $this->deleteAll(array('setting' => $setting));
-        $this->create();
-        $setting_object['AdminSetting'] = array('setting' => $setting, 'value' => $value);
-        if ($this->save($setting_object)) {
-            return true;
+        if ($existing) {
+            if ($this->save([
+                'id' => $existing['AdminSetting']['id'],
+                'value' => $value,
+            ])) {
+                return true;
+            } else {
+                return $this->validationErrors;
+            }
         } else {
-            return $this->validationErrors;
+            $this->create();
+            $existing['AdminSetting'] = array('setting' => $setting, 'value' => $value);
+            if ($this->save($existing)) {
+                return true;
+            } else {
+                return $this->validationErrors;
+            }
         }
     }
-
 
     public function getSetting($setting)
     {
         $setting_object = $this->find('first', array(
-                'conditions' => array('setting' => $setting)
+            'conditions' => array('setting' => $setting),
+            'fields' => ['value'],
         ));
         if (!empty($setting_object)) {
             return $setting_object['AdminSetting']['value'];
@@ -44,8 +54,6 @@ class AdminSetting extends AppModel
             return false;
         }
     }
-
-
 
     public function updatesDone($blocking = false)
     {

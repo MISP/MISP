@@ -126,6 +126,9 @@ class Warninglist extends AppModel
                     }
                 }
             }
+            if (!empty($eventWarnings)) {
+                $this->assignComments($attributes);
+            }
             return $eventWarnings;
         }
 
@@ -196,14 +199,69 @@ class Warninglist extends AppModel
         }
 
         if (!empty($saveToCache)) {
-            $pipe = $redis->multi(Redis::PIPELINE);
+            $pipe = $redis->pipeline();
             foreach ($saveToCache as $attributeKey => $json) {
                 $redis->setex($attributeKey, 8 * 3600, $json); // cache for eight hour
             }
             $pipe->exec();
         }
 
+        if (!empty($eventWarnings)) {
+            $this->assignComments($attributes);
+        }
+
         return $eventWarnings;
+    }
+
+    /**
+     * Assign comments to warninglist hits.
+     * @param array $attributes
+     */
+    private function assignComments(array &$attributes)
+    {
+        $toFetch = [];
+        foreach ($attributes as $attribute) {
+            if (isset($attribute['warnings'])) {
+                foreach ($attribute['warnings'] as $warning) {
+                    $toFetch[$warning['warninglist_id']][] = $warning['match'];
+                }
+            }
+        }
+
+        $conditions = [];
+        foreach ($toFetch as $warninglistId => $values) {
+            $conditions[] = ['AND' => [
+                'warninglist_id' => $warninglistId,
+                'value' => array_unique($values),
+            ]];
+        }
+
+        $entries = $this->WarninglistEntry->find('all', [
+           'conditions' => [
+               'OR' => $conditions,
+               'comment !=' => '',
+           ],
+            'fields' => ['value', 'warninglist_id', 'comment'],
+        ]);
+        if (empty($entries)) {
+            return;
+        }
+
+        $comments = [];
+        foreach ($entries as $entry) {
+            $entry = $entry['WarninglistEntry'];
+            $comments[$entry['warninglist_id']][$entry['value']] = $entry['comment'];
+        }
+
+        foreach ($attributes as &$attribute) {
+            if (isset($attribute['warnings'])) {
+                foreach ($attribute['warnings'] as &$warning) {
+                    if (isset($comments[$warning['warninglist_id']][$warning['match']])) {
+                        $warning['comment'] = $comments[$warning['warninglist_id']][$warning['match']];
+                    }
+                }
+            }
+        }
     }
 
     public function update()
@@ -545,7 +603,7 @@ class Warninglist extends AppModel
         if ($object['to_ids'] || $this->showForAll) {
             foreach ($warninglists as $list) {
                 if (in_array('ALL', $list['types'], true) || in_array($object['type'], $list['types'], true)) {
-                    $result = $this->__checkValue($this->getFilteredEntries($list), $object['value'], $object['type'], $list['Warninglist']['type']);
+                    $result = $this->checkValue($this->getFilteredEntries($list), $object['value'], $object['type'], $list['Warninglist']['type']);
                     if ($result !== false) {
                         $object['warnings'][] = array(
                             'match' => $result[0],
@@ -568,7 +626,7 @@ class Warninglist extends AppModel
      * @param string $listType
      * @return array|false [Matched value, attribute value that matched]
      */
-    private function __checkValue($listValues, $value, $type, $listType)
+    public function checkValue($listValues, $value, $type, $listType)
     {
         if ($type === 'malware-sample' || strpos($type, '|') !== false) {
             $value = explode('|', $value, 2);
@@ -594,11 +652,6 @@ class Warninglist extends AppModel
             }
         }
         return false;
-    }
-
-    public function quickCheckValue($listValues, $value, $type)
-    {
-        return $this->__checkValue($listValues, $value, '', $type) !== false;
     }
 
     /**
@@ -704,7 +757,7 @@ class Warninglist extends AppModel
 
         foreach ($warninglists as $warninglist) {
             if (in_array('ALL', $warninglist['types'], true) || in_array($attribute['type'], $warninglist['types'], true)) {
-                $result = $this->__checkValue($this->getFilteredEntries($warninglist), $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
+                $result = $this->checkValue($this->getFilteredEntries($warninglist), $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
                 if ($result !== false) {
                     return false;
                 }

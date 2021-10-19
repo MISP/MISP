@@ -1142,12 +1142,12 @@ class GalaxyCluster extends AppModel
         $sharingGroupData = $this->Event->__cacheSharingGroupData($user, false);
         foreach ($clusters as $i => $cluster) {
             if (!empty($cluster['GalaxyCluster']['sharing_group_id']) && isset($sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']])) {
-                $clusters[$i]['SharingGroup'] = $sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']]['SharingGroup'];
+                $clusters[$i]['SharingGroup'] = $sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']];
             }
             if (isset($cluster['GalaxyClusterRelation'])) {
                 foreach ($cluster['GalaxyClusterRelation'] as $j => $relation) {
                     if (!empty($relation['sharing_group_id']) && isset($sharingGroupData[$relation['sharing_group_id']])) {
-                        $clusters[$i]['GalaxyClusterRelation'][$j]['SharingGroup'] = $sharingGroupData[$relation['sharing_group_id']]['SharingGroup'];
+                        $clusters[$i]['GalaxyClusterRelation'][$j]['SharingGroup'] = $sharingGroupData[$relation['sharing_group_id']];
                     }
                     foreach ($relation['GalaxyClusterRelationTag'] as $relationTag) {
                         if (isset($tags[$relationTag['tag_id']])) {
@@ -1662,7 +1662,7 @@ class GalaxyCluster extends AppModel
     {
         $this->Server = ClassRegistry::init('Server');
         $this->Log = ClassRegistry::init('Log');
-        $push = $this->Server->checkVersionCompatibility($server, false, $HttpSocket);
+        $push = $this->Server->checkVersionCompatibility($server, false);
         if (empty($push['canPush']) && empty($push['canPushGalaxyCluster'])) {
             return __('The remote user does not have the permission to manipulate galaxies - the upload of the galaxy clusters has been blocked.');
         }

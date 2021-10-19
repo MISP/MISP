@@ -1037,7 +1037,7 @@ gitPullAllRCLOCAL () {
 # Main composer function
 composer () {
   sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
-  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install"
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install --no-dev"
 }
 
 
@@ -1403,15 +1403,6 @@ installCore () {
     sudo mkdir /var/www/.cache/
     sudo chown ${WWW_USER}:${WWW_USER} /var/www/.cache
 
-    for dependency in CybOXProject/python-cybox STIXProject/python-stix MAECProject/python-maec CybOXProject/mixbox; do
-      false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/${dependency}.git ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}; done
-      ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/${dependency##*/} config core.filemode false
-      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}
-    done
-
-    debug "Install python-stix2"
-    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/cti-python-stix2
-
     debug "Install PyMISP"
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/PyMISP
 
@@ -1453,12 +1444,7 @@ installCore () {
     false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git -C ${PATH_TO_MISP} submodule update --progress --init --recursive; done
 
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U setuptools pip lief zmq redis python-magic plyara
-    for dependency in CybOXProject/python-cybox STIXProject/python-stix MAECProject/python-maec CybOXProject/mixbox; do
-      false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/${dependency##*/} pull; done
-      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}
-    done
 
-    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/cti-python-stix2
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/PyMISP
     false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U git+https://github.com/kbandla/pydeep.git; done
 fi
@@ -1469,7 +1455,7 @@ installCake () {
   # Make composer cache happy
   # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
   sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
-  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ;php composer.phar install"
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ;php composer.phar install --no-dev"
 
   # Enable CakeResque with php-redis
   sudo phpenmod redis
@@ -2357,34 +2343,9 @@ installCoreRHEL7 () {
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
 
-  cd $PATH_TO_MISP/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
-
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   UMASK=$(umask)
   umask 0022
-
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  cd $PATH_TO_MISP/app/files/scripts/python-stix
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install mixbox to accommodate the new STIX dependencies:
-  cd $PATH_TO_MISP/app/files/scripts/mixbox
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install STIX2.0 library to support STIX 2.0 export:
-  cd $PATH_TO_MISP/cti-python-stix2
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install maec
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U maec
 
   # install zmq
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq
@@ -2490,13 +2451,6 @@ installCoreRHEL8 () {
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
 
-  cd $PATH_TO_MISP/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
-
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  $SUDO_WWW git config core.filemode false
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'fedora34' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
   ([[ ${DISTRI} == 'centos8stream' ]] || [[ ${DISTRI} == 'centos8' ]] || [[ ${DISTRI} == 'rocky8.4' ]]) && sudo dnf install cmake -y && CMAKE_BIN='cmake'
@@ -2504,25 +2458,8 @@ installCoreRHEL8 () {
   UMASK=$(umask)
   umask 0022
 
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  cd $PATH_TO_MISP/app/files/scripts/python-stix
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install mixbox to accommodate the new STIX dependencies:
-  cd $PATH_TO_MISP/app/files/scripts/mixbox
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install STIX2.0 library to support STIX 2.0 export:
-  cd $PATH_TO_MISP/cti-python-stix2
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install maec, zmq, redis
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U maec zmq redis
+  # install zmq, redis
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq redis
 
   # install magic, pydeep
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
@@ -2570,7 +2507,7 @@ installCake_RHEL ()
   sudo mkdir /usr/share/httpd/.composer
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
-  $SUDO_WWW php composer.phar install
+  $SUDO_WWW php composer.phar install --no-dev
 
   sudo dnf install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
 

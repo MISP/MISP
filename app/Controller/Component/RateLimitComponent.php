@@ -1,6 +1,4 @@
 <?php
-
-App::uses('RandomTool', 'Tools');
 App::uses('Component', 'Controller');
 
 class RateLimitComponent extends Component
@@ -16,7 +14,16 @@ class RateLimitComponent extends Component
 
     public $components = array('RestResponse');
 
-    public function check($user, $controller, $action, $Model, &$info = array(), $responseType)
+    /**
+     * @param array $user
+     * @param string $controller
+     * @param string $action
+     * @param AppModel $Model
+     * @param array $info
+     * @param string $responseType
+     * @return bool
+     */
+    public function check(array $user, $controller, $action, AppModel $Model, &$info = array(), $responseType)
     {
         if (!empty($user['Role']['enforce_rate_limit'])) {
             $uuid = Configure::read('MISP.uuid');
@@ -24,7 +31,7 @@ class RateLimitComponent extends Component
                 $uuid = 'no-uuid';
             }
             $keyName = 'misp:' . $uuid . ':rate_limit:' . $user['id'];
-            if (!empty($this->__limitedFunctions[$controller][$action])) {
+            if (isset($this->__limitedFunctions[$controller][$action])) {
                 if ($user['Role']['rate_limit_count'] == 0) {
                     throw new MethodNotAllowedException(__('API searches are not allowed for this user role.'));
                 }
@@ -34,7 +41,7 @@ class RateLimitComponent extends Component
                     $info = array(
                         'limit' => $user['Role']['rate_limit_count'],
                         'reset' => $redis->ttl($keyName),
-                        'remaining'=> $user['Role']['rate_limit_count'] - $count
+                        'remaining' => $user['Role']['rate_limit_count'] - $count,
                     );
                     return $this->RestResponse->throwException(
                         429,
@@ -53,7 +60,7 @@ class RateLimitComponent extends Component
                 $info = array(
                     'limit' => $user['Role']['rate_limit_count'],
                     'reset' => $redis->ttl($keyName),
-                    'remaining'=> $user['Role']['rate_limit_count'] - $count
+                    'remaining' => $user['Role']['rate_limit_count'] - $count
                 );
             }
         }

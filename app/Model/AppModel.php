@@ -22,23 +22,20 @@
 
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
-App::uses('BlowfishPasswordHasher', 'Controller/Component/Auth');
 App::uses('RandomTool', 'Tools');
 
 class AppModel extends Model
 {
     public $name;
 
-    /**
-     * @var PubSubTool
-     */
-    private $loadedPubSubTool;
+    /** @var PubSubTool */
+    private static $loadedPubSubTool;
 
     /** @var KafkaPubTool */
-    public $loadedKafkaPubTool;
+    private $loadedKafkaPubTool;
 
     /** @var null|Redis */
-    private static $__redisConnection = null;
+    private static $__redisConnection;
 
     private $__profiler = array();
 
@@ -1536,7 +1533,7 @@ class AppModel extends Model
                     `value` text NOT NULL,
                     `from_json` tinyint(1) default 0,
                     PRIMARY KEY (`id`),
-                    INDEX `value` (`value`(255))
+                    UNIQUE INDEX `value` (`value`(255))
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 66:
@@ -1658,9 +1655,7 @@ class AppModel extends Model
 
         // switch MISP instance live to false
         if ($liveOff) {
-            $this->Server = Classregistry::init('Server');
-            $liveSetting = 'MISP.live';
-            $this->Server->serverSettingsSaveValue($liveSetting, false);
+            $this->setLive(false);
         }
         $sql_update_count = count($sqlArray);
         $index_update_count = count($indexArray);
@@ -1682,7 +1677,7 @@ class AppModel extends Model
             } catch (Exception $e) {
                 $this->__setPreUpdateTestState(false);
                 $this->__setUpdateProgress(0, false);
-                $this->__setUpdateResMessages(0, sprintf(__('Issues executing the pre-update test `%s`. The returned error is: %s'), $function_name, $e->getMessage()) . PHP_EOL);
+                $this->__setUpdateResMessages(0, __('Issues executing the pre-update test `%s`. The returned error is: %s', $function_name, $e->getMessage()) . PHP_EOL);
                 $this->__setUpdateError(0);
                 $errorCount++;
                 $exitOnError = true;
@@ -1705,9 +1700,9 @@ class AppModel extends Model
                         'action' => 'update_database',
                         'user_id' => 0,
                         'title' => __('Successfully executed the SQL query for ') . $command,
-                        'change' => sprintf(__('The executed SQL query was: %s'), $sql)
+                        'change' => __('The executed SQL query was: %s', $sql),
                     ));
-                    $this->__setUpdateResMessages($i, sprintf(__('Successfully executed the SQL query for %s'), $command));
+                    $this->__setUpdateResMessages($i, __('Successfully executed the SQL query for %s', $command));
                 } catch (Exception $e) {
                     $errorMessage = $e->getMessage();
                     $this->Log->create();
@@ -1718,7 +1713,7 @@ class AppModel extends Model
                         'email' => 'SYSTEM',
                         'action' => 'update_database',
                         'user_id' => 0,
-                        'title' => sprintf(__('Issues executing the SQL query for %s'), $command),
+                        'title' => __('Issues executing the SQL query for %s', $command),
                         'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $errorMessage
                     );
                     $this->__setUpdateResMessages($i, sprintf(__('Issues executing the SQL query for `%s`. The returned error is: ' . PHP_EOL . '%s'), $command, $errorMessage));
@@ -1749,7 +1744,7 @@ class AppModel extends Model
                         $indexSuccess = $this->__addIndex($iA[0], $iA[1]);
                     }
                     if ($indexSuccess['success']) {
-                        $this->__setUpdateResMessages(count($sqlArray)+$i, __('Successfuly indexed ') . sprintf('%s -> %s', $iA[0], $iA[1]));
+                        $this->__setUpdateResMessages(count($sqlArray)+$i, __('Successfully indexed %s -> %s', $iA[0], $iA[1]));
                     } else {
                         $this->__setUpdateResMessages(count($sqlArray)+$i, sprintf('%s %s %s %s',
                             __('Failed to add index'),
@@ -1767,7 +1762,7 @@ class AppModel extends Model
             $this->cleanCacheFiles();
         }
         if ($liveOff) {
-            $this->Server->serverSettingsSaveValue('MISP.live', true);
+            $this->setLive(true);
         }
         if (!$flagStop && $errorCount == 0) {
             $this->__postUpdate($command);
@@ -1781,12 +1776,35 @@ class AppModel extends Model
                     'email' => 'SYSTEM',
                     'action' => 'update_database',
                     'user_id' => 0,
-                    'title' => sprintf(__('Issues executing the SQL query for %s'), $command),
-                    'change' => __('Database updates stopped as some errors occured and the stop flag is enabled.')
+                    'title' => __('Issues executing the SQL query for %s', $command),
+                    'change' => __('Database updates stopped as some errors occurred and the stop flag is enabled.')
             ));
             return false;
         }
         return true;
+    }
+
+    /**
+     * Set if misp is live in redis or in config file as fallback
+     * @param bool $isLive
+     */
+    private function setLive($isLive)
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+            if ($isLive) {
+                $redis->del('misp:live');
+            } else {
+                $redis->set('misp:live', '0');
+            }
+        } catch (Exception $e) {
+            // pass
+        }
+
+        if (!isset($this->Server)) {
+            $this->Server = ClassRegistry::init('Server');
+        }
+        $this->Server->serverSettingsSaveValue('MISP.live', $isLive);
     }
 
     // check whether the adminSetting should be updated after the update
@@ -1899,11 +1917,7 @@ class AppModel extends Model
 
     public function getPythonVersion()
     {
-        if (!empty(Configure::read('MISP.python_bin'))) {
-            return Configure::read('MISP.python_bin');
-        } else {
-            return 'python3';
-        }
+        return Configure::read('MISP.python_bin') ?: 'python3';
     }
 
     public function validateAuthkey($value)
@@ -1920,10 +1934,9 @@ class AppModel extends Model
     // alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
     public function valueNotEmpty($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
-        $value[$field] = trim($value[$field]);
-        if (!empty($value[$field])) {
+        $field = array_keys($value)[0];
+        $value = trim($value[$field]);
+        if (!empty($value)) {
             return true;
         }
         return ucfirst($field) . ' cannot be empty.';
@@ -1931,32 +1944,17 @@ class AppModel extends Model
 
     public function valueIsJson($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
-        $json_decoded = json_decode($value[$field]);
+        $value = array_values($value)[0];
+        $json_decoded = json_decode($value);
         if ($json_decoded === null) {
             return __('Invalid JSON.');
         }
         return true;
     }
 
-    public function valueIsJsonOrNull($value)
-    {
-        $field = array_keys($value);
-        $field = $field[0];
-        if (!is_null($value[$field])) {
-            $json_decoded = json_decode($value[$field]);
-            if ($json_decoded === null) {
-                return __('Invalid JSON.');
-            }
-        }
-        return true;
-    }
-
     public function valueIsID($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
+        $field = array_keys($value)[0];
         if (!is_numeric($value[$field]) || $value[$field] < 0) {
             return 'Invalid ' . ucfirst($field) . ' ID';
         }
@@ -1965,10 +1963,9 @@ class AppModel extends Model
 
     public function stringNotEmpty($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
-        $value[$field] = trim($value[$field]);
-        if (!isset($value[$field]) || ($value[$field] == false && $value[$field] !== "0")) {
+        $field = array_keys($value)[0];
+        $value = trim($value[$field]);
+        if (!isset($value) || ($value == false && $value !== "0")) {
             return ucfirst($field) . ' cannot be empty.';
         }
         return true;
@@ -2001,18 +1998,20 @@ class AppModel extends Model
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->Job = ClassRegistry::init('Job');
-        $this->Log = ClassRegistry::init('Log');
-        $this->Server = ClassRegistry::init('Server');
+
         $db = ConnectionManager::getDataSource('default');
         $tables = $db->listSources();
         $requiresLogout = false;
         // if we don't even have an admin table, time to create it.
-        if (!in_array('admin_settings', $tables)) {
+        if (!in_array('admin_settings', $tables, true)) {
             $this->updateDatabase('adminTable');
             $requiresLogout = true;
         } else {
             $this->__runCleanDB();
-            $db_version = $this->AdminSetting->find('all', array('conditions' => array('setting' => 'db_version')));
+            $db_version = $this->AdminSetting->find('all', [
+                'conditions' => array('setting' => 'db_version'),
+                'fields' => ['id', 'value'],
+            ]);
             if (count($db_version) > 1) {
                 // we rgan into a bug where we have more than one db_version entry. This bug happened in some rare circumstances around 2.4.50-2.4.57
                 foreach ($db_version as $k => $v) {
@@ -2031,6 +2030,8 @@ class AppModel extends Model
                 $job = null;
             }
             if (!empty($updates)) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Server = ClassRegistry::init('Server');
                 // Exit if updates are locked.
                 // This is not as reliable as a real lock implementation
                 // However, as all updates are re-playable, there is no harm if they
@@ -2060,7 +2061,6 @@ class AppModel extends Model
                 if ($useWorker && Configure::read('MISP.background_jobs')) {
                     $workerIssueCount = 0;
                     $workerDiagnostic = $this->Server->workerDiagnostics($workerIssueCount);
-                    $workerType = '';
                     if (isset($workerDiagnostic['update']['ok']) && $workerDiagnostic['update']['ok']) {
                         $workerType = 'update';
                     } else { // update worker not running, doing the update inline
@@ -2121,7 +2121,7 @@ class AppModel extends Model
                     }
                     if (!empty($job)) {
                         $job['Job']['progress'] = floor($update_done / count($updates) * 100);
-                        $job['Job']['message'] = sprintf(__('Running update %s'), $update);
+                        $job['Job']['message'] = __('Running update %s', $update);
                         $this->Job->save($job);
                     }
                     $dbUpdateSuccess = $this->updateMISP($update);
@@ -2147,7 +2147,7 @@ class AppModel extends Model
                 $this->__queueCleanDB();
             } else {
                 if (!empty($job)) {
-                    $job['Job']['message'] = __('Update done in another worker. Gracefuly stopping.');
+                    $job['Job']['message'] = __('Update done in another worker. Gracefully stopping.');
                 }
             }
             // mark current worker as done, as well as queued workers than manages to pass the locks
@@ -2353,17 +2353,10 @@ class AppModel extends Model
 
     private function __runCleanDB()
     {
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $cleanDB = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'clean_db')));
-        if (empty($cleanDB) || $cleanDB['AdminSetting']['value'] == 1) {
+        $cleanDB = $this->AdminSetting->getSetting('clean_db');
+        if ($cleanDB === false || $cleanDB == 1) {
             $this->cleanCacheFiles();
-            if (empty($cleanDB)) {
-                $this->AdminSetting->create();
-                $cleanDB = array('AdminSetting' => array('setting' => 'clean_db', 'value' => 0));
-            } else {
-                $cleanDB['AdminSetting']['value'] = 0;
-            }
-            $this->AdminSetting->save($cleanDB);
+            $this->AdminSetting->changeSetting('clean_db', 0);
         }
     }
 
@@ -2564,22 +2557,26 @@ class AppModel extends Model
         return true;
     }
 
-    public function publishKafkaNotification($topicName, $data, $action = false) {
-        $kafkaTopic = Configure::read('Plugin.Kafka_' . $topicName . '_notifications_topic');
-        if (Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_' . $topicName . '_notifications_enable') && !empty($kafkaTopic)) {
+    public function publishKafkaNotification($topicName, $data, $action = false)
+    {
+        $kafkaTopic = $this->kafkaTopic($topicName);
+        if ($kafkaTopic) {
             $this->getKafkaPubTool()->publishJson($kafkaTopic, $data, $action);
         }
     }
 
+    /**
+     * @return PubSubTool
+     */
     public function getPubSubTool()
     {
-        if (!$this->loadedPubSubTool) {
+        if (!self::$loadedPubSubTool) {
             App::uses('PubSubTool', 'Tools');
             $pubSubTool = new PubSubTool();
             $pubSubTool->initTool();
-            $this->loadedPubSubTool = $pubSubTool;
+            self::$loadedPubSubTool = $pubSubTool;
         }
-        return $this->loadedPubSubTool;
+        return self::$loadedPubSubTool;
     }
 
     public function getElasticSearchTool()
@@ -2750,13 +2747,9 @@ class AppModel extends Model
                 'Authorization' => $server[$model]['authkey'],
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-                'MISP-version' => $version,
                 'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
             )
         );
-        if ($commit) {
-            $request['header']['commit'] = $commit;
-        }
         return $request;
     }
 
@@ -2916,11 +2909,6 @@ class AppModel extends Model
         return $val / (1024 * 1024);
     }
 
-    public function getDefaultAttachments_dir()
-    {
-        return APP . 'files';
-    }
-
     private function __bumpReferences()
     {
         $this->Event = ClassRegistry::init('Event');
@@ -3003,12 +2991,11 @@ class AppModel extends Model
             return $delta;
         }
         $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1);
-        $multiplier = $multiplierArray['d'];
         $lastChar = strtolower(substr($delta, -1));
-        if (!is_numeric($lastChar) && array_key_exists($lastChar, $multiplierArray)) {
+        if (!is_numeric($lastChar) && isset($multiplierArray[$lastChar])) {
             $multiplier = $multiplierArray[$lastChar];
             $delta = substr($delta, 0, -1);
-        } else if(strtotime($delta) !== false) {
+        } else if (strtotime($delta) !== false) {
             return strtotime($delta);
         } else {
             // invalid filter, make sure we don't return anything
@@ -3080,7 +3067,7 @@ class AppModel extends Model
     protected function _findColumn($state, $query, $results = array())
     {
         if ($state === 'before') {
-            if (isset($query['fields']) && count($query['fields']) === 1) {
+            if (isset($query['fields']) && is_array($query['fields']) && count($query['fields']) === 1) {
                 if (strpos($query['fields'][0], '.') === false) {
                     $query['fields'][0] = $this->alias . '.' . $query['fields'][0];
                 }
@@ -3156,23 +3143,6 @@ class AppModel extends Model
     }
 
     /**
-     * Generates random file name in tmp dir.
-     * @return string
-     */
-    protected function tempFileName()
-    {
-        return $this->tempDir() . DS . $this->generateRandomFileName();
-    }
-
-    /**
-     * @return string
-     */
-    protected function tempDir()
-    {
-        return Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
-    }
-
-    /**
      * Decodes JSON string and throws exception if string is not valid JSON or if is not array.
      *
      * @param string $json
@@ -3216,6 +3186,21 @@ class AppModel extends Model
     }
 
     /**
+     * Faster version of default `hasAny` method
+     * @param array|null $conditions
+     * @return bool
+     */
+    public function hasAny($conditions = null)
+    {
+        return (bool)$this->find('first', array(
+            'fields' => [$this->alias . '.' . $this->primaryKey],
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'callbacks' => false,
+        ));
+    }
+
+    /**
      * @return AttachmentTool
      */
     protected function loadAttachmentTool()
@@ -3248,5 +3233,24 @@ class AppModel extends Model
             $this->Log = ClassRegistry::init('Log');
         }
         return $this->Log;
+    }
+
+    /**
+     * @param string $name
+     * @return string|null Null when Kafka is not enabled, topic is not enabled or topic is not defined
+     */
+    protected function kafkaTopic($name)
+    {
+        static $kafkaEnabled;
+        if ($kafkaEnabled === null) {
+            $kafkaEnabled = (bool)Configure::read('Plugin.Kafka_enable');
+        }
+        if ($kafkaEnabled) {
+            if (!Configure::read("Plugin.Kafka_{$name}_notifications_enable")) {
+                return null;
+            }
+            return Configure::read("Plugin.Kafka_{$name}_notifications_topic") ?: null;
+        }
+        return null;
     }
 }

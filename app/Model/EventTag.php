@@ -3,22 +3,21 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property Event $Event
+ * @property Tag $Tag
  */
 class EventTag extends AppModel
 {
     public $actsAs = array('AuditLog', 'Containable');
 
     public $validate = array(
-        'event_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-        ),
-        'tag_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-        ),
+        'event_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+        ],
+        'tag_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+        ],
     );
 
     public $belongsTo = array(
@@ -30,9 +29,8 @@ class EventTag extends AppModel
     {
         parent::afterSave($created, $options);
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('tag');
+        if ($pubToZmq || $kafkaTopic) {
             $tag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('EventTag.id' => $this->id),
@@ -44,7 +42,7 @@ class EventTag extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->tag_save($tag, 'attached to event');
             }
-            if ($pubToKafka) {
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $tag, 'attached to event');
             }
@@ -54,9 +52,8 @@ class EventTag extends AppModel
     public function beforeDelete($cascade = true)
     {
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('tag');
+        if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->id)) {
                 $tag = $this->find('first', array(
                     'recursive' => -1,
@@ -69,7 +66,7 @@ class EventTag extends AppModel
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->tag_save($tag, 'detached from event');
                 }
-                if ($pubToKafka) {
+                if ($kafkaTopic) {
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $tag, 'detached from event');
                 }
@@ -92,16 +89,20 @@ class EventTag extends AppModel
         return $result;
     }
 
-    public function attachTagToEvent($event_id, $tag, &$nothingToChange = false)
+    /**
+     * @param int $event_id
+     * @param int $tagId
+     * @param bool $nothingToChange
+     * @return bool
+     * @throws Exception
+     */
+    public function attachTagToEvent($event_id, array $tag, &$nothingToChange = false)
     {
-        $existingAssociation = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array(
-                'tag_id' => $tag['id'],
-                'event_id' => $event_id
-            )
-        ));
-        if (empty($existingAssociation)) {
+        $existingAssociation = $this->hasAny([
+            'tag_id' => $tag['id'],
+            'event_id' => $event_id,
+        ]);
+        if (!$existingAssociation) {
             $this->create();
             if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag['id'], 'local' => !empty($tag['local'])))) {
                 return false;
@@ -112,17 +113,24 @@ class EventTag extends AppModel
         return true;
     }
 
+    /**
+     * @param int $event_id
+     * @param int $tag_id
+     * @param bool $nothingToChange
+     * @return bool
+     */
     public function detachTagFromEvent($event_id, $tag_id, &$nothingToChange = false)
     {
         $existingAssociation = $this->find('first', array(
             'recursive' => -1,
+            'fields' => ['id'],
             'conditions' => array(
                 'tag_id' => $tag_id,
                 'event_id' => $event_id
             )
         ));
 
-        if (!empty($existingAssociation)) {
+        if ($existingAssociation) {
             $result = $this->delete($existingAssociation['EventTag']['id']);
             if ($result) {
                 return true;

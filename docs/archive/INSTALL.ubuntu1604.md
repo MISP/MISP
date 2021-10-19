@@ -160,7 +160,7 @@ cd /var/www/MISP/app
 # Make composer cache happy
 # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
 sudo mkdir /var/www/.composer ; sudo chown www-data:www-data /var/www/.composer
-sudo -H -u www-data php composer.phar install
+sudo -H -u www-data php composer.phar install --no-dev
 
 # Enable CakeResque with php-redis
 sudo phpenmod redis

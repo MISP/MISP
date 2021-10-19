@@ -32,9 +32,6 @@ class JSONConverterTool
             }
         }
         $result = array('Object' => $object['Object']);
-        if (isset($event['errors'])) {
-            $result = array_merge($result, array('errors' => $event['errors']));
-        }
         if ($raw) {
             return $result;
         }
@@ -51,7 +48,7 @@ class JSONConverterTool
             }
         }
 
-        if (isset($event['Event']['SharingGroup']) && empty($event['Event']['SharingGroup'])) {
+        if (empty($event['Event']['SharingGroup'])) {
             unset($event['Event']['SharingGroup']);
         }
 
@@ -89,11 +86,6 @@ class JSONConverterTool
         }
         unset($tempSightings);
         unset($event['Event']['RelatedAttribute']);
-        if (isset($event['Event']['RelatedEvent'])) {
-            foreach ($event['Event']['RelatedEvent'] as $key => $value) {
-                unset($event['Event']['RelatedEvent'][$key]['Event']['user_id']);
-            }
-        }
         $result = array('Event' => $event['Event']);
         if (isset($event['errors'])) {
             $result = array_merge($result, array('errors' => $event['errors']));
@@ -146,7 +138,7 @@ class JSONConverterTool
     {
         // remove value1 and value2 from the output and remove invalid utf8 characters for the xml parser
         foreach ($attributes as $key => $attribute) {
-            if (isset($attribute['SharingGroup']) && empty($attribute['SharingGroup'])) {
+            if (empty($attribute['SharingGroup'])) {
                 unset($attributes[$key]['SharingGroup']);
             }
             unset($attributes[$key]['value1']);

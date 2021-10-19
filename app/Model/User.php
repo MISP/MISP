@@ -4,6 +4,7 @@ App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
 App::uses('GpgTool', 'Tools');
 App::uses('SendEmail', 'Tools');
+App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 
 /**
  * @property Log $Log
@@ -11,6 +12,8 @@ App::uses('SendEmail', 'Tools');
  * @property Role $Role
  * @property UserSetting $UserSetting
  * @property Event $Event
+ * @property AuthKey $AuthKey
+ * @property Server $Server
  */
 class User extends AppModel
 {
@@ -68,7 +71,7 @@ class User extends AppModel
         'email' => array(
             'emailValidation' => array(
                 'rule' => array('validateEmail'),
-                'message' => 'Please nter a valid email address.',
+                'message' => 'Please enter a valid email address.',
                 'required' => true,
             ),
             'unique' => array(
@@ -225,15 +228,12 @@ class User extends AppModel
         'Containable'
     );
 
-    public function __construct($id = false, $table = null, $ds = null) {
-        parent::__construct();
+    public function __construct($id = false, $table = null, $ds = null)
+    {
+        parent::__construct($id, $table, $ds);
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $db_version = $this->AdminSetting->find('first', [
-            'recursive' => -1,
-            'conditions' => ['setting' => 'db_version'],
-            'fields' => ['value']
-        ]);
-        if ($db_version['AdminSetting']['value'] >= 62) {
+        $db_version = $this->AdminSetting->getSetting('db_version');
+        if ($db_version >= 62) {
             $this->bindModel([
                 'hasMany' => ['AuthKey']
             ], false);
@@ -270,7 +270,7 @@ class User extends AppModel
     {
         $this->data[$this->alias]['date_modified'] = time();
         if (isset($this->data[$this->alias]['password'])) {
-            $passwordHasher = new BlowfishPasswordHasher();
+            $passwordHasher = new BlowfishConstantPasswordHasher();
             $this->data[$this->alias]['password'] = $passwordHasher->hash($this->data[$this->alias]['password']);
         }
         return true;
@@ -279,9 +279,8 @@ class User extends AppModel
     public function afterSave($created, $options = array())
     {
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_user_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_user_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('user');
+        if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->data)) {
                 $user = $this->data;
                 if (!isset($user['User'])) {
@@ -311,7 +310,7 @@ class User extends AppModel
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->modified($user, 'user', $action);
                 }
-                if ($pubToKafka) {
+                if ($kafkaTopic) {
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $user, $action);
                 }
@@ -527,12 +526,12 @@ class User extends AppModel
                 $sortedKeys['valid']++;
             }
             if (!$sortedKeys['valid']) {
-                $result[2] = 'The user\'s GnuPG key does not include a valid subkey that could be used for encryption.';
+                $result[2] = 'The user\'s PGP key does not include a valid subkey that could be used for encryption.';
                 if ($sortedKeys['expired']) {
-                    $result[2] .= ' Found ' . $sortedKeys['expired'] . ' subkey(s) that have expired.';
+                    $result[2] .= ' ' . __n('Found %s subkey that have expired.', 'Found %s subkeys that have expired.', $sortedKeys['expired'], $sortedKeys['expired']);
                 }
                 if ($sortedKeys['noEncrypt']) {
-                    $result[2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
+                    $result[2] .= ' ' . __n('Found %s subkey that is sign only.', 'Found %s subkeys that are sign only.', $sortedKeys['noEncrypt'], $sortedKeys['noEncrypt']);
                 }
             } else {
                 $result[0] = true;
@@ -552,6 +551,7 @@ class User extends AppModel
         }
         $users = $this->find('all', array(
             'conditions' => $conditions,
+            'fields' => ['id', 'email', 'gpgkey'],
             'recursive' => -1,
         ));
         if (empty($users)) {
@@ -562,7 +562,7 @@ class User extends AppModel
             return [];
         }
         $results = [];
-        foreach ($users as $k => $user) {
+        foreach ($users as $user) {
             $results[$user['User']['id']] = $this->verifySingleGPG($user);
         }
         return $results;
@@ -650,17 +650,26 @@ class User extends AppModel
         );
     }
 
-    // get the current user and rearrange it to be in the same format as in the auth component
-    public function getAuthUser($id)
+    /**
+     * Get the current user and rearrange it to be in the same format as in the auth component.
+     * @param int $id
+     * @param bool $full
+     * @return array|null
+     */
+    public function getAuthUser($id, $full = false)
     {
         if (empty($id)) {
             throw new InvalidArgumentException('Invalid user ID.');
         }
         $conditions = ['User.id' => $id];
-        return $this->getAuthUserByConditions($conditions);
+        return $this->getAuthUserByConditions($conditions, $full);
     }
 
-    // get the current user and rearrange it to be in the same format as in the auth component
+    /**
+     * Get the current user and rearrange it to be in the same format as in the auth component.
+     * @param string $authkey
+     * @return array|null
+     */
     public function getAuthUserByAuthkey($authkey)
     {
         if (empty($authkey)) {
@@ -670,6 +679,10 @@ class User extends AppModel
         return $this->getAuthUserByConditions($conditions);
     }
 
+    /**
+     * @param string $auth_key
+     * @return array|null
+     */
     public function getAuthUserByExternalAuth($auth_key)
     {
         if (empty($auth_key)) {
@@ -683,13 +696,16 @@ class User extends AppModel
     }
 
     /**
+     * Get user model with Role, Organisation and Server, but without PGP and S/MIME keys
      * @param array $conditions
+     * @param bool $full When true, fetch all user fields.
      * @return array|null
      */
-    private function getAuthUserByConditions(array $conditions)
+    private function getAuthUserByConditions(array $conditions, $full = false)
     {
         $user = $this->find('first', [
             'conditions' => $conditions,
+            'fields' => $full ? [] : $this->describeAuthFields(),
             'recursive' => -1,
             'contain' => [
                 'Organisation',
@@ -778,16 +794,16 @@ class User extends AppModel
     }
 
     /**
-     * @param $user - deprecated
      * @param array $params
+     * @return array|bool
      * @throws Crypt_GPG_Exception
      * @throws SendEmailException
      */
-    public function sendEmailExternal($user, array $params)
+    public function sendEmailExternal(array $params)
     {
         $gpg = $this->initializeGpg();
         $sendEmail = new SendEmail($gpg);
-        $sendEmail->sendExternal($params);
+        return $sendEmail->sendExternal($params);
     }
 
     /**
@@ -892,6 +908,10 @@ class User extends AppModel
         // Do not include keys, because they are big and usually not necessary
         unset($fields['gpgkey']);
         unset($fields['certif_public']);
+        // Do not fetch password from db, it is automatically fetched by BaseAuthenticate::_findUser
+        unset($fields['password']);
+        // Do not fetch authkey from db, it is sensitive and not need
+        unset($fields['authkey']);
         $fields = array_keys($fields);
 
         foreach ($this->belongsTo as $relatedModel => $foo) {
@@ -1007,7 +1027,7 @@ class User extends AppModel
             App::uses('SimplePasswordHasher', 'Controller/Component/Auth');
             $passwordHasher = new SimplePasswordHasher();
         } else {
-            $passwordHasher = new BlowfishPasswordHasher();
+            $passwordHasher = new BlowfishConstantPasswordHasher();
         }
         $hashed = $passwordHasher->check($password, $currentUser['User']['password']);
         return $hashed;
@@ -1206,7 +1226,7 @@ class User extends AppModel
         // write to syslogd as well
         App::import('Lib', 'SysLog.SysLog');
         $syslog = new SysLog();
-        $syslog->write('notice', "$description -- $action" . (empty($fieldResult) ? '' : ' -- ' . $result['Log']['change']));
+        $syslog->write('notice', "$description -- $action" . (empty($fieldsResult) ? '' : ' -- ' . $result['Log']['change']));
     }
 
     /**
@@ -1438,5 +1458,50 @@ class User extends AppModel
             $updated += 1;
         }
         return $updated;
+    }
+
+    public function checkNotificationBanStatus(array $user)
+    {
+        $banStatus = [
+            'error' => false,
+            'active' => false,
+            'message' => __('User is not banned to sent email notification')
+        ];
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return $banStatus;
+        }
+        if (Configure::read('MISP.user_email_notification_ban')) {
+            $banThresholdAmount = intval(Configure::read('MISP.user_email_notification_ban_amount_threshold'));
+            $banThresholdMinutes = intval(Configure::read('MISP.user_email_notification_ban_time_threshold'));
+            $banThresholdSeconds = 60 * $banThresholdMinutes;
+            $redis = $this->setupRedis();
+            if ($redis === false) {
+                $banStatus['error'] = true;
+                $banStatus['active'] = true;
+                $banStatus['message'] =  __('Reason: Could not reach redis to chech user email notification ban status.');
+                return $banStatus;
+            }
+
+            $redisKeyAmountThreshold = "misp:user_email_notification_ban_amount:{$user['id']}";
+            $notificationAmount = $redis->get($redisKeyAmountThreshold);
+            if (!empty($notificationAmount)) {
+                $remainingAttempt = $banThresholdAmount - intval($notificationAmount);
+                if ($remainingAttempt <= 0) {
+                    $ttl = $redis->ttl($redisKeyAmountThreshold);
+                    $remainingMinutes = intval($ttl) / 60;
+                    $banStatus['active'] = true;
+                    $banStatus['message'] = __('Reason: User is banned from sending out emails (%s notification tried to be sent). Ban will be lifted in %smin %ssec.', $notificationAmount, floor($remainingMinutes), intval($ttl) % 60);
+                }
+            }
+            $pipe = $redis->multi(Redis::PIPELINE)
+                ->incr($redisKeyAmountThreshold);
+            if (!$banStatus['active']) { // no need to refresh the ttl if the ban is active
+                $pipe->expire($redisKeyAmountThreshold, $banThresholdSeconds);
+            }
+            $pipe->exec();
+            return $banStatus;
+        }
+        $banStatus['message'] = __('User email notification ban setting is not enabled');
+        return $banStatus;
     }
 }

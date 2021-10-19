@@ -1,5 +1,4 @@
 <?php
-
 App::uses('AppModel', 'Model');
 
 class Log extends AppModel
@@ -15,7 +14,7 @@ class Log extends AppModel
         'error'
     );
     public $validate = array(
-            'action' => array(
+        'action' => array(
             'rule' => array(
                 'inList',
                 array( // ensure that the length of the rules is < 20 in length
@@ -114,30 +113,26 @@ class Log extends AppModel
             return false;
         }
         if (Configure::read('MISP.log_client_ip')) {
-            $ip_header = 'REMOTE_ADDR';
-            if (Configure::read('MISP.log_client_ip_header')) {
-                $ip_header = Configure::read('MISP.log_client_ip_header');
-            }
-
-            if (isset($_SERVER[$ip_header])) {
-                $this->data['Log']['ip'] = $_SERVER[$ip_header];
+            $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
+            if (isset($_SERVER[$ipHeader])) {
+                $this->data['Log']['ip'] = $_SERVER[$ipHeader];
             }
         }
         $setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '', 'ip' => '');
         foreach ($setEmpty as $field => $empty) {
-            if (!isset($this->data['Log'][$field]) || empty($this->data['Log'][$field])) {
+            if (empty($this->data['Log'][$field])) {
                 $this->data['Log'][$field] = $empty;
             }
         }
         if (!isset($this->data['Log']['created'])) {
             $this->data['Log']['created'] = date('Y-m-d H:i:s');
         }
-        if (!isset($this->data['Log']['org']) || empty($this->data['Log']['org'])) {
+        if (empty($this->data['Log']['org'])) {
             $this->data['Log']['org'] = 'SYSTEM';
         }
         $truncate_fields = array('title', 'change', 'description');
         foreach ($truncate_fields as $tf) {
-            if (isset($this->data['Log'][$tf]) && strlen($this->data['Log'][$tf]) >= 65535) {
+            if (strlen($this->data['Log'][$tf]) >= 65535) {
                 $this->data['Log'][$tf] = substr($this->data['Log'][$tf], 0, 65532) . '...';
             }
         }
@@ -174,7 +169,7 @@ class Log extends AppModel
             // cakephp ORM would escape "DATE" datatype in CAST expression
             $condnotinaction = "'" . implode("', '", $conditions['AND']['NOT']['action']) . "'";
             if (!empty($conditions['org'])) {
-                $condOrg = ' AND org = "' . $conditions['org'] . '"';
+                $condOrg = sprintf('AND org = %s', $this->getDataSource()->value($conditions['org']));
             } else {
                 $condOrg = '';
             }
@@ -369,10 +364,10 @@ class Log extends AppModel
         if ($this->syslog) {
             $action = 'info';
             if (isset($data['Log']['action'])) {
-                if (in_array($data['Log']['action'], $this->errorActions)) {
+                if (in_array($data['Log']['action'], $this->errorActions, true)) {
                     $action = 'err';
                 }
-                if (in_array($data['Log']['action'], $this->warningActions)) {
+                if (in_array($data['Log']['action'], $this->warningActions, true)) {
                     $action = 'warning';
                 }
             }

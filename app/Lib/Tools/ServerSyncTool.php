@@ -6,7 +6,9 @@ class ServerSyncTool
     const FEATURE_BR = 'br',
         FEATURE_GZIP = 'gzip',
         FEATURE_ORG_RULE = 'org_rule',
-        FEATURE_FILTER_SIGHTINGS = 'filter_sightings';
+        FEATURE_FILTER_SIGHTINGS = 'filter_sightings',
+        FEATURE_PROPOSALS = 'proposals',
+        FEATURE_POST_TEST = 'post_test';
 
     /** @var array */
     private $server;
@@ -48,7 +50,9 @@ class ServerSyncTool
     public function eventExists(array $event)
     {
         $url = $this->server['Server']['url'] . '/events/view/' . $event['Event']['uuid'];
+        $start = microtime(true);
         $exists = $this->socket->head($url, [], $this->request);
+        $this->log($start, 'HEAD', $url, $exists);
         if ($exists->code == '404') {
             return false;
         }
@@ -69,10 +73,37 @@ class ServerSyncTool
     }
 
     /**
+     * @param int|string $eventId Event ID or UUID
+     * @param array $params
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function fetchEvent($eventId, array $params = [])
+    {
+        $url = "/events/view/$eventId";
+        $url .= $this->createParams($params);
+        return $this->get($url);
+    }
+
+    /**
+     * @param array $params
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function fetchProposals(array $params = [])
+    {
+        $url = '/shadow_attributes/index';
+        $url .= $this->createParams($params);
+        $url .= '.json';
+        return $this->get($url);
+    }
+
+    /**
      * @param array $event
      * @param array $sightingUuids
      * @return array Sighting UUIDs that exists on remote side
-     * @throws HttpSocketJsonException|HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws HttpSocketHttpException
      */
     public function filterSightingUuidsForPush(array $event, array $sightingUuids)
     {
@@ -88,6 +119,7 @@ class ServerSyncTool
      * @param array $sightings
      * @param string $eventUuid
      * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
      */
     public function uploadSightings(array $sightings, $eventUuid)
     {
@@ -99,6 +131,15 @@ class ServerSyncTool
 
         $logMessage = "Pushing Sightings for Event #{$eventUuid} to Server #{$this->server['Server']['id']}";
         $this->post('/sightings/bulkSaveSightings/' . $eventUuid, $sightings, $logMessage);
+    }
+
+    /**
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function getAvailableSyncFilteringRules()
+    {
+        return $this->get('/servers/getAvailableSyncFilteringRules');
     }
 
     /**
@@ -150,6 +191,14 @@ class ServerSyncTool
     }
 
     /**
+     * @return int
+     */
+    public function serverId()
+    {
+        return $this->server['Server']['id'];
+    }
+
+    /**
      * @param string $flag
      * @return bool
      * @throws HttpSocketJsonException
@@ -169,6 +218,12 @@ class ServerSyncTool
             case self::FEATURE_ORG_RULE:
                 $version = explode('.', $info['version']);
                 return $version[0] == 2 && $version[1] == 4 && $version[2] > 123;
+            case self::FEATURE_PROPOSALS:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] >= 111;
+            case self::FEATURE_POST_TEST:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] > 68;
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
@@ -182,7 +237,9 @@ class ServerSyncTool
     private function get($url)
     {
         $url = $this->server['Server']['url'] . $url;
+        $start = microtime(true);
         $response = $this->socket->get($url, [], $this->request);
+        $this->log($start, 'GET', $url, $response);
         if (!$response->isOk()) {
             throw new HttpSocketHttpException($response, $url);
         }
@@ -208,7 +265,7 @@ class ServerSyncTool
                 $logMessage,
                 $data
             );
-            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $this->server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
+            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $this->server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND | LOCK_EX);
         }
 
         $request = $this->request;
@@ -222,10 +279,46 @@ class ServerSyncTool
             }
         }
         $url = $this->server['Server']['url'] . $url;
+        $start = microtime(true);
         $response = $this->socket->post($url, $data, $request);
+        $this->log($start, 'POST', $url, $response);
         if (!$response->isOk()) {
             throw new HttpSocketHttpException($response, $url);
         }
         return $response;
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    private function createParams(array $params)
+    {
+        $url = '';
+        foreach ($params as $key => $value) {
+            if (is_array($value)) {
+                foreach ($value as $v) {
+                    $url .= "/{$key}[]:$v";
+                }
+            } else {
+                $url .= "/$key:$value";
+            }
+        }
+        return $url;
+    }
+
+    /**
+     * @param float $start
+     * @param string $method HTTP method
+     * @param string $url
+     * @param HttpSocketResponse $response
+     */
+    private function log($start, $method, $url, HttpSocketResponse $response)
+    {
+        $duration = round(microtime(true) - $start, 3);
+        $responseSize = strlen($response->body);
+        $ce = $response->getHeader('Content-Encoding');
+        $logEntry = '[' . date("Y-m-d H:i:s") . "] \"$method $url\" {$response->code} $responseSize $duration $ce\n";
+        file_put_contents(APP . 'tmp/logs/server-sync.log', $logEntry, FILE_APPEND | LOCK_EX);
     }
 }

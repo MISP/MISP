@@ -254,7 +254,7 @@ class RestResponseComponent extends Component
             'add' => array(
                 'description' => "POST a simplified sighting object in JSON format to this API to add a or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
                 'mandatory' => array('OR' => array('values', 'id')),
-                'optional' => array('type', 'source', 'timestamp', 'date', 'time')
+                'optional' => array('type', 'source', 'timestamp', 'date', 'time', 'filters')
             ),
             'restSearch' => array(
                 'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id or uuid MUST be provided if context is set.",
@@ -431,7 +431,7 @@ class RestResponseComponent extends Component
     public function getScopedApiInfo($user)
     {
         $api = $this->getAllApis($user);
-        $scopedApi = [];
+        $scopeApi = [];
         foreach ($api as $apiEntry) {
             $scopeApi[$apiEntry['controller']][] = $apiEntry;
         }
@@ -512,6 +512,7 @@ class RestResponseComponent extends Component
      * @param bool $download
      * @param array $headers
      * @return CakeResponse
+     * @throws Exception
      */
     private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
     {
@@ -535,7 +536,7 @@ class RestResponseComponent extends Component
             $type = 'xml';
         } elseif ($format === 'openioc') {
             $type = 'xml';
-        } elseif ($format === 'csv') {
+        } elseif ($format === 'csv' || $format === 'text/csv') {
             $type = 'csv';
         } else {
             if (empty($format)) {
@@ -556,8 +557,14 @@ class RestResponseComponent extends Component
                         $response['sql_dump'] = $this->Log->getDataSource()->getLog(false, false);
                     }
                 }
-                // Do not pretty print response for automatic tools
-                $flags = $this->isAutomaticTool() ? JSON_UNESCAPED_UNICODE : (JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+                $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+                if (!$this->isAutomaticTool()) {
+                    $flags |= JSON_PRETTY_PRINT; // Do not pretty print response for automatic tools
+                }
+                if (defined('JSON_THROW_ON_ERROR')) {
+                    $flags |= JSON_THROW_ON_ERROR; // Throw exception on error if supported
+                }
                 $response = json_encode($response, $flags);
             } else {
                 if ($dumpSql) {
@@ -576,6 +583,12 @@ class RestResponseComponent extends Component
         }
 
         App::uses('TmpFileTool', 'Tools');
+        if ($response instanceof Generator) {
+            $tmpFile = new TmpFileTool();
+            $tmpFile->writeWithSeparator($response, null);
+            $response = $tmpFile;
+        }
+
         if ($response instanceof TmpFileTool) {
             App::uses('CakeResponseTmp', 'Tools');
             $cakeResponse = new CakeResponseTmp(['status' => $code, 'type' => $type]);
@@ -598,9 +611,6 @@ class RestResponseComponent extends Component
         }
         if (!empty($headers)) {
             $cakeResponse->header($headers);
-        }
-        if (!empty($deprecationWarnings)) {
-            $cakeResponse->header('X-Deprecation-Warning', $deprecationWarnings);
         }
         if ($download) {
             $cakeResponse->download($download);
@@ -975,8 +985,14 @@ class RestResponseComponent extends Component
                 'input' => 'number',
                 'type' => 'integer',
                 'operators' => array('equal', 'not_equal'),
-		'validation' => array('min' => 0, 'step' => 1),
-		'help' => __('Event id')
+                'validation' => array('min' => 0, 'step' => 1),
+                'help' => __('Event id')
+            ),
+            'filters' => array(
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => array('equal'),
+                'help' => __('Provide filters on which the sightings should be applied to when fetching attributes to be sighted. Support most parameters exposed in /attributes/restSearch.')
             ),
             'event_id' => array(
                 'input' => 'number',

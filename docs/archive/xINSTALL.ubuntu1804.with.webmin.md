@@ -206,7 +206,7 @@ ${PATH_TO_MISP}/venv/bin/pip install .
 
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd ${PATH_TO_MISP}/app
-php composer.phar install
+php composer.phar install --no-dev
 
 # Enable CakeResque with php-redis
 sudo phpenmod redis

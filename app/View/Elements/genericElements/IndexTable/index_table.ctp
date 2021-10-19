@@ -30,8 +30,8 @@
     }
     if (!empty($data['persistUrlParams'])) {
         foreach ($data['persistUrlParams'] as $persistedParam) {
-            if (!empty($passedArgs[$persistedParam])) {
-                $data['paginatorOptions']['url'][] = $passedArgs[$persistedParam];
+            if (!empty($passedArgsArray[$persistedParam])) {
+                $data['paginatorOptions']['url'][] = $passedArgsArray[$persistedParam];
             }
         }
     }
@@ -70,23 +70,25 @@
         if (!empty($data['primary_id_path'])) {
             $primary = Hash::extract($data_row, $data['primary_id_path'])[0];
         }
-        $rows .= sprintf(
-            '<tr data-row-id="%s" %s %s>%s</tr>',
-            h($k),
-            empty($dblclickActionArray) ? '' : 'class="dblclickElement"',
-            empty($primary) ? '' : 'data-primary-id="' . $primary . '"',
-            $this->element(
-                '/genericElements/IndexTable/' . $row_element,
-                array(
-                    'k' => $k,
-                    'row' => $data_row,
-                    'fields' => $data['fields'],
-                    'options' => $options,
-                    'actions' => $actions,
-                    'primary' => $primary
-                )
-            )
-        );
+
+        $row = '<tr data-row-id="' . h($k) . '"';
+        if (!empty($dblclickActionArray)) {
+            $row .= ' class="dblclickElement"';
+        }
+        if (!empty($primary)) {
+            $row .= ' data-primary-id="' . $primary . '"';
+        }
+        $row .= '>';
+
+        $row .= $this->element('/genericElements/IndexTable/' . $row_element, [
+            'k' => $k,
+            'row' => $data_row,
+            'fields' => $data['fields'],
+            'options' => $options,
+            'actions' => $actions,
+            'primary' => $primary,
+        ]);
+        $rows .= $row;
     }
     $tbody = '<tbody>' . $rows . '</tbody>';
     echo sprintf(

@@ -251,7 +251,7 @@ sudo -H -u www ${PATH_TO_MISP}/venv/bin/pip install .
 ```bash
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd ${PATH_TO_MISP}/app
-sudo -u www php composer.phar install
+sudo -u www php composer.phar install --no-dev
 
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www cp -fa /usr/local/www/MISP/INSTALL/setup/config.php /usr/local/www/MISP/app/Plugin/CakeResque/Config/config.php

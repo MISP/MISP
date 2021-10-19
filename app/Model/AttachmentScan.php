@@ -295,21 +295,11 @@ class AttachmentScan extends AppModel
 
         if ($canScan) {
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $job->save(array(
-                'worker' => 'default',
-                'job_type' => 'virus_scan',
-                'job_input' => ($type === self::TYPE_ATTRIBUTE ? 'Attribute: ' : 'Shadow attribute: ') . $attribute['id'],
-                'status' => 0,
-                'retries' => 0,
-                'org' => 'SYSTEM',
-                'message' => 'Scanning...',
-            ));
-
+            $jobId = $job->createJob('SYSTEM', Job::WORKER_DEFAULT, 'virus_scan', ($type === self::TYPE_ATTRIBUTE ? 'Attribute: ' : 'Shadow attribute: ') . $attribute['id'], 'Scanning...');
             $processId = CakeResque::enqueue(
-                'default',
+                Job::WORKER_DEFAULT,
                 'AdminShell',
-                array('scanAttachment', $type, $attribute['id'], $job->id),
+                array('scanAttachment', $type, $attribute['id'], $jobId),
                 true
             );
             $job->saveField('process_id', $processId);

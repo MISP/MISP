@@ -1,3 +1,10 @@
+<?php
+$warninglistsValues = [];
+foreach ($warninglists as $id => $name) {
+    $warninglistsValues[] = [(int)$id => h($name)];
+}
+$warninglistsValues = json_encode($warninglistsValues);
+?>
 <div id="eventFilteringQBWrapper" style="padding: 5px; display: none; border: 1px solid #dddddd; border-bottom: 0px;">
     <div id="eventFilteringQB" style="overflow-y: auto; padding-right: 5px; resize: vertical; max-height: 750px; height: 400px;"></div>
     <div style="display: flex; justify-content: flex-end; margin-top: 5px;">
@@ -92,6 +99,17 @@ function triggerEventFilteringTool(hide) {
                 }
             },
             {
+                "input": "select",
+                "type": "string",
+                "operators": [
+                    "equal",
+                ],
+                "unique": true,
+                "id": "warninglistId",
+                "label": "Warninglist",
+                "values": <?= $warninglistsValues ?>
+            },
+            {
                 "input": "radio",
                 "type": "integer",
                 "operators": [
@@ -101,9 +119,9 @@ function triggerEventFilteringTool(hide) {
                 "id": "deleted",
                 "label": "Deleted",
                 "values": {
-                    0: "Exclude deleted",
+                    0: "Deleted only",
                     1: "Both",
-                    2: "Deleted only"
+                    2: "Exclude deleted"
                 }
             },
             {
@@ -227,7 +245,7 @@ function triggerEventFilteringTool(hide) {
                 "unique": true,
                 "id": "taggedAttributes",
                 "label": "Tags",
-                "values": <?php echo json_encode(array_map("h", $attributeTags)); // additional `h` because values are directly insterted into the DOM by QB.?>
+                "values": <?php echo json_encode(array_map("h", $attributeTags)); // additional `h` because values are directly inserted into the DOM by QB.?>
             },
             <?php endif; ?>
             <?php
@@ -245,7 +263,7 @@ function triggerEventFilteringTool(hide) {
                 "unique": true,
                 "id": "galaxyAttachedAttributes",
                 "label": "Galaxies",
-                "values": <?php echo json_encode(array_map("h", $attributeClusters)); // additional `h` because values are directly insterted into the DOM by QB.?>
+                "values": <?php echo json_encode(array_map("h", $attributeClusters)); // additional `h` because values are directly inserted into the DOM by QB.?>
             },
             <?php endif; ?>
             {
@@ -271,14 +289,14 @@ function triggerEventFilteringTool(hide) {
             condition: 'AND',
             not: false,
             rules: [
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['searchFor'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['searchFor'])): ?>
                 {
                     field: 'searchFor',
                     id: 'searchFor',
                     value: $('<div />').html("<?php echo isset($filters['searchFor']) ? h($filters['searchFor']) : ''; ?>").text()
                 },
                 <?php endif; ?>
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['attributeFilter'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['attributeFilter'])): ?>
                 {
                     field: 'attributeFilter',
                     id: 'attributeFilter',
@@ -289,77 +307,84 @@ function triggerEventFilteringTool(hide) {
                     <?php endif; ?>
                 },
                 <?php endif; ?>
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['proposal'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['proposal'])): ?>
                 {
                     field: 'proposal',
                     id: 'proposal',
                     value: <?php echo isset($filters['proposal']) ? h($filters['proposal']) : 0; ?>
                 },
                 <?php endif; ?>
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['correlation'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['correlation'])): ?>
                 {
                     field: 'correlation',
                     id: 'correlation',
                     value: <?php echo isset($filters['correlation']) ? h($filters['correlation']) : 0; ?>
                 },
                 <?php endif; ?>
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['warning'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['warning'])): ?>
                 {
                     field: 'warning',
                     id: 'warning',
                     value: <?php echo isset($filters['warning']) ? h($filters['warning']) : 0; ?>
                 },
                 <?php endif; ?>
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['deleted'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['warninglistId'])): ?>
+                {
+                    field: 'warninglistId',
+                    id: 'warninglistId',
+                    value: <?= isset($filters['warninglistId']) ? json_encode($filters['warninglistId']) : "''"; ?>
+                },
+                <?php endif; ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['deleted'])): ?>
                 {
                     field: 'deleted',
                     id: 'deleted',
-                    value: <?php echo isset($filters['deleted']) ? h($filters['deleted']) : 0; ?>
+                    value: <?php echo isset($filters['deleted']) ? h($filters['deleted']) : 2; ?>
                 },
                 <?php endif; ?>
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['includeRelatedTags'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['includeRelatedTags'])): ?>
                 {
                     field: 'includeRelatedTags',
                     id: 'includeRelatedTags',
                     value: <?php echo isset($filters['includeRelatedTags']) ? h($filters['includeRelatedTags']) : 0; ?>
                 },
                 <?php endif; ?>
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['includeDecayScore'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['includeDecayScore'])): ?>
                 {
                     field: 'includeDecayScore',
                     id: 'includeDecayScore',
                     value: <?php echo isset($filters['includeDecayScore']) ? h($filters['includeDecayScore']) : 0; ?>
                 },
                 <?php endif; ?>
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['toIDS'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['toIDS'])): ?>
                 {
                     field: 'toIDS',
                     id: 'toIDS',
                     value: <?php echo isset($filters['toIDS']) ? h($filters['toIDS']) : 0; ?>
                 },
                 <?php endif; ?>
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['feed'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['feed'])): ?>
                 {
                     field: 'feed',
                     id: 'feed',
                     value: <?php echo isset($filters['feed']) ? h($filters['feed']) : 0; ?>
                 },
                 <?php endif; ?>
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['server'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['server'])): ?>
                 {
                     field: 'server',
                     id: 'server',
                     value: <?php echo isset($filters['server']) ? h($filters['server']) : 0; ?>
                 },
                 <?php endif; ?>
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['sighting'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['sighting'])): ?>
                 {
                     field: 'sighting',
                     id: 'sighting',
                     value: <?php echo isset($filters['sighting']) ? h($filters['sighting']) : 0; ?>
                 },
                 <?php endif; ?>
-                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['distribution'])): ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['distribution'])): ?>
                 {
                     field: 'distribution',
                     id: 'distribution',
@@ -368,7 +393,7 @@ function triggerEventFilteringTool(hide) {
                 },
                 <?php endif; ?>
                 <?php
-                if (!empty($filters['taggedAttributes']) && (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['taggedAttributes']))):
+                if (!empty($filters['taggedAttributes']) && (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['taggedAttributes']))):
                     $tmp = array(
                         'field' => 'taggedAttributes',
                         'id' => 'taggedAttributes',
@@ -376,7 +401,7 @@ function triggerEventFilteringTool(hide) {
                     );
                     echo json_encode($tmp) . ','; // sanitize data
                 endif;
-                if (!empty($filters['galaxyAttachedAttributes']) && (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['galaxyAttachedAttributes']))):
+                if (!empty($filters['galaxyAttachedAttributes']) && (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['galaxyAttachedAttributes']))):
                     $tmp = array(
                         'field' => 'galaxyAttachedAttributes',
                         'id' => 'galaxyAttachedAttributes',
@@ -410,12 +435,11 @@ function triggerEventFilteringTool(hide) {
         updateURL();
     });
     if (hide === undefined || !hide) {
-        $('#eventFilteringQB').height(qbOptions.rules.rules.length < 7 ? 'unset' : $('#eventFilteringQB').height());
+        $ev.height(qbOptions.rules.rules.length < 7 ? 'unset' : $ev.height());
         $wrapper.toggle('blind', 100, { direction: 'up' });
     }
 
     $('#eventFilteringQBSubmit').off('click').on('click', function() {
-        $button = $(this);
         var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
         performQuery(rules);
     });
@@ -445,7 +469,6 @@ function triggerEventFilteringTool(hide) {
         $('#eventFilteringQBLinkInput').val(url);
     }
 }
-
 
 function buildFilterURL(res) {
     var url = "";
@@ -505,10 +528,10 @@ function performQuery(rules) {
 
     var url = "<?php echo $baseurl; ?>/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>";
     $.ajax({
-        type:"post",
+        type: "post",
         url: url,
         data: res,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
         success:function (data) {
@@ -519,14 +542,6 @@ function performQuery(rules) {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
         }
     });
-}
-
-function copyToClipboard(element) {
-    var $temp = $("<input id='xxx'>");
-    $("body").append($temp);
-    $temp.val($(element).val()).select();
-    document.execCommand("copy");
-    $temp.remove();
 }
 
 function clickMessage(clicked) {

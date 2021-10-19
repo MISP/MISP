@@ -16,11 +16,7 @@ class UserSetting extends AppModel
     );
 
     public $validate = array(
-        'json' => array(
-            'isValidJson' => array(
-                'rule' => array('isValidJson'),
-            )
-        )
+        'value' => 'valueIsJson',
     );
 
     public $belongsTo = array(

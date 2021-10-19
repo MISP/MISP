@@ -336,6 +336,9 @@ class EventReportsController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             $filters = $this->EventReport->jsonDecode($this->data['EventReport']['filters']);
             $options['conditions'] = $filters;
+            $options['conditions'] = array_filter($filters, function($v) {
+                return $v !== '';
+            });
             $options['event_id'] = $eventId;
             App::uses('ReportFromEvent', 'EventReport');
             $optionFields = array_keys((new ReportFromEvent())->acceptedOptions);
@@ -479,12 +482,7 @@ class EventReportsController extends AppController
     {
         $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);
-        $initialDistribution = 5;
-        $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
-        if ($configuredDistribution != null && $configuredDistribution != 'event') {
-            $initialDistribution = $configuredDistribution;
-        }
-        $this->set('initialDistribution', $initialDistribution);
+        $this->set('initialDistribution', $this->EventReport->Event->Attribute->defaultDistribution());
     }
 
     private function __injectSharingGroupsDataToViewContext()

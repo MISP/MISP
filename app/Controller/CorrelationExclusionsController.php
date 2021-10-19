@@ -53,7 +53,7 @@ class CorrelationExclusionsController extends AppController
             $this->request->data['CorrelationExclusion']['value'] = $params['value'];
         }
         if (!empty($params['comment'])) {
-            $this->request->data['CorrelationExclusion']['value'] = $params['comment'];
+            $this->request->data['CorrelationExclusion']['comment'] = $params['comment'];
         }
         $this->CRUD->add($params);
         if ($this->IndexFilter->isRest()) {
@@ -123,7 +123,7 @@ class CorrelationExclusionsController extends AppController
         } else {
             $this->set('title', __('Clean up correlations'));
             $this->set('question', __('Execute the cleaning of all correlations that are at odds with the exclusion rules? This will delete all matching correlations.'));
-            $this->set('actionName', 'clean');;
+            $this->set('actionName', 'clean');
             $this->layout = 'ajax';
             $this->render('/genericTemplates/confirm');
         }
