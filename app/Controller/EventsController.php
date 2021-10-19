@@ -29,10 +29,10 @@ class EventsController extends AppController
     );
 
     private $acceptedFilteringNamedParams = array(
-        'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
+        'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'page',
         'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution',
-        'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit',
-        'filterColumnsOverwrite', 'feed', 'server', 'toIDS', 'sighting', 'includeSightingdb', 'warninglistId'
+        'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'feed', 'server', 'toIDS',
+        'sighting', 'includeSightingdb', 'warninglistId'
     );
 
     public $defaultFilteringRules = array(
