@@ -266,7 +266,7 @@ class AppController extends Controller
             $user = $this->Auth->user(); // user info in session could change (see __verifyUser) method, so reload user variable
 
             if (isset($user['logged_by_authkey']) && $user['logged_by_authkey'] && !($this->_isRest() || $this->_isAutomation())) {
-                throw new ForbiddenException("When user is authenticated by authkey, just REST request can be processed");
+                throw new ForbiddenException("When user is authenticated by authkey, just REST request can be processed.");
             }
 
             // Put token expiration time to response header that can be processed by automation tool
@@ -322,12 +322,15 @@ class AppController extends Controller
                 $preAuthActions[] = 'email_otp';
             }
             if (!$this->_isControllerAction(['users' => $preAuthActions, 'servers' => ['cspReport']])) {
-                if (!$isAjax) {
+                if ($isAjax) {
+                    $response = $this->RestResponse->throwException(401, "Unauthorized");
+                    $response->send();
+                    $this->_stop();
+                } else {
                     $this->Session->write('pre_login_requested_url', $this->request->here);
+                    $this->_redirectToLogin();
                 }
-                $this->_redirectToLogin();
             }
-
             $this->set('me', false);
         }
 
