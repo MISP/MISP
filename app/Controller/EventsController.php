@@ -28,7 +28,8 @@ class EventsController extends AppController
             )
     );
 
-    private $acceptedFilteringNamedParams = array(
+    // private
+    const ACCEPTED_FILTERING_NAMED_PARAMS = array(
         'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'page',
         'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution',
         'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'feed', 'server', 'toIDS',
@@ -1178,7 +1179,7 @@ class EventsController extends AppController
     {
         $filterData = array(
             'request' => $this->request,
-            'paramArray' => $this->acceptedFilteringNamedParams,
+            'paramArray' => self::ACCEPTED_FILTERING_NAMED_PARAMS,
             'named_params' => $this->request->params['named']
         );
         $exception = false;
@@ -1363,7 +1364,7 @@ class EventsController extends AppController
         $this->loadModel('Taxonomy');
         $filterData = array(
             'request' => $this->request,
-            'paramArray' => $this->acceptedFilteringNamedParams,
+            'paramArray' => self::ACCEPTED_FILTERING_NAMED_PARAMS,
             'named_params' => $this->request->params['named']
         );
         $exception = false;
