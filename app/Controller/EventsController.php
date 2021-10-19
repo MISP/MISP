@@ -1325,13 +1325,8 @@ class EventsController extends AppController
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
-
-        $deleted = 0;
-        if (isset($filters['deleted'])) {
-            $deleted = $filters['deleted'] != 2 ? 1 : 0;
-        }
         $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
-        $this->set('deleted', $deleted);
+        $this->set('deleted', isset($filters['deleted']) && $filters['deleted'] != 2);
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
         $this->set('filters', $filters);
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
@@ -1663,20 +1658,18 @@ class EventsController extends AppController
         if (isset($this->request->data['deleted'])) {
             $deleted = $this->request->data['deleted'];
         }
-        if (isset($deleted)) {
-            // workaround for old instances trying to pull events with both deleted / non deleted data
-            if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == 1) {
-                $conditions['deleted'] = array(0, 1);
-            } else {
-                if (is_array($deleted)) {
-                    $conditions['deleted'] = $deleted;
-                } else if ($deleted == 1) { // both
-                    $conditions['deleted'] = [0, 1];
-                } elseif ($deleted == 0) { // not-deleted only
-                    $conditions['deleted'] = 0;
-                } else { // only deleted
-                    $conditions['deleted'] = 1;
-                }
+        // workaround for old instances trying to pull events with both deleted / non deleted data
+        if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == 1) {
+            $conditions['deleted'] = array(0, 1);
+        } else {
+            if (is_array($deleted)) {
+                $conditions['deleted'] = $deleted;
+            } else if ($deleted == 1) { // both
+                $conditions['deleted'] = [0, 1];
+            } elseif ($deleted == 0) { // not-deleted only
+                $conditions['deleted'] = 0;
+            } else { // only deleted
+                $conditions['deleted'] = 1;
             }
         }
         if (isset($namedParams['toIDS']) && $namedParams['toIDS'] != 0) {
@@ -1786,7 +1779,7 @@ class EventsController extends AppController
             return $this->__restResponse($event);
         }
 
-        $this->set('deleted', isset($deleted) ? ($deleted > 0 ? 1 : 0) : 0);
+        $this->set('deleted', $deleted > 0);
         $this->set('includeRelatedTags', (!empty($namedParams['includeRelatedTags'])) ? 1 : 0);
         $this->set('includeDecayScore', (!empty($namedParams['includeDecayScore'])) ? 1 : 0);
 
