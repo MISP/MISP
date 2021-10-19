@@ -4023,6 +4023,7 @@ class Server extends AppModel
             }
         }
         $command1 = $workingDirectoryPrefix . 'git pull origin ' . escapeshellarg($status['branch']) . ' 2>&1';
+        $commandSync = $workingDirectoryPrefix . 'git submodule sync 2>&1';
         $command2 = $workingDirectoryPrefix . 'git submodule update --init --recursive 2>&1';
         $final .= $command1 . "\n\n";
         $returnCode = false;
@@ -4033,6 +4034,18 @@ class Server extends AppModel
             'status' => $returnCode,
         );
         $final .= implode("\n", $output) . "\n\n=================================\n\n";
+
+        $output = array();
+        $final .= $commandSync . "\n\n";
+        $returnCode = false;
+        exec($commandSync, $output, $returnCode);
+        $raw[] = array(
+            'input' => $commandSync,
+            'output' => $output,
+            'status' => $returnCode,
+        );
+        $final .= implode("\n", $output) . "\n\n=================================\n\n";
+
         $output = array();
         $final .= $command2 . "\n\n";
         $returnCode = false;
