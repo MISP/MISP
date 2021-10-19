@@ -86,7 +86,7 @@ class OidcAuthenticate extends BaseAuthenticate
                 $this->log($mispUsername, "Unblocking user.");
                 $user['disabled'] = false;
             }
-
+            $this->storeMetadata($user['id'], $verifiedClaims);
             $this->log($mispUsername, 'Logged in.');
             return $user;
         }
@@ -105,6 +105,8 @@ class OidcAuthenticate extends BaseAuthenticate
         if (!$this->userModel()->save($userData)) {
             throw new RuntimeException("Could not save user `$mispUsername` to database.");
         }
+
+        $this->storeMetadata($this->userModel()->id, $verifiedClaims);
 
         $this->log($mispUsername, "Saved in database with ID {$this->userModel()->id}");
         $this->log($mispUsername, 'Logged in.');
@@ -225,6 +227,24 @@ class OidcAuthenticate extends BaseAuthenticate
             return $default;
         }
         return $value;
+    }
+
+    /**
+     * @param int $userId
+     * @param stdClass $verifiedClaims
+     * @return array|bool|mixed|null
+     * @throws Exception
+     */
+    private function storeMetadata($userId, $verifiedClaims)
+    {
+        $value = [];
+        foreach (['sub', 'preferred_username', 'given_name', 'family_name'] as $field) {
+            if (property_exists($verifiedClaims, $field)) {
+                $value[$field] = $verifiedClaims->{$field};
+            }
+        }
+
+        return $this->userModel()->UserSetting->setSettingInternal($userId, 'oidc', $value);
     }
 
     /**
