@@ -28,11 +28,12 @@ class EventsController extends AppController
             )
     );
 
-    private $acceptedFilteringNamedParams = array(
-        'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
+    // private
+    const ACCEPTED_FILTERING_NAMED_PARAMS = array(
+        'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'page',
         'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution',
-        'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit',
-        'filterColumnsOverwrite', 'feed', 'server', 'toIDS', 'sighting', 'includeSightingdb', 'warninglistId'
+        'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'feed', 'server', 'toIDS',
+        'sighting', 'includeSightingdb', 'warninglistId'
     );
 
     public $defaultFilteringRules = array(
@@ -1178,7 +1179,7 @@ class EventsController extends AppController
     {
         $filterData = array(
             'request' => $this->request,
-            'paramArray' => $this->acceptedFilteringNamedParams,
+            'paramArray' => self::ACCEPTED_FILTERING_NAMED_PARAMS,
             'named_params' => $this->request->params['named']
         );
         $exception = false;
@@ -1325,33 +1326,28 @@ class EventsController extends AppController
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
-
-        $deleted = 0;
-        if (isset($filters['deleted'])) {
-            $deleted = $filters['deleted'] != 2 ? 1 : 0;
-        }
         $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
-        $this->set('deleted', $deleted);
+        $this->set('deleted', isset($filters['deleted']) && $filters['deleted'] != 2);
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
         $this->set('filters', $filters);
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->response->disableCache();
-        $uriArray = explode('/', $this->params->here);
+
+        // Remove `focus` attribute from URI
+        $uriArray = explode('/', $this->request->here);
         foreach ($uriArray as $k => $v) {
-            if (strpos($v, ':')) {
-                $temp = explode(':', $v);
-                if ($temp[0] == 'focus') {
-                    unset($uriArray[$k]);
-                }
+            if (strpos($v, 'focus:') === 0) {
+                unset($uriArray[$k]);
             }
-            $this->params->here = implode('/', $uriArray);
+            $this->request->here = implode('/', $uriArray);
         }
+
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($this->Auth->user()));
         }
-        $this->set('currentUri', $this->params->here);
+        $this->set('currentUri', $this->request->here);
         $this->layout = false;
         $this->__eventViewCommon($this->Auth->user());
         $this->render('/Elements/eventattribute');
@@ -1368,7 +1364,7 @@ class EventsController extends AppController
         $this->loadModel('Taxonomy');
         $filterData = array(
             'request' => $this->request,
-            'paramArray' => $this->acceptedFilteringNamedParams,
+            'paramArray' => self::ACCEPTED_FILTERING_NAMED_PARAMS,
             'named_params' => $this->request->params['named']
         );
         $exception = false;
@@ -1663,20 +1659,18 @@ class EventsController extends AppController
         if (isset($this->request->data['deleted'])) {
             $deleted = $this->request->data['deleted'];
         }
-        if (isset($deleted)) {
-            // workaround for old instances trying to pull events with both deleted / non deleted data
-            if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == 1) {
-                $conditions['deleted'] = array(0, 1);
-            } else {
-                if (is_array($deleted)) {
-                    $conditions['deleted'] = $deleted;
-                } else if ($deleted == 1) { // both
-                    $conditions['deleted'] = [0, 1];
-                } elseif ($deleted == 0) { // not-deleted only
-                    $conditions['deleted'] = 0;
-                } else { // only deleted
-                    $conditions['deleted'] = 1;
-                }
+        // workaround for old instances trying to pull events with both deleted / non deleted data
+        if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == 1) {
+            $conditions['deleted'] = array(0, 1);
+        } else {
+            if (is_array($deleted)) {
+                $conditions['deleted'] = $deleted;
+            } else if ($deleted == 1) { // both
+                $conditions['deleted'] = [0, 1];
+            } elseif ($deleted == 0) { // not-deleted only
+                $conditions['deleted'] = 0;
+            } else { // only deleted
+                $conditions['deleted'] = 1;
             }
         }
         if (isset($namedParams['toIDS']) && $namedParams['toIDS'] != 0) {
@@ -1786,7 +1780,7 @@ class EventsController extends AppController
             return $this->__restResponse($event);
         }
 
-        $this->set('deleted', isset($deleted) ? ($deleted > 0 ? 1 : 0) : 0);
+        $this->set('deleted', $deleted > 0);
         $this->set('includeRelatedTags', (!empty($namedParams['includeRelatedTags'])) ? 1 : 0);
         $this->set('includeDecayScore', (!empty($namedParams['includeDecayScore'])) ? 1 : 0);
 
