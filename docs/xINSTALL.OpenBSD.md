@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for OpenBSD 6.9-amd64
+## for OpenBSD 7.0-amd64
 
 !!! warning
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
@@ -12,11 +12,6 @@
 
 !!! notice
     This guide attempts to offer native httpd or apache2/nginx.
-
-!!! warning
-    As of 20181018 the native httpd server is NOT useable with MISP on OpenBSD 6.3.
-    Thus ONLY Apache 2.x available.
-    NO *rewrite* available, just yet. It will be in [the next release](https://marc.info/?l=openbsd-tech&m=152761257806283&w=2)
 
 !!! notice
     As of OpenBSD 6.4 the native httpd has rewrite rules and php 5.6 is gone too.
@@ -86,7 +81,7 @@ doas pkg_add -v mariadb-server
 #### Install misc dependencies
 
 ```bash
-doas pkg_add -v curl git python--%3.8 redis libmagic autoconf--%2.71 automake--%1.16 libtool unzip--iconv rust
+doas pkg_add -v curl git sqlite3 python--%3.9 redis libmagic autoconf--%2.71 automake--%1.16 libtool unzip--iconv rust
 ```
 
 ```bash
@@ -229,8 +224,8 @@ doas rcctl enable httpd
 #### Install Python virtualenv
 ```bash
 doas pkg_add -v py3-virtualenv py3-pip
-doas ln -sf /usr/local/bin/pip3.8 /usr/local/bin/pip
-doas ln -s /usr/local/bin/python3.8 /usr/local/bin/python
+doas ln -sf /usr/local/bin/pip3.9 /usr/local/bin/pip
+doas ln -s /usr/local/bin/python3.9 /usr/local/bin/python
 doas mkdir /usr/local/virtualenvs
 doas /usr/local/bin/virtualenv /usr/local/virtualenvs/MISP
 ```

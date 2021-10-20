@@ -219,6 +219,7 @@ installCoreRHEL7 () {
   cd $PATH_TO_MISP
 
   # Fetch submodules
+  $SUDO_WWW git submodule sync
   $SUDO_WWW git submodule update --init --recursive
   # Make git ignore filesystem permission differences for submodules
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
@@ -236,6 +237,9 @@ installCoreRHEL7 () {
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   UMASK=$(umask)
   umask 0022
+
+  # install python-stix dependencies
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install ordered-set python-dateutil six weakrefmethod
 
   # install zmq
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq

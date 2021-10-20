@@ -6,9 +6,9 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ 2.4, develop ]
+    branches: [ 2.4, develop, misp-stix ]
   pull_request:
-    branches: [ 2.4, develop ]
+    branches: [ 2.4, develop, misp-stix ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -200,10 +200,13 @@ jobs:
               pushd ./app/files/scripts/cti-python-stix2
               pip install .
               popd
+              pushd ./app/files/scripts/python-stix
+              pip install .
+              popd
               pushd PyMISP
               pip install .[fileobjects,email]
               popd
-              pip install stix zmq redis plyara
+              pip install zmq redis plyara
               deactivate
 
       - name: Test if apache is working

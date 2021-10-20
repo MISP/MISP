@@ -827,10 +827,10 @@ class Attribute extends AppModel
                     return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
                 }
             case 'tlsh':
-                if (preg_match("#^[0-9a-f]{35,}$#", $value)) {
+                if (preg_match("#^t?[0-9a-f]{35,}$#i", $value)) {
                     $returnValue = true;
                 } else {
-                    $returnValue = __('Checksum has an invalid length or format (expected: at least 35 hexadecimal characters). Please double check the value or select type "other".');
+                    $returnValue = __('Checksum has an invalid length or format (expected: at least 35 hexadecimal characters, optionally starting with t1 instead of hexadecimal characters). Please double check the value or select type "other".');
                 }
                 break;
             case 'pehash':
