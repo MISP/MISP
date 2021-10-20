@@ -8062,6 +8062,7 @@
         "sharing_groups": {
             "id": true,
             "uuid": true,
+            "name": true,
             "org_id": false,
             "sync_user_id": false,
             "organisation_uuid": false
