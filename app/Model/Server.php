@@ -3020,71 +3020,70 @@ class Server extends AppModel
         );
     }
 
+    /**
+     * @throws Exception
+     */
     private function compareDBIndexes(array $actualIndex, array $expectedIndex, array $dbExpectedSchema)
     {
-        $allowedlistTables = array();
         $indexDiff = array();
         foreach ($expectedIndex as $tableName => $indexes) {
             if (!array_key_exists($tableName, $actualIndex)) {
                 continue; // If table does not exists, it is covered by the schema diagnostic
-            } elseif(in_array($tableName, $allowedlistTables)) {
-                continue; // Ignore allowedlisted tables
-            } else {
-                $tableIndexDiff = array_diff(array_keys($indexes), array_keys($actualIndex[$tableName])); // check for missing indexes
-                foreach ($tableIndexDiff as $columnDiff) {
-                    $shouldBeUnique = $indexes[$columnDiff];
-                    if ($shouldBeUnique && !$this->checkIfColumnContainsJustUniqueValues($tableName, $columnDiff)) {
-                        $indexDiff[$tableName][$columnDiff] = array(
-                            'message' => __('Column `%s` should be unique indexed, but contains duplicate values', $columnDiff),
-                            'sql' => '',
+            }
+            $tableIndexDiff = array_diff(array_keys($indexes), array_keys($actualIndex[$tableName])); // check for missing indexes
+            foreach ($tableIndexDiff as $columnDiff) {
+                $shouldBeUnique = $indexes[$columnDiff];
+                if ($shouldBeUnique && !$this->checkIfColumnContainsJustUniqueValues($tableName, $columnDiff)) {
+                    $indexDiff[$tableName][$columnDiff] = array(
+                        'message' => __('Column `%s` should be unique indexed, but contains duplicate values', $columnDiff),
+                        'sql' => '',
+                    );
+                    continue;
+                }
+
+                $message = __('Column `%s` should be indexed', $columnDiff);
+                $indexDiff[$tableName][$columnDiff] = array(
+                    'message' => $message,
+                    'sql' => $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $columnDiff, $shouldBeUnique),
+                );
+            }
+            $tableIndexDiff = array_diff(array_keys($actualIndex[$tableName]), array_keys($indexes)); // check for additional indexes
+            foreach ($tableIndexDiff as $columnDiff) {
+                $message = __('Column `%s` is indexed but should not', $columnDiff);
+                $indexDiff[$tableName][$columnDiff] = array(
+                    'message' => $message,
+                    'sql' => $this->generateSqlDropIndexQuery($tableName, $columnDiff),
+                );
+            }
+            foreach ($indexes as $column => $unique) {
+                if (isset($actualIndex[$tableName][$column]) && $actualIndex[$tableName][$column] != $unique) {
+                    if ($actualIndex[$tableName][$column]) {
+                        $sql = $this->generateSqlDropIndexQuery($tableName, $column);
+                        $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, false);
+
+                        $message = __('Column `%s` has unique index, but should be non unique', $column);
+                        $indexDiff[$tableName][$column] = array(
+                            'message' => $message,
+                            'sql' => $sql,
                         );
-                        continue;
-                    }
-
-                    $message = __('Column `%s` should be indexed', $columnDiff);
-                    $indexDiff[$tableName][$columnDiff] = array(
-                        'message' => $message,
-                        'sql' => $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $columnDiff, $shouldBeUnique),
-                    );
-                }
-                $tableIndexDiff = array_diff(array_keys($actualIndex[$tableName]), array_keys($indexes)); // check for additional indexes
-                foreach ($tableIndexDiff as $columnDiff) {
-                    $message = __('Column `%s` is indexed but should not', $columnDiff);
-                    $indexDiff[$tableName][$columnDiff] = array(
-                        'message' => $message,
-                        'sql' => $this->generateSqlDropIndexQuery($tableName, $columnDiff),
-                    );
-                }
-                foreach ($indexes as $column => $unique) {
-                    if (isset($actualIndex[$tableName][$column]) && $actualIndex[$tableName][$column] != $unique) {
-                        if ($actualIndex[$tableName][$column]) {
-                            $sql = $this->generateSqlDropIndexQuery($tableName, $column);
-                            $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, false);
-
-                            $message = __('Column `%s` has unique index, but should be non unique', $column);
+                    } else {
+                        if (!$this->checkIfColumnContainsJustUniqueValues($tableName, $column)) {
+                            $message = __('Column `%s` should be unique index, but contains duplicate values', $column);
                             $indexDiff[$tableName][$column] = array(
                                 'message' => $message,
-                                'sql' => $sql,
+                                'sql' => '',
                             );
-                        } else {
-                            if (!$this->checkIfColumnContainsJustUniqueValues($tableName, $column)) {
-                                $message = __('Column `%s` should be unique index, but contains duplicate values', $column);
-                                $indexDiff[$tableName][$column] = array(
-                                    'message' => $message,
-                                    'sql' => '',
-                                );
-                                continue;
-                            }
-
-                            $sql = $this->generateSqlDropIndexQuery($tableName, $column);
-                            $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, true);
-
-                            $message = __('Column `%s` should be unique index', $column);
-                            $indexDiff[$tableName][$column] = array(
-                                'message' => $message,
-                                'sql' => $sql,
-                            );
+                            continue;
                         }
+
+                        $sql = $this->generateSqlDropIndexQuery($tableName, $column);
+                        $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, true);
+
+                        $message = __('Column `%s` should be unique index', $column);
+                        $indexDiff[$tableName][$column] = array(
+                            'message' => $message,
+                            'sql' => $sql,
+                        );
                     }
                 }
             }
@@ -3121,21 +3120,21 @@ class Server extends AppModel
         App::uses('Folder', 'Utility');
         // check writeable directories
         $writeableDirs = array(
-                '/tmp' => 0,
-                APP . 'tmp' => 0,
-                APP . 'files' => 0,
-                APP . 'files' . DS . 'scripts' . DS . 'tmp' => 0,
-                APP . 'tmp' . DS . 'csv_all' => 0,
-                APP . 'tmp' . DS . 'csv_sig' => 0,
-                APP . 'tmp' . DS . 'md5' => 0,
-                APP . 'tmp' . DS . 'sha1' => 0,
-                APP . 'tmp' . DS . 'snort' => 0,
-                APP . 'tmp' . DS . 'suricata' => 0,
-                APP . 'tmp' . DS . 'text' => 0,
-                APP . 'tmp' . DS . 'xml' => 0,
-                APP . 'tmp' . DS . 'files' => 0,
-                APP . 'tmp' . DS . 'logs' => 0,
-                APP . 'tmp' . DS . 'bro' => 0,
+            '/tmp' => 0,
+            APP . 'tmp' => 0,
+            APP . 'files' => 0,
+            APP . 'files' . DS . 'scripts' . DS . 'tmp' => 0,
+            APP . 'tmp' . DS . 'csv_all' => 0,
+            APP . 'tmp' . DS . 'csv_sig' => 0,
+            APP . 'tmp' . DS . 'md5' => 0,
+            APP . 'tmp' . DS . 'sha1' => 0,
+            APP . 'tmp' . DS . 'snort' => 0,
+            APP . 'tmp' . DS . 'suricata' => 0,
+            APP . 'tmp' . DS . 'text' => 0,
+            APP . 'tmp' . DS . 'xml' => 0,
+            APP . 'tmp' . DS . 'files' => 0,
+            APP . 'tmp' . DS . 'logs' => 0,
+            APP . 'tmp' . DS . 'bro' => 0,
         );
         foreach ($writeableDirs as $path => &$error) {
             $dir = new Folder($path);
