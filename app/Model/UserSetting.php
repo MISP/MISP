@@ -138,25 +138,27 @@ class UserSetting extends AppModel
         return isset($this->validSettings[$setting]);
     }
 
-    public function checkSettingAccess($user, $setting)
+    /**
+     * @param array $user
+     * @param string $setting
+     * @return bool|string
+     */
+    public function checkSettingAccess(array $user, $setting)
     {
         if (!empty($this->validSettings[$setting]['restricted'])) {
-            $role_check = $this->validSettings[$setting]['restricted'];
-            if (!is_array($role_check)) {
-                $role_check = array($role_check);
+            $roleCheck = $this->validSettings[$setting]['restricted'];
+            if (!is_array($roleCheck)) {
+                $roleCheck = array($roleCheck);
             }
-            $userHasValidRole = false;
-            foreach ($role_check as $role) {
+            foreach ($roleCheck as $role) {
                 if (!empty($user['Role'][$role])) {
                     return true;
                 }
             }
-            if (!$userHasValidRole) {
-                foreach ($role_check as &$role) {
-                    $role = substr($role, 5);
-                }
-                return implode(', ', $role_check);
+            foreach ($roleCheck as &$role) {
+                $role = substr($role, 5);
             }
+            return implode(', ', $roleCheck);
         }
         return true;
     }
@@ -207,7 +209,7 @@ class UserSetting extends AppModel
          return false;
      }
 
-     public function getDefaulRestSearchParameters($user)
+     public function getDefaultRestSearchParameters($user)
      {
          return $this->getValueForUser($user['id'], 'default_restsearch_parameters') ?: [];
      }
@@ -360,7 +362,13 @@ class UserSetting extends AppModel
         return false;
     }
 
-    public function setSetting($user, &$data)
+    /**
+     * @param array $user
+     * @param array $data
+     * @return bool
+     * @throws Exception
+     */
+    public function setSetting(array $user, array $data)
     {
         $userSetting = array();
         if (!empty($data['UserSetting']['user_id']) && is_numeric($data['UserSetting']['user_id'])) {
@@ -395,22 +403,8 @@ class UserSetting extends AppModel
         } else {
             $userSetting['value'] = '';
         }
-        $existingSetting = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array(
-                'UserSetting.user_id' => $userSetting['user_id'],
-                'UserSetting.setting' => $userSetting['setting']
-            ),
-            'fields' =>  ['id'],
-        ));
-        if (empty($existingSetting)) {
-            $this->create();
-        } else {
-            $userSetting['id'] = $existingSetting['UserSetting']['id'];
-        }
-        // save the setting
-        $result = $this->save(array('UserSetting' => $userSetting));
-        return true;
+
+        return $this->setSettingInternal($userSetting['user_id'], $userSetting['setting'], $userSetting['value']);
     }
 
     /**
@@ -435,7 +429,8 @@ class UserSetting extends AppModel
                 'UserSetting.user_id' => $userId,
                 'UserSetting.setting' => $setting,
             ),
-            'fields' =>  ['id'],
+            'fields' =>  ['UserSetting.id'],
+            'callbacks' => false,
         ));
         if (empty($existingSetting)) {
             $this->create();

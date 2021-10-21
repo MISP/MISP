@@ -7340,7 +7340,7 @@ class Event extends AppModel
     public function addFiltersFromUserSettings($user, $filters)
     {
         $this->UserSetting = ClassRegistry::init('UserSetting');
-        $defaultParameters = $this->UserSetting->getDefaulRestSearchParameters($user);
+        $defaultParameters = $this->UserSetting->getDefaultRestSearchParameters($user);
         $filters = array_replace_recursive($defaultParameters, $filters);
         return $filters;
     }
