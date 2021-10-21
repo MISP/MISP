@@ -34,6 +34,9 @@ class AppModel extends Model
     /** @var KafkaPubTool */
     private $loadedKafkaPubTool;
 
+    /** @var BackgroundJobsTool */
+    private static $loadedBackgroundJobsTool;
+
     /** @var null|Redis */
     private static $__redisConnection;
 
@@ -2590,6 +2593,20 @@ class AppModel extends Model
         $client = new ElasticSearchClient();
         $client->initTool();
         $this->elasticSearchClient = $client;
+    }
+
+    /**
+     * @return BackgroundJobsTool
+     */
+    public function getBackgroundJobsTool()
+    {
+        if (!self::$loadedBackgroundJobsTool) {
+            App::uses('BackgroundJobsTool', 'Tools');
+            $backgroundJobsTool = new BackgroundJobsTool();
+            $backgroundJobsTool->initTool(Configure::read('BackgroundJobs'));
+            self::$loadedPubSubTool = $backgroundJobsTool;
+        }
+        return self::$loadedPubSubTool;
     }
 
     // generate a generic subquery - options needs to include conditions

@@ -6,6 +6,7 @@ App::uses('AttachmentTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
+App::uses('BackgroundJobsTool', 'Tools');
 
 /**
  * @property User $User
@@ -4566,16 +4567,31 @@ class Event extends AppModel
     public function publishRouter($id, $passAlong = null, $user)
     {
         if (Configure::read('MISP.background_jobs')) {
-            $job = ClassRegistry::init('Job');
-            $jobId = $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", 'Publishing.');
-            $process_id = CakeResque::enqueue(
-                Job::WORKER_PRIO,
-                'EventShell',
-                array('publish', $id, $passAlong, $jobId, $user['id']),
-                true
-            );
-            $job->saveField('process_id', $process_id);
-            return $process_id;
+            if (Configure::read('BackgroundJobs.enabled')) {
+                return $this->getBackgroundJobsTool()->enqueue(
+                    BackgroundJobsTool::PRIO_QUEUE,
+                    BackgroundJobsTool::CMD_EVENT_SHELL,
+                    [
+                        'publish',
+                        $id,
+                        $passAlong,
+                        0,
+                        $user['id']
+                    ]
+                );
+            } else {
+                CakeLog::notice(BackgroundJobsTool::CAKE_RESQUE_DEPRECATION_MESSAGE);
+                $job = ClassRegistry::init('Job');
+                $jobId = $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", 'Publishing.');
+                $process_id = CakeResque::enqueue(
+                    Job::WORKER_PRIO,
+                    'EventShell',
+                    array('publish', $id, $passAlong, $jobId, $user['id']),
+                    true
+                );
+                $job->saveField('process_id', $process_id);
+                return $process_id;
+            }
         }
         return $this->publish($id, $passAlong);
     }
