@@ -34,6 +34,13 @@ class BackgroundJob implements JsonSerializable
     private $args;
 
     /**
+     * Whether to track the status of the job
+     *
+     * @var bool
+     */
+    private $trackStatus;
+
+    /**
      * Creation time (UNIX timestamp)
      *
      * @var integer
@@ -55,6 +62,13 @@ class BackgroundJob implements JsonSerializable
     private $status;
 
     /**
+     * Job progress
+     *
+     * @var integer
+     */
+    private $progress;
+
+    /**
      * Job metadata
      *
      * @var array
@@ -73,9 +87,11 @@ class BackgroundJob implements JsonSerializable
         $this->id = $properties['id'];
         $this->command = $properties['command'];
         $this->args = $properties['args'] ?? [];
+        $this->trackStatus = $properties['trackStatus'] ?? false;
         $this->createdAt = $properties['createdAt'] ?? time();
         $this->updatedAt = $properties['updatedAt'] ?? null;
         $this->status = $properties['status'] ?? self::STATUS_WAITING;
+        $this->progress = $properties['progress'] ?? 0;
         $this->metadata = $properties['metadata'] ?? [];
     }
 
@@ -91,6 +107,11 @@ class BackgroundJob implements JsonSerializable
             2 => ["pipe", "w"], // stderr
         ];
 
+        CakeLog::info(print_r([
+            ROOT . DS . 'app' . DS . 'Console' . DS . 'cake',
+            $this->command(),
+            ...$this->args()
+        ], true));
         $process = proc_open(
             [
                 ROOT . DS . 'app' . DS . 'Console' . DS . 'cake',
@@ -111,6 +132,9 @@ class BackgroundJob implements JsonSerializable
 
         if ($this->returnCode === 0) {
             $this->setStatus(BackgroundJob::STATUS_COMPLETED);
+            if ($this->trackStatus) {
+                $this->setProgress(100);
+            }
 
             CakeLog::info("[JOB ID: {$this->id()}] - completed.");
         } else {
@@ -128,6 +152,7 @@ class BackgroundJob implements JsonSerializable
             'id' => $this->id,
             'command' => $this->command,
             'args' => $this->args,
+            'trackStatus' => $this->trackStatus,
             'createdAt' => $this->createdAt,
             'updatedAt' => $this->updatedAt,
             'status' => $this->status,
@@ -148,6 +173,16 @@ class BackgroundJob implements JsonSerializable
     public function args(): array
     {
         return $this->args;
+    }
+
+    public function trackStatus(): bool
+    {
+        return $this->trackStatus;
+    }
+
+    public function progress(): int
+    {
+        return $this->progress;
     }
 
     public function createdAt(): int
@@ -178,6 +213,11 @@ class BackgroundJob implements JsonSerializable
     public function setStatus(int $status): void
     {
         $this->status = $status;
+    }
+
+    public function setProgress(int $progress): void
+    {
+        $this->progress = $progress;
     }
 
     public function setUpdatedAt(int $updatedAt): void

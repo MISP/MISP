@@ -7,6 +7,46 @@ App::uses('BackgroundJob', 'Tools/BackgroundJobs');
 
 /**
  * BackgroundJobs Tool
+ * 
+ * Utility class to queue jobs, run them and monitor workers.
+ * 
+ * The background jobs rely in two main scripts running:
+ *      * StartWorkerShell.php
+ *      * MonitorWorkersShell.php
+ * 
+ * To run them manually (debug only):
+ *      $ ./Console/cake start_worker [queue]
+ *      $ ./Console/cake monitor_workers
+ * 
+ * It is recommended to run these commands with [supervisord](http://supervisord.org).
+ * `supervisord` has an extensive feature set to manage scripts as services, 
+ * such as autorestart, parallel execution, logging, monitoring and much more. 
+ * All can be managed via terminal or a XML-RPC API.
+ * 
+ * Use the following configuration as a template for the services:
+ * Monitor workers service:
+ *      [program:misp-workers-monitor]
+ *      command=/var/www/MISP/app/Console/cake monitor_workers
+ *      numprocs=1
+ *      autostart=true
+ *      autorestart=true
+ *      redirect_stderr=false
+ *      stderr_logfile=/var/www/MISP/app/tmp/logs/misp-workers-monitor-errors.log
+ *      stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers-monitor.log
+ *      user=www-data
+ * 
+ * Workers (one per each queue type is required):
+ *      [program:misp-worker-default]
+ *      command=/var/www/MISP/app/Console/cake start_worker default
+ *      process_name=%(program_name)s_%(process_num)02d
+ *      numprocs=5 ; adjust the amount of parallel workers to your MISP usage 
+ *      autostart=true
+ *      autorestart=true
+ *      redirect_stderr=false
+ *      stderr_logfile=/var/www/MISP/app/tmp/logs/misp-workers-errors.log
+ *      stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers.log
+ *      user=www-data
+ * 
  */
 class BackgroundJobsTool
 {
@@ -37,12 +77,29 @@ class BackgroundJobsTool
     public const JOB_STATUS_PREFIX = 'job_status';
     public const WORKER_STATUS_PREFIX = 'worker_status';
 
-    public const CAKE_RESQUE_DEPRECATION_MESSAGE = '[DEPRECATION] CakeResque background jobs engine will be deprecated in future MISP versions, please migrate to the light-weight background jobs processor following this guide: [link].';
-
     /** @var array */
     private $settings;
 
-    public function initTool(array $settings)
+    /**
+     * Initialize
+     * 
+     * Settings should have the following format:
+     *      [
+     *           'enabled' => true,
+     *           'use_resque' => true,
+     *           'redis_host' => 'localhost',
+     *           'redis_port' => 6379,
+     *           'redis_password' => '',
+     *           'redis_database' => 1,
+     *           'redis_namespace' => 'background_jobs',
+     *           'max_job_history_ttl' => 86400
+     *           'track_status' => 86400
+     *      ]
+     *
+     * @param array $settings
+     * @return void
+     */
+    public function initTool(array $settings): void
     {
         $this->settings = $settings;
 
@@ -55,14 +112,26 @@ class BackgroundJobsTool
      * Enqueue a Job.
      *
      * @param string $queue Queue name, e.g. 'default'.
-     * @param string $command command of the job.
+     * @param string $command Command of the job.
      * @param array $args Arguments passed to the job.
+     * @param boolean|null $trackStatus Whether to track the status of the job.
+     * @param array $metadata Related to the job.
      * 
      * @return string Background Job Id.
      * @throws InvalidArgumentExceptiony
      */
-    public function enqueue($queue, $command, $args = [], $metadata = []): string
-    {
+    public function enqueue(
+        string $queue,
+        string $command,
+        array $args = [],
+        $trackStatus = null,
+        array $metadata = []
+    ): string {
+
+        if ($this->settings['use_resque']) {
+            $this->resqueEnqueue($queue, $command, $args, $trackStatus, $metadata);
+        }
+
         $this->validateQueue($queue);
         $this->validateCommand($command);
 
@@ -71,6 +140,7 @@ class BackgroundJobsTool
                 'id' => CakeText::uuid(),
                 'command' => $command,
                 'args' => $args,
+                'trackStatus' => $trackStatus ?? $this->settings['track_status'],
                 'metadata' => $metadata
             ]
         );
@@ -83,6 +153,50 @@ class BackgroundJobsTool
         $this->update($job);
 
         return $job->id();
+    }
+
+    /**
+     * @deprecated
+     * Enqueue a Job using the CakeResque.
+     * 
+     * @param string $queue Name of the queue to enqueue the job to.
+     * @param string $class Class of the job.
+     * @param array $args Arguments passed to the job.
+     * @param boolean $trackStatus Whether to track the status of the job.
+     * @return string Job Id.
+     */
+    private function resqueEnqueue(
+        string $queue,
+        string $class,
+        $args = [],
+        $trackStatus = null,
+        array $metadata = []
+    ): string {
+
+        CakeLog::notice('[DEPRECATION] CakeResque background jobs engine will be deprecated in future MISP versions, please migrate to the light-weight background jobs processor following this guide: [link].');
+
+        $job = ClassRegistry::init('Job');
+        $job->create();
+        $job->save(
+            array_merge(
+                [
+                    'worker' => $queue,
+                    'status' => 0,
+                    'retries' => 0,
+                ],
+                $metadata['job']
+            )
+        );
+
+        $process_id = CakeResque::enqueue(
+            $queue,
+            $class,
+            $args,
+            $trackStatus
+        );
+        $job->saveField('process_id', $process_id);
+
+        return $process_id;
     }
 
     /**
@@ -184,7 +298,7 @@ class BackgroundJobsTool
     {
         $pattern = self::WORKER_STATUS_PREFIX . ':*';
 
-        // get existing worker status keys
+        // get existing workers status keys
         $iterator = null;
         $workersKeys = [];
         while ($keys = $this->RedisConnection->scan($iterator, $pattern)) {
@@ -215,7 +329,7 @@ class BackgroundJobsTool
      * 
      * @return integer Number of jobs.
      */
-    public function getQueueSize($queue): int
+    public function getQueueSize(string $queue): int
     {
         $this->validateQueue($queue);
 
@@ -364,23 +478,12 @@ class BackgroundJobsTool
         $redis = new Redis();
         $redis->connect($this->settings['redis_host'], $this->settings['redis_port']);
         $redisPassword = $this->settings['redis_password'];
+
         if (!empty($redisPassword)) {
             $redis->auth($redisPassword);
         }
         $redis->select($this->settings['redis_database']);
 
         return $redis;
-    }
-
-    private function getSettings(): array
-    {
-        return [
-            'redis_host' => 'localhost',
-            'redis_port' => 6379,
-            'redis_password' => '',
-            'redis_database' => 1,
-            'redis_namespace' => 'background_jobs',
-            'max_job_history_ttl' => 86400
-        ];
     }
 }
