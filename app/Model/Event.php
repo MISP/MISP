@@ -2144,6 +2144,10 @@ class Event extends AppModel
 
         $overrideLimit = !empty($options['overrideLimit']);
 
+        if (!empty($options['allow_proposal_blocking']) && !Configure::read('MISP.proposals_block_attributes')) {
+            $options['allow_proposal_blocking'] = false; // proposal blocking is not enabled
+        }
+
         foreach ($results as &$event) {
             /*
             // REMOVING THIS FOR NOW - users should see data they own, even if they're not in the sharing group.
@@ -2236,53 +2240,50 @@ class Event extends AppModel
                     $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
                 }
 
-                $proposalBlockAttributes = Configure::read('MISP.proposals_block_attributes');
                 // move all object attributes to a temporary container
                 $tempObjectAttributeContainer = array();
-                foreach ($event['Attribute'] as $key => $attribute) {
+                foreach ($event['Attribute'] as $key => &$attribute) {
                     if ($options['enforceWarninglist'] && !empty($attribute['warnings'])) {
                         unset($event['Attribute'][$key]);
                         continue;
                     }
                     if ($attribute['category'] === 'Financial fraud') {
-                        $event['Attribute'][$key] = $this->Attribute->attachValidationWarnings($event['Attribute'][$key]);
+                        $attribute = $this->Attribute->attachValidationWarnings($attribute);
                     }
                     if ($options['includeAttachments'] && $this->Attribute->typeIsAttachment($attribute['type'])) {
                         $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-                        $event['Attribute'][$key]['data'] = $encodedFile;
+                        $attribute['data'] = $encodedFile;
                     }
                     if (!empty($options['includeDecayScore'])) {
                         if (isset($event['EventTag'])) { // include EventTags for score computation
-                            $event['Attribute'][$key]['EventTag'] = $event['EventTag'];
+                            $attribute['EventTag'] = $event['EventTag'];
                         }
-                        $event['Attribute'][$key] = $this->DecayingModel->attachScoresToAttribute($user, $event['Attribute'][$key]);
+                        $attribute = $this->DecayingModel->attachScoresToAttribute($user, $attribute);
                         if (isset($event['EventTag'])) { // remove included EventTags
-                            unset($event['Attribute'][$key]['EventTag']);
+                            unset($attribute['EventTag']);
                         }
                     }
-                    $event['Attribute'][$key]['ShadowAttribute'] = array();
+                    $attribute['ShadowAttribute'] = array();
                     // If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
                     // This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
-                    if (isset($event['ShadowAttribute'])) {
+                    if (!empty($event['ShadowAttribute'])) {
                         foreach ($event['ShadowAttribute'] as $k => $sa) {
-                            if (!empty($sa['old_id'])) {
-                                if ($event['ShadowAttribute'][$k]['old_id'] == $attribute['id']) {
-                                    $event['Attribute'][$key]['ShadowAttribute'][] = $sa;
-                                    unset($event['ShadowAttribute'][$k]);
+                            if ($sa['old_id'] == $attribute['id']) {
+                                $attribute['ShadowAttribute'][] = $sa;
+                                unset($event['ShadowAttribute'][$k]);
+                            }
+                        }
+                        if (!empty($options['allow_proposal_blocking'])) {
+                            foreach ($attribute['ShadowAttribute'] as $sa) {
+                                if ($sa['proposal_to_delete'] || $sa['to_ids'] == 0) {
+                                    unset($event['Attribute'][$key]);
+                                    continue 2;
                                 }
                             }
                         }
                     }
-                    if ($proposalBlockAttributes && !empty($options['allow_proposal_blocking'])) {
-                        foreach ($event['Attribute'][$key]['ShadowAttribute'] as $sa) {
-                            if ($sa['proposal_to_delete'] || $sa['to_ids'] == 0) {
-                                unset($event['Attribute'][$key]);
-                                continue 2;
-                            }
-                        }
-                    }
                     if (!$flatten && $attribute['object_id'] != 0) {
-                        $tempObjectAttributeContainer[$attribute['object_id']][] = $event['Attribute'][$key];
+                        $tempObjectAttributeContainer[$attribute['object_id']][] = $attribute;
                         unset($event['Attribute'][$key]);
                     }
                 }
@@ -2292,9 +2293,9 @@ class Event extends AppModel
                 if (!$sharingGroupReferenceOnly) {
                     $event['Object'] = $this->__attachSharingGroups($event['Object'], $sharingGroupData);
                 }
-                foreach ($event['Object'] as $objectKey => $objectValue) {
+                foreach ($event['Object'] as &$objectValue) {
                     if (isset($tempObjectAttributeContainer[$objectValue['id']])) {
-                        $event['Object'][$objectKey]['Attribute'] = $tempObjectAttributeContainer[$objectValue['id']];
+                        $objectValue['Attribute'] = $tempObjectAttributeContainer[$objectValue['id']];
                     }
                 }
                 unset($tempObjectAttributeContainer);
