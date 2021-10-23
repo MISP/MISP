@@ -36,13 +36,14 @@ class EventsController extends AppController
         'sighting', 'includeSightingdb', 'warninglistId'
     );
 
-    public $defaultFilteringRules = array(
+    // private
+    const DEFAULT_FILTERING_RULE = array(
         'searchFor' => '',
         'attributeFilter' => 'all',
         'proposal' => 0,
         'correlation' => 0,
         'warning' => 0,
-        'deleted' => 2,
+        'deleted' => 0,
         'includeRelatedTags' => 0,
         'includeDecayScore' => 0,
         'toIDS' => 0,
@@ -1212,9 +1213,9 @@ class EventsController extends AppController
             if ($filters['deleted'] == 1) { // both
                 $conditions['deleted'] = [0, 1];
             } elseif ($filters['deleted'] == 0) { // not-deleted only
-                $conditions['deleted'] = 1;
-            } else { // only deleted
                 $conditions['deleted'] = 0;
+            } else { // only deleted
+                $conditions['deleted'] = 1;
             }
         }
         if (isset($filters['toIDS']) && $filters['toIDS'] != 0) {
@@ -1327,7 +1328,7 @@ class EventsController extends AppController
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
         $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
-        $this->set('deleted', isset($filters['deleted']) && $filters['deleted'] != 2);
+        $this->set('deleted', isset($filters['deleted']) && $filters['deleted'] != 0);
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
         $this->set('filters', $filters);
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
@@ -1584,7 +1585,7 @@ class EventsController extends AppController
 
     private function __eventViewCommon(array $user)
     {
-        $this->set('defaultFilteringRules', $this->defaultFilteringRules);
+        $this->set('defaultFilteringRules', self::DEFAULT_FILTERING_RULE);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 
         $orgTable = $this->Event->Orgc->find('list', array(
@@ -1990,7 +1991,7 @@ class EventsController extends AppController
         unset($filters['direction']);
         $activeRules = array();
         foreach ($filters as $k => $v) {
-            if (isset($this->defaultFilteringRules[$k]) && $this->defaultFilteringRules[$k] != $v) {
+            if (isset(self::DEFAULT_FILTERING_RULE[$k]) && self::DEFAULT_FILTERING_RULE[$k] != $v) {
                 $activeRules[$k] = $v;
             }
         }
