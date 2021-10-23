@@ -708,7 +708,7 @@ class ShadowAttributesController extends AppController
                     }
                     throw new InternalErrorException(__('Could not save the proposal. Errors: %s', $message));
                 } else {
-                    $this->Flash->error(__('The ShadowAttribute could not be saved. Please, try again.'));
+                    $this->Flash->error(__('The proposed Attribute could not be saved. Please, try again.'));
                 }
             }
         } else {
