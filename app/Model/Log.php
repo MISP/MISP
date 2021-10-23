@@ -240,6 +240,9 @@ class Log extends AppModel
             if ($action === 'request' && !empty(Configure::read('MISP.log_paranoid_skip_db'))) {
                 return null;
             }
+            if (!empty(Configure::read('MISP.log_skip_db_logs_completely'))) {
+                return null;
+            }
 
             throw new Exception("Cannot save log because of validation errors: " . json_encode($this->validationErrors));
         }
