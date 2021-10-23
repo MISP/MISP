@@ -3144,6 +3144,7 @@ class AppModel extends Model
             'conditions' => $conditions,
             'recursive' => -1,
             'callbacks' => false,
+            'order' => [], // disable order
         ));
     }
 
