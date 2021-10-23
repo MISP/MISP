@@ -366,12 +366,8 @@ class AppController extends Controller
 
         // Notifications and homepage is not necessary for AJAX or REST requests
         if ($user && !$this->_isRest() && !$isAjax) {
-            if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
-                $notifications = $this->User->populateNotifications($user);
-            } else {
-                $notifications = $this->User->populateNotifications($user, 'fast');
-            }
-            $this->set('notifications', $notifications);
+            $hasNotifications = $this->User->hasNotifications($user);
+            $this->set('hasNotifications', $hasNotifications);
 
             $homepage = $this->User->UserSetting->getValueForUser($user['id'], 'homepage');
             if (!empty($homepage)) {
