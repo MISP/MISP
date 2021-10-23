@@ -11,13 +11,13 @@ $warninglistsValues = json_encode($warninglistsValues);
         <input id="eventFilteringQBLinkInput" class="form-control" style="width: 66%;">
         <button id="eventFilteringQBLinkCopy" type="button" class="btn btn-inverse" style="margin-right: 5px; margin-left: 5px;"> <i class="fa fa-clipboard"></i> Copy to clipboard</button>
         <button id="eventFilteringQBSubmit" type="button" class="btn btn-success" style="margin-right: 5px;"> <i class="fa fa-filter"></i> Filter</button>
-        <button id="eventFilteringQBClear" type="button" class="btn btn-xs btn-danger" style="" title="<?php echo h('Clear filtering rules'); ?>"> <i class="fa fa-times"></i> Clear</button>
+        <button id="eventFilteringQBClear" type="button" class="btn btn-xs btn-danger" style="" title="Clear filtering rules"> <i class="fa fa-times"></i> Clear</button>
     </div>
 </div>
 <?php
 ?>
 <script>
-var defaultFilteringRules = <?php echo json_encode($defaultFilteringRules); ?>;
+var defaultFilteringRules = <?= json_encode($defaultFilteringRules); ?>;
 var querybuilderTool;
 function triggerEventFilteringTool(hide) {
     var qbOptions = {
@@ -118,9 +118,9 @@ function triggerEventFilteringTool(hide) {
                 "id": "deleted",
                 "label": "Deleted",
                 "values": {
-                    0: "Deleted only",
+                    0: "Exclude deleted",
                     1: "Both",
-                    2: "Exclude deleted"
+                    2: "Deleted only",
                 }
             },
             {
@@ -338,7 +338,7 @@ function triggerEventFilteringTool(hide) {
                 {
                     field: 'deleted',
                     id: 'deleted',
-                    value: <?php echo isset($filters['deleted']) ? h($filters['deleted']) : 2; ?>
+                    value: <?php echo isset($filters['deleted']) ? h($filters['deleted']) : 0; ?>
                 },
                 <?php endif; ?>
                 <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['includeRelatedTags'])): ?>
@@ -424,7 +424,6 @@ function triggerEventFilteringTool(hide) {
         },
     };
 
-    var filters = <?php echo json_encode($filters); ?>;
     var $wrapper = $('#eventFilteringQBWrapper');
     var $ev = $('#eventFilteringQB');
     querybuilderTool = $ev.queryBuilder(qbOptions);
