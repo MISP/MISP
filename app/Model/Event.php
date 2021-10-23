@@ -2052,9 +2052,6 @@ class Event extends AppModel
                 'Attribute' => array(
                     'fields' => $fieldsAtt,
                     'conditions' => $conditionsAttributes,
-                    'AttributeTag' => array(
-                        'order' => false
-                    ),
                     'order' => false
                 ),
                 'Object' => array(
@@ -2083,9 +2080,6 @@ class Event extends AppModel
         if (!empty($options['excludeLocalTags'])) {
             $params['contain']['EventTag']['conditions'] = array(
                 'EventTag.local' => 0
-            );
-            $params['contain']['Attribute']['AttributeTag']['conditions'] = array(
-                'AttributeTag.local' => 0
             );
         }
         if ($flatten) {
@@ -2146,6 +2140,10 @@ class Event extends AppModel
 
         if (!empty($options['allow_proposal_blocking']) && !Configure::read('MISP.proposals_block_attributes')) {
             $options['allow_proposal_blocking'] = false; // proposal blocking is not enabled
+        }
+
+        if (!$options['metadata']) {
+            $this->__attachAttributeTags($results, $options['excludeLocalTags']);
         }
 
         foreach ($results as &$event) {
@@ -6809,6 +6807,42 @@ class Event extends AppModel
     }
 
     /**
+     * Faster way how to attach tags to events that integrated in CakePHP.
+     * @param array $events
+     * @param bool $excludeLocalTags
+     */
+    private function __attachAttributeTags(array &$events, $excludeLocalTags = false)
+    {
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
+        $conditions = ['AttributeTag.event_id' => $eventIds];
+        if ($excludeLocalTags) {
+            $conditions['AttributeTag.local'] = false;
+        }
+        $ats = $this->Attribute->AttributeTag->find('all', [
+            'conditions' => $conditions,
+            'fields' => ['AttributeTag.attribute_id', 'AttributeTag.tag_id', 'AttributeTag.local'],
+            'recursive' => -1,
+        ]);
+        if (empty($ats)) {
+            foreach ($events as &$event) {
+                foreach ($event['Attribute'] as &$attribute) {
+                    $attribute['AttributeTag'] = [];
+                }
+            }
+            return;
+        }
+        $atForAttributes = [];
+        foreach ($ats as $at) {
+            $atForAttributes[$at['AttributeTag']['attribute_id']][] = $at['AttributeTag'];
+        }
+        foreach ($events as &$event) {
+            foreach ($event['Attribute'] as &$attribute) {
+                $attribute['AttributeTag'] = $atForAttributes[$attribute['id']] ?? [];
+            }
+        }
+    }
+
+    /**
      * Get tag from cache by given ID.
      *
      * @param int $tagId
@@ -6844,21 +6878,19 @@ class Event extends AppModel
 
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $attribute) {
-                if (!empty($attribute['AttributeTag'])) {
-                    foreach ($attribute['AttributeTag'] as $attributeTag) {
-                        $tagIds[$attributeTag['tag_id']] = true;
-                    }
+                foreach ($attribute['AttributeTag'] as $attributeTag) {
+                    $tagIds[$attributeTag['tag_id']] = true;
                 }
             }
         }
 
-        $notCachedTags = array_diff(array_keys($tagIds), isset($this->assetCache['tags']) ? array_keys($this->assetCache['tags']) : []);
+        $notCachedTags = array_diff_key($tagIds, isset($this->assetCache['tags']) ? $this->assetCache['tags'] : []);
         if (empty($notCachedTags)) {
             return;
         }
-        $conditions = ['id' => $notCachedTags];
+        $conditions = ['Tag.id' => array_keys($notCachedTags)];
         if ($justExportable) {
-            $conditions['exportable'] = 1;
+            $conditions['Tag.exportable'] = 1;
         }
         $tags = $this->EventTag->Tag->find('all', [
             'recursive' => -1,
