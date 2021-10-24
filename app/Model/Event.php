@@ -2124,6 +2124,9 @@ class Event extends AppModel
         if (!empty($options['includeDecayScore']) && !isset($this->DecayingModel)) {
             $this->DecayingModel = ClassRegistry::init('DecayingModel');
         }
+        if ($options['includeServerCorrelations'] && !$isSiteAdmin && $user['org_id'] != Configure::read('MISP.host_org_id')) {
+            $options['includeServerCorrelations'] = false; // not permission to see server correlations
+        }
         if (($options['includeFeedCorrelations'] || $options['includeServerCorrelations']) && !isset($this->Feed)) {
             $this->Feed = ClassRegistry::init('Feed');
         }
@@ -2137,6 +2140,12 @@ class Event extends AppModel
             $justExportableTags = true;
         } else {
             $justExportableTags = false;
+        }
+
+        $overrideLimit = !empty($options['overrideLimit']);
+
+        if (!empty($options['allow_proposal_blocking']) && !Configure::read('MISP.proposals_block_attributes')) {
+            $options['allow_proposal_blocking'] = false; // proposal blocking is not enabled
         }
 
         foreach ($results as &$event) {
@@ -2202,29 +2211,36 @@ class Event extends AppModel
                 }
                 $event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
             }
-            if (!empty($event['ShadowAttribute']) && $options['includeAttachments']) {
-                foreach ($event['ShadowAttribute'] as $k => $sa) {
-                    if ($this->ShadowAttribute->typeIsAttachment($sa['type'])) {
-                        $encodedFile = $this->ShadowAttribute->base64EncodeAttachment($sa);
-                        $event['ShadowAttribute'][$k]['data'] = $encodedFile;
-                    }
+            $shadowAttributeByOldId = [];
+            if (!empty($event['ShadowAttribute'])) {
+                if ($isSiteAdmin && $options['includeFeedCorrelations']) {
+                    $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
                 }
+                if ($options['includeServerCorrelations']) {
+                    $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit, 'Server');
+                }
+
+                if ($options['includeAttachments']) {
+                    foreach ($event['ShadowAttribute'] as &$sa) {
+                        if ($this->ShadowAttribute->typeIsAttachment($sa['type'])) {
+                            $encodedFile = $this->ShadowAttribute->base64EncodeAttachment($sa);
+                            $sa['data'] = $encodedFile;
+                        }
+                    }
+                    unset($sa);
+                }
+
+                foreach ($event['ShadowAttribute'] as $sa) {
+                    $shadowAttributeByOldId[$sa['old_id']][] = $sa;
+                }
+                // Assign just shadow attributes that are linked to event (that means they have old_id set to `0`)
+                $event['ShadowAttribute'] = $shadowAttributeByOldId[0] ?? [];
             }
             if (!empty($event['Attribute'])) {
                 if ($options['includeFeedCorrelations']) {
-                    if (!empty($options['overrideLimit'])) {
-                        $overrideLimit = true;
-                    } else {
-                        $overrideLimit = false;
-                    }
                     $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
                 }
-                if (!empty($options['includeServerCorrelations']) && ($user['Role']['perm_site_admin'] || $user['org_id'] == Configure::read('MISP.host_org_id'))) {
-                    if (!empty($options['overrideLimit'])) {
-                        $overrideLimit = true;
-                    } else {
-                        $overrideLimit = false;
-                    }
+                if ($options['includeServerCorrelations']) {
                     $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit, 'Server');
                 }
                 $event = $this->__filterBlockedAttributesByTags($event, $options, $user);
@@ -2232,54 +2248,42 @@ class Event extends AppModel
                     $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
                 }
 
-                $proposalBlockAttributes = Configure::read('MISP.proposals_block_attributes');
                 // move all object attributes to a temporary container
                 $tempObjectAttributeContainer = array();
-                foreach ($event['Attribute'] as $key => $attribute) {
+                foreach ($event['Attribute'] as $key => &$attribute) {
                     if ($options['enforceWarninglist'] && !empty($attribute['warnings'])) {
                         unset($event['Attribute'][$key]);
                         continue;
                     }
                     if ($attribute['category'] === 'Financial fraud') {
-                        $event['Attribute'][$key] = $this->Attribute->attachValidationWarnings($event['Attribute'][$key]);
+                        $attribute = $this->Attribute->attachValidationWarnings($attribute);
                     }
                     if ($options['includeAttachments'] && $this->Attribute->typeIsAttachment($attribute['type'])) {
                         $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-                        $event['Attribute'][$key]['data'] = $encodedFile;
+                        $attribute['data'] = $encodedFile;
                     }
                     if (!empty($options['includeDecayScore'])) {
                         if (isset($event['EventTag'])) { // include EventTags for score computation
-                            $event['Attribute'][$key]['EventTag'] = $event['EventTag'];
+                            $attribute['EventTag'] = $event['EventTag'];
                         }
-                        $event['Attribute'][$key] = $this->DecayingModel->attachScoresToAttribute($user, $event['Attribute'][$key]);
+                        $attribute = $this->DecayingModel->attachScoresToAttribute($user, $attribute);
                         if (isset($event['EventTag'])) { // remove included EventTags
-                            unset($event['Attribute'][$key]['EventTag']);
+                            unset($attribute['EventTag']);
                         }
                     }
-                    $event['Attribute'][$key]['ShadowAttribute'] = array();
-                    // If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
+                    // If a shadowattribute can be linked to an attribute, link it to it
                     // This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
-
-                    if (isset($event['ShadowAttribute'])) {
-                        foreach ($event['ShadowAttribute'] as $k => $sa) {
-                            if (!empty($sa['old_id'])) {
-                                if ($event['ShadowAttribute'][$k]['old_id'] == $attribute['id']) {
-                                    $event['Attribute'][$key]['ShadowAttribute'][] = $sa;
-                                    unset($event['ShadowAttribute'][$k]);
-                                }
-                            }
-                        }
-                    }
-                    if ($proposalBlockAttributes && !empty($options['allow_proposal_blocking'])) {
-                        foreach ($event['Attribute'][$key]['ShadowAttribute'] as $sa) {
+                    $attribute['ShadowAttribute'] = $shadowAttributeByOldId[$attribute['id']] ?? [];
+                    if (!empty($options['allow_proposal_blocking'])) {
+                        foreach ($attribute['ShadowAttribute'] as $sa) {
                             if ($sa['proposal_to_delete'] || $sa['to_ids'] == 0) {
                                 unset($event['Attribute'][$key]);
-                                continue;
+                                continue 2;
                             }
                         }
                     }
                     if (!$flatten && $attribute['object_id'] != 0) {
-                        $tempObjectAttributeContainer[$attribute['object_id']][] = $event['Attribute'][$key];
+                        $tempObjectAttributeContainer[$attribute['object_id']][] = $attribute;
                         unset($event['Attribute'][$key]);
                     }
                 }
@@ -2289,42 +2293,15 @@ class Event extends AppModel
                 if (!$sharingGroupReferenceOnly) {
                     $event['Object'] = $this->__attachSharingGroups($event['Object'], $sharingGroupData);
                 }
-                foreach ($event['Object'] as $objectKey => $objectValue) {
+                foreach ($event['Object'] as &$objectValue) {
                     if (isset($tempObjectAttributeContainer[$objectValue['id']])) {
-                        $event['Object'][$objectKey]['Attribute'] = $tempObjectAttributeContainer[$objectValue['id']];
+                        $objectValue['Attribute'] = $tempObjectAttributeContainer[$objectValue['id']];
                     }
                 }
                 unset($tempObjectAttributeContainer);
             }
             if (!$sharingGroupReferenceOnly && !empty($event['EventReport'])) {
                 $event['EventReport'] = $this->__attachSharingGroups($event['EventReport'], $sharingGroupData);
-            }
-            if (!empty($event['ShadowAttribute'])) {
-                if ($isSiteAdmin && $options['includeFeedCorrelations']) {
-                    if (!empty($options['overrideLimit'])) {
-                        $overrideLimit = true;
-                    } else {
-                        $overrideLimit = false;
-                    }
-                    $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
-                }
-                if (!empty($options['includeServerCorrelations']) && $user['org_id'] == Configure::read('MISP.host_org_id')) {
-                    if (!empty($options['overrideLimit'])) {
-                        $overrideLimit = true;
-                    } else {
-                        $overrideLimit = false;
-                    }
-                    $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit, 'Server');
-                }
-
-                // remove proposals to attributes that we cannot see
-                // if the shadow attribute wasn't moved within an attribute before, this is the case
-                foreach ($event['ShadowAttribute'] as $k => $sa) {
-                    if (!empty($sa['old_id'])) {
-                        unset($event['ShadowAttribute'][$k]);
-                    }
-                }
-                $event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
             }
             if (empty($options['metadata']) && empty($options['noSightings'])) {
                 $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
