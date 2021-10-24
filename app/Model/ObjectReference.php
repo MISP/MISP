@@ -191,7 +191,13 @@ class ObjectReference extends AppModel
         return true;
     }
 
-    public function captureReference($reference, $eventId, $user)
+    /**
+     * @param array $reference
+     * @param int $eventId
+     * @return array|bool
+     * @throws Exception
+     */
+    public function captureReference(array $reference, $eventId)
     {
         if (isset($reference['uuid'])) {
             $existingReference = $this->find('first', array(
@@ -278,6 +284,9 @@ class ObjectReference extends AppModel
         $reference['object_uuid'] = $sourceObject['Object']['uuid'];
         $reference['event_id'] = $eventId;
         $result = $this->save(array('ObjectReference' => $reference));
+        if (!$result) {
+            return $this->validationErrors;
+        }
         return true;
     }
 

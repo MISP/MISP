@@ -3852,9 +3852,12 @@ class Event extends AppModel
                 foreach ($referencesToCapture as $referenceToCapture) {
                     $result = $this->Object->ObjectReference->captureReference(
                         $referenceToCapture,
-                        $this->id,
-                        $user
+                        $this->id
                     );
+                    if ($result !== true) {
+                        $title = "Could not save object reference when capturing event with ID {$this->id}";
+                        $this->loadLog()->validationError($user, 'add', 'ObjectReference', $title, $result, $referenceToCapture);
+                    }
                 }
             }
 
@@ -4071,7 +4074,11 @@ class Event extends AppModel
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $nothingToChange = false;
                             $objectRef['source_uuid'] = $object['uuid'];
-                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user);
+                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id);
+                            if ($result !== true) {
+                                $title = "Could not save object reference when capturing event with ID {$this->id}";
+                                $this->loadLog()->validationError($user, 'edit', 'ObjectReference', $title, $result, $objectRef);
+                            }
                             if ($result && !$nothingToChange) {
                                 $changed = true;
                             }

@@ -5651,13 +5651,13 @@ class EventsController extends AppController
                     $objectRef['object_id'] = $ObjectResult;
                     $objectRef['relationship_type'] = "preceded-by";
                     $this->loadModel('MispObject');
-                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId, $this->Auth->user(), false);
+                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId);
                     $objectRef['referenced_id'] = $temp['Object']['id'];
                     $objectRef['referenced_uuid'] = $temp['Object']['uuid'];
                     $objectRef['object_id'] = $PreviousObjRef['Object']['id'];
                     $objectRef['relationship_type'] = "followed-by";
                     $this->loadModel('MispObject');
-                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId, $this->Auth->user(), false);
+                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId);
                     $PreviousObjRef = $temp;
                 } else {
                     $PreviousObjRef = $temp;
