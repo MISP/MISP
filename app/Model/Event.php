@@ -6846,6 +6846,7 @@ class Event extends AppModel
             'Object' => array('name', 'meta-category')
         );
         foreach ($events as &$event) {
+            $eventIdCache = [];
             foreach ($event['Object'] as &$object) {
                 $objectReferences = $referencesForObject[$object['id']] ?? [];
                 foreach ($objectReferences as &$reference) {
@@ -6853,13 +6854,11 @@ class Event extends AppModel
                     $reference['source_uuid'] = $object['uuid'];
                     // find referenced object in current event
                     $type = $reference['referenced_type'] == 0 ? 'Attribute' : 'Object';
-                    $found = null;
-                    foreach ($event[$type] as $o) {
-                        if ($o['id'] == $reference['referenced_id']) {
-                            $found = $o;
-                            break;
-                        }
+                    // construct array with ID in key, so we can search attributes and objects by ID faster
+                    if (!isset($eventIdCache[$type])) {
+                        $eventIdCache[$type] = array_column($event[$type], null, 'id');
                     }
+                    $found = $eventIdCache[$type][$reference['referenced_id']] ?? null;
 
                     if ($found) {
                         // copy requested fields
