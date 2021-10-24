@@ -539,11 +539,12 @@ class Event extends AppModel
     {
         $tagsToFetch = array();
         foreach ($events as $event) {
-            if (!empty($event['EventTag'])) {
-                foreach ($event['EventTag'] as $et) {
-                    $tagsToFetch[$et['tag_id']] = $et['tag_id'];
-                }
+            foreach ($event['EventTag'] as $et) {
+                $tagsToFetch[$et['tag_id']] = $et['tag_id'];
             }
+        }
+        if (empty($tagsToFetch)) {
+            return $events;
         }
         $tags = $this->EventTag->Tag->find('all', array(
             'conditions' => array('Tag.id' => $tagsToFetch),
@@ -552,10 +553,8 @@ class Event extends AppModel
         ));
         $tags = array_column(array_column($tags, 'Tag'), null, 'id');
         foreach ($events as &$event) {
-            if (!empty($event['EventTag'])) {
-                foreach ($event['EventTag'] as &$et) {
-                    $et['Tag'] = $tags[$et['tag_id']];
-                }
+            foreach ($event['EventTag'] as &$et) {
+                $et['Tag'] = $tags[$et['tag_id']];
             }
         }
         return $events;
@@ -6820,7 +6819,7 @@ class Event extends AppModel
         }
         $ats = $this->Attribute->AttributeTag->find('all', [
             'conditions' => $conditions,
-            'fields' => ['AttributeTag.attribute_id', 'AttributeTag.tag_id', 'AttributeTag.local'],
+            'fields' => ['AttributeTag.attribute_id', 'AttributeTag.tag_id', 'AttributeTag.local'], // we don't need id or event_id
             'recursive' => -1,
         ]);
         if (empty($ats)) {
