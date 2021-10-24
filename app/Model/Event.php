@@ -2211,6 +2211,7 @@ class Event extends AppModel
                 }
                 $event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
             }
+            $shadowAttributeByOldId = [];
             if (!empty($event['ShadowAttribute'])) {
                 if ($isSiteAdmin && $options['includeFeedCorrelations']) {
                     $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
@@ -2226,7 +2227,14 @@ class Event extends AppModel
                             $sa['data'] = $encodedFile;
                         }
                     }
+                    unset($sa);
                 }
+
+                foreach ($event['ShadowAttribute'] as $sa) {
+                    $shadowAttributeByOldId[$sa['old_id']][] = $sa;
+                }
+                // Assign just shadow attributes that are linked to event (that means they have old_id set to `0`)
+                $event['ShadowAttribute'] = $shadowAttributeByOldId[0] ?? [];
             }
             if (!empty($event['Attribute'])) {
                 if ($options['includeFeedCorrelations']) {
@@ -2263,22 +2271,14 @@ class Event extends AppModel
                             unset($attribute['EventTag']);
                         }
                     }
-                    $attribute['ShadowAttribute'] = array();
-                    // If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
+                    // If a shadowattribute can be linked to an attribute, link it to it
                     // This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
-                    if (!empty($event['ShadowAttribute'])) {
-                        foreach ($event['ShadowAttribute'] as $k => $sa) {
-                            if ($sa['old_id'] == $attribute['id']) {
-                                $attribute['ShadowAttribute'][] = $sa;
-                                unset($event['ShadowAttribute'][$k]);
-                            }
-                        }
-                        if (!empty($options['allow_proposal_blocking'])) {
-                            foreach ($attribute['ShadowAttribute'] as $sa) {
-                                if ($sa['proposal_to_delete'] || $sa['to_ids'] == 0) {
-                                    unset($event['Attribute'][$key]);
-                                    continue 2;
-                                }
+                    $attribute['ShadowAttribute'] = $shadowAttributeByOldId[$attribute['id']] ?? [];
+                    if (!empty($options['allow_proposal_blocking'])) {
+                        foreach ($attribute['ShadowAttribute'] as $sa) {
+                            if ($sa['proposal_to_delete'] || $sa['to_ids'] == 0) {
+                                unset($event['Attribute'][$key]);
+                                continue 2;
                             }
                         }
                     }
@@ -2302,16 +2302,6 @@ class Event extends AppModel
             }
             if (!$sharingGroupReferenceOnly && !empty($event['EventReport'])) {
                 $event['EventReport'] = $this->__attachSharingGroups($event['EventReport'], $sharingGroupData);
-            }
-            if (!empty($event['ShadowAttribute'])) {
-                // remove proposals to attributes that we cannot see
-                // if the shadow attribute wasn't moved within an attribute before, this is the case
-                foreach ($event['ShadowAttribute'] as $k => $sa) {
-                    if (!empty($sa['old_id'])) {
-                        unset($event['ShadowAttribute'][$k]);
-                    }
-                }
-                $event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
             }
             if (empty($options['metadata']) && empty($options['noSightings'])) {
                 $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
