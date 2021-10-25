@@ -549,6 +549,7 @@ class Event extends AppModel
         $tags = $this->EventTag->Tag->find('all', array(
             'conditions' => array('Tag.id' => $tagsToFetch),
             'recursive' => -1,
+            'fields' => ['id', 'name', 'colour', 'is_galaxy'], // fetch just necessary columns
             'order' => false
         ));
         $tags = array_column(array_column($tags, 'Tag'), null, 'id');
