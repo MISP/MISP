@@ -3183,7 +3183,6 @@ class Event extends AppModel
         );
 
         $userCount = count($usersWithAccess);
-        $this->UserSetting = ClassRegistry::init('UserSetting');
         $metadataOnly = Configure::read('MISP.event_alert_metadata_only') || Configure::read('MISP.publish_alerts_summary_only');
         foreach ($usersWithAccess as $k => $user) {
             // Fetch event for user that will receive alert e-mail to respect all ACLs
@@ -3196,7 +3195,7 @@ class Event extends AppModel
                 'metadata' => $metadataOnly,
             ])[0];
 
-            if ($this->UserSetting->checkPublishFilter($user, $eventForUser)) {
+            if ($this->User->UserSetting->checkPublishFilter($user, $eventForUser)) {
                 $body = $this->prepareAlertEmail($eventForUser, $user, $oldpublish);
                 $this->User->sendEmail(['User' => $user], $body, false, null);
             }

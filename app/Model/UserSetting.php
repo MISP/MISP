@@ -301,7 +301,7 @@ class UserSetting extends AppModel
         }
     }
 
-    /*
+    /**
      * Checks if an event matches the given rule
      * valid filters:
      * - AttributeTag.name
@@ -313,6 +313,11 @@ class UserSetting extends AppModel
      * Values passed can be used for direct string comparisons or alternatively
      * as substring matches by encapsulating the string in a pair of "%" characters
      * Each rule can take a list of values
+     *
+     * @param string $rule
+     * @param array|string $lookup_values
+     * @param array $event
+     * @return bool
      */
     private function __checkEvent($rule, $lookup_values, $event)
     {
@@ -347,7 +352,7 @@ class UserSetting extends AppModel
                 $extracted_value = mb_strtolower($extracted_value);
                 foreach ($lookup_values as $lookup_value) {
                     $lookup_value_trimmed = trim($lookup_value, "%");
-                    if (strlen($lookup_value_trimmed) != strlen($lookup_value)) {
+                    if (strlen($lookup_value_trimmed) !== strlen($lookup_value)) {
                         if (strpos($extracted_value, $lookup_value_trimmed) !== false) {
                             return true;
                         }

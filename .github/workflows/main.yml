@@ -130,6 +130,13 @@ jobs:
               # Get authkey
               sudo usermod -a -G www-data $USER
 
+              # Ensure the perms of config files
+              sudo chown -R $USER:www-data `pwd`/app/Config
+              sudo chmod -R 777 `pwd`/app/Config
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.server_settings_skip_backup_rotate" 1'
+              sudo chown -R $USER:www-data `pwd`/app/Config
+              sudo chmod -R 777 `pwd`/app/Config
+
       - name: DB Update
         run: |
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.osuser" $USER'
@@ -236,13 +243,6 @@ jobs:
       - name: Run tests
         run: |
               export PATH=$HOME/.local/env:$PATH # enable poetry binary
-
-              # Ensure the perms of config files
-              sudo chown -R $USER:www-data `pwd`/app/Config
-              sudo chmod -R 777 `pwd`/app/Config
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.server_settings_skip_backup_rotate" 1'
-              sudo chown -R $USER:www-data `pwd`/app/Config
-              sudo chmod -R 777 `pwd`/app/Config
 
               pushd tests
               ./curl_tests_GH.sh $AUTH $HOST
