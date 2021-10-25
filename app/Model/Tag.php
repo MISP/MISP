@@ -83,23 +83,24 @@ class Tag extends AppModel
 
     public function beforeValidate($options = array())
     {
-        if (!isset($this->data['Tag']['org_id'])) {
-            $this->data['Tag']['org_id'] = 0;
+        $tag = &$this->data['Tag'];
+        if (!isset($tag['org_id'])) {
+            $tag['org_id'] = 0;
         }
-        if (!isset($this->data['Tag']['user_id'])) {
-            $this->data['Tag']['user_id'] = 0;
+        if (!isset($tag['user_id'])) {
+            $tag['user_id'] = 0;
         }
-        if (!isset($this->data['Tag']['hide_tag'])) {
-            $this->data['Tag']['hide_tag'] = Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0;
+        if (!isset($tag['hide_tag'])) {
+            $tag['hide_tag'] = Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0;
         }
-        if (!isset($this->data['Tag']['exportable'])) {
-            $this->data['Tag']['exportable'] = 1;
+        if (!isset($tag['exportable'])) {
+            $tag['exportable'] = 1;
         }
-        if (isset($this->data['Tag']['name']) && strlen($this->data['Tag']['name']) >= 255) {
-            $this->data['Tag']['name'] = substr($this->data['Tag']['name'], 0, 255);
+        if (isset($tag['name']) && strlen($tag['name']) >= 255) {
+            $tag['name'] = substr($tag['name'], 0, 255);
         }
-        $this->data['Tag']['is_galaxy'] = preg_match($this->reGalaxy, $this->data['Tag']['name']);
-        $this->data['Tag']['is_custom_galaxy'] = preg_match($this->reCustomGalaxy, $this->data['Tag']['name']);
+        $tag['is_galaxy'] = preg_match($this->reGalaxy, $tag['name']);
+        $tag['is_custom_galaxy'] = preg_match($this->reCustomGalaxy, $tag['name']);
         return true;
     }
 
