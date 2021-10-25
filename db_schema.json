@@ -7978,12 +7978,9 @@
         },
         "object_references": {
             "id": true,
-            "source_uuid": false,
-            "referenced_uuid": false,
-            "timestamp": false,
             "object_id": false,
             "referenced_id": false,
-            "relationship_type": false
+            "event_id": false
         },
         "object_relationships": {
             "id": true,
@@ -8182,5 +8179,5 @@
             "id": true
         }
     },
-    "db_version": "74"
+    "db_version": "75"
 }

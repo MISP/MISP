@@ -250,6 +250,22 @@ class Log extends AppModel
         return $result;
     }
 
+    /**
+     * @param array|string $user
+     * @param string $action
+     * @param string $model
+     * @param string $title
+     * @param array $validationErrors
+     * @param array $fullObject
+     * @throws Exception
+     */
+    public function validationError($user, $action, $model, $title, array $validationErrors, array $fullObject)
+    {
+        $this->log($title, LOG_WARNING);
+        $change = 'Validation errors: ' . json_encode($validationErrors) . ' Full ' . $model  . ': ' . json_encode($fullObject);
+        $this->createLogEntry($user, $action, $model, 0, $title, $change);
+    }
+
     // to combat a certain bug that causes the upgrade scripts to loop without being able to set the correct version
     // this function remedies a fixed upgrade bug instance by eliminating the massive number of erroneous upgrade log entries
     public function pruneUpdateLogs($jobId = false, $user)

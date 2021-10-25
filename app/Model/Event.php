@@ -539,23 +539,23 @@ class Event extends AppModel
     {
         $tagsToFetch = array();
         foreach ($events as $event) {
-            if (!empty($event['EventTag'])) {
-                foreach ($event['EventTag'] as $et) {
-                    $tagsToFetch[$et['tag_id']] = $et['tag_id'];
-                }
+            foreach ($event['EventTag'] as $et) {
+                $tagsToFetch[$et['tag_id']] = $et['tag_id'];
             }
+        }
+        if (empty($tagsToFetch)) {
+            return $events;
         }
         $tags = $this->EventTag->Tag->find('all', array(
             'conditions' => array('Tag.id' => $tagsToFetch),
             'recursive' => -1,
+            'fields' => ['id', 'name', 'colour', 'is_galaxy'], // fetch just necessary columns
             'order' => false
         ));
         $tags = array_column(array_column($tags, 'Tag'), null, 'id');
         foreach ($events as &$event) {
-            if (!empty($event['EventTag'])) {
-                foreach ($event['EventTag'] as &$et) {
-                    $et['Tag'] = $tags[$et['tag_id']];
-                }
+            foreach ($event['EventTag'] as &$et) {
+                $et['Tag'] = $tags[$et['tag_id']];
             }
         }
         return $events;
@@ -1960,7 +1960,7 @@ class Event extends AppModel
             $conditions['AND'][] = array('Event.published' => 1);
             $conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
         }
-        $softDeletables = array('Attribute', 'Object', 'ObjectReference', 'EventReport');
+        $softDeletables = array('Attribute', 'Object', 'EventReport');
         if (isset($options['deleted'])) {
             if (!is_array($options['deleted'])) {
                 $options['deleted'] = array($options['deleted']);
@@ -2040,7 +2040,6 @@ class Event extends AppModel
         $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
-        $fieldsEventReport = array('*');
         $params = array(
             'conditions' => $conditions,
             'recursive' => 0,
@@ -2052,17 +2051,11 @@ class Event extends AppModel
                 'Attribute' => array(
                     'fields' => $fieldsAtt,
                     'conditions' => $conditionsAttributes,
-                    'AttributeTag' => array(
-                        'order' => false
-                    ),
                     'order' => false
                 ),
                 'Object' => array(
                     'conditions' => $conditionsObjects,
                     'order' => false,
-                    'ObjectReference' => array(
-                        'order' => false
-                    )
                 ),
                 'ShadowAttribute' => array(
                     'fields' => $fieldsShadowAtt,
@@ -2074,7 +2067,6 @@ class Event extends AppModel
                     'order' => false
                 ),
                 'EventReport' => array(
-                    'fields' => $fieldsEventReport,
                     'conditions' => $conditionsEventReport,
                     'order' => false
                 )
@@ -2083,9 +2075,6 @@ class Event extends AppModel
         if (!empty($options['excludeLocalTags'])) {
             $params['contain']['EventTag']['conditions'] = array(
                 'EventTag.local' => 0
-            );
-            $params['contain']['Attribute']['AttributeTag']['conditions'] = array(
-                'AttributeTag.local' => 0
             );
         }
         if ($flatten) {
@@ -2148,6 +2137,14 @@ class Event extends AppModel
             $options['allow_proposal_blocking'] = false; // proposal blocking is not enabled
         }
 
+        if (!$options['metadata']) {
+            $this->__attachAttributeTags($results, $options['excludeLocalTags']);
+        }
+
+        if (!$options['metadata'] && !$flatten) {
+            $this->__attachReferences($results);
+        }
+
         foreach ($results as &$event) {
             /*
             // REMOVING THIS FOR NOW - users should see data they own, even if they're not in the sharing group.
@@ -2173,7 +2170,6 @@ class Event extends AppModel
                 $this->Warninglist->attachWarninglistToAttributes($event['ShadowAttribute']);
                 $event['warnings'] = $eventWarnings;
             }
-            $this->__attachReferences($event);
             $this->__attachTags($event, $justExportableTags);
             $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters']);
             $event = $this->Orgc->attachOrgs($event, $fieldsOrg);
@@ -3857,9 +3853,12 @@ class Event extends AppModel
                 foreach ($referencesToCapture as $referenceToCapture) {
                     $result = $this->Object->ObjectReference->captureReference(
                         $referenceToCapture,
-                        $this->id,
-                        $user
+                        $this->id
                     );
+                    if ($result !== true) {
+                        $title = "Could not save object reference when capturing event with ID {$this->id}";
+                        $this->loadLog()->validationError($user, 'add', 'ObjectReference', $title, $result, $referenceToCapture);
+                    }
                 }
             }
 
@@ -4076,7 +4075,11 @@ class Event extends AppModel
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $nothingToChange = false;
                             $objectRef['source_uuid'] = $object['uuid'];
-                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user);
+                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id);
+                            if ($result !== true) {
+                                $title = "Could not save object reference when capturing event with ID {$this->id}";
+                                $this->loadLog()->validationError($user, 'edit', 'ObjectReference', $title, $result, $objectRef);
+                            }
                             if ($result && !$nothingToChange) {
                                 $changed = true;
                             }
@@ -6809,6 +6812,123 @@ class Event extends AppModel
     }
 
     /**
+     * Attach references to objects faster than CakePHP.
+     * @param array $events
+     */
+    private function __attachReferences(array &$events)
+    {
+        $eventIds = [];
+        foreach ($events as $event) {
+            if (!empty($event['Object'])) {
+                $eventIds[] = $event['Event']['id']; // event contains objects
+            }
+        }
+        if (!empty($eventIds)) {
+            // Do not fetch fields that we already know to reduce memory usage
+            $schema = $this->Object->ObjectReference->schema();
+            unset($schema['event_id']);
+            unset($schema['source_uuid']);
+
+            $references = $this->Object->ObjectReference->find('all', [
+                'conditions' => ['ObjectReference.event_id' => $eventIds],
+                'fields' => array_keys($schema),
+                'recursive' => -1,
+            ]);
+        }
+        if (empty($references)) {
+            // Assign empty object reference object
+            foreach ($events as &$event) {
+                foreach ($event['Object'] as &$object) {
+                    $object['ObjectReference'] = [];
+                }
+            }
+            return;
+        }
+        $referencesForObject = [];
+        foreach ($references as $reference) {
+            $referencesForObject[$reference['ObjectReference']['object_id']][] = $reference['ObjectReference'];
+        }
+        $fieldsToCopy = array(
+            'common' => array('distribution', 'sharing_group_id', 'uuid'),
+            'Attribute' => array('value', 'type', 'category', 'to_ids'),
+            'Object' => array('name', 'meta-category')
+        );
+        foreach ($events as &$event) {
+            $eventIdCache = [];
+            foreach ($event['Object'] as &$object) {
+                $objectReferences = $referencesForObject[$object['id']] ?? [];
+                foreach ($objectReferences as &$reference) {
+                    $reference['event_id'] = $event['Event']['id'];
+                    $reference['source_uuid'] = $object['uuid'];
+                    // find referenced object in current event
+                    $type = $reference['referenced_type'] == 0 ? 'Attribute' : 'Object';
+                    // construct array with ID in key, so we can search attributes and objects by ID faster
+                    if (!isset($eventIdCache[$type])) {
+                        $eventIdCache[$type] = array_column($event[$type], null, 'id');
+                    }
+                    $found = $eventIdCache[$type][$reference['referenced_id']] ?? null;
+
+                    if ($found) {
+                        // copy requested fields
+                        $copied = [];
+                        foreach (array_merge($fieldsToCopy['common'], $fieldsToCopy[$type]) as $field) {
+                            $copied[$field] = $found[$field];
+                        }
+                        $reference[$type] = $copied;
+                    } else { // object / attribute might be from an extended event
+                        $otherEventText = __('%s from another event', $type);
+                        $reference[$type] = [
+                            'name' => '',
+                            'meta-category' => $otherEventText,
+                            'category' => $otherEventText,
+                            'type' => '',
+                            'value' => '',
+                            'uuid' => $reference['referenced_uuid']
+                        ];
+                    }
+                }
+                $object['ObjectReference'] = $objectReferences;
+            }
+        }
+    }
+
+    /**
+     * Faster way how to attach tags to events that integrated in CakePHP.
+     * @param array $events
+     * @param bool $excludeLocalTags
+     */
+    private function __attachAttributeTags(array &$events, $excludeLocalTags = false)
+    {
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
+        $conditions = ['AttributeTag.event_id' => $eventIds];
+        if ($excludeLocalTags) {
+            $conditions['AttributeTag.local'] = false;
+        }
+        $ats = $this->Attribute->AttributeTag->find('all', [
+            'conditions' => $conditions,
+            'fields' => ['AttributeTag.attribute_id', 'AttributeTag.tag_id', 'AttributeTag.local'], // we don't need id or event_id
+            'recursive' => -1,
+        ]);
+        if (empty($ats)) {
+            foreach ($events as &$event) {
+                foreach ($event['Attribute'] as &$attribute) {
+                    $attribute['AttributeTag'] = [];
+                }
+            }
+            return;
+        }
+        $atForAttributes = [];
+        foreach ($ats as $at) {
+            $atForAttributes[$at['AttributeTag']['attribute_id']][] = $at['AttributeTag'];
+        }
+        foreach ($events as &$event) {
+            foreach ($event['Attribute'] as &$attribute) {
+                $attribute['AttributeTag'] = $atForAttributes[$attribute['id']] ?? [];
+            }
+        }
+    }
+
+    /**
      * Get tag from cache by given ID.
      *
      * @param int $tagId
@@ -6844,21 +6964,19 @@ class Event extends AppModel
 
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $attribute) {
-                if (!empty($attribute['AttributeTag'])) {
-                    foreach ($attribute['AttributeTag'] as $attributeTag) {
-                        $tagIds[$attributeTag['tag_id']] = true;
-                    }
+                foreach ($attribute['AttributeTag'] as $attributeTag) {
+                    $tagIds[$attributeTag['tag_id']] = true;
                 }
             }
         }
 
-        $notCachedTags = array_diff(array_keys($tagIds), isset($this->assetCache['tags']) ? array_keys($this->assetCache['tags']) : []);
+        $notCachedTags = array_diff_key($tagIds, isset($this->assetCache['tags']) ? $this->assetCache['tags'] : []);
         if (empty($notCachedTags)) {
             return;
         }
-        $conditions = ['id' => $notCachedTags];
+        $conditions = ['Tag.id' => array_keys($notCachedTags)];
         if ($justExportable) {
-            $conditions['exportable'] = 1;
+            $conditions['Tag.exportable'] = 1;
         }
         $tags = $this->EventTag->Tag->find('all', [
             'recursive' => -1,
@@ -6904,58 +7022,6 @@ class Event extends AppModel
                         }
                     }
                     $event['Attribute'][$ak]['AttributeTag'] = array_values($event['Attribute'][$ak]['AttributeTag']);
-                }
-            }
-        }
-    }
-
-    /**
-     * Attach referenced object to ObjectReference. Since reference can be just to attribute or object in the same event,
-     * we just find proper element in event.
-     *
-     * @param array $event
-     */
-    private function __attachReferences(array &$event)
-    {
-        if (!isset($event['Object'])) {
-            return;
-        }
-
-        $fieldsToCopy = array(
-            'common' => array('distribution', 'sharing_group_id', 'uuid'),
-            'Attribute' => array('value', 'type', 'category', 'to_ids'),
-            'Object' => array('name', 'meta-category')
-        );
-
-        foreach ($event['Object'] as $k => $object) {
-            foreach ($object['ObjectReference'] as $k2 => $reference) {
-                // find referenced object in current event
-                $type = $reference['referenced_type'] == 0 ? 'Attribute' : 'Object';
-                $found = null;
-                foreach ($event[$type] as $o) {
-                    if ($o['id'] == $reference['referenced_id']) {
-                        $found = $o;
-                        break;
-                    }
-                }
-
-                if ($found) {
-                    // copy requested fields
-                    $reference = [];
-                    foreach (array_merge($fieldsToCopy['common'], $fieldsToCopy[$type]) as $field) {
-                        $reference[$field] = $found[$field];
-                    }
-                    $event['Object'][$k]['ObjectReference'][$k2][$type] = $reference;
-                } else { // object / attribute might be from an extended event
-                    $otherEventText = __('%s from another event', $reference['referenced_type'] == 0 ? 'Attribute' : 'Object');
-                    $event['Object'][$k]['ObjectReference'][$k2][$type] = [
-                        'name' => '',
-                        'meta-category' => $otherEventText,
-                        'category' => $otherEventText,
-                        'type' => '',
-                        'value' => '',
-                        'uuid' => $reference['referenced_uuid']
-                    ];
                 }
             }
         }

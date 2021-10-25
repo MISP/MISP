@@ -702,7 +702,9 @@ class EventsController extends AppController
         $this->paginate['contain']['ThreatLevel'] = [
             'fields' => array('ThreatLevel.name')
         ];
-        $this->paginate['contain'][] = 'EventTag';
+        $this->paginate['contain']['EventTag'] = [
+            'fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local'],
+        ];
         if ($this->_isSiteAdmin()) {
             $this->paginate['contain'][] = 'User.email';
         }
@@ -3462,16 +3464,11 @@ class EventsController extends AppController
                             }
                         }
                     } else {
-                        $conditions = array('LOWER(Tag.name)' => strtolower(trim($tag_id)));
-                        if (!$this->_isSiteAdmin()) {
-                            $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
-                            $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
-                        }
-                        $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
-                        if (empty($tag)) {
+                        $tagId = $this->Event->EventTag->Tag->lookupTagIdForUser($this->Auth->user(), trim($tag_id));
+                        if (empty($tagId)) {
                             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
                         }
-                        $tag_id = $tag['Tag']['id'];
+                        $tag_id = $tagId;
                     }
                 }
             }
@@ -5656,13 +5653,13 @@ class EventsController extends AppController
                     $objectRef['object_id'] = $ObjectResult;
                     $objectRef['relationship_type'] = "preceded-by";
                     $this->loadModel('MispObject');
-                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId, $this->Auth->user(), false);
+                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId);
                     $objectRef['referenced_id'] = $temp['Object']['id'];
                     $objectRef['referenced_uuid'] = $temp['Object']['uuid'];
                     $objectRef['object_id'] = $PreviousObjRef['Object']['id'];
                     $objectRef['relationship_type'] = "followed-by";
                     $this->loadModel('MispObject');
-                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId, $this->Auth->user(), false);
+                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId);
                     $PreviousObjRef = $temp;
                 } else {
                     $PreviousObjRef = $temp;

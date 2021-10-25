@@ -159,10 +159,38 @@ class Tag extends AppModel
         return true;
     }
 
+    /**
+     * @param array $user
+     * @param string $tagName
+     * @return mixed|null
+     */
+    public function lookupTagIdForUser(array $user, $tagName)
+    {
+        $conditions = ['LOWER(Tag.name)' => mb_strtolower($tagName)];
+        if (!$user['Role']['perm_site_admin']) {
+            $conditions['Tag.org_id'] = [0, $user['org_id']];
+            $conditions['Tag.user_id'] = [0, $user['id']];
+        }
+        $tagId = $this->find('first', array(
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => array('Tag.id'),
+            'callbacks' => false,
+        ));
+        if (empty($tagId)) {
+            return null;
+        }
+        return $tagId['Tag']['id'];
+    }
+
+    /**
+     * @param string $tagName
+     * @return int|mixed
+     */
     public function lookupTagIdFromName($tagName)
     {
         $tagId = $this->find('first', array(
-            'conditions' => array('LOWER(Tag.name)' => strtolower($tagName)),
+            'conditions' => array('LOWER(Tag.name)' => mb_strtolower($tagName)),
             'recursive' => -1,
             'fields' => array('Tag.id'),
             'callbacks' => false,
