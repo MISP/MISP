@@ -114,8 +114,8 @@ class UserSettingsController extends AppController
             $this->paginate['conditions'] = $conditions;
             $data = $this->paginate();
             foreach ($data as $k => $v) {
-                if (!empty($this->UserSetting->validSettings[$v['UserSetting']['setting']])) {
-                    $data[$k]['UserSetting']['restricted'] = empty($this->UserSetting->validSettings[$v['UserSetting']['setting']]['restricted']) ? '' : $this->UserSetting->validSettings[$v['UserSetting']['setting']]['restricted'];
+                if (!empty(UserSetting::VALID_SETTINGS[$v['UserSetting']['setting']])) {
+                    $data[$k]['UserSetting']['restricted'] = empty(UserSetting::VALID_SETTINGS[$v['UserSetting']['setting']]['restricted']) ? '' : UserSetting::VALID_SETTINGS[$v['UserSetting']['setting']]['restricted'];
                 } else {
                     $data[$k]['UserSetting']['restricted'] = array();
                 }
@@ -215,7 +215,6 @@ class UserSettingsController extends AppController
             return $this->RestResponse->describe('UserSettings', 'setSetting', false, $this->response->type());
         } else {
             // load the valid settings from the model
-            $validSettings = $this->UserSetting->validSettings;
             if ($this->_isSiteAdmin()) {
                 $users = $this->UserSetting->User->find('list', array(
                     'recursive' => -1,
@@ -235,33 +234,46 @@ class UserSettingsController extends AppController
             }
             $this->set('setting', $setting);
             $this->set('users', $users);
-            $this->set('validSettings', $validSettings);
+            $this->set('validSettings', UserSetting::VALID_SETTINGS);
         }
     }
 
-    public function getSetting($user_id, $setting)
+    public function getSetting($userId = null, $setting = null)
     {
-        if (!$this->UserSetting->checkSettingValidity($setting)) {
-            throw new MethodNotAllowedException(__('Invalid setting.'));
+        if ($this->request->is('post')) {
+            if (empty($this->request->data['setting'])) {
+                throw new BadRequestException("No setting name to delete provided.");
+            }
+            $setting = $this->request->data['setting'];
+            $userId = $this->request->data['user_id'] ?? $this->Auth->user('id');
+        } else {
+            if (empty($userId) || empty($setting)) {
+                throw new BadRequestException("No setting name or user ID provided.");
+            }
         }
+
+        if (!$this->UserSetting->checkSettingValidity($setting)) {
+            throw new NotFoundException(__('Invalid setting.'));
+        }
+
         $userSetting = $this->UserSetting->find('first', array(
             'recursive' => -1,
-            'conditions' => array(
-                'UserSetting.user_id' => $user_id,
-                'UserSetting.setting' => $setting
-            ),
+            'conditions' => [
+                'UserSetting.user_id' => $userId,
+                'UserSetting.setting' => $setting,
+            ],
             'contain' => array('User.id', 'User.org_id')
         ));
-        $checkAccess = $this->UserSetting->checkAccess($this->Auth->user(), $userSetting, $user_id);
-        if (empty($checkAccess)) {
-            throw new MethodNotAllowedException(__('Invalid setting.'));
+
+        if (empty($userSetting)) {
+            throw new NotFoundException(__('Invalid setting.'));
         }
-        if (!empty($userSetting)) {
-            $userSetting = json_encode($userSetting['UserSetting']['value']);
-        } else {
-            $userSetting = '[]';
+
+        $checkAccess = $this->UserSetting->checkAccess($this->Auth->user(), $userSetting, $userId);
+        if (!$checkAccess) {
+            throw new NotFoundException(__('Invalid setting.'));
         }
-        return $this->RestResponse->viewData($userSetting, $this->response->type(), false, true);
+        return $this->RestResponse->viewData($userSetting['UserSetting'], $this->response->type());
     }
 
     public function delete($id = false)

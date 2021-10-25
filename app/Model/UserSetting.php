@@ -27,7 +27,8 @@ class UserSetting extends AppModel
         'User'
     );
 
-    public $validSettings = array(
+    // private
+    const VALID_SETTINGS = array(
         'publish_alert_filter' => array(
             'placeholder' => array(
                 'AND' => array(
@@ -135,7 +136,7 @@ class UserSetting extends AppModel
 
     public function checkSettingValidity($setting)
     {
-        return isset($this->validSettings[$setting]);
+        return isset(self::VALID_SETTINGS[$setting]);
     }
 
     /**
@@ -145,8 +146,8 @@ class UserSetting extends AppModel
      */
     public function checkSettingAccess(array $user, $setting)
     {
-        if (!empty($this->validSettings[$setting]['restricted'])) {
-            $roleCheck = $this->validSettings[$setting]['restricted'];
+        if (!empty(self::VALID_SETTINGS[$setting]['restricted'])) {
+            $roleCheck = self::VALID_SETTINGS[$setting]['restricted'];
             if (!is_array($roleCheck)) {
                 $roleCheck = array($roleCheck);
             }
