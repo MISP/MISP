@@ -231,9 +231,9 @@ class User extends AppModel
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $db_version = $this->AdminSetting->getSetting('db_version');
-        if ($db_version >= 62) {
+
+        // bind AuthKey just when authkey table already exists. This is important for updating from old versions
+        if (in_array('auth_keys', $this->getDataSource()->listSources(), true)) {
             $this->bindModel([
                 'hasMany' => ['AuthKey']
             ], false);
