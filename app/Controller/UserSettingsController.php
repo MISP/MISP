@@ -242,7 +242,7 @@ class UserSettingsController extends AppController
     {
         if ($this->request->is('post')) {
             if (empty($this->request->data['setting'])) {
-                throw new BadRequestException("No setting name to delete provided.");
+                throw new BadRequestException("No setting name provided.");
             }
             $setting = $this->request->data['setting'];
             $userId = $this->request->data['user_id'] ?? $this->Auth->user('id');
