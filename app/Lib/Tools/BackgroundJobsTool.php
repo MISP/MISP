@@ -116,7 +116,7 @@ class BackgroundJobsTool
      * @param array $args Arguments passed to the job.
      * @param boolean|null $trackStatus Whether to track the status of the job.
      * @param array $metadata Related to the job.
-     * 
+     * @param Job $job Relational database record representing the job.
      * @return string Background Job Id.
      * @throws InvalidArgumentExceptiony
      */
@@ -125,11 +125,12 @@ class BackgroundJobsTool
         string $command,
         array $args = [],
         $trackStatus = null,
-        array $metadata = []
+        array $metadata = [],
+        Job $job = null
     ): string {
 
         if ($this->settings['use_resque']) {
-            $this->resqueEnqueue($queue, $command, $args, $trackStatus, $metadata);
+            $this->resqueEnqueue($queue, $command, $args, $trackStatus, $job);
         }
 
         $this->validateQueue($queue);
@@ -156,13 +157,14 @@ class BackgroundJobsTool
     }
 
     /**
-     * @deprecated
      * Enqueue a Job using the CakeResque.
+     * @deprecated
      * 
      * @param string $queue Name of the queue to enqueue the job to.
      * @param string $class Class of the job.
      * @param array $args Arguments passed to the job.
      * @param boolean $trackStatus Whether to track the status of the job.
+     * @param Job $job Relational database record representing the job.
      * @return string Job Id.
      */
     private function resqueEnqueue(
@@ -170,23 +172,10 @@ class BackgroundJobsTool
         string $class,
         $args = [],
         $trackStatus = null,
-        array $metadata = []
+        Job $job = null
     ): string {
 
         CakeLog::notice('[DEPRECATION] CakeResque background jobs engine will be deprecated in future MISP versions, please migrate to the light-weight background jobs processor following this guide: [link].');
-
-        $job = ClassRegistry::init('Job');
-        $job->create();
-        $job->save(
-            array_merge(
-                [
-                    'worker' => $queue,
-                    'status' => 0,
-                    'retries' => 0,
-                ],
-                $metadata['job']
-            )
-        );
 
         $process_id = CakeResque::enqueue(
             $queue,
@@ -194,7 +183,10 @@ class BackgroundJobsTool
             $args,
             $trackStatus
         );
-        $job->saveField('process_id', $process_id);
+
+        if ($job) {
+            $job->saveField('process_id', $process_id);
+        }
 
         return $process_id;
     }

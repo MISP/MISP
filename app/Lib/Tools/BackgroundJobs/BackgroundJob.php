@@ -107,11 +107,6 @@ class BackgroundJob implements JsonSerializable
             2 => ["pipe", "w"], // stderr
         ];
 
-        CakeLog::info(print_r([
-            ROOT . DS . 'app' . DS . 'Console' . DS . 'cake',
-            $this->command(),
-            ...$this->args()
-        ], true));
         $process = proc_open(
             [
                 ROOT . DS . 'app' . DS . 'Console' . DS . 'cake',

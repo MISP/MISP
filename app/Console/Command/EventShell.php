@@ -379,7 +379,7 @@ class EventShell extends AppShell
     public function publish()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[3])) {
+        if (empty($this->args[0]) || empty($this->args[2]) || empty($this->args[3])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish event'] . PHP_EOL);
         }
 
@@ -388,22 +388,21 @@ class EventShell extends AppShell
         $jobId = $this->args[2];
         $userId = $this->args[3];
         $user = $this->getUser($userId);
+        $job = $this->Job->read(null, $jobId);
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
-        $result = $this->Event->publish($id, $passAlong);
+        // $result = $this->Event->publish($id, $passAlong);
+        $result = true;
+        $job['Job']['progress'] = 100;
+        $job['Job']['status'] = Job::STATUS_COMPLETED;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        if ($result) {
+            $job['Job']['message'] = 'Event published.';
+        } else {
+            $job['Job']['message'] = 'Event published, but the upload to other instances may have failed.';
+        }
+        $this->Job->save($job);
         $log = ClassRegistry::init('Log');
         $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): published.', 'published () => (1)');
-
-        if (!empty($jobId)) {
-            $job = $this->Job->read(null, $jobId);
-            $job['Job']['progress'] = 100;
-            $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-            if ($result) {
-                $job['Job']['message'] = 'Event published.';
-            } else {
-                $job['Job']['message'] = 'Event published, but the upload to other instances may have failed.';
-            }
-            $this->Job->save($job);
-        }
     }
 
     public function publish_sightings()

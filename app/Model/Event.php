@@ -4566,6 +4566,11 @@ class Event extends AppModel
     public function publishRouter($id, $passAlong = null, $user)
     {
         if (Configure::read('BackgroundJobs.enabled')) {
+
+            $job = ClassRegistry::init('Job');
+            $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", 'Publishing.');
+            $job->save();
+
             return $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::PRIO_QUEUE,
                 BackgroundJobsTool::CMD_EVENT_SHELL,
@@ -4573,19 +4578,12 @@ class Event extends AppModel
                     'publish',
                     $id,
                     $passAlong,
-                    0, // job_id
+                    $job->id,
                     $user['id']
                 ],
                 true,
-                [
-                    // to support legacy CakeResque jobs
-                    'job' => [
-                        'job_type' => 'publish_event',
-                        'job_input' => "Event ID: $id",
-                        'org_id' => $user === 'SYSTEM' ? 0 : $user['org_id'],
-                        'message' => 'Publishing.'
-                    ],
-                ]
+                [],
+                $job
             );
         }
 
