@@ -120,7 +120,7 @@ class BackgroundJobsTool
      * @param array $args Arguments passed to the job.
      * @param boolean|null $trackStatus Whether to track the status of the job.
      * @param array $metadata Related to the job.
-     * @param Job $job Relational database record representing the job.
+     * @param Job|null $job Relational database record representing the job.
      * @return string Background Job Id.
      * @throws InvalidArgumentExceptiony
      */
@@ -134,13 +134,13 @@ class BackgroundJobsTool
     ): string {
 
         if ($this->settings['use_resque']) {
-            $this->resqueEnqueue($queue, self::CMD_TO_SHELL_DICT[$command], $args, $trackStatus, $job);
+            return $this->resqueEnqueue($queue, self::CMD_TO_SHELL_DICT[$command], $args, $trackStatus, $job);
         }
 
         $this->validateQueue($queue);
         $this->validateCommand($command);
 
-        $job = new BackgroundJob(
+        $backgroundJob = new BackgroundJob(
             [
                 'id' => CakeText::uuid(),
                 'command' => $command,
@@ -152,12 +152,16 @@ class BackgroundJobsTool
 
         $this->RedisConnection->rpush(
             $queue,
-            json_encode($job->jsonSerialize())
+            json_encode($backgroundJob->jsonSerialize())
         );
 
-        $this->update($job);
+        $this->update($backgroundJob);
 
-        return $job->id();
+        if ($job) {
+            $job->saveField('process_id', $backgroundJob->id());
+        }
+
+        return $backgroundJob->id();
     }
 
     /**
@@ -168,7 +172,7 @@ class BackgroundJobsTool
      * @param string $class Class of the job.
      * @param array $args Arguments passed to the job.
      * @param boolean $trackStatus Whether to track the status of the job.
-     * @param Job $job Relational database record representing the job.
+     * @param Job|null $job Relational database record representing the job.
      * @return string Job Id.
      */
     private function resqueEnqueue(

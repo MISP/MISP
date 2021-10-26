@@ -6,7 +6,7 @@ App::uses('AppController', 'Controller');
  */
 class JobsController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler', 'Session');
+    public $components = array('Security', 'RequestHandler', 'Session');
 
     public $paginate = array(
         'limit' => 20,
@@ -31,7 +31,7 @@ class JobsController extends AppController
         $jobs = $this->paginate();
         foreach ($jobs as &$job) {
             if ($job['Job']['process_id'] !== false) {
-                $job['Job']['job_status'] = $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id']));
+                $job['Job']['job_status'] = $this->getJobStatus($job['Job']['process_id']);
                 $job['Job']['failed'] = $job['Job']['job_status'] === 'Failed';
             } else {
                 $job['Job']['job_status'] = 'Unknown';
@@ -53,7 +53,7 @@ class JobsController extends AppController
             'Error' => 'error'
         );
         $this->set('fields', $fields);
-        $this->set('response', CakeResque::getFailedJobLog($id));
+        $this->set('response', $this->getFailedJobLog($id));
         $this->render('/Jobs/ajax/error');
     }
 
@@ -84,7 +84,7 @@ class JobsController extends AppController
             throw new NotFoundException("Job with ID `$id` not found");
         }
         $output = [
-            'job_status' => $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id'])),
+            'job_status' => $this->getJobStatus($job['Job']['process_id']),
             'progress' => (int)$job['Job']['progress'],
         ];
         return $this->RestResponse->viewData($output, 'json');
@@ -136,7 +136,7 @@ class JobsController extends AppController
         if ($this->_isSiteAdmin()) {
             $target = 'All events.';
         } else {
-            $target = 'Events visible to: '.$this->Auth->user('Organisation')['name'];
+            $target = 'Events visible to: ' . $this->Auth->user('Organisation')['name'];
         }
         $id = $this->Job->cache($type, $this->Auth->user());
         if ($this->_isRest()) {
@@ -160,5 +160,27 @@ class JobsController extends AppController
             $this->Flash->success($message);
             $this->redirect(array('action' => 'index'));
         }
+    }
+
+    private function getJobStatus(string $id): string
+    {
+        if (Configure::read('BackgroundJobs.use_resque')) {
+            return $this->__jobStatusConverter(CakeResque::getJobStatus($id));
+        }
+
+        $job = $this->Job->getBackgroundJobsTool()->getJob($id);
+
+        return $this->__jobStatusConverter($job->status());
+    }
+
+    private function getFailedJobLog(string $id): array
+    {
+        if (Configure::read('BackgroundJobs.use_resque')) {
+            return CakeResque::getFailedJobLog($id);
+        }
+
+        return [
+            'error' => $this->Job->getBackgroundJobsTool()->getJob($id)->error()
+        ];
     }
 }

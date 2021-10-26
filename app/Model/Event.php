@@ -4562,7 +4562,7 @@ class Event extends AppModel
                     $user['id']
                 ],
                 true,
-                [],
+                [], // metadata
                 $job
             );
         }

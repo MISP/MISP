@@ -12,32 +12,16 @@ class BackgroundJob implements JsonSerializable
         STATUS_FAILED = 3,
         STATUS_COMPLETED = 4;
 
-    /**
-     * Job id
-     *
-     * @var string
-     */
+    /** @var string */
     private $id;
 
-    /**
-     * Command name
-     *
-     * @var string
-     */
+    /** @var string */
     private $command;
 
-    /**
-     * Command arguments
-     *
-     * @var array
-     */
+    /** @var array */
     private $args;
 
-    /**
-     * Whether to track the status of the job
-     *
-     * @var bool
-     */
+    /** @var bool */
     private $trackStatus;
 
     /**
@@ -54,32 +38,22 @@ class BackgroundJob implements JsonSerializable
      */
     private $updatedAt;
 
-    /**
-     * Job status id
-     *
-     * @var integer
-     */
+    /**@var integer */
     private $status;
 
-    /**
-     * Job progress
-     *
-     * @var integer
-     */
+    /** @var integer */
     private $progress;
 
-    /**
-     * Job metadata
-     *
-     * @var array
-     */
+    /** @var string */
+    private $output;
+
+    /** @var string */
+    private $error;
+
+    /** @var array */
     private $metadata;
 
-    /**
-     * Process return code
-     *
-     * @var integer
-     */
+    /** @var integer */
     private $returnCode;
 
     public function __construct(array $properties)
@@ -91,6 +65,7 @@ class BackgroundJob implements JsonSerializable
         $this->createdAt = $properties['createdAt'] ?? time();
         $this->updatedAt = $properties['updatedAt'] ?? null;
         $this->status = $properties['status'] ?? self::STATUS_WAITING;
+        $this->error = $properties['error'] ?? null;
         $this->progress = $properties['progress'] ?? 0;
         $this->metadata = $properties['metadata'] ?? [];
     }
@@ -118,9 +93,11 @@ class BackgroundJob implements JsonSerializable
         );
 
         $stdout = stream_get_contents($pipes[1]);
+        $this->setOutput($stdout);
         fclose($pipes[1]);
 
         $stderr = stream_get_contents($pipes[2]);
+        $this->setError($stderr);
         fclose($pipes[2]);
 
         $this->returnCode = proc_close($process);
@@ -151,6 +128,8 @@ class BackgroundJob implements JsonSerializable
             'createdAt' => $this->createdAt,
             'updatedAt' => $this->updatedAt,
             'status' => $this->status,
+            'output' => $this->output,
+            'error' => $this->error,
             'metadata' => $this->metadata,
         ];
     }
@@ -195,6 +174,16 @@ class BackgroundJob implements JsonSerializable
         return $this->status;
     }
 
+    public function output(): string
+    {
+        return $this->output;
+    }
+
+    public function error(): string
+    {
+        return $this->error;
+    }
+
     public function metadata(): array
     {
         return $this->metadata;
@@ -208,6 +197,16 @@ class BackgroundJob implements JsonSerializable
     public function setStatus(int $status): void
     {
         $this->status = $status;
+    }
+
+    public function setOutput(string $output): void
+    {
+        $this->output = $output;
+    }
+
+    public function setError(string $error): void
+    {
+        $this->error = $error;
     }
 
     public function setProgress(int $progress): void
