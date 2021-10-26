@@ -2270,17 +2270,20 @@ class EventsController extends AppController
         }
     }
 
-    public function upload_stix($stix_version = '1')
+    public function upload_stix($stix_version = '1', $publish = false)
     {
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
+                if (isset($this->params['named']['publish'])) {
+                    $publish = $this->params['named']['publish'];
+                }
                 $filePath = FileAccessTool::writeToTempFile($this->request->input());
                 $result = $this->Event->upload_stix(
                     $this->Auth->user(),
                     $filePath,
                     $stix_version,
                     'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
-                    false
+                    $publish
                 );
                 if (is_numeric($result)) {
                     $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $result));
