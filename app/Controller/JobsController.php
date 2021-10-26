@@ -169,8 +169,9 @@ class JobsController extends AppController
         }
 
         $job = $this->Job->getBackgroundJobsTool()->getJob($id);
+        $status = $job ? $job->status() : null;
 
-        return $this->__jobStatusConverter($job->status());
+        return $this->__jobStatusConverter($status);
     }
 
     private function getFailedJobLog(string $id): array
@@ -179,8 +180,11 @@ class JobsController extends AppController
             return CakeResque::getFailedJobLog($id);
         }
 
+        $job = $this->Job->getBackgroundJobsTool()->getJob($id);
+        $error = $job ? $job->error() : 'Job not found.';
+
         return [
-            'error' => $this->Job->getBackgroundJobsTool()->getJob($id)->error()
+            'error' => $error
         ];
     }
 }
