@@ -231,9 +231,9 @@ class User extends AppModel
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $db_version = $this->AdminSetting->getSetting('db_version');
-        if ($db_version >= 62) {
+
+        // bind AuthKey just when authkey table already exists. This is important for updating from old versions
+        if (in_array('auth_keys', $this->getDataSource()->listSources(), true)) {
             $this->bindModel([
                 'hasMany' => ['AuthKey']
             ], false);
@@ -1503,5 +1503,69 @@ class User extends AppModel
         }
         $banStatus['message'] = __('User email notification ban setting is not enabled');
         return $banStatus;
+    }
+
+    /**
+     * @param array $user
+     * @return bool
+     */
+    public function hasNotifications(array $user)
+    {
+        $hasProposal = $this->Event->ShadowAttribute->hasAny([
+            'ShadowAttribute.event_org_id' => $user['org_id'],
+            'ShadowAttribute.deleted' => 0,
+        ]);
+        if ($hasProposal) {
+            return true;
+        }
+
+        if (Configure::read('MISP.delegation') && $this->_getDelegationCount($user)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @param array $user
+     * @return array
+     */
+    public function populateNotifications(array $user)
+    {
+        $notifications = array();
+        list($notifications['proposalCount'], $notifications['proposalEventCount']) = $this->_getProposalCount($user);
+        $notifications['total'] = $notifications['proposalCount'];
+        if (Configure::read('MISP.delegation')) {
+            $notifications['delegationCount'] = $this->_getDelegationCount($user);
+            $notifications['total'] += $notifications['delegationCount'];
+        }
+        return $notifications;
+    }
+
+    // if not using $mode === 'full', simply check if an entry exists. We really don't care about the real count for the top menu.
+    private function _getProposalCount($user, $mode = 'full')
+    {
+        $results[0] = $this->Event->ShadowAttribute->find('count', [
+            'conditions' => array(
+                'ShadowAttribute.event_org_id' => $user['org_id'],
+                'ShadowAttribute.deleted' => 0,
+            )
+        ]);
+        $results[1] = $this->Event->ShadowAttribute->find('count', [
+            'conditions' => array(
+                'ShadowAttribute.event_org_id' => $user['org_id'],
+                'ShadowAttribute.deleted' => 0,
+            ),
+            'fields' => 'distinct event_id'
+        ]);
+        return $results;
+    }
+
+    private function _getDelegationCount($user)
+    {
+        $this->EventDelegation = ClassRegistry::init('EventDelegation');
+        return $this->EventDelegation->find('count', array(
+            'recursive' => -1,
+            'conditions' => array('EventDelegation.org_id' => $user['org_id'])
+        ));
     }
 }

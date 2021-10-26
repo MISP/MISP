@@ -457,10 +457,6 @@ class GalaxyCluster extends AppModel
             } else {
                 return false;
             }
-            $this->Event = ClassRegistry::init('Event');
-            $job_type = 'publish_cluster';
-            $function = 'publish_galaxy_clusters';
-            $message = 'Publishing.';
             $job = ClassRegistry::init('Job');
             $job->create();
             $data = array(
@@ -471,14 +467,14 @@ class GalaxyCluster extends AppModel
                 'retries' => 0,
                 'org_id' => $user['org_id'],
                 'org' => $user['Organisation']['name'],
-                'message' => $message
+                'message' => 'Publishing.'
             );
             $job->save($data);
             $jobId = $job->id;
             $process_id = CakeResque::enqueue(
                 'prio',
                 'EventShell',
-                array($function, $clusterId, $jobId, $user['id'], $passAlong),
+                array('publish_galaxy_clusters', $clusterId, $jobId, $user['id'], $passAlong),
                 true
             );
             $job->saveField('process_id', $process_id);

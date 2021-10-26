@@ -794,7 +794,6 @@ class Attribute extends AppModel
 
     public function runValidation($value, $type)
     {
-        $returnValue = false;
         // check data validation
         switch ($type) {
             case 'md5':
@@ -822,24 +821,19 @@ class Attribute extends AppModel
             case 'git-commit-id':
                 if ($this->isHashValid($type, $value)) {
                     return true;
-                } else {
-                    $length = self::HEX_HAS_LENGTHS[$type];
-                    return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
                 }
+                $length = self::HEX_HAS_LENGTHS[$type];
+                return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
             case 'tlsh':
-                if (preg_match("#^[0-9a-f]{35,}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Checksum has an invalid length or format (expected: at least 35 hexadecimal characters). Please double check the value or select type "other".');
+                if (preg_match("#^t?[0-9a-f]{35,}$#i", $value)) {
+                    return true;
                 }
-                break;
+                return __('Checksum has an invalid length or format (expected: at least 35 hexadecimal characters, optionally starting with t1 instead of hexadecimal characters). Please double check the value or select type "other".');
             case 'pehash':
                 if ($this->isHashValid('pehash', $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('The input doesn\'t match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
+                    return true;
                 }
-                break;
+                return __('The input doesn\'t match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
             case 'ssdeep':
                 if (substr_count($value, ':') === 2) {
                     $parts = explode(':', $value);
@@ -852,35 +846,26 @@ class Attribute extends AppModel
                 if (substr_count($value, ':') === 2) {
                     $parts = explode(':', $value);
                     if ($this->isPositiveInteger($parts[0])) {
-                        $returnValue = true;
+                        return true;
                     }
                 }
-                if (!$returnValue) {
-                    $returnValue = __('Invalid impfuzzy format. The format has to be imports:hash:hash');
-                }
-                break;
+                return __('Invalid impfuzzy format. The format has to be imports:hash:hash');
             case 'cdhash':
                 if (preg_match("#^[0-9a-f]{40,}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('The input doesn\'t match the expected format (expected: 40 or more hexadecimal characters)');
+                    return true;
                 }
-                break;
+                return __('The input doesn\'t match the expected format (expected: 40 or more hexadecimal characters)');
             case 'http-method':
                 if (preg_match("#(OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|PROPFIND|PROPPATCH|MKCOL|COPY|MOVE|LOCK|UNLOCK|VERSION-CONTROL|REPORT|CHECKOUT|CHECKIN|UNCHECKOUT|MKWORKSPACE|UPDATE|LABEL|MERGE|BASELINE-CONTROL|MKACTIVITY|ORDERPATCH|ACL|PATCH|SEARCH)#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Unknown HTTP method.');
+                    return true;
                 }
-                break;
+                return __('Unknown HTTP method.');
             case 'filename|pehash':
                 // no newline
                 if (preg_match("#^.+\|[0-9a-f]{40}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('The input doesn\'t match the expected filename|sha1 format (expected: filename|40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
+                    return true;
                 }
-                break;
+                return __('The input doesn\'t match the expected filename|sha1 format (expected: filename|40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
             case 'filename|md5':
             case 'filename|sha1':
             case 'filename|imphash':
@@ -898,42 +883,33 @@ class Attribute extends AppModel
                 $parts = explode('|', $type);
                 $length = self::HEX_HAS_LENGTHS[$parts[1]];
                 if (preg_match("#^.+\|[0-9a-f]{" . $length . "}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Checksum has an invalid length or format (expected: filename|%s hexadecimal characters). Please double check the value or select type "other".', $length);
+                    return true;
                 }
-                break;
+                return __('Checksum has an invalid length or format (expected: filename|%s hexadecimal characters). Please double check the value or select type "other".', $length);
             case 'filename|ssdeep':
                 if (substr_count($value, '|') != 1 || !preg_match("#^.+\|.+$#", $value)) {
-                    $returnValue = __('Invalid composite type. The format has to be %s.', $type);
+                    return __('Invalid composite type. The format has to be %s.', $type);
                 } else {
                     $composite = explode('|', $value);
                     $value = $composite[1];
                     if (substr_count($value, ':') == 2) {
                         $parts = explode(':', $value);
                         if ($this->isPositiveInteger($parts[0])) {
-                            $returnValue = true;
+                            return true;
                         }
                     }
-                    if (!$returnValue) {
-                        $returnValue = __('Invalid SSDeep hash (expected: blocksize:hash:hash).');
-                    }
                 }
-                break;
+                return __('Invalid SSDeep hash (expected: blocksize:hash:hash).');
             case 'filename|tlsh':
                 if (preg_match("#^.+\|[0-9a-f]{35,}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type "other".');
+                    return true;
                 }
-                break;
+                return __('Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type "other".');
             case 'filename|vhash':
                 if (preg_match('#^.+\|.+$#', $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Checksum has an invalid length or format (expected: filename|string characters). Please double check the value or select type "other".');
+                    return true;
                 }
-                break;
+                return __('Checksum has an invalid length or format (expected: filename|string characters). Please double check the value or select type "other".');
             case 'ip-src':
             case 'ip-dst':
                 if (strpos($value, '/') !== false) {
@@ -957,14 +933,11 @@ class Attribute extends AppModel
                     return  __('IP address has an invalid format.');
                 }
                 return true;
-
             case 'port':
                 if (!$this->isPortValid($value)) {
-                    $returnValue = __('Port numbers have to be integers between 1 and 65535.');
-                } else {
-                    $returnValue = true;
+                    return __('Port numbers have to be integers between 1 and 65535.');
                 }
-                break;
+                return true;
             case 'ip-dst|port':
             case 'ip-src|port':
                 $parts = explode('|', $value);
@@ -977,22 +950,20 @@ class Attribute extends AppModel
                 return true;
             case 'mac-address':
                 if (preg_match('/^([a-fA-F0-9]{2}[:]?){6}$/', $value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'mac-eui-64':
                 if (preg_match('/^([a-fA-F0-9]{2}[:]?){8}$/', $value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'hostname':
             case 'domain':
                 if ($this->isDomainValid($value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('%s has an invalid format. Please double check the value or select type "other".', ucfirst($type));
+                    return true;
                 }
-                break;
+                return __('%s has an invalid format. Please double check the value or select type "other".', ucfirst($type));
             case 'hostname|port':
                 $parts = explode('|', $value);
                 if (!$this->isDomainValid($parts[0])) {
@@ -1006,14 +977,12 @@ class Attribute extends AppModel
                 if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}\|.*$#i", $value)) {
                     $parts = explode('|', $value);
                     if (filter_var($parts[1], FILTER_VALIDATE_IP)) {
-                        $returnValue = true;
+                        return true;
                     } else {
-                        $returnValue = __('IP address has an invalid format.');
+                        return __('IP address has an invalid format.');
                     }
-                } else {
-                    $returnValue = __('Domain name has an invalid format.');
                 }
-                break;
+                return __('Domain name has an invalid format.');
             case 'email':
             case 'email-src':
             case 'eppn':
@@ -1024,38 +993,30 @@ class Attribute extends AppModel
             case 'jabber-id':
                 // we don't use the native function to prevent issues with partial email addresses
                 if (preg_match("#^.*\@.*\..*$#i", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Email address has an invalid format. Please double check the value or select type "other".');
+                    return true;
                 }
-                break;
+                return __('Email address has an invalid format. Please double check the value or select type "other".');
             case 'vulnerability':
                 if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Invalid format. Expected: CVE-xxxx-xxxx...');
+                    return true;
                 }
-                break;
+                return __('Invalid format. Expected: CVE-xxxx-xxxx...');
             case 'weakness':
                 if (preg_match("#^(CWE-)[0-9]{1,}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Invalid format. Expected: CWE-x...');
+                    return true;
                 }
-                break;
+                return __('Invalid format. Expected: CWE-x...');
             case 'named pipe':
                 if (!preg_match("#\n#", $value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'windows-service-name':
             case 'windows-service-displayname':
                 if (strlen($value) > 256 || preg_match('#[\\\/]#', $value)) {
-                    $returnValue = __('Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.');
-                } else {
-                    $returnValue = true;
+                    return __('Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.');
                 }
-                break;
+                return true;
             case 'mutex':
             case 'process-state':
             case 'snort':
@@ -1090,12 +1051,11 @@ class Attribute extends AppModel
             case 'middle-name':
             case 'last-name':
             case 'full-name':
-                $returnValue = true;
-                break;
+                return true;
             case 'link':
                 // Moved to a native function whilst still enforcing the scheme as a requirement
                 if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'hex':
@@ -1164,38 +1124,33 @@ class Attribute extends AppModel
                 }
                 return true;
             case 'datetime':
-                try {
-                    new DateTime($value);
-                    $returnValue = true;
-                } catch (Exception $e) {
-                    $returnValue = __('Datetime has to be in the ISO 8601 format.');
+                if (strtotime($value) !== false) {
+                    return true;
                 }
-                break;
+                return __('Datetime has to be in the ISO 8601 format.');
             case 'size-in-bytes':
             case 'counter':
                 if ($this->isPositiveInteger($value)) {
                     return true;
                 }
                 return __('The value has to be a whole number greater or equal 0.');
-            case 'targeted-threat-index':
+          /*  case 'targeted-threat-index':
                 if (!is_numeric($value) || $value < 0 || $value > 10) {
-                    $returnValue = __('The value has to be a number between 0 and 10.');
-                } else {
-                    $returnValue = true;
+                    return __('The value has to be a number between 0 and 10.');
                 }
-                break;
+                return true;*/
             case 'iban':
             case 'bic':
             case 'btc':
             case 'dash':
             case 'xmr':
                 if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'vhash':
                 if (preg_match('/^.+$/', $value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'bin':
@@ -1206,18 +1161,17 @@ class Attribute extends AppModel
             case 'phone-number':
             case 'whois-registrant-phone':
                 if (is_numeric($value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'cortex':
                 json_decode($value);
-                $returnValue = (json_last_error() == JSON_ERROR_NONE);
-                break;
+                return json_last_error() === JSON_ERROR_NONE;
             case 'float':
                 return is_numeric($value);
             case 'boolean':
                 if ($value == 1 || $value == 0) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'AS':
@@ -1226,7 +1180,7 @@ class Attribute extends AppModel
                 }
                 return __('AS number have to be integers between 1 and 4294967295');
         }
-        return $returnValue;
+        return false;
     }
 
     // do some last second modifications before the validation

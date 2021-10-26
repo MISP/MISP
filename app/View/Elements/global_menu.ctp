@@ -513,10 +513,10 @@
                     h($me['email']),
                     $this->UserName->prepend($me['email']),
                     h($this->UserName->convertEmailToName($me['email'])),
-                    isset($notifications) ? sprintf(
+                    isset($hasNotifications) ? sprintf(
                         '<i class="fa fa-envelope %s" role="img" aria-label="%s"></i>',
-                        (($notifications['total'] == 0) ? 'white' : 'red'),
-                        __('Notifications') . ': ' . $notifications['total']
+                        $hasNotifications ? 'red' : 'white',
+                        __('Notifications')
                     ) : ''
                 )
             ),

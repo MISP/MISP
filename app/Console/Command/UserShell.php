@@ -82,28 +82,31 @@ class UserShell extends AppShell
 
     public function list()
     {
-        // do not fetch sensitive or big values
-        $schema = $this->User->schema();
-        unset($schema['authkey']);
-        unset($schema['password']);
-        unset($schema['gpgkey']);
-        unset($schema['certif_public']);
-
-        $fields = array_keys($schema);
-        $fields[] = 'Role.*';
-        $fields[] = 'Organisation.*';
-
-        $users = $this->User->find('all', [
-            'recursive' => -1,
-            'fields' => $fields,
-            'contain' => ['Organisation', 'Role'],
-        ]);
-
         if ($this->params['json']) {
+            // do not fetch sensitive or big values
+            $schema = $this->User->schema();
+            unset($schema['authkey']);
+            unset($schema['password']);
+            unset($schema['gpgkey']);
+            unset($schema['certif_public']);
+
+            $fields = array_keys($schema);
+            $fields[] = 'Role.*';
+            $fields[] = 'Organisation.*';
+
+            $users = $this->User->find('all', [
+                'recursive' => -1,
+                'fields' => $fields,
+                'contain' => ['Organisation', 'Role', 'UserSetting'],
+            ]);
+
             $this->out($this->json($users));
         } else {
+            $users = $this->User->find('column', [
+                'fields' => ['email'],
+            ]);
             foreach ($users as $user) {
-                $this->out($user['User']['email']);
+                $this->out($user);
             }
         }
     }

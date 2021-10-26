@@ -62,6 +62,7 @@ class TestComprehensive(unittest.TestCase):
 
     def setUp(self):
         self.user_misp_connector.global_pythonify = True
+        self.admin_misp_connector.global_pythonify = True
 
     def test_search_index(self):
         # Search all events
@@ -330,13 +331,71 @@ class TestComprehensive(unittest.TestCase):
 
         # Create test event
         event = create_simple_event()
-        event = self.user_misp_connector.add_event(event, pythonify=True)
+        event = self.user_misp_connector.add_event(event)
         check_response(event)
 
         # Delete event
         check_response(self.user_misp_connector.delete_event(event))
 
         check_response(self.admin_misp_connector.set_server_setting('MISP.enableEventBlocklisting', 0))
+
+    def test_deleted_attributes(self):
+        # Create test event
+        event = create_simple_event()
+        event.add_attribute('text', "deleted", deleted=True)
+        event.add_attribute('text', "not-deleted")
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        # Not deleted
+        fetched_event = self.user_misp_connector.get_event(event)
+        check_response(fetched_event)
+        self.assertEqual(len(fetched_event.attributes), 2, fetched_event)
+
+        # Not deleted
+        fetched_event = self.user_misp_connector.get_event(event, deleted=0)
+        check_response(fetched_event)
+        self.assertEqual(len(fetched_event.attributes), 2, fetched_event)
+
+        # Include deleted
+        fetched_event = self.user_misp_connector.get_event(event, deleted=1)
+        check_response(fetched_event)
+        self.assertEqual(len(fetched_event.attributes), 3, fetched_event)
+
+        # Deleted only
+        fetched_event = self.user_misp_connector.get_event(event, deleted=2)
+        check_response(fetched_event)
+        self.assertEqual(len(fetched_event.attributes), 1, fetched_event)
+
+        # Both
+        fetched_event = self.user_misp_connector.get_event(event, deleted=[0, 1])
+        check_response(fetched_event)
+        self.assertEqual(len(fetched_event.attributes), 3, fetched_event)
+
+        check_response(self.user_misp_connector.delete_event(event))
+
+    def test_view_event_exclude_local_tags(self):
+        event = create_simple_event()
+        event.add_tag({"name": "local", "local": 1})
+        event.add_tag({"name": "global", "local": 0})
+        event.attributes[0].add_tag({"name": "local", "local": 1})
+        event.attributes[0].add_tag({"name": "global", "local": 0})
+
+        event = self.admin_misp_connector.add_event(event)
+        check_response(event)
+
+        event_with_local_tags = self.admin_misp_connector.get_event(event)
+        check_response(event_with_local_tags)
+        self.assertEqual(len(event_with_local_tags.tags), 2)
+        self.assertEqual(len(event_with_local_tags.attributes[0].tags), 2)
+
+        event_without_local_tags = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', f'events/view/{event.id}/excludeLocalTags:1'))
+        check_response(event_without_local_tags)
+
+        self.assertEqual(event_without_local_tags["Event"]["Tag"][0]["local"], 0, event_without_local_tags)
+        self.assertEqual(event_without_local_tags["Event"]["Attribute"][0]["Tag"][0]["local"], 0, event_without_local_tags)
+
+        check_response(self.admin_misp_connector.delete_event(event))
 
 
 if __name__ == '__main__':

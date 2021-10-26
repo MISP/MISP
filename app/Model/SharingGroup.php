@@ -5,6 +5,9 @@ App::uses('AppModel', 'Model');
  * @property SharingGroupOrg $SharingGroupOrg
  * @property SharingGroupServer $SharingGroupServer
  * @property Organisation $Organisation
+ * @property Event $Event
+ * @property Attribute $Attribute
+ * @property Thread $Thread
  */
 class SharingGroup extends AppModel
 {
@@ -99,6 +102,12 @@ class SharingGroup extends AppModel
             return false;
         }
         if ($this->Attribute->hasAny(['sharing_group_id' => $this->id])) {
+            return false;
+        }
+        if ($this->Attribute->Object->hasAny(['sharing_group_id' => $this->id])) {
+            return false;
+        }
+        if ($this->Event->EventReport->hasAny(['sharing_group_id' => $this->id])) {
             return false;
         }
         return true;
