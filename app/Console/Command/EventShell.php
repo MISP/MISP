@@ -390,8 +390,7 @@ class EventShell extends AppShell
         $user = $this->getUser($userId);
         $job = $this->Job->read(null, $jobId);
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
-        // $result = $this->Event->publish($id, $passAlong);
-        $result = true;
+        $result = $this->Event->publish($id, $passAlong);
         $job['Job']['progress'] = 100;
         $job['Job']['status'] = Job::STATUS_COMPLETED;
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");

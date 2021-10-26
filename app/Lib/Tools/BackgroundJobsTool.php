@@ -68,10 +68,14 @@ class BackgroundJobsTool
         self::UPDATE_QUEUE,
     ];
 
-    public const CMD_EVENT_SHELL = 'event';
+    public const CMD_EVENT = 'event';
 
     public const ALLOWED_COMMANDS = [
-        self::CMD_EVENT_SHELL
+        self::CMD_EVENT
+    ];
+
+    public const CMD_TO_SHELL_DICT = [
+        self::CMD_EVENT => 'EventShell'
     ];
 
     public const JOB_STATUS_PREFIX = 'job_status';
@@ -130,7 +134,7 @@ class BackgroundJobsTool
     ): string {
 
         if ($this->settings['use_resque']) {
-            $this->resqueEnqueue($queue, $command, $args, $trackStatus, $job);
+            $this->resqueEnqueue($queue, self::CMD_TO_SHELL_DICT[$command], $args, $trackStatus, $job);
         }
 
         $this->validateQueue($queue);

@@ -4553,7 +4553,7 @@ class Event extends AppModel
 
             return $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::PRIO_QUEUE,
-                BackgroundJobsTool::CMD_EVENT_SHELL,
+                BackgroundJobsTool::CMD_EVENT,
                 [
                     'publish',
                     $id,
