@@ -240,11 +240,30 @@ class Log extends AppModel
             if ($action === 'request' && !empty(Configure::read('MISP.log_paranoid_skip_db'))) {
                 return null;
             }
+            if (!empty(Configure::read('MISP.log_skip_db_logs_completely'))) {
+                return null;
+            }
 
             throw new Exception("Cannot save log because of validation errors: " . json_encode($this->validationErrors));
         }
 
         return $result;
+    }
+
+    /**
+     * @param array|string $user
+     * @param string $action
+     * @param string $model
+     * @param string $title
+     * @param array $validationErrors
+     * @param array $fullObject
+     * @throws Exception
+     */
+    public function validationError($user, $action, $model, $title, array $validationErrors, array $fullObject)
+    {
+        $this->log($title, LOG_WARNING);
+        $change = 'Validation errors: ' . json_encode($validationErrors) . ' Full ' . $model  . ': ' . json_encode($fullObject);
+        $this->createLogEntry($user, $action, $model, 0, $title, $change);
     }
 
     // to combat a certain bug that causes the upgrade scripts to loop without being able to set the correct version

@@ -268,14 +268,14 @@ class TestSecurity(unittest.TestCase):
     def test_user_must_change_password(self):
         updated_user = self.admin_misp_connector.update_user({'change_pw': 1}, self.test_usr)
         check_response(updated_user)
-        self.assertEqual(updated_user.change_pw, "1")
+        self.assertTrue(updated_user.change_pw)
 
         # Try to login, should still work because key is still valid
         PyMISP(url, self.test_usr.authkey)
 
         updated_user = self.admin_misp_connector.update_user({'change_pw': 0}, self.test_usr)
         check_response(updated_user)
-        self.assertEqual(updated_user.change_pw, "0")
+        self.assertFalse(updated_user.change_pw)
 
         # Try to login, should also still works
         PyMISP(url, self.test_usr.authkey)
@@ -284,7 +284,7 @@ class TestSecurity(unittest.TestCase):
         # Admin set that user must change password
         updated_user = self.admin_misp_connector.update_user({'change_pw': 1}, self.test_usr)
         check_response(updated_user)
-        self.assertEqual(updated_user.change_pw, "1")
+        self.assertTrue(updated_user.change_pw)
 
         # User try to change back trough API
         logged_in = PyMISP(url, self.test_usr.authkey)
@@ -292,7 +292,7 @@ class TestSecurity(unittest.TestCase):
 
         updated_user = self.admin_misp_connector.get_user(self.test_usr)
         # Should not be possible
-        self.assertEqual(updated_user.change_pw, "1")
+        self.assertTrue(updated_user.change_pw)
 
     def test_disabled_user(self):
         # Disable user

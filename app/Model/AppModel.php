@@ -83,7 +83,8 @@ class AppModel extends Model
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
-        69 => false, 70 => false, 71 => true, 72 => true, 73 => false,
+        69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
+        75 => false,
     );
 
     public $advanced_updates_description = array(
@@ -1582,6 +1583,16 @@ class AppModel extends Model
                 $this->__dropIndex('user_settings', 'timestamp'); // index is not used
                 $sqlArray[] = "ALTER TABLE `user_settings` ADD UNIQUE INDEX `unique_setting` (`user_id`, `setting`)";
                 break;
+            case 74:
+                $sqlArray[] = "ALTER TABLE `users` MODIFY COLUMN `change_pw` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 75:
+                $this->__addIndex('object_references', 'event_id');
+                $this->__dropIndex('object_references', 'timestamp');
+                $this->__dropIndex('object_references', 'source_uuid');
+                $this->__dropIndex('object_references', 'relationship_type');
+                $this->__dropIndex('object_references', 'referenced_uuid');
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2424,60 +2435,6 @@ class AppModel extends Model
         return true;
     }
 
-    public function populateNotifications($user, $mode = 'full')
-    {
-        $notifications = array();
-        list($notifications['proposalCount'], $notifications['proposalEventCount']) = $this->_getProposalCount($user, $mode);
-        $notifications['total'] = $notifications['proposalCount'];
-        if (Configure::read('MISP.delegation')) {
-            $notifications['delegationCount'] = $this->_getDelegationCount($user);
-            $notifications['total'] += $notifications['delegationCount'];
-        }
-        return $notifications;
-    }
-
-    // if not using $mode === 'full', simply check if an entry exists. We really don't care about the real count for the top menu.
-    private function _getProposalCount($user, $mode = 'full')
-    {
-        $this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
-        $results[0] = $this->ShadowAttribute->find(
-            'count',
-            array(
-                'recursive' => -1,
-                'conditions' => array(
-                        'ShadowAttribute.event_org_id' => $user['org_id'],
-                        'ShadowAttribute.deleted' => 0,
-                )
-            )
-        );
-        if ($mode === 'full') {
-            $results[1] = $this->ShadowAttribute->find(
-                'count',
-                array(
-                    'recursive' => -1,
-                    'conditions' => array(
-                            'ShadowAttribute.event_org_id' => $user['org_id'],
-                            'ShadowAttribute.deleted' => 0,
-                    ),
-                    'fields' => 'distinct event_id'
-                )
-            );
-        } else {
-            $results[1] = $results[0];
-        }
-        return $results;
-    }
-
-    private function _getDelegationCount($user)
-    {
-        $this->EventDelegation = ClassRegistry::init('EventDelegation');
-        $delegations = $this->EventDelegation->find('count', array(
-            'recursive' => -1,
-            'conditions' => array('EventDelegation.org_id' => $user['org_id'])
-        ));
-        return $delegations;
-    }
-
     public function checkFilename($filename)
     {
         return preg_match('@^([a-z0-9_.]+[a-z0-9_.\- ]*[a-z0-9_.\-]|[a-z0-9_.])+$@i', $filename);
@@ -3198,6 +3155,7 @@ class AppModel extends Model
             'conditions' => $conditions,
             'recursive' => -1,
             'callbacks' => false,
+            'order' => [], // disable order
         ));
     }
 

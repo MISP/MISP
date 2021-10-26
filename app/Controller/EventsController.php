@@ -36,13 +36,14 @@ class EventsController extends AppController
         'sighting', 'includeSightingdb', 'warninglistId'
     );
 
-    public $defaultFilteringRules = array(
+    // private
+    const DEFAULT_FILTERING_RULE = array(
         'searchFor' => '',
         'attributeFilter' => 'all',
         'proposal' => 0,
         'correlation' => 0,
         'warning' => 0,
-        'deleted' => 2,
+        'deleted' => 0,
         'includeRelatedTags' => 0,
         'includeDecayScore' => 0,
         'toIDS' => 0,
@@ -701,7 +702,9 @@ class EventsController extends AppController
         $this->paginate['contain']['ThreatLevel'] = [
             'fields' => array('ThreatLevel.name')
         ];
-        $this->paginate['contain'][] = 'EventTag';
+        $this->paginate['contain']['EventTag'] = [
+            'fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local'],
+        ];
         if ($this->_isSiteAdmin()) {
             $this->paginate['contain'][] = 'User.email';
         }
@@ -1212,9 +1215,9 @@ class EventsController extends AppController
             if ($filters['deleted'] == 1) { // both
                 $conditions['deleted'] = [0, 1];
             } elseif ($filters['deleted'] == 0) { // not-deleted only
-                $conditions['deleted'] = 1;
-            } else { // only deleted
                 $conditions['deleted'] = 0;
+            } else { // only deleted
+                $conditions['deleted'] = 1;
             }
         }
         if (isset($filters['toIDS']) && $filters['toIDS'] != 0) {
@@ -1327,7 +1330,7 @@ class EventsController extends AppController
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
         $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
-        $this->set('deleted', isset($filters['deleted']) && $filters['deleted'] != 2);
+        $this->set('deleted', isset($filters['deleted']) && $filters['deleted'] != 0);
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
         $this->set('filters', $filters);
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
@@ -1584,7 +1587,7 @@ class EventsController extends AppController
 
     private function __eventViewCommon(array $user)
     {
-        $this->set('defaultFilteringRules', $this->defaultFilteringRules);
+        $this->set('defaultFilteringRules', self::DEFAULT_FILTERING_RULE);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 
         $orgTable = $this->Event->Orgc->find('list', array(
@@ -1990,7 +1993,7 @@ class EventsController extends AppController
         unset($filters['direction']);
         $activeRules = array();
         foreach ($filters as $k => $v) {
-            if (isset($this->defaultFilteringRules[$k]) && $this->defaultFilteringRules[$k] != $v) {
+            if (isset(self::DEFAULT_FILTERING_RULE[$k]) && self::DEFAULT_FILTERING_RULE[$k] != $v) {
                 $activeRules[$k] = $v;
             }
         }
@@ -2267,17 +2270,20 @@ class EventsController extends AppController
         }
     }
 
-    public function upload_stix($stix_version = '1')
+    public function upload_stix($stix_version = '1', $publish = false)
     {
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
+                if (isset($this->params['named']['publish'])) {
+                    $publish = $this->params['named']['publish'];
+                }
                 $filePath = FileAccessTool::writeToTempFile($this->request->input());
                 $result = $this->Event->upload_stix(
                     $this->Auth->user(),
                     $filePath,
                     $stix_version,
                     'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
-                    false
+                    $publish
                 );
                 if (is_numeric($result)) {
                     $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $result));
@@ -3461,16 +3467,11 @@ class EventsController extends AppController
                             }
                         }
                     } else {
-                        $conditions = array('LOWER(Tag.name)' => strtolower(trim($tag_id)));
-                        if (!$this->_isSiteAdmin()) {
-                            $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
-                            $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
-                        }
-                        $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
-                        if (empty($tag)) {
+                        $tagId = $this->Event->EventTag->Tag->lookupTagIdForUser($this->Auth->user(), trim($tag_id));
+                        if (empty($tagId)) {
                             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
                         }
-                        $tag_id = $tag['Tag']['id'];
+                        $tag_id = $tagId;
                     }
                 }
             }
@@ -5655,13 +5656,13 @@ class EventsController extends AppController
                     $objectRef['object_id'] = $ObjectResult;
                     $objectRef['relationship_type'] = "preceded-by";
                     $this->loadModel('MispObject');
-                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId, $this->Auth->user(), false);
+                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId);
                     $objectRef['referenced_id'] = $temp['Object']['id'];
                     $objectRef['referenced_uuid'] = $temp['Object']['uuid'];
                     $objectRef['object_id'] = $PreviousObjRef['Object']['id'];
                     $objectRef['relationship_type'] = "followed-by";
                     $this->loadModel('MispObject');
-                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId, $this->Auth->user(), false);
+                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId);
                     $PreviousObjRef = $temp;
                 } else {
                     $PreviousObjRef = $temp;

@@ -44,7 +44,7 @@ class MispStatusWidget
                 'View'
             )
         );
-        $notifications = $this->Event->populateNotifications($user);
+        $notifications = $this->Event->User->populateNotifications($user);
         if (!empty($notifications['proposalCount'])) {
             $data[] = array(
                 'title' => __('Pending proposals'),
