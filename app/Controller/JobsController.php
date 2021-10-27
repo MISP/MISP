@@ -181,10 +181,12 @@ class JobsController extends AppController
         }
 
         $job = $this->Job->getBackgroundJobsTool()->getJob($id);
-        $error = $job ? $job->error() : 'Job not found.';
+        $output = $job ? $job->output() : __('Job status not found.');
+        $backtrace = $job ? explode("\n", $job->error()) : [];
 
         return [
-            'error' => $error
+            'error' => $output ?? $backtrace[0] ?? '',
+            'backtrace' => $backtrace
         ];
     }
 }

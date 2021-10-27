@@ -4545,7 +4545,7 @@ class Event extends AppModel
 
     public function publishRouter($id, $passAlong = null, $user)
     {
-        if (Configure::read('BackgroundJobs.enabled')) {
+        if (Configure::read('MISP.background_jobs')) {
 
             $job = ClassRegistry::init('Job');
             $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", 'Publishing.');
@@ -4677,23 +4677,32 @@ class Event extends AppModel
             $job = ClassRegistry::init('Job');
             $job->create();
             $data = array(
-                    'worker' => 'email',
-                    'job_type' => 'contact_alert',
-                    'job_input' => 'Owner ' . ($creator_only ? 'user' : 'org') . ' of event #' . $id,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'message' => 'Contacting.',
+                'worker' => 'email',
+                'job_type' => 'contact_alert',
+                'job_input' => 'Owner ' . ($creator_only ? 'user' : 'org') . ' of event #' . $id,
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => $user['org_id'],
+                'message' => 'Contacting.',
             );
             $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'email',
-                    'EventShell',
-                    array('contactemail', $id, $message, $creator_only, $user['id'], $jobId),
-                    true
+
+            return $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::EMAIL_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                [
+                    'contactemail',
+                    $id,
+                    $message,
+                    $creator_only,
+                    $user['id'],
+                    $job->id
+                ],
+                true,
+                [], // metadata
+                $job
             );
-            $job->saveField('process_id', $process_id);
+
             return true;
         } else {
             return $this->sendContactEmail($id, $message, $creator_only, $user);

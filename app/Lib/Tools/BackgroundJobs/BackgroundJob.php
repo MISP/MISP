@@ -44,10 +44,10 @@ class BackgroundJob implements JsonSerializable
     /** @var integer */
     private $progress;
 
-    /** @var string */
+    /** @var string|null */
     private $output;
 
-    /** @var string */
+    /** @var string|null */
     private $error;
 
     /** @var array */
@@ -102,7 +102,7 @@ class BackgroundJob implements JsonSerializable
 
         $this->returnCode = proc_close($process);
 
-        if ($this->returnCode === 0) {
+        if ($this->returnCode === 0 && empty($stderr)) {
             $this->setStatus(BackgroundJob::STATUS_COMPLETED);
             if ($this->trackStatus) {
                 $this->setProgress(100);
@@ -174,12 +174,12 @@ class BackgroundJob implements JsonSerializable
         return $this->status;
     }
 
-    public function output(): string
+    public function output(): ?string
     {
         return $this->output;
     }
 
-    public function error(): string
+    public function error(): ?string
     {
         return $this->error;
     }
@@ -199,12 +199,12 @@ class BackgroundJob implements JsonSerializable
         $this->status = $status;
     }
 
-    public function setOutput(string $output): void
+    public function setOutput(?string $output): void
     {
         $this->output = $output;
     }
 
-    public function setError(string $error): void
+    public function setError(?string $error): void
     {
         $this->error = $error;
     }
