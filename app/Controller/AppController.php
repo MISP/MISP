@@ -132,7 +132,8 @@ class AppController extends Controller
         $this->_setupDatabaseConnection();
 
         $this->set('debugMode', Configure::read('debug') >= 1 ? 'debugOn' : 'debugOff');
-        $this->set('ajax', $this->request->is('ajax'));
+        $isAjax = $this->request->is('ajax');
+        $this->set('ajax', $isAjax);
         $this->set('queryVersion', $this->__queryVersion);
         $this->User = ClassRegistry::init('User');
 
@@ -245,7 +246,7 @@ class AppController extends Controller
             $this->__logAccess($user);
 
             // Try to run updates
-            if ($user['Role']['perm_site_admin'] || (!$this->_isRest() && $this->_isLive())) {
+            if ($user['Role']['perm_site_admin'] || (!$this->_isRest() && !$isAjax && $this->_isLive())) {
                 $this->User->runUpdates();
             }
 
@@ -265,7 +266,7 @@ class AppController extends Controller
             $user = $this->Auth->user(); // user info in session could change (see __verifyUser) method, so reload user variable
 
             if (isset($user['logged_by_authkey']) && $user['logged_by_authkey'] && !($this->_isRest() || $this->_isAutomation())) {
-                throw new ForbiddenException("When user is authenticated by authkey, just REST request can be processed");
+                throw new ForbiddenException("When user is authenticated by authkey, just REST request can be processed.");
             }
 
             // Put token expiration time to response header that can be processed by automation tool
@@ -321,12 +322,15 @@ class AppController extends Controller
                 $preAuthActions[] = 'email_otp';
             }
             if (!$this->_isControllerAction(['users' => $preAuthActions, 'servers' => ['cspReport']])) {
-                if (!$this->request->is('ajax')) {
+                if ($isAjax) {
+                    $response = $this->RestResponse->throwException(401, "Unauthorized");
+                    $response->send();
+                    $this->_stop();
+                } else {
                     $this->Session->write('pre_login_requested_url', $this->request->here);
+                    $this->_redirectToLogin();
                 }
-                $this->_redirectToLogin();
             }
-
             $this->set('me', false);
         }
 
@@ -361,13 +365,9 @@ class AppController extends Controller
         }
 
         // Notifications and homepage is not necessary for AJAX or REST requests
-        if ($user && !$this->_isRest() && !$this->request->is('ajax')) {
-            if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
-                $notifications = $this->User->populateNotifications($user);
-            } else {
-                $notifications = $this->User->populateNotifications($user, 'fast');
-            }
-            $this->set('notifications', $notifications);
+        if ($user && !$this->_isRest() && !$isAjax) {
+            $hasNotifications = $this->User->hasNotifications($user);
+            $this->set('hasNotifications', $hasNotifications);
 
             $homepage = $this->User->UserSetting->getValueForUser($user['id'], 'homepage');
             if (!empty($homepage)) {
@@ -1224,6 +1224,9 @@ class AppController extends Controller
         if ($user === false) {
             return $exception;
         }
+
+        session_write_close(); // Rest search can be longer, so close session to allow concurrent requests
+
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
             if ($returnFormat === 'download') {

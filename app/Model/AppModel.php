@@ -83,7 +83,8 @@ class AppModel extends Model
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
-        69 => false, 70 => false, 71 => true, 72 => true, 73 => true,
+        69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
+        75 => false, 76 => false
     );
 
     public $advanced_updates_description = array(
@@ -1579,6 +1580,20 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `auth_keys` ADD `read_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `expiration`;";
                 break;
             case 73:
+                $this->__dropIndex('user_settings', 'timestamp'); // index is not used
+                $sqlArray[] = "ALTER TABLE `user_settings` ADD UNIQUE INDEX `unique_setting` (`user_id`, `setting`)";
+                break;
+            case 74:
+                $sqlArray[] = "ALTER TABLE `users` MODIFY COLUMN `change_pw` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 75:
+                $this->__addIndex('object_references', 'event_id');
+                $this->__dropIndex('object_references', 'timestamp');
+                $this->__dropIndex('object_references', 'source_uuid');
+                $this->__dropIndex('object_references', 'relationship_type');
+                $this->__dropIndex('object_references', 'referenced_uuid');
+                break;
+            case 76:
                 $sqlArray[] = "ALTER TABLE `tags` ADD `local_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `is_custom_galaxy`;";
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `local_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `enabled`;";
                 break;
@@ -1918,11 +1933,7 @@ class AppModel extends Model
 
     public function getPythonVersion()
     {
-        if (!empty(Configure::read('MISP.python_bin'))) {
-            return Configure::read('MISP.python_bin');
-        } else {
-            return 'python3';
-        }
+        return Configure::read('MISP.python_bin') ?: 'python3';
     }
 
     public function validateAuthkey($value)
@@ -1939,10 +1950,9 @@ class AppModel extends Model
     // alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
     public function valueNotEmpty($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
-        $value[$field] = trim($value[$field]);
-        if (!empty($value[$field])) {
+        $field = array_keys($value)[0];
+        $value = trim($value[$field]);
+        if (!empty($value)) {
             return true;
         }
         return ucfirst($field) . ' cannot be empty.';
@@ -1950,32 +1960,17 @@ class AppModel extends Model
 
     public function valueIsJson($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
-        $json_decoded = json_decode($value[$field]);
+        $value = array_values($value)[0];
+        $json_decoded = json_decode($value);
         if ($json_decoded === null) {
             return __('Invalid JSON.');
         }
         return true;
     }
 
-    public function valueIsJsonOrNull($value)
-    {
-        $field = array_keys($value);
-        $field = $field[0];
-        if (!is_null($value[$field])) {
-            $json_decoded = json_decode($value[$field]);
-            if ($json_decoded === null) {
-                return __('Invalid JSON.');
-            }
-        }
-        return true;
-    }
-
     public function valueIsID($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
+        $field = array_keys($value)[0];
         if (!is_numeric($value[$field]) || $value[$field] < 0) {
             return 'Invalid ' . ucfirst($field) . ' ID';
         }
@@ -1984,10 +1979,9 @@ class AppModel extends Model
 
     public function stringNotEmpty($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
-        $value[$field] = trim($value[$field]);
-        if (!isset($value[$field]) || ($value[$field] == false && $value[$field] !== "0")) {
+        $field = array_keys($value)[0];
+        $value = trim($value[$field]);
+        if (!isset($value) || ($value == false && $value !== "0")) {
             return ucfirst($field) . ' cannot be empty.';
         }
         return true;
@@ -2020,8 +2014,7 @@ class AppModel extends Model
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->Job = ClassRegistry::init('Job');
-        $this->Log = ClassRegistry::init('Log');
-        $this->Server = ClassRegistry::init('Server');
+
         $db = ConnectionManager::getDataSource('default');
         $tables = $db->listSources();
         $requiresLogout = false;
@@ -2031,7 +2024,10 @@ class AppModel extends Model
             $requiresLogout = true;
         } else {
             $this->__runCleanDB();
-            $db_version = $this->AdminSetting->find('all', array('conditions' => array('setting' => 'db_version')));
+            $db_version = $this->AdminSetting->find('all', [
+                'conditions' => array('setting' => 'db_version'),
+                'fields' => ['id', 'value'],
+            ]);
             if (count($db_version) > 1) {
                 // we rgan into a bug where we have more than one db_version entry. This bug happened in some rare circumstances around 2.4.50-2.4.57
                 foreach ($db_version as $k => $v) {
@@ -2050,6 +2046,8 @@ class AppModel extends Model
                 $job = null;
             }
             if (!empty($updates)) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Server = ClassRegistry::init('Server');
                 // Exit if updates are locked.
                 // This is not as reliable as a real lock implementation
                 // However, as all updates are re-playable, there is no harm if they
@@ -2371,16 +2369,10 @@ class AppModel extends Model
 
     private function __runCleanDB()
     {
-        $cleanDB = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'clean_db')));
-        if (empty($cleanDB) || $cleanDB['AdminSetting']['value'] == 1) {
+        $cleanDB = $this->AdminSetting->getSetting('clean_db');
+        if ($cleanDB === false || $cleanDB == 1) {
             $this->cleanCacheFiles();
-            if (empty($cleanDB)) {
-                $this->AdminSetting->create();
-                $cleanDB = array('AdminSetting' => array('setting' => 'clean_db', 'value' => 0));
-            } else {
-                $cleanDB['AdminSetting']['value'] = 0;
-            }
-            $this->AdminSetting->save($cleanDB);
+            $this->AdminSetting->changeSetting('clean_db', 0);
         }
     }
 
@@ -2445,60 +2437,6 @@ class AppModel extends Model
             $Job->saveField('process_id', $process_id);
         }
         return true;
-    }
-
-    public function populateNotifications($user, $mode = 'full')
-    {
-        $notifications = array();
-        list($notifications['proposalCount'], $notifications['proposalEventCount']) = $this->_getProposalCount($user, $mode);
-        $notifications['total'] = $notifications['proposalCount'];
-        if (Configure::read('MISP.delegation')) {
-            $notifications['delegationCount'] = $this->_getDelegationCount($user);
-            $notifications['total'] += $notifications['delegationCount'];
-        }
-        return $notifications;
-    }
-
-    // if not using $mode === 'full', simply check if an entry exists. We really don't care about the real count for the top menu.
-    private function _getProposalCount($user, $mode = 'full')
-    {
-        $this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
-        $results[0] = $this->ShadowAttribute->find(
-            'count',
-            array(
-                'recursive' => -1,
-                'conditions' => array(
-                        'ShadowAttribute.event_org_id' => $user['org_id'],
-                        'ShadowAttribute.deleted' => 0,
-                )
-            )
-        );
-        if ($mode === 'full') {
-            $results[1] = $this->ShadowAttribute->find(
-                'count',
-                array(
-                    'recursive' => -1,
-                    'conditions' => array(
-                            'ShadowAttribute.event_org_id' => $user['org_id'],
-                            'ShadowAttribute.deleted' => 0,
-                    ),
-                    'fields' => 'distinct event_id'
-                )
-            );
-        } else {
-            $results[1] = $results[0];
-        }
-        return $results;
-    }
-
-    private function _getDelegationCount($user)
-    {
-        $this->EventDelegation = ClassRegistry::init('EventDelegation');
-        $delegations = $this->EventDelegation->find('count', array(
-            'recursive' => -1,
-            'conditions' => array('EventDelegation.org_id' => $user['org_id'])
-        ));
-        return $delegations;
     }
 
     public function checkFilename($filename)
@@ -2933,11 +2871,6 @@ class AppModel extends Model
         return $val / (1024 * 1024);
     }
 
-    public function getDefaultAttachments_dir()
-    {
-        return APP . 'files';
-    }
-
     private function __bumpReferences()
     {
         $this->Event = ClassRegistry::init('Event');
@@ -3021,10 +2954,10 @@ class AppModel extends Model
         }
         $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1);
         $lastChar = strtolower(substr($delta, -1));
-        if (!is_numeric($lastChar) && array_key_exists($lastChar, $multiplierArray)) {
+        if (!is_numeric($lastChar) && isset($multiplierArray[$lastChar])) {
             $multiplier = $multiplierArray[$lastChar];
             $delta = substr($delta, 0, -1);
-        } else if(strtotime($delta) !== false) {
+        } else if (strtotime($delta) !== false) {
             return strtotime($delta);
         } else {
             // invalid filter, make sure we don't return anything
@@ -3172,23 +3105,6 @@ class AppModel extends Model
     }
 
     /**
-     * Generates random file name in tmp dir.
-     * @return string
-     */
-    protected function tempFileName()
-    {
-        return $this->tempDir() . DS . $this->generateRandomFileName();
-    }
-
-    /**
-     * @return string
-     */
-    protected function tempDir()
-    {
-        return Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
-    }
-
-    /**
      * Decodes JSON string and throws exception if string is not valid JSON or if is not array.
      *
      * @param string $json
@@ -3243,6 +3159,7 @@ class AppModel extends Model
             'conditions' => $conditions,
             'recursive' => -1,
             'callbacks' => false,
+            'order' => [], // disable order
         ));
     }
 

@@ -22,28 +22,28 @@ class Tag extends AppModel
     );
 
     public $validate = array(
-            'name' => array(
-                    'required' => array(
-                        'rule' => array('notBlank', 'name'),
-                        'message' => 'This field is required.'
-                    ),
-                    'valueNotEmpty' => array(
-                        'rule' => array('valueNotEmpty', 'name'),
-                    ),
-                    'unique' => array(
-                            'rule' => 'isUnique',
-                            'message' => 'A similar name already exists.',
-                    ),
+        'name' => array(
+            'required' => array(
+                'rule' => array('notBlank', 'name'),
+                'message' => 'This field is required.'
             ),
-            'colour' => array(
-                    'valueNotEmpty' => array(
-                        'rule' => array('valueNotEmpty', 'colour'),
-                    ),
-                    'userdefined' => array(
-                            'rule' => 'validateColour',
-                            'message' => 'Colour has to be in the RGB format (#FFFFFF)',
-                    ),
+            'valueNotEmpty' => array(
+                'rule' => array('valueNotEmpty', 'name'),
             ),
+            'unique' => array(
+                'rule' => 'isUnique',
+                'message' => 'A similar name already exists.',
+            ),
+        ),
+        'colour' => array(
+            'valueNotEmpty' => array(
+                'rule' => array('valueNotEmpty', 'colour'),
+            ),
+            'userdefined' => array(
+                'rule' => 'validateColour',
+                'message' => 'Colour has to be in the RGB format (#FFFFFF)',
+            ),
+        ),
     );
 
     public $hasMany = array(
@@ -83,7 +83,6 @@ class Tag extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
         if (!isset($this->data['Tag']['org_id'])) {
             $this->data['Tag']['org_id'] = 0;
         }
@@ -152,8 +151,7 @@ class Tag extends AppModel
 
     public function afterFind($results, $primary = false)
     {
-        $results = $this->checkForOverride($results);
-        return $results;
+        return $this->checkForOverride($results);
     }
 
     public function validateColour($fields)
@@ -164,12 +162,41 @@ class Tag extends AppModel
         return true;
     }
 
+    /**
+     * @param array $user
+     * @param string $tagName
+     * @return mixed|null
+     */
+    public function lookupTagIdForUser(array $user, $tagName)
+    {
+        $conditions = ['LOWER(Tag.name)' => mb_strtolower($tagName)];
+        if (!$user['Role']['perm_site_admin']) {
+            $conditions['Tag.org_id'] = [0, $user['org_id']];
+            $conditions['Tag.user_id'] = [0, $user['id']];
+        }
+        $tagId = $this->find('first', array(
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => array('Tag.id'),
+            'callbacks' => false,
+        ));
+        if (empty($tagId)) {
+            return null;
+        }
+        return $tagId['Tag']['id'];
+    }
+
+    /**
+     * @param string $tagName
+     * @return int|mixed
+     */
     public function lookupTagIdFromName($tagName)
     {
         $tagId = $this->find('first', array(
-            'conditions' => array('LOWER(Tag.name)' => strtolower($tagName)),
+            'conditions' => array('LOWER(Tag.name)' => mb_strtolower($tagName)),
             'recursive' => -1,
-            'fields' => array('Tag.id')
+            'fields' => array('Tag.id'),
+            'callbacks' => false,
         ));
         if (empty($tagId)) {
             return -1;
@@ -289,7 +316,7 @@ class Tag extends AppModel
         return array_values($tag_ids);
     }
 
-    public function findEventIdsByTagNames($array)
+    private function findEventIdsByTagNames($array)
     {
         $ids = array();
         foreach ($array as $a) {
@@ -313,26 +340,6 @@ class Tag extends AppModel
         return $ids;
     }
 
-    public function findAttributeIdsByAttributeTagNames($array)
-    {
-        $ids = array();
-        foreach ($array as $a) {
-            $conditions['OR'][] = array('LOWER(name) LIKE' => strtolower($a));
-        }
-        $params = array(
-                'recursive' => 1,
-                'contain' => 'AttributeTag',
-                'conditions' => $conditions
-        );
-        $result = $this->find('all', $params);
-        foreach ($result as $tag) {
-            foreach ($tag['AttributeTag'] as $attributeTag) {
-                $ids[] = $attributeTag['attribute_id'];
-            }
-        }
-        return $ids;
-    }
-
     /**
      * @param array $tag
      * @param array $user
@@ -340,17 +347,18 @@ class Tag extends AppModel
      * @return false|int
      * @throws Exception
      */
-    public function captureTag($tag, $user, $force=false)
+    public function captureTag(array $tag, array $user, $force=false)
     {
         $existingTag = $this->find('first', array(
             'recursive' => -1,
             'conditions' => array('LOWER(name)' => mb_strtolower($tag['name'])),
             'fields' => ['id', 'org_id', 'user_id'],
+            'callbacks' => false,
         ));
         if (empty($existingTag)) {
             if ($force || $user['Role']['perm_tag_editor']) {
                 $this->create();
-                if (!isset($tag['colour']) || empty($tag['colour'])) {
+                if (empty($tag['colour'])) {
                     $tag['colour'] = $this->random_color();
                 }
                 $tag = array(
@@ -367,22 +375,21 @@ class Tag extends AppModel
             } else {
                 return false;
             }
-        } else {
-            if (
-                !$user['Role']['perm_site_admin'] &&
+        }
+        if (
+            !$user['Role']['perm_site_admin'] &&
+            (
                 (
-                    (
-                        $existingTag['Tag']['org_id'] != 0 &&
-                        $existingTag['Tag']['org_id'] != $user['org_id']
-                    ) ||
-                    (
-                        $existingTag['Tag']['user_id'] != 0 &&
-                        $existingTag['Tag']['user_id'] != $user['id']
-                    )
+                    $existingTag['Tag']['org_id'] != 0 &&
+                    $existingTag['Tag']['org_id'] != $user['org_id']
+                ) ||
+                (
+                    $existingTag['Tag']['user_id'] != 0 &&
+                    $existingTag['Tag']['user_id'] != $user['id']
                 )
-            ) {
-                return false;
-            }
+            )
+        ) {
+            return false;
         }
         return $existingTag['Tag']['id'];
     }
@@ -441,14 +448,20 @@ class Tag extends AppModel
     }
 
     /**
-    * Recover user_id from the session and override numerical_values from userSetting
-    */
-    public function checkForOverride($tags)
+     * Recover user_id from the session and override numerical_values from userSetting.
+     *
+     * @param array $tags
+     * @return array
+     */
+    private function checkForOverride($tags)
     {
         $userId = Configure::read('CurrentUserId');
         if ($this->tagOverrides === false && $userId > 0) {
             $this->UserSetting = ClassRegistry::init('UserSetting');
             $this->tagOverrides = $this->UserSetting->getTagNumericalValueOverride($userId);
+        }
+        if (empty($this->tagOverrides)) {
+            return $tags;
         }
         foreach ($tags as $k => $tag) {
             if (isset($tag['Tag']['name'])) {

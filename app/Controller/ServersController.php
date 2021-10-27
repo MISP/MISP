@@ -704,32 +704,36 @@ class ServersController extends AppController
      *      incremental - only new events
      *      <int>   - specific id of the event to pull
      */
-    public function pull($id = null, $technique='full')
+    public function pull($id = null, $technique = 'full')
     {
-        if (!empty($id)) {
-            $this->Server->id = $id;
-        } else if (!empty($this->request->data['id'])) {
-            $this->Server->id = $this->request->data['id'];
-        } else {
+        if (empty($id)) {
+            if (!empty($this->request->data['id'])) {
+                $id = $this->request->data['id'];
+            } else {
+                throw new NotFoundException(__('Invalid server'));
+            }
+        }
+
+        $s = $this->Server->find('first', [
+            'conditions' => ['id' => $id],
+            'recursive' => -1,
+        ]);
+        if (empty($s)) {
             throw new NotFoundException(__('Invalid server'));
         }
-        if (!$this->Server->exists()) {
-            throw new NotFoundException(__('Invalid server'));
-        }
-        $s = $this->Server->read(null, $id);
         $error = false;
         if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) {
             throw new MethodNotAllowedException(__('You are not authorised to do that.'));
         }
-        if (false == $this->Server->data['Server']['pull'] && ($technique == 'full' || $technique == 'incremental')) {
+        if (false == $s['Server']['pull'] && ($technique === 'full' || $technique === 'incremental')) {
             $error = __('Pull setting not enabled for this server.');
         }
-        if (false == $this->Server->data['Server']['pull_galaxy_clusters'] && ($technique == 'pull_relevant_clusters')) {
+        if (false == $s['Server']['pull_galaxy_clusters'] && ($technique === 'pull_relevant_clusters')) {
             $error = __('Pull setting not enabled for this server.');
         }
         if (empty($error)) {
             if (!Configure::read('MISP.background_jobs')) {
-                $result = $this->Server->pull($this->Auth->user(), $id, $technique, $s);
+                $result = $this->Server->pull($this->Auth->user(), $technique, $s);
                 if (is_array($result)) {
                     $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
                 } else {
@@ -741,22 +745,11 @@ class ServersController extends AppController
                 $this->set('pulledSightings', $result[3]);
             } else {
                 $this->loadModel('Job');
-                $this->Job->create();
-                $data = array(
-                        'worker' => 'default',
-                        'job_type' => 'pull',
-                        'job_input' => 'Server: ' . $id,
-                        'status' => 0,
-                        'retries' => 0,
-                        'org' => $this->Auth->user('Organisation')['name'],
-                        'message' => __('Pulling.'),
-                );
-                $this->Job->save($data);
-                $jobId = $this->Job->id;
+                $jobId = $this->Job->createJob($this->Auth->user(), Job::WORKER_DEFAULT, 'pull', 'Server: ' . $id, __('Pulling.'));
                 $process_id = CakeResque::enqueue(
-                        'default',
-                        'ServerShell',
-                        array('pull', $this->Auth->user('id'), $id, $technique, $jobId)
+                    Job::WORKER_DEFAULT,
+                    'ServerShell',
+                    array('pull', $this->Auth->user('id'), $id, $technique, $jobId)
                 );
                 $this->Job->saveField('process_id', $process_id);
                 $success = __('Pull queued for background execution. Job ID: %s', $jobId);

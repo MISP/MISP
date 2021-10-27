@@ -112,7 +112,7 @@ class ServerShell extends AppShell
             $force = true;
         }
         try {
-            $result = $this->Server->pull($user, $serverId, $technique, $server, $jobId, $force);
+            $result = $this->Server->pull($user, $technique, $server, $jobId, $force);
             if (is_array($result)) {
                 $message = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
                 $this->Job->saveStatus($jobId, true, $message);
@@ -399,7 +399,7 @@ class ServerShell extends AppShell
             );
             $this->Job->save($data);
             $jobId = $this->Job->id;
-            $result = $this->Server->pull($user, $server['Server']['id'], 'full', $server, $jobId);
+            $result = $this->Server->pull($user, 'full', $server, $jobId);
             $this->Job->save(array(
                     'id' => $jobId,
                     'message' => 'Job done.',

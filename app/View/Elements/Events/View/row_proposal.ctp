@@ -110,6 +110,7 @@
             'scope' => 'ShadowAttribute',
             'object' => $object,
             'event' => $event,
+              'withPivot' => true,
           ));
         }
       ?>

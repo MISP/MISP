@@ -1,5 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
+
+/**
+ * @property User $User
+ */
 class UserSetting extends AppModel
 {
     public $useTable = 'user_settings';
@@ -16,11 +20,7 @@ class UserSetting extends AppModel
     );
 
     public $validate = array(
-        'json' => array(
-            'isValidJson' => array(
-                'rule' => array('isValidJson'),
-            )
-        )
+        'value' => 'valueIsJson',
     );
 
     public $belongsTo = array(
@@ -96,12 +96,14 @@ class UserSetting extends AppModel
         'event_index_hide_columns' => [
             'placeholder' => ['clusters'],
         ],
+        'oidc' => [ // Data saved by OIDC plugin
+            'restricted' => 'perm_site_admin',
+        ],
     );
 
     // massage the data before we send it off for validation before saving anything
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
         // add a timestamp if it is not set
         if (empty($this->data['UserSetting']['timestamp'])) {
             $this->data['UserSetting']['timestamp'] = time();
@@ -124,7 +126,9 @@ class UserSetting extends AppModel
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $v) {
-            $results[$k]['UserSetting']['value'] = json_decode($v['UserSetting']['value'], true);
+            if (isset($v['UserSetting']['value'])) {
+                $results[$k]['UserSetting']['value'] = json_decode($v['UserSetting']['value'], true);
+            }
         }
         return $results;
     }
@@ -134,25 +138,27 @@ class UserSetting extends AppModel
         return isset($this->validSettings[$setting]);
     }
 
-    public function checkSettingAccess($user, $setting)
+    /**
+     * @param array $user
+     * @param string $setting
+     * @return bool|string
+     */
+    public function checkSettingAccess(array $user, $setting)
     {
         if (!empty($this->validSettings[$setting]['restricted'])) {
-            $role_check = $this->validSettings[$setting]['restricted'];
-            if (!is_array($role_check)) {
-                $role_check = array($role_check);
+            $roleCheck = $this->validSettings[$setting]['restricted'];
+            if (!is_array($roleCheck)) {
+                $roleCheck = array($roleCheck);
             }
-            $userHasValidRole = false;
-            foreach ($role_check as $role) {
+            foreach ($roleCheck as $role) {
                 if (!empty($user['Role'][$role])) {
                     return true;
                 }
             }
-            if (!$userHasValidRole) {
-                foreach ($role_check as &$role) {
-                    $role = substr($role, 5);
-                }
-                return implode(', ', $role_check);
+            foreach ($roleCheck as &$role) {
+                $role = substr($role, 5);
             }
+            return implode(', ', $roleCheck);
         }
         return true;
     }
@@ -203,7 +209,7 @@ class UserSetting extends AppModel
          return false;
      }
 
-     public function getDefaulRestSearchParameters($user)
+     public function getDefaultRestSearchParameters($user)
      {
          return $this->getValueForUser($user['id'], 'default_restsearch_parameters') ?: [];
      }
@@ -236,8 +242,8 @@ class UserSetting extends AppModel
 
     /**
      * Check whether the event is something the user is interested (to be alerted on)
-     * @param $user
-     * @param $event
+     * @param array $user
+     * @param array $event
      * @return bool
      */
     public function checkPublishFilter(array $user, array $event)
@@ -356,7 +362,13 @@ class UserSetting extends AppModel
         return false;
     }
 
-    public function setSetting($user, &$data)
+    /**
+     * @param array $user
+     * @param array $data
+     * @return bool
+     * @throws Exception
+     */
+    public function setSetting(array $user, array $data)
     {
         $userSetting = array();
         if (!empty($data['UserSetting']['user_id']) && is_numeric($data['UserSetting']['user_id'])) {
@@ -391,21 +403,42 @@ class UserSetting extends AppModel
         } else {
             $userSetting['value'] = '';
         }
+
+        return $this->setSettingInternal($userSetting['user_id'], $userSetting['setting'], $userSetting['value']);
+    }
+
+    /**
+     * Set user setting without checking permission.
+     * @param int $userId
+     * @param string $setting
+     * @param mixed $value
+     * @return array|bool|mixed|null
+     * @throws Exception
+     */
+    public function setSettingInternal($userId, $setting, $value)
+    {
+        $userSetting = [
+            'user_id' => $userId,
+            'setting' => $setting,
+            'value' => $value,
+        ];
+
         $existingSetting = $this->find('first', array(
             'recursive' => -1,
             'conditions' => array(
-                'UserSetting.user_id' => $userSetting['user_id'],
-                'UserSetting.setting' => $userSetting['setting']
-            )
+                'UserSetting.user_id' => $userId,
+                'UserSetting.setting' => $setting,
+            ),
+            'fields' =>  ['UserSetting.id'],
+            'callbacks' => false,
         ));
         if (empty($existingSetting)) {
             $this->create();
         } else {
             $userSetting['id'] = $existingSetting['UserSetting']['id'];
         }
-        // save the setting
-        $result = $this->save(array('UserSetting' => $userSetting));
-        return true;
+
+        return $this->save($userSetting);
     }
 
     /**

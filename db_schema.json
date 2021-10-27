@@ -7436,7 +7436,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
-                "column_type": "tinyint(4)",
+                "column_type": "tinyint(1)",
                 "column_default": "0",
                 "extra": ""
             },
@@ -8000,12 +8000,9 @@
         },
         "object_references": {
             "id": true,
-            "source_uuid": false,
-            "referenced_uuid": false,
-            "timestamp": false,
             "object_id": false,
             "referenced_id": false,
-            "relationship_type": false
+            "event_id": false
         },
         "object_relationships": {
             "id": true,
@@ -8084,6 +8081,7 @@
         "sharing_groups": {
             "id": true,
             "uuid": true,
+            "name": true,
             "org_id": false,
             "sync_user_id": false,
             "organisation_uuid": false
@@ -8190,8 +8188,7 @@
         "user_settings": {
             "id": true,
             "setting": false,
-            "user_id": false,
-            "timestamp": false
+            "user_id": false
         },
         "warninglists": {
             "id": true
@@ -8204,5 +8201,5 @@
             "id": true
         }
     },
-    "db_version": "72"
+    "db_version": "75"
 }

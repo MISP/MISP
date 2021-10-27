@@ -81,11 +81,26 @@ class AuditLogBehavior extends ModelBehavior
         if (!$this->enabled) {
             return true;
         }
+
+        // Do not fetch old version when just few fields will be fetched
+        $fieldToFetch = [];
+        if (!empty($options['fieldList'])) {
+            foreach ($options['fieldList'] as $field) {
+                if (!isset($this->skipFields[$field])) {
+                    $fieldToFetch[] = $field;
+                }
+            }
+            if (empty($fieldToFetch))  {
+                $this->old = null;
+                return true;
+            }
+        }
         if ($model->id) {
             $this->old = $model->find('first', [
                 'conditions' => [$model->alias . '.' . $model->primaryKey => $model->id],
                 'recursive' => -1,
                 'callbacks' => false,
+                'fields' => $fieldToFetch,
             ]);
         } else {
             $this->old = null;

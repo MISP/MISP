@@ -362,6 +362,9 @@ class Attribute extends AppModel
 
     public function beforeSave($options = array())
     {
+        if (empty($this->data['Attribute']['uuid'])) {
+            $this->data['Attribute']['uuid'] = CakeText::uuid();
+        }
         if (!empty($this->data['Attribute']['id'])) {
             $this->old = $this->find('first', array(
                 'recursive' => -1,
@@ -393,12 +396,28 @@ class Attribute extends AppModel
         return true;
     }
 
+    /**
+     * @param int $event_id
+     * @param bool $increment True for increment, false for decrement,
+     * @return bool
+     */
     private function __alterAttributeCount($event_id, $increment = true)
     {
-        return $this->Event->updateAll(
-            array('Event.attribute_count' => $increment ? 'Event.attribute_count+1' : 'GREATEST(Event.attribute_count, 1) - 1'),
-            array('Event.id' => $event_id)
-        );
+        // Temporary unbind models that we don't need to prevent deadlocks
+        $this->Event->unbindModel([
+            'belongsTo' => array_keys($this->Event->belongsTo),
+        ]);
+        try {
+            return $this->Event->updateAll(
+                array('Event.attribute_count' => $increment ? 'Event.attribute_count+1' : 'GREATEST(Event.attribute_count, 1) - 1'),
+                array('Event.id' => $event_id)
+            );
+        } catch (Exception $e) {
+            $this->logException('Exception when updating event attribute count', $e);
+            return false;
+        } finally {
+            $this->Event->resetAssociations();
+        }
     }
 
     public function afterSave($created, $options = array())
@@ -547,81 +566,78 @@ class Attribute extends AppModel
 
     public function beforeValidate($options = array())
     {
-        if (empty($this->data['Attribute']['type'])) {
+        $attribute = &$this->data['Attribute'];
+        if (empty($attribute['type'])) {
             $this->validationErrors['type'] = ['No type set.'];
             return false;
         }
-        $type = $this->data['Attribute']['type'];
-        if (is_array($this->data['Attribute']['value'])) {
+        $type = $attribute['type'];
+        if (is_array($attribute['value'])) {
             $this->validationErrors['value'] = ['Value is an array.'];
             return false;
         }
 
-        if (!empty($this->data['Attribute']['object_id']) && empty($this->data['Attribute']['object_relation'])) {
+        if (!empty($attribute['object_id']) && empty($attribute['object_relation'])) {
             $this->validationErrors['object_relation'] = ['Object attribute sent, but no object_relation set.'];
             return false;
         }
 
         // If `value1` or `value2` provided and `value` is empty, merge them into `value` because of validation
-        if (empty($this->data['Attribute']['value'])) {
-            if (!empty($this->data['Attribute']['value1']) && !empty($this->data['Attribute']['value2'])) {
-                $this->data['Attribute']['value'] = "{$this->data['Attribute']['value1']}|{$this->data['Attribute']['value2']}";
-            } else if (!empty($this->data['Attribute']['value1'])) {
-                $this->data['Attribute']['value'] = $this->data['Attribute']['value1'];
+        if (empty($attribute['value'])) {
+            if (!empty($attribute['value1']) && !empty($attribute['value2'])) {
+                $attribute['value'] = "{$attribute['value1']}|{$attribute['value2']}";
+            } else if (!empty($attribute['value1'])) {
+                $attribute['value'] = $attribute['value1'];
             }
         }
 
         // remove leading and trailing blanks and refang value and
-        $this->data['Attribute']['value'] = ComplexTypeTool::refangValue(trim($this->data['Attribute']['value']), $type);
+        $attribute['value'] = ComplexTypeTool::refangValue(trim($attribute['value']), $type);
         // make some changes to the inserted value
-        $this->data['Attribute']['value'] = $this->modifyBeforeValidation($type, $this->data['Attribute']['value']);
+        $attribute['value'] = $this->modifyBeforeValidation($type, $attribute['value']);
         // Run user defined regexp to attribute value
-        $result = $this->runRegexp($type, $this->data['Attribute']['value']);
+        $result = $this->runRegexp($type, $attribute['value']);
         if ($result === false) {
             $this->invalidate('value', 'This value is blocked by a regular expression in the import filters.');
         } else {
-            $this->data['Attribute']['value'] = $result;
+            $attribute['value'] = $result;
         }
 
-        if (empty($this->data['Attribute']['comment'])) {
-            $this->data['Attribute']['comment'] = "";
+        if (empty($attribute['comment'])) {
+            $attribute['comment'] = "";
         }
-        // generate UUID if it doesn't exist
-        if (empty($this->data['Attribute']['uuid'])) {
-            $this->data['Attribute']['uuid'] = CakeText::uuid();
-        } else {
-            $this->data['Attribute']['uuid'] = strtolower($this->data['Attribute']['uuid']);
+        if (!empty($attribute['uuid'])) {
+            $attribute['uuid'] = strtolower($attribute['uuid']);
         }
         // generate timestamp if it doesn't exist
-        if (empty($this->data['Attribute']['timestamp'])) {
-            $this->data['Attribute']['timestamp'] = time();
+        if (empty($attribute['timestamp'])) {
+            $attribute['timestamp'] = time();
         }
 
         // parse first_seen different formats
-        if (isset($this->data['Attribute']['first_seen'])) {
-            $this->data['Attribute']['first_seen'] = $this->data['Attribute']['first_seen'] === '' ? null : $this->data['Attribute']['first_seen'];
+        if (isset($attribute['first_seen'])) {
+            $attribute['first_seen'] = $attribute['first_seen'] === '' ? null : $attribute['first_seen'];
         }
         // parse last_seen different formats
-        if (isset($this->data['Attribute']['last_seen'])) {
-            $this->data['Attribute']['last_seen'] = $this->data['Attribute']['last_seen'] === '' ? null : $this->data['Attribute']['last_seen'];
+        if (isset($attribute['last_seen'])) {
+            $attribute['last_seen'] = $attribute['last_seen'] === '' ? null : $attribute['last_seen'];
         }
 
         // Set defaults for when some of the mandatory fields don't have defaults
         // These fields all have sane defaults either based on another field, or due to server settings
-        if (!isset($this->data['Attribute']['distribution'])) {
-            $this->data['Attribute']['distribution'] = $this->defaultDistribution();
+        if (!isset($attribute['distribution'])) {
+            $attribute['distribution'] = $this->defaultDistribution();
+        }
+        if ($attribute['distribution'] != 4) {
+            $attribute['sharing_group_id'] = 0;
         }
         // If category is not provided, assign default category by type
-        if (empty($this->data['Attribute']['category'])) {
-            $this->data['Attribute']['category'] = $this->typeDefinitions[$type]['default_category'];
+        if (empty($attribute['category'])) {
+            $attribute['category'] = $this->typeDefinitions[$type]['default_category'];
         }
 
-        if (!isset($this->data['Attribute']['to_ids'])) {
-            $this->data['Attribute']['to_ids'] = $this->typeDefinitions[$type]['to_ids'];
-        }
-
-        if ($this->data['Attribute']['distribution'] != 4) {
-            $this->data['Attribute']['sharing_group_id'] = 0;
+        if (!isset($attribute['to_ids'])) {
+            $attribute['to_ids'] = $this->typeDefinitions[$type]['to_ids'];
         }
         // return true, otherwise the object cannot be saved
         return true;
@@ -726,21 +742,17 @@ class Attribute extends AppModel
     // check whether the variable is null or datetime
     public function datetimeOrNull($fields)
     {
-        $k = array_keys($fields)[0];
-        $seen = $fields[$k];
-        try {
-            new DateTime($seen);
-            $returnValue = true;
-        } catch (Exception $e) {
-            $returnValue = false;
+        $seen = array_values($fields)[0];
+        if ($seen === null) {
+            return true;
         }
-        return $returnValue || is_null($seen);
+        return strtotime($seen) !== false;
     }
 
     public function validateLastSeenValue($fields)
     {
         $ls = $fields['last_seen'];
-        if (!isset($this->data['Attribute']['first_seen']) || is_null($ls)) {
+        if (!isset($this->data['Attribute']['first_seen']) || $ls === null) {
             return true;
         }
         $converted = $this->ISODatetimeToUTC(['Attribute' => [
@@ -782,7 +794,6 @@ class Attribute extends AppModel
 
     public function runValidation($value, $type)
     {
-        $returnValue = false;
         // check data validation
         switch ($type) {
             case 'md5':
@@ -810,24 +821,19 @@ class Attribute extends AppModel
             case 'git-commit-id':
                 if ($this->isHashValid($type, $value)) {
                     return true;
-                } else {
-                    $length = self::HEX_HAS_LENGTHS[$type];
-                    return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
                 }
+                $length = self::HEX_HAS_LENGTHS[$type];
+                return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
             case 'tlsh':
                 if (preg_match("#^t?[0-9a-f]{35,}$#i", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Checksum has an invalid length or format (expected: at least 35 hexadecimal characters, optionally starting with t1 instead of hexadecimal characters). Please double check the value or select type "other".');
+                    return true;
                 }
-                break;
+                return __('Checksum has an invalid length or format (expected: at least 35 hexadecimal characters, optionally starting with t1 instead of hexadecimal characters). Please double check the value or select type "other".');
             case 'pehash':
                 if ($this->isHashValid('pehash', $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('The input doesn\'t match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
+                    return true;
                 }
-                break;
+                return __('The input doesn\'t match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
             case 'ssdeep':
                 if (substr_count($value, ':') === 2) {
                     $parts = explode(':', $value);
@@ -840,35 +846,26 @@ class Attribute extends AppModel
                 if (substr_count($value, ':') === 2) {
                     $parts = explode(':', $value);
                     if ($this->isPositiveInteger($parts[0])) {
-                        $returnValue = true;
+                        return true;
                     }
                 }
-                if (!$returnValue) {
-                    $returnValue = __('Invalid impfuzzy format. The format has to be imports:hash:hash');
-                }
-                break;
+                return __('Invalid impfuzzy format. The format has to be imports:hash:hash');
             case 'cdhash':
                 if (preg_match("#^[0-9a-f]{40,}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('The input doesn\'t match the expected format (expected: 40 or more hexadecimal characters)');
+                    return true;
                 }
-                break;
+                return __('The input doesn\'t match the expected format (expected: 40 or more hexadecimal characters)');
             case 'http-method':
                 if (preg_match("#(OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|PROPFIND|PROPPATCH|MKCOL|COPY|MOVE|LOCK|UNLOCK|VERSION-CONTROL|REPORT|CHECKOUT|CHECKIN|UNCHECKOUT|MKWORKSPACE|UPDATE|LABEL|MERGE|BASELINE-CONTROL|MKACTIVITY|ORDERPATCH|ACL|PATCH|SEARCH)#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Unknown HTTP method.');
+                    return true;
                 }
-                break;
+                return __('Unknown HTTP method.');
             case 'filename|pehash':
                 // no newline
                 if (preg_match("#^.+\|[0-9a-f]{40}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('The input doesn\'t match the expected filename|sha1 format (expected: filename|40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
+                    return true;
                 }
-                break;
+                return __('The input doesn\'t match the expected filename|sha1 format (expected: filename|40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
             case 'filename|md5':
             case 'filename|sha1':
             case 'filename|imphash':
@@ -886,42 +883,33 @@ class Attribute extends AppModel
                 $parts = explode('|', $type);
                 $length = self::HEX_HAS_LENGTHS[$parts[1]];
                 if (preg_match("#^.+\|[0-9a-f]{" . $length . "}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Checksum has an invalid length or format (expected: filename|%s hexadecimal characters). Please double check the value or select type "other".', $length);
+                    return true;
                 }
-                break;
+                return __('Checksum has an invalid length or format (expected: filename|%s hexadecimal characters). Please double check the value or select type "other".', $length);
             case 'filename|ssdeep':
                 if (substr_count($value, '|') != 1 || !preg_match("#^.+\|.+$#", $value)) {
-                    $returnValue = __('Invalid composite type. The format has to be %s.', $type);
+                    return __('Invalid composite type. The format has to be %s.', $type);
                 } else {
                     $composite = explode('|', $value);
                     $value = $composite[1];
                     if (substr_count($value, ':') == 2) {
                         $parts = explode(':', $value);
                         if ($this->isPositiveInteger($parts[0])) {
-                            $returnValue = true;
+                            return true;
                         }
                     }
-                    if (!$returnValue) {
-                        $returnValue = __('Invalid SSDeep hash (expected: blocksize:hash:hash).');
-                    }
                 }
-                break;
+                return __('Invalid SSDeep hash (expected: blocksize:hash:hash).');
             case 'filename|tlsh':
                 if (preg_match("#^.+\|[0-9a-f]{35,}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type "other".');
+                    return true;
                 }
-                break;
+                return __('Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type "other".');
             case 'filename|vhash':
                 if (preg_match('#^.+\|.+$#', $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Checksum has an invalid length or format (expected: filename|string characters). Please double check the value or select type "other".');
+                    return true;
                 }
-                break;
+                return __('Checksum has an invalid length or format (expected: filename|string characters). Please double check the value or select type "other".');
             case 'ip-src':
             case 'ip-dst':
                 if (strpos($value, '/') !== false) {
@@ -945,14 +933,11 @@ class Attribute extends AppModel
                     return  __('IP address has an invalid format.');
                 }
                 return true;
-
             case 'port':
                 if (!$this->isPortValid($value)) {
-                    $returnValue = __('Port numbers have to be integers between 1 and 65535.');
-                } else {
-                    $returnValue = true;
+                    return __('Port numbers have to be integers between 1 and 65535.');
                 }
-                break;
+                return true;
             case 'ip-dst|port':
             case 'ip-src|port':
                 $parts = explode('|', $value);
@@ -965,22 +950,20 @@ class Attribute extends AppModel
                 return true;
             case 'mac-address':
                 if (preg_match('/^([a-fA-F0-9]{2}[:]?){6}$/', $value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'mac-eui-64':
                 if (preg_match('/^([a-fA-F0-9]{2}[:]?){8}$/', $value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'hostname':
             case 'domain':
                 if ($this->isDomainValid($value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('%s has an invalid format. Please double check the value or select type "other".', ucfirst($type));
+                    return true;
                 }
-                break;
+                return __('%s has an invalid format. Please double check the value or select type "other".', ucfirst($type));
             case 'hostname|port':
                 $parts = explode('|', $value);
                 if (!$this->isDomainValid($parts[0])) {
@@ -994,14 +977,12 @@ class Attribute extends AppModel
                 if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}\|.*$#i", $value)) {
                     $parts = explode('|', $value);
                     if (filter_var($parts[1], FILTER_VALIDATE_IP)) {
-                        $returnValue = true;
+                        return true;
                     } else {
-                        $returnValue = __('IP address has an invalid format.');
+                        return __('IP address has an invalid format.');
                     }
-                } else {
-                    $returnValue = __('Domain name has an invalid format.');
                 }
-                break;
+                return __('Domain name has an invalid format.');
             case 'email':
             case 'email-src':
             case 'eppn':
@@ -1012,38 +993,30 @@ class Attribute extends AppModel
             case 'jabber-id':
                 // we don't use the native function to prevent issues with partial email addresses
                 if (preg_match("#^.*\@.*\..*$#i", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Email address has an invalid format. Please double check the value or select type "other".');
+                    return true;
                 }
-                break;
+                return __('Email address has an invalid format. Please double check the value or select type "other".');
             case 'vulnerability':
                 if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Invalid format. Expected: CVE-xxxx-xxxx...');
+                    return true;
                 }
-                break;
+                return __('Invalid format. Expected: CVE-xxxx-xxxx...');
             case 'weakness':
                 if (preg_match("#^(CWE-)[0-9]{1,}$#", $value)) {
-                    $returnValue = true;
-                } else {
-                    $returnValue = __('Invalid format. Expected: CWE-x...');
+                    return true;
                 }
-                break;
+                return __('Invalid format. Expected: CWE-x...');
             case 'named pipe':
                 if (!preg_match("#\n#", $value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'windows-service-name':
             case 'windows-service-displayname':
                 if (strlen($value) > 256 || preg_match('#[\\\/]#', $value)) {
-                    $returnValue = __('Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.');
-                } else {
-                    $returnValue = true;
+                    return __('Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.');
                 }
-                break;
+                return true;
             case 'mutex':
             case 'process-state':
             case 'snort':
@@ -1079,12 +1052,11 @@ class Attribute extends AppModel
             case 'middle-name':
             case 'last-name':
             case 'full-name':
-                $returnValue = true;
-                break;
+                return true;
             case 'link':
                 // Moved to a native function whilst still enforcing the scheme as a requirement
                 if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'hex':
@@ -1153,38 +1125,33 @@ class Attribute extends AppModel
                 }
                 return true;
             case 'datetime':
-                try {
-                    new DateTime($value);
-                    $returnValue = true;
-                } catch (Exception $e) {
-                    $returnValue = __('Datetime has to be in the ISO 8601 format.');
+                if (strtotime($value) !== false) {
+                    return true;
                 }
-                break;
+                return __('Datetime has to be in the ISO 8601 format.');
             case 'size-in-bytes':
             case 'counter':
                 if ($this->isPositiveInteger($value)) {
                     return true;
                 }
                 return __('The value has to be a whole number greater or equal 0.');
-            case 'targeted-threat-index':
+          /*  case 'targeted-threat-index':
                 if (!is_numeric($value) || $value < 0 || $value > 10) {
-                    $returnValue = __('The value has to be a number between 0 and 10.');
-                } else {
-                    $returnValue = true;
+                    return __('The value has to be a number between 0 and 10.');
                 }
-                break;
+                return true;*/
             case 'iban':
             case 'bic':
             case 'btc':
             case 'dash':
             case 'xmr':
                 if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'vhash':
                 if (preg_match('/^.+$/', $value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'bin':
@@ -1195,18 +1162,17 @@ class Attribute extends AppModel
             case 'phone-number':
             case 'whois-registrant-phone':
                 if (is_numeric($value)) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'cortex':
                 json_decode($value);
-                $returnValue = (json_last_error() == JSON_ERROR_NONE);
-                break;
+                return json_last_error() === JSON_ERROR_NONE;
             case 'float':
                 return is_numeric($value);
             case 'boolean':
                 if ($value == 1 || $value == 0) {
-                    $returnValue = true;
+                    return true;
                 }
                 break;
             case 'AS':
@@ -1215,7 +1181,7 @@ class Attribute extends AppModel
                 }
                 return __('AS number have to be integers between 1 and 4294967295');
         }
-        return $returnValue;
+        return false;
     }
 
     // do some last second modifications before the validation
@@ -1395,7 +1361,7 @@ class Attribute extends AppModel
                 break;
             case 'datetime':
                 try {
-                    $value = (new DateTime($value))->setTimezone(new DateTimeZone('GMT'))->format('Y-m-d\TH:i:s.uO'); // ISO8601 formating with microseconds
+                    $value = (new DateTime($value, new DateTimeZone('GMT')))->format('Y-m-d\TH:i:s.uO'); // ISO8601 formating with microseconds
                 } catch (Exception $e) {
                     // silently skip. Rejection will be done in runValidation()
                 }
@@ -1683,8 +1649,7 @@ class Attribute extends AppModel
     {
         // convert into utc and micro sec
         if (!empty($data[$alias]['first_seen'])) {
-            $d = new DateTime($data[$alias]['first_seen']);
-            $d->setTimezone(new DateTimeZone('GMT'));
+            $d = new DateTime($data[$alias]['first_seen'], new DateTimeZone('GMT'));
             $fs_sec = $d->format('U');
             $fs_micro = $d->format('u');
             $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
@@ -1692,8 +1657,7 @@ class Attribute extends AppModel
             $data[$alias]['first_seen'] = $fs;
         }
         if (!empty($data[$alias]['last_seen'])) {
-            $d = new DateTime($data[$alias]['last_seen']);
-            $d->setTimezone(new DateTimeZone('GMT'));
+            $d = new DateTime($data[$alias]['last_seen'], new DateTimeZone('GMT'));
             $ls_sec = $d->format('U');
             $ls_micro = $d->format('u');
             $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
@@ -3916,7 +3880,7 @@ class Attribute extends AppModel
         }
         App::uses($this->validFormats[$returnFormat][1], 'Export');
         $exportTool = new $this->validFormats[$returnFormat][1]();
-        if (!empty($exportTool->use_default_filters)) {
+        if (method_exists($exportTool, 'setDefaultFilters')) {
             $exportTool->setDefaultFilters($filters);
         }
         if (empty($exportTool->non_restrictive_export)) {

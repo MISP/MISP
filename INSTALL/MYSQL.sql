@@ -1056,6 +1056,7 @@ CREATE TABLE IF NOT EXISTS `sharing_groups` (
   INDEX `org_id` (`org_id`),
   INDEX `sync_user_id` (`sync_user_id`),
   UNIQUE INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `name` (`name`),
   INDEX `organisation_uuid` (`organisation_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 

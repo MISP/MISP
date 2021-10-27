@@ -444,12 +444,22 @@ class Server extends AppModel
         return true;
     }
 
-    public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
+    /**
+     * @param array $user
+     * @param string $technique
+     * @param array $server
+     * @param int|false $jobId
+     * @param bool $force
+     * @return array|string
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     * @throws JsonException
+     */
+    public function pull(array $user, $technique, array $server, $jobId = false, $force = false)
     {
         if ($jobId) {
             Configure::write('CurrentUserId', $user['id']);
             $job = ClassRegistry::init('Job');
-            $job->read(null, $jobId);
             $email = "Scheduled job";
         } else {
             $email = $user['email'];
@@ -474,19 +484,17 @@ class Server extends AppModel
         if (!empty($server['Server']['pull_galaxy_clusters'])) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
             if ($jobId) {
-                $job->saveField('message', $technique == 'pull_relevant_clusters' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
+                $job->saveProgress($jobId, $technique === 'pull_relevant_clusters' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
             }
             $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
-            if ($technique == 'pull_relevant_clusters') {
+            if ($technique === 'pull_relevant_clusters') {
                 if ($jobId) {
-                    $job->saveField('progress', 100);
-                    $job->saveField('message', 'Pulling complete.');
+                    $job->saveStatus($jobId, true, 'Pulling complete.');
                 }
                 return array(array(), array(), 0, 0, $pulledClusters);
             }
             if ($jobId) {
-                $job->saveField('progress', 10);
-                $job->saveField('message', 'Pulling events.');
+                $job->saveProgress($jobId, 'Pulling events.', 10);
             }
         }
 
@@ -516,16 +524,12 @@ class Server extends AppModel
             }
             foreach ($eventIds as $k => $eventId) {
                 $this->__pullEvent($eventId, $successes, $fails, $eventModel, $serverSync, $user, $jobId, $force);
-                if ($jobId) {
-                    if ($k % 10 == 0) {
-                        $job->saveProgress($jobId, null, 10 + 40 * (($k + 1) / count($eventIds)));
-                    }
+                if ($jobId && $k % 10 === 0) {
+                    $job->saveProgress($jobId, null, 10 + 40 * (($k + 1) / count($eventIds)));
                 }
             }
-        }
-        if (!empty($fails)) {
             foreach ($fails as $eventid => $message) {
-                $this->loadLog()->createLogEntry($user, 'pull', 'Server', $id, "Failed to pull event #$eventid.", 'Reason: ' . $message);
+                $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], "Failed to pull event #$eventid.", 'Reason: ' . $message);
             }
         }
         if ($jobId) {
@@ -541,27 +545,18 @@ class Server extends AppModel
             $pulledSightings = $eventModel->Sighting->pullSightings($user, $serverSync);
         }
         if ($jobId) {
-            $job->saveProgress($jobId, 'Pull completed.', 100);
+            $job->saveStatus($jobId, true, 'Pull completed.');
         }
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
-        $this->Log->save(array(
-            'org' => $user['Organisation']['name'],
-            'model' => 'Server',
-            'model_id' => $id,
-            'email' => $user['email'],
-            'action' => 'pull',
-            'user_id' => $user['id'],
-            'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
-            'change' => sprintf(
-                '%s events, %s proposals, %s sightings and %s galaxyClusters pulled or updated. %s events failed or didn\'t need an update.',
-                count($successes),
-                $pulledProposals,
-                $pulledSightings,
-                $pulledClusters,
-                count($fails)
-            )
-        ));
+
+        $change = sprintf(
+            '%s events, %s proposals, %s sightings and %s galaxyClusters pulled or updated. %s events failed or didn\'t need an update.',
+            count($successes),
+            $pulledProposals,
+            $pulledSightings,
+            $pulledClusters,
+            count($fails)
+        );
+        $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email, $change);
         return array($successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters);
     }
 
@@ -731,7 +726,7 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws InvalidArgumentException
      */
-    public function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $scope = 'events', $force = false)
+    private function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $scope = 'events', $force = false)
     {
         if (!in_array($scope, ['events', 'sightings'], true)) {
             throw new InvalidArgumentException("Scope must be 'events' or 'sightings', '$scope' given.");
@@ -2481,61 +2476,47 @@ class Server extends AppModel
         return ['status' => 1, 'content-encoding' => $contentEncoding];
     }
 
-    public function checkVersionCompatibility(array $server, $user = array(), $HttpSocket = false)
+    /**
+     * @param array $server
+     * @param array $user
+     * @param ServerSyncTool|null $serverSync
+     * @return array|string
+     * @throws JsonException
+     */
+    public function checkVersionCompatibility(array $server, $user = [], ServerSyncTool $serverSync = null)
     {
         // for event publishing when we don't have a user.
         if (empty($user)) {
-            $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
+            $user = 'SYSTEM';
         }
-        $localVersion = $this->checkMISPVersion();
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/servers/getVersion';
+
+        $serverSync = $serverSync ? $serverSync : new ServerSyncTool($server, $this->setupSyncRequest($server));
+
         try {
-            $response = $HttpSocket->get($uri, '', $request);
+            $remoteVersion = $serverSync->info();
         } catch (Exception $e) {
-            $error = $e->getMessage();
-        }
-        if (!isset($response) || $response->code != '200') {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            if (isset($response->code)) {
-                $title = 'Error: Connection to the server has failed.' . (isset($response->code) ? ' Returned response code: ' . $response->code : '');
+            $this->logException("Connection to the server {$server['Server']['id']} has failed", $e);
+
+            if ($e instanceof HttpSocketHttpException) {
+                $title = 'Error: Connection to the server has failed. Returned response code: ' . $e->getCode();
             } else {
-                $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $error;
+                $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
             }
-            $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => $server['Server']['id'],
-                    'email' => $user['email'],
-                    'action' => 'error',
-                    'user_id' => $user['id'],
-                    'title' => $title
-            ));
+            $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $title);
             return $title;
         }
-        $remoteVersion = $this->jsonDecode($response->body);
+
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
         $supportEditOfGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']);
         $canEditGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']) ? $remoteVersion['perm_galaxy_editor'] : false;
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
             $message = __('Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.');
-            $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => $server['Server']['id'],
-                    'email' => $user['email'],
-                    'action' => 'error',
-                    'user_id' => $user['id'],
-                    'title' => $message,
-            ));
+            $this->loadLog()->createLogEntry($user, 'error', 'Server', $server['Server']['id'], $message);
             return $message;
         }
+        $localVersion = $this->checkMISPVersion();
         $response = false;
         $success = false;
         $issueLevel = "warning";
@@ -2569,17 +2550,7 @@ class Server extends AppModel
         }
 
         if ($response !== false) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => $server['Server']['id'],
-                    'email' => $user['email'],
-                    'action' => $issueLevel,
-                    'user_id' => $user['id'],
-                    'title' => ucfirst($issueLevel) . ': ' . $response,
-            ));
+            $this->loadLog()->createLogEntry($user, $issueLevel, 'Server', $server['Server']['id'], ucfirst($issueLevel) . ': ' . $response);
         }
         return [
             'success' => $success,
@@ -3049,71 +3020,70 @@ class Server extends AppModel
         );
     }
 
+    /**
+     * @throws Exception
+     */
     private function compareDBIndexes(array $actualIndex, array $expectedIndex, array $dbExpectedSchema)
     {
-        $allowedlistTables = array();
         $indexDiff = array();
         foreach ($expectedIndex as $tableName => $indexes) {
             if (!array_key_exists($tableName, $actualIndex)) {
                 continue; // If table does not exists, it is covered by the schema diagnostic
-            } elseif(in_array($tableName, $allowedlistTables)) {
-                continue; // Ignore allowedlisted tables
-            } else {
-                $tableIndexDiff = array_diff(array_keys($indexes), array_keys($actualIndex[$tableName])); // check for missing indexes
-                foreach ($tableIndexDiff as $columnDiff) {
-                    $shouldBeUnique = $indexes[$columnDiff];
-                    if ($shouldBeUnique && !$this->checkIfColumnContainsJustUniqueValues($tableName, $columnDiff)) {
-                        $indexDiff[$tableName][$columnDiff] = array(
-                            'message' => __('Column `%s` should be unique indexed, but contains duplicate values', $columnDiff),
-                            'sql' => '',
+            }
+            $tableIndexDiff = array_diff(array_keys($indexes), array_keys($actualIndex[$tableName])); // check for missing indexes
+            foreach ($tableIndexDiff as $columnDiff) {
+                $shouldBeUnique = $indexes[$columnDiff];
+                if ($shouldBeUnique && !$this->checkIfColumnContainsJustUniqueValues($tableName, $columnDiff)) {
+                    $indexDiff[$tableName][$columnDiff] = array(
+                        'message' => __('Column `%s` should be unique indexed, but contains duplicate values', $columnDiff),
+                        'sql' => '',
+                    );
+                    continue;
+                }
+
+                $message = __('Column `%s` should be indexed', $columnDiff);
+                $indexDiff[$tableName][$columnDiff] = array(
+                    'message' => $message,
+                    'sql' => $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $columnDiff, $shouldBeUnique),
+                );
+            }
+            $tableIndexDiff = array_diff(array_keys($actualIndex[$tableName]), array_keys($indexes)); // check for additional indexes
+            foreach ($tableIndexDiff as $columnDiff) {
+                $message = __('Column `%s` is indexed but should not', $columnDiff);
+                $indexDiff[$tableName][$columnDiff] = array(
+                    'message' => $message,
+                    'sql' => $this->generateSqlDropIndexQuery($tableName, $columnDiff),
+                );
+            }
+            foreach ($indexes as $column => $unique) {
+                if (isset($actualIndex[$tableName][$column]) && $actualIndex[$tableName][$column] != $unique) {
+                    if ($actualIndex[$tableName][$column]) {
+                        $sql = $this->generateSqlDropIndexQuery($tableName, $column);
+                        $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, false);
+
+                        $message = __('Column `%s` has unique index, but should be non unique', $column);
+                        $indexDiff[$tableName][$column] = array(
+                            'message' => $message,
+                            'sql' => $sql,
                         );
-                        continue;
-                    }
-
-                    $message = __('Column `%s` should be indexed', $columnDiff);
-                    $indexDiff[$tableName][$columnDiff] = array(
-                        'message' => $message,
-                        'sql' => $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $columnDiff, $shouldBeUnique),
-                    );
-                }
-                $tableIndexDiff = array_diff(array_keys($actualIndex[$tableName]), array_keys($indexes)); // check for additional indexes
-                foreach ($tableIndexDiff as $columnDiff) {
-                    $message = __('Column `%s` is indexed but should not', $columnDiff);
-                    $indexDiff[$tableName][$columnDiff] = array(
-                        'message' => $message,
-                        'sql' => $this->generateSqlDropIndexQuery($tableName, $columnDiff),
-                    );
-                }
-                foreach ($indexes as $column => $unique) {
-                    if (isset($actualIndex[$tableName][$column]) && $actualIndex[$tableName][$column] != $unique) {
-                        if ($actualIndex[$tableName][$column]) {
-                            $sql = $this->generateSqlDropIndexQuery($tableName, $column);
-                            $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, false);
-
-                            $message = __('Column `%s` has unique index, but should be non unique', $column);
+                    } else {
+                        if (!$this->checkIfColumnContainsJustUniqueValues($tableName, $column)) {
+                            $message = __('Column `%s` should be unique index, but contains duplicate values', $column);
                             $indexDiff[$tableName][$column] = array(
                                 'message' => $message,
-                                'sql' => $sql,
+                                'sql' => '',
                             );
-                        } else {
-                            if (!$this->checkIfColumnContainsJustUniqueValues($tableName, $column)) {
-                                $message = __('Column `%s` should be unique index, but contains duplicate values', $column);
-                                $indexDiff[$tableName][$column] = array(
-                                    'message' => $message,
-                                    'sql' => '',
-                                );
-                                continue;
-                            }
-
-                            $sql = $this->generateSqlDropIndexQuery($tableName, $column);
-                            $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, true);
-
-                            $message = __('Column `%s` should be unique index', $column);
-                            $indexDiff[$tableName][$column] = array(
-                                'message' => $message,
-                                'sql' => $sql,
-                            );
+                            continue;
                         }
+
+                        $sql = $this->generateSqlDropIndexQuery($tableName, $column);
+                        $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, true);
+
+                        $message = __('Column `%s` should be unique index', $column);
+                        $indexDiff[$tableName][$column] = array(
+                            'message' => $message,
+                            'sql' => $sql,
+                        );
                     }
                 }
             }
@@ -3150,21 +3120,21 @@ class Server extends AppModel
         App::uses('Folder', 'Utility');
         // check writeable directories
         $writeableDirs = array(
-                '/tmp' => 0,
-                APP . 'tmp' => 0,
-                APP . 'files' => 0,
-                APP . 'files' . DS . 'scripts' . DS . 'tmp' => 0,
-                APP . 'tmp' . DS . 'csv_all' => 0,
-                APP . 'tmp' . DS . 'csv_sig' => 0,
-                APP . 'tmp' . DS . 'md5' => 0,
-                APP . 'tmp' . DS . 'sha1' => 0,
-                APP . 'tmp' . DS . 'snort' => 0,
-                APP . 'tmp' . DS . 'suricata' => 0,
-                APP . 'tmp' . DS . 'text' => 0,
-                APP . 'tmp' . DS . 'xml' => 0,
-                APP . 'tmp' . DS . 'files' => 0,
-                APP . 'tmp' . DS . 'logs' => 0,
-                APP . 'tmp' . DS . 'bro' => 0,
+            '/tmp' => 0,
+            APP . 'tmp' => 0,
+            APP . 'files' => 0,
+            APP . 'files' . DS . 'scripts' . DS . 'tmp' => 0,
+            APP . 'tmp' . DS . 'csv_all' => 0,
+            APP . 'tmp' . DS . 'csv_sig' => 0,
+            APP . 'tmp' . DS . 'md5' => 0,
+            APP . 'tmp' . DS . 'sha1' => 0,
+            APP . 'tmp' . DS . 'snort' => 0,
+            APP . 'tmp' . DS . 'suricata' => 0,
+            APP . 'tmp' . DS . 'text' => 0,
+            APP . 'tmp' . DS . 'xml' => 0,
+            APP . 'tmp' . DS . 'files' => 0,
+            APP . 'tmp' . DS . 'logs' => 0,
+            APP . 'tmp' . DS . 'bro' => 0,
         );
         foreach ($writeableDirs as $path => &$error) {
             $dir = new Folder($path);
