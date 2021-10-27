@@ -68,14 +68,18 @@ class BackgroundJobsTool
         self::UPDATE_QUEUE,
     ];
 
-    public const CMD_EVENT = 'event';
+    public const
+        CMD_EVENT = 'event',
+        CMD_SERVER = 'server';
 
     public const ALLOWED_COMMANDS = [
-        self::CMD_EVENT
+        self::CMD_EVENT,
+        self::CMD_SERVER
     ];
 
     public const CMD_TO_SHELL_DICT = [
-        self::CMD_EVENT => 'EventShell'
+        self::CMD_EVENT => 'EventShell',
+        self::CMD_SERVER => 'ServerShell'
     ];
 
     public const JOB_STATUS_PREFIX = 'job_status';

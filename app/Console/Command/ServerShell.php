@@ -1,6 +1,7 @@
 <?php
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
+App::uses('BackgroundJobsTool', 'Tools');
 require_once 'AppShell.php';
 
 /**
@@ -11,7 +12,16 @@ require_once 'AppShell.php';
  */
 class ServerShell extends AppShell
 {
+    /** @var BackgroundJobsTool */
+    private $BackgroundJobsTool;
+
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
+
+    public function initialize(): void
+    {
+        $this->BackgroundJobsTool = new BackgroundJobsTool();
+        $this->BackgroundJobsTool->initTool(Configure::read('BackgroundJobs'));
+    }
 
     public function list()
     {
@@ -78,11 +88,18 @@ class ServerShell extends AppShell
         ));
 
         foreach ($servers as $serverId => $serverName) {
-            $jobId = CakeResque::enqueue(
-                'default',
-                'ServerShell',
-                array('pull', $user['id'], $serverId, $technique)
+
+            $jobId = $this->BackgroundJobsTool->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                [
+                    'pull',
+                    $user['id'],
+                    $serverId,
+                    $technique
+                ]
             );
+
             $this->out("Enqueued pulling from $serverName server as job $jobId");
         }
     }
@@ -192,11 +209,18 @@ class ServerShell extends AppShell
         ));
 
         foreach ($servers as $serverId => $serverName) {
-            $jobId = CakeResque::enqueue(
-                'default',
-                'ServerShell',
-                array('push', $user['id'], $serverId, $technique)
+
+            $jobId = $this->BackgroundJobsTool->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                [
+                    'push',
+                    $user['id'],
+                    $serverId,
+                    $technique
+                ]
             );
+
             $this->out("Enqueued pushing from $serverName server as job $jobId");
         }
     }
@@ -317,11 +341,17 @@ class ServerShell extends AppShell
         ));
 
         foreach ($servers as $serverId => $serverName) {
-            $jobId = CakeResque::enqueue(
-                'default',
-                'ServerShell',
-                array('cacheServer', $user['id'], $serverId)
+
+            $jobId = $this->BackgroundJobsTool->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                [
+                    'cacheServer',
+                    $user['id'],
+                    $serverId
+                ]
             );
+
             $this->out("Enqueued cacheServer from {$serverName} server as job $jobId");
         }
     }
