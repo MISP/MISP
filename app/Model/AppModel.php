@@ -2559,12 +2559,19 @@ class AppModel extends Model
     /**
      * @return BackgroundJobsTool
      */
-    public function getBackgroundJobsTool()
+    public function getBackgroundJobsTool(): BackgroundJobsTool
     {
         if (!self::$loadedBackgroundJobsTool) {
             App::uses('BackgroundJobsTool', 'Tools');
+
+            // TODO: remove after CakeResque is deprecated
+            $settings = ['use_resque' => true];
+            if (Configure::read('BackgroundJobs')) {
+                $settings = Configure::read('BackgroundJobs');
+            }
+
             $backgroundJobsTool = new BackgroundJobsTool();
-            $backgroundJobsTool->initTool(Configure::read('BackgroundJobs'));
+            $backgroundJobsTool->initTool($settings);
             self::$loadedPubSubTool = $backgroundJobsTool;
         }
         return self::$loadedPubSubTool;

@@ -89,7 +89,6 @@ class BackgroundJobsTool
      * 
      * Settings should have the following format:
      *      [
-     *           'enabled' => true,
      *           'use_resque' => true,
      *           'redis_host' => 'localhost',
      *           'redis_port' => 6379,
@@ -107,7 +106,7 @@ class BackgroundJobsTool
     {
         $this->settings = $settings;
 
-        if (!$this->RedisConnection) {
+        if (!$this->RedisConnection && $this->settings['use_resque'] === false) {
             $this->RedisConnection = $this->createRedisConnection();
         }
     }

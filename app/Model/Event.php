@@ -3127,13 +3127,22 @@ class Event extends AppModel
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob($user, Job::WORKER_EMAIL, 'publish_alert_email', "Event: $id", 'Sending...');
-            $process_id = CakeResque::enqueue(
-                Job::WORKER_EMAIL,
-                'EventShell',
-                array('alertemail', $user['id'], $jobId, $id, $oldpublish),
-                true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::EMAIL_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                [
+                    'alertemail',
+                    $user['id'],
+                    $jobId,
+                    $id,
+                    $oldpublish
+                ],
+                true,
+                [], // metadata
+                $job
             );
-            $job->saveField('process_id', $process_id);
+
             return true;
         } else {
             return $this->sendAlertEmail($id, $user, $oldpublish);
@@ -4529,15 +4538,20 @@ class Event extends AppModel
             $message = empty($sightingUuids) ? __('Publishing sightings.') : __('Publishing %s sightings.', count($sightingUuids));
             $jobId = $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", $message);
 
-            $command = ['publish_sightings', $id, $passAlong, $jobId, $user['id']];
+            $args = ['publish_sightings', $id, $passAlong, $jobId, $user['id']];
             if (!empty($sightingUuids)) {
                 $filePath = FileAccessTool::writeToTempFile(json_encode($sightingUuids));
-                $command[] = $filePath;
+                $args[] = $filePath;
             }
 
-            $processId = CakeResque::enqueue(Job::WORKER_PRIO, 'EventShell', $command, true);
-            $job->saveField('process_id', $processId);
-            return $processId;
+            return $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::PRIO_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                $args,
+                true,
+                [], // metadata
+                $job
+            );
         }
 
         return $this->publish_sightings($id, $passAlong, $sightingUuids);
@@ -4549,7 +4563,6 @@ class Event extends AppModel
 
             $job = ClassRegistry::init('Job');
             $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", 'Publishing.');
-            $job->save();
 
             return $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::PRIO_QUEUE,
@@ -6001,13 +6014,22 @@ class Event extends AppModel
             );
             $job->save($data);
             $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'prio',
-                    'EventShell',
-                    array('enrichment', $options['user']['id'], $options['event_id'], json_encode($options['modules']), $jobId),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::PRIO_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                [
+                    'enrichment',
+                    $options['user']['id'],
+                    $options['event_id'],
+                    json_encode($options['modules']),
+                    $jobId
+                ],
+                true,
+                [], // metadata
+                $job
             );
-            $job->saveField('process_id', $process_id);
+
             return true;
         } else {
             $result = $this->enrichment($options);
@@ -6783,13 +6805,19 @@ class Event extends AppModel
 
             try {
                 $filePath = FileAccessTool::writeToTempFile(JsonTool::encode($tempData));
-                $process_id = CakeResque::enqueue(
-                    Job::WORKER_PRIO,
-                    'EventShell',
-                    array('processfreetext', $filePath),
-                    true
+
+                $this->getBackgroundJobsTool()->enqueue(
+                    BackgroundJobsTool::PRIO_QUEUE,
+                    BackgroundJobsTool::CMD_EVENT,
+                    [
+                        'processfreetext',
+                        $filePath
+                    ],
+                    true,
+                    [], // metadata
+                    $job
                 );
-                $job->saveField('process_id', $process_id);
+
                 return 'Freetext ingestion queued for background processing. Attributes will be added to the event as they are being processed.';
             } catch (Exception $e) {
                 $this->logException("Could not process freetext in background.", $e, LOG_NOTICE);
@@ -6815,13 +6843,19 @@ class Event extends AppModel
 
             try {
                 $filePath = FileAccessTool::writeToTempFile(JsonTool::encode($tempData));
-                $process_id = CakeResque::enqueue(
-                    Job::WORKER_PRIO,
-                    'EventShell',
-                    array('processmoduleresult', $filePath),
-                    true
+
+                $this->getBackgroundJobsTool()->enqueue(
+                    BackgroundJobsTool::PRIO_QUEUE,
+                    BackgroundJobsTool::CMD_EVENT,
+                    [
+                        'processmoduleresult',
+                        $filePath
+                    ],
+                    true,
+                    [], // metadata
+                    $job
                 );
-                $job->saveField('process_id', $process_id);
+
                 return 'Module results ingestion queued for background processing. Related data will be added to the event as it is being processed.';
             } catch (Exception $e) {
                 $this->logException("Could not process module results in background.", $e, LOG_NOTICE);

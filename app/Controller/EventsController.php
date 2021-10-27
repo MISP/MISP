@@ -5780,13 +5780,19 @@ class EventsController extends AppController
                 );
                 $job->save($data);
                 $jobId = $job->id;
-                $process_id = CakeResque::enqueue(
-                    'prio',
-                    'EventShell',
-                    array($function, $jobId, $id),
-                    true
+
+                $this->Event->getBackgroundJobsTool()->enqueue(
+                    BackgroundJobsTool::PRIO_QUEUE,
+                    BackgroundJobsTool::CMD_EVENT,
+                    [
+                        $function,
+                        $jobId,
+                        $id
+                    ],
+                    true,
+                    [], // metadata
+                    $job
                 );
-                $job->saveField('process_id', $process_id);
 
                 $message = __('Recover event job queued. Job ID: %s', $jobId);
                 if ($this->_isRest()) {
