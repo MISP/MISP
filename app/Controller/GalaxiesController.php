@@ -339,6 +339,11 @@ class GalaxiesController extends AppController
         $conditions[] = [
             'enabled' => true
         ];
+        if(!$local) {
+            $conditions[] = [
+                'local_only' => 0
+            ];
+        }
         $galaxies = $this->Galaxy->find('all', array(
             'recursive' => -1,
             'fields' => array('MAX(Galaxy.version) as latest_version', 'id', 'kill_chain_order', 'name', 'icon', 'description'),

@@ -2461,6 +2461,17 @@
                 "extra": ""
             },
             {
+                "column_name": "local_only",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
                 "column_name": "kill_chain_order",
                 "is_nullable": "YES",
                 "data_type": "text",
@@ -6246,6 +6257,17 @@
             },
             {
                 "column_name": "is_custom_galaxy",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "local_only",
                 "is_nullable": "NO",
                 "data_type": "tinyint",
                 "character_maximum_length": null,

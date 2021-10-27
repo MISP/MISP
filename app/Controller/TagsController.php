@@ -505,6 +505,7 @@ class TagsController extends AppController
         $this->loadModel('Taxonomy');
         $expanded = array();
         $this->set('taxonomy_id', $taxonomy_id);
+        $local_tag = !empty($this->params['named']['local']);
         if ($taxonomy_id === 'collections') {
             $this->loadModel('TagCollection');
             // This method removes banned and hidden tags
@@ -528,7 +529,7 @@ class TagsController extends AppController
             }
         } else {
             if ($taxonomy_id === '0') {
-                $temp = $this->Taxonomy->getAllTaxonomyTags(true, $this->Auth->user(), true);
+                $temp = $this->Taxonomy->getAllTaxonomyTags(true, $this->Auth->user(), true, true, $local_tag);
                 $tags = array();
                 foreach ($temp as $tag) {
                     $tags[$tag['Tag']['id']] = $tag['Tag'];
@@ -543,6 +544,9 @@ class TagsController extends AppController
                     'Tag.user_id' => array(0, $this->Auth->user('id')),
                     'Tag.hide_tag' => 0,
                 );
+                if (!$local_tag) {
+                    $conditions['Tag.local_only'] = 0;
+                }
                 $favTags = $this->Tag->FavouriteTag->find('all', array(
                     'conditions' => $conditions,
                     'recursive' => -1,
@@ -561,6 +565,9 @@ class TagsController extends AppController
                 if (!$this->_isSiteAdmin()) {
                     $conditions['Tag.org_id'] = array(0, $this->Auth->user('org_id'));
                     $conditions['Tag.user_id'] = array(0, $this->Auth->user('id'));
+                }
+                if (!$local_tag) {
+                    $conditions['Tag.local_only'] = 0;
                 }
                 $allTags = $this->Tag->find('all', array(
                     'conditions' => $conditions,
@@ -584,6 +591,9 @@ class TagsController extends AppController
                             $tag = $entry['existing_tag']['Tag'];
                             if ($tag['hide_tag']) {
                                 continue; // do not include hidden tags
+                            }
+                            if ($tag['local_only'] && !$local_tag) {
+                                continue; // we skip the local tags for global entries
                             }
                             if (!$isSiteAdmin) {
                                 // Skip all tags that this user cannot use for tagging, determined by the org restriction on tags
@@ -834,6 +844,10 @@ class TagsController extends AppController
                     $fails[] = __('Invalid Tag. This tag can only be set by a fixed user.');
                     continue;
                 }
+            }
+            if ($existingTag['Tag']['local_only'] && !$local) {
+                $fails[] = __('Invalid Tag. This tag can only be set as a local tag.');
+                continue;
             }
             $this->loadModel($objectType);
             $connectorObject = $objectType . 'Tag';

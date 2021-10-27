@@ -353,6 +353,7 @@ class Galaxy extends AppModel
             'conditions' => array('id' => $cluster_id),
             'fields' => array('tag_name', 'id', 'value'),
         ), $full=false);
+
         if (empty($cluster)) {
             throw new NotFoundException(__('Invalid Galaxy cluster'));
         }
@@ -368,7 +369,11 @@ class Galaxy extends AppModel
             throw new NotFoundException(__('Invalid %s.', $target_type));
         }
         $target = $target[0];
-        $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user, true);
+        $local_only = $cluster['GalaxyCluster']['Galaxy']['local_only'];
+        if ($local_only && !$local) {
+           return __("This Cluster can only be attached in a local scope");
+        }
+        $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1, 'local_only' => $local_only), $user, true);
         $existingTag = $this->Tag->$connectorModel->find('first', array('conditions' => array($target_type . '_id' => $target_id, 'tag_id' => $tag_id)));
         if (!empty($existingTag)) {
             return 'Cluster already attached.';
