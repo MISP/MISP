@@ -4416,40 +4416,39 @@ class Server extends AppModel
         return parent::__get($name);
     }
 
+    /**
+     * @return int Number of orphans removed.
+     */
     public function removeOrphanedCorrelations()
     {
         $this->Correlation = ClassRegistry::init('Correlation');
         $orphansLeft = $this->Correlation->find('all', [
-            'joins' => [
-                [
-                    'table' => 'attributes',
-                    'alias' => 'Attribute',
-                    'type' => 'LEFT',
-                    'conditions' => [
-                        'OR' => [
-                            'Correlation.attribute_id = Attribute.id',
-                        ]
-
-                    ]
-                ]
-            ],
+            'contain' => ['Attribute'],
             'conditions' => [
                 'Attribute.id IS NULL'
             ],
+            'fields' => ['Correlation.id', 'Correlation.attribute_id'],
         ]);
-        $orphansRight = $this->Correlation->find('all', [
+        if (empty($orphansLeft))  {
+            return 0;
+        }
+        $orphansLeft = array_column($orphansLeft, 'Correlation');
+        $orphansRight = $this->Correlation->find('column', [
             'conditions' => [
-                '1_attribute_id' => Hash::extract($orphansLeft, '{n}.Correlation.attribute_id')
-            ]
+                '1_attribute_id' => array_column($orphansLeft, 'attribute_id'),
+            ],
+            'fields' => ['Correlation.id'],
         ]);
         $orphans = array_merge(
-            Hash::extract($orphansLeft, '{n}.Correlation.id'),
-            Hash::extract($orphansRight, '{n}.Correlation.id')
+            array_column($orphansLeft, 'id'),
+            $orphansRight
         );
-        $success = $this->Correlation->deleteAll([
-            'Correlation.id' => $orphans
-        ]);
-        return $success;
+        if (!empty($orphans)) {
+            $this->Correlation->deleteAll([
+                'Correlation.id' => $orphans
+            ], false);
+        }
+        return count($orphans);
     }
 
     public function queryAvailableSyncFilteringRules(array $server)
