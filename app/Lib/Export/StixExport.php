@@ -16,9 +16,13 @@ class StixExport
     protected $__default_filters = null;
     protected $__version = null;
 
+    private $__cluster_uuids = array();
+    private $__converter = null;
     private $__current_filename = null;
-    private $__empty_file = null;
+    private $__empty_file = true;
+    private $__event_galaxies = array();
     private $__framing = null;
+    private $__scope = null;
     private $__stix_file = null;
     private $__tmp_file = null;
     private $__n_attributes = 0;
@@ -34,40 +38,34 @@ class StixExport
 
     public function handler($data, $options = array())
     {
-        $attributes_count = count($data['Attribute']);
-        foreach ($data['Object'] as $_object) {
-            if (isset($_object['Attribute'])) {
-                $attributes_count += count($_object['Attribute']);
-            }
+        if ($this->__scope === 'Attribute') {
+            return $this->__attributesHandler($data);
         }
-        App::uses('JSONConverterTool', 'Tools');
-        $converter = new JSONConverterTool();
-        $event = $converter->convert($data);
-        if ($this->__n_attributes + $attributes_count < $this->__attributes_limit) {
-            $this->__tmp_file->append($this->__n_attributes == 0 ? $event : ',' . $event);
-            $this->__n_attributes += $attributes_count;
-            $this->__empty_file = false;
-        } else {
-            if ($attributes_count > $this->__attributes_limit) {
-                $randomFileName = $this->__generateRandomFileName();
-                $tmpFile = new File($this->__tmp_dir . $randomFileName, true, 0644);
-                $tmpFile->write($event);
-                $tmpFile->close();
-                array_push($this->__filenames, $randomFileName);
-            } else {
-                $this->__tmp_file->append(']}');
-                $this->__tmp_file->close();
-                array_push($this->__filenames, $this->__current_filename);
-                $this->__initialize_misp_file();
-                $this->__tmp_file->append($event);
-                $this->__n_attributes = $attributes_count;
-            }
+        if ($this->__scope === 'Event') {
+            return $this->__eventsHandler($data);
         }
         return '';
     }
 
+    public function modify_params($user, $params)
+    {
+        if (empty($params['contain'])) {
+            $params['contain'] = array();
+        }
+        $params['contain'] = array_merge($params['contain'], array(
+            'AttributeTag' => array('Tag'),
+            'Event' => array('Org.name', 'Org.uuid', 'Orgc.name', 'Orgc.uuid')
+        ));
+        unset($params['fields']);
+        $params['includeContext'] = 0;
+        return $params;
+    }
+
     public function header($options = array())
     {
+        App::uses('JSONConverterTool', 'Tools');
+        $this->__converter = new JSONConverterTool();
+        $this->__scope = $options['scope'];
         $this->__return_type = $options['returnFormat'];
         if ($this->__return_type == 'stix-json') {
             $this->__return_type = 'stix';
@@ -90,12 +88,15 @@ class StixExport
             $this->__tmp_file->close();
             $this->__tmp_file->delete();
         } else {
-            $this->__tmp_file->append(']}');
+            if (!empty($this->__event_galaxies)) {
+                $this->__write_event_galaxies();
+            }
+            $this->__tmp_file->append($this->__scope === 'Attribute' ? ']}}' : ']}');
             $this->__tmp_file->close();
-            array_push($this->__filenames, $this->__current_filename);
+            $this->__filenames[] = $this->__current_filename;
         }
         $filenames = implode(' ' . $this->__tmp_dir, $this->__filenames);
-        $result = $this->__parse_misp_events($filenames);
+        $result = $this->__parse_misp_data($filenames);
         $decoded = json_decode($result, true);
         if (!isset($decoded['success']) || !$decoded['success']) {
             $this->__delete_temporary_files();
@@ -124,11 +125,155 @@ class StixExport
         return '';
     }
 
+    private function __addMetadataToAttribute($raw_attribute)
+    {
+        $attribute = $raw_attribute['Attribute'];
+        if (isset($attribute['SharingGroup']) && empty($attribute['SharingGroup'])) {
+            unset($attribute['SharingGroup']);
+        }
+        unset($attribute['value1']);
+        unset($attribute['value2']);
+        if (!empty($raw_attribute['Galaxy'])) {
+            $galaxies = array(
+                'Attribute' => array(),
+                'Event' => array()
+            );
+            if (!empty($raw_attribute['AttributeTag'])) {
+                $tags = array();
+                foreach($raw_attribute['AttributeTag'] as $tag) {
+                    $tag_name = $tag['Tag']['name'];
+                    if (substr($tag_name, 0, 12) === 'misp-galaxy:') {
+                        $this->__merge_galaxy_tag($galaxies['Attribute'], $tag_name);
+                    } else {
+                        $tags[] = $tag['Tag'];
+                    }
+                }
+                if (!empty($tags)) {
+                    $attribute['Tag'] = $tags;
+                }
+            }
+            if (!empty($raw_attribute['EventTag'])) {
+                foreach($raw_attribute['EventTag'] as $tag) {
+                    $tag_name = $tag['Tag']['name'];
+                    if (substr($tag_name, 0, 12) === 'misp-galaxy:') {
+                        $this->__merge_galaxy_tag($galaxies['Event'], $tag_name);
+                    }
+                }
+            }
+            if (!empty($galaxies['Attribute'])) {
+                $attribute['Galaxy'] = array();
+            }
+            foreach($raw_attribute['Galaxy'] as $galaxy) {
+                $galaxy_type = $galaxy['type'];
+                if (!empty($galaxies['Attribute'][$galaxy_type])) {
+                    if (empty($galaxies['Event'][$galaxy_type])) {
+                        $attribute['Galaxy'][] = $galaxy;
+                        unset($galaxies['Attribute'][$galaxy_type]);
+                        continue;
+                    }
+                    $in_attribute = array();
+                    $in_event = array();
+                    foreach($galaxy['GalaxyCluster'] as $cluster) {
+                        $cluster_value = $cluster['value'];
+                        $in_attribute[] = in_array($cluster_value, $galaxies['Attribute'][$galaxy_type]);
+                        $in_event[] = in_array($cluster_value, $galaxies['Event'][$galaxy_type]);
+                    }
+                    if (!in_array(false, $in_attribute)) {
+                        $attribute['Galaxy'][] = $galaxy;
+                        unset($galaxies['Attribute'][$galaxy_type]);
+                        if (!in_array(false, $in_event)) {
+                            $this->__handle_event_galaxies($galaxy);
+                            unset($galaxies['Event'][$galaxy_type]);
+                        }
+                        continue;
+                    }
+                }
+                if (!empty($galaxies['Event'][$galaxy_type])) {
+                    $this->__handle_event_galaxies($galaxy);
+                    unset($galaxies['Event'][$galaxy_type]);
+                }
+            }
+        } else {
+            if (!empty($raw_attribute['AttributeTag'])) {
+                $attribute['Tag'] = array();
+                foreach($raw_attribute['AttributeTag'] as $tag) {
+                    $attribute['Tag'][] = $tag['Tag'];
+                }
+            }
+        }
+        $attribute['Org'] = $raw_attribute['Event']['Org'];
+        $attribute['Orgc'] = $raw_attribute['Event']['Orgc'];
+        return $attribute;
+    }
+
+    private function __attributesHandler($attribute)
+    {
+        $attribute = json_encode($this->__addMetadataToAttribute($attribute));
+        if ($this->__n_attributes < $this->__attributes_limit) {
+            $this->__tmp_file->append($this->__n_attributes == 0 ? $attribute : ', ' . $attribute);
+            $this->__n_attributes += 1;
+            $this->__empty_file = false;
+        } else {
+            if (!empty($this->__event_galaxies)) {
+                $this->__write_event_galaxies();
+            }
+            $this->__terminate_misp_file($attribute);
+            $this->__n_attributes = 1;
+        }
+        return '';
+    }
+
+    private function __eventsHandler($event)
+    {
+        $attributes_count = count($event['Attribute']);
+        foreach ($event['Object'] as $_object) {
+            if (!empty($_object['Attribute'])) {
+                $attributes_count += count($_object['Attribute']);
+            }
+        }
+        $event = $this->__converter->convert($event);
+        if ($this->__n_attributes + $attributes_count <= $this->__attributes_limit) {
+            $this->__tmp_file->append($this->__n_attributes == 0 ? $event : ', ' . $event);
+            $this->__n_attributes += $attributes_count;
+            $this->__empty_file = false;
+        } else {
+            if ($attributes_count > $this->__attributes_limit) {
+                $randomFileName = $this->__generateRandomFileName();
+                $tmpFile = new File($this->__tmp_dir . $randomFileName, true, 0644);
+                $tmpFile->write($event);
+                $tmpFile->close();
+                $this->__filenames[] = $randomFileName;
+            } else {
+                $this->__terminate_misp_file($event);
+                $this->__n_attributes = $attributes_count;
+            }
+        }
+        return '';
+    }
+
+    private function __handle_event_galaxies($galaxy)
+    {
+        $galaxy_type = $galaxy['type'];
+        if (in_array($galaxy['type'], $this->__event_galaxies)) {
+            foreach($galaxy['GalaxyCluster'] as $cluster) {
+                if (!in_array($cluster['uuid'], $__cluster_uuids)) {
+                    $this->__event_galaxies[$galaxy_type]['GalaxyCluster'][] = $cluster;
+                    $this->__cluster_uuids[] = $cluster['uuid'];
+                }
+            }
+        } else {
+            $this->__event_galaxies[$galaxy_type] = $galaxy;
+            foreach($galaxy['GalaxyCluster'] as $cluster) {
+                $this->__cluster_uuids[] = $cluster['uuid'];
+            }
+        }
+    }
+
     private function __initialize_misp_file()
     {
         $this->__current_filename = $this->__generateRandomFileName();
         $this->__tmp_file = new File($this->__tmp_dir . $this->__current_filename, true, 0644);
-        $this->__tmp_file->write('{"response": [');
+        $this->__tmp_file->write('{"response": ' . ($this->__scope === 'Attribute' ? '{"Attribute": [' : '['));
         $this->__empty_file = true;
     }
 
@@ -144,5 +289,36 @@ class StixExport
         }
         $this->__stix_file->close();
         $this->__stix_file->delete();
+    }
+
+    private function __merge_galaxy_tag(&$galaxies, $tag_name)
+    {
+        list($galaxy_type, $value) = explode('=', explode(':', $tag_name)[1]);
+        $value = substr($value, 1, -1);
+        if (empty($galaxies[$galaxy_type])) {
+            $galaxies[$galaxy_type] = array($value);
+        } else {
+            $galaxies[$galaxy_type][] = $value;
+        }
+    }
+
+    private function __terminate_misp_file($content)
+    {
+        $this->__tmp_file->append($this->__scope === 'Attribute' ? ']}}' : ']}');
+        $this->__tmp_file->close();
+        $this->__filenames[] = $this->__current_filename;
+        $this->__initialize_misp_file();
+        $this->__tmp_file->append($content);
+    }
+
+    private function __write_event_galaxies()
+    {
+        $this->__tmp_file->append('], "Galaxy": [');
+        $galaxies = array();
+        foreach($this->__event_galaxies as $type => $galaxy) {
+            $galaxies[] = json_encode($galaxy);
+        }
+        $this->__tmp_file->append(implode(', ', $galaxies));
+        $this->__event_galaxies = array();
     }
 }
