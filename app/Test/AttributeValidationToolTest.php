@@ -114,6 +114,11 @@ class AttributeValidationToolTest extends TestCase
         $this->assertEquals('127.0.0.1', AttributeValidationTool::modifyBeforeValidation('ip-src', '127.0.0.1'));
     }
 
+    public function testFilenameHashLowercase()
+    {
+        $this->assertEquals('CMD.EXE|0cc175b9c0f1b6a831c399e269772661', AttributeValidationTool::modifyBeforeValidation('filename|md5', 'CMD.EXE|0CC175B9C0F1B6A831C399E269772661'));
+    }
+
     private function shouldBeValid($type, array $values)
     {
         foreach ($values as $value) {

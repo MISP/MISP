@@ -117,8 +117,9 @@ class AttributeValidationTool
             case 'filename|vhash':
             case 'filename|pehash':
             case 'filename|tlsh':
-                $pieces = explode('|', $value);
-                return $pieces[0] . '|' . strtolower($pieces[1]);
+                // Convert hash to lowercase
+                $pos = strpos($value, '|');
+                return substr($value, 0, $pos) . strtolower(substr($value, $pos));
             case 'http-method':
             case 'hex':
                 return strtoupper($value);
