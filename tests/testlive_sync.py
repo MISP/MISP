@@ -71,6 +71,11 @@ check_response(galaxy_cluster)
 # Publish that galaxy cluster
 check_response(pymisp.publish_galaxy_cluster(galaxy_cluster))
 
+# Preview index
+url = f'servers/previewIndex/{remote_server["id"]}'
+index_preview = pymisp._check_json_response(pymisp._prepare_request('GET', url))
+check_response(index_preview)
+
 # Preview event
 url = f'servers/previewEvent/{remote_server["id"]}/{event.uuid}'
 event_preview = pymisp._check_json_response(pymisp._prepare_request('GET', url))

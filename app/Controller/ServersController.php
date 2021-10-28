@@ -126,8 +126,16 @@ class ServersController extends AppController
         try {
             list($events, $total_count) = $this->Server->previewIndex($server, $this->Auth->user(), $combinedArgs);
         } catch (Exception $e) {
-            $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
-            $this->redirect(array('action' => 'index'));
+            if ($this->_isRest()) {
+                return $this->RestResponse->throwException(500, $e->getMessage());
+            } else {
+                $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
+                $this->redirect(array('action' => 'index'));
+            }
+        }
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($events, $this->response->type());
         }
 
         $this->loadModel('Event');
