@@ -3143,6 +3143,18 @@ class AppModel extends Model
     }
 
     /**
+     * @param int $value Timestamp in microseconds
+     * @return string
+     */
+    protected function microTimestampToIso($value)
+    {
+        $sec = (int)($value / 1000000);
+        $micro = $value % 1000000;
+        $micro = str_pad($micro, 6, "0", STR_PAD_LEFT);
+        return DateTime::createFromFormat('U.u', "$sec.$micro")->format('Y-m-d\TH:i:s.uP');
+    }
+
+    /**
      * @return AttachmentTool
      */
     protected function loadAttachmentTool()

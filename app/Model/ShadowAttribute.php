@@ -354,8 +354,14 @@ class ShadowAttribute extends AppModel
 
     public function afterFind($results, $primary = false)
     {
-        foreach ($results as $k => $v) {
-            $results[$k] = $this->Attribute->UTCToISODatetime($results[$k], $this->alias);
+        foreach ($results as &$v) {
+            $proposal = &$v['ShadowAttribute'];
+            if (!empty($proposal['first_seen'])) {
+                $proposal['first_seen'] = $this->microTimestampToIso($proposal['first_seen']);
+            }
+            if (!empty($proposal['last_seen'])) {
+                $proposal['last_seen'] = $this->microTimestampToIso($proposal['last_seen']);
+            }
         }
         return $results;
     }

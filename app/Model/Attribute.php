@@ -352,24 +352,28 @@ class Attribute extends AppModel
 
     public function afterFind($results, $primary = false)
     {
-        foreach ($results as $k => $v) {
-            if (isset($v['Attribute']['object_relation']) && $v['Attribute']['object_relation'] === null) {
-                $results[$k]['Attribute']['object_relation'] = '';
+        foreach ($results as &$v) {
+            $attribute = &$v['Attribute'];
+            if (!empty($attribute['first_seen'])) {
+                $attribute['first_seen'] = $this->microTimestampToIso($attribute['first_seen']);
             }
-            $results[$k] = $this->UTCToISODatetime($results[$k], $this->alias);
+            if (!empty($attribute['last_seen'])) {
+                $attribute['last_seen'] = $this->microTimestampToIso($attribute['last_seen']);
+            }
         }
         return $results;
     }
 
     public function beforeSave($options = array())
     {
-        if (empty($this->data['Attribute']['uuid'])) {
-            $this->data['Attribute']['uuid'] = CakeText::uuid();
+        $attribute = &$this->data['Attribute'];
+        if (empty($attribute['uuid'])) {
+            $attribute['uuid'] = CakeText::uuid();
         }
-        if (!empty($this->data['Attribute']['id'])) {
+        if (!empty($attribute['id'])) {
             $this->old = $this->find('first', array(
                 'recursive' => -1,
-                'conditions' => array('Attribute.id' => $this->data['Attribute']['id']),
+                'conditions' => array('Attribute.id' => $attribute['id']),
                 'fields' => ['value', 'disable_correlation', 'type', 'distribution', 'sharing_group_id'],
             ));
         } else {
@@ -377,18 +381,18 @@ class Attribute extends AppModel
         }
         // explode value of composite type in value1 and value2
         // or copy value to value1 if not composite type
-        if (!empty($this->data['Attribute']['type'])) {
+        if (!empty($attribute['type'])) {
             // explode composite types in value1 and value2
-            if (in_array($this->data['Attribute']['type'], $this->getCompositeTypes(), true)) {
-                $pieces = explode('|', $this->data['Attribute']['value']);
+            if (in_array($attribute['type'], $this->getCompositeTypes(), true)) {
+                $pieces = explode('|', $attribute['value']);
                 if (2 !== count($pieces)) {
                     throw new InternalErrorException(__('Composite type, but value not explodable'));
                 }
-                $this->data['Attribute']['value1'] = $pieces[0];
-                $this->data['Attribute']['value2'] = $pieces[1];
+                $attribute['value1'] = $pieces[0];
+                $attribute['value2'] = $pieces[1];
             } else {
-                $this->data['Attribute']['value1'] = $this->data['Attribute']['value'];
-                $this->data['Attribute']['value2'] = '';
+                $attribute['value1'] = $attribute['value'];
+                $attribute['value2'] = '';
             }
         }
 
@@ -426,17 +430,19 @@ class Attribute extends AppModel
         // Passing event in `parentEvent` field will speed up correlation
         $passedEvent = isset($options['parentEvent']) ? $options['parentEvent'] : false;
 
+        $attribute = $this->data['Attribute'];
+
         // add attributeTags via the shorthand ID list
-        if (!empty($this->data['Attribute']['tag_ids'])) {
-            foreach ($this->data['Attribute']['tag_ids'] as $tag_id) {
-                $this->AttributeTag->attachTagToAttribute($this->id, $this->data['Attribute']['event_id'], $tag_id);
+        if (!empty($attribute['tag_ids'])) {
+            foreach ($attribute['tag_ids'] as $tagId) {
+                $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tagId);
             }
         }
         // update correlation...
-        if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
-            $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
-            if (isset($this->data['Attribute']['event_id'])) {
-                $this->__alterAttributeCount($this->data['Attribute']['event_id'], false);
+        if (isset($attribute['deleted']) && $attribute['deleted']) {
+            $this->Correlation->beforeSaveCorrelation($attribute);
+            if (isset($attribute['event_id'])) {
+                $this->__alterAttributeCount($attribute['event_id'], false);
             }
         } else {
             /*
@@ -449,71 +455,71 @@ class Attribute extends AppModel
             if (!$created) {
                 if (
                     empty($this->old) ||
-                    $this->data['Attribute']['value'] != $this->old['Attribute']['value'] ||
-                    $this->data['Attribute']['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
-                    $this->data['Attribute']['type'] != $this->old['Attribute']['type'] ||
-                    $this->data['Attribute']['distribution'] != $this->old['Attribute']['distribution'] ||
-                    $this->data['Attribute']['sharing_group_id'] != $this->old['Attribute']['sharing_group_id']
+                    $attribute['value'] != $this->old['Attribute']['value'] ||
+                    $attribute['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
+                    $attribute['type'] != $this->old['Attribute']['type'] ||
+                    $attribute['distribution'] != $this->old['Attribute']['distribution'] ||
+                    $attribute['sharing_group_id'] != $this->old['Attribute']['sharing_group_id']
                 ) {
-                    $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
-                    $this->Correlation->afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
+                    $this->Correlation->beforeSaveCorrelation($attribute);
+                    $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
                 }
             } else {
-                $this->Correlation->afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
+                $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
             }
         }
         $result = true;
         // if the 'data' field is set on the $this->data then save the data to the correct file
-        if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type'])) {
-            if (isset($this->data['Attribute']['data_raw'])) {
-                $this->data['Attribute']['data'] = $this->data['Attribute']['data_raw'];
-                unset($this->data['Attribute']['data_raw']);
-            } elseif (isset($this->data['Attribute']['data'])) {
-                $this->data['Attribute']['data'] = base64_decode($this->data['Attribute']['data']);
+        if (isset($attribute['type']) && $this->typeIsAttachment($attribute['type'])) {
+            if (isset($attribute['data_raw'])) {
+                $attribute['data'] = $attribute['data_raw'];
+                unset($attribute['data_raw']);
+            } elseif (isset($attribute['data'])) {
+                $attribute['data'] = base64_decode($attribute['data']);
             }
-            $result = $this->saveAttachment($this->data['Attribute']);
+            $result = $this->saveAttachment($attribute);
         }
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable');
         $kafkaTopic = $this->kafkaTopic('attribute');
         if ($pubToZmq || $kafkaTopic) {
-            $attribute = $this->fetchAttribute($this->id);
-            if (!empty($attribute)) {
+            $attributeForPublish = $this->fetchAttribute($this->id);
+            if (!empty($attributeForPublish)) {
                 $user = array(
                     'org_id' => -1,
                     'Role' => array(
                         'perm_site_admin' => 1
                     )
                 );
-                $attribute['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attribute, $user, $attribute);
-                if (empty($attribute['Object']['id'])) {
-                    unset($attribute['Object']);
+                $attributeForPublish['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attributeForPublish, $user, $attributeForPublish);
+                if (empty($attributeForPublish['Object']['id'])) {
+                    unset($attributeForPublish['Object']);
                 }
                 $action = $created ? 'add' : 'edit';
-                if (!empty($this->data['Attribute']['deleted'])) {
+                if (!empty($attribute['deleted'])) {
                     $action = 'soft-delete';
                 }
                 if ($pubToZmq) {
-                    if (Configure::read('Plugin.ZeroMQ_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
-                        $attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
+                    if (Configure::read('Plugin.ZeroMQ_include_attachments') && $this->typeIsAttachment($attributeForPublish['Attribute']['type'])) {
+                        $attributeForPublish['Attribute']['data'] = $this->base64EncodeAttachment($attributeForPublish['Attribute']);
                     }
                     $pubSubTool = $this->getPubSubTool();
-                    $pubSubTool->attribute_save($attribute, $action);
-                    unset($attribute['Attribute']['data']);
+                    $pubSubTool->attribute_save($attributeForPublish, $action);
+                    unset($attributeForPublish['Attribute']['data']);
                 }
                 if ($kafkaTopic) {
-                    if (Configure::read('Plugin.Kafka_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
-                        $attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
+                    if (Configure::read('Plugin.Kafka_include_attachments') && $this->typeIsAttachment($attributeForPublish['Attribute']['type'])) {
+                        $attributeForPublish['Attribute']['data'] = $this->base64EncodeAttachment($attributeForPublish['Attribute']);
                     }
                     $kafkaPubTool = $this->getKafkaPubTool();
-                    $kafkaPubTool->publishJson($kafkaTopic, $attribute, $action);
+                    $kafkaPubTool->publishJson($kafkaTopic, $attributeForPublish, $action);
                 }
             }
         }
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && strpos($this->data['Attribute']['value'], '/')) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($attribute['type'], ['ip-src', 'ip-dst'], true) && strpos($attribute['value'], '/')) {
             $this->setCIDRList();
         }
-        if ($created && isset($this->data['Attribute']['event_id']) && empty($this->data['Attribute']['skip_auto_increment'])) {
-            $this->__alterAttributeCount($this->data['Attribute']['event_id']);
+        if ($created && isset($attribute['event_id']) && empty($attribute['skip_auto_increment'])) {
+            $this->__alterAttributeCount($attribute['event_id']);
         }
         return $result;
     }
@@ -1035,40 +1041,28 @@ class Attribute extends AppModel
         // convert into utc and micro sec
         if (!empty($data[$alias]['first_seen'])) {
             $d = new DateTime($data[$alias]['first_seen'], new DateTimeZone('GMT'));
-            $fs_sec = $d->format('U');
-            $fs_micro = $d->format('u');
-            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
-            $fs = $fs_sec . $fs_micro;
-            $data[$alias]['first_seen'] = $fs;
+            $data[$alias]['first_seen'] = $d->format('Uu');
         }
         if (!empty($data[$alias]['last_seen'])) {
             $d = new DateTime($data[$alias]['last_seen'], new DateTimeZone('GMT'));
-            $ls_sec = $d->format('U');
-            $ls_micro = $d->format('u');
-            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
-            $ls = $ls_sec . $ls_micro;
-            $data[$alias]['last_seen'] = $ls;
+            $data[$alias]['last_seen'] = $d->format('Uu');
         }
         return $data;
     }
 
+    /**
+     * @param $data
+     * @param $alias
+     * @return array
+     * @deprecated
+     */
     public function UTCToISODatetime($data, $alias)
     {
         if (!empty($data[$alias]['first_seen'])) {
-            $fs = $data[$alias]['first_seen'];
-            $fs_sec = intval($fs / 1000000); // $fs is in micro (10^6)
-            $fs_micro = $fs % 1000000;
-            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
-            $fs = $fs_sec . '.' . $fs_micro;
-            $data[$alias]['first_seen'] = DateTime::createFromFormat('U.u', $fs)->format('Y-m-d\TH:i:s.uP');
+            $data[$alias]['first_seen'] = $this->microTimestampToIso($data[$alias]['first_seen']);
         }
         if (!empty($data[$alias]['last_seen'])) {
-            $ls = $data[$alias]['last_seen'];
-            $ls_sec = intval($ls / 1000000); // $ls is in micro (10^6)
-            $ls_micro = $ls % 1000000;
-            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
-            $ls = $ls_sec . '.' . $ls_micro;
-            $data[$alias]['last_seen'] = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.uP');
+            $data[$alias]['last_seen'] = $this->microTimestampToIso($data[$alias]['last_seen']);
         }
         return $data;
     }
