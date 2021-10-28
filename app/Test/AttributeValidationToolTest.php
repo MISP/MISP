@@ -33,8 +33,36 @@ class AttributeValidationToolTest extends TestCase
 
     public function testValidateSshFingerprint(): void
     {
-        $this->assertTrue(AttributeValidationTool::validate('ssh-fingerprint', '7b:e5:6f:a7:f4:f9:81:62:5c:e3:1f:bf:8b:57:6c:5a'));
-        $this->assertTrue(AttributeValidationTool::validate('ssh-fingerprint', 'MD5:7b:e5:6f:a7:f4:f9:81:62:5c:e3:1f:bf:8b:57:6c:5a'));
-        $this->assertTrue(AttributeValidationTool::validate('ssh-fingerprint', 'SHA256:mVPwvezndPv/ARoIadVY98vAC0g+P/5633yTC4d/wXE'));
+        $this->shouldBeValid('ssh-fingerprint', [
+            '7b:e5:6f:a7:f4:f9:81:62:5c:e3:1f:bf:8b:57:6c:5a',
+            'MD5:7b:e5:6f:a7:f4:f9:81:62:5c:e3:1f:bf:8b:57:6c:5a',
+            'SHA256:mVPwvezndPv/ARoIadVY98vAC0g+P/5633yTC4d/wXE',
+        ]);
+    }
+
+    public function testValidateSsdeep(): void
+    {
+        $this->shouldBeValid('ssdeep', [
+            '96:s4Ud1Lj96tHHlZDrwciQmA+4uy1I0G4HYuL8N3TzS8QsO/wqWXLcMSx:sF1LjEtHHlZDrJzrhuyZvHYm8tKp/RWO',
+            '384:EWo4X1WaPW9ZWhWzLo+lWpct/fWbkWsWIwW0/S7dZhgG8:EWo4X1WmW9ZWhWH/WpchfWgWsWTWtf8',
+            '6144:3wSQSlrBHFjOvwYAU/Fsgi/2WDg5+YaNk5xcHrYw+Zg+XrZsGEREYRGAFU25ttR/:ctM7E0L4q',
+        ]);
+        $this->shouldBeValid('filename|ssdeep', [
+            'ahoj.txt|96:s4Ud1Lj96tHHlZDrwciQmA+4uy1I0G4HYuL8N3TzS8QsO/wqWXLcMSx:sF1LjEtHHlZDrJzrhuyZvHYm8tKp/RWO',
+        ]);
+    }
+
+    private function shouldBeValid($type, array $values)
+    {
+        foreach ($values as $value) {
+            $this->assertTrue(AttributeValidationTool::validate($type, $value));
+        }
+    }
+
+    private function shouldBeInvalid($type, array $values)
+    {
+        foreach ($values as $value) {
+            $this->assertNotTrue(AttributeValidationTool::validate($type, $value));
+        }
     }
 }

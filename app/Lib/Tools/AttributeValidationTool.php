@@ -225,6 +225,8 @@ class AttributeValidationTool
     }
 
     /**
+     * Validate if value is valid for given attribute type.
+     * At this point, we can be sure, that composite type is really composite.
      * @param string $type
      * @param string $value
      * @return bool|string
@@ -272,11 +274,8 @@ class AttributeValidationTool
                 }
                 return __('The input doesn\'t match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
             case 'ssdeep':
-                if (substr_count($value, ':') === 2) {
-                    $parts = explode(':', $value);
-                    if (self::isPositiveInteger($parts[0])) {
-                        return true;
-                    }
+                if (self::isSsdeep($value)) {
+                    return true;
                 }
                 return __('Invalid SSDeep hash. The format has to be blocksize:hash:hash');
             case 'impfuzzy':
@@ -324,19 +323,11 @@ class AttributeValidationTool
                 }
                 return __('Checksum has an invalid length or format (expected: filename|%s hexadecimal characters). Please double check the value or select type "other".', $length);
             case 'filename|ssdeep':
-                if (substr_count($value, '|') != 1 || !preg_match("#^.+\|.+$#", $value)) {
-                    return __('Invalid composite type. The format has to be %s.', $type);
-                } else {
-                    $composite = explode('|', $value);
-                    $value = $composite[1];
-                    if (substr_count($value, ':') == 2) {
-                        $parts = explode(':', $value);
-                        if (self::isPositiveInteger($parts[0])) {
-                            return true;
-                        }
-                    }
+                $composite = explode('|', $value);
+                if (self::isSsdeep($composite[1])) {
+                    return true;
                 }
-                return __('Invalid SSDeep hash (expected: blocksize:hash:hash).');
+                return __('Invalid ssdeep hash (expected: blocksize:hash:hash).');
             case 'filename|tlsh':
                 if (preg_match("#^.+\|[0-9a-f]{35,}$#", $value)) {
                     return true;
@@ -654,6 +645,19 @@ class AttributeValidationTool
     private static function isPositiveInteger($value)
     {
         return (is_int($value) && $value >= 0) || ctype_digit($value);
+    }
+
+    /**
+     * @param $value
+     * @return bool
+     */
+    private static function isSsdeep($value)
+    {
+        $parts = explode(':', $value);
+        if (count($parts) !== 3) {
+            return false;
+        }
+        return self::isPositiveInteger($parts[0]);
     }
 
     /**
