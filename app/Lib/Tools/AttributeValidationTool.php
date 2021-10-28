@@ -28,12 +28,20 @@ class AttributeValidationTool
         'sha3-384' => 96,
         'sha3-512' => 128,
     ];
-    
-    // do some last second modifications before the validation
+
+    /**
+     * Do some last second modifications before the validation
+     * @param string $type
+     * @param mixed $value
+     * @return string
+     */
     public static function modifyBeforeValidation($type, $value)
     {
         $value = self::handle4ByteUnicode($value);
         switch ($type) {
+            case 'ip-src':
+            case 'ip-dst':
+                return self::compressIpv6($value);
             case 'md5':
             case 'sha1':
             case 'sha224':
@@ -75,7 +83,7 @@ class AttributeValidationTool
                         $value = $punyCode;
                     }
                 }
-                break;
+                return $value;
             case 'domain|ip':
                 $value = strtolower($value);
                 $parts = explode('|', $value);
@@ -110,8 +118,7 @@ class AttributeValidationTool
             case 'filename|pehash':
             case 'filename|tlsh':
                 $pieces = explode('|', $value);
-                $value = $pieces[0] . '|' . strtolower($pieces[1]);
-                break;
+                return $pieces[0] . '|' . strtolower($pieces[1]);
             case 'http-method':
             case 'hex':
                 return strtoupper($value);
@@ -121,13 +128,11 @@ class AttributeValidationTool
                 return strtoupper($value);
             case 'cc-number':
             case 'bin':
-                $value = preg_replace('/[^0-9]+/', '', $value);
-                break;
+                return preg_replace('/[^0-9]+/', '', $value);
             case 'iban':
             case 'bic':
                 $value = strtoupper($value);
-                $value = preg_replace('/[^0-9A-Z]+/', '', $value);
-                break;
+                return preg_replace('/[^0-9A-Z]+/', '', $value);
             case 'prtn':
             case 'whois-registrant-phone':
             case 'phone-number':
@@ -135,17 +140,12 @@ class AttributeValidationTool
                     $value = '+' . substr($value, 2);
                 }
                 $value = preg_replace('/\(0\)/', '', $value);
-                $value = preg_replace('/[^\+0-9]+/', '', $value);
-                break;
+                return preg_replace('/[^\+0-9]+/', '', $value);
             case 'x509-fingerprint-md5':
             case 'x509-fingerprint-sha256':
             case 'x509-fingerprint-sha1':
                 $value = str_replace(':', '', $value);
-                $value = strtolower($value);
-                break;
-            case 'ip-src':
-            case 'ip-dst':
-                return self::compressIpv6($value);
+                return strtolower($value);
             case 'ip-dst|port':
             case 'ip-src|port':
                 if (substr_count($value, ':') >= 2) { // (ipv6|port) - tokenize ip and port
@@ -174,13 +174,11 @@ class AttributeValidationTool
                 } else {
                     return $value;
                 }
-                $parts[0] = self::compressIpv6($parts[0]);
-                return $parts[0] . '|' . $parts[1];
+                return self::compressIpv6($parts[0]) . '|' . $parts[1];
             case 'mac-address':
             case 'mac-eui-64':
                 $value = str_replace(array('.', ':', '-', ' '), '', strtolower($value));
-                $value = wordwrap($value, 2, ':', true);
-                break;
+                return wordwrap($value, 2, ':', true);
             case 'hostname|port':
                 $value = strtolower($value);
                 return str_replace(':', '|', $value);
@@ -194,11 +192,10 @@ class AttributeValidationTool
                 return $value ? '1' : '0';
             case 'datetime':
                 try {
-                    $value = (new DateTime($value, new DateTimeZone('GMT')))->format('Y-m-d\TH:i:s.uO'); // ISO8601 formating with microseconds
+                    return (new DateTime($value, new DateTimeZone('GMT')))->format('Y-m-d\TH:i:s.uO'); // ISO8601 formatting with microseconds
                 } catch (Exception $e) {
-                    // silently skip. Rejection will be done in runValidation()
+                    return $value; // silently skip. Rejection will be done in validation()
                 }
-                break;
             case 'AS':
                 if (strtoupper(substr($value, 0, 2)) === 'AS') {
                     $value = substr($value, 2); // remove 'AS'
@@ -209,7 +206,7 @@ class AttributeValidationTool
                         return $parts[0] * 65536 + $parts[1];
                     }
                 }
-                break;
+                return $value;
         }
         return $value;
     }
@@ -223,7 +220,6 @@ class AttributeValidationTool
      */
     public static function validate($type, $value)
     {
-        // check data validation
         switch ($type) {
             case 'md5':
             case 'imphash':
@@ -306,8 +302,8 @@ class AttributeValidationTool
             case 'filename|sha3-384':
             case 'filename|sha3-512':
             case 'filename|authentihash':
-                $parts = explode('|', $type);
-                $length = self::HASH_HEX_LENGTH[$parts[1]];
+                $hashType = substr($type, 9); // strip `filename|`
+                $length = self::HASH_HEX_LENGTH[$hashType];
                 if (preg_match("#^.+\|[0-9a-f]{" . $length . "}$#", $value)) {
                     return true;
                 }
@@ -672,7 +668,7 @@ class AttributeValidationTool
      * Temporary solution for utf8 columns until we migrate to utf8mb4.
      * via https://stackoverflow.com/questions/16496554/can-php-detect-4-byte-encoded-utf8-chars
      * @param string $input
-     * @return array|string|string[]|null
+     * @return string
      */
     private static function handle4ByteUnicode($input)
     {

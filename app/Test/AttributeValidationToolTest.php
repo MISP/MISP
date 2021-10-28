@@ -8,18 +8,42 @@ if (!function_exists('__')) {
     function __($singular, $args = null)
     {
         $arguments = func_get_args();
-        return sprintf($singular, array_slice($arguments, 1));
+        return vsprintf($singular, array_slice($arguments, 1));
     }
 }
 
 class AttributeValidationToolTest extends TestCase
 {
+    public function testValidateHash(): void
+    {
+        $this->shouldBeValid('filename|md5', [
+            'cmd.exe|0cc175b9c0f1b6a831c399e269772661',
+        ]);
+        $this->shouldBeInvalid('filename|md5', [
+            'cmd.exe|86f7e437faa5a7fce15d1ddcb9eaeaea377667b8',
+        ]);
+    }
+
     public function testValidateIp(): void
     {
-        $this->assertTrue(AttributeValidationTool::validate('ip-src', '127.0.0.1'));
-        $this->assertTrue(AttributeValidationTool::validate('ip-src', '127.0.0.1'));
-        $this->assertTrue(AttributeValidationTool::validate('ip-src', '127.0.0.1/32'));
-        $this->assertTrue(AttributeValidationTool::validate('ip-dst', '127.0.0.1/32'));
+        foreach (['ip-src', 'ip-dst'] as $type) {
+            $this->shouldBeValid($type, [
+                '127.0.0.1',
+                '127.0.0.1/32',
+                '::1',
+                '::1/128',
+            ]);
+            $this->shouldBeInvalid($type, [
+                '127',
+                '127.0.0.',
+                '127.0.0.1/',
+                '127.0.0.1/32/1',
+                '127.0.0.1/128',
+                '::1/257',
+                '::1/257',
+                '::1/128/1',
+            ]);
+        }
     }
 
     public function testValidatePort(): void
