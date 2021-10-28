@@ -169,7 +169,7 @@ class JobsController extends AppController
         }
 
         $job = $this->Job->getBackgroundJobsTool()->getJob($id);
-        $status = $job ? $job->status() : null;
+        $status = $job ? $job->status() : 'Unknown';
 
         return $this->__jobStatusConverter($status);
     }

@@ -123,7 +123,7 @@ class BackgroundJobsTool
      * @param array $args Arguments passed to the job.
      * @param boolean|null $trackStatus Whether to track the status of the job.
      * @param array $metadata Related to the job.
-     * @param Job|null $job Relational database record representing the job.
+     * @param int|null $jobId Id of the relational database record representing the job.
      * @return string Background Job Id.
      * @throws InvalidArgumentExceptiony
      */
@@ -133,11 +133,11 @@ class BackgroundJobsTool
         array $args = [],
         $trackStatus = null,
         array $metadata = [],
-        Job $job = null
+        int $jobId = null
     ): string {
 
         if ($this->settings['use_resque']) {
-            return $this->resqueEnqueue($queue, self::CMD_TO_SHELL_DICT[$command], $args, $trackStatus, $job);
+            return $this->resqueEnqueue($queue, self::CMD_TO_SHELL_DICT[$command], $args, $trackStatus, $jobId);
         }
 
         $this->validateQueue($queue);
@@ -160,8 +160,9 @@ class BackgroundJobsTool
 
         $this->update($backgroundJob);
 
-        if ($job) {
-            $job->saveField('process_id', $backgroundJob->id());
+        if ($jobId) {
+            $job = $this->getJobById($jobId);
+            $job->save(['process_id' => $backgroundJob->id()]);
         }
 
         return $backgroundJob->id();
@@ -175,7 +176,7 @@ class BackgroundJobsTool
      * @param string $class Class of the job.
      * @param array $args Arguments passed to the job.
      * @param boolean $trackStatus Whether to track the status of the job.
-     * @param Job|null $job Relational database record representing the job.
+     * @param int|null $jobId Id of the relational database record representing the job.
      * @return string Job Id.
      */
     private function resqueEnqueue(
@@ -183,7 +184,7 @@ class BackgroundJobsTool
         string $class,
         $args = [],
         $trackStatus = null,
-        Job $job = null
+        int $jobId = null
     ): string {
 
         CakeLog::notice('[DEPRECATION] CakeResque background jobs engine will be deprecated in future MISP versions, please migrate to the light-weight background jobs processor following this guide: [link].');
@@ -195,8 +196,9 @@ class BackgroundJobsTool
             $trackStatus
         );
 
-        if ($job) {
-            $job->saveField('process_id', $process_id);
+        if ($jobId) {
+            $job = $this->getJobById($jobId);
+            $job->save(['process_id' => $process_id]);
         }
 
         return $process_id;
@@ -488,5 +490,13 @@ class BackgroundJobsTool
         $redis->select($this->settings['redis_database']);
 
         return $redis;
+    }
+
+    private function getJobById(int $jobId): ?Job
+    {
+        $job = ClassRegistry::init('Job');
+        $job->id = $jobId;
+
+        return $job;
     }
 }

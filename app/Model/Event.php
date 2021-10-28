@@ -3125,6 +3125,7 @@ class Event extends AppModel
             return !$banError;
         }
         if (Configure::read('MISP.background_jobs')) {
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob($user, Job::WORKER_EMAIL, 'publish_alert_email', "Event: $id", 'Sending...');
 
@@ -3140,7 +3141,7 @@ class Event extends AppModel
                 ],
                 true,
                 [], // metadata
-                $job
+                $jobId
             );
 
             return true;
@@ -4534,6 +4535,7 @@ class Event extends AppModel
     public function publishSightingsRouter($id, array $user, $passAlong = null, array $sightingUuids = [])
     {
         if (Configure::read('MISP.background_jobs')) {
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
             $message = empty($sightingUuids) ? __('Publishing sightings.') : __('Publishing %s sightings.', count($sightingUuids));
             $jobId = $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", $message);
@@ -4550,7 +4552,7 @@ class Event extends AppModel
                 $args,
                 true,
                 [], // metadata
-                $job
+                $jobId
             );
         }
 
@@ -4561,8 +4563,9 @@ class Event extends AppModel
     {
         if (Configure::read('MISP.background_jobs')) {
 
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", 'Publishing.');
+            $jobId = $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", 'Publishing.');
 
             return $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::PRIO_QUEUE,
@@ -4571,12 +4574,12 @@ class Event extends AppModel
                     'publish',
                     $id,
                     $passAlong,
-                    $job->id,
+                    $jobId,
                     $user['id']
                 ],
                 true,
                 [], // metadata
-                $job
+                $jobId
             );
         }
 
@@ -4687,18 +4690,15 @@ class Event extends AppModel
     public function sendContactEmailRouter($id, $message, $creator_only, $user)
     {
         if (Configure::read('MISP.background_jobs')) {
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                'worker' => 'email',
-                'job_type' => 'contact_alert',
-                'job_input' => 'Owner ' . ($creator_only ? 'user' : 'org') . ' of event #' . $id,
-                'status' => 0,
-                'retries' => 0,
-                'org_id' => $user['org_id'],
-                'message' => 'Contacting.',
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_EMAIL,
+                'contact_alert',
+                'Owner ' . ($creator_only ? 'user' : 'org') . ' of event #' . $id,
+                'Contacting.'
             );
-            $job->save($data);
 
             return $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::EMAIL_QUEUE,
@@ -4709,11 +4709,11 @@ class Event extends AppModel
                     $message,
                     $creator_only,
                     $user['id'],
-                    $job->id
+                    $jobId
                 ],
                 true,
                 [], // metadata
-                $job
+                $jobId
             );
 
             return true;
@@ -6000,20 +6000,16 @@ class Event extends AppModel
     public function enrichmentRouter($options)
     {
         if (Configure::read('MISP.background_jobs')) {
+
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                'worker' => 'prio',
-                'job_type' => 'enrichment',
-                'job_input' => 'Event ID: ' . $options['event_id'] . ' modules: ' . json_encode($options['modules']),
-                'status' => 0,
-                'retries' => 0,
-                'org_id' => $options['user']['org_id'],
-                'org' => $options['user']['Organisation']['name'],
-                'message' => 'Enriching event.',
+            $jobId = $job->createJob(
+                $options['user'],
+                Job::WORKER_PRIO,
+                'enrichment',
+                'Event ID: ' . $options['event_id'] . ' modules: ' . json_encode($options['modules']),
+                'Enriching event.'
             );
-            $job->save($data);
-            $jobId = $job->id;
 
             $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::PRIO_QUEUE,
@@ -6027,7 +6023,7 @@ class Event extends AppModel
                 ],
                 true,
                 [], // metadata
-                $job
+                $jobId
             );
 
             return true;
@@ -6791,7 +6787,13 @@ class Event extends AppModel
         if (Configure::read('MISP.background_jobs') && count($attributes) > 5) { // on background process just big attributes batch
             /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->createJob($user, Job::WORKER_PRIO, "process_freetext_data", 'Event: ' . $id, 'Processing...');
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_PRIO,
+                "process_freetext_data",
+                'Event: ' . $id,
+                'Processing...'
+            );
 
             $tempData = array(
                 'user' => $user,
@@ -6800,7 +6802,7 @@ class Event extends AppModel
                 'default_comment' => $default_comment,
                 'proposals' => $proposals,
                 'adhereToWarninglists' => $adhereToWarninglists,
-                'jobId' => $job->id,
+                'jobId' => $jobId,
             );
 
             try {
@@ -6815,7 +6817,7 @@ class Event extends AppModel
                     ],
                     true,
                     [], // metadata
-                    $job
+                    $jobId
                 );
 
                 return 'Freetext ingestion queued for background processing. Attributes will be added to the event as they are being processed.';
@@ -6831,14 +6833,14 @@ class Event extends AppModel
         if (Configure::read('MISP.background_jobs')) {
             /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->createJob($user, Job::WORKER_PRIO, "process_module_results_data", 'Event: ' . $id, 'Processing...');
+            $jobId = $job->createJob($user, Job::WORKER_PRIO, "process_module_results_data", 'Event: ' . $id, 'Processing...');
 
             $tempData = array(
                 'user' => $user,
                 'misp_format' => $resolved_data,
                 'id' => $id,
                 'default_comment' => $default_comment,
-                'jobId' => $job->id
+                'jobId' => $jobId
             );
 
             try {
@@ -6853,7 +6855,7 @@ class Event extends AppModel
                     ],
                     true,
                     [], // metadata
-                    $job
+                    $jobId
                 );
 
                 return 'Module results ingestion queued for background processing. Related data will be added to the event as it is being processed.';
