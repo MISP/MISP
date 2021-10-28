@@ -5,6 +5,7 @@ App::uses('File', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('ComplexTypeTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('AttributeValidationTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -314,7 +315,7 @@ class ShadowAttribute extends AppModel
         if (isset($proposal['value'])) {
             $value = trim($proposal['value']);
             $value = ComplexTypeTool::refangValue($value, $proposal['type']);
-            $value = $this->Attribute->modifyBeforeValidation($proposal['type'], $value);
+            $value = AttributeValidationTool::modifyBeforeValidation($proposal['type'], $value);
             $proposal['value'] = $value;
         }
 
@@ -376,7 +377,7 @@ class ShadowAttribute extends AppModel
     public function validateAttributeValue($fields)
     {
         $value = $fields['value'];
-        return $this->Attribute->runValidation($value, $this->data['ShadowAttribute']['type']);
+        return AttributeValidationTool::runValidation($value, $this->data['ShadowAttribute']['type']);
     }
 
     public function getCompositeTypes()
