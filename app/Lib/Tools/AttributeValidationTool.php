@@ -117,8 +117,9 @@ class AttributeValidationTool
             case 'filename|vhash':
             case 'filename|pehash':
             case 'filename|tlsh':
-                $pieces = explode('|', $value);
-                return $pieces[0] . '|' . strtolower($pieces[1]);
+                // Convert hash to lowercase
+                $pos = strpos($value, '|');
+                return substr($value, 0, $pos) . strtolower(substr($value, $pos));
             case 'http-method':
             case 'hex':
                 return strtoupper($value);
@@ -183,10 +184,10 @@ class AttributeValidationTool
                 $value = strtolower($value);
                 return str_replace(':', '|', $value);
             case 'boolean':
-                if ('true' == trim(strtolower($value))) {
+                $value = trim(strtolower($value));
+                if ('true' === $value) {
                     $value = 1;
-                }
-                if ('false' == trim(strtolower($value))) {
+                } else if ('false' === $value) {
                     $value = 0;
                 }
                 return $value ? '1' : '0';
@@ -413,11 +414,6 @@ class AttributeValidationTool
                     return true;
                 }
                 return __('Invalid format. Expected: CWE-x...');
-            case 'named pipe':
-                if (!preg_match("#\n#", $value)) {
-                    return true;
-                }
-                break;
             case 'windows-service-name':
             case 'windows-service-displayname':
                 if (strlen($value) > 256 || preg_match('#[\\\/]#', $value)) {
@@ -461,7 +457,7 @@ class AttributeValidationTool
                 return true;
             case 'link':
                 // Moved to a native function whilst still enforcing the scheme as a requirement
-                return filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value);
+                return (bool)filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED);
             case 'hex':
                 return ctype_xdigit($value);
             case 'target-user':
@@ -523,6 +519,7 @@ class AttributeValidationTool
             case 'favicon-mmh3':
             case 'chrome-extension-id':
             case 'mobile-application-id':
+            case 'named pipe':
                 if (strpos($value, "\n") !== false) {
                     return __('Value must not contain new line character.');
                 }
@@ -574,7 +571,7 @@ class AttributeValidationTool
                 if (self::isPositiveInteger($value) && $value <= 4294967295) {
                     return true;
                 }
-                return __('AS number have to be integers between 1 and 4294967295');
+                return __('AS number have to be integer between 1 and 4294967295');
         }
         throw new InvalidArgumentException("Unknown type $type.");
     }
@@ -604,9 +601,6 @@ class AttributeValidationTool
      */
     private static function isHashValid($type, $value)
     {
-        if (!isset(self::HASH_HEX_LENGTH[$type])) {
-            throw new InvalidArgumentException("Invalid hash type '$type'.");
-        }
         return strlen($value) === self::HASH_HEX_LENGTH[$type] && ctype_xdigit($value);
     }
 
@@ -657,9 +651,8 @@ class AttributeValidationTool
      */
     private static function compressIpv6($value)
     {
-        if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            // convert IPv6 address to compressed format
-            return inet_ntop(inet_pton($value));
+        if (strpos($value, ':') && $converted = inet_pton($value)) {
+            return inet_ntop($converted);
         }
         return $value;
     }

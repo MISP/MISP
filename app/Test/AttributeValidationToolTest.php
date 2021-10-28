@@ -88,11 +88,47 @@ class AttributeValidationToolTest extends TestCase
         ]);
     }
 
+    public function testValidateFilename(): void
+    {
+        $this->shouldBeValid('filename', [
+            'cmd.exe',
+            'cmd.com',
+        ]);
+        $this->shouldBeInvalid('filename', [
+            "cmd.exe\ncmd.com",
+        ]);
+        $this->shouldBeValid('filename|md5', [
+            'cmd.exe|0cc175b9c0f1b6a831c399e269772661',
+            'cmd.com|0cc175b9c0f1b6a831c399e269772661',
+        ]);
+        $this->shouldBeInvalid('filename|md5', [
+            "cmd.exe\ncmd.com|0cc175b9c0f1b6a831c399e269772661",
+        ]);
+    }
+
     public function testCompressIpv6(): void
     {
         $this->assertEquals('1234:fd2:5621:1:89::4500', AttributeValidationTool::modifyBeforeValidation('ip-src', '1234:0fd2:5621:0001:0089:0000:0000:4500'));
         $this->assertEquals('example.com|1234:fd2:5621:1:89::4500', AttributeValidationTool::modifyBeforeValidation('domain|ip', 'example.com|1234:0fd2:5621:0001:0089:0000:0000:4500'));
         $this->assertEquals('1234:fd2:5621:1:89::4500|80', AttributeValidationTool::modifyBeforeValidation('ip-src|port', '1234:0fd2:5621:0001:0089:0000:0000:4500|80'));
+        $this->assertEquals('127.0.0.1', AttributeValidationTool::modifyBeforeValidation('ip-src', '127.0.0.1'));
+    }
+
+    public function testFilenameHashLowercase()
+    {
+        $this->assertEquals('CMD.EXE|0cc175b9c0f1b6a831c399e269772661', AttributeValidationTool::modifyBeforeValidation('filename|md5', 'CMD.EXE|0CC175B9C0F1B6A831C399E269772661'));
+    }
+
+    public function testDomainModify()
+    {
+        $this->assertEquals('example.com', AttributeValidationTool::modifyBeforeValidation('domain', 'example.com'));
+        $this->assertEquals('example.com', AttributeValidationTool::modifyBeforeValidation('domain', 'EXAMPLE.COM'));
+        $this->assertEquals('example.com|127.0.0.1', AttributeValidationTool::modifyBeforeValidation('domain|ip', 'example.com|127.0.0.1'));
+        $this->assertEquals('example.com|127.0.0.1', AttributeValidationTool::modifyBeforeValidation('domain|ip', 'EXAMPLE.COM|127.0.0.1'));
+        $this->assertEquals('xn--hkyrky-ptac70bc.cz', AttributeValidationTool::modifyBeforeValidation('domain', 'háčkyčárky.cz'));
+        $this->assertEquals('xn--hkyrky-ptac70bc.cz', AttributeValidationTool::modifyBeforeValidation('domain', 'HÁČKYČÁRKY.CZ'));
+        $this->assertEquals('xn--hkyrky-ptac70bc.cz|127.0.0.1', AttributeValidationTool::modifyBeforeValidation('domain|ip', 'háčkyčárky.cz|127.0.0.1'));
+        $this->assertEquals('xn--hkyrky-ptac70bc.cz|127.0.0.1', AttributeValidationTool::modifyBeforeValidation('domain|ip', 'HÁČKYČÁRKY.CZ|127.0.0.1'));
     }
 
     private function shouldBeValid($type, array $values)
