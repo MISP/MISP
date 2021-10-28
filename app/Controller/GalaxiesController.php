@@ -533,8 +533,9 @@ class GalaxiesController extends AppController
 
     public function attachCluster($target_id, $target_type = 'event')
     {
+        $local = !empty($this->params['named']['local']);
         $cluster_id = $this->request->data['Galaxy']['target_id'];
-        $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
+        $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id, $local);
         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
     }
 

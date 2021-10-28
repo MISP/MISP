@@ -3496,7 +3496,7 @@ class EventsController extends AppController
                 $tag = $this->Event->EventTag->Tag->find('first', array(
                     'conditions' => $conditions,
                     'recursive' => -1,
-                    'fields' => array('Tag.name')
+                    'fields' => array('Tag.name', 'Tag.local_only')
                 ));
                 if (!$tag) {
                     $fails[$tag_id] = __('Tag not found.');
@@ -3525,6 +3525,10 @@ class EventsController extends AppController
                 $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnEvent, '{n}.Tag.name'));
                 if (!$exclusiveTestPassed) {
                     $fails[$tag_id] = __('Tag is not allowed due to taxonomy exclusivity settings');
+                    continue;
+                }
+                if ($tag['Tag']['local_only'] && !$local) {
+                    $fails[$tag_id] = __('Invalid Tag. This tag can only be set as a local tag.');
                     continue;
                 }
                 $this->Event->EventTag->create();
