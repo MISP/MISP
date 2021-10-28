@@ -353,9 +353,6 @@ class Attribute extends AppModel
     public function afterFind($results, $primary = false)
     {
         foreach ($results as &$v) {
-            if (isset($v['Attribute']['object_relation']) && $v['Attribute']['object_relation'] === null) {
-                $v['Attribute']['object_relation'] = '';
-            }
             $v = $this->UTCToISODatetime($v, $this->alias);
         }
         return $results;
