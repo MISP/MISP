@@ -243,8 +243,14 @@ class MispObject extends AppModel
 
     public function afterFind($results, $primary = false)
     {
-        foreach ($results as $k => $v) {
-            $results[$k] = $this->Attribute->UTCToISODatetime($results[$k], $this->alias);
+        foreach ($results as &$v) {
+            $object = &$v['Object'];
+            if (!empty($object['first_seen'])) {
+                $object['first_seen'] = $this->microTimestampToIso($object['first_seen']);
+            }
+            if (!empty($object['last_seen'])) {
+                $object['last_seen'] = $this->microTimestampToIso($object['last_seen']);
+            }
         }
         return $results;
     }

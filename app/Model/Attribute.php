@@ -353,7 +353,13 @@ class Attribute extends AppModel
     public function afterFind($results, $primary = false)
     {
         foreach ($results as &$v) {
-            $v = $this->UTCToISODatetime($v, $this->alias);
+            $attribute = &$v['Attribute'];
+            if (!empty($attribute['first_seen'])) {
+                $attribute['first_seen'] = $this->microTimestampToIso($attribute['first_seen']);
+            }
+            if (!empty($attribute['last_seen'])) {
+                $attribute['last_seen'] = $this->microTimestampToIso($attribute['last_seen']);
+            }
         }
         return $results;
     }
@@ -1035,40 +1041,28 @@ class Attribute extends AppModel
         // convert into utc and micro sec
         if (!empty($data[$alias]['first_seen'])) {
             $d = new DateTime($data[$alias]['first_seen'], new DateTimeZone('GMT'));
-            $fs_sec = $d->format('U');
-            $fs_micro = $d->format('u');
-            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
-            $fs = $fs_sec . $fs_micro;
-            $data[$alias]['first_seen'] = $fs;
+            $data[$alias]['first_seen'] = $d->format('Uu');
         }
         if (!empty($data[$alias]['last_seen'])) {
             $d = new DateTime($data[$alias]['last_seen'], new DateTimeZone('GMT'));
-            $ls_sec = $d->format('U');
-            $ls_micro = $d->format('u');
-            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
-            $ls = $ls_sec . $ls_micro;
-            $data[$alias]['last_seen'] = $ls;
+            $data[$alias]['last_seen'] = $d->format('Uu');
         }
         return $data;
     }
 
+    /**
+     * @param $data
+     * @param $alias
+     * @return array
+     * @deprecated
+     */
     public function UTCToISODatetime($data, $alias)
     {
         if (!empty($data[$alias]['first_seen'])) {
-            $fs = $data[$alias]['first_seen'];
-            $fs_sec = intval($fs / 1000000); // $fs is in micro (10^6)
-            $fs_micro = $fs % 1000000;
-            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
-            $fs = $fs_sec . '.' . $fs_micro;
-            $data[$alias]['first_seen'] = DateTime::createFromFormat('U.u', $fs)->format('Y-m-d\TH:i:s.uP');
+            $data[$alias]['first_seen'] = $this->microTimestampToIso($data[$alias]['first_seen']);
         }
         if (!empty($data[$alias]['last_seen'])) {
-            $ls = $data[$alias]['last_seen'];
-            $ls_sec = intval($ls / 1000000); // $ls is in micro (10^6)
-            $ls_micro = $ls % 1000000;
-            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
-            $ls = $ls_sec . '.' . $ls_micro;
-            $data[$alias]['last_seen'] = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.uP');
+            $data[$alias]['last_seen'] = $this->microTimestampToIso($data[$alias]['last_seen']);
         }
         return $data;
     }
