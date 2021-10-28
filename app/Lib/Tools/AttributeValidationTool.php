@@ -1,7 +1,8 @@
 <?php
 class AttributeValidationTool
 {
-    const HEX_HAS_LENGTHS = array(
+    // private
+    const HASH_HEX_LENGTH = [
         'authentihash' => 64,
         'md5' => 32,
         'imphash' => 32,
@@ -25,8 +26,8 @@ class AttributeValidationTool
         'sha3-224' => 56,
         'sha3-256' => 64,
         'sha3-384' => 96,
-        'sha3-512' => 128
-    );
+        'sha3-512' => 128,
+    ];
     
     // do some last second modifications before the validation
     public static function modifyBeforeValidation($type, $value)
@@ -63,8 +64,7 @@ class AttributeValidationTool
             case 'email-dst':
             case 'target-email':
             case 'whois-registrant-email':
-                $value = strtolower($value);
-                break;
+                return strtolower($value);
             case 'domain':
                 $value = strtolower($value);
                 $value = trim($value, '.');
@@ -201,8 +201,7 @@ class AttributeValidationTool
                 if ('false' == trim(strtolower($value))) {
                     $value = 0;
                 }
-                $value = ($value) ? '1' : '0';
-                break;
+                return $value ? '1' : '0';
             case 'datetime':
                 try {
                     $value = (new DateTime($value, new DateTimeZone('GMT')))->format('Y-m-d\TH:i:s.uO'); // ISO8601 formating with microseconds
@@ -228,7 +227,7 @@ class AttributeValidationTool
     /**
      * @param string $type
      * @param string $value
-     * @return bool|mixed|null
+     * @return bool|string
      */
     public static function validate($type, $value)
     {
@@ -260,7 +259,7 @@ class AttributeValidationTool
                 if (self::isHashValid($type, $value)) {
                     return true;
                 }
-                $length = self::HEX_HAS_LENGTHS[$type];
+                $length = self::HASH_HEX_LENGTH[$type];
                 return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
             case 'tlsh':
                 if (preg_match("#^t?[0-9a-f]{35,}$#i", $value)) {
@@ -319,7 +318,7 @@ class AttributeValidationTool
             case 'filename|sha3-512':
             case 'filename|authentihash':
                 $parts = explode('|', $type);
-                $length = self::HEX_HAS_LENGTHS[$parts[1]];
+                $length = self::HASH_HEX_LENGTH[$parts[1]];
                 if (preg_match("#^.+\|[0-9a-f]{" . $length . "}$#", $value)) {
                     return true;
                 }
@@ -468,7 +467,6 @@ class AttributeValidationTool
             case 'filename-pattern':
             case 'pgp-public-key':
             case 'pgp-private-key':
-            case 'ssh-fingerprint':
             case 'yara':
             case 'stix2-pattern':
             case 'sigma':
@@ -559,6 +557,11 @@ class AttributeValidationTool
                     return __('Value must not contain new line character.');
                 }
                 return true;
+            case 'ssh-fingerprint':
+                if (self::isSshFingerprint($value)) {
+                    return true;
+                }
+                return __('SSH fingerprint must be in MD5 or SHA256 format.');
             case 'datetime':
                 if (strtotime($value) !== false) {
                     return true;
@@ -637,10 +640,10 @@ class AttributeValidationTool
      */
     private static function isHashValid($type, $value)
     {
-        if (!isset(self::HEX_HAS_LENGTHS[$type])) {
+        if (!isset(self::HASH_HEX_LENGTH[$type])) {
             throw new InvalidArgumentException("Invalid hash type '$type'.");
         }
-        return strlen($value) === self::HEX_HAS_LENGTHS[$type] && ctype_xdigit($value);
+        return strlen($value) === self::HASH_HEX_LENGTH[$type] && ctype_xdigit($value);
     }
 
     /**
@@ -651,6 +654,24 @@ class AttributeValidationTool
     private static function isPositiveInteger($value)
     {
         return (is_int($value) && $value >= 0) || ctype_digit($value);
+    }
+
+    /**
+     * @param string $value
+     * @return bool
+     */
+    private static function isSshFingerprint($value)
+    {
+        if (substr($value, 0, 7) === 'SHA256:') {
+            $value = substr($value, 7);
+            $decoded = base64_decode($value, true);
+            return $decoded && strlen($decoded) === 32;
+        } else if (substr($value, 0, 4) === 'MD5:') {
+            $value = substr($value, 4);
+        }
+
+        $value = str_replace(':', '', $value);
+        return self::isHashValid('md5', $value);
     }
     
     /**
