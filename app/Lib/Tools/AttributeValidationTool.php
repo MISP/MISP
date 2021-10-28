@@ -600,9 +600,6 @@ class AttributeValidationTool
      */
     private static function isHashValid($type, $value)
     {
-        if (!isset(self::HASH_HEX_LENGTH[$type])) {
-            throw new InvalidArgumentException("Invalid hash type '$type'.");
-        }
         return strlen($value) === self::HASH_HEX_LENGTH[$type] && ctype_xdigit($value);
     }
 
@@ -653,9 +650,8 @@ class AttributeValidationTool
      */
     private static function compressIpv6($value)
     {
-        if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            // convert IPv6 address to compressed format
-            return inet_ntop(inet_pton($value));
+        if (strpos($value, ':') && $converted = inet_pton($value)) {
+            return inet_ntop($converted);
         }
         return $value;
     }

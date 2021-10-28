@@ -93,6 +93,7 @@ class AttributeValidationToolTest extends TestCase
         $this->assertEquals('1234:fd2:5621:1:89::4500', AttributeValidationTool::modifyBeforeValidation('ip-src', '1234:0fd2:5621:0001:0089:0000:0000:4500'));
         $this->assertEquals('example.com|1234:fd2:5621:1:89::4500', AttributeValidationTool::modifyBeforeValidation('domain|ip', 'example.com|1234:0fd2:5621:0001:0089:0000:0000:4500'));
         $this->assertEquals('1234:fd2:5621:1:89::4500|80', AttributeValidationTool::modifyBeforeValidation('ip-src|port', '1234:0fd2:5621:0001:0089:0000:0000:4500|80'));
+        $this->assertEquals('127.0.0.1', AttributeValidationTool::modifyBeforeValidation('ip-src', '127.0.0.1'));
     }
 
     private function shouldBeValid($type, array $values)
