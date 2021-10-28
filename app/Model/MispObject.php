@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
+App::uses('AttributeValidationTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -368,7 +369,7 @@ class MispObject extends AppModel
                     $attribute['value'] = $attribute['value'] . '|' . md5(base64_decode($attribute['data']));
                 }
             }
-            $attributeValueAfterModification = $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value']);
+            $attributeValueAfterModification = AttributeValidationTool::modifyBeforeValidation($attribute['type'], $attribute['value']);
             $attributeValueAfterModification = $this->Attribute->runRegexp($attribute['type'], $attributeValueAfterModification);
 
             $newObjectAttributes[] = sha1($attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $attributeValueAfterModification, true);
