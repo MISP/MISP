@@ -2431,8 +2431,8 @@ misp.direct_call(relative_path, body)
 
     public function removeOrphanedCorrelations()
     {
-        $success = $this->Server->removeOrphanedCorrelations();
-        $message = __('Orphaned correlation removed');
+        $count = $this->Server->removeOrphanedCorrelations();
+        $message = __('%s orphaned correlation removed', $count);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($message, $this->response->type());
         } else {
