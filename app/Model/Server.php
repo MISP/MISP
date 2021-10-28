@@ -3602,7 +3602,8 @@ class Server extends AppModel
         }
 
         $relativeUri = '/events/index' . $urlParams;
-        list($events, $response) = $this->serverGetRequest($server, $relativeUri);
+        $response = $this->serverGetRequest($server, $relativeUri);
+        $events = $response->json();
         $totalCount = $response->getHeader('X-Result-Count') ?: 0;
 
         foreach ($events as $k => $event) {
@@ -3630,8 +3631,9 @@ class Server extends AppModel
      */
     public function previewEvent(array $server, $eventId)
     {
-        $relativeUri =  '/events/' . $eventId;
-        list($event) = $this->serverGetRequest($server, $relativeUri);
+        $relativeUri = '/events/' . $eventId;
+        $response = $this->serverGetRequest($server, $relativeUri);
+        $event = $response->json();
 
         if (!isset($event['Event']['Orgc'])) {
             $event['Event']['Orgc']['name'] = $event['Event']['orgc'];
@@ -4326,13 +4328,12 @@ class Server extends AppModel
     /**
      * @param array $server
      * @param string $relativeUri
-     * @param HttpSocket|null $HttpSocket
-     * @return array
+     * @return HttpSocketResponseExtended
      * @throws Exception
      */
-    private function serverGetRequest(array $server, $relativeUri, HttpSocket $HttpSocket = null)
+    private function serverGetRequest(array $server, $relativeUri)
     {
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
 
         $uri = $server['Server']['url'] . $relativeUri;
@@ -4351,9 +4352,7 @@ class Server extends AppModel
             throw new Exception(__("Fetching the '%s' failed with HTTP error %s: %s", $uri, $response->code, $response->reasonPhrase));
         }
 
-        $data = $this->jsonDecode($response->body);
-
-        return array($data, $response);
+        return $response;
     }
 
     /**
