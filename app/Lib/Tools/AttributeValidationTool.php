@@ -413,11 +413,6 @@ class AttributeValidationTool
                     return true;
                 }
                 return __('Invalid format. Expected: CWE-x...');
-            case 'named pipe':
-                if (!preg_match("#\n#", $value)) {
-                    return true;
-                }
-                break;
             case 'windows-service-name':
             case 'windows-service-displayname':
                 if (strlen($value) > 256 || preg_match('#[\\\/]#', $value)) {
@@ -523,6 +518,7 @@ class AttributeValidationTool
             case 'favicon-mmh3':
             case 'chrome-extension-id':
             case 'mobile-application-id':
+            case 'named pipe':
                 if (strpos($value, "\n") !== false) {
                     return __('Value must not contain new line character.');
                 }
