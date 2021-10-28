@@ -90,10 +90,7 @@ class AttributeValidationTool
                         $parts[0] = $punyCode;
                     }
                 }
-                if (filter_var($parts[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                    // convert IPv6 address to compressed format
-                    $parts[1] = inet_ntop(inet_pton($parts[1]));
-                }
+                $parts[1] = self::compressIpv6($parts[1]);
                 return "$parts[0]|$parts[1]";
             case 'filename|md5':
             case 'filename|sha1':
@@ -148,11 +145,7 @@ class AttributeValidationTool
                 break;
             case 'ip-src':
             case 'ip-dst':
-                if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                    // convert IPv6 address to compressed format
-                    $value = inet_ntop(inet_pton($value));
-                }
-                break;
+                return self::compressIpv6($value);
             case 'ip-dst|port':
             case 'ip-src|port':
                 if (substr_count($value, ':') >= 2) { // (ipv6|port) - tokenize ip and port
@@ -181,10 +174,7 @@ class AttributeValidationTool
                 } else {
                     return $value;
                 }
-                if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                    // convert IPv6 address to compressed format
-                    $parts[0] = inet_ntop(inet_pton($parts[0]));
-                }
+                $parts[0] = self::compressIpv6($parts[0]);
                 return $parts[0] . '|' . $parts[1];
             case 'mac-address':
             case 'mac-eui-64':
@@ -377,15 +367,9 @@ class AttributeValidationTool
                 }
                 return true;
             case 'mac-address':
-                if (preg_match('/^([a-fA-F0-9]{2}[:]?){6}$/', $value)) {
-                    return true;
-                }
-                break;
+                return preg_match('/^([a-fA-F0-9]{2}[:]?){6}$/', $value) === 1;
             case 'mac-eui-64':
-                if (preg_match('/^([a-fA-F0-9]{2}[:]?){8}$/', $value)) {
-                    return true;
-                }
-                break;
+                return preg_match('/^([a-fA-F0-9]{2}[:]?){8}$/', $value) === 1;
             case 'hostname':
             case 'domain':
                 if (self::isDomainValid($value)) {
@@ -573,15 +557,9 @@ class AttributeValidationTool
             case 'btc':
             case 'dash':
             case 'xmr':
-                if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
-                    return true;
-                }
-                break;
+                return preg_match('/^[a-zA-Z0-9]+$/', $value) === 1;
             case 'vhash':
-                if (preg_match('/^.+$/', $value)) {
-                    return true;
-                }
-                break;
+                return preg_match('/^.+$/', $value) === 1;
             case 'bin':
             case 'cc-number':
             case 'bank-account-nr':
@@ -602,7 +580,7 @@ class AttributeValidationTool
                 }
                 return __('AS number have to be integers between 1 and 4294967295');
         }
-        return false;
+        throw new InvalidArgumentException("Unknown type $type.");
     }
 
     /**
@@ -675,6 +653,19 @@ class AttributeValidationTool
 
         $value = str_replace(':', '', $value);
         return self::isHashValid('md5', $value);
+    }
+
+    /**
+     * @param string $value
+     * @return string
+     */
+    private static function compressIpv6($value)
+    {
+        if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            // convert IPv6 address to compressed format
+            return inet_ntop(inet_pton($value));
+        }
+        return $value;
     }
     
     /**
