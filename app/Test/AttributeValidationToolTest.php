@@ -119,6 +119,18 @@ class AttributeValidationToolTest extends TestCase
         $this->assertEquals('CMD.EXE|0cc175b9c0f1b6a831c399e269772661', AttributeValidationTool::modifyBeforeValidation('filename|md5', 'CMD.EXE|0CC175B9C0F1B6A831C399E269772661'));
     }
 
+    public function testDomainModify()
+    {
+        $this->assertEquals('example.com', AttributeValidationTool::modifyBeforeValidation('domain', 'example.com'));
+        $this->assertEquals('example.com', AttributeValidationTool::modifyBeforeValidation('domain', 'EXAMPLE.COM'));
+        $this->assertEquals('example.com|127.0.0.1', AttributeValidationTool::modifyBeforeValidation('domain|ip', 'example.com|127.0.0.1'));
+        $this->assertEquals('example.com|127.0.0.1', AttributeValidationTool::modifyBeforeValidation('domain|ip', 'EXAMPLE.COM|127.0.0.1'));
+        $this->assertEquals('xn--hkyrky-ptac70bc.cz', AttributeValidationTool::modifyBeforeValidation('domain', 'háčkyčárky.cz'));
+        $this->assertEquals('xn--hkyrky-ptac70bc.cz', AttributeValidationTool::modifyBeforeValidation('domain', 'HÁČKYČÁRKY.CZ'));
+        $this->assertEquals('xn--hkyrky-ptac70bc.cz|127.0.0.1', AttributeValidationTool::modifyBeforeValidation('domain|ip', 'háčkyčárky.cz|127.0.0.1'));
+        $this->assertEquals('xn--hkyrky-ptac70bc.cz|127.0.0.1', AttributeValidationTool::modifyBeforeValidation('domain|ip', 'HÁČKYČÁRKY.CZ|127.0.0.1'));
+    }
+
     private function shouldBeValid($type, array $values)
     {
         foreach ($values as $value) {
