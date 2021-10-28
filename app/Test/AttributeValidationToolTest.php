@@ -88,6 +88,24 @@ class AttributeValidationToolTest extends TestCase
         ]);
     }
 
+    public function testValidateFilename(): void
+    {
+        $this->shouldBeValid('filename', [
+            'cmd.exe',
+            'cmd.com',
+        ]);
+        $this->shouldBeInvalid('filename', [
+            "cmd.exe\ncmd.com",
+        ]);
+        $this->shouldBeValid('filename|md5', [
+            'cmd.exe|0cc175b9c0f1b6a831c399e269772661',
+            'cmd.com|0cc175b9c0f1b6a831c399e269772661',
+        ]);
+        $this->shouldBeInvalid('filename|md5', [
+            "cmd.exe\ncmd.com|0cc175b9c0f1b6a831c399e269772661",
+        ]);
+    }
+
     public function testCompressIpv6(): void
     {
         $this->assertEquals('1234:fd2:5621:1:89::4500', AttributeValidationTool::modifyBeforeValidation('ip-src', '1234:0fd2:5621:0001:0089:0000:0000:4500'));
