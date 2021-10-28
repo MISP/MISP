@@ -737,7 +737,7 @@ class Attribute extends AppModel
     public function validateAttributeValue($fields)
     {
         $value = $fields['value'];
-        return AttributeValidationTool::runValidation($value, $this->data['Attribute']['type']);
+        return AttributeValidationTool::validate($this->data['Attribute']['type'], $value);
     }
 
     // check whether the variable is null or datetime

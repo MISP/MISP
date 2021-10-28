@@ -225,7 +225,12 @@ class AttributeValidationTool
         return $value;
     }
 
-    public static function runValidation($value, $type)
+    /**
+     * @param string $type
+     * @param string $value
+     * @return bool|mixed|null
+     */
+    public static function validate($type, $value)
     {
         // check data validation
         switch ($type) {

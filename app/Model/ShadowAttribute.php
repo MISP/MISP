@@ -377,7 +377,7 @@ class ShadowAttribute extends AppModel
     public function validateAttributeValue($fields)
     {
         $value = $fields['value'];
-        return AttributeValidationTool::runValidation($value, $this->data['ShadowAttribute']['type']);
+        return AttributeValidationTool::validate($this->data['ShadowAttribute']['type'], $value);
     }
 
     public function getCompositeTypes()
