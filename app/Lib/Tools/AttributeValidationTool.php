@@ -402,15 +402,14 @@ class AttributeValidationTool
                 }
                 return true;
             case 'domain|ip':
-                if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}\|.*$#i", $value)) {
-                    $parts = explode('|', $value);
-                    if (filter_var($parts[1], FILTER_VALIDATE_IP)) {
-                        return true;
-                    } else {
-                        return __('IP address has an invalid format.');
-                    }
+                $parts = explode('|', $value);
+                if (!self::isDomainValid($parts[0])) {
+                    return __('Domain has an invalid format.');
                 }
-                return __('Domain name has an invalid format.');
+                if (!filter_var($parts[1], FILTER_VALIDATE_IP)) {
+                    return __('IP address has an invalid format.');
+                }
+                return true;
             case 'email':
             case 'email-src':
             case 'eppn':

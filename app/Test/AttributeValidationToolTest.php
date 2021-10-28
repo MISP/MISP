@@ -52,6 +52,18 @@ class AttributeValidationToolTest extends TestCase
         ]);
     }
 
+    public function testValidateDomainIp(): void
+    {
+        $this->shouldBeValid('domain|ip', [
+            'example.com|127.0.0.1',
+            'example.com|::1',
+        ]);
+        $this->shouldBeInvalid('domain|ip', [
+            'example.com|127',
+            'example.com|1',
+        ]);
+    }
+
     private function shouldBeValid($type, array $values)
     {
         foreach ($values as $value) {
