@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
+App::uses('AttributeValidationTool', 'Tools');
 
 class Feed extends AppModel
 {
@@ -1201,7 +1202,7 @@ class Feed extends AppModel
 
                 // Because some types can be saved in modified version (for example, IPv6 address is convert to compressed
                 // format, we should also check if current event contains modified value.
-                $modifiedValue = $this->Event->Attribute->modifyBeforeValidation($dataPoint['type'], $dataPoint['value']);
+                $modifiedValue = AttributeValidationTool::modifyBeforeValidation($dataPoint['type'], $dataPoint['value']);
                 if (isset($existsAttributesValueToId[$modifiedValue])) {
                     unset($data[$k]);
                     unset($existsAttributesValueToId[$modifiedValue]);
