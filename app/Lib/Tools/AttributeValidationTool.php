@@ -488,10 +488,7 @@ class AttributeValidationTool
                 return true;
             case 'link':
                 // Moved to a native function whilst still enforcing the scheme as a requirement
-                if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
-                    return true;
-                }
-                break;
+                return filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value);
             case 'hex':
                 return ctype_xdigit($value);
             case 'target-user':
@@ -594,20 +591,13 @@ class AttributeValidationTool
             case 'prtn':
             case 'phone-number':
             case 'whois-registrant-phone':
-                if (is_numeric($value)) {
-                    return true;
-                }
-                break;
+            case 'float':
+                return is_numeric($value);
             case 'cortex':
                 json_decode($value);
                 return json_last_error() === JSON_ERROR_NONE;
-            case 'float':
-                return is_numeric($value);
             case 'boolean':
-                if ($value == 1 || $value == 0) {
-                    return true;
-                }
-                break;
+                return $value == 1 || $value == 0;
             case 'AS':
                 if (self::isPositiveInteger($value) && $value <= 4294967295) {
                     return true;
