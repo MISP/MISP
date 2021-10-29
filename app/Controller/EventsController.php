@@ -1178,12 +1178,21 @@ class EventsController extends AppController
     public function viewEventAttributes($id, $all = false)
     {
         $filterData = array(
-            'request' => $this->request,
             'paramArray' => self::ACCEPTED_FILTERING_NAMED_PARAMS,
             'named_params' => $this->request->params['named']
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
+        if ($exception) {
+            return $exception;
+        }
+
+        // Remove default filters
+        foreach ($filters as $filterName => $filterValue) {
+            if (isset(self::DEFAULT_FILTERING_RULE[$filterName]) && self::DEFAULT_FILTERING_RULE[$filterName] == $filterValue) {
+                unset($filters[$filterName]);
+            }
+        }
 
         if (isset($filters['focus'])) {
             $this->set('focus', $filters['focus']);
@@ -1912,6 +1921,11 @@ class EventsController extends AppController
         $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, true, $eventId));
     }
 
+    /**
+     * @param array $event
+     * @param string $searchFor
+     * @param string|false $filterColumnsOverwrite
+     */
     private function __applyQueryString(&$event, $searchFor, $filterColumnsOverwrite=false)
     {
         // filtering on specific columns is specified
@@ -1922,7 +1936,7 @@ class EventsController extends AppController
             $filterValue = array_map('trim', explode(",", $filterColumnsOverwrite));
             $validFilters = array('id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name');
             foreach ($filterValue as $k => $v) {
-                if (!in_array($v, $validFilters)) {
+                if (!in_array($v, $validFilters, true)) {
                     unset($filterValue[$k]);
                 }
             }
@@ -1996,17 +2010,6 @@ class EventsController extends AppController
             }
         }
         return array('active' => $activeRules > 0 ? $res : false, 'activeRules' => $activeRules);
-    }
-
-    private function __removeChildren(&$pivot, $id)
-    {
-        if ($pivot['id'] == $id) {
-            $pivot['children'] = array();
-        } else {
-            foreach ($pivot['children'] as $k => $v) {
-                $this->__removeChildren($v, $id);
-            }
-        }
     }
 
     private function __doRemove(&$pivot, $id)
