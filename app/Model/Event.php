@@ -3140,7 +3140,6 @@ class Event extends AppModel
                     $oldpublish
                 ],
                 true,
-                [], // metadata
                 $jobId
             );
 
@@ -4551,7 +4550,6 @@ class Event extends AppModel
                 BackgroundJobsTool::CMD_EVENT,
                 $args,
                 true,
-                [], // metadata
                 $jobId
             );
         }
@@ -4578,7 +4576,6 @@ class Event extends AppModel
                     $user['id']
                 ],
                 true,
-                [], // metadata
                 $jobId
             );
         }
@@ -4712,7 +4709,6 @@ class Event extends AppModel
                     $jobId
                 ],
                 true,
-                [], // metadata
                 $jobId
             );
 
@@ -6022,7 +6018,6 @@ class Event extends AppModel
                     $jobId
                 ],
                 true,
-                [], // metadata
                 $jobId
             );
 
@@ -6816,7 +6811,6 @@ class Event extends AppModel
                         $filePath
                     ],
                     true,
-                    [], // metadata
                     $jobId
                 );
 
@@ -6854,7 +6848,6 @@ class Event extends AppModel
                         $filePath
                     ],
                     true,
-                    [], // metadata
                     $jobId
                 );
 

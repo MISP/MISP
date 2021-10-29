@@ -2007,26 +2007,28 @@ class Server extends AppModel
                 $jobType = 'jobGenerateCorrelation';
                 $jobTypeText = 'generate correlation';
             }
+
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => $jobTypeText,
-                    'job_input' => 'All attributes',
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => 'ADMIN',
-                    'message' => 'Job created.',
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_PRIO,
+                $jobTypeText,
+                'All attributes',
+                'Job created.'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    array($jobType, $jobId),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'updateAfterPull',
+                    $jobType,
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
         }
         return true;
     }
@@ -3417,7 +3419,7 @@ class Server extends AppModel
                 }
             }
             if ($k != 'scheduler') {
-                $worker_array[$k]['jobCount'] = CakeResque::getQueueSize($k);
+                $worker_array[$k]['jobCount'] = $this->getBackgroundJobsTool()->getQueueSize($k);
             }
             if (!isset($queue['workers'])) {
                 $workerIssueCount++;
@@ -3896,27 +3898,30 @@ class Server extends AppModel
 
     public function updateDatabaseAfterPullRouter($submodule_name, $user) {
         if (Configure::read('MISP.background_jobs')) {
+
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                'worker' => 'prio',
-                'job_type' => __('update_after_pull'),
-                'job_input' => __('Updating: ' . $submodule_name),
-                'status' => 0,
-                'retries' => 0,
-                'org_id' => $user['org_id'],
-                'org' => $user['Organisation']['name'],
-                'message' => 'Update the database after PULLing the submodule(s).',
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_PRIO,
+                'update_after_pull',
+                __('Updating: ' . $submodule_name),
+                'Update the database after PULLing the submodule(s).'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'prio',
-                    'AdminShell',
-                    array('updateAfterPull', $submodule_name, $jobId, $user['id']),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::PRIO_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'updateAfterPull',
+                    $submodule_name,
+                    $jobId,
+                    $user['id']
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
+
             return array('job_sent' => true, 'sync_result' => __('unknown'));
         } else {
             $result = $this->updateAfterPull($submodule_name, $user['id']);

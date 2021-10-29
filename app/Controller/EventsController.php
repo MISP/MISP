@@ -5790,7 +5790,6 @@ class EventsController extends AppController
                         $id
                     ],
                     true,
-                    [], // metadata
                     $job
                 );
 

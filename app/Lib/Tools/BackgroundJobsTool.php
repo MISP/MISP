@@ -70,16 +70,19 @@ class BackgroundJobsTool
 
     public const
         CMD_EVENT = 'event',
-        CMD_SERVER = 'server';
+        CMD_SERVER = 'server',
+        CMD_ADMIN = 'admin';
 
     public const ALLOWED_COMMANDS = [
         self::CMD_EVENT,
-        self::CMD_SERVER
+        self::CMD_SERVER,
+        self::CMD_ADMIN
     ];
 
     public const CMD_TO_SHELL_DICT = [
         self::CMD_EVENT => 'EventShell',
-        self::CMD_SERVER => 'ServerShell'
+        self::CMD_SERVER => 'ServerShell',
+        self::CMD_ADMIN => 'AdminShell'
     ];
 
     public const JOB_STATUS_PREFIX = 'job_status';
@@ -122,9 +125,9 @@ class BackgroundJobsTool
      * @param string $command Command of the job.
      * @param array $args Arguments passed to the job.
      * @param boolean|null $trackStatus Whether to track the status of the job.
-     * @param array $metadata Related to the job.
      * @param int|null $jobId Id of the relational database record representing the job.
      * @return string Background Job Id.
+     * @param array $metadata Related to the job.
      * @throws InvalidArgumentExceptiony
      */
     public function enqueue(
@@ -132,8 +135,8 @@ class BackgroundJobsTool
         string $command,
         array $args = [],
         $trackStatus = null,
-        array $metadata = [],
-        int $jobId = null
+        int $jobId = null,
+        array $metadata = []
     ): string {
 
         if ($this->settings['use_resque']) {
@@ -337,6 +340,10 @@ class BackgroundJobsTool
     public function getQueueSize(string $queue): int
     {
         $this->validateQueue($queue);
+
+        if ($this->settings['use_resque']) {
+            return CakeResque::getQueueSize($queue);
+        }
 
         return $this->RedisConnection->llen($queue);
     }
