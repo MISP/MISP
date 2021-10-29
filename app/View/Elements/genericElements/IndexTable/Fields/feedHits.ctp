@@ -1,7 +1,7 @@
 <?php
-
 $object = Hash::extract($row, $field['data']['object']['value_path']);
 
+$li = [];
 if (isset($object['Feed'])) {
     foreach ($object['Feed'] as $feed) {
         $relatedData = array(
@@ -46,23 +46,21 @@ if (isset($object['Feed'])) {
                 h($feed['id'])
             );
         }
-        echo "<li>$liContents</li>";
+        $li[] = "<li>$liContents</li>";
     }
 }
 if (isset($object['Server'])) {
     foreach ($object['Server'] as $server) {
         $popover = '';
         foreach ($server as $k => $v) {
-            if ($k == 'id') continue;
+            if ($k === 'id') continue;
             if (is_array($v)) {
-                foreach ($v as $k2 => $v2) {
-                    $v[$k2] = h($v2);
-                }
-                $v = implode('<br />', $v);
+                $v = array_map('h', $v);
+                $v = implode('<br>', $v);
             } else {
                 $v = h($v);
             }
-            $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
+            $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br>';
         }
         foreach ($server['event_uuids'] as $k => $event_uuid) {
             $liContents = '';
@@ -81,7 +79,11 @@ if (isset($object['Server'])) {
                     'S' . h($server['id']) . ':' . ($k + 1)
                 );
             }
-            echo "<li>$liContents</li>";
+            $li[] = "<li>$liContents</li>";
         }
     }
+}
+
+if (!empty($li)) {
+    echo '<ul class="inline">' . implode('', $li) .'</ul>';
 }
