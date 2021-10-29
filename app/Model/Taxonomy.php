@@ -666,11 +666,15 @@ class Taxonomy extends AppModel
         return true;
     }
 
+    /**
+     * @param array $tagList
+     * @return array[]
+     */
     public function checkIfTagInconsistencies($tagList)
     {
         $eventTags = array();
         $localEventTags = array();
-        foreach($tagList as $tag) {
+        foreach ($tagList as $tag) {
             if ($tag['local'] == 0) {
                 $eventTags[] = $tag['Tag']['name'];
             } else {

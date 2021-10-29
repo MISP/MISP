@@ -1290,28 +1290,21 @@ class EventsController extends AppController
                 foreach ($object['Attribute'] as $k2 => $attribute) {
                     $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
 
-                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
-                    foreach ($tagConflicts['global'] as $tagConflict) {
-                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    if (!empty($attribute['AttributeTag'])) {
+                        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                        $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                     }
-                    foreach ($tagConflicts['local'] as $tagConflict) {
-                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
-                    }
-                    $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                 }
             }
         }
-        foreach ($event['Attribute'] as $k => $attribute) {
-            $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
 
-            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
-            foreach ($tagConflicts['global'] as $tagConflict) {
-                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+        foreach ($event['Attribute'] as &$attribute) {
+            $this->Event->Attribute->removeGalaxyClusterTags($attribute);
+
+            if (!empty($attribute['AttributeTag'])) {
+                $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                $attribute['tagConflicts'] = $tagConflicts;
             }
-            foreach ($tagConflicts['local'] as $tagConflict) {
-                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
-            }
-            $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
         }
         if (empty($this->passedArgs['sort'])) {
             $filters['sort'] = 'timestamp';
@@ -1447,14 +1440,16 @@ class EventsController extends AppController
 
             $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
 
-            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
-            foreach ($tagConflicts['global'] as $tagConflict) {
-                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            if (!empty($attribute['AttributeTag'])) {
+                $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                foreach ($tagConflicts['global'] as $tagConflict) {
+                    $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                }
+                foreach ($tagConflicts['local'] as $tagConflict) {
+                    $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                }
+                $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
             }
-            foreach ($tagConflicts['local'] as $tagConflict) {
-                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
-            }
-            $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
         }
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event);
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
@@ -1475,14 +1470,16 @@ class EventsController extends AppController
 
                     $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
 
-                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
-                    foreach ($tagConflicts['global'] as $tagConflict) {
-                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    if (!empty($attribute['AttributeTag'])) {
+                        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                        foreach ($tagConflicts['global'] as $tagConflict) {
+                            $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                        }
+                        foreach ($tagConflicts['local'] as $tagConflict) {
+                            $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                        }
+                        $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                     }
-                    foreach ($tagConflicts['local'] as $tagConflict) {
-                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
-                    }
-                    $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                 }
             }
         }
