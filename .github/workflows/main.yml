@@ -126,8 +126,8 @@ jobs:
               sudo gpg --list-secret-keys --homedir `pwd`/.gnupg
               # change perms
               sudo chown -R $USER:www-data `pwd`
-              sudo chmod -R 770 `pwd`/.gnupg
-              # Get authkey
+              sudo chown -R www-data:www-data `pwd`/.gnupg
+              sudo chmod -R 700 `pwd`/.gnupg
               sudo usermod -a -G www-data $USER
 
               # Ensure the perms of config files
@@ -192,7 +192,7 @@ jobs:
       - name: Start workers
         run: |
               sudo chmod +x app/Console/worker/start.sh
-              sudo -E su $USER -c 'app/Console/worker/start.sh'
+              sudo -u www-data 'app/Console/worker/start.sh'
 
       - name: Python setup
         run: |
