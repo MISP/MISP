@@ -21,7 +21,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'name' => __('Event'),
                 'sort' => 'Attribute.event_id',
                 'data_path' => 'Attribute.event_id',
-                'element' => 'attributeLink',
+                'element' => 'simple_link',
                 'link_title_path' => 'Event.info',
                 'url' => function (array $row) {
                     return '/events/view/' . $row['Attribute']['event_id'] . '#focus:' . $row['Attribute']['uuid'];
