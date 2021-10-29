@@ -1203,6 +1203,7 @@ class EventsController extends AppController
             'includeEventCorrelations' => false,
             'noEventReports' => true, // event reports for view are loaded dynamically
             'noSightings' => true,
+            'includeServerCorrelations' => $filters['includeServerCorrelations'] ?? 1.
         ];
         if (isset($filters['extended'])) {
             $conditions['extended'] = 1;
@@ -1224,11 +1225,6 @@ class EventsController extends AppController
         }
         if (isset($filters['toIDS']) && $filters['toIDS'] != 0) {
             $conditions['to_ids'] = $filters['toIDS'] == 2 ? 0 : 1;
-        }
-        if (!isset($filters['includeServerCorrelations'])) {
-            $conditions['includeServerCorrelations'] = 1;
-        } else {
-            $conditions['includeServerCorrelations'] = $filters['includeServerCorrelations'];
         }
         if (!empty($filters['includeRelatedTags'])) {
             $this->set('includeRelatedTags', 1);
@@ -1315,8 +1311,7 @@ class EventsController extends AppController
             $filters['sort'] = 'timestamp';
             $filters['direction'] = 'desc';
         }
-        $this->loadModel('Sighting');
-        $sightingsData = $this->Sighting->eventsStatistic([$event], $this->Auth->user());
+        $sightingsData = $this->Event->Sighting->eventsStatistic([$event], $user);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, $all, $sightingsData);
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
@@ -1348,7 +1343,7 @@ class EventsController extends AppController
         }
         $this->set('currentUri', $this->request->here);
         $this->layout = false;
-        $this->__eventViewCommon($this->Auth->user());
+        $this->__eventViewCommon($user);
         $this->render('/Elements/eventattribute');
     }
 
