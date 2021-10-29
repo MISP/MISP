@@ -251,7 +251,7 @@ class AttributeValidationTool
                 $length = self::HASH_HEX_LENGTH[$type];
                 return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
             case 'tlsh':
-                if (preg_match("#^t?[0-9a-f]{35,}$#i", $value)) {
+                if (self::isTlshValid($value)) {
                     return true;
                 }
                 return __('Checksum has an invalid length or format (expected: at least 35 hexadecimal characters, optionally starting with t1 instead of hexadecimal characters). Please double check the value or select type "other".');
@@ -311,15 +311,22 @@ class AttributeValidationTool
                 return __('Checksum has an invalid length or format (expected: filename|%s hexadecimal characters). Please double check the value or select type "other".', $length);
             case 'filename|ssdeep':
                 $composite = explode('|', $value);
+                if (strpos($composite[0], "\n") !== false) {
+                    return __('Filename must not contain new line character.');
+                }
                 if (self::isSsdeep($composite[1])) {
                     return true;
                 }
                 return __('Invalid ssdeep hash (expected: blocksize:hash:hash).');
             case 'filename|tlsh':
-                if (preg_match("#^.+\|[0-9a-f]{35,}$#", $value)) {
+                $composite = explode('|', $value);
+                if (strpos($composite[0], "\n") !== false) {
+                    return __('Filename must not contain new line character.');
+                }
+                if (self::isTlshValid($composite[1])) {
                     return true;
                 }
-                return __('Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type "other".');
+                return __('TLSH hash has an invalid length or format (expected: filename|at least 35 hexadecimal characters, optionally starting with t1 instead of hexadecimal characters). Please double check the value or select type "other".');
             case 'filename|vhash':
                 if (preg_match('#^.+\|.+$#', $value)) {
                     return true;
@@ -593,6 +600,19 @@ class AttributeValidationTool
     {
         return self::isPositiveInteger($value) && $value >= 1 && $value <= 65535;
     }
+
+    /**
+     * @param string $value
+     * @return bool
+     */
+    private static function isTlshValid($value)
+    {
+        if ($value[0] === 't') {
+            $value = substr($value, 1);
+        }
+        return strlen($value) > 35 && ctype_xdigit($value);
+    }
+
 
     /**
      * @param string $type

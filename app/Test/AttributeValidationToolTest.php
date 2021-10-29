@@ -22,6 +22,22 @@ class AttributeValidationToolTest extends TestCase
         $this->shouldBeInvalid('filename|md5', [
             'cmd.exe|86f7e437faa5a7fce15d1ddcb9eaeaea377667b8',
         ]);
+        $this->shouldBeValid('tlsh', [
+            'b2317c38fac0333c8ff7d3ff31fcf3b7fb3f9a3ef3bf3c880cfc43ebf97f3cc73fbfc',
+            't1fdd4e000b6a1c034f1f612f849b6a3a4b53f7ea1677481cf12d916ea4a79af1ed31317',
+        ]);
+        $this->shouldBeValid('filename|tlsh', [
+            'cmd.exe|b2317c38fac0333c8ff7d3ff31fcf3b7fb3f9a3ef3bf3c880cfc43ebf97f3cc73fbfc',
+            'cmd.exe|t1fdd4e000b6a1c034f1f612f849b6a3a4b53f7ea1677481cf12d916ea4a79af1ed31317',
+        ]);
+        $this->shouldBeValid('ssdeep', [
+            '96:s4Ud1Lj96tHHlZDrwciQmA+4uy1I0G4HYuL8N3TzS8QsO/wqWXLcMSx:sF1LjEtHHlZDrJzrhuyZvHYm8tKp/RWO',
+            '384:EWo4X1WaPW9ZWhWzLo+lWpct/fWbkWsWIwW0/S7dZhgG8:EWo4X1WmW9ZWhWH/WpchfWgWsWTWtf8',
+            '6144:3wSQSlrBHFjOvwYAU/Fsgi/2WDg5+YaNk5xcHrYw+Zg+XrZsGEREYRGAFU25ttR/:ctM7E0L4q',
+        ]);
+        $this->shouldBeValid('filename|ssdeep', [
+            'ahoj.txt|96:s4Ud1Lj96tHHlZDrwciQmA+4uy1I0G4HYuL8N3TzS8QsO/wqWXLcMSx:sF1LjEtHHlZDrJzrhuyZvHYm8tKp/RWO',
+        ]);
     }
 
     public function testValidateIp(): void
@@ -61,18 +77,6 @@ class AttributeValidationToolTest extends TestCase
             '7b:e5:6f:a7:f4:f9:81:62:5c:e3:1f:bf:8b:57:6c:5a',
             'MD5:7b:e5:6f:a7:f4:f9:81:62:5c:e3:1f:bf:8b:57:6c:5a',
             'SHA256:mVPwvezndPv/ARoIadVY98vAC0g+P/5633yTC4d/wXE',
-        ]);
-    }
-
-    public function testValidateSsdeep(): void
-    {
-        $this->shouldBeValid('ssdeep', [
-            '96:s4Ud1Lj96tHHlZDrwciQmA+4uy1I0G4HYuL8N3TzS8QsO/wqWXLcMSx:sF1LjEtHHlZDrJzrhuyZvHYm8tKp/RWO',
-            '384:EWo4X1WaPW9ZWhWzLo+lWpct/fWbkWsWIwW0/S7dZhgG8:EWo4X1WmW9ZWhWH/WpchfWgWsWTWtf8',
-            '6144:3wSQSlrBHFjOvwYAU/Fsgi/2WDg5+YaNk5xcHrYw+Zg+XrZsGEREYRGAFU25ttR/:ctM7E0L4q',
-        ]);
-        $this->shouldBeValid('filename|ssdeep', [
-            'ahoj.txt|96:s4Ud1Lj96tHHlZDrwciQmA+4uy1I0G4HYuL8N3TzS8QsO/wqWXLcMSx:sF1LjEtHHlZDrJzrhuyZvHYm8tKp/RWO',
         ]);
     }
 
@@ -134,14 +138,14 @@ class AttributeValidationToolTest extends TestCase
     private function shouldBeValid($type, array $values)
     {
         foreach ($values as $value) {
-            $this->assertTrue(AttributeValidationTool::validate($type, $value));
+            $this->assertTrue(AttributeValidationTool::validate($type, $value), "Value `$value` of type `$type` should be valid.");
         }
     }
 
     private function shouldBeInvalid($type, array $values)
     {
         foreach ($values as $value) {
-            $this->assertNotTrue(AttributeValidationTool::validate($type, $value));
+            $this->assertNotTrue(AttributeValidationTool::validate($type, $value), "Value `$value` of type `$type` should be invalid.");
         }
     }
 }
