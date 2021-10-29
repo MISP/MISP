@@ -1181,11 +1181,7 @@ class EventsController extends AppController
             'paramArray' => self::ACCEPTED_FILTERING_NAMED_PARAMS,
             'named_params' => $this->request->params['named']
         );
-        $exception = false;
-        $filters = $this->_harvestParameters($filterData, $exception);
-        if ($exception) {
-            return $exception;
-        }
+        $filters = $this->_harvestParameters($filterData);
 
         // Remove default filters
         foreach ($filters as $filterName => $filterValue) {
@@ -1207,6 +1203,7 @@ class EventsController extends AppController
             'includeEventCorrelations' => false,
             'noEventReports' => true, // event reports for view are loaded dynamically
             'noSightings' => true,
+            'includeServerCorrelations' => $filters['includeServerCorrelations'] ?? 1.
         ];
         if (isset($filters['extended'])) {
             $conditions['extended'] = 1;
@@ -1228,11 +1225,6 @@ class EventsController extends AppController
         }
         if (isset($filters['toIDS']) && $filters['toIDS'] != 0) {
             $conditions['to_ids'] = $filters['toIDS'] == 2 ? 0 : 1;
-        }
-        if (!isset($filters['includeServerCorrelations'])) {
-            $conditions['includeServerCorrelations'] = 1;
-        } else {
-            $conditions['includeServerCorrelations'] = $filters['includeServerCorrelations'];
         }
         if (!empty($filters['includeRelatedTags'])) {
             $this->set('includeRelatedTags', 1);
@@ -1297,9 +1289,9 @@ class EventsController extends AppController
         foreach ($event['Object'] as $k => $object) {
             if (isset($object['Attribute'])) {
                 foreach ($object['Attribute'] as $k2 => $attribute) {
-                    $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
-
                     if (!empty($attribute['AttributeTag'])) {
+                        $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
+
                         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
                         $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                     }
@@ -1308,9 +1300,9 @@ class EventsController extends AppController
         }
 
         foreach ($event['Attribute'] as &$attribute) {
-            $this->Event->Attribute->removeGalaxyClusterTags($attribute);
-
             if (!empty($attribute['AttributeTag'])) {
+                $this->Event->Attribute->removeGalaxyClusterTags($attribute);
+
                 $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
                 $attribute['tagConflicts'] = $tagConflicts;
             }
@@ -1319,8 +1311,7 @@ class EventsController extends AppController
             $filters['sort'] = 'timestamp';
             $filters['direction'] = 'desc';
         }
-        $this->loadModel('Sighting');
-        $sightingsData = $this->Sighting->eventsStatistic([$event], $this->Auth->user());
+        $sightingsData = $this->Event->Sighting->eventsStatistic([$event], $user);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, $all, $sightingsData);
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
@@ -1352,7 +1343,7 @@ class EventsController extends AppController
         }
         $this->set('currentUri', $this->request->here);
         $this->layout = false;
-        $this->__eventViewCommon($this->Auth->user());
+        $this->__eventViewCommon($user);
         $this->render('/Elements/eventattribute');
     }
 

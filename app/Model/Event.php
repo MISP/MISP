@@ -5420,22 +5420,18 @@ class Event extends AppModel
             unset($event['Object']);
         }
 
-        $event['objects'] = $objects;
-
         $referencedByArray = array();
-        foreach ($event['objects'] as $object) {
-            if (!in_array($object['objectType'], array('attribute', 'object'))) {
-                continue;
-            }
-            if (!empty($object['ObjectReference'])) {
+        foreach ($objects as $object) {
+            $objectType = $object['objectType'];
+            if (($objectType === 'attribute' || $objectType === 'object') && !empty($object['ObjectReference'])) {
                 foreach ($object['ObjectReference'] as $reference) {
                     if (isset($reference['referenced_uuid'])) {
-                        $referencedByArray[$reference['referenced_uuid']][$object['objectType']][] = array(
+                        $referencedByArray[$reference['referenced_uuid']][$objectType][] = array(
                             'meta-category' => $object['meta-category'],
                             'name' => $object['name'],
                             'uuid' => $object['uuid'],
                             'id' => isset($object['id']) ? $object['id'] : 0,
-                            'object_type' => $object['objectType'],
+                            'object_type' => $objectType,
                             'relationship_type' => $reference['relationship_type']
                         );
                     }
@@ -5447,15 +5443,16 @@ class Event extends AppModel
         if ($all) {
             $passedArgs['page'] = 0;
         }
-        $params = $customPagination->applyRulesOnArray($event['objects'], $passedArgs, 'events', 'category');
-        foreach ($event['objects'] as $k => $object) {
+        $params = $customPagination->applyRulesOnArray($objects, $passedArgs, 'events', 'category');
+        foreach ($objects as $k => $object) {
             if (isset($referencedByArray[$object['uuid']])) {
                 foreach ($referencedByArray[$object['uuid']] as $objectType => $references) {
-                    $event['objects'][$k]['referenced_by'][$objectType] = $references;
+                    $objects[$k]['referenced_by'][$objectType] = $references;
                 }
             }
         }
-        $params['total_elements'] = count($event['objects']);
+        $event['objects'] = $objects;
+        $params['total_elements'] = count($objects);
         return $params;
     }
 

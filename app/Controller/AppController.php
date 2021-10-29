@@ -913,7 +913,7 @@ class AppController extends Controller
      * @param array $data
      * @return array|false|mixed
      */
-    protected function _harvestParameters($options, &$exception, $data = array())
+    protected function _harvestParameters($options, &$exception = null, $data = array())
     {
         $request = $options['request'] ?? $this->request;
         if ($request->is('post')) {
