@@ -63,13 +63,19 @@ class GalaxyClusterRelation extends AppModel
         'GalaxyClusterRelationTag' => array('dependent' => true),
     );
 
+    /**
+     * @see bulkSaveRelations
+     * @var array
+     */
+    private $bulkTagNameToIdCache;
+
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $result) {
-            if (isset($results[$k]['TargetCluster']) && key_exists('id', $results[$k]['TargetCluster']) && is_null($results[$k]['TargetCluster']['id'])) {
+            if (isset($result['TargetCluster']) && key_exists('id', $result['TargetCluster']) && is_null($result['TargetCluster']['id'])) {
                 $results[$k]['TargetCluster'] = array();
             }
-            if (isset($results[$k]['GalaxyClusterRelation']['distribution']) && $results[$k]['GalaxyClusterRelation']['distribution'] != 4) {
+            if (isset($result['GalaxyClusterRelation']['distribution']) && $result['GalaxyClusterRelation']['distribution'] != 4) {
                 unset($results[$k]['SharingGroup']);
             }
         }
@@ -346,10 +352,11 @@ class GalaxyClusterRelation extends AppModel
 
     public function bulkSaveRelations(array $relations)
     {
-        if (!isset($this->bulkCache)) {
-            $this->bulkCache = [
-                'tag_ids' => []
-            ];
+        if (!isset($this->bulkTagNameToIdCache)) {
+            // Prefill with existing tags
+            $this->bulkTagNameToIdCache = $this->GalaxyClusterRelationTag->Tag->find('list', [
+                'fields' => ['Tag.name', 'Tag.id'],
+            ]);
         }
         $lookupSavedIds = [];
         $relationTagsToSave = [];
@@ -358,28 +365,16 @@ class GalaxyClusterRelation extends AppModel
             $lookupSavedIds[$relation['galaxy_cluster_id']] = true;
             if (!empty($relation['tags'])) {
                 foreach ($relation['tags'] as $tag) {
-                    if (!isset($this->bulkCache['tag_ids'][$tag])) {
-                        $existingTag = $this->GalaxyClusterRelationTag->Tag->find('first', [
-                            'recursive' => -1,
-                            'fields' => ['Tag.id'],
-                            'conditions' => ['Tag.name' => $tag]
+                    if (!isset($this->bulkTagNameToIdCache[$tag])) {
+                        $this->GalaxyClusterRelationTag->Tag->create();
+                        $this->GalaxyClusterRelationTag->Tag->save([
+                            'name' => $tag,
+                            'colour' => $this->GalaxyClusterRelationTag->Tag->random_color(),
+                            'exportable' => 1,
                         ]);
-                        if (empty($existingTag)) {
-                            $this->GalaxyClusterRelationTag->Tag->create();
-                            $this->GalaxyClusterRelationTag->Tag->save([
-                                'name' => $tag,
-                                'colour' => $this->GalaxyClusterRelationTag->Tag->random_color(),
-                                'exportable' => 1,
-                                'org_id' => 0,
-                                'user_id' => 0,
-                                'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0
-                            ]);
-                            $this->bulkCache['tag_ids'][$tag] = $this->GalaxyClusterRelationTag->Tag->id;
-                        } else {
-                            $this->bulkCache['tag_ids'][$tag] = $existingTag['Tag']['id'];
-                        }
+                        $this->bulkTagNameToIdCache[$tag] = $this->GalaxyClusterRelationTag->Tag->id;
                     }
-                    $relationTagsToSave[$relation['galaxy_cluster_uuid']][$relation['referenced_galaxy_cluster_uuid']][] = $this->bulkCache['tag_ids'][$tag];
+                    $relationTagsToSave[$relation['galaxy_cluster_uuid']][$relation['referenced_galaxy_cluster_uuid']][] =  $this->bulkTagNameToIdCache[$tag];
                 }
             }
         }
