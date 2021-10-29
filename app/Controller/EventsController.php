@@ -1141,13 +1141,11 @@ class EventsController extends AppController
      *
      * @param array $attribute An attribute
      * @param array $fields List of keys in attribute to search in
-     * @param string $searchValue Values to search ( '|' is the separator)
+     * @param array $searchParts Values to search
      * @return bool Returns true on match
      */
-    private function __valueInFieldAttribute($attribute, $fields, $searchValue)
+    private function __valueInFieldAttribute($attribute, $fields, $searchParts)
     {
-        $searchParts = explode('|', mb_strtolower($searchValue));
-
         foreach ($fields as $field) {
             if (strpos($field, 'Tag') === 0) {
                 if (empty($attribute['AttributeTag'])) {
@@ -1163,11 +1161,10 @@ class EventsController extends AppController
                     }
                 }
             } else {
-                $fieldValue = isset($attribute[$field]) ? $attribute[$field] : null;
-                if (empty($fieldValue)) {
+                if (!isset($attribute[$field])) {
                     continue;
                 }
-                $fieldValue = mb_strtolower($fieldValue);
+                $fieldValue = mb_strtolower($attribute[$field]);
                 foreach ($searchParts as $s) {
                     if (strpos($fieldValue, $s) !== false) {
                         return true;
@@ -1933,9 +1930,11 @@ class EventsController extends AppController
             }
         }
 
+        $searchParts = explode('|', mb_strtolower($searchFor));
+
         // search in all attributes
         foreach ($event['Attribute'] as $k => $attribute) {
-            if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchFor)) {
+            if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchParts)) {
                 unset($event['Attribute'][$k]);
             }
         }
@@ -1943,7 +1942,7 @@ class EventsController extends AppController
 
         // search in all attributes
         foreach ($event['ShadowAttribute'] as $k => $proposals) {
-            if (!$this->__valueInFieldAttribute($proposals, $filterValue, $searchFor)) {
+            if (!$this->__valueInFieldAttribute($proposals, $filterValue, $searchParts)) {
                 unset($event['ShadowAttribute'][$k]);
             }
         }
@@ -1951,11 +1950,11 @@ class EventsController extends AppController
 
         // search for all attributes in object
         foreach ($event['Object'] as $k => $object) {
-            if ($this->__valueInFieldAttribute($object, ['id', 'uuid', 'name', 'comment'], $searchFor)) {
+            if ($this->__valueInFieldAttribute($object, ['id', 'uuid', 'name', 'comment'], $searchParts)) {
                 continue;
             }
             foreach ($object['Attribute'] as $k2 => $attribute) {
-                if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchFor)) {
+                if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchParts)) {
                     unset($event['Object'][$k]['Attribute'][$k2]);
                 }
             }
@@ -1970,7 +1969,8 @@ class EventsController extends AppController
     }
 
     // look in the parameters if we are doing advanced filtering or not
-    private function __checkIfAdvancedFiltering($filters) {
+    private function __checkIfAdvancedFiltering($filters)
+    {
         $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0, 'extended' => 0, 'page' => 0));
 
         if (count($advancedFilteringActive) > 0) {
