@@ -3207,4 +3207,20 @@ class AppModel extends Model
         }
         return null;
     }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    protected function pubToZmq($name)
+    {
+        static $zmqEnabled;
+        if ($zmqEnabled === null) {
+            $zmqEnabled = (bool)Configure::read('Plugin.ZeroMQ_enable');
+        }
+        if ($zmqEnabled) {
+            return Configure::read("Plugin.ZeroMQ_{$name}_notifications_enable");
+        }
+        return false;
+    }
 }
