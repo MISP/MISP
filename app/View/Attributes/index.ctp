@@ -24,7 +24,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'element' => 'simple_link',
                 'link_title_path' => 'Event.info',
                 'url' => function (array $row) {
-                    return '/events/view/' . $row['Attribute']['event_id'] . '#focus:' . $row['Attribute']['uuid'];
+                    return '/events/view/' . $row['Attribute']['event_id'] . '/focus:' . $row['Attribute']['uuid'];
                 }
             ],
             [
