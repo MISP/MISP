@@ -54,7 +54,7 @@ class StixExport
         }
         $params['contain'] = array_merge($params['contain'], array(
             'AttributeTag' => array('Tag'),
-            'Event' => array('Org.name', 'Org.uuid', 'Orgc.name', 'Orgc.uuid')
+            'Event' => array('fields' => array('Event.timestamp'), 'Org.name', 'Org.uuid', 'Orgc.name', 'Orgc.uuid')
         ));
         unset($params['fields']);
         $params['includeContext'] = 0;
@@ -163,11 +163,12 @@ class StixExport
             if (!empty($galaxies['Attribute'])) {
                 $attribute['Galaxy'] = array();
             }
+            $timestamp = $raw_attribute['Event']['timestamp'];
             foreach($raw_attribute['Galaxy'] as $galaxy) {
                 $galaxy_type = $galaxy['type'];
                 if (!empty($galaxies['Attribute'][$galaxy_type])) {
                     if (empty($galaxies['Event'][$galaxy_type])) {
-                        $attribute['Galaxy'][] = $galaxy;
+                        $attribute['Galaxy'][] = $this->__arrange_galaxy($galaxy, $attribute['timestamp']);
                         unset($galaxies['Attribute'][$galaxy_type]);
                         continue;
                     }
@@ -179,17 +180,17 @@ class StixExport
                         $in_event[] = in_array($cluster_value, $galaxies['Event'][$galaxy_type]);
                     }
                     if (!in_array(false, $in_attribute)) {
-                        $attribute['Galaxy'][] = $galaxy;
+                        $attribute['Galaxy'][] = $this->__arrange_galaxy($galaxy, $attribute['timestamp']);
                         unset($galaxies['Attribute'][$galaxy_type]);
                         if (!in_array(false, $in_event)) {
-                            $this->__handle_event_galaxies($galaxy);
+                            $this->__handle_event_galaxies($galaxy, $timestamp);
                             unset($galaxies['Event'][$galaxy_type]);
                         }
                         continue;
                     }
                 }
                 if (!empty($galaxies['Event'][$galaxy_type])) {
-                    $this->__handle_event_galaxies($galaxy);
+                    $this->__handle_event_galaxies($galaxy, $timestamp);
                     unset($galaxies['Event'][$galaxy_type]);
                 }
             }
@@ -204,6 +205,38 @@ class StixExport
         $attribute['Org'] = $raw_attribute['Event']['Org'];
         $attribute['Orgc'] = $raw_attribute['Event']['Orgc'];
         return $attribute;
+    }
+
+    private function __arrange_cluster($cluster, $timestamp)
+    {
+        $arranged_cluster = array(
+            'collection_uuid' => $cluster['collection_uuid'],
+            'type' => $cluster['type'],
+            'value' => $cluster['value'],
+            'tag_name' => $cluster['tag_name'],
+            'description' => $cluster['description'],
+            'source' => $cluster['source'],
+            'authors' => $cluster['authors'],
+            'uuid' => $cluster['uuid'],
+            'timestamp' => $timestamp
+        );
+        return $arranged_cluster;
+    }
+
+    private function __arrange_galaxy($galaxy, $timestamp)
+    {
+        $arranged_galaxy = array(
+            'uuid' => $galaxy['uuid'],
+            'name' => $galaxy['name'],
+            'type' => $galaxy['type'],
+            'description' => $galaxy['description'],
+            'namespace' => $galaxy['namespace'],
+            'GalaxyCluster' => array()
+        );
+        foreach($galaxy['GalaxyCluster'] as $cluster) {
+            $arranged_galaxy['GalaxyCluster'][] = $this->__arrange_cluster($cluster, $timestamp);
+        }
+        return $arranged_galaxy;
     }
 
     private function __attributesHandler($attribute)
@@ -251,18 +284,21 @@ class StixExport
         return '';
     }
 
-    private function __handle_event_galaxies($galaxy)
+    private function __handle_event_galaxies($galaxy, $timestamp)
     {
         $galaxy_type = $galaxy['type'];
-        if (in_array($galaxy['type'], $this->__event_galaxies)) {
+        if (!empty($this->__event_galaxies[$galaxy['type']])) {
             foreach($galaxy['GalaxyCluster'] as $cluster) {
                 if (!in_array($cluster['uuid'], $__cluster_uuids)) {
-                    $this->__event_galaxies[$galaxy_type]['GalaxyCluster'][] = $cluster;
+                    $this->__event_galaxies[$galaxy_type]['GalaxyCluster'][] = $this->__arrange_cluster(
+                        $cluster,
+                        $timestamp
+                    );
                     $this->__cluster_uuids[] = $cluster['uuid'];
                 }
             }
         } else {
-            $this->__event_galaxies[$galaxy_type] = $galaxy;
+            $this->__event_galaxies[$galaxy_type] = $this->__arrange_galaxy($galaxy, $timestamp);
             foreach($galaxy['GalaxyCluster'] as $cluster) {
                 $this->__cluster_uuids[] = $cluster['uuid'];
             }
