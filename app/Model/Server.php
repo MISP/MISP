@@ -3367,6 +3367,14 @@ class Server extends AppModel
 
     public function workerDiagnostics(&$workerIssueCount)
     {
+        $worker_array = array(
+            'cache' => array('ok' => false),
+            'default' => array('ok' => false),
+            'email' => array('ok' => false),
+            'prio' => array('ok' => false),
+            'update' => array('ok' => false),
+            'scheduler' => array('ok' => false)
+        );
         $workers = $this->getWorkers();
 
         if (function_exists('posix_getpwuid')) {
@@ -7167,30 +7175,22 @@ class Server extends AppModel
      * Get workers
      *
      * @return array
-     * @throws Exception
      */
     private function getWorkers(): array
     {
         if (Configure::read('BackgroundJobs.use_resque')) {
-            $worker_array = array(
-                'cache' => array('ok' => false),
-                'default' => array('ok' => false),
-                'email' => array('ok' => false),
-                'prio' => array('ok' => false),
-                'update' => array('ok' => false),
-                'scheduler' => array('ok' => false)
-            );
             try {
                 $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
             } catch (Exception $e) {
                 // redis connection failed
-                return $worker_array;
+                $this->logException("Failed to get Resque workers status.", $e);
+                return [];
             }
             return $this->ResqueStatus->getWorkers();
         }
 
-        $workers = $this->getBackgroundJobsTool()->getWorkers();
         $worker_array = [];
+        $workers = $this->getBackgroundJobsTool()->getWorkers();
 
         foreach ($workers as $worker) {
             $worker_array[$worker->pid()] = [
