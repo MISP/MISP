@@ -30,11 +30,12 @@ class JobsController extends AppController
         }
         $jobs = $this->paginate();
         foreach ($jobs as &$job) {
-            if ($job['Job']['process_id'] !== false) {
+            if (!empty($job['Job']['process_id'])) {
                 $job['Job']['job_status'] = $this->getJobStatus($job['Job']['process_id']);
                 $job['Job']['failed'] = $job['Job']['job_status'] === 'Failed';
             } else {
                 $job['Job']['job_status'] = 'Unknown';
+                $job['Job']['failed'] = null;
             }
             $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'];
         }

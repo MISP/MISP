@@ -19,6 +19,7 @@ class ServerShell extends AppShell
 
     public function initialize(): void
     {
+        parent::initialize();
         $this->BackgroundJobsTool = new BackgroundJobsTool();
         $this->BackgroundJobsTool->initTool(Configure::read('BackgroundJobs'));
     }
@@ -89,7 +90,7 @@ class ServerShell extends AppShell
 
         foreach ($servers as $serverId => $serverName) {
 
-            $jobId = $this->BackgroundJobsTool->enqueue(
+            $backgroundJobId = $this->BackgroundJobsTool->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_SERVER,
                 [
@@ -100,7 +101,7 @@ class ServerShell extends AppShell
                 ]
             );
 
-            $this->out("Enqueued pulling from $serverName server as job $jobId");
+            $this->out("Enqueued pulling from $serverName server as job $backgroundJobId");
         }
     }
 
@@ -122,7 +123,7 @@ class ServerShell extends AppShell
         if (!empty($this->args[3])) {
             $jobId = $this->args[3];
         } else {
-            $jobId = $this->Job->createJob($user,Job::WORKER_DEFAULT, 'pull', 'Server: ' . $serverId, 'Pulling.');
+            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'pull', 'Server: ' . $serverId, 'Pulling.');
         }
         $force = false;
         if (!empty($this->args[4]) && $this->args[4] === 'force') {
@@ -154,23 +155,12 @@ class ServerShell extends AppShell
         $user = $this->getUser($userId);
         $serverId = $this->args[1];
         $server = $this->getServer($serverId);
-        if (!empty($this->args[2])) {
-            $jobId = $this->args[2];
+        $technique = empty($this->args[2]) ? 'full' : $this->args[2];
+        if (!empty($this->args[3])) {
+            $jobId = $this->args[3];
         } else {
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'push',
-                    'job_input' => 'Server: ' . $serverId,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Pushing.',
-            );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
+            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'push', 'Server: ' . $serverId, 'Pushing.');
         }
-        $technique = empty($this->args[3]) ? 'full' : $this->args[3];
         $this->Job->read(null, $jobId);
 
         App::uses('SyncTool', 'Tools');
@@ -368,7 +358,7 @@ class ServerShell extends AppShell
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];
         } else {
-            $jobId = $this->Job->createJob($user,Job::WORKER_DEFAULT, 'cache_feeds', 'Feed: ' . $scope, 'Starting feed caching.');
+            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'cache_feeds', 'Feed: ' . $scope, 'Starting feed caching.');
         }
         try {
             $result = $this->Feed->cacheFeedInitiator($user, $jobId, $scope);
