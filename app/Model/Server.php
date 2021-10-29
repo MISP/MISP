@@ -3367,21 +3367,8 @@ class Server extends AppModel
 
     public function workerDiagnostics(&$workerIssueCount)
     {
-        $worker_array = array(
-            'cache' => array('ok' => false),
-            'default' => array('ok' => false),
-            'email' => array('ok' => false),
-            'prio' => array('ok' => false),
-            'update' => array('ok' => false),
-            'scheduler' => array('ok' => false)
-        );
-        try {
-            $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-        } catch (Exception $e) {
-            // redis connection failed
-            return $worker_array;
-        }
-        $workers = $this->ResqueStatus->getWorkers();
+        $workers = $this->getWorkers();
+
         if (function_exists('posix_getpwuid')) {
             $currentUser = posix_getpwuid(posix_geteuid());
             $currentUser = $currentUser['name'];
@@ -7174,5 +7161,45 @@ class Server extends AppModel
                 'header' => __('Managing the background workers')
             )
         );
+    }
+
+    /**
+     * Get workers
+     *
+     * @return array
+     * @throws Exception
+     */
+    private function getWorkers(): array
+    {
+        if (Configure::read('BackgroundJobs.use_resque')) {
+            $worker_array = array(
+                'cache' => array('ok' => false),
+                'default' => array('ok' => false),
+                'email' => array('ok' => false),
+                'prio' => array('ok' => false),
+                'update' => array('ok' => false),
+                'scheduler' => array('ok' => false)
+            );
+            try {
+                $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+            } catch (Exception $e) {
+                // redis connection failed
+                return $worker_array;
+            }
+            return $this->ResqueStatus->getWorkers();
+        }
+
+        $workers = $this->getBackgroundJobsTool()->getWorkers();
+        $worker_array = [];
+
+        foreach ($workers as $worker) {
+            $worker_array[$worker->pid()] = [
+                'queue' => $worker->queue(),
+                'type' => 'regular', // for compatibility with Resque response
+                'user' => $worker->user()
+            ];
+        }
+
+        return $worker_array;
     }
 }

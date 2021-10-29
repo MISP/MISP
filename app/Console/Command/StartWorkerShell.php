@@ -65,7 +65,8 @@ class StartWorkerShell extends AppShell
         $this->worker = new Worker(
             [
                 'pid' => getmypid(),
-                'queue' => $this->args[0]
+                'queue' => $this->args[0],
+                'user' => trim(shell_exec('whoami'))
             ]
         );
 

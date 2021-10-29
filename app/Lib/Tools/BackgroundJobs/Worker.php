@@ -6,36 +6,35 @@ App::uses('Model', 'Model');
 
 class Worker implements JsonSerializable
 {
-    /**
-     * Worker pid
-     *
-     * @var integer
-     */
+    /** @var integer */
     private $pid;
 
-    /**
-     * Worker queue
-     *
-     * @var string
-     */
+    /** @var string */
     private $queue;
 
     /**
-     * Creation time (UNIX timestamp)
+     * OS user
+     *
+     * @var string
+     */
+    private $user;
+
+    /**
+     * creation time (UNIX timestamp)
      *
      * @var integer
      */
     private $createdAt;
 
     /**
-     * Last update time (UNIX timestamp)
+     * last update time (UNIX timestamp)
      *
      * @var integer|null
      */
     private $updatedAt;
 
     /**
-     * Job status id
+     * status id
      *
      * @var integer
      */
@@ -50,6 +49,7 @@ class Worker implements JsonSerializable
     {
         $this->pid = $properties['pid'];
         $this->queue = $properties['queue'];
+        $this->user = $properties['user'];
         $this->createdAt = $properties['createdAt'] ?? time();
         $this->updatedAt = $properties['updatedAt'] ?? null;
         $this->status = $properties['status'] ?? self::STATUS_RUNNING;
@@ -60,6 +60,7 @@ class Worker implements JsonSerializable
         return [
             'pid' => $this->pid,
             'queue' => $this->queue,
+            'user' => $this->user,
             'createdAt' => $this->createdAt,
             'updatedAt' => $this->updatedAt,
             'status' => $this->status,
@@ -74,6 +75,11 @@ class Worker implements JsonSerializable
     public function queue(): string
     {
         return $this->queue;
+    }
+
+    public function user(): string
+    {
+        return $this->user;
     }
 
     public function createdAt(): int
