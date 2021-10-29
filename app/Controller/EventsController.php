@@ -1181,11 +1181,7 @@ class EventsController extends AppController
             'paramArray' => self::ACCEPTED_FILTERING_NAMED_PARAMS,
             'named_params' => $this->request->params['named']
         );
-        $exception = false;
-        $filters = $this->_harvestParameters($filterData, $exception);
-        if ($exception) {
-            return $exception;
-        }
+        $filters = $this->_harvestParameters($filterData);
 
         // Remove default filters
         foreach ($filters as $filterName => $filterValue) {
@@ -1297,9 +1293,9 @@ class EventsController extends AppController
         foreach ($event['Object'] as $k => $object) {
             if (isset($object['Attribute'])) {
                 foreach ($object['Attribute'] as $k2 => $attribute) {
-                    $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
-
                     if (!empty($attribute['AttributeTag'])) {
+                        $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
+
                         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
                         $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                     }
@@ -1308,9 +1304,9 @@ class EventsController extends AppController
         }
 
         foreach ($event['Attribute'] as &$attribute) {
-            $this->Event->Attribute->removeGalaxyClusterTags($attribute);
-
             if (!empty($attribute['AttributeTag'])) {
+                $this->Event->Attribute->removeGalaxyClusterTags($attribute);
+
                 $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
                 $attribute['tagConflicts'] = $tagConflicts;
             }
