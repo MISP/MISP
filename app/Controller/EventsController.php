@@ -1254,6 +1254,9 @@ class EventsController extends AppController
         }
         $event = $results[0];
 
+        $emptyEvent = empty($event['Object']) && empty($event['Attribute']);
+        $this->set('emptyEvent', $emptyEvent);
+
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event);
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
         $this->set('attributeClusters', array_values($attributeTagsName['clusters']));
@@ -1279,8 +1282,6 @@ class EventsController extends AppController
         if (isset($filters['galaxyAttachedAttributes']) && $filters['galaxyAttachedAttributes'] !== '') {
             $this->__applyQueryString($event, $filters['galaxyAttachedAttributes'], 'Tag.name');
         }
-        $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
-        $this->set('emptyEvent', $emptyEvent);
 
         // remove galaxies tags
         $this->loadModel('Taxonomy');
