@@ -129,7 +129,7 @@ jobs:
               sudo chown -R www-data:www-data `pwd`/.gnupg
               sudo chmod -R 700 `pwd`/.gnupg
               sudo usermod -a -G www-data $USER
-
+              sudo chmod -R 777 `pwd`/app/Plugin/CakeResque/tmp/
               # Ensure the perms of config files
               sudo chown -R $USER:www-data `pwd`/app/Config
               sudo chmod -R 777 `pwd`/app/Config
