@@ -19,18 +19,19 @@ urllib3.disable_warnings()
 
 
 def create_simple_event():
-    mispevent = MISPEvent()
-    mispevent.info = 'This is a super simple test'
-    mispevent.distribution = Distribution.your_organisation_only
-    mispevent.threat_level_id = ThreatLevel.low
-    mispevent.analysis = Analysis.completed
-    mispevent.add_attribute('text', str(uuid.uuid4()))
-    return mispevent
+    event = MISPEvent()
+    event.info = 'This is a super simple test'
+    event.distribution = Distribution.your_organisation_only
+    event.threat_level_id = ThreatLevel.low
+    event.analysis = Analysis.completed
+    event.add_attribute('text', str(uuid.uuid4()))
+    return event
 
 
 def check_response(response):
     if isinstance(response, dict) and "errors" in response:
         raise Exception(response["errors"])
+    return response
 
 
 class TestComprehensive(unittest.TestCase):
@@ -396,6 +397,64 @@ class TestComprehensive(unittest.TestCase):
         self.assertEqual(event_without_local_tags["Event"]["Attribute"][0]["Tag"][0]["local"], 0, event_without_local_tags)
 
         check_response(self.admin_misp_connector.delete_event(event))
+
+    def test_publish_alert_filter(self):
+        check_response(self.admin_misp_connector.set_server_setting('MISP.background_jobs', 0, force=True))
+
+        first = create_simple_event()
+        first.add_tag('test_publish_filter')
+        first.threat_level_id = ThreatLevel.medium
+
+        second = create_simple_event()
+        second.add_tag('test_publish_filter')
+        second.threat_level_id = ThreatLevel.high
+
+        third = create_simple_event()
+        third.add_tag('test_publish_filter')
+        third.threat_level_id = ThreatLevel.low
+
+        four = create_simple_event()
+        four.threat_level_id = ThreatLevel.high
+
+        try:
+            # Enable autoalert on admin
+            self.admin_misp_connector._current_user.autoalert = True
+            check_response(self.admin_misp_connector.update_user(self.admin_misp_connector._current_user))
+
+            # Set publish_alert_filter tag to `test_publish_filter`
+            setting_value = {'AND': {'Tag.name': 'test_publish_filter', 'ThreatLevel.name': ['High', 'Medium']}}
+            check_response(self.admin_misp_connector.set_user_setting('publish_alert_filter', setting_value))
+
+            # Add  events
+            first = check_response(self.admin_misp_connector.add_event(first))
+            second = check_response(self.admin_misp_connector.add_event(second))
+            third = check_response(self.admin_misp_connector.add_event(third))
+            four = check_response(self.admin_misp_connector.add_event(four))
+
+            # Publish events
+            for event in (first, second, third, four):
+                check_response(self.admin_misp_connector.publish(event, alert=True))
+
+            # Email notification should be send just to first event
+            mail_logs = self.admin_misp_connector.search_logs(model='User', action='email')
+            log_titles = [log.title for log in mail_logs]
+
+            self.assertIn('Email  to admin@admin.test sent, titled "[ORGNAME MISP] Event ' + str(first.id) + ' - Medium - TLP:AMBER".', log_titles)
+            self.assertIn('Email  to admin@admin.test sent, titled "[ORGNAME MISP] Event ' + str(second.id) + ' - High - TLP:AMBER".', log_titles)
+            self.assertNotIn('Email  to admin@admin.test sent, titled "[ORGNAME MISP] Event ' + str(third.id) + ' - Low - TLP:AMBER".', log_titles)
+            self.assertNotIn('Email  to admin@admin.test sent, titled "[ORGNAME MISP] Event ' + str(four.id) + ' - High - TLP:AMBER".', log_titles)
+
+        finally:
+            # Disable autoalert
+            self.admin_misp_connector._current_user.autoalert = False
+            check_response(self.admin_misp_connector.update_user(self.admin_misp_connector._current_user))
+            # Delete filter
+            self.admin_misp_connector.delete_user_setting('publish_alert_filter')
+            # Reenable background jobs
+            check_response(self.admin_misp_connector.set_server_setting('MISP.background_jobs', 1, force=True))
+            # Delete events
+            for event in (first, second, third, four):
+                check_response(self.admin_misp_connector.delete_event(event))
 
     def test_remove_orphaned_correlations(self):
         result = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', 'servers/removeOrphanedCorrelations'))

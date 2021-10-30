@@ -126,9 +126,16 @@ jobs:
               sudo gpg --list-secret-keys --homedir `pwd`/.gnupg
               # change perms
               sudo chown -R $USER:www-data `pwd`
-              sudo chmod -R 770 `pwd`/.gnupg
-              # Get authkey
+              sudo chown -R www-data:www-data `pwd`/.gnupg
+              sudo chmod -R 700 `pwd`/.gnupg
               sudo usermod -a -G www-data $USER
+              sudo chmod -R 777 `pwd`/app/Plugin/CakeResque/tmp/
+              # Ensure the perms of config files
+              sudo chown -R $USER:www-data `pwd`/app/Config
+              sudo chmod -R 777 `pwd`/app/Config
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.server_settings_skip_backup_rotate" 1'
+              sudo chown -R $USER:www-data `pwd`/app/Config
+              sudo chmod -R 777 `pwd`/app/Config
 
       - name: DB Update
         run: |
@@ -185,7 +192,7 @@ jobs:
       - name: Start workers
         run: |
               sudo chmod +x app/Console/worker/start.sh
-              sudo -E su $USER -c 'app/Console/worker/start.sh'
+              sudo -u www-data 'app/Console/worker/start.sh'
 
       - name: Python setup
         run: |
@@ -236,13 +243,6 @@ jobs:
       - name: Run tests
         run: |
               export PATH=$HOME/.local/env:$PATH # enable poetry binary
-
-              # Ensure the perms of config files
-              sudo chown -R $USER:www-data `pwd`/app/Config
-              sudo chmod -R 777 `pwd`/app/Config
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.server_settings_skip_backup_rotate" 1'
-              sudo chown -R $USER:www-data `pwd`/app/Config
-              sudo chmod -R 777 `pwd`/app/Config
 
               pushd tests
               ./curl_tests_GH.sh $AUTH $HOST
