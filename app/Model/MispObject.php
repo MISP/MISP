@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
 App::uses('AttributeValidationTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -731,6 +732,8 @@ class MispObject extends AppModel
      * Clean the attribute list up from artifacts introduced by the object form
      * @param array $attributes
      * @return string|array
+     * @throws InternalErrorException
+     * @throws Exception
      */
     public function attributeCleanup($attributes)
     {
@@ -751,23 +754,19 @@ class MispObject extends AppModel
             if (isset($attribute['Attachment'])) {
                 // Check if there were problems with the file upload
                 // only keep the last part of the filename, this should prevent directory attacks
-                $filename = basename($attribute['Attachment']['name']);
-                $tmpfile = new File($attribute['Attachment']['tmp_name']);
                 if ((isset($attribute['Attachment']['error']) && $attribute['Attachment']['error'] == 0) ||
                     (!empty($attribute['Attachment']['tmp_name']) && $attribute['Attachment']['tmp_name'] != 'none')
                 ) {
-                    if (!is_uploaded_file($tmpfile->path)) {
+                    if (!is_uploaded_file($attribute['Attachment']['tmp_name'])) {
                         throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
                     }
                 } else {
-                    return 'Issues with the file attachment for the ' . $attribute['object_relation'] . ' attribute. The error code returned is ' . $attribute['Attachment']['error'];
+                    throw new InternalErrorException('Issues with the file attachment for the ' . $attribute['object_relation'] . ' attribute. The error code returned is ' . $attribute['Attachment']['error']);
                 }
                 $attributes['Attribute'][$k]['value'] = $attribute['Attachment']['name'];
                 unset($attributes['Attribute'][$k]['Attachment']);
-                $attributes['Attribute'][$k]['encrypt'] = $attribute['type'] == 'malware-sample' ? 1 : 0;
-                $attributes['Attribute'][$k]['data'] = base64_encode($tmpfile->read());
-                $tmpfile->delete();
-                $tmpfile->close();
+                $attributes['Attribute'][$k]['encrypt'] = $attribute['type'] === 'malware-sample' ? 1 : 0;
+                $attributes['Attribute'][$k]['data'] = base64_encode(FileAccessTool::readAndDelete($attribute['Attachment']['tmp_name']));
             }
             if (!isset($attributes['Attribute'][$k]['first_seen'])) {
                 $attributes['Attribute'][$k]['first_seen'] = null;
