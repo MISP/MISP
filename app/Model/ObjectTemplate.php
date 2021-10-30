@@ -37,8 +37,8 @@ class ObjectTemplate extends AppModel
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $result) {
-            if (isset($results[$k]['ObjectTemplate']['requirements'])) {
-                $results[$k]['ObjectTemplate']['requirements'] = json_decode($results[$k]['ObjectTemplate']['requirements'], true);
+            if (isset($result['ObjectTemplate']['requirements'])) {
+                $results[$k]['ObjectTemplate']['requirements'] = json_decode($result['ObjectTemplate']['requirements'], true);
             }
         }
         return $results;
