@@ -1229,6 +1229,7 @@ class Attribute extends AppModel
         if (empty($params['tags'])) {
             return $conditions;
         }
+        /** @var Tag $tag */
         $tag = ClassRegistry::init('Tag');
         $params['tags'] = $this->dissectArgs($params['tags']);
         foreach (array(0, 1, 2) as $tag_operator) {
@@ -1683,13 +1684,13 @@ class Attribute extends AppModel
     // array 1 will have all of the non negated terms and array 2 all the negated terms
     public function dissectArgs($args)
     {
+        $result = array(0 => array(), 1 => array(), 2 => array());
         if (empty($args)) {
-            return array(0 => array(), 1 => array(), 2 => array());
+            return $result;
         }
         if (!is_array($args)) {
             $args = explode('&&', $args);
         }
-        $result = array(0 => array(), 1 => array(), 2 => array());
         if (isset($args['OR']) || isset($args['NOT']) || isset($args['AND'])) {
             if (!empty($args['OR'])) {
                 $result[0] = $args['OR'];

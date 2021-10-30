@@ -277,37 +277,39 @@ class Tag extends AppModel
         return array($acceptIds, $rejectIds);
     }
 
-    // pass a list of tag names to receive a list of matched tag IDs
+    /**
+     * pass a list of tag names to receive a list of matched tag IDs
+     * @param string|array $array
+     * @return array|int|null
+     */
     public function findTagIdsByTagNames($array)
     {
-        $ids = array();
-        $tag_ids = array();
         if (!is_array($array)) {
             $array = array($array);
         }
-        foreach ($array as $k => $tag) {
+        $tagIds = [];
+        $tagNames = [];
+        foreach ($array as  $tag) {
             if (is_numeric($tag)) {
-                $tag_ids[] = $tag;
-                unset($array[$k]);
+                $tagIds[] = $tag;
+            } else {
+                $tagNames[] = $tag;
             }
         }
-        $array = array_values($array);
-        if (!empty($array)) {
-            foreach ($array as $a) {
-                $conditions['OR'][] = array('Tag.name like' => $a);
+        if (!empty($tagNames)) {
+            $conditions = [];
+            foreach ($tagNames as $tagName) {
+                $conditions[] = array('Tag.name LIKE' => $tagName);
             }
-            $params = array(
-                    'recursive' => 1,
-                    'conditions' => $conditions,
-                    'fields' => array('Tag.id', 'Tag.id')
-            );
-            $result = $this->find('list', $params);
-            $tag_ids = array_merge($result, $tag_ids);
+            $result = $this->find('column', array(
+                'recursive' => 1,
+                'conditions' => ['OR' => $conditions],
+                'fields' => array('Tag.id')
+            ));
+            $tagIds = array_merge($result, $tagIds);
         }
-        return array_values($tag_ids);
+        return $tagIds;
     }
-
-
 
     /**
      * @param array $tag
