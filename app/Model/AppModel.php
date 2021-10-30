@@ -2554,9 +2554,8 @@ class AppModel extends Model
     }
 
     // generate a generic subquery - options needs to include conditions
-    public function subQueryGenerator($model, $options, $lookupKey, $negation = false)
+    protected function subQueryGenerator(AppModel $model, array $options, $lookupKey, $negation = false)
     {
-        $db = $model->getDataSource();
         $defaults = array(
             'fields' => array('*'),
             'table' => $model->table,
@@ -2569,17 +2568,15 @@ class AppModel extends Model
             'recursive' => -1
         );
         $params = array();
-        foreach (array_keys($defaults) as $key) {
+        foreach ($defaults as $key => $defaultValue) {
             if (isset($options[$key])) {
                 $params[$key] = $options[$key];
             } else {
-                $params[$key] = $defaults[$key];
+                $params[$key] = $defaultValue;
             }
         }
-        $subQuery = $db->buildStatement(
-            $params,
-            $model
-        );
+        $db = $model->getDataSource();
+        $subQuery = $db->buildStatement($params, $model);
         if ($negation) {
             $subQuery = $lookupKey . ' NOT IN (' . $subQuery . ') ';
         } else {

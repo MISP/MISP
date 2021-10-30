@@ -141,6 +141,50 @@ class EventTag extends AppModel
         return false;
     }
 
+    /**
+     * Find all of the event Ids that belong to the accepted tags and the rejected tags
+     * @param array $accept
+     * @param array $reject
+     * @return array[]
+     */
+    public function fetchEventTagIds(array $accept = array(), array $reject = array())
+    {
+        $acceptIds = array();
+        $rejectIds = array();
+        if (!empty($accept)) {
+            $acceptIds = $this->findEventIdsByTagNames($accept);
+            if (empty($acceptIds)) {
+                $acceptIds = [-1];
+            }
+        }
+        if (!empty($reject)) {
+            $rejectIds = $this->findEventIdsByTagNames($reject);
+        }
+        return array($acceptIds, $rejectIds);
+    }
+
+    /**
+     * @param array $tagIdsOrNames
+     * @return array|int|null
+     */
+    private function findEventIdsByTagNames(array $tagIdsOrNames)
+    {
+        $conditions = [];
+        foreach ($tagIdsOrNames as $tagIdOrName) {
+            if (is_numeric($tagIdOrName)) {
+                $conditions[] = array('Tag.id' => $tagIdOrName);
+            } else {
+                $conditions[] = array('LOWER(Tag.name)' => mb_strtolower($tagIdOrName));
+            }
+        }
+        return $this->find('column', array(
+            'recursive' => -1,
+            'contain' => 'Tag',
+            'conditions' => ['OR' => $conditions],
+            'fields' => ['EventTag.event_id'],
+        ));
+    }
+
     public function getSortedTagList($context = false)
     {
         $conditions = array();

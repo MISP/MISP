@@ -5807,7 +5807,7 @@ class Event extends AppModel
         } else {
             $filters = array();
             $args = $this->Attribute->dissectArgs($tagRules);
-            $tagArray = $this->EventTag->Tag->fetchEventTagIds($args[0], $args[1]);
+            $tagArray = $this->EventTag->fetchEventTagIds($args[0], $args[1]);
             if (!empty($tagArray[0])) {
                 $filters[] = ['OR' => ['Event.id' => $tagArray[0]]];
             } else {

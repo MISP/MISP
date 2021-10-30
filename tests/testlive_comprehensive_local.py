@@ -461,6 +461,69 @@ class TestComprehensive(unittest.TestCase):
         check_response(result)
         self.assertIn("message", result)
 
+    def test_restsearch_event_by_tags(self):
+        first = create_simple_event()
+        first.add_tag('test_search_tag')
+        first.add_tag('test_search_tag_third')
+        first.add_tag('test_search_tag_both')
+        first = self.admin_misp_connector.add_event(first)
+        check_response(first)
+
+        second = create_simple_event()
+        second.add_tag('test_search_tag_second')
+        second.add_tag('test_search_tag_both')
+        second = self.admin_misp_connector.add_event(second)
+        check_response(second)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags=["non_exists_tag"])
+        self.assertEqual(0, len(search_result))
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags=["test_search_tag"])
+        self.assertEqual(1, len(search_result))
+        self.assertEqual(first.id, search_result[0].id)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags="test_search_tag")
+        self.assertEqual(1, len(search_result))
+        self.assertEqual(first.id, search_result[0].id)
+
+        # Like style match
+        search_result = self.admin_misp_connector.search(metadata=True, tags=["test_search_tag%"])
+        self.assertEqual(2, len(search_result))
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags=["test_search_tag_second"])
+        self.assertEqual(1, len(search_result))
+        self.assertEqual(second.id, search_result[0].id)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags=["!test_search_tag"])
+        search_result_ids = [event.id for event in search_result]
+        self.assertNotIn(first.id, search_result_ids)
+        self.assertIn(second.id, search_result_ids)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags={"NOT": ["test_search_tag"]})
+        search_result_ids = [event.id for event in search_result]
+        self.assertNotIn(first.id, search_result_ids)
+        self.assertIn(second.id, search_result_ids)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags={"NOT": "test_search_tag"})
+        search_result_ids = [event.id for event in search_result]
+        self.assertNotIn(first.id, search_result_ids)
+        self.assertIn(second.id, search_result_ids)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags=["test_search_tag", "test_search_tag_second"])
+        self.assertEqual(2, len(search_result))
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags={"AND": ["test_search_tag", "test_search_tag_third"]})
+        self.assertEqual(1, len(search_result))
+        self.assertEqual(first.id, search_result[0].id)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags={"AND": ["test_search_tag", "test_search_tag_both"]})
+        search_result_ids = [event.id for event in search_result]
+        self.assertEqual(1, len(search_result_ids))
+        self.assertIn(first.id, search_result_ids)
+
+        check_response(self.admin_misp_connector.delete_event(first))
+        check_response(self.admin_misp_connector.delete_event(second))
+
 
 if __name__ == '__main__':
     unittest.main()

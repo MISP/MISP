@@ -214,44 +214,14 @@ class Tag extends AppModel
         return $this->find('all', array('conditions' => $conditions, 'recursive' => -1));
     }
 
-    // find all of the tag ids that belong to the accepted tag names and the rejected tag names
-    public function fetchTagIdsFromFilter($accept = array(), $reject = array())
+    /**
+     * @param array $accept
+     * @param array $reject
+     * @deprecated Use EventTag::fetchEventTagIds instead
+     */
+    public function fetchEventTagIds($accept, $reject)
     {
-        $results = array(0 => array(), 1 => array());
-        if (!empty($accept)) {
-            foreach ($accept as $tag) {
-                $temp = $this->lookupTagIdFromName($tag);
-                if (!in_array($temp, $results[0])) {
-                    $results[0][] = $temp;
-                }
-            }
-        }
-        if (!empty($reject)) {
-            foreach ($reject as $tag) {
-                $temp = $this->lookupTagIdFromName($tag);
-                if (!in_array($temp, $results[1])) {
-                    $results[1][] = $temp;
-                }
-            }
-        }
-        return $results;
-    }
-
-    // find all of the event Ids that belong to the accepted tags and the rejected tags
-    public function fetchEventTagIds($accept = array(), $reject = array())
-    {
-        $acceptIds = array();
-        $rejectIds = array();
-        if (!empty($accept)) {
-            $acceptIds = $this->findEventIdsByTagNames($accept);
-            if (empty($acceptIds)) {
-                $acceptIds[] = -1;
-            }
-        }
-        if (!empty($reject)) {
-            $rejectIds = $this->findEventIdsByTagNames($reject);
-        }
-        return array($acceptIds, $rejectIds);
+        $this->EventTag->fetchEventTagIds($accept, $reject);
     }
 
     // find all of the tag Ids that belong to the accepted tags and the rejected tags
@@ -284,58 +254,38 @@ class Tag extends AppModel
         return array($acceptIds, $rejectIds);
     }
 
-    // pass a list of tag names to receive a list of matched tag IDs
+    /**
+     * pass a list of tag names to receive a list of matched tag IDs
+     * @param string|array $array
+     * @return array|int|null
+     */
     public function findTagIdsByTagNames($array)
     {
-        $ids = array();
-        $tag_ids = array();
         if (!is_array($array)) {
             $array = array($array);
         }
-        foreach ($array as $k => $tag) {
+        $tagIds = [];
+        $tagNames = [];
+        foreach ($array as  $tag) {
             if (is_numeric($tag)) {
-                $tag_ids[] = $tag;
-                unset($array[$k]);
-            }
-        }
-        $array = array_values($array);
-        if (!empty($array)) {
-            foreach ($array as $a) {
-                $conditions['OR'][] = array('Tag.name like' => $a);
-            }
-            $params = array(
-                    'recursive' => 1,
-                    'conditions' => $conditions,
-                    'fields' => array('Tag.id', 'Tag.id')
-            );
-            $result = $this->find('list', $params);
-            $tag_ids = array_merge($result, $tag_ids);
-        }
-        return array_values($tag_ids);
-    }
-
-    private function findEventIdsByTagNames($array)
-    {
-        $ids = array();
-        foreach ($array as $a) {
-            if (is_numeric($a)) {
-                $conditions['OR'][] = array('id' => $a);
+                $tagIds[] = $tag;
             } else {
-                $conditions['OR'][] = array('LOWER(name) like' => strtolower($a));
+                $tagNames[] = $tag;
             }
         }
-        $params = array(
+        if (!empty($tagNames)) {
+            $conditions = [];
+            foreach ($tagNames as $tagName) {
+                $conditions[] = array('Tag.name LIKE' => $tagName);
+            }
+            $result = $this->find('column', array(
                 'recursive' => 1,
-                'contain' => 'EventTag',
-                'conditions' => $conditions
-        );
-        $result = $this->find('all', $params);
-        foreach ($result as $tag) {
-            foreach ($tag['EventTag'] as $eventTag) {
-                $ids[] = $eventTag['event_id'];
-            }
+                'conditions' => ['OR' => $conditions],
+                'fields' => array('Tag.id')
+            ));
+            $tagIds = array_merge($result, $tagIds);
         }
-        return $ids;
+        return $tagIds;
     }
 
     /**

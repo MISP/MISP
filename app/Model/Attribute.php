@@ -1229,6 +1229,7 @@ class Attribute extends AppModel
         if (empty($params['tags'])) {
             return $conditions;
         }
+        /** @var Tag $tag */
         $tag = ClassRegistry::init('Tag');
         $params['tags'] = $this->dissectArgs($params['tags']);
         foreach (array(0, 1, 2) as $tag_operator) {
@@ -1683,13 +1684,13 @@ class Attribute extends AppModel
     // array 1 will have all of the non negated terms and array 2 all the negated terms
     public function dissectArgs($args)
     {
+        $result = array(0 => array(), 1 => array(), 2 => array());
         if (empty($args)) {
-            return array(0 => array(), 1 => array(), 2 => array());
+            return $result;
         }
         if (!is_array($args)) {
             $args = explode('&&', $args);
         }
-        $result = array(0 => array(), 1 => array(), 2 => array());
         if (isset($args['OR']) || isset($args['NOT']) || isset($args['AND'])) {
             if (!empty($args['OR'])) {
                 $result[0] = $args['OR'];
@@ -1702,7 +1703,7 @@ class Attribute extends AppModel
             }
         } else {
             foreach ($args as $arg) {
-                if (substr($arg, 0, 1) == '!') {
+                if ($arg[0] === '!') {
                     $result[1][] = substr($arg, 1);
                 } else {
                     $result[0][] = $arg;
@@ -2622,51 +2623,6 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    private function __createTagSubQuery($tag_id, $blocked = false, $scope = 'Event', $limitAttributeHitsTo = 'event')
-    {
-        $conditionKey = $blocked ? array('NOT' => array('EventTag.tag_id' => $tag_id)) : array('EventTag.tag_id' => $tag_id);
-        $db = $this->getDataSource();
-        $subQuery = $db->buildStatement(
-            array(
-                'fields' => array($scope . 'Tag.' . $limitAttributeHitsTo . '_id'),
-                'table' => strtolower($scope) . '_tags',
-                'alias' => $scope . 'Tag',
-                'limit' => null,
-                'offset' => null,
-                'joins' => array(),
-                'conditions' => array(
-                    $scope . 'Tag.tag_id' => $tag_id
-                ),
-                'group' => array($scope . 'Tag.' . $limitAttributeHitsTo . '_id')
-            ),
-            $this
-        );
-        $subQuery = ucfirst($limitAttributeHitsTo) . '.id IN (' . $subQuery . ') ';
-        $conditions = array(
-            $db->expression($subQuery)->value
-        );
-        return $conditions;
-    }
-
-    public function setTagConditions($tags, $conditions, $limitAttributeHitsTo = 'event')
-    {
-        $args = $this->dissectArgs($tags);
-        $tagArray = $this->AttributeTag->Tag->fetchTagIdsFromFilter($args[0], $args[1]);
-        $temp = array();
-        if (!empty($tagArray[0])) {
-            $temp['OR'][] = $this->__createTagSubQuery($tagArray[0]);
-            $temp['OR'][] = $this->__createTagSubQuery($tagArray[0], false, 'Attribute', $limitAttributeHitsTo);
-        }
-        if (!empty($tagArray[1])) {
-            $temp['AND']['NOT'] = $this->__createTagSubQuery($tagArray[1], true);
-            if ($limitAttributeHitsTo == 'attribute') {
-                $temp['AND']['NOT'] = $this->__createTagSubQuery($tagArray[1], true, 'Attribute', $limitAttributeHitsTo);
-            }
-        }
-        $conditions['AND'][] = $temp;
-        return $conditions;
-    }
-
     public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp', $returnRaw = false)
     {
         if (is_array($timestamp)) {
@@ -2711,16 +2667,6 @@ class Attribute extends AppModel
         }
         if ($returnRaw) {
             return $timestamp;
-        }
-        return $conditions;
-    }
-
-    public function setToIDSConditions($to_ids, $conditions)
-    {
-        if ($to_ids === 'exclude') {
-            $conditions['AND'][] = array('Attribute.to_ids' => 0);
-        } else {
-            $conditions['AND'][] = array('Attribute.to_ids' => 1);
         }
         return $conditions;
     }
