@@ -214,29 +214,6 @@ class Tag extends AppModel
         return $this->find('all', array('conditions' => $conditions, 'recursive' => -1));
     }
 
-    // find all of the tag ids that belong to the accepted tag names and the rejected tag names
-    public function fetchTagIdsFromFilter($accept = array(), $reject = array())
-    {
-        $results = array(0 => array(), 1 => array());
-        if (!empty($accept)) {
-            foreach ($accept as $tag) {
-                $temp = $this->lookupTagIdFromName($tag);
-                if (!in_array($temp, $results[0])) {
-                    $results[0][] = $temp;
-                }
-            }
-        }
-        if (!empty($reject)) {
-            foreach ($reject as $tag) {
-                $temp = $this->lookupTagIdFromName($tag);
-                if (!in_array($temp, $results[1])) {
-                    $results[1][] = $temp;
-                }
-            }
-        }
-        return $results;
-    }
-
     /**
      * @param array $accept
      * @param array $reject

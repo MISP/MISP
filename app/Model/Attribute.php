@@ -2623,51 +2623,6 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    private function __createTagSubQuery($tag_id, $blocked = false, $scope = 'Event', $limitAttributeHitsTo = 'event')
-    {
-        $conditionKey = $blocked ? array('NOT' => array('EventTag.tag_id' => $tag_id)) : array('EventTag.tag_id' => $tag_id);
-        $db = $this->getDataSource();
-        $subQuery = $db->buildStatement(
-            array(
-                'fields' => array($scope . 'Tag.' . $limitAttributeHitsTo . '_id'),
-                'table' => strtolower($scope) . '_tags',
-                'alias' => $scope . 'Tag',
-                'limit' => null,
-                'offset' => null,
-                'joins' => array(),
-                'conditions' => array(
-                    $scope . 'Tag.tag_id' => $tag_id
-                ),
-                'group' => array($scope . 'Tag.' . $limitAttributeHitsTo . '_id')
-            ),
-            $this
-        );
-        $subQuery = ucfirst($limitAttributeHitsTo) . '.id IN (' . $subQuery . ') ';
-        $conditions = array(
-            $db->expression($subQuery)->value
-        );
-        return $conditions;
-    }
-
-    public function setTagConditions($tags, $conditions, $limitAttributeHitsTo = 'event')
-    {
-        $args = $this->dissectArgs($tags);
-        $tagArray = $this->AttributeTag->Tag->fetchTagIdsFromFilter($args[0], $args[1]);
-        $temp = array();
-        if (!empty($tagArray[0])) {
-            $temp['OR'][] = $this->__createTagSubQuery($tagArray[0]);
-            $temp['OR'][] = $this->__createTagSubQuery($tagArray[0], false, 'Attribute', $limitAttributeHitsTo);
-        }
-        if (!empty($tagArray[1])) {
-            $temp['AND']['NOT'] = $this->__createTagSubQuery($tagArray[1], true);
-            if ($limitAttributeHitsTo == 'attribute') {
-                $temp['AND']['NOT'] = $this->__createTagSubQuery($tagArray[1], true, 'Attribute', $limitAttributeHitsTo);
-            }
-        }
-        $conditions['AND'][] = $temp;
-        return $conditions;
-    }
-
     public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp', $returnRaw = false)
     {
         if (is_array($timestamp)) {
@@ -2712,16 +2667,6 @@ class Attribute extends AppModel
         }
         if ($returnRaw) {
             return $timestamp;
-        }
-        return $conditions;
-    }
-
-    public function setToIDSConditions($to_ids, $conditions)
-    {
-        if ($to_ids === 'exclude') {
-            $conditions['AND'][] = array('Attribute.to_ids' => 0);
-        } else {
-            $conditions['AND'][] = array('Attribute.to_ids' => 1);
         }
         return $conditions;
     }
