@@ -237,21 +237,14 @@ class Tag extends AppModel
         return $results;
     }
 
-    // find all of the event Ids that belong to the accepted tags and the rejected tags
-    public function fetchEventTagIds($accept = array(), $reject = array())
+    /**
+     * @param array $accept
+     * @param array $reject
+     * @deprecated Use EventTag::fetchEventTagIds instead
+     */
+    public function fetchEventTagIds($accept, $reject)
     {
-        $acceptIds = array();
-        $rejectIds = array();
-        if (!empty($accept)) {
-            $acceptIds = $this->findEventIdsByTagNames($accept);
-            if (empty($acceptIds)) {
-                $acceptIds[] = -1;
-            }
-        }
-        if (!empty($reject)) {
-            $rejectIds = $this->findEventIdsByTagNames($reject);
-        }
-        return array($acceptIds, $rejectIds);
+        $this->EventTag->fetchEventTagIds($accept, $reject);
     }
 
     // find all of the tag Ids that belong to the accepted tags and the rejected tags
@@ -314,29 +307,7 @@ class Tag extends AppModel
         return array_values($tag_ids);
     }
 
-    private function findEventIdsByTagNames($array)
-    {
-        $ids = array();
-        foreach ($array as $a) {
-            if (is_numeric($a)) {
-                $conditions['OR'][] = array('id' => $a);
-            } else {
-                $conditions['OR'][] = array('LOWER(name) like' => strtolower($a));
-            }
-        }
-        $params = array(
-                'recursive' => 1,
-                'contain' => 'EventTag',
-                'conditions' => $conditions
-        );
-        $result = $this->find('all', $params);
-        foreach ($result as $tag) {
-            foreach ($tag['EventTag'] as $eventTag) {
-                $ids[] = $eventTag['event_id'];
-            }
-        }
-        return $ids;
-    }
+
 
     /**
      * @param array $tag

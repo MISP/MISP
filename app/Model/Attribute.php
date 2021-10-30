@@ -1702,7 +1702,7 @@ class Attribute extends AppModel
             }
         } else {
             foreach ($args as $arg) {
-                if (substr($arg, 0, 1) == '!') {
+                if ($arg[0] === '!') {
                     $result[1][] = substr($arg, 1);
                 } else {
                     $result[0][] = $arg;
