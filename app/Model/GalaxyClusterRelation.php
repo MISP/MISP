@@ -362,23 +362,17 @@ class GalaxyClusterRelation extends AppModel
         $relationTagsToSave = [];
         foreach ($relations as $k => $relation) {
             $relations[$k]['referenced_galaxy_cluster_id'] = 0;
-            $lookupSavedIds[$relation['galaxy_cluster_id']] = true;
             if (!empty($relation['tags'])) {
+                $lookupSavedIds[$relation['galaxy_cluster_id']] = true;
                 foreach ($relation['tags'] as $tag) {
                     if (!isset($this->bulkTagNameToIdCache[$tag])) {
-                        $this->GalaxyClusterRelationTag->Tag->create();
-                        $this->GalaxyClusterRelationTag->Tag->save([
-                            'name' => $tag,
-                            'colour' => $this->GalaxyClusterRelationTag->Tag->random_color(),
-                            'exportable' => 1,
-                        ]);
-                        $this->bulkTagNameToIdCache[$tag] = $this->GalaxyClusterRelationTag->Tag->id;
+                        $this->bulkTagNameToIdCache[$tag] = $this->GalaxyClusterRelationTag->Tag->quickAdd($tag);
                     }
-                    $relationTagsToSave[$relation['galaxy_cluster_uuid']][$relation['referenced_galaxy_cluster_uuid']][] =  $this->bulkTagNameToIdCache[$tag];
+                    $relationTagsToSave[$relation['galaxy_cluster_uuid']][$relation['referenced_galaxy_cluster_uuid']][] = $this->bulkTagNameToIdCache[$tag];
                 }
             }
         }
-        $this->saveAll($relations);
+        $this->saveMany($relations);
         $savedRelations = $this->find('all', [
             'recursive' => -1,
             'conditions' => ['galaxy_cluster_id' => array_keys($lookupSavedIds)],
@@ -388,9 +382,9 @@ class GalaxyClusterRelation extends AppModel
         foreach ($savedRelations as $savedRelation) {
             $uuid1 = $savedRelation['GalaxyClusterRelation']['galaxy_cluster_uuid'];
             $uuid2 = $savedRelation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'];
-            if (!empty($relationTagsToSave[$uuid1][$uuid2])) {
-                foreach ($relationTagsToSave[$uuid1][$uuid2] as $tag) {
-                    $relation_tags[] = [$savedRelation['GalaxyClusterRelation']['id'], $tag];
+            if (isset($relationTagsToSave[$uuid1][$uuid2])) {
+                foreach ($relationTagsToSave[$uuid1][$uuid2] as $tagId) {
+                    $relation_tags[] = [$savedRelation['GalaxyClusterRelation']['id'], $tagId];
                 }
             }
         }

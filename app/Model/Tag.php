@@ -400,6 +400,13 @@ class Tag extends AppModel
         return $colour;
     }
 
+    /**
+     * @param string $name
+     * @param string|false $colour
+     * @param null $numerical_value
+     * @return int|false Created tag ID or false on error
+     * @throws Exception
+     */
     public function quickAdd($name, $colour = false, $numerical_value = null)
     {
         $this->create();
@@ -409,12 +416,16 @@ class Tag extends AppModel
         $data = array(
             'name' => $name,
             'colour' => $colour,
-            'exportable' => 1
+            'exportable' => 1,
         );
-        if (!is_null($numerical_value)) {
+        if ($numerical_value !== null) {
             $data['numerical_value'] = $numerical_value;
         }
-        return ($this->save($data));
+        if ($this->save(['Tag' => $data])) {
+            return $this->id;
+        } else {
+            return false;
+        }
     }
 
     public function quickEdit($tag, $name, $colour, $hide = false, $numerical_value = null)

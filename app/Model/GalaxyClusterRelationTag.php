@@ -1,6 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property Tag $Tag
+ */
 class GalaxyClusterRelationTag extends AppModel
 {
     public $useTable = 'galaxy_cluster_relation_tags';
