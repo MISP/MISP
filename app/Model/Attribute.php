@@ -491,9 +491,6 @@ class Attribute extends AppModel
                     )
                 );
                 $attributeForPublish['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attributeForPublish, $user, $attributeForPublish);
-                if (empty($attributeForPublish['Object']['id'])) {
-                    unset($attributeForPublish['Object']);
-                }
                 $action = $created ? 'add' : 'edit';
                 if (!empty($attribute['deleted'])) {
                     $action = 'soft-delete';
@@ -1917,15 +1914,18 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    /*
+    /**
      * Unlike the other fetchers, this one foregoes any ACL checks.
      * the objective is simple: Fetch the given attribute with all related objects needed for the ZMQ output,
      * standardising on this function for fetching the attribute to be passed to Attribute->save()
+     * @param int $id
+     * @returns array
      */
     public function fetchAttribute($id)
     {
         $attribute = $this->find('first', array(
             'recursive' => -1,
+            'order' => [],
             'conditions' => array('Attribute.id' => $id),
             'contain' => array(
                 'Event' => array(
@@ -1935,6 +1935,7 @@ class Attribute extends AppModel
                     'fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.uuid', 'Event.published', 'Event.analysis', 'Event.threat_level_id', 'Event.org_id', 'Event.orgc_id', 'Event.distribution', 'Event.sharing_group_id')
                 ),
                 'AttributeTag' => array(
+                    'fields' => ['AttributeTag.tag_id'],
                     'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable'))
                 ),
                 'Object'
@@ -1947,6 +1948,10 @@ class Attribute extends AppModel
                 }
             }
             unset($attribute['AttributeTag']);
+
+            if (empty($attribute['Object']['id'])) {
+                unset($attribute['Object']);
+            }
         }
         return $attribute;
     }
