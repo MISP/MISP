@@ -789,7 +789,7 @@ class TagsController extends AppController
         $successes = 0;
         $fails = array();
         $existingRelations = array();
-        foreach ($tags as $k => $tag) {
+        foreach ($tags as $tag) {
             if (is_numeric($tag)) {
                 $conditions = array('Tag.id' => $tag);
             } else {
@@ -840,25 +840,21 @@ class TagsController extends AppController
             $conditions = array(
                 strtolower($objectType) . '_id' => $object[$objectType]['id'],
                 'tag_id' => $existingTag['Tag']['id'],
-                'local' => ($local ? 1 : 0)
             );
-            $existingAssociation = $this->$objectType->$connectorObject->find('first', array(
-                'conditions' => $conditions
-            ));
-            if (!empty($existingAssociation)) {
+            $existingAssociation = $this->$objectType->$connectorObject->hasAny($conditions);
+            if ($existingAssociation) {
                 $message = __('%s already has the requested tag attached, no changes had to be made for tag %s.', $objectType, $existingTag['Tag']['name']);
                 $existingRelations[] = $existingTag['Tag']['name'];
                 $successes++;
                 continue;
             }
             $this->$objectType->$connectorObject->create();
-            $data = array(
-                $connectorObject => $conditions
-            );
-            if ($objectType == 'Attribute') {
-                $data[$connectorObject]['event_id'] = $object['Event']['id'];
+            $data = $conditions;
+            $data['local'] = $local ? 1 : 0;
+            if ($objectType === 'Attribute') {
+                $data['event_id'] = $object['Event']['id'];
             }
-            $result = $this->$objectType->$connectorObject->save($data);
+            $result = $this->$objectType->$connectorObject->save([$connectorObject => $data]);
             if ($result) {
                 if ($local) {
                     $message = 'Local tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
@@ -867,8 +863,7 @@ class TagsController extends AppController
                         'recursive' => -1,
                         'conditions' => array($objectType . '.id' => $object[$objectType]['id'])
                     ));
-                    $date = new DateTime();
-                    $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
+                    $tempObject[$objectType]['timestamp'] = time();
                     $this->$objectType->save($tempObject);
                     if ($objectType === 'Attribute') {
                         $this->$objectType->Event->unpublishEvent($object['Event']['id']);
