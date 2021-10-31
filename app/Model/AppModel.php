@@ -2537,20 +2537,15 @@ class AppModel extends Model
         return self::$loadedPubSubTool;
     }
 
-    public function getElasticSearchTool()
+    protected function getElasticSearchTool()
     {
         if (!$this->elasticSearchClient) {
-            $this->loadElasticSearchTool();
+            App::uses('ElasticSearchClient', 'Tools');
+            $client = new ElasticSearchClient();
+            $client->initTool();
+            $this->elasticSearchClient = $client;
         }
         return $this->elasticSearchClient;
-    }
-
-    public function loadElasticSearchTool()
-    {
-        App::uses('ElasticSearchClient', 'Tools');
-        $client = new ElasticSearchClient();
-        $client->initTool();
-        $this->elasticSearchClient = $client;
     }
 
     // generate a generic subquery - options needs to include conditions
