@@ -706,19 +706,19 @@ class TagsController extends AppController
         return $this->RestResponse->viewData($results, 'json');
     }
 
+    /**
+     * @param string $object_uuid Attribute or Event UUID
+     * @param string $type
+     * @param string $scope
+     * @return array
+     * @throws MethodNotAllowedException
+     */
     private function __findObjectByUuid($object_uuid, &$type, $scope = 'modify')
     {
         $this->loadModel('Event');
-        if (!$this->userRole['perm_tagger']) {
-            throw new MethodNotAllowedException(__('This functionality requires tagging permission.'));
-        }
-        $object = $this->Event->fetchEvent($this->Auth->user(), array(
-            'event_uuid' => $object_uuid,
-            'metadata' => 1
-        ));
-        $type = 'Event';
+        $object = $this->Event->fetchSimpleEvent($this->Auth->user(), $object_uuid);
         if (!empty($object)) {
-            $object = $object[0];
+            $type = 'Event';
             if (
                 $scope !== 'view' &&
                 !$this->_isSiteAdmin() &&
@@ -732,17 +732,12 @@ class TagsController extends AppController
             }
         } else {
             $type = 'Attribute';
-            $object = $this->Event->Attribute->fetchAttributes(
-                $this->Auth->user(),
-                array(
-                    'conditions' => array(
-                        'Attribute.uuid' => $object_uuid
-                    ),
-                    'flatten' => 1
-                )
-            );
+            $object = $this->Event->Attribute->fetchAttributeSimple($this->Auth->user(), [
+                'conditions' => array(
+                    'Attribute.uuid' => $object_uuid
+                ),
+            ]);
             if (!empty($object)) {
-                $object = $object[0];
                 if (
                     $scope !== 'view' &&
                     !$this->_isSiteAdmin() &&
@@ -789,7 +784,7 @@ class TagsController extends AppController
         $successes = 0;
         $fails = array();
         $existingRelations = array();
-        foreach ($tags as $k => $tag) {
+        foreach ($tags as $tag) {
             if (is_numeric($tag)) {
                 $conditions = array('Tag.id' => $tag);
             } else {
@@ -813,13 +808,12 @@ class TagsController extends AppController
                         $fails[] = __('Tag not found and insufficient privileges to create it.');
                         continue;
                     }
-                    $this->Tag->create();
-                    $result = $this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
-                    if (!$result) {
+                    $createdTagId = $this->Tag->quickAdd($tag);
+                    if (!$createdTagId) {
                         $fails[] = __('Unable to create tag. Reason: ' . json_encode($this->Tag->validationErrors));
                         continue;
                     }
-                    $existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $this->Tag->id)));
+                    $existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $createdTagId)));
                 } else {
                     $fails[] = __('Invalid Tag.');
                     continue;
@@ -840,25 +834,21 @@ class TagsController extends AppController
             $conditions = array(
                 strtolower($objectType) . '_id' => $object[$objectType]['id'],
                 'tag_id' => $existingTag['Tag']['id'],
-                'local' => ($local ? 1 : 0)
             );
-            $existingAssociation = $this->$objectType->$connectorObject->find('first', array(
-                'conditions' => $conditions
-            ));
-            if (!empty($existingAssociation)) {
+            $existingAssociation = $this->$objectType->$connectorObject->hasAny($conditions);
+            if ($existingAssociation) {
                 $message = __('%s already has the requested tag attached, no changes had to be made for tag %s.', $objectType, $existingTag['Tag']['name']);
                 $existingRelations[] = $existingTag['Tag']['name'];
                 $successes++;
                 continue;
             }
             $this->$objectType->$connectorObject->create();
-            $data = array(
-                $connectorObject => $conditions
-            );
-            if ($objectType == 'Attribute') {
-                $data[$connectorObject]['event_id'] = $object['Event']['id'];
+            $data = $conditions;
+            $data['local'] = $local ? 1 : 0;
+            if ($objectType === 'Attribute') {
+                $data['event_id'] = $object['Event']['id'];
             }
-            $result = $this->$objectType->$connectorObject->save($data);
+            $result = $this->$objectType->$connectorObject->save([$connectorObject => $data]);
             if ($result) {
                 if ($local) {
                     $message = 'Local tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
@@ -867,8 +857,7 @@ class TagsController extends AppController
                         'recursive' => -1,
                         'conditions' => array($objectType . '.id' => $object[$objectType]['id'])
                     ));
-                    $date = new DateTime();
-                    $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
+                    $tempObject[$objectType]['timestamp'] = time();
                     $this->$objectType->save($tempObject);
                     if ($objectType === 'Attribute') {
                         $this->$objectType->Event->unpublishEvent($object['Event']['id']);

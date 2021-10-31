@@ -469,15 +469,16 @@ class Attribute extends AppModel
             }
         }
         $result = true;
-        // if the 'data' field is set on the $this->data then save the data to the correct file
+        // if the 'data' field is set on the $attribute then save the data to the correct file
         if (isset($attribute['type']) && $this->typeIsAttachment($attribute['type'])) {
             if (isset($attribute['data_raw'])) {
                 $attribute['data'] = $attribute['data_raw'];
                 unset($attribute['data_raw']);
+                $result = $this->saveAttachment($attribute);
             } elseif (isset($attribute['data'])) {
                 $attribute['data'] = base64_decode($attribute['data']);
+                $result = $this->saveAttachment($attribute);
             }
-            $result = $this->saveAttachment($attribute);
         }
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable');
         $kafkaTopic = $this->kafkaTopic('attribute');
