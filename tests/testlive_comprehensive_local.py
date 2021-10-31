@@ -524,6 +524,21 @@ class TestComprehensive(unittest.TestCase):
         check_response(self.admin_misp_connector.delete_event(first))
         check_response(self.admin_misp_connector.delete_event(second))
 
+    def test_log_new_audit(self):
+        check_response(self.admin_misp_connector.set_server_setting('MISP.log_new_audit', 1, force=True))
+
+        event = create_simple_event()
+        event.add_tag('test_log_new_audit_tag')
+        event = check_response(self.admin_misp_connector.add_event(event))
+
+        check_response(self.admin_misp_connector.delete_event(event))
+
+        check_response(self.admin_misp_connector.set_server_setting('MISP.log_new_audit', 0, force=True))
+
+        audit_logs = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', 'admin/audit_logs/index'))
+        check_response(audit_logs)
+        self.assertGreater(len(audit_logs), 0)
+
 
 if __name__ == '__main__':
     unittest.main()
