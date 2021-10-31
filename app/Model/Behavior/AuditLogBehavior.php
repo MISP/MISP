@@ -187,14 +187,14 @@ class AuditLogBehavior extends ModelBehavior
             }
         }
 
-        $this->auditLog()->insert([
+        $this->auditLog()->insert(['AuditLog' => [
             'action' => $action,
             'model' => $modelName,
             'model_id' => $id,
             'model_title' => $modelTitle,
             'event_id' => $eventId,
             'change' => $changedFields,
-        ]);
+        ]]);
     }
 
     public function beforeDelete(Model $model, $cascade = true)
@@ -255,14 +255,14 @@ class AuditLogBehavior extends ModelBehavior
             $modelName = $modelName === 'AttributeTag' ? 'Attribute' : 'Event';
         }
 
-        $this->auditLog()->insert([
+        $this->auditLog()->insert(['AuditLog' => [
             'action' => $action,
             'model' => $modelName,
             'model_id' => $id,
             'model_title' => $modelTitle,
             'event_id' => $eventId,
             'change' => $this->changedFields($model),
-        ]);
+        ]]);
     }
 
     /**
@@ -276,6 +276,7 @@ class AuditLogBehavior extends ModelBehavior
             'conditions' => ['Tag.id' => $tagId],
             'recursive' => -1,
             'fields' => ['Tag.name', 'Tag.is_galaxy'],
+            'callbacks' => false, // disable Tag::afterFind callback
         ]);
         if (empty($tag)) {
             return null;
@@ -312,6 +313,7 @@ class AuditLogBehavior extends ModelBehavior
     {
         $dbFields = $model->schema();
         $changedFields = [];
+        $hasPrimaryField = isset($model->data[$model->alias][$model->primaryKey]);
         foreach ($model->data[$model->alias] as $key => $value) {
             if (isset($this->skipFields[$key])) {
                 continue;
@@ -323,7 +325,7 @@ class AuditLogBehavior extends ModelBehavior
                 continue;
             }
 
-            if (isset($model->data[$model->alias][$model->primaryKey]) && isset($this->old[$model->alias][$key])) {
+            if ($hasPrimaryField && isset($this->old[$model->alias][$key])) {
                 $old = $this->old[$model->alias][$key];
             } else {
                 $old = null;
