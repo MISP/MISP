@@ -706,19 +706,19 @@ class TagsController extends AppController
         return $this->RestResponse->viewData($results, 'json');
     }
 
+    /**
+     * @param string $object_uuid Attribute or Event UUID
+     * @param string $type
+     * @param string $scope
+     * @return array
+     * @throws MethodNotAllowedException
+     */
     private function __findObjectByUuid($object_uuid, &$type, $scope = 'modify')
     {
         $this->loadModel('Event');
-        if (!$this->userRole['perm_tagger']) {
-            throw new MethodNotAllowedException(__('This functionality requires tagging permission.'));
-        }
-        $object = $this->Event->fetchEvent($this->Auth->user(), array(
-            'event_uuid' => $object_uuid,
-            'metadata' => 1
-        ));
-        $type = 'Event';
+        $object = $this->Event->fetchSimpleEvent($this->Auth->user(), $object_uuid);
         if (!empty($object)) {
-            $object = $object[0];
+            $type = 'Event';
             if (
                 $scope !== 'view' &&
                 !$this->_isSiteAdmin() &&
@@ -732,17 +732,12 @@ class TagsController extends AppController
             }
         } else {
             $type = 'Attribute';
-            $object = $this->Event->Attribute->fetchAttributes(
-                $this->Auth->user(),
-                array(
-                    'conditions' => array(
-                        'Attribute.uuid' => $object_uuid
-                    ),
-                    'flatten' => 1
-                )
-            );
+            $object = $this->Event->Attribute->fetchAttributeSimple($this->Auth->user(), [
+                'conditions' => array(
+                    'Attribute.uuid' => $object_uuid
+                ),
+            ]);
             if (!empty($object)) {
-                $object = $object[0];
                 if (
                     $scope !== 'view' &&
                     !$this->_isSiteAdmin() &&
@@ -813,13 +808,12 @@ class TagsController extends AppController
                         $fails[] = __('Tag not found and insufficient privileges to create it.');
                         continue;
                     }
-                    $this->Tag->create();
-                    $result = $this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
-                    if (!$result) {
+                    $createdTagId = $this->Tag->quickAdd($tag);
+                    if (!$createdTagId) {
                         $fails[] = __('Unable to create tag. Reason: ' . json_encode($this->Tag->validationErrors));
                         continue;
                     }
-                    $existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $this->Tag->id)));
+                    $existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $createdTagId)));
                 } else {
                     $fails[] = __('Invalid Tag.');
                     continue;
