@@ -553,6 +553,18 @@ class TestComprehensive(unittest.TestCase):
 
         check_response(self.admin_misp_connector.delete_event(event))
 
+    def test_add_duplicate_tags(self):
+        event = create_simple_event()
+        event = check_response(self.admin_misp_connector.add_event(event))
+
+        # Just first tag should be added
+        check_response(self.admin_misp_connector.tag(event.uuid, 'generic_tag_test', local=True))
+        check_response(self.admin_misp_connector.tag(event.uuid, 'generic_tag_test', local=False))
+
+        fetched_event = check_response(self.admin_misp_connector.get_event(event))
+        self.assertEqual(1, len(fetched_event.tags), fetched_event.tags)
+        self.assertTrue(fetched_event.tags[0].local, fetched_event.tags[0])
+
 
 if __name__ == '__main__':
     unittest.main()
