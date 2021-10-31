@@ -2,6 +2,7 @@
 import os
 import unittest
 import uuid
+from io import BytesIO
 import urllib3  # type: ignore
 
 import logging
@@ -538,6 +539,19 @@ class TestComprehensive(unittest.TestCase):
         audit_logs = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', 'admin/audit_logs/index'))
         check_response(audit_logs)
         self.assertGreater(len(audit_logs), 0)
+
+    def test_add_tag_to_attachment(self):
+        event = create_simple_event()
+        with open(__file__, 'rb') as f:
+            event.add_attribute('attachment', value='testfile.py', data=BytesIO(f.read()))
+        event = check_response(self.admin_misp_connector.add_event(event))
+
+        attribute_uuids = [attribute.uuid for attribute in event.attributes if attribute.type == 'attachment']
+        self.assertEqual(1, len(attribute_uuids))
+
+        check_response(self.admin_misp_connector.tag(attribute_uuids[0], 'generic_tag_test'))
+
+        check_response(self.admin_misp_connector.delete_event(event))
 
 
 if __name__ == '__main__':
