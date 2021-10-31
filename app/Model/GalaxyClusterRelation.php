@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property GalaxyClusterRelationTag $GalaxyClusterRelationTag
+ * @property GalaxyCluster $TargetCluster
  */
 class GalaxyClusterRelation extends AppModel
 {
@@ -62,12 +63,6 @@ class GalaxyClusterRelation extends AppModel
     public $hasMany = array(
         'GalaxyClusterRelationTag' => array('dependent' => true),
     );
-
-    /**
-     * @see bulkSaveRelations
-     * @var array
-     */
-    private $bulkTagNameToIdCache;
 
     public function afterFind($results, $primary = false)
     {
@@ -352,27 +347,41 @@ class GalaxyClusterRelation extends AppModel
 
     public function bulkSaveRelations(array $relations)
     {
-        if (!isset($this->bulkTagNameToIdCache)) {
-            // Prefill with existing tags
-            $this->bulkTagNameToIdCache = $this->GalaxyClusterRelationTag->Tag->find('list', [
-                'fields' => ['Tag.name', 'Tag.id'],
-            ]);
-        }
+        // Fetch existing tags Name => ID mapping
+        $tagNameToId = $this->GalaxyClusterRelationTag->Tag->find('list', [
+            'fields' => ['Tag.name', 'Tag.id'],
+            'callbacks' => false,
+        ]);
+
+        // Fetch all cluster UUID => ID mapping
+        $galaxyClusterUuidToId =  $this->TargetCluster->find('list', [
+            'fields' => ['uuid', 'id'],
+            'callbacks' => false,
+        ]);
+
         $lookupSavedIds = [];
         $relationTagsToSave = [];
-        foreach ($relations as $k => $relation) {
-            $relations[$k]['referenced_galaxy_cluster_id'] = 0;
+        foreach ($relations as &$relation) {
+            if (isset($galaxyClusterUuidToId[$relation['referenced_galaxy_cluster_uuid']])) {
+                $relation['referenced_galaxy_cluster_id'] = $galaxyClusterUuidToId[$relation['referenced_galaxy_cluster_uuid']];
+            }  else {
+                $relation['referenced_galaxy_cluster_id'] = 0; // referenced cluster doesn't exists
+            }
             if (!empty($relation['tags'])) {
                 $lookupSavedIds[$relation['galaxy_cluster_id']] = true;
                 foreach ($relation['tags'] as $tag) {
-                    if (!isset($this->bulkTagNameToIdCache[$tag])) {
-                        $this->bulkTagNameToIdCache[$tag] = $this->GalaxyClusterRelationTag->Tag->quickAdd($tag);
+                    if (!isset($tagNameToId[$tag])) {
+                        $tagNameToId[$tag] = $this->GalaxyClusterRelationTag->Tag->quickAdd($tag);
                     }
-                    $relationTagsToSave[$relation['galaxy_cluster_uuid']][$relation['referenced_galaxy_cluster_uuid']][] = $this->bulkTagNameToIdCache[$tag];
+                    $relationTagsToSave[$relation['galaxy_cluster_uuid']][$relation['referenced_galaxy_cluster_uuid']][] = $tagNameToId[$tag];
                 }
             }
         }
-        $this->saveMany($relations);
+        unset($galaxyClusterUuidToId, $tagNameToId);
+
+        $this->saveMany($relations, ['validate' => false]); // Some clusters uses invalid UUID :/
+
+        // Insert tags
         $savedRelations = $this->find('all', [
             'recursive' => -1,
             'conditions' => ['galaxy_cluster_id' => array_keys($lookupSavedIds)],
