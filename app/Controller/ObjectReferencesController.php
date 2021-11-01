@@ -203,10 +203,10 @@ class ObjectReferencesController extends AppController
             throw new NotFoundException(__('Invalid object reference.'));
         }
         // Check if user can view object that contains this reference
-        $object = $this->ObjectReference->Object->find($this->Auth->user(), [
-            'conditions' => $objectReference['ObjectReference']['object_id'],
+        $object = $this->ObjectReference->Object->fetchObjectSimple($this->Auth->user(), [
+            'conditions' => ['Object.id' => $objectReference['ObjectReference']['object_id']],
         ]);
-        if (!$object) {
+        if (empty($object)) {
             throw new NotFoundException(__('Invalid object reference.'));
         }
         return $this->RestResponse->viewData($objectReference, 'json');
