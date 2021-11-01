@@ -117,14 +117,7 @@ class AuditLogBehavior extends ModelBehavior
             return;
         }
 
-        if ($model->id) {
-            $id = $model->id;
-        } else if ($model->insertId) {
-            $id = $model->insertId;
-        } else {
-            $id = null;
-        }
-        
+        $id = $model->id ?: null;
         $data = $model->data[$model->alias];
 
         if ($created) {
