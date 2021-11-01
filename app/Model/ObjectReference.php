@@ -99,18 +99,24 @@ class ObjectReference extends AppModel
         return true;
     }
 
-    public function updateTimestamps($id, $objectReference = false)
+    /**
+     * @param int|array $objectReference
+     * @return false|void
+     * @throws Exception
+     */
+    public function updateTimestamps($objectReference)
     {
-        if (!$objectReference) {
+        if (is_numeric($objectReference)) {
             $objectReference = $this->find('first', array(
                 'recursive' => -1,
-                'conditions' => array('ObjectReference.id' => $id),
+                'conditions' => array('ObjectReference.id' => $objectReference),
                 'fields' => array('event_id', 'object_id')
             ));
+            if (empty($objectReference)) {
+                return false;
+            }
         }
-        if (empty($objectReference)) {
-            return false;
-        }
+
         if (!isset($objectReference['ObjectReference'])) {
             $objectReference = array('ObjectReference' => $objectReference);
         }
@@ -186,7 +192,7 @@ class ObjectReference extends AppModel
         if (!$result) {
             return $this->validationErrors;
         } else {
-            $this->updateTimestamps($this->id, $objectReference);
+            $this->updateTimestamps($objectReference);
         }
         return true;
     }
