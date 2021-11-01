@@ -86,6 +86,13 @@ class AuditLogBehavior extends ModelBehavior
                     $fieldToFetch[] = $field;
                 }
             }
+
+            // For objects, that are assigned to event, we need to know event ID. So if data to save doesn't contain
+            // that ID, we need to fetch it from database.
+            if (isset($model->schema()['event_id']) && empty($model->data[$model->alias]['event_id']) && !in_array('event_id', $fieldToFetch, true)) {
+                $fieldToFetch[] = 'event_id';
+            }
+
             if (empty($fieldToFetch))  {
                 $this->old = null;
                 return true;
