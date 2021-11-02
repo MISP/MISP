@@ -84,7 +84,8 @@ class CorrelationExclusion extends AppModel
                     'cleanExcludedCorrelations',
                     $jobId
                 ],
-                true
+                true,
+                $jobId
             );
         } else {
             $this->clean();

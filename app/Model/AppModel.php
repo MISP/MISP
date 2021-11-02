@@ -2097,7 +2097,8 @@ class AppModel extends Model
                             'runUpdates',
                             $jobId
                         ],
-                        true
+                        true,
+                        $jobId
                     );
 
                     return true;
@@ -2429,7 +2430,8 @@ class AppModel extends Model
                     'jobGenerateCorrelation',
                     $jobId
                 ],
-                true
+                true,
+                $jobId
             );
 
         }

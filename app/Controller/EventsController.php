@@ -5790,7 +5790,7 @@ class EventsController extends AppController
                         $id
                     ],
                     true,
-                    $job
+                    $jobId
                 );
 
                 $message = __('Recover event job queued. Job ID: %s', $jobId);

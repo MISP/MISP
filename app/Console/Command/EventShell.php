@@ -142,28 +142,35 @@ class EventShell extends AppShell
         $fieldList = array('published', 'id', 'info');
         $this->Event->save($event, array('fieldList' => $fieldList));
         // only allow form submit CSRF protection.
-        $this->Job->saveField('status', 1);
-        $this->Job->saveField('message', 'Job done.');
+        $this->Job->save([
+            'status' => Job::STATUS_COMPLETED,
+            'message' => 'Job done.'
+        ]);
     }
 
     public function correlateValue()
     {
         $this->ConfigLoad->execute();
         $value = $this->args[0];
-        $this->Job->create();
-        $data = array(
-            'worker' => 'default',
-            'job_type' => 'correlateValue',
-            'job_input' => $value,
-            'status' => 0,
-            'retries' => 0,
-            'org' => 0,
-            'message' => 'Job created.',
-        );
-        $this->Job->save($data);
+
+        if (!empty($this->args[1])) {
+            $this->Job->id = intval($this->args[1]);
+        } else {
+            $this->Job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'correlateValue',
+                $value,
+                'Job created.'
+            );
+        }
+
         $this->Correlation->correlateValue($value, $this->Job->id);
-        $this->Job->saveField('status', 1);
-        $this->Job->saveField('message', 'Job done.');
+        $this->Job->save([
+            'status' => Job::STATUS_COMPLETED,
+            'message' => 'Job done.',
+            'progress' => 100
+        ]);
     }
 
     public function cache()

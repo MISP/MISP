@@ -62,7 +62,8 @@ class Correlation extends AppModel
                     $value,
                     $jobId
                 ],
-                true
+                true,
+                $jobId
             );
 
             return true;
@@ -606,7 +607,8 @@ class Correlation extends AppModel
                     'generateTopCorrelations',
                     $jobId
                 ],
-                true
+                true,
+                $jobId
             );
 
             return $jobId;

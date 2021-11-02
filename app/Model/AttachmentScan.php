@@ -312,7 +312,8 @@ class AttachmentScan extends AppModel
                     $attribute['id'],
                     $jobId
                 ],
-                true
+                true,
+                $jobId
             );
         }
     }

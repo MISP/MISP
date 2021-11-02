@@ -762,7 +762,9 @@ class ServersController extends AppController
                         $id,
                         $technique,
                         $jobId
-                    ]
+                    ],
+                    false,
+                    $jobId
                 );
 
                 $success = __('Pull queued for background execution. Job ID: %s', $jobId);
@@ -847,7 +849,9 @@ class ServersController extends AppController
                     $id,
                     $technique,
                     $jobId
-                ]
+                ],
+                false,
+                $jobId
             );
 
             $message = sprintf(__('Push queued for background execution. Job ID: %s'), $jobId);
@@ -2205,7 +2209,9 @@ misp.direct_call(relative_path, body)
                     $this->Auth->user('id'),
                     $id,
                     $jobId
-                ]
+                ],
+                false,
+                $jobId
             );
 
             $message = 'Server caching job initiated.';
@@ -2587,7 +2593,8 @@ misp.direct_call(relative_path, body)
                     $jobId,
                     $this->Auth->user('id'),
                 ],
-                true
+                true,
+                $jobId
             );
 
             $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
