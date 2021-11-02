@@ -745,13 +745,26 @@ class ServersController extends AppController
                 $this->set('pulledSightings', $result[3]);
             } else {
                 $this->loadModel('Job');
-                $jobId = $this->Job->createJob($this->Auth->user(), Job::WORKER_DEFAULT, 'pull', 'Server: ' . $id, __('Pulling.'));
-                $process_id = CakeResque::enqueue(
+                $jobId = $this->Job->createJob(
+                    $this->Auth->user(),
                     Job::WORKER_DEFAULT,
-                    'ServerShell',
-                    array('pull', $this->Auth->user('id'), $id, $technique, $jobId)
+                    'pull',
+                    'Server: ' . $id,
+                    __('Pulling.')
                 );
-                $this->Job->saveField('process_id', $process_id);
+
+                $this->Server->getBackgroundJobsTool()->enqueue(
+                    BackgroundJobsTool::DEFAULT_QUEUE,
+                    BackgroundJobsTool::CMD_SERVER,
+                    [
+                        'pull',
+                        $this->Auth->user('id'),
+                        $id,
+                        $technique,
+                        $jobId
+                    ]
+                );
+
                 $success = __('Pull queued for background execution. Job ID: %s', $jobId);
             }
         }
@@ -817,25 +830,28 @@ class ServersController extends AppController
             }
         } else {
             $this->loadModel('Job');
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'push',
-                    'job_input' => 'Server: ' . $id,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'message' => __('Pushing.'),
+            $jobId = $this->Job->createJob(
+                $this->Auth->user(),
+                Job::WORKER_DEFAULT,
+                'push',
+                'Server: ' . $id,
+                __('Pushing.')
             );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'ServerShell',
-                    array('push', $this->Auth->user('id'), $id, $jobId)
+
+            $this->Server->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                [
+                    'push',
+                    $this->Auth->user('id'),
+                    $id,
+                    $technique,
+                    $jobId
+                ]
             );
-            $this->Job->saveField('process_id', $process_id);
+
             $message = sprintf(__('Push queued for background execution. Job ID: %s'), $jobId);
+            
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->type());
             }
@@ -1180,10 +1196,16 @@ class ServersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
+
+        if (!Configure::read('BackgroundJobs.use_resque')) {
+            throw new MethodNotAllowedException('Starting workers via API is not implemented. Use supervisor CLI.');
+        }
+
         $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
         if (!in_array($type, $validTypes)) {
             throw new MethodNotAllowedException('Invalid worker type.');
         }
+
         $prepend = '';
         if ($type != 'scheduler') {
             $workerIssueCount = 0;
@@ -2165,26 +2187,27 @@ misp.direct_call(relative_path, body)
     public function cache($id = 'all')
     {
         if (Configure::read('MISP.background_jobs')) {
+
             $this->loadModel('Job');
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'cache_servers',
-                    'job_input' => intval($id) ? $id : 'all',
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'message' => __('Starting server caching.'),
+            $jobId = $this->Job->createJob(
+                $this->Auth->user(),
+                Job::WORKER_DEFAULT,
+                'cache_servers',
+                intval($id) ? $id : 'all',
+                __('Starting server caching.')
             );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'ServerShell',
-                    array('cacheServer', $this->Auth->user('id'), $id, $jobId),
-                    true
+
+            $this->Server->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                [
+                    'cacheServer',
+                    $this->Auth->user('id'),
+                    $id,
+                    $jobId
+                ]
             );
-            $this->Job->saveField('process_id', $process_id);
+
             $message = 'Server caching job initiated.';
         } else {
             $result = $this->Server->cacheServerInitiator($this->Auth->user(), $id);
@@ -2546,26 +2569,27 @@ misp.direct_call(relative_path, body)
             $this->Flash->success('Done. For more details check the audit logs.');
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         } else {
-            $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                'worker' => 'default',
-                'job_type' => 'upgrade_24',
-                'job_input' => 'Old database',
-                'status' => 0,
-                'retries' => 0,
-                'org_id' => 0,
-                'message' => 'Job created.',
+
+            $this->loadModel('Job');
+            $jobId = $this->Job->createJob(
+                $this->Auth->user(),
+                Job::WORKER_DEFAULT,
+                'upgrade_24',
+                'Old database',
+                __('Job created.')
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                'default',
-                'AdminShell',
-                array('jobUpgrade24', $jobId, $this->Auth->user('id')),
+
+            $this->Server->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobUpgrade24',
+                    $jobId,
+                    $this->Auth->user('id'),
+                ],
                 true
             );
-            $job->saveField('process_id', $process_id);
+
             $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         }
