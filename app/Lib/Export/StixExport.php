@@ -289,7 +289,7 @@ class StixExport
         $galaxy_type = $galaxy['type'];
         if (!empty($this->__event_galaxies[$galaxy['type']])) {
             foreach($galaxy['GalaxyCluster'] as $cluster) {
-                if (!in_array($cluster['uuid'], $__cluster_uuids)) {
+                if (!in_array($cluster['uuid'], $this->__cluster_uuids)) {
                     $this->__event_galaxies[$galaxy_type]['GalaxyCluster'][] = $this->__arrange_cluster(
                         $cluster,
                         $timestamp
