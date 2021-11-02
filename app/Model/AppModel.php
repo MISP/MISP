@@ -2082,13 +2082,15 @@ class AppModel extends Model
                         return $this->runUpdates($verbose, false);
                     }
 
-                    $jobId = $this->Job->createJob(
-                        'SYSTEM',
-                        Job::WORKER_PRIO,
-                        'run_updates',
-                        'command: ' . implode(',', $updates),
-                        'Updating.'
-                    );
+                    /** @var Job $job */
+                    $job = ClassRegistry::init('Job');
+                    $jobId = $job->createJob(
+                            'SYSTEM',
+                            Job::WORKER_PRIO,
+                            'run_updates',
+                            'command: ' . implode(',', $updates),
+                            'Updating.'
+                        );
 
                     $this->getBackgroundJobsTool()->enqueue(
                         BackgroundJobsTool::PRIO_QUEUE,
@@ -2414,8 +2416,9 @@ class AppModel extends Model
     private function __generateCorrelations()
     {
         if (Configure::read('MISP.background_jobs')) {
-
-            $jobId = $this->Job->createJob(
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
                 'SYSTEM',
                 Job::WORKER_DEFAULT,
                 'generate correlation',
