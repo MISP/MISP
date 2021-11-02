@@ -2081,26 +2081,25 @@ class AppModel extends Model
                     } else { // update worker not running, doing the update inline
                         return $this->runUpdates($verbose, false);
                     }
-                    $this->Job->create();
-                    $data = array(
-                        'worker' => $workerType,
-                        'job_type' => 'run_updates',
-                        'job_input' => 'command: ' . implode(',', $updates),
-                        'status' => 0,
-                        'retries' => 0,
-                        'org_id' => 0,
-                        'org' => '',
-                        'message' => 'Updating.',
+
+                    $jobId = $this->Job->createJob(
+                        'SYSTEM',
+                        Job::WORKER_PRIO,
+                        'run_updates',
+                        'command: ' . implode(',', $updates),
+                        'Updating.'
                     );
-                    $this->Job->save($data);
-                    $jobId = $this->Job->id;
-                    $processId = CakeResque::enqueue(
-                            'prio',
-                            'AdminShell',
-                            array('runUpdates', $jobId),
-                            true
+
+                    $this->getBackgroundJobsTool()->enqueue(
+                        BackgroundJobsTool::PRIO_QUEUE,
+                        BackgroundJobsTool::CMD_ADMIN,
+                        [
+                            'runUpdates',
+                            $jobId
+                        ],
+                        true
                     );
-                    $this->Job->saveField('process_id', $processId);
+
                     return true;
                 }
 
@@ -2414,26 +2413,25 @@ class AppModel extends Model
     private function __generateCorrelations()
     {
         if (Configure::read('MISP.background_jobs')) {
-            $Job = ClassRegistry::init('Job');
-            $Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'generate correlation',
-                    'job_input' => 'All attributes',
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => 'ADMIN',
-                    'message' => 'Job created.',
+
+            $jobId = $this->Job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate correlation',
+                'All attributes',
+                'Job created.'
             );
-            $Job->save($data);
-            $jobId = $Job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    array('jobGenerateCorrelation', $jobId),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateCorrelation',
+                    $jobId
+                ],
+                true
             );
-            $Job->saveField('process_id', $process_id);
+
         }
         return true;
     }
