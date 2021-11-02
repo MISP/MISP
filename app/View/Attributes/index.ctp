@@ -19,7 +19,12 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'name' => __('Event'),
                 'sort' => 'Attribute.event_id',
-                'data_path' => 'Attribute.event_id'
+                'data_path' => 'Attribute.event_id',
+                'element' => 'links',
+                'url' => $baseurl . '/events',
+                'url_params_data_paths' => [
+                    'Attribute.event_id'
+                ]
             ],
             [
                 'name' => __('Org'),
