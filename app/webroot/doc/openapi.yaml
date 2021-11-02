@@ -6599,7 +6599,7 @@ components:
                     disable_correlation:
                       $ref: "#/components/schemas/DisableCorrelationFlag"
                     distribution:
-                      $ref: "#/components/schemas/DisableCorrelationFlag"
+                      $ref: "#/components/schemas/DistributionLevelId"
                     comment:
                       $ref: "#/components/schemas/AttributeComment"
                     object_relation:
