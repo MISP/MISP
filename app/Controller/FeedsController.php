@@ -488,26 +488,30 @@ class FeedsController extends AppController
             }
         }
         if (Configure::read('MISP.background_jobs')) {
-            $this->loadModel('Job');
-            $this->Job->create();
-            $data = array(
-                'worker' => 'default',
-                'job_type' => 'fetch_feeds',
-                'job_input' => 'Feed: ' . $feedId,
-                'status' => 0,
-                'retries' => 0,
-                'org' => $this->Auth->user('Organisation')['name'],
-                'message' => __('Starting fetch from Feed.'),
+
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $this->Auth->user(),
+                Job::WORKER_DEFAULT,
+                'fetch_feeds',
+                'Feed: ' . $feedId,
+                __('Starting fetch from Feed.')
             );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
-            $process_id = CakeResque::enqueue(
-                'default',
-                'ServerShell',
-                array('fetchFeed', $this->Auth->user('id'), $feedId, $jobId),
-                true
+
+            $this->Feed->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                [
+                    'fetchFeed',
+                    $this->Auth->user('id'),
+                    $feedId,
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $this->Job->saveField('process_id', $process_id);
+
             $message = __('Pull queued for background execution.');
         } else {
             $result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
@@ -554,26 +558,30 @@ class FeedsController extends AppController
                 continue;
             }
             if (Configure::read('MISP.background_jobs')) {
-                $this->loadModel('Job');
-                $this->Job->create();
-                $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'fetch_feed',
-                    'job_input' => 'Feed: ' . $feedId,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'message' => __('Starting fetch from Feed.'),
+
+                /** @var Job $job */
+                $job = ClassRegistry::init('Job');
+                $jobId = $job->createJob(
+                    $this->Auth->user(),
+                    Job::WORKER_DEFAULT,
+                    'fetch_feed',
+                    'Feed: ' . $feedId,
+                    __('Starting fetch from Feed.')
                 );
-                $this->Job->save($data);
-                $jobId = $this->Job->id;
-                $process_id = CakeResque::enqueue(
-                    'default',
-                    'ServerShell',
-                    array('fetchFeed', $this->Auth->user('id'), $feedId, $jobId),
-                    true
+
+                $this->Feed->getBackgroundJobsTool()->enqueue(
+                    BackgroundJobsTool::DEFAULT_QUEUE,
+                    BackgroundJobsTool::CMD_SERVER,
+                    [
+                        'fetchFeed',
+                        $this->Auth->user('id'),
+                        $feedId,
+                        $jobId
+                    ],
+                    true,
+                    $jobId
                 );
-                $this->Job->saveField('process_id', $process_id);
+
                 $message = 'Pull queued for background execution.';
             } else {
                 $result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
@@ -923,26 +931,30 @@ class FeedsController extends AppController
     public function cacheFeeds($scope = 'freetext')
     {
         if (Configure::read('MISP.background_jobs')) {
-            $this->loadModel('Job');
-            $this->Job->create();
-            $data = array(
-                'worker' => 'default',
-                'job_type' => 'cache_feeds',
-                'job_input' => $scope,
-                'status' => 0,
-                'retries' => 0,
-                'org' => $this->Auth->user('Organisation')['name'],
-                'message' => __('Starting feed caching.'),
+
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $this->Auth->user(),
+                Job::WORKER_DEFAULT,
+                'cache_feeds',
+                $scope,
+                __('Starting feed caching.')
             );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
-            $process_id = CakeResque::enqueue(
-                'default',
-                'ServerShell',
-                array('cacheFeed', $this->Auth->user('id'), $scope, $jobId),
-                true
+
+            $this->Feed->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                [
+                    'cacheFeed',
+                    $this->Auth->user('id'),
+                    $scope,
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $this->Job->saveField('process_id', $process_id);
+
             $message = 'Feed caching job initiated.';
         } else {
             $result = $this->Feed->cacheFeedInitiator($this->Auth->user(), false, $scope);
