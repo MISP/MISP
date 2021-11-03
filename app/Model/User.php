@@ -1067,27 +1067,29 @@ class User extends AppModel
     public function resetAllSyncAuthKeysRouter($user, $jobId = false)
     {
         if (Configure::read('MISP.background_jobs')) {
+
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                'worker' => 'prio',
-                'job_type' => __('reset_all_sync_api_keys'),
-                'job_input' => __('Reseting all API keys'),
-                'status' => 0,
-                'retries' => 0,
-                'org_id' => $user['org_id'],
-                'org' => $user['Organisation']['name'],
-                'message' => 'Issuing new API keys to all sync users.',
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_PRIO,
+                'reset_all_sync_api_keys',
+                __('Reseting all API keys'),
+                'Issuing new API keys to all sync users.'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'prio',
-                    'AdminShell',
-                    array('resetSyncAuthkeys', $user['id'], $jobId),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::PRIO_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'resetSyncAuthkeys',
+                    $user['id'],
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
+
             return true;
         } else {
             return $this->resetAllSyncAuthKeys($user);
