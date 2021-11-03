@@ -190,8 +190,6 @@ class BackgroundJobsTool
         int $jobId = null
     ): string {
 
-        CakeLog::notice('[DEPRECATION] CakeResque background jobs engine will be deprecated in future MISP versions, please migrate to the light-weight background jobs processor following this guide: [link].');
-
         $process_id = CakeResque::enqueue(
             $queue,
             $class,
