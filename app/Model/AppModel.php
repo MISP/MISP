@@ -87,7 +87,7 @@ class AppModel extends Model
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
-        75 => false,
+        75 => false, 76 => false
     );
 
     public $advanced_updates_description = array(
@@ -1596,6 +1596,8 @@ class AppModel extends Model
                 $this->__dropIndex('object_references', 'relationship_type');
                 $this->__dropIndex('object_references', 'referenced_uuid');
                 break;
+            case 76:
+                $sqlArray = "ALTER TABLE `jobs` MODIFY COLUMN `process_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
