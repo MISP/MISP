@@ -806,26 +806,28 @@ class ShadowAttribute extends AppModel
                 ));
             }
         } else {
+
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'generate proposal correlation',
-                    'job_input' => 'All attributes',
-                    'retries' => 0,
-                    'status' => 1,
-                    'org' => 'SYSTEM',
-                    'message' => 'Correlating Proposals.',
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate proposal correlation',
+                'All attributes',
+                'Correlating Proposals.'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    array('jobGenerateShadowAttributeCorrelation', $jobId),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateShadowAttributeCorrelation',
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
+
             $this->Log->create();
             $this->Log->save(array(
                     'org' => 'SYSTEM',
