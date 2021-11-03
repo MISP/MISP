@@ -129,7 +129,7 @@ class IOCImportComponent extends Component
 
     public function readXML($data, $id, $dist, $filename)
     {
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $this->filename = $filename;
         $this->fails = array();
         $this->distribution = $dist;

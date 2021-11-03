@@ -1993,7 +1993,7 @@ class Server extends AppModel
     public function correlationAfterHook($setting, $value)
     {
         if (!Configure::read('MISP.background_jobs')) {
-            $this->Attribute = ClassRegistry::init('Attribute');
+            $this->Attribute = ClassRegistry::init('MispAttribute');
             if ($value) {
                 $k = $this->Attribute->purgeCorrelations();
             } else {

@@ -22,7 +22,7 @@ class UsageDataWidget
         $eventsCount = $this->Event->find('count', array('recursive' => -1));
         $eventsCountMonth = $this->Event->find('count', array('conditions' => array('Event.timestamp >' => $thisMonth), 'recursive' => -1));
 
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $attributesCount = $this->Attribute->find('count', array('conditions' => array('Attribute.deleted' => 0), 'recursive' => -1));
         $attributesCountMonth = $this->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $thisMonth, 'Attribute.deleted' => 0), 'recursive' => -1));
         $attributesPerEvent = round($attributesCount / $eventsCount);

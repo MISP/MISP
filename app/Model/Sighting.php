@@ -41,12 +41,14 @@ class Sighting extends AppModel
     );
 
     public $belongsTo = array(
-            'Attribute',
-            'Event',
-            'Organisation' => array(
-                    'className' => 'Organisation',
-                    'foreignKey' => 'org_id'
-            ),
+        'Attribute' => [
+            'className' => 'MispAttribute',
+        ],
+        'Event',
+        'Organisation' => array(
+            'className' => 'Organisation',
+            'foreignKey' => 'org_id'
+        ),
     );
 
     const TYPE = array(

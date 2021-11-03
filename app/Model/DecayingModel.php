@@ -470,7 +470,7 @@ class DecayingModel extends AppModel
     // Returns score overtime, sightings, base_score computation and other useful information
     public function getScoreOvertime($user, $model_id, $attribute_id, $model_overrides)
     {
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $attribute = $this->Attribute->fetchAttributes($user, array(
             'conditions' => array('Attribute.id' => $attribute_id),
             'contain' => array('AttributeTag' => array('Tag')),
@@ -641,7 +641,7 @@ class DecayingModel extends AppModel
     public function getScore($attribute, $model, $user=false)
     {
         if (is_numeric($attribute) && $user !== false) {
-            $this->Attribute = ClassRegistry::init('Attribute');
+            $this->Attribute = ClassRegistry::init('MispAttribute');
             $attribute = $this->Attribute->fetchAttributes($user, array(
                 'conditions' => array('Attribute.id' => $attribute),
                 'contain' => array('AttributeTag' => array('Tag'))

@@ -103,7 +103,7 @@ class SharingGraphWidget
         $this->Log = ClassRegistry::init('Log');
         $this->Org = ClassRegistry::init('Organisation');
         $this->Event = ClassRegistry::init('Event');
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $this->Object = ClassRegistry::init('Object');
         $this->ObjectReference = ClassRegistry::init('ObjectReference');
         $orgs = $this->Org->find('all', array( 'conditions' => array('Organisation.local' => 1)));

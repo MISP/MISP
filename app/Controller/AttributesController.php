@@ -5,10 +5,12 @@ App::uses('File', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 
 /**
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  */
 class AttributesController extends AppController
 {
+    public $uses = ['MispAttribute'];
+
     public $components = array('Security', 'RequestHandler');
 
     public $paginate = array(
@@ -39,6 +41,9 @@ class AttributesController extends AppController
             $this->Security->disabledFields = array('values');
         }
         $this->Security->validatePost = true;
+
+        // Rename MispAttribute to Attribute
+        $this->Attribute = $this->MispAttribute;
 
         // convert uuid to id if present in the url and overwrite id field
         if (isset($this->request->params->query['uuid'])) {
@@ -782,7 +787,7 @@ class AttributesController extends AppController
                 }
             }
             if ($existingAttribute['Attribute']['object_id']) {
-                $result = $this->Attribute->save($this->request->data, array('fieldList' => Attribute::EDITABLE_FIELDS));
+                $result = $this->Attribute->save($this->request->data, array('fieldList' => MispAttribute::EDITABLE_FIELDS));
                 if ($result) {
                     $this->Attribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $attribute['Event']['id'], $capture=true);
                 }

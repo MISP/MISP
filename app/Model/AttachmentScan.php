@@ -202,7 +202,7 @@ class AttachmentScan extends AppModel
 
         $fields = ['id', 'uuid', 'type', 'value', 'event_id'];
         if ($type === 'all') {
-            $attributes = ClassRegistry::init('Attribute')->find('all', array(
+            $attributes = ClassRegistry::init('MispAttribute')->find('all', array(
                 'recursive' => -1,
                 'conditions' => ['type' => 'attachment'],
                 'fields' => $fields,
@@ -214,7 +214,7 @@ class AttachmentScan extends AppModel
             ));
             $attributes = array_merge($attributes, $shadowAttributes);
         } else if ($type === self::TYPE_ATTRIBUTE) {
-            $attributes = ClassRegistry::init('Attribute')->find('all', array(
+            $attributes = ClassRegistry::init('MispAttribute')->find('all', array(
                 'recursive' => -1,
                 'conditions' => ['type' => 'attachment', 'id' => $attributeId],
                 'fields' => $fields,

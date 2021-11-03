@@ -9,7 +9,7 @@ App::uses('SendEmailTemplate', 'Tools');
 
 /**
  * @property User $User
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  * @property MispObject $Object
  * @property EventReport $EventReport
  * @property ShadowAttribute $ShadowAttribute
@@ -214,7 +214,7 @@ class Event extends AppModel
 
     public $hasMany = array(
         'Attribute' => array(
-            'className' => 'Attribute',
+            'className' => 'MispAttribute',
             'foreignKey' => 'event_id',
             'dependent' => true,    // cascade deletes
             'conditions' => '',

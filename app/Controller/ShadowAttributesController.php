@@ -39,8 +39,7 @@ class ShadowAttributesController extends AppController
 
     private function __accept($id)
     {
-        $this->loadModel('Attribute');
-        $this->Attribute->Behaviors->detach('SysLogLogable.SysLogLogable');
+        $this->ShadowAttribute->Attribute->Behaviors->detach('SysLogLogable.SysLogLogable');
         $shadow = $this->ShadowAttribute->find(
             'first',
             array(
@@ -63,8 +62,8 @@ class ShadowAttributesController extends AppController
         // If the old_id is set to anything but 0 then we're dealing with a proposed edit to an existing attribute
         if ($shadow['old_id'] != 0) {
             // Find the live attribute by the shadow attribute's uuid, so we can begin editing it
-            $this->Attribute->contain = 'Event';
-            $activeAttribute = $this->Attribute->findByUuid($shadow['uuid']);
+            $this->ShadowAttribute->Attribute->contain = 'Event';
+            $activeAttribute = $this->ShadowAttribute->Attribute->findByUuid($shadow['uuid']);
 
             // Send those away that shouldn't be able to edit this
             if (!$this->__canModifyEvent($activeAttribute)) {
@@ -77,7 +76,7 @@ class ShadowAttributesController extends AppController
             }
 
             if (isset($shadow['proposal_to_delete']) && $shadow['proposal_to_delete']) {
-                $this->Attribute->delete($activeAttribute['Attribute']['id']);
+                $this->ShadowAttribute->Attribute->delete($activeAttribute['Attribute']['id']);
             } else {
                 // Update the live attribute with the shadow data
                 $fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids', 'first_seen', 'last_seen');
@@ -86,7 +85,7 @@ class ShadowAttributesController extends AppController
                 }
                 $date = new DateTime();
                 $activeAttribute['Attribute']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->save($activeAttribute['Attribute']);
+                $this->ShadowAttribute->Attribute->save($activeAttribute['Attribute']);
             }
             $this->ShadowAttribute->setDeleted($id);
             $this->loadModel('Event');
@@ -132,8 +131,8 @@ class ShadowAttributesController extends AppController
 
             // set the distribution equal to that of the event
             $attribute['distribution'] = 5;
-            $this->Attribute->create();
-            $this->Attribute->save($attribute);
+            $this->ShadowAttribute->Attribute->create();
+            $this->ShadowAttribute->Attribute->save($attribute);
             $this->ShadowAttribute->setDeleted($toDeleteId);
 
             if ($this->Auth->user('org_id') == $event['Event']['orgc_id']) {

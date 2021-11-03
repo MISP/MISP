@@ -7,7 +7,7 @@ App::uses('FileAccessTool', 'Tools');
 /**
  * @property Event $Event
  * @property SharingGroup $SharingGroup
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  * @property ObjectReference $ObjectReference
  * @property ObjectTemplate $ObjectTemplate
  */
@@ -46,7 +46,7 @@ class MispObject extends AppModel
 
     public $hasMany = array(
         'Attribute' => array(
-            'className' => 'Attribute',
+            'className' => 'MispAttribute',
             'dependent' => true,
         ),
         'ObjectReference' => array(
@@ -885,7 +885,7 @@ class MispObject extends AppModel
                                     $newAttribute['event_id'] = $object['Object']['event_id'];
                                     $newAttribute['object_id'] = $object['Object']['id'];
                                     $newAttribute['timestamp'] = $date->getTimestamp();
-                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => Attribute::EDITABLE_FIELDS));
+                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => MispAttribute::EDITABLE_FIELDS));
                                     if ($result) {
                                         $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
                                     }
@@ -927,7 +927,7 @@ class MispObject extends AppModel
                 }
                 foreach ($object['Attribute'] as $origKey => $originalAttribute) {
                     $originalAttribute['deleted'] = 1;
-                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => Attribute::EDITABLE_FIELDS));
+                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => MispAttribute::EDITABLE_FIELDS));
                 }
             }
         } else { // we only add the new attribute

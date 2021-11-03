@@ -20,11 +20,12 @@ App::uses('AttributeValidationTool', 'Tools');
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
-class Attribute extends AppModel
+class MispAttribute extends AppModel
 {
     public $combinedKeys = array('event_id', 'category', 'type');
 
     public $name = 'Attribute';             // TODO general
+    public $alias = 'Attribute';
 
     public $actsAs = array(
         'AuditLog',
@@ -1006,7 +1007,7 @@ class Attribute extends AppModel
                 'conditions' => [
                     'OR' => $or,
                     'NOT' => [
-                        'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
+                        'Attribute.type' => self::NON_CORRELATING_TYPES,
                     ],
                     'Attribute.disable_correlation' => 0,
                 ],
@@ -1602,7 +1603,7 @@ class Attribute extends AppModel
                 'Attribute.deleted' => 0,
                 'Attribute.disable_correlation' => 0,
                 'NOT' => array(
-                    'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
+                    'Attribute.type' => self::NON_CORRELATING_TYPES,
                 ),
             );
             if ($attributeId) {
@@ -2031,7 +2032,7 @@ class Attribute extends AppModel
                 'Event' => array(
                     'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
                 ),
-                'AttributeTag', // tags are fetched separately, @see Attribute::__attachTagsToAttributes
+                'AttributeTag', // tags are fetched separately, @see MispAttribute::__attachTagsToAttributes
                 'Object' => array(
                     'fields' => array('id', 'distribution', 'sharing_group_id')
                 )
