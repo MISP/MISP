@@ -39,6 +39,12 @@ class AdminShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('removeOrphanedCorrelations', [
+            'help' => __('Remove orphaned correlations.'),
+        ]);
+        $parser->addSubcommand('optimiseTables', [
+            'help' => __('Optimise database tables.'),
+        ]);
         return $parser;
     }
 
@@ -754,6 +760,33 @@ class AdminShell extends AppShell
         $this->Job->saveField('progress', 100);
         $this->Job->saveField('message', 'Job done.');
         $this->Job->saveField('status', 4);
+    }
+
+    public function removeOrphanedCorrelations()
+    {
+        $count = $this->Server->removeOrphanedCorrelations();
+        $this->out(__('%s orphaned correlation removed', $count));
+    }
+
+    public function optimiseTables()
+    {
+        $dataSource = $this->Server->getDataSource();
+        $tables = $dataSource->listSources();
+
+        /** @var ProgressShellHelper $progress */
+        $progress = $this->helper('progress');
+        $progress->init([
+            'total' => count($tables),
+            'width' => 50,
+        ]);
+
+        foreach ($tables as $table) {
+            $dataSource->query('OPTIMISE TABLE ' . $dataSource->name($table));
+            $progress->increment();
+            $progress->draw();
+        }
+
+        $this->out('Optimised.');
     }
 
     public function updatesDone()

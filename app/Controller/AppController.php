@@ -906,22 +906,29 @@ class AppController extends Controller
         return $user;
     }
 
-    // generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
-    protected function _harvestParameters($options, &$exception, $data = array())
+    /**
+     * generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
+     * @param array $options
+     * @param $exception
+     * @param array $data
+     * @return array|false|mixed
+     */
+    protected function _harvestParameters($options, &$exception = null, $data = array())
     {
-        if (!empty($options['request']->is('post'))) {
-            if (empty($options['request']->data)) {
+        $request = $options['request'] ?? $this->request;
+        if ($request->is('post')) {
+            if (empty($request->data)) {
                 $exception = $this->RestResponse->throwException(
                     400,
                     __('Either specify the search terms in the url, or POST a json with the filter parameters.'),
-                    '/' . $this->request->params['controller'] . '/' . $this->request->action
+                    '/' . $request->params['controller'] . '/' . $request->action
                 );
                 return false;
             } else {
-                if (isset($options['request']->data['request'])) {
-                    $data = array_merge($data, $options['request']->data['request']);
+                if (isset($request->data['request'])) {
+                    $data = array_merge($data, $request->data['request']);
                 } else {
-                    $data = array_merge($data, $options['request']->data);
+                    $data = array_merge($data, $request->data);
                 }
             }
         }

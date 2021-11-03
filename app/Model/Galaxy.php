@@ -157,6 +157,10 @@ class Galaxy extends AppModel
         $relations = [];
         $elements = [];
         $this->GalaxyCluster->bulkEntry = true;
+
+        // Start transaction
+        $this->getDataSource()->begin();
+
         foreach ($cluster_package['values'] as $cluster) {
             if (empty($cluster['version'])) {
                 $cluster['version'] = 1;
@@ -182,7 +186,12 @@ class Galaxy extends AppModel
             $cluster_to_save['published'] = false;
             $cluster_to_save['org_id'] = 0;
             $cluster_to_save['orgc_id'] = 0;
-            $result = $this->GalaxyCluster->save($cluster_to_save, false);
+            // We are already in transaction
+            $result = $this->GalaxyCluster->save($cluster_to_save, ['atomic' => false, 'validate' => false]);
+            if (!$result) {
+                $this->log("Could not save galaxy cluster with UUID {$cluster_to_save['uuid']}.");
+                continue;
+            }
             $galaxyClusterId = $this->GalaxyCluster->id;
             if (isset($cluster['meta'])) {
                 foreach ($cluster['meta'] as $key => $value) {
@@ -206,7 +215,7 @@ class Galaxy extends AppModel
                             $elements[] = array(
                                 $galaxyClusterId,
                                 $key,
-                                strval($v)
+                                (string)$v
                             );
                         }
                     }
@@ -221,11 +230,15 @@ class Galaxy extends AppModel
                         'referenced_galaxy_cluster_type' => $relation['type'],
                         'default' => true,
                         'distribution' => 3,
-                        'tags' => !empty($relation['tags']) ? $relation['tags'] : []
+                        'tags' => $relation['tags'] ?? []
                     ];
                 }
             }
         }
+
+        // Commit transaction
+        $this->getDataSource()->commit();
+
         return [$elements, $relations];
     }
 
@@ -235,6 +248,7 @@ class Galaxy extends AppModel
         $dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters');
         $files = $dir->find('.*\.json');
         $force = (bool)$force;
+        $allRelations = [];
         foreach ($files as $file) {
             $file = new File($dir->pwd() . DS . $file);
             $cluster_package = $this->jsonDecode($file->read());
@@ -253,10 +267,13 @@ class Galaxy extends AppModel
                 $fields = array('galaxy_cluster_id', 'key', 'value');
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
-            if (!empty($relations)) {
-                $this->GalaxyCluster->GalaxyClusterRelation->bulkSaveRelations($relations);
-            }
+            $allRelations = array_merge($allRelations, $relations);
         }
+        // Save relation as last part when all clusters are created
+        if (!empty($allRelations)) {
+            $this->GalaxyCluster->GalaxyClusterRelation->bulkSaveRelations($allRelations);
+        }
+        // Probably unnecessary anymore
         $this->GalaxyCluster->generateMissingRelations();
         return true;
     }

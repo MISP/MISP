@@ -2,6 +2,7 @@
 import os
 import unittest
 import uuid
+from io import BytesIO
 import urllib3  # type: ignore
 
 import logging
@@ -19,18 +20,19 @@ urllib3.disable_warnings()
 
 
 def create_simple_event():
-    mispevent = MISPEvent()
-    mispevent.info = 'This is a super simple test'
-    mispevent.distribution = Distribution.your_organisation_only
-    mispevent.threat_level_id = ThreatLevel.low
-    mispevent.analysis = Analysis.completed
-    mispevent.add_attribute('text', str(uuid.uuid4()))
-    return mispevent
+    event = MISPEvent()
+    event.info = 'This is a super simple test'
+    event.distribution = Distribution.your_organisation_only
+    event.threat_level_id = ThreatLevel.low
+    event.analysis = Analysis.completed
+    event.add_attribute('text', str(uuid.uuid4()))
+    return event
 
 
 def check_response(response):
     if isinstance(response, dict) and "errors" in response:
         raise Exception(response["errors"])
+    return response
 
 
 class TestComprehensive(unittest.TestCase):
@@ -396,6 +398,172 @@ class TestComprehensive(unittest.TestCase):
         self.assertEqual(event_without_local_tags["Event"]["Attribute"][0]["Tag"][0]["local"], 0, event_without_local_tags)
 
         check_response(self.admin_misp_connector.delete_event(event))
+
+    def test_publish_alert_filter(self):
+        check_response(self.admin_misp_connector.set_server_setting('MISP.background_jobs', 0, force=True))
+
+        first = create_simple_event()
+        first.add_tag('test_publish_filter')
+        first.threat_level_id = ThreatLevel.medium
+
+        second = create_simple_event()
+        second.add_tag('test_publish_filter')
+        second.threat_level_id = ThreatLevel.high
+
+        third = create_simple_event()
+        third.add_tag('test_publish_filter')
+        third.threat_level_id = ThreatLevel.low
+
+        four = create_simple_event()
+        four.threat_level_id = ThreatLevel.high
+
+        try:
+            # Enable autoalert on admin
+            self.admin_misp_connector._current_user.autoalert = True
+            check_response(self.admin_misp_connector.update_user(self.admin_misp_connector._current_user))
+
+            # Set publish_alert_filter tag to `test_publish_filter`
+            setting_value = {'AND': {'Tag.name': 'test_publish_filter', 'ThreatLevel.name': ['High', 'Medium']}}
+            check_response(self.admin_misp_connector.set_user_setting('publish_alert_filter', setting_value))
+
+            # Add  events
+            first = check_response(self.admin_misp_connector.add_event(first))
+            second = check_response(self.admin_misp_connector.add_event(second))
+            third = check_response(self.admin_misp_connector.add_event(third))
+            four = check_response(self.admin_misp_connector.add_event(four))
+
+            # Publish events
+            for event in (first, second, third, four):
+                check_response(self.admin_misp_connector.publish(event, alert=True))
+
+            # Email notification should be send just to first event
+            mail_logs = self.admin_misp_connector.search_logs(model='User', action='email')
+            log_titles = [log.title for log in mail_logs]
+
+            self.assertIn('Email  to admin@admin.test sent, titled "[ORGNAME MISP] Event ' + str(first.id) + ' - Medium - TLP:AMBER".', log_titles)
+            self.assertIn('Email  to admin@admin.test sent, titled "[ORGNAME MISP] Event ' + str(second.id) + ' - High - TLP:AMBER".', log_titles)
+            self.assertNotIn('Email  to admin@admin.test sent, titled "[ORGNAME MISP] Event ' + str(third.id) + ' - Low - TLP:AMBER".', log_titles)
+            self.assertNotIn('Email  to admin@admin.test sent, titled "[ORGNAME MISP] Event ' + str(four.id) + ' - High - TLP:AMBER".', log_titles)
+
+        finally:
+            # Disable autoalert
+            self.admin_misp_connector._current_user.autoalert = False
+            check_response(self.admin_misp_connector.update_user(self.admin_misp_connector._current_user))
+            # Delete filter
+            self.admin_misp_connector.delete_user_setting('publish_alert_filter')
+            # Reenable background jobs
+            check_response(self.admin_misp_connector.set_server_setting('MISP.background_jobs', 1, force=True))
+            # Delete events
+            for event in (first, second, third, four):
+                check_response(self.admin_misp_connector.delete_event(event))
+
+    def test_remove_orphaned_correlations(self):
+        result = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', 'servers/removeOrphanedCorrelations'))
+        check_response(result)
+        self.assertIn("message", result)
+
+    def test_restsearch_event_by_tags(self):
+        first = create_simple_event()
+        first.add_tag('test_search_tag')
+        first.add_tag('test_search_tag_third')
+        first.add_tag('test_search_tag_both')
+        first = self.admin_misp_connector.add_event(first)
+        check_response(first)
+
+        second = create_simple_event()
+        second.add_tag('test_search_tag_second')
+        second.add_tag('test_search_tag_both')
+        second = self.admin_misp_connector.add_event(second)
+        check_response(second)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags=["non_exists_tag"])
+        self.assertEqual(0, len(search_result))
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags=["test_search_tag"])
+        self.assertEqual(1, len(search_result))
+        self.assertEqual(first.id, search_result[0].id)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags="test_search_tag")
+        self.assertEqual(1, len(search_result))
+        self.assertEqual(first.id, search_result[0].id)
+
+        # Like style match
+        search_result = self.admin_misp_connector.search(metadata=True, tags=["test_search_tag%"])
+        self.assertEqual(2, len(search_result))
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags=["test_search_tag_second"])
+        self.assertEqual(1, len(search_result))
+        self.assertEqual(second.id, search_result[0].id)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags=["!test_search_tag"])
+        search_result_ids = [event.id for event in search_result]
+        self.assertNotIn(first.id, search_result_ids)
+        self.assertIn(second.id, search_result_ids)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags={"NOT": ["test_search_tag"]})
+        search_result_ids = [event.id for event in search_result]
+        self.assertNotIn(first.id, search_result_ids)
+        self.assertIn(second.id, search_result_ids)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags={"NOT": "test_search_tag"})
+        search_result_ids = [event.id for event in search_result]
+        self.assertNotIn(first.id, search_result_ids)
+        self.assertIn(second.id, search_result_ids)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags=["test_search_tag", "test_search_tag_second"])
+        self.assertEqual(2, len(search_result))
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags={"AND": ["test_search_tag", "test_search_tag_third"]})
+        self.assertEqual(1, len(search_result))
+        self.assertEqual(first.id, search_result[0].id)
+
+        search_result = self.admin_misp_connector.search(metadata=True, tags={"AND": ["test_search_tag", "test_search_tag_both"]})
+        search_result_ids = [event.id for event in search_result]
+        self.assertEqual(1, len(search_result_ids))
+        self.assertIn(first.id, search_result_ids)
+
+        check_response(self.admin_misp_connector.delete_event(first))
+        check_response(self.admin_misp_connector.delete_event(second))
+
+    def test_log_new_audit(self):
+        check_response(self.admin_misp_connector.set_server_setting('MISP.log_new_audit', 1, force=True))
+
+        event = create_simple_event()
+        event.add_tag('test_log_new_audit_tag')
+        event = check_response(self.admin_misp_connector.add_event(event))
+
+        check_response(self.admin_misp_connector.delete_event(event))
+
+        check_response(self.admin_misp_connector.set_server_setting('MISP.log_new_audit', 0, force=True))
+
+        audit_logs = self.admin_misp_connector._check_json_response(self.admin_misp_connector._prepare_request('GET', 'admin/audit_logs/index'))
+        check_response(audit_logs)
+        self.assertGreater(len(audit_logs), 0)
+
+    def test_add_tag_to_attachment(self):
+        event = create_simple_event()
+        with open(__file__, 'rb') as f:
+            event.add_attribute('attachment', value='testfile.py', data=BytesIO(f.read()))
+        event = check_response(self.admin_misp_connector.add_event(event))
+
+        attribute_uuids = [attribute.uuid for attribute in event.attributes if attribute.type == 'attachment']
+        self.assertEqual(1, len(attribute_uuids))
+
+        check_response(self.admin_misp_connector.tag(attribute_uuids[0], 'generic_tag_test'))
+
+        check_response(self.admin_misp_connector.delete_event(event))
+
+    def test_add_duplicate_tags(self):
+        event = create_simple_event()
+        event = check_response(self.admin_misp_connector.add_event(event))
+
+        # Just first tag should be added
+        check_response(self.admin_misp_connector.tag(event.uuid, 'generic_tag_test', local=True))
+        check_response(self.admin_misp_connector.tag(event.uuid, 'generic_tag_test', local=False))
+
+        fetched_event = check_response(self.admin_misp_connector.get_event(event))
+        self.assertEqual(1, len(fetched_event.tags), fetched_event.tags)
+        self.assertTrue(fetched_event.tags[0].local, fetched_event.tags[0])
 
 
 if __name__ == '__main__':

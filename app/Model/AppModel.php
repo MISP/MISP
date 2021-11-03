@@ -2543,20 +2543,15 @@ class AppModel extends Model
         return self::$loadedPubSubTool;
     }
 
-    public function getElasticSearchTool()
+    protected function getElasticSearchTool()
     {
         if (!$this->elasticSearchClient) {
-            $this->loadElasticSearchTool();
+            App::uses('ElasticSearchClient', 'Tools');
+            $client = new ElasticSearchClient();
+            $client->initTool();
+            $this->elasticSearchClient = $client;
         }
         return $this->elasticSearchClient;
-    }
-
-    public function loadElasticSearchTool()
-    {
-        App::uses('ElasticSearchClient', 'Tools');
-        $client = new ElasticSearchClient();
-        $client->initTool();
-        $this->elasticSearchClient = $client;
     }
 
     /**
@@ -2581,9 +2576,8 @@ class AppModel extends Model
     }
 
     // generate a generic subquery - options needs to include conditions
-    public function subQueryGenerator($model, $options, $lookupKey, $negation = false)
+    protected function subQueryGenerator(AppModel $model, array $options, $lookupKey, $negation = false)
     {
-        $db = $model->getDataSource();
         $defaults = array(
             'fields' => array('*'),
             'table' => $model->table,
@@ -2596,17 +2590,15 @@ class AppModel extends Model
             'recursive' => -1
         );
         $params = array();
-        foreach (array_keys($defaults) as $key) {
+        foreach ($defaults as $key => $defaultValue) {
             if (isset($options[$key])) {
                 $params[$key] = $options[$key];
             } else {
-                $params[$key] = $defaults[$key];
+                $params[$key] = $defaultValue;
             }
         }
-        $subQuery = $db->buildStatement(
-            $params,
-            $model
-        );
+        $db = $model->getDataSource();
+        $subQuery = $db->buildStatement($params, $model);
         if ($negation) {
             $subQuery = $lookupKey . ' NOT IN (' . $subQuery . ') ';
         } else {
@@ -3153,23 +3145,6 @@ class AppModel extends Model
         return $decoded;
     }
 
-    /*
-     *  Temporary solution for utf8 columns until we migrate to utf8mb4
-     *  via https://stackoverflow.com/questions/16496554/can-php-detect-4-byte-encoded-utf8-chars
-     */
-    public function handle4ByteUnicode($input)
-    {
-        return preg_replace(
-            '%(?:
-            \xF0[\x90-\xBF][\x80-\xBF]{2}
-            | [\xF1-\xF3][\x80-\xBF]{3}
-            | \xF4[\x80-\x8F][\x80-\xBF]{2}
-            )%xs',
-            '?',
-            $input
-        );
-    }
-
     /**
      * Faster version of default `hasAny` method
      * @param array|null $conditions
@@ -3184,6 +3159,18 @@ class AppModel extends Model
             'callbacks' => false,
             'order' => [], // disable order
         ));
+    }
+
+    /**
+     * @param int $value Timestamp in microseconds
+     * @return string
+     */
+    protected function microTimestampToIso($value)
+    {
+        $sec = (int)($value / 1000000);
+        $micro = $value % 1000000;
+        $micro = str_pad($micro, 6, "0", STR_PAD_LEFT);
+        return DateTime::createFromFormat('U.u', "$sec.$micro")->format('Y-m-d\TH:i:s.uP');
     }
 
     /**
@@ -3238,5 +3225,21 @@ class AppModel extends Model
             return Configure::read("Plugin.Kafka_{$name}_notifications_topic") ?: null;
         }
         return null;
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    protected function pubToZmq($name)
+    {
+        static $zmqEnabled;
+        if ($zmqEnabled === null) {
+            $zmqEnabled = (bool)Configure::read('Plugin.ZeroMQ_enable');
+        }
+        if ($zmqEnabled) {
+            return Configure::read("Plugin.ZeroMQ_{$name}_notifications_enable");
+        }
+        return false;
     }
 }

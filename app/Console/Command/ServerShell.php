@@ -227,25 +227,13 @@ class ServerShell extends AppShell
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];
         } else {
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'fetch_feeds',
-                    'job_input' => 'Feed: ' . $feedId,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Starting fetch from Feed.',
-            );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
+            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'fetch_feeds', 'Feed: ' . $feedId, 'Starting fetch from Feed.');
         }
-        if ($feedId == 'all') {
-            $feedIds = $this->Feed->find('list', array(
-                'fields' => array('Feed.id', 'Feed.id'),
+        if ($feedId === 'all') {
+            $feedIds = $this->Feed->find('column', array(
+                'fields' => array('Feed.id'),
                 'conditions' => array('Feed.enabled' => 1)
             ));
-            $feedIds = array_values($feedIds);
             $successes = 0;
             $fails = 0;
             foreach ($feedIds as $k => $feedId) {
@@ -261,21 +249,21 @@ class ServerShell extends AppShell
             $this->Job->saveStatus($jobId, true, $message);
             echo $message . PHP_EOL;
         } else {
-            $temp = $this->Feed->find('first', array(
-                'fields' => array('Feed.id', 'Feed.id'),
-                'conditions' => array('Feed.enabled' => 1, 'Feed.id' => $feedId)
-            ));
-            if (!empty($temp)) {
+            $feedEnabled = $this->Feed->hasAny([
+                'Feed.enabled' => 1,
+                'Feed.id' => $feedId,
+            ]);
+            if ($feedEnabled) {
                 $result = $this->Feed->downloadFromFeedInitiator($feedId, $user, $jobId);
                 if (!$result) {
-                    $this->Job->saveStatus($jobId, false);
+                    $this->Job->saveStatus($jobId, false, 'Job failed. See error log for more details.');
                     echo 'Job failed.' . PHP_EOL;
                 } else {
                     $this->Job->saveStatus($jobId, true);
                     echo 'Job done.' . PHP_EOL;
                 }
             } else {
-                $message = "Feed with ID $feedId not found.";
+                $message = "Feed with ID $feedId not found or not enabled.";
                 $this->Job->saveStatus($jobId, false, $message);
                 echo $message . PHP_EOL;
             }

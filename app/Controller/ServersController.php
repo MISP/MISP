@@ -126,8 +126,16 @@ class ServersController extends AppController
         try {
             list($events, $total_count) = $this->Server->previewIndex($server, $this->Auth->user(), $combinedArgs);
         } catch (Exception $e) {
-            $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
-            $this->redirect(array('action' => 'index'));
+            if ($this->_isRest()) {
+                return $this->RestResponse->throwException(500, $e->getMessage());
+            } else {
+                $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
+                $this->redirect(array('action' => 'index'));
+            }
+        }
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($events, $this->response->type());
         }
 
         $this->loadModel('Event');
@@ -2460,8 +2468,8 @@ misp.direct_call(relative_path, body)
 
     public function removeOrphanedCorrelations()
     {
-        $success = $this->Server->removeOrphanedCorrelations();
-        $message = __('Orphaned correlation removed');
+        $count = $this->Server->removeOrphanedCorrelations();
+        $message = __('%s orphaned correlation removed', $count);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($message, $this->response->type());
         } else {

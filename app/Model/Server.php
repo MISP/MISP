@@ -3599,7 +3599,8 @@ class Server extends AppModel
         }
 
         $relativeUri = '/events/index' . $urlParams;
-        list($events, $response) = $this->serverGetRequest($server, $relativeUri);
+        $response = $this->serverGetRequest($server, $relativeUri);
+        $events = $response->json();
         $totalCount = $response->getHeader('X-Result-Count') ?: 0;
 
         foreach ($events as $k => $event) {
@@ -3627,8 +3628,9 @@ class Server extends AppModel
      */
     public function previewEvent(array $server, $eventId)
     {
-        $relativeUri =  '/events/' . $eventId;
-        list($event) = $this->serverGetRequest($server, $relativeUri);
+        $relativeUri = '/events/' . $eventId;
+        $response = $this->serverGetRequest($server, $relativeUri);
+        $event = $response->json();
 
         if (!isset($event['Event']['Orgc'])) {
             $event['Event']['Orgc']['name'] = $event['Event']['orgc'];
@@ -4326,13 +4328,12 @@ class Server extends AppModel
     /**
      * @param array $server
      * @param string $relativeUri
-     * @param HttpSocket|null $HttpSocket
-     * @return array
+     * @return HttpSocketResponseExtended
      * @throws Exception
      */
-    private function serverGetRequest(array $server, $relativeUri, HttpSocket $HttpSocket = null)
+    private function serverGetRequest(array $server, $relativeUri)
     {
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
 
         $uri = $server['Server']['url'] . $relativeUri;
@@ -4351,9 +4352,7 @@ class Server extends AppModel
             throw new Exception(__("Fetching the '%s' failed with HTTP error %s: %s", $uri, $response->code, $response->reasonPhrase));
         }
 
-        $data = $this->jsonDecode($response->body);
-
-        return array($data, $response);
+        return $response;
     }
 
     /**
@@ -4416,40 +4415,39 @@ class Server extends AppModel
         return parent::__get($name);
     }
 
+    /**
+     * @return int Number of orphans removed.
+     */
     public function removeOrphanedCorrelations()
     {
         $this->Correlation = ClassRegistry::init('Correlation');
         $orphansLeft = $this->Correlation->find('all', [
-            'joins' => [
-                [
-                    'table' => 'attributes',
-                    'alias' => 'Attribute',
-                    'type' => 'LEFT',
-                    'conditions' => [
-                        'OR' => [
-                            'Correlation.attribute_id = Attribute.id',
-                        ]
-
-                    ]
-                ]
-            ],
+            'contain' => ['Attribute'],
             'conditions' => [
                 'Attribute.id IS NULL'
             ],
+            'fields' => ['Correlation.id', 'Correlation.attribute_id'],
         ]);
-        $orphansRight = $this->Correlation->find('all', [
+        if (empty($orphansLeft))  {
+            return 0;
+        }
+        $orphansLeft = array_column($orphansLeft, 'Correlation');
+        $orphansRight = $this->Correlation->find('column', [
             'conditions' => [
-                '1_attribute_id' => Hash::extract($orphansLeft, '{n}.Correlation.attribute_id')
-            ]
+                '1_attribute_id' => array_column($orphansLeft, 'attribute_id'),
+            ],
+            'fields' => ['Correlation.id'],
         ]);
         $orphans = array_merge(
-            Hash::extract($orphansLeft, '{n}.Correlation.id'),
-            Hash::extract($orphansRight, '{n}.Correlation.id')
+            array_column($orphansLeft, 'id'),
+            $orphansRight
         );
-        $success = $this->Correlation->deleteAll([
-            'Correlation.id' => $orphans
-        ]);
-        return $success;
+        if (!empty($orphans)) {
+            $this->Correlation->deleteAll([
+                'Correlation.id' => $orphans
+            ], false);
+        }
+        return count($orphans);
     }
 
     public function queryAvailableSyncFilteringRules(array $server)

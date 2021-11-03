@@ -8,6 +8,7 @@ App::uses('RandomTool', 'Tools');
 App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('ComplexTypeTool', 'Tools');
+App::uses('AttributeValidationTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -351,24 +352,28 @@ class Attribute extends AppModel
 
     public function afterFind($results, $primary = false)
     {
-        foreach ($results as $k => $v) {
-            if (isset($v['Attribute']['object_relation']) && $v['Attribute']['object_relation'] === null) {
-                $results[$k]['Attribute']['object_relation'] = '';
+        foreach ($results as &$v) {
+            $attribute = &$v['Attribute'];
+            if (!empty($attribute['first_seen'])) {
+                $attribute['first_seen'] = $this->microTimestampToIso($attribute['first_seen']);
             }
-            $results[$k] = $this->UTCToISODatetime($results[$k], $this->alias);
+            if (!empty($attribute['last_seen'])) {
+                $attribute['last_seen'] = $this->microTimestampToIso($attribute['last_seen']);
+            }
         }
         return $results;
     }
 
     public function beforeSave($options = array())
     {
-        if (empty($this->data['Attribute']['uuid'])) {
-            $this->data['Attribute']['uuid'] = CakeText::uuid();
+        $attribute = &$this->data['Attribute'];
+        if (empty($attribute['uuid'])) {
+            $attribute['uuid'] = CakeText::uuid();
         }
-        if (!empty($this->data['Attribute']['id'])) {
+        if (!empty($attribute['id'])) {
             $this->old = $this->find('first', array(
                 'recursive' => -1,
-                'conditions' => array('Attribute.id' => $this->data['Attribute']['id']),
+                'conditions' => array('Attribute.id' => $attribute['id']),
                 'fields' => ['value', 'disable_correlation', 'type', 'distribution', 'sharing_group_id'],
             ));
         } else {
@@ -376,18 +381,18 @@ class Attribute extends AppModel
         }
         // explode value of composite type in value1 and value2
         // or copy value to value1 if not composite type
-        if (!empty($this->data['Attribute']['type'])) {
+        if (!empty($attribute['type'])) {
             // explode composite types in value1 and value2
-            if (in_array($this->data['Attribute']['type'], $this->getCompositeTypes(), true)) {
-                $pieces = explode('|', $this->data['Attribute']['value']);
+            if (in_array($attribute['type'], $this->getCompositeTypes(), true)) {
+                $pieces = explode('|', $attribute['value']);
                 if (2 !== count($pieces)) {
                     throw new InternalErrorException(__('Composite type, but value not explodable'));
                 }
-                $this->data['Attribute']['value1'] = $pieces[0];
-                $this->data['Attribute']['value2'] = $pieces[1];
+                $attribute['value1'] = $pieces[0];
+                $attribute['value2'] = $pieces[1];
             } else {
-                $this->data['Attribute']['value1'] = $this->data['Attribute']['value'];
-                $this->data['Attribute']['value2'] = '';
+                $attribute['value1'] = $attribute['value'];
+                $attribute['value2'] = '';
             }
         }
 
@@ -425,17 +430,19 @@ class Attribute extends AppModel
         // Passing event in `parentEvent` field will speed up correlation
         $passedEvent = isset($options['parentEvent']) ? $options['parentEvent'] : false;
 
+        $attribute = $this->data['Attribute'];
+
         // add attributeTags via the shorthand ID list
-        if (!empty($this->data['Attribute']['tag_ids'])) {
-            foreach ($this->data['Attribute']['tag_ids'] as $tag_id) {
-                $this->AttributeTag->attachTagToAttribute($this->id, $this->data['Attribute']['event_id'], $tag_id);
+        if (!empty($attribute['tag_ids'])) {
+            foreach ($attribute['tag_ids'] as $tagId) {
+                $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tagId);
             }
         }
         // update correlation...
-        if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
-            $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
-            if (isset($this->data['Attribute']['event_id'])) {
-                $this->__alterAttributeCount($this->data['Attribute']['event_id'], false);
+        if (isset($attribute['deleted']) && $attribute['deleted']) {
+            $this->Correlation->beforeSaveCorrelation($attribute);
+            if (isset($attribute['event_id'])) {
+                $this->__alterAttributeCount($attribute['event_id'], false);
             }
         } else {
             /*
@@ -448,71 +455,69 @@ class Attribute extends AppModel
             if (!$created) {
                 if (
                     empty($this->old) ||
-                    $this->data['Attribute']['value'] != $this->old['Attribute']['value'] ||
-                    $this->data['Attribute']['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
-                    $this->data['Attribute']['type'] != $this->old['Attribute']['type'] ||
-                    $this->data['Attribute']['distribution'] != $this->old['Attribute']['distribution'] ||
-                    $this->data['Attribute']['sharing_group_id'] != $this->old['Attribute']['sharing_group_id']
+                    $attribute['value'] != $this->old['Attribute']['value'] ||
+                    $attribute['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
+                    $attribute['type'] != $this->old['Attribute']['type'] ||
+                    $attribute['distribution'] != $this->old['Attribute']['distribution'] ||
+                    $attribute['sharing_group_id'] != $this->old['Attribute']['sharing_group_id']
                 ) {
-                    $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
-                    $this->Correlation->afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
+                    $this->Correlation->beforeSaveCorrelation($attribute);
+                    $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
                 }
             } else {
-                $this->Correlation->afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
+                $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
             }
         }
         $result = true;
-        // if the 'data' field is set on the $this->data then save the data to the correct file
-        if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type'])) {
-            if (isset($this->data['Attribute']['data_raw'])) {
-                $this->data['Attribute']['data'] = $this->data['Attribute']['data_raw'];
-                unset($this->data['Attribute']['data_raw']);
-            } elseif (isset($this->data['Attribute']['data'])) {
-                $this->data['Attribute']['data'] = base64_decode($this->data['Attribute']['data']);
+        // if the 'data' field is set on the $attribute then save the data to the correct file
+        if (isset($attribute['type']) && $this->typeIsAttachment($attribute['type'])) {
+            if (isset($attribute['data_raw'])) {
+                $attribute['data'] = $attribute['data_raw'];
+                unset($attribute['data_raw']);
+                $result = $this->saveAttachment($attribute);
+            } elseif (isset($attribute['data'])) {
+                $attribute['data'] = base64_decode($attribute['data']);
+                $result = $this->saveAttachment($attribute);
             }
-            $result = $this->saveAttachment($this->data['Attribute']);
         }
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable');
         $kafkaTopic = $this->kafkaTopic('attribute');
         if ($pubToZmq || $kafkaTopic) {
-            $attribute = $this->fetchAttribute($this->id);
-            if (!empty($attribute)) {
+            $attributeForPublish = $this->fetchAttribute($this->id);
+            if (!empty($attributeForPublish)) {
                 $user = array(
                     'org_id' => -1,
                     'Role' => array(
                         'perm_site_admin' => 1
                     )
                 );
-                $attribute['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attribute, $user, $attribute);
-                if (empty($attribute['Object']['id'])) {
-                    unset($attribute['Object']);
-                }
+                $attributeForPublish['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attributeForPublish, $user, $attributeForPublish);
                 $action = $created ? 'add' : 'edit';
-                if (!empty($this->data['Attribute']['deleted'])) {
+                if (!empty($attribute['deleted'])) {
                     $action = 'soft-delete';
                 }
                 if ($pubToZmq) {
-                    if (Configure::read('Plugin.ZeroMQ_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
-                        $attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
+                    if (Configure::read('Plugin.ZeroMQ_include_attachments') && $this->typeIsAttachment($attributeForPublish['Attribute']['type'])) {
+                        $attributeForPublish['Attribute']['data'] = $this->base64EncodeAttachment($attributeForPublish['Attribute']);
                     }
                     $pubSubTool = $this->getPubSubTool();
-                    $pubSubTool->attribute_save($attribute, $action);
-                    unset($attribute['Attribute']['data']);
+                    $pubSubTool->attribute_save($attributeForPublish, $action);
+                    unset($attributeForPublish['Attribute']['data']);
                 }
                 if ($kafkaTopic) {
-                    if (Configure::read('Plugin.Kafka_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
-                        $attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
+                    if (Configure::read('Plugin.Kafka_include_attachments') && $this->typeIsAttachment($attributeForPublish['Attribute']['type'])) {
+                        $attributeForPublish['Attribute']['data'] = $this->base64EncodeAttachment($attributeForPublish['Attribute']);
                     }
                     $kafkaPubTool = $this->getKafkaPubTool();
-                    $kafkaPubTool->publishJson($kafkaTopic, $attribute, $action);
+                    $kafkaPubTool->publishJson($kafkaTopic, $attributeForPublish, $action);
                 }
             }
         }
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && strpos($this->data['Attribute']['value'], '/')) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($attribute['type'], ['ip-src', 'ip-dst'], true) && strpos($attribute['value'], '/')) {
             $this->setCIDRList();
         }
-        if ($created && isset($this->data['Attribute']['event_id']) && empty($this->data['Attribute']['skip_auto_increment'])) {
-            $this->__alterAttributeCount($this->data['Attribute']['event_id']);
+        if ($created && isset($attribute['event_id']) && empty($attribute['skip_auto_increment'])) {
+            $this->__alterAttributeCount($attribute['event_id']);
         }
         return $result;
     }
@@ -594,7 +599,7 @@ class Attribute extends AppModel
         // remove leading and trailing blanks and refang value and
         $attribute['value'] = ComplexTypeTool::refangValue(trim($attribute['value']), $type);
         // make some changes to the inserted value
-        $attribute['value'] = $this->modifyBeforeValidation($type, $attribute['value']);
+        $attribute['value'] = AttributeValidationTool::modifyBeforeValidation($type, $attribute['value']);
         // Run user defined regexp to attribute value
         $result = $this->runRegexp($type, $attribute['value']);
         if ($result === false) {
@@ -736,7 +741,7 @@ class Attribute extends AppModel
     public function validateAttributeValue($fields)
     {
         $value = $fields['value'];
-        return $this->runValidation($value, $this->data['Attribute']['type']);
+        return AttributeValidationTool::validate($this->data['Attribute']['type'], $value);
     }
 
     // check whether the variable is null or datetime
@@ -763,621 +768,6 @@ class Attribute extends AppModel
             return false;
         }
         return true;
-    }
-
-    const HEX_HAS_LENGTHS = array(
-        'authentihash' => 64,
-        'md5' => 32,
-        'imphash' => 32,
-        'telfhash' => 70,
-        'sha1' => 40,
-        'git-commit-id' => 40,
-        'x509-fingerprint-md5' => 32,
-        'x509-fingerprint-sha1' => 40,
-        'x509-fingerprint-sha256' => 64,
-        'ja3-fingerprint-md5' => 32,
-        'jarm-fingerprint' => 62,
-        'hassh-md5' => 32,
-        'hasshserver-md5' => 32,
-        'pehash' => 40,
-        'sha224' => 56,
-        'sha256' => 64,
-        'sha384' => 96,
-        'sha512' => 128,
-        'sha512/224' => 56,
-        'sha512/256' => 64,
-        'sha3-224' => 56,
-        'sha3-256' => 64,
-        'sha3-384' => 96,
-        'sha3-512' => 128
-    );
-
-    public function runValidation($value, $type)
-    {
-        // check data validation
-        switch ($type) {
-            case 'md5':
-            case 'imphash':
-            case 'telfhash':
-            case 'sha1':
-            case 'sha224':
-            case 'sha256':
-            case 'sha384':
-            case 'sha512':
-            case 'sha512/224':
-            case 'sha512/256':
-            case 'sha3-224':
-            case 'sha3-256':
-            case 'sha3-384':
-            case 'sha3-512':
-            case 'authentihash':
-            case 'ja3-fingerprint-md5':
-            case 'jarm-fingerprint':
-            case 'hassh-md5':
-            case 'hasshserver-md5':
-            case 'x509-fingerprint-md5':
-            case 'x509-fingerprint-sha256':
-            case 'x509-fingerprint-sha1':
-            case 'git-commit-id':
-                if ($this->isHashValid($type, $value)) {
-                    return true;
-                }
-                $length = self::HEX_HAS_LENGTHS[$type];
-                return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
-            case 'tlsh':
-                if (preg_match("#^t?[0-9a-f]{35,}$#i", $value)) {
-                    return true;
-                }
-                return __('Checksum has an invalid length or format (expected: at least 35 hexadecimal characters, optionally starting with t1 instead of hexadecimal characters). Please double check the value or select type "other".');
-            case 'pehash':
-                if ($this->isHashValid('pehash', $value)) {
-                    return true;
-                }
-                return __('The input doesn\'t match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
-            case 'ssdeep':
-                if (substr_count($value, ':') === 2) {
-                    $parts = explode(':', $value);
-                    if ($this->isPositiveInteger($parts[0])) {
-                        return true;
-                    }
-                }
-                return __('Invalid SSDeep hash. The format has to be blocksize:hash:hash');
-            case 'impfuzzy':
-                if (substr_count($value, ':') === 2) {
-                    $parts = explode(':', $value);
-                    if ($this->isPositiveInteger($parts[0])) {
-                        return true;
-                    }
-                }
-                return __('Invalid impfuzzy format. The format has to be imports:hash:hash');
-            case 'cdhash':
-                if (preg_match("#^[0-9a-f]{40,}$#", $value)) {
-                    return true;
-                }
-                return __('The input doesn\'t match the expected format (expected: 40 or more hexadecimal characters)');
-            case 'http-method':
-                if (preg_match("#(OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|PROPFIND|PROPPATCH|MKCOL|COPY|MOVE|LOCK|UNLOCK|VERSION-CONTROL|REPORT|CHECKOUT|CHECKIN|UNCHECKOUT|MKWORKSPACE|UPDATE|LABEL|MERGE|BASELINE-CONTROL|MKACTIVITY|ORDERPATCH|ACL|PATCH|SEARCH)#", $value)) {
-                    return true;
-                }
-                return __('Unknown HTTP method.');
-            case 'filename|pehash':
-                // no newline
-                if (preg_match("#^.+\|[0-9a-f]{40}$#", $value)) {
-                    return true;
-                }
-                return __('The input doesn\'t match the expected filename|sha1 format (expected: filename|40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
-            case 'filename|md5':
-            case 'filename|sha1':
-            case 'filename|imphash':
-            case 'filename|sha224':
-            case 'filename|sha256':
-            case 'filename|sha384':
-            case 'filename|sha512':
-            case 'filename|sha512/224':
-            case 'filename|sha512/256':
-            case 'filename|sha3-224':
-            case 'filename|sha3-256':
-            case 'filename|sha3-384':
-            case 'filename|sha3-512':
-            case 'filename|authentihash':
-                $parts = explode('|', $type);
-                $length = self::HEX_HAS_LENGTHS[$parts[1]];
-                if (preg_match("#^.+\|[0-9a-f]{" . $length . "}$#", $value)) {
-                    return true;
-                }
-                return __('Checksum has an invalid length or format (expected: filename|%s hexadecimal characters). Please double check the value or select type "other".', $length);
-            case 'filename|ssdeep':
-                if (substr_count($value, '|') != 1 || !preg_match("#^.+\|.+$#", $value)) {
-                    return __('Invalid composite type. The format has to be %s.', $type);
-                } else {
-                    $composite = explode('|', $value);
-                    $value = $composite[1];
-                    if (substr_count($value, ':') == 2) {
-                        $parts = explode(':', $value);
-                        if ($this->isPositiveInteger($parts[0])) {
-                            return true;
-                        }
-                    }
-                }
-                return __('Invalid SSDeep hash (expected: blocksize:hash:hash).');
-            case 'filename|tlsh':
-                if (preg_match("#^.+\|[0-9a-f]{35,}$#", $value)) {
-                    return true;
-                }
-                return __('Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type "other".');
-            case 'filename|vhash':
-                if (preg_match('#^.+\|.+$#', $value)) {
-                    return true;
-                }
-                return __('Checksum has an invalid length or format (expected: filename|string characters). Please double check the value or select type "other".');
-            case 'ip-src':
-            case 'ip-dst':
-                if (strpos($value, '/') !== false) {
-                    $parts = explode("/", $value);
-                    if (count($parts) !== 2 || !$this->isPositiveInteger($parts[1])) {
-                        return __('Invalid CIDR notation value found.');
-                    }
-
-                    if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                        if ($parts[1] > 32) {
-                            return __('Invalid CIDR notation value found, for IPv4 must be lower or equal 32.');
-                        }
-                    } else if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                        if ($parts[1] > 128) {
-                            return __('Invalid CIDR notation value found, for IPv6 must be lower or equal 128.');
-                        }
-                    } else {
-                        return __('IP address has an invalid format.');
-                    }
-                } else if (!filter_var($value, FILTER_VALIDATE_IP)) {
-                    return  __('IP address has an invalid format.');
-                }
-                return true;
-            case 'port':
-                if (!$this->isPortValid($value)) {
-                    return __('Port numbers have to be integers between 1 and 65535.');
-                }
-                return true;
-            case 'ip-dst|port':
-            case 'ip-src|port':
-                $parts = explode('|', $value);
-                if (!filter_var($parts[0], FILTER_VALIDATE_IP)) {
-                    return __('IP address has an invalid format.');
-                }
-                if (!$this->isPortValid($parts[1])) {
-                    return __('Port numbers have to be integers between 1 and 65535.');
-                }
-                return true;
-            case 'mac-address':
-                if (preg_match('/^([a-fA-F0-9]{2}[:]?){6}$/', $value)) {
-                    return true;
-                }
-                break;
-            case 'mac-eui-64':
-                if (preg_match('/^([a-fA-F0-9]{2}[:]?){8}$/', $value)) {
-                    return true;
-                }
-                break;
-            case 'hostname':
-            case 'domain':
-                if ($this->isDomainValid($value)) {
-                    return true;
-                }
-                return __('%s has an invalid format. Please double check the value or select type "other".', ucfirst($type));
-            case 'hostname|port':
-                $parts = explode('|', $value);
-                if (!$this->isDomainValid($parts[0])) {
-                    return __('Hostname has an invalid format.');
-                }
-                if (!$this->isPortValid($parts[1])) {
-                    return __('Port numbers have to be integers between 1 and 65535.');
-                }
-                return true;
-            case 'domain|ip':
-                if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}\|.*$#i", $value)) {
-                    $parts = explode('|', $value);
-                    if (filter_var($parts[1], FILTER_VALIDATE_IP)) {
-                        return true;
-                    } else {
-                        return __('IP address has an invalid format.');
-                    }
-                }
-                return __('Domain name has an invalid format.');
-            case 'email':
-            case 'email-src':
-            case 'eppn':
-            case 'email-dst':
-            case 'target-email':
-            case 'whois-registrant-email':
-            case 'dns-soa-email':
-            case 'jabber-id':
-                // we don't use the native function to prevent issues with partial email addresses
-                if (preg_match("#^.*\@.*\..*$#i", $value)) {
-                    return true;
-                }
-                return __('Email address has an invalid format. Please double check the value or select type "other".');
-            case 'vulnerability':
-                if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,}$#", $value)) {
-                    return true;
-                }
-                return __('Invalid format. Expected: CVE-xxxx-xxxx...');
-            case 'weakness':
-                if (preg_match("#^(CWE-)[0-9]{1,}$#", $value)) {
-                    return true;
-                }
-                return __('Invalid format. Expected: CWE-x...');
-            case 'named pipe':
-                if (!preg_match("#\n#", $value)) {
-                    return true;
-                }
-                break;
-            case 'windows-service-name':
-            case 'windows-service-displayname':
-                if (strlen($value) > 256 || preg_match('#[\\\/]#', $value)) {
-                    return __('Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.');
-                }
-                return true;
-            case 'mutex':
-            case 'process-state':
-            case 'snort':
-            case 'bro':
-            case 'zeek':
-            case 'community-id':
-            case 'anonymised':
-            case 'pattern-in-file':
-            case 'pattern-in-traffic':
-            case 'pattern-in-memory':
-            case 'filename-pattern':
-            case 'pgp-public-key':
-            case 'pgp-private-key':
-            case 'yara':
-            case 'stix2-pattern':
-            case 'sigma':
-            case 'gene':
-            case 'kusto-query':
-            case 'mime-type':
-            case 'identity-card-number':
-            case 'cookie':
-            case 'attachment':
-            case 'malware-sample':
-            case 'comment':
-            case 'text':
-            case 'other':
-            case 'cpe':
-            case 'email-attachment':
-            case 'email-body':
-            case 'email-header':
-            case 'first-name':
-            case 'middle-name':
-            case 'last-name':
-            case 'full-name':
-                return true;
-            case 'link':
-                // Moved to a native function whilst still enforcing the scheme as a requirement
-                if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
-                    return true;
-                }
-                break;
-            case 'hex':
-                return ctype_xdigit($value);
-            case 'target-user':
-            case 'campaign-name':
-            case 'campaign-id':
-            case 'threat-actor':
-            case 'target-machine':
-            case 'target-org':
-            case 'target-location':
-            case 'target-external':
-            case 'email-subject':
-            case 'malware-type':
-            // TODO: review url/uri validation
-            case 'url':
-            case 'uri':
-            case 'user-agent':
-            case 'regkey':
-            case 'regkey|value':
-            case 'filename':
-            case 'pdb':
-            case 'windows-scheduled-task':
-            case 'whois-registrant-name':
-            case 'whois-registrant-org':
-            case 'whois-registrar':
-            case 'whois-creation-date':
-            case 'date-of-birth':
-            case 'place-of-birth':
-            case 'gender':
-            case 'passport-number':
-            case 'passport-country':
-            case 'passport-expiration':
-            case 'redress-number':
-            case 'nationality':
-            case 'visa-number':
-            case 'issue-date-of-the-visa':
-            case 'primary-residence':
-            case 'country-of-residence':
-            case 'special-service-request':
-            case 'frequent-flyer-number':
-            case 'travel-details':
-            case 'payment-details':
-            case 'place-port-of-original-embarkation':
-            case 'place-port-of-clearance':
-            case 'place-port-of-onward-foreign-destination':
-            case 'passenger-name-record-locator-number':
-            case 'email-dst-display-name':
-            case 'email-src-display-name':
-            case 'email-reply-to':
-            case 'email-x-mailer':
-            case 'email-mime-boundary':
-            case 'email-thread-index':
-            case 'email-message-id':
-            case 'github-username':
-            case 'github-repository':
-            case 'github-organisation':
-            case 'twitter-id':
-            case 'dkim':
-            case 'dkim-signature':
-            case 'favicon-mmh3':
-            case 'chrome-extension-id':
-            case 'mobile-application-id':
-                if (strpos($value, "\n") !== false) {
-                    return __('Value must not contain new line character.');
-                }
-                return true;
-            case 'datetime':
-                if (strtotime($value) !== false) {
-                    return true;
-                }
-                return __('Datetime has to be in the ISO 8601 format.');
-            case 'size-in-bytes':
-            case 'counter':
-                if ($this->isPositiveInteger($value)) {
-                    return true;
-                }
-                return __('The value has to be a whole number greater or equal 0.');
-          /*  case 'targeted-threat-index':
-                if (!is_numeric($value) || $value < 0 || $value > 10) {
-                    return __('The value has to be a number between 0 and 10.');
-                }
-                return true;*/
-            case 'iban':
-            case 'bic':
-            case 'btc':
-            case 'dash':
-            case 'xmr':
-                if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
-                    return true;
-                }
-                break;
-            case 'vhash':
-                if (preg_match('/^.+$/', $value)) {
-                    return true;
-                }
-                break;
-            case 'bin':
-            case 'cc-number':
-            case 'bank-account-nr':
-            case 'aba-rtn':
-            case 'prtn':
-            case 'phone-number':
-            case 'whois-registrant-phone':
-                if (is_numeric($value)) {
-                    return true;
-                }
-                break;
-            case 'cortex':
-                json_decode($value);
-                return json_last_error() === JSON_ERROR_NONE;
-            case 'float':
-                return is_numeric($value);
-            case 'boolean':
-                if ($value == 1 || $value == 0) {
-                    return true;
-                }
-                break;
-            case 'AS':
-                if ($this->isPositiveInteger($value) && $value <= 4294967295) {
-                    return true;
-                }
-                return __('AS number have to be integers between 1 and 4294967295');
-        }
-        return false;
-    }
-
-    // do some last second modifications before the validation
-    public function modifyBeforeValidation($type, $value)
-    {
-        $value = $this->handle4ByteUnicode($value);
-        switch ($type) {
-            case 'md5':
-            case 'sha1':
-            case 'sha224':
-            case 'sha256':
-            case 'sha384':
-            case 'sha512':
-            case 'sha512/224':
-            case 'sha512/256':
-            case 'sha3-224':
-            case 'sha3-256':
-            case 'sha3-384':
-            case 'sha3-512':
-            case 'ja3-fingerprint-md5':
-            case 'jarm-fingerprint':
-            case 'hassh-md5':
-            case 'hasshserver-md5':
-            case 'hostname':
-            case 'pehash':
-            case 'authentihash':
-            case 'vhash':
-            case 'imphash':
-            case 'telfhash':
-            case 'tlsh':
-            case 'anonymised':
-            case 'cdhash':
-            case 'email':
-            case 'email-src':
-            case 'email-dst':
-            case 'target-email':
-            case 'whois-registrant-email':
-                $value = strtolower($value);
-                break;
-            case 'domain':
-                $value = strtolower($value);
-                $value = trim($value, '.');
-                // Domain is not valid, try to convert to punycode
-                if (!$this->isDomainValid($value) && function_exists('idn_to_ascii')) {
-                    $punyCode = idn_to_ascii($value);
-                    if ($punyCode !== false) {
-                        $value = $punyCode;
-                    }
-                }
-                break;
-            case 'domain|ip':
-                $value = strtolower($value);
-                $parts = explode('|', $value);
-                if (!isset($parts[1])) {
-                    return $value; // not a composite
-                }
-                $parts[0] = trim($parts[0], '.');
-                // Domain is not valid, try to convert to punycode
-                if (!$this->isDomainValid($parts[0]) && function_exists('idn_to_ascii')) {
-                    $punyCode = idn_to_ascii($parts[0]);
-                    if ($punyCode !== false) {
-                        $parts[0] = $punyCode;
-                    }
-                }
-                if (filter_var($parts[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                    // convert IPv6 address to compressed format
-                    $parts[1] = inet_ntop(inet_pton($parts[1]));
-                }
-                return "$parts[0]|$parts[1]";
-            case 'filename|md5':
-            case 'filename|sha1':
-            case 'filename|imphash':
-            case 'filename|sha224':
-            case 'filename|sha256':
-            case 'filename|sha384':
-            case 'filename|sha512':
-            case 'filename|sha512/224':
-            case 'filename|sha512/256':
-            case 'filename|sha3-224':
-            case 'filename|sha3-256':
-            case 'filename|sha3-384':
-            case 'filename|sha3-512':
-            case 'filename|authentihash':
-            case 'filename|vhash':
-            case 'filename|pehash':
-            case 'filename|tlsh':
-                $pieces = explode('|', $value);
-                $value = $pieces[0] . '|' . strtolower($pieces[1]);
-                break;
-            case 'http-method':
-            case 'hex':
-                return strtoupper($value);
-            case 'vulnerability':
-            case 'weakness':
-                $value = str_replace('–', '-', $value);
-                return strtoupper($value);
-            case 'cc-number':
-            case 'bin':
-                $value = preg_replace('/[^0-9]+/', '', $value);
-                break;
-            case 'iban':
-            case 'bic':
-                $value = strtoupper($value);
-                $value = preg_replace('/[^0-9A-Z]+/', '', $value);
-                break;
-            case 'prtn':
-            case 'whois-registrant-phone':
-            case 'phone-number':
-                if (substr($value, 0, 2) == '00') {
-                    $value = '+' . substr($value, 2);
-                }
-                $value = preg_replace('/\(0\)/', '', $value);
-                $value = preg_replace('/[^\+0-9]+/', '', $value);
-                break;
-            case 'x509-fingerprint-md5':
-            case 'x509-fingerprint-sha256':
-            case 'x509-fingerprint-sha1':
-                $value = str_replace(':', '', $value);
-                $value = strtolower($value);
-                break;
-            case 'ip-src':
-            case 'ip-dst':
-                if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                    // convert IPv6 address to compressed format
-                    $value = inet_ntop(inet_pton($value));
-                }
-                break;
-            case 'ip-dst|port':
-            case 'ip-src|port':
-                    if (substr_count($value, ':') >= 2) { // (ipv6|port) - tokenize ip and port
-                        if (strpos($value, '|')) { // 2001:db8::1|80
-                            $parts = explode('|', $value);
-                        } elseif (strpos($value, '[') === 0 && strpos($value, ']') !== false) { // [2001:db8::1]:80
-                            $ipv6 = substr($value, 1, strpos($value, ']')-1);
-                            $port = explode(':', substr($value, strpos($value, ']')))[1];
-                            $parts = array($ipv6, $port);
-                        } elseif (strpos($value, '.')) { // 2001:db8::1.80
-                            $parts = explode('.', $value);
-                        } elseif (strpos($value, ' port ')) { // 2001:db8::1 port 80
-                            $parts = explode(' port ', $value);
-                        } elseif (strpos($value, 'p')) { // 2001:db8::1p80
-                            $parts = explode('p', $value);
-                        } elseif (strpos($value, '#')) { // 2001:db8::1#80
-                            $parts = explode('#', $value);
-                        } else { // 2001:db8::1:80 this one is ambiguous
-                            $temp = explode(':', $value);
-                            $parts = array(implode(':', array_slice($temp, 0, count($temp)-1)), end($temp));
-                        }
-                    } elseif (strpos($value, ':')) { // (ipv4:port)
-                        $parts = explode(':', $value);
-                    } elseif (strpos($value, '|')) { // (ipv4|port)
-                        $parts = explode('|', $value);
-                    } else {
-                        return $value;
-                    }
-                    if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                        // convert IPv6 address to compressed format
-                        $parts[0] = inet_ntop(inet_pton($parts[0]));
-                    }
-                    return $parts[0] . '|' . $parts[1];
-            case 'mac-address':
-            case 'mac-eui-64':
-                $value = str_replace(array('.', ':', '-', ' '), '', strtolower($value));
-                $value = wordwrap($value, 2, ':', true);
-                break;
-            case 'hostname|port':
-                $value = strtolower($value);
-                return str_replace(':', '|', $value);
-            case 'boolean':
-                if ('true' == trim(strtolower($value))) {
-                    $value = 1;
-                }
-                if ('false' == trim(strtolower($value))) {
-                    $value = 0;
-                }
-                $value = ($value) ? '1' : '0';
-                break;
-            case 'datetime':
-                try {
-                    $value = (new DateTime($value, new DateTimeZone('GMT')))->format('Y-m-d\TH:i:s.uO'); // ISO8601 formating with microseconds
-                } catch (Exception $e) {
-                    // silently skip. Rejection will be done in runValidation()
-                }
-                break;
-            case 'AS':
-                if (strtoupper(substr($value, 0, 2)) === 'AS') {
-                    $value = substr($value, 2); // remove 'AS'
-                }
-                if (strpos($value, '.') !== false) { // maybe value is in asdot notation
-                    $parts = explode('.', $value);
-                    if ($this->isPositiveInteger($parts[0]) && $this->isPositiveInteger($parts[1])) {
-                        return $parts[0] * 65536 + $parts[1];
-                    }
-                }
-                break;
-        }
-        return $value;
     }
 
     public function getCompositeTypes()
@@ -1649,40 +1039,28 @@ class Attribute extends AppModel
         // convert into utc and micro sec
         if (!empty($data[$alias]['first_seen'])) {
             $d = new DateTime($data[$alias]['first_seen'], new DateTimeZone('GMT'));
-            $fs_sec = $d->format('U');
-            $fs_micro = $d->format('u');
-            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
-            $fs = $fs_sec . $fs_micro;
-            $data[$alias]['first_seen'] = $fs;
+            $data[$alias]['first_seen'] = $d->format('Uu');
         }
         if (!empty($data[$alias]['last_seen'])) {
             $d = new DateTime($data[$alias]['last_seen'], new DateTimeZone('GMT'));
-            $ls_sec = $d->format('U');
-            $ls_micro = $d->format('u');
-            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
-            $ls = $ls_sec . $ls_micro;
-            $data[$alias]['last_seen'] = $ls;
+            $data[$alias]['last_seen'] = $d->format('Uu');
         }
         return $data;
     }
 
+    /**
+     * @param $data
+     * @param $alias
+     * @return array
+     * @deprecated
+     */
     public function UTCToISODatetime($data, $alias)
     {
         if (!empty($data[$alias]['first_seen'])) {
-            $fs = $data[$alias]['first_seen'];
-            $fs_sec = intval($fs / 1000000); // $fs is in micro (10^6)
-            $fs_micro = $fs % 1000000;
-            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
-            $fs = $fs_sec . '.' . $fs_micro;
-            $data[$alias]['first_seen'] = DateTime::createFromFormat('U.u', $fs)->format('Y-m-d\TH:i:s.uP');
+            $data[$alias]['first_seen'] = $this->microTimestampToIso($data[$alias]['first_seen']);
         }
         if (!empty($data[$alias]['last_seen'])) {
-            $ls = $data[$alias]['last_seen'];
-            $ls_sec = intval($ls / 1000000); // $ls is in micro (10^6)
-            $ls_micro = $ls % 1000000;
-            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
-            $ls = $ls_sec . '.' . $ls_micro;
-            $data[$alias]['last_seen'] = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.uP');
+            $data[$alias]['last_seen'] = $this->microTimestampToIso($data[$alias]['last_seen']);
         }
         return $data;
     }
@@ -1849,6 +1227,7 @@ class Attribute extends AppModel
         if (empty($params['tags'])) {
             return $conditions;
         }
+        /** @var Tag $tag */
         $tag = ClassRegistry::init('Tag');
         $params['tags'] = $this->dissectArgs($params['tags']);
         foreach (array(0, 1, 2) as $tag_operator) {
@@ -2303,13 +1682,13 @@ class Attribute extends AppModel
     // array 1 will have all of the non negated terms and array 2 all the negated terms
     public function dissectArgs($args)
     {
+        $result = array(0 => array(), 1 => array(), 2 => array());
         if (empty($args)) {
-            return array(0 => array(), 1 => array(), 2 => array());
+            return $result;
         }
         if (!is_array($args)) {
             $args = explode('&&', $args);
         }
-        $result = array(0 => array(), 1 => array(), 2 => array());
         if (isset($args['OR']) || isset($args['NOT']) || isset($args['AND'])) {
             if (!empty($args['OR'])) {
                 $result[0] = $args['OR'];
@@ -2322,7 +1701,7 @@ class Attribute extends AppModel
             }
         } else {
             foreach ($args as $arg) {
-                if (substr($arg, 0, 1) == '!') {
+                if ($arg[0] === '!') {
                     $result[1][] = substr($arg, 1);
                 } else {
                     $result[0][] = $arg;
@@ -2536,15 +1915,18 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    /*
+    /**
      * Unlike the other fetchers, this one foregoes any ACL checks.
      * the objective is simple: Fetch the given attribute with all related objects needed for the ZMQ output,
      * standardising on this function for fetching the attribute to be passed to Attribute->save()
+     * @param int $id
+     * @returns array
      */
     public function fetchAttribute($id)
     {
         $attribute = $this->find('first', array(
             'recursive' => -1,
+            'order' => [],
             'conditions' => array('Attribute.id' => $id),
             'contain' => array(
                 'Event' => array(
@@ -2554,6 +1936,7 @@ class Attribute extends AppModel
                     'fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.uuid', 'Event.published', 'Event.analysis', 'Event.threat_level_id', 'Event.org_id', 'Event.orgc_id', 'Event.distribution', 'Event.sharing_group_id')
                 ),
                 'AttributeTag' => array(
+                    'fields' => ['AttributeTag.tag_id'],
                     'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable'))
                 ),
                 'Object'
@@ -2566,6 +1949,10 @@ class Attribute extends AppModel
                 }
             }
             unset($attribute['AttributeTag']);
+
+            if (empty($attribute['Object']['id'])) {
+                unset($attribute['Object']);
+            }
         }
         return $attribute;
     }
@@ -3242,51 +2629,6 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    private function __createTagSubQuery($tag_id, $blocked = false, $scope = 'Event', $limitAttributeHitsTo = 'event')
-    {
-        $conditionKey = $blocked ? array('NOT' => array('EventTag.tag_id' => $tag_id)) : array('EventTag.tag_id' => $tag_id);
-        $db = $this->getDataSource();
-        $subQuery = $db->buildStatement(
-            array(
-                'fields' => array($scope . 'Tag.' . $limitAttributeHitsTo . '_id'),
-                'table' => strtolower($scope) . '_tags',
-                'alias' => $scope . 'Tag',
-                'limit' => null,
-                'offset' => null,
-                'joins' => array(),
-                'conditions' => array(
-                    $scope . 'Tag.tag_id' => $tag_id
-                ),
-                'group' => array($scope . 'Tag.' . $limitAttributeHitsTo . '_id')
-            ),
-            $this
-        );
-        $subQuery = ucfirst($limitAttributeHitsTo) . '.id IN (' . $subQuery . ') ';
-        $conditions = array(
-            $db->expression($subQuery)->value
-        );
-        return $conditions;
-    }
-
-    public function setTagConditions($tags, $conditions, $limitAttributeHitsTo = 'event')
-    {
-        $args = $this->dissectArgs($tags);
-        $tagArray = $this->AttributeTag->Tag->fetchTagIdsFromFilter($args[0], $args[1]);
-        $temp = array();
-        if (!empty($tagArray[0])) {
-            $temp['OR'][] = $this->__createTagSubQuery($tagArray[0]);
-            $temp['OR'][] = $this->__createTagSubQuery($tagArray[0], false, 'Attribute', $limitAttributeHitsTo);
-        }
-        if (!empty($tagArray[1])) {
-            $temp['AND']['NOT'] = $this->__createTagSubQuery($tagArray[1], true);
-            if ($limitAttributeHitsTo == 'attribute') {
-                $temp['AND']['NOT'] = $this->__createTagSubQuery($tagArray[1], true, 'Attribute', $limitAttributeHitsTo);
-            }
-        }
-        $conditions['AND'][] = $temp;
-        return $conditions;
-    }
-
     public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp', $returnRaw = false)
     {
         if (is_array($timestamp)) {
@@ -3331,16 +2673,6 @@ class Attribute extends AppModel
         }
         if ($returnRaw) {
             return $timestamp;
-        }
-        return $conditions;
-    }
-
-    public function setToIDSConditions($to_ids, $conditions)
-    {
-        if ($to_ids === 'exclude') {
-            $conditions['AND'][] = array('Attribute.to_ids' => 0);
-        } else {
-            $conditions['AND'][] = array('Attribute.to_ids' => 1);
         }
         return $conditions;
     }
@@ -4088,47 +3420,6 @@ class Attribute extends AppModel
         }
     }
 
-    /**
-     * @param string $value
-     * @return bool
-     */
-    private function isDomainValid($value)
-    {
-        return preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}$#i", $value) === 1;
-    }
-
-    /**
-     * @param string $value
-     * @return bool
-     */
-    private function isPortValid($value)
-    {
-        return $this->isPositiveInteger($value) && $value >= 1 && $value <= 65535;
-    }
-
-    /**
-     * @param string $type
-     * @param string $value
-     * @return bool
-     */
-    private function isHashValid($type, $value)
-    {
-        if (!isset(self::HEX_HAS_LENGTHS[$type])) {
-            throw new InvalidArgumentException("Invalid hash type '$type'.");
-        }
-        return strlen($value) === self::HEX_HAS_LENGTHS[$type] && ctype_xdigit($value);
-    }
-
-    /**
-     * Returns true if input value is positive integer or zero.
-     * @param int|string $value
-     * @return bool
-     */
-    private function isPositiveInteger($value)
-    {
-        return (is_int($value) && $value >= 0) || ctype_digit($value);
-    }
-
     public function typeToCategoryMapping()
     {
         $typeCategoryMapping = array();
@@ -4223,7 +3514,7 @@ class Attribute extends AppModel
             ),
             'Network activity' => array(
                 'desc' => __('Information about network traffic generated by the malware'),
-                'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'port', 'hostname', 'domain', 'domain|ip', 'mac-address', 'mac-eui-64', 'email', 'email-dst', 'email-src', 'eppn', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'filename-pattern','stix2-pattern', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hex', 'cookie', 'hostname|port', 'bro', 'zeek', 'anonymised', 'community-id', 'email-subject', 'favicon-mmh3', 'dkim', 'dkim-signature')
+                'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'port', 'hostname', 'domain', 'domain|ip', 'mac-address', 'mac-eui-64', 'email', 'email-dst', 'email-src', 'eppn', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'filename-pattern','stix2-pattern', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hex', 'cookie', 'hostname|port', 'bro', 'zeek', 'anonymised', 'community-id', 'email-subject', 'favicon-mmh3', 'dkim', 'dkim-signature', 'ssh-fingerprint')
             ),
             'Payload type' => array(
                 'desc' => __('Information about the final payload(s)'),
@@ -4315,6 +3606,7 @@ class Attribute extends AppModel
             'filename-pattern' => array('desc' => __('A pattern in the name of a file'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'pgp-public-key' => array('desc' => __('A PGP public key'), 'default_category' => 'Person', 'to_ids' => 0),
             'pgp-private-key' => array('desc' => __('A PGP private key'), 'default_category' => 'Person', 'to_ids' => 0),
+            'ssh-fingerprint' => array('desc' => __('A fingerprint of SSH key material'), 'default_category' => 'Network activity', 'to_ids' => 0),
             'yara' => array('desc' => __('Yara signature'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'stix2-pattern' => array('desc' => __('STIX 2 pattern'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'sigma' => array('desc' => __('Sigma - Generic Signature Format for SIEM Systems'), 'default_category' => 'Payload installation', 'to_ids' => 1),

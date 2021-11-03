@@ -3192,7 +3192,6 @@ class Event extends AppModel
         );
 
         $userCount = count($usersWithAccess);
-        $this->UserSetting = ClassRegistry::init('UserSetting');
         $metadataOnly = Configure::read('MISP.event_alert_metadata_only') || Configure::read('MISP.publish_alerts_summary_only');
         foreach ($usersWithAccess as $k => $user) {
             // Fetch event for user that will receive alert e-mail to respect all ACLs
@@ -3205,7 +3204,7 @@ class Event extends AppModel
                 'metadata' => $metadataOnly,
             ])[0];
 
-            if ($this->UserSetting->checkPublishFilter($user, $eventForUser)) {
+            if ($this->User->UserSetting->checkPublishFilter($user, $eventForUser)) {
                 $body = $this->prepareAlertEmail($eventForUser, $user, $oldpublish);
                 $this->User->sendEmail(['User' => $user], $body, false, null);
             }
@@ -5448,22 +5447,18 @@ class Event extends AppModel
             unset($event['Object']);
         }
 
-        $event['objects'] = $objects;
-
         $referencedByArray = array();
-        foreach ($event['objects'] as $object) {
-            if (!in_array($object['objectType'], array('attribute', 'object'))) {
-                continue;
-            }
-            if (!empty($object['ObjectReference'])) {
+        foreach ($objects as $object) {
+            $objectType = $object['objectType'];
+            if (($objectType === 'attribute' || $objectType === 'object') && !empty($object['ObjectReference'])) {
                 foreach ($object['ObjectReference'] as $reference) {
                     if (isset($reference['referenced_uuid'])) {
-                        $referencedByArray[$reference['referenced_uuid']][$object['objectType']][] = array(
+                        $referencedByArray[$reference['referenced_uuid']][$objectType][] = array(
                             'meta-category' => $object['meta-category'],
                             'name' => $object['name'],
                             'uuid' => $object['uuid'],
                             'id' => isset($object['id']) ? $object['id'] : 0,
-                            'object_type' => $object['objectType'],
+                            'object_type' => $objectType,
                             'relationship_type' => $reference['relationship_type']
                         );
                     }
@@ -5475,15 +5470,16 @@ class Event extends AppModel
         if ($all) {
             $passedArgs['page'] = 0;
         }
-        $params = $customPagination->applyRulesOnArray($event['objects'], $passedArgs, 'events', 'category');
-        foreach ($event['objects'] as $k => $object) {
+        $params = $customPagination->applyRulesOnArray($objects, $passedArgs, 'events', 'category');
+        foreach ($objects as $k => $object) {
             if (isset($referencedByArray[$object['uuid']])) {
                 foreach ($referencedByArray[$object['uuid']] as $objectType => $references) {
-                    $event['objects'][$k]['referenced_by'][$objectType] = $references;
+                    $objects[$k]['referenced_by'][$objectType] = $references;
                 }
             }
         }
-        $params['total_elements'] = count($event['objects']);
+        $event['objects'] = $objects;
+        $params['total_elements'] = count($objects);
         return $params;
     }
 
@@ -5839,7 +5835,7 @@ class Event extends AppModel
         } else {
             $filters = array();
             $args = $this->Attribute->dissectArgs($tagRules);
-            $tagArray = $this->EventTag->Tag->fetchEventTagIds($args[0], $args[1]);
+            $tagArray = $this->EventTag->fetchEventTagIds($args[0], $args[1]);
             if (!empty($tagArray[0])) {
                 $filters[] = ['OR' => ['Event.id' => $tagArray[0]]];
             } else {

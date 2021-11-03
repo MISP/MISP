@@ -5,6 +5,7 @@ App::uses('File', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('ComplexTypeTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('AttributeValidationTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -314,7 +315,7 @@ class ShadowAttribute extends AppModel
         if (isset($proposal['value'])) {
             $value = trim($proposal['value']);
             $value = ComplexTypeTool::refangValue($value, $proposal['type']);
-            $value = $this->Attribute->modifyBeforeValidation($proposal['type'], $value);
+            $value = AttributeValidationTool::modifyBeforeValidation($proposal['type'], $value);
             $proposal['value'] = $value;
         }
 
@@ -353,8 +354,14 @@ class ShadowAttribute extends AppModel
 
     public function afterFind($results, $primary = false)
     {
-        foreach ($results as $k => $v) {
-            $results[$k] = $this->Attribute->UTCToISODatetime($results[$k], $this->alias);
+        foreach ($results as &$v) {
+            $proposal = &$v['ShadowAttribute'];
+            if (!empty($proposal['first_seen'])) {
+                $proposal['first_seen'] = $this->microTimestampToIso($proposal['first_seen']);
+            }
+            if (!empty($proposal['last_seen'])) {
+                $proposal['last_seen'] = $this->microTimestampToIso($proposal['last_seen']);
+            }
         }
         return $results;
     }
@@ -376,7 +383,7 @@ class ShadowAttribute extends AppModel
     public function validateAttributeValue($fields)
     {
         $value = $fields['value'];
-        return $this->Attribute->runValidation($value, $this->data['ShadowAttribute']['type']);
+        return AttributeValidationTool::validate($this->data['ShadowAttribute']['type'], $value);
     }
 
     public function getCompositeTypes()

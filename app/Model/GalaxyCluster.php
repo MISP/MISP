@@ -77,6 +77,7 @@ class GalaxyCluster extends AppModel
 
     private $__clusterCache = array();
     private $deletedClusterUUID;
+    public $bulkEntry = false;
 
     public $hasMany = array(
         'GalaxyElement' => array('dependent' => true),
@@ -97,20 +98,20 @@ class GalaxyCluster extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
-        if (!isset($this->data['GalaxyCluster']['description'])) {
-            $this->data['GalaxyCluster']['description'] = '';
+        $cluster = &$this->data['GalaxyCluster'];
+        if (!isset($cluster['description'])) {
+            $cluster['description'] = '';
         }
-        if (isset($this->data['GalaxyCluster']['distribution']) && $this->data['GalaxyCluster']['distribution'] != 4) {
-            $this->data['GalaxyCluster']['sharing_group_id'] = null;
+        if (isset($cluster['distribution']) && $cluster['distribution'] != 4) {
+            $cluster['sharing_group_id'] = null;
         }
-        if (!isset($this->data['GalaxyCluster']['published'])) {
-            $this->data['GalaxyCluster']['published'] = false;
+        if (!isset($cluster['published'])) {
+            $cluster['published'] = false;
         }
-        if (!isset($this->data['GalaxyCluster']['authors']) || is_null($this->data['GalaxyCluster']['authors'])) {
-            $this->data['GalaxyCluster']['authors'] = '';
-        } elseif (is_array($this->data['GalaxyCluster']['authors'])) {
-            $this->data['GalaxyCluster']['authors'] = json_encode($this->data['GalaxyCluster']['authors']);
+        if (!isset($cluster['authors']) || $cluster['authors'] === null) {
+            $cluster['authors'] = '';
+        } elseif (is_array($cluster['authors'])) {
+            $cluster['authors'] = json_encode($cluster['authors']);
         }
         return true;
     }
@@ -118,24 +119,24 @@ class GalaxyCluster extends AppModel
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $result) {
-            if (isset($results[$k][$this->alias]['authors'])) {
+            if (isset($result[$this->alias]['authors'])) {
                 $results[$k][$this->alias]['authors'] = json_decode($results[$k][$this->alias]['authors'], true);
             }
-            if (isset($results[$k][$this->alias]['distribution']) && $results[$k][$this->alias]['distribution'] != 4) {
+            if (isset($result[$this->alias]['distribution']) && $results[$k][$this->alias]['distribution'] != 4) {
                 unset($results[$k]['SharingGroup']);
             }
-            if (isset($results[$k][$this->alias]['org_id']) && $results[$k][$this->alias]['org_id'] == 0) {
+            if (isset($result[$this->alias]['org_id']) && $results[$k][$this->alias]['org_id'] == 0) {
                 if (isset($results[$k]['Org'])) {
                     $results[$k]['Org'] = $this->Org->genericMISPOrganisation;
                 }
             }
-            if (isset($results[$k][$this->alias]['orgc_id']) && $results[$k][$this->alias]['orgc_id'] == 0) {
+            if (isset($result[$this->alias]['orgc_id']) && $results[$k][$this->alias]['orgc_id'] == 0) {
                 if (isset($results[$k]['Orgc'])) {
                     $results[$k]['Orgc'] = $this->Org->genericMISPOrganisation;
                 }
             }
 
-            if (!empty($results[$k]['GalaxyClusterRelation'])) {
+            if (!empty($result['GalaxyClusterRelation'])) {
                 foreach ($results[$k]['GalaxyClusterRelation'] as $i => $relation) {
                     if (isset($relation['distribution']) && $relation['distribution'] != 4) {
                         unset($results[$k]['GalaxyClusterRelation'][$i]['SharingGroup']);
@@ -149,8 +150,7 @@ class GalaxyCluster extends AppModel
     public function afterSave($created, $options = array())
     {
         // Update all relations IDs that are unknown but saved
-        parent::afterSave($created, $options);
-        if (empty($this->bulkEntry)) {
+        if (!$this->bulkEntry) {
             $cluster = $this->data[$this->alias];
             $cluster = $this->fetchAndSetUUID($cluster);
             $this->GalaxyClusterRelation->updateAll(
