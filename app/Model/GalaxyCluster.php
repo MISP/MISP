@@ -457,28 +457,31 @@ class GalaxyCluster extends AppModel
             } else {
                 return false;
             }
+
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                'worker' => 'prio',
-                'job_type' => 'publish_galaxy_clusters',
-                'job_input' => 'Cluster ID: ' . $clusterId,
-                'status' => 0,
-                'retries' => 0,
-                'org_id' => $user['org_id'],
-                'org' => $user['Organisation']['name'],
-                'message' => 'Publishing.'
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_PRIO,
+                'publish_galaxy_clusters',
+                'Cluster ID: ' . $clusterId,
+                'Publishing.'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                'prio',
-                'EventShell',
-                array('publish_galaxy_clusters', $clusterId, $jobId, $user['id'], $passAlong),
-                true
+
+            return $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::PRIO_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                [
+                    'publish_galaxy_clusters',
+                    $clusterId,
+                    $jobId,
+                    $user['id'],
+                    $passAlong
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
-            return $process_id;
+
         } else {
             $result = $this->publish($cluster, $passAlong=$passAlong);
             return $result;
