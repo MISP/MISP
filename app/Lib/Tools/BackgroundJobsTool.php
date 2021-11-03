@@ -24,7 +24,7 @@ App::uses('BackgroundJob', 'Tools/BackgroundJobs');
  * All can be managed via terminal or a XML-RPC API.
  * 
  * Use the following configuration as a template for the services:
- * Monitor workers service:
+ *      /etc/supervisor/conf.d/misp-workers-monitor.conf:
  *      [program:misp-workers-monitor]
  *      command=/var/www/MISP/app/Console/cake monitor_workers
  *      numprocs=1
@@ -35,8 +35,12 @@ App::uses('BackgroundJob', 'Tools/BackgroundJobs');
  *      stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers-monitor.log
  *      user=www-data
  * 
- * Workers (one per each queue type is required):
- *      [program:misp-worker-default]
+ *      /etc/supervisor/conf.d/misp-workers.conf:
+ *      [group:misp-workers]
+ *      programs=default,email,cache,prio,update
+ *
+ *      ; one section per each queue type is required
+ *      [program:default]
  *      command=/var/www/MISP/app/Console/cake start_worker default
  *      process_name=%(program_name)s_%(process_num)02d
  *      numprocs=5 ; adjust the amount of parallel workers to your MISP usage 
@@ -52,6 +56,11 @@ class BackgroundJobsTool
 {
     /** @var Redis */
     private $RedisConnection;
+
+    /** @var \Supervisor\Supervisor */
+    private $Supervisor;
+
+    public const MISP_WORKERS_PROCESS_GROUP = 'misp-workers';
 
     public const
         DEFAULT_QUEUE = 'default',
@@ -115,6 +124,10 @@ class BackgroundJobsTool
 
         if (!$this->RedisConnection && $this->settings['use_resque'] === false) {
             $this->RedisConnection = $this->createRedisConnection();
+        }
+
+        if (!$this->Supervisor && $this->settings['use_resque'] === false) {
+            $this->Supervisor = $this->createSupervisorConnection();
         }
     }
 
@@ -441,6 +454,17 @@ class BackgroundJobsTool
     }
 
     /**
+     * Restarts workers with status != RUNNING
+     *
+     * @param boolean $waitForRestart
+     * @return void
+     */
+    public function restartDeadWorkers(bool $waitForRestart = false): void
+    {
+        $this->Supervisor->startProcessGroup(self::MISP_WORKERS_PROCESS_GROUP, $waitForRestart);
+    }
+
+    /**
      * Validate queue
      *
      * @return boolean
@@ -495,6 +519,36 @@ class BackgroundJobsTool
         $redis->select($this->settings['redis_database']);
 
         return $redis;
+    }
+
+    /**
+     * @return \Supervisor\Supervisor
+     */
+    private function createSupervisorConnection(): \Supervisor\Supervisor
+    {
+        $httpOptions = [];
+        if (!empty($this->settings['supervisor_user']) && !empty($this->settings['supervisor_password'])) {
+            $httpOptions = [
+                'auth' => [
+                    $this->settings['supervisor_user'],
+                    $this->settings['supervisor_password'],
+                ],
+            ];
+        }
+
+        $client = new \fXmlRpc\Client(
+            sprintf(
+                'http://%s:%s/RPC2',
+                $this->settings['supervisor_host'],
+                $this->settings['supervisor_port']
+            ),
+            new \fXmlRpc\Transport\HttpAdapterTransport(
+                new \Http\Message\MessageFactory\GuzzleMessageFactory(),
+                new \GuzzleHttp\Client($httpOptions)
+            )
+        );
+
+        return new \Supervisor\Supervisor($client);
     }
 
     private function getJobById(int $jobId): ?Job
