@@ -6082,7 +6082,7 @@ components:
                 format: date
                 example: "2021-03-05"
               org:
-                description: "Filter events by matching an the creator organisation name"
+                description: "Filter events by matching the creator organisation name"
                 type: string
                 nullable: true
                 example: "CIRCL"
@@ -6599,7 +6599,7 @@ components:
                     disable_correlation:
                       $ref: "#/components/schemas/DisableCorrelationFlag"
                     distribution:
-                      $ref: "#/components/schemas/DisableCorrelationFlag"
+                      $ref: "#/components/schemas/DistributionLevelId"
                     comment:
                       $ref: "#/components/schemas/AttributeComment"
                     object_relation:
