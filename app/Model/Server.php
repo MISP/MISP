@@ -1668,11 +1668,14 @@ class Server extends AppModel
             }
             return true;
         }
+        if (empty($value)) {
+            return true;
+        }
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
         $regex = "/^(?<proto>https?):\/\/(?<host>([\w,\-,\.]+))(?::(?<port>[0-9]+))?(?<base>\/[a-z0-9_\-\.]+)?$/i";
-	if (
+        if (
             !preg_match($regex, $value, $matches) ||
             strtolower($matches['proto']) != strtolower($this->getProto()) ||
             (
@@ -4505,6 +4508,7 @@ class Server extends AppModel
                     'errorMessage' => __('The currently set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address).'),
                     'test' => 'testBaseURL',
                     'type' => 'string',
+                    'null' => true
                 ),
                 'external_baseurl' => array(
                     'level' => 0,
