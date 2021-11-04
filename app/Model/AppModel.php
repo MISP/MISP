@@ -1597,7 +1597,7 @@ class AppModel extends Model
                 $this->__dropIndex('object_references', 'referenced_uuid');
                 break;
             case 76:
-                $sqlArray = "ALTER TABLE `jobs` MODIFY COLUMN `process_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
+                $sqlArray[] = "ALTER TABLE `jobs` MODIFY COLUMN `process_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
