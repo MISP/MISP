@@ -690,6 +690,7 @@ CREATE TABLE IF NOT EXISTS `object_references` (
   `comment` text COLLATE utf8_bin NOT NULL,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
+  UNIQUE INDEX `uuid` (`uuid`),
   INDEX `source_uuid` (`source_uuid`),
   INDEX `referenced_uuid` (`referenced_uuid`),
   INDEX `timestamp` (`timestamp`),

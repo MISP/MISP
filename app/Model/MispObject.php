@@ -1,6 +1,8 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
+App::uses('AttributeValidationTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -242,8 +244,14 @@ class MispObject extends AppModel
 
     public function afterFind($results, $primary = false)
     {
-        foreach ($results as $k => $v) {
-            $results[$k] = $this->Attribute->UTCToISODatetime($results[$k], $this->alias);
+        foreach ($results as &$v) {
+            $object = &$v['Object'];
+            if (!empty($object['first_seen'])) {
+                $object['first_seen'] = $this->microTimestampToIso($object['first_seen']);
+            }
+            if (!empty($object['last_seen'])) {
+                $object['last_seen'] = $this->microTimestampToIso($object['last_seen']);
+            }
         }
         return $results;
     }
@@ -368,7 +376,7 @@ class MispObject extends AppModel
                     $attribute['value'] = $attribute['value'] . '|' . md5(base64_decode($attribute['data']));
                 }
             }
-            $attributeValueAfterModification = $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value']);
+            $attributeValueAfterModification = AttributeValidationTool::modifyBeforeValidation($attribute['type'], $attribute['value']);
             $attributeValueAfterModification = $this->Attribute->runRegexp($attribute['type'], $attributeValueAfterModification);
 
             $newObjectAttributes[] = sha1($attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $attributeValueAfterModification, true);
@@ -724,6 +732,8 @@ class MispObject extends AppModel
      * Clean the attribute list up from artifacts introduced by the object form
      * @param array $attributes
      * @return string|array
+     * @throws InternalErrorException
+     * @throws Exception
      */
     public function attributeCleanup($attributes)
     {
@@ -744,23 +754,19 @@ class MispObject extends AppModel
             if (isset($attribute['Attachment'])) {
                 // Check if there were problems with the file upload
                 // only keep the last part of the filename, this should prevent directory attacks
-                $filename = basename($attribute['Attachment']['name']);
-                $tmpfile = new File($attribute['Attachment']['tmp_name']);
                 if ((isset($attribute['Attachment']['error']) && $attribute['Attachment']['error'] == 0) ||
                     (!empty($attribute['Attachment']['tmp_name']) && $attribute['Attachment']['tmp_name'] != 'none')
                 ) {
-                    if (!is_uploaded_file($tmpfile->path)) {
+                    if (!is_uploaded_file($attribute['Attachment']['tmp_name'])) {
                         throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
                     }
                 } else {
-                    return 'Issues with the file attachment for the ' . $attribute['object_relation'] . ' attribute. The error code returned is ' . $attribute['Attachment']['error'];
+                    throw new InternalErrorException('Issues with the file attachment for the ' . $attribute['object_relation'] . ' attribute. The error code returned is ' . $attribute['Attachment']['error']);
                 }
                 $attributes['Attribute'][$k]['value'] = $attribute['Attachment']['name'];
                 unset($attributes['Attribute'][$k]['Attachment']);
-                $attributes['Attribute'][$k]['encrypt'] = $attribute['type'] == 'malware-sample' ? 1 : 0;
-                $attributes['Attribute'][$k]['data'] = base64_encode($tmpfile->read());
-                $tmpfile->delete();
-                $tmpfile->close();
+                $attributes['Attribute'][$k]['encrypt'] = $attribute['type'] === 'malware-sample' ? 1 : 0;
+                $attributes['Attribute'][$k]['data'] = base64_encode(FileAccessTool::readAndDelete($attribute['Attachment']['tmp_name']));
             }
             if (!isset($attributes['Attribute'][$k]['first_seen'])) {
                 $attributes['Attribute'][$k]['first_seen'] = null;
@@ -1152,15 +1158,15 @@ class MispObject extends AppModel
      */
     public function updateTimestamp($id, $timestamp = false)
     {
-        $object = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Object.id' => $id)
-        ));
-        $object['Object']['timestamp'] = $timestamp === false ? time() : $timestamp;
-        $object['Object']['skip_zmq'] = 1;
-        $object['Object']['skip_kafka'] = 1;
-        $result = $this->save($object);
-        return $result;
+        $object = [
+            'Object' => [
+                'id' => $id,
+                'timestamp' => $timestamp === false ? time() : $timestamp,
+                'skip_zmq' => 1,
+                'skip_kafka' => 1,
+            ],
+        ];
+        return $this->save($object, true, ['timestamp']);
     }
 
     // Hunt down all LEDA and CASTOR clones

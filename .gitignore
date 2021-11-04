@@ -6,6 +6,9 @@ tools/misp-backup/misp-backup.conf
 site/
 tools/mkdocs
 
+# venv
+/venv/*
+
 # Other
 /vendors
 /app/Vendor

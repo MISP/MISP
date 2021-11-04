@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
+App::uses('AttributeValidationTool', 'Tools');
 
 class Feed extends AppModel
 {
@@ -386,8 +387,8 @@ class Feed extends AppModel
         }
         $resultArray = $complexTypeTool->checkComplexRouter($data, $type, $settings);
         $this->Attribute = ClassRegistry::init('Attribute');
-        foreach ($resultArray as $key => $value) {
-            $resultArray[$key]['category'] = $this->Attribute->typeDefinitions[$value['default_type']]['default_category'];
+        foreach ($resultArray as &$value) {
+            $value['category'] = $this->Attribute->typeDefinitions[$value['default_type']]['default_category'];
         }
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
@@ -1055,19 +1056,32 @@ class Feed extends AppModel
         return $success;
     }
 
+    /**
+     * @param int $feedId
+     * @param array $user
+     * @param int|false $jobId
+     * @return array|bool
+     * @throws Exception
+     */
     public function downloadFromFeedInitiator($feedId, $user, $jobId = false)
     {
-        $this->id = $feedId;
-        $this->read();
-        if (isset($this->data['Feed']['settings']) && !empty($this->data['Feed']['settings'])) {
-            $this->data['Feed']['settings'] = json_decode($this->data['Feed']['settings'], true);
+        $feed = $this->find('first', array(
+            'conditions' => ['Feed.id' => $feedId],
+            'recursive' => -1,
+        ));
+        if (empty($feed)) {
+            throw new Exception("Feed with ID $feedId not found.");
         }
 
-        $HttpSocket = $this->isFeedLocal($this->data) ? null : $this->__setupHttpSocket();
-        if ($this->data['Feed']['source_format'] === 'misp') {
+        if (!empty($feed['Feed']['settings'])) {
+            $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+        }
+
+        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
+        if ($feed['Feed']['source_format'] === 'misp') {
             $this->jobProgress($jobId, 'Fetching event manifest.');
             try {
-                $actions = $this->getNewEventUuids($this->data, $HttpSocket);
+                $actions = $this->getNewEventUuids($feed, $HttpSocket);
             } catch (Exception $e) {
                 $this->logException("Could not get new event uuids for feed $feedId.", $e);
                 $this->jobProgress($jobId, 'Could not fetch event manifest. See error log for more details.');
@@ -1080,12 +1094,12 @@ class Feed extends AppModel
 
             $total = count($actions['add']) + count($actions['edit']);
             $this->jobProgress($jobId, __("Fetching %s events.", $total));
-            $result = $this->downloadFromFeed($actions, $this->data, $HttpSocket, $user, $jobId);
-            $this->__cleanupFile($this->data, '/manifest.json');
+            $result = $this->downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId);
+            $this->__cleanupFile($feed, '/manifest.json');
         } else {
             $this->jobProgress($jobId, 'Fetching data.');
             try {
-                $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
+                $temp = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
             } catch (Exception $e) {
                 $this->logException("Could not get freetext feed $feedId", $e);
                 $this->jobProgress($jobId, 'Could not fetch freetext feed. See error log for more details.');
@@ -1105,17 +1119,18 @@ class Feed extends AppModel
                     'to_ids' => $value['to_ids']
                 );
             }
+            unset($temp);
 
             $this->jobProgress($jobId, 'Saving data.', 50);
 
             try {
-                $result = $this->saveFreetextFeedData($this->data, $data, $user, $jobId);
+                $result = $this->saveFreetextFeedData($feed, $data, $user, $jobId);
             } catch (Exception $e) {
                 $this->logException("Could not save freetext feed data for feed $feedId.", $e);
                 return false;
             }
 
-            $this->__cleanupFile($this->data, '');
+            $this->__cleanupFile($feed, '');
         }
         return $result;
     }
@@ -1201,7 +1216,7 @@ class Feed extends AppModel
 
                 // Because some types can be saved in modified version (for example, IPv6 address is convert to compressed
                 // format, we should also check if current event contains modified value.
-                $modifiedValue = $this->Event->Attribute->modifyBeforeValidation($dataPoint['type'], $dataPoint['value']);
+                $modifiedValue = AttributeValidationTool::modifyBeforeValidation($dataPoint['type'], $dataPoint['value']);
                 if (isset($existsAttributesValueToId[$modifiedValue])) {
                     unset($data[$k]);
                     unset($existsAttributesValueToId[$modifiedValue]);

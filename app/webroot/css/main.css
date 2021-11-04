@@ -1188,6 +1188,11 @@ li .generic-picker-item-element-check {
     margin-right: 8px;
 }
 
+.generic_picker .apply_css_arrow {
+    padding-left: 5px;
+    font-size: smaller;
+}
+
 .apply_css_arrow:before {
     content: '';
     margin-right: 5px;

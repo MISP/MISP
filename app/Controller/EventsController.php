@@ -1141,13 +1141,11 @@ class EventsController extends AppController
      *
      * @param array $attribute An attribute
      * @param array $fields List of keys in attribute to search in
-     * @param string $searchValue Values to search ( '|' is the separator)
+     * @param array $searchParts Values to search
      * @return bool Returns true on match
      */
-    private function __valueInFieldAttribute($attribute, $fields, $searchValue)
+    private function __valueInFieldAttribute($attribute, $fields, $searchParts)
     {
-        $searchParts = explode('|', mb_strtolower($searchValue));
-
         foreach ($fields as $field) {
             if (strpos($field, 'Tag') === 0) {
                 if (empty($attribute['AttributeTag'])) {
@@ -1163,11 +1161,10 @@ class EventsController extends AppController
                     }
                 }
             } else {
-                $fieldValue = isset($attribute[$field]) ? $attribute[$field] : null;
-                if (empty($fieldValue)) {
+                if (!isset($attribute[$field])) {
                     continue;
                 }
-                $fieldValue = mb_strtolower($fieldValue);
+                $fieldValue = mb_strtolower($attribute[$field]);
                 foreach ($searchParts as $s) {
                     if (strpos($fieldValue, $s) !== false) {
                         return true;
@@ -1181,12 +1178,17 @@ class EventsController extends AppController
     public function viewEventAttributes($id, $all = false)
     {
         $filterData = array(
-            'request' => $this->request,
             'paramArray' => self::ACCEPTED_FILTERING_NAMED_PARAMS,
             'named_params' => $this->request->params['named']
         );
-        $exception = false;
-        $filters = $this->_harvestParameters($filterData, $exception);
+        $filters = $this->_harvestParameters($filterData);
+
+        // Remove default filters
+        foreach ($filters as $filterName => $filterValue) {
+            if (isset(self::DEFAULT_FILTERING_RULE[$filterName]) && self::DEFAULT_FILTERING_RULE[$filterName] == $filterValue) {
+                unset($filters[$filterName]);
+            }
+        }
 
         if (isset($filters['focus'])) {
             $this->set('focus', $filters['focus']);
@@ -1201,6 +1203,7 @@ class EventsController extends AppController
             'includeEventCorrelations' => false,
             'noEventReports' => true, // event reports for view are loaded dynamically
             'noSightings' => true,
+            'includeServerCorrelations' => $filters['includeServerCorrelations'] ?? 1.
         ];
         if (isset($filters['extended'])) {
             $conditions['extended'] = 1;
@@ -1222,11 +1225,6 @@ class EventsController extends AppController
         }
         if (isset($filters['toIDS']) && $filters['toIDS'] != 0) {
             $conditions['to_ids'] = $filters['toIDS'] == 2 ? 0 : 1;
-        }
-        if (!isset($filters['includeServerCorrelations'])) {
-            $conditions['includeServerCorrelations'] = 1;
-        } else {
-            $conditions['includeServerCorrelations'] = $filters['includeServerCorrelations'];
         }
         if (!empty($filters['includeRelatedTags'])) {
             $this->set('includeRelatedTags', 1);
@@ -1257,6 +1255,9 @@ class EventsController extends AppController
         }
         $event = $results[0];
 
+        $emptyEvent = empty($event['Object']) && empty($event['Attribute']);
+        $this->set('emptyEvent', $emptyEvent);
+
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event);
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
         $this->set('attributeClusters', array_values($attributeTagsName['clusters']));
@@ -1282,45 +1283,35 @@ class EventsController extends AppController
         if (isset($filters['galaxyAttachedAttributes']) && $filters['galaxyAttachedAttributes'] !== '') {
             $this->__applyQueryString($event, $filters['galaxyAttachedAttributes'], 'Tag.name');
         }
-        $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
-        $this->set('emptyEvent', $emptyEvent);
 
         // remove galaxies tags
         $this->loadModel('Taxonomy');
         foreach ($event['Object'] as $k => $object) {
             if (isset($object['Attribute'])) {
                 foreach ($object['Attribute'] as $k2 => $attribute) {
-                    $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
+                    if (!empty($attribute['AttributeTag'])) {
+                        $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
 
-                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
-                    foreach ($tagConflicts['global'] as $tagConflict) {
-                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                        $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                     }
-                    foreach ($tagConflicts['local'] as $tagConflict) {
-                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
-                    }
-                    $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                 }
             }
         }
-        foreach ($event['Attribute'] as $k => $attribute) {
-            $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
 
-            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
-            foreach ($tagConflicts['global'] as $tagConflict) {
-                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+        foreach ($event['Attribute'] as &$attribute) {
+            if (!empty($attribute['AttributeTag'])) {
+                $this->Event->Attribute->removeGalaxyClusterTags($attribute);
+
+                $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                $attribute['tagConflicts'] = $tagConflicts;
             }
-            foreach ($tagConflicts['local'] as $tagConflict) {
-                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
-            }
-            $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
         }
         if (empty($this->passedArgs['sort'])) {
             $filters['sort'] = 'timestamp';
             $filters['direction'] = 'desc';
         }
-        $this->loadModel('Sighting');
-        $sightingsData = $this->Sighting->eventsStatistic([$event], $this->Auth->user());
+        $sightingsData = $this->Event->Sighting->eventsStatistic([$event], $user);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, $all, $sightingsData);
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
@@ -1352,7 +1343,7 @@ class EventsController extends AppController
         }
         $this->set('currentUri', $this->request->here);
         $this->layout = false;
-        $this->__eventViewCommon($this->Auth->user());
+        $this->__eventViewCommon($user);
         $this->render('/Elements/eventattribute');
     }
 
@@ -1449,14 +1440,16 @@ class EventsController extends AppController
 
             $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
 
-            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
-            foreach ($tagConflicts['global'] as $tagConflict) {
-                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+            if (!empty($attribute['AttributeTag'])) {
+                $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                foreach ($tagConflicts['global'] as $tagConflict) {
+                    $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                }
+                foreach ($tagConflicts['local'] as $tagConflict) {
+                    $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                }
+                $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
             }
-            foreach ($tagConflicts['local'] as $tagConflict) {
-                $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
-            }
-            $event['Attribute'][$k]['tagConflicts'] = $tagConflicts;
         }
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event);
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
@@ -1477,14 +1470,16 @@ class EventsController extends AppController
 
                     $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
 
-                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
-                    foreach ($tagConflicts['global'] as $tagConflict) {
-                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                    if (!empty($attribute['AttributeTag'])) {
+                        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                        foreach ($tagConflicts['global'] as $tagConflict) {
+                            $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                        }
+                        foreach ($tagConflicts['local'] as $tagConflict) {
+                            $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+                        }
+                        $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                     }
-                    foreach ($tagConflicts['local'] as $tagConflict) {
-                        $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
-                    }
-                    $event['Object'][$k]['Attribute'][$k2]['tagConflicts'] = $tagConflicts;
                 }
             }
         }
@@ -1917,6 +1912,11 @@ class EventsController extends AppController
         $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, true, $eventId));
     }
 
+    /**
+     * @param array $event
+     * @param string $searchFor
+     * @param string|false $filterColumnsOverwrite
+     */
     private function __applyQueryString(&$event, $searchFor, $filterColumnsOverwrite=false)
     {
         // filtering on specific columns is specified
@@ -1927,15 +1927,17 @@ class EventsController extends AppController
             $filterValue = array_map('trim', explode(",", $filterColumnsOverwrite));
             $validFilters = array('id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name');
             foreach ($filterValue as $k => $v) {
-                if (!in_array($v, $validFilters)) {
+                if (!in_array($v, $validFilters, true)) {
                     unset($filterValue[$k]);
                 }
             }
         }
 
+        $searchParts = explode('|', mb_strtolower($searchFor));
+
         // search in all attributes
         foreach ($event['Attribute'] as $k => $attribute) {
-            if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchFor)) {
+            if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchParts)) {
                 unset($event['Attribute'][$k]);
             }
         }
@@ -1943,7 +1945,7 @@ class EventsController extends AppController
 
         // search in all attributes
         foreach ($event['ShadowAttribute'] as $k => $proposals) {
-            if (!$this->__valueInFieldAttribute($proposals, $filterValue, $searchFor)) {
+            if (!$this->__valueInFieldAttribute($proposals, $filterValue, $searchParts)) {
                 unset($event['ShadowAttribute'][$k]);
             }
         }
@@ -1951,11 +1953,11 @@ class EventsController extends AppController
 
         // search for all attributes in object
         foreach ($event['Object'] as $k => $object) {
-            if ($this->__valueInFieldAttribute($object, ['id', 'uuid', 'name', 'comment'], $searchFor)) {
+            if ($this->__valueInFieldAttribute($object, ['id', 'uuid', 'name', 'comment'], $searchParts)) {
                 continue;
             }
             foreach ($object['Attribute'] as $k2 => $attribute) {
-                if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchFor)) {
+                if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchParts)) {
                     unset($event['Object'][$k]['Attribute'][$k2]);
                 }
             }
@@ -1970,7 +1972,8 @@ class EventsController extends AppController
     }
 
     // look in the parameters if we are doing advanced filtering or not
-    private function __checkIfAdvancedFiltering($filters) {
+    private function __checkIfAdvancedFiltering($filters)
+    {
         $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0, 'extended' => 0, 'page' => 0));
 
         if (count($advancedFilteringActive) > 0) {
@@ -1998,17 +2001,6 @@ class EventsController extends AppController
             }
         }
         return array('active' => $activeRules > 0 ? $res : false, 'activeRules' => $activeRules);
-    }
-
-    private function __removeChildren(&$pivot, $id)
-    {
-        if ($pivot['id'] == $id) {
-            $pivot['children'] = array();
-        } else {
-            foreach ($pivot['children'] as $k => $v) {
-                $this->__removeChildren($v, $id);
-            }
-        }
     }
 
     private function __doRemove(&$pivot, $id)
