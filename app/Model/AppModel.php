@@ -1534,7 +1534,7 @@ class AppModel extends Model
                     `value` text NOT NULL,
                     `from_json` tinyint(1) default 0,
                     PRIMARY KEY (`id`),
-                    UNIQUE INDEX `value` (`value`(255))
+                    UNIQUE INDEX `value` (`value`(191))
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 66:
