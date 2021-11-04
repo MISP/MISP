@@ -36,7 +36,6 @@ class MonitorWorkersShell extends AppShell
         return $parser;
     }
 
-
     public function main(): void
     {
         $this->sleepInterval = (int)$this->params['sleep'];

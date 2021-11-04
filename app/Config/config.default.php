@@ -136,7 +136,7 @@ $config = array(
         'expire' => 300,
     ),
     'BackgroundJobs' => array(
-        'use_resque' => true,
+        'enabled' => true,
         'redis_host' => 'localhost',
         'redis_port' => 6379,
         'redis_password' => '',
@@ -146,8 +146,8 @@ $config = array(
         'track_status' => false,
         'supervisor_host' => 'localhost',
         'supervisor_port' => '9001',
-        'supervisor_user' => 'supervisor',
-        'supervisor_password' => 'supervisor',
+        'supervisor_user' => '',
+        'supervisor_password' => '',
     ),
     // Uncomment the following to enable client SSL certificate authentication
     /*

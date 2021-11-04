@@ -7181,7 +7181,7 @@ class Server extends AppModel
      */
     private function getWorkers(): array
     {
-        if (Configure::read('BackgroundJobs.use_resque')) {
+        if (!Configure::read('BackgroundJobs.enabled')) {
             try {
                 $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
             } catch (Exception $e) {

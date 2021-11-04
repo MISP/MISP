@@ -165,7 +165,7 @@ class JobsController extends AppController
 
     private function getJobStatus(string $id): string
     {
-        if (Configure::read('BackgroundJobs.use_resque')) {
+        if (!Configure::read('BackgroundJobs.enabled')) {
             return $this->__jobStatusConverter(CakeResque::getJobStatus($id));
         }
 
@@ -177,7 +177,7 @@ class JobsController extends AppController
 
     private function getFailedJobLog(string $id): array
     {
-        if (Configure::read('BackgroundJobs.use_resque')) {
+        if (!Configure::read('BackgroundJobs.enabled')) {
             return CakeResque::getFailedJobLog($id);
         }
 
