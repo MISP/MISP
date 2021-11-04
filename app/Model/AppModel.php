@@ -2565,7 +2565,7 @@ class AppModel extends Model
             App::uses('BackgroundJobsTool', 'Tools');
 
             // TODO: remove after CakeResque is deprecated
-            $settings = ['use_resque' => true];
+            $settings = ['enabled' => false];
             if (Configure::read('BackgroundJobs')) {
                 $settings = Configure::read('BackgroundJobs');
             }
