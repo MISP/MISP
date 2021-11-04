@@ -1209,10 +1209,19 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
 
-        if (!Configure::read('BackgroundJobs.use_resque')) {
-            throw new MethodNotAllowedException('Starting workers via API is not implemented. Use supervisor CLI.');
+        if (Configure::read('BackgroundJobs.enabled')) {
+            $message = __('Worker start signal sent');
+            $this->Server->getBackgroundJobsTool()->startWorker($type);
+
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Servers', 'startWorker', $type, $this->response->type(), $message);
+            } else {
+                $this->Flash->info($message);
+                $this->redirect('/servers/serverSettings/workers');
+            }
         }
 
+        // CakeResque
         $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
         if (!in_array($type, $validTypes)) {
             throw new MethodNotAllowedException('Invalid worker type.');
@@ -1249,8 +1258,21 @@ class ServersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
-        $this->Server->killWorker($pid, $this->Auth->user());
+
         $message = __('Worker stop signal sent');
+
+        if (Configure::read('BackgroundJobs.enabled')) {
+            $this->Server->getBackgroundJobsTool()->stopWorker($pid);
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Servers', 'stopWorker', $pid, $this->response->type(), $message);
+            } else {
+                $this->Flash->info($message);
+                $this->redirect('/servers/serverSettings/workers');
+            }
+        }
+
+        // CakeResque
+        $this->Server->killWorker($pid, $this->Auth->user());
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Servers', 'stopWorker', $pid, $this->response->type(), $message);
         } else {
@@ -1516,7 +1538,14 @@ class ServersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
-        $this->Server->restartWorkers($this->Auth->user());
+
+        if (Configure::read('BackgroundJobs.enabled')) {
+            $this->Server->getBackgroundJobsTool()->restartWorkers();
+        } else {
+            // CakeResque
+            $this->Server->restartWorkers($this->Auth->user());
+        }
+
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Server', 'restartWorkers', false, $this->response->type(), __('Restarting workers.'));
         }
@@ -1528,7 +1557,14 @@ class ServersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
-        $this->Server->restartDeadWorkers($this->Auth->user());
+
+        if (Configure::read('BackgroundJobs.enabled')) {
+            $this->Server->getBackgroundJobsTool()->restartDeadWorkers();
+        } else {
+            // CakeResque
+            $this->Server->restartDeadWorkers($this->Auth->user());
+        }
+
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Server', 'restartDeadWorkers', false, $this->response->type(), __('Restarting workers.'));
         }
@@ -1754,12 +1790,19 @@ class ServersController extends AppController
         if (!$this->request->is('Post') || $this->request->is('ajax')) {
             throw new MethodNotAllowedException();
         }
-        $worker_array = array('cache', 'default', 'email', 'prio');
-        if (!in_array($worker, $worker_array)) {
-            throw new MethodNotAllowedException('Invalid worker');
+
+        if (Configure::read('BackgroundJobs.enabled')) {
+            $this->Server->getBackgroundJobsTool()->purgeQueue($worker);
+        } else {
+            // CakeResque
+            $worker_array = array('cache', 'default', 'email', 'prio');
+            if (!in_array($worker, $worker_array)) {
+                throw new MethodNotAllowedException('Invalid worker');
+            }
+            $redis = Resque::redis();
+            $redis->del('queue:' . $worker);
         }
-        $redis = Resque::redis();
-        $redis->del('queue:' . $worker);
+
         $this->Flash->success('Queue cleared.');
         $this->redirect($this->referer());
     }

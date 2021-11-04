@@ -18,10 +18,10 @@ App::uses('BackgroundJob', 'Tools/BackgroundJobs');
  *      $ ./Console/cake start_worker [queue]
  *      $ ./Console/cake monitor_workers
  * 
- * It is recommended to run these commands with [supervisord](http://supervisord.org).
- * `supervisord` has an extensive feature set to manage scripts as services, 
+ * It is recommended to run these commands with [Supervisor](http://supervisord.org).
+ * `Supervisor` has an extensive feature set to manage scripts as services, 
  * such as autorestart, parallel execution, logging, monitoring and much more. 
- * All can be managed via terminal or a XML-RPC API.
+ * All can be managed via the terminal or a XML-RPC API.
  * 
  * Use the following configuration as a template for the services:
  *      /etc/supervisor/conf.d/misp-workers-monitor.conf:
@@ -105,14 +105,18 @@ class BackgroundJobsTool
      * 
      * Settings should have the following format:
      *      [
-     *           'use_resque' => true,
+     *           'enabled' => true,
      *           'redis_host' => 'localhost',
      *           'redis_port' => 6379,
      *           'redis_password' => '',
      *           'redis_database' => 1,
      *           'redis_namespace' => 'background_jobs',
      *           'max_job_history_ttl' => 86400
-     *           'track_status' => 86400
+     *           'track_status' => 86400,
+     *           'supervisor_host' => 'localhost',
+     *           'supervisor_port' => '9001',
+     *           'supervisor_user' => '',
+     *           'supervisor_password' => '',
      *      ]
      *
      * @param array $settings
@@ -122,11 +126,11 @@ class BackgroundJobsTool
     {
         $this->settings = $settings;
 
-        if (!$this->RedisConnection && $this->settings['use_resque'] === false) {
+        if (!$this->RedisConnection && $this->settings['enabled'] === true) {
             $this->RedisConnection = $this->createRedisConnection();
         }
 
-        if (!$this->Supervisor && $this->settings['use_resque'] === false) {
+        if (!$this->Supervisor && $this->settings['enabled'] === true) {
             $this->Supervisor = $this->createSupervisorConnection();
         }
     }
@@ -152,7 +156,7 @@ class BackgroundJobsTool
         array $metadata = []
     ): string {
 
-        if ($this->settings['use_resque']) {
+        if (!$this->settings['enabled']) {
             return $this->resqueEnqueue($queue, self::CMD_TO_SHELL_DICT[$command], $args, $trackStatus, $jobId);
         }
 
@@ -352,7 +356,7 @@ class BackgroundJobsTool
     {
         $this->validateQueue($queue);
 
-        if ($this->settings['use_resque']) {
+        if (!$this->settings['enabled']) {
             return CakeResque::getQueueSize($queue);
         }
 
@@ -454,6 +458,67 @@ class BackgroundJobsTool
     }
 
     /**
+     * Start worker by name
+     *
+     * @param string $name
+     * @param boolean $waitForRestart
+     * @return boolean
+     */
+    public function startWorker(string $name, bool $waitForRestart = false): bool
+    {
+        $this->validateWorkerName($name);
+
+        return $this->Supervisor->startProcess(
+            sprintf(
+                '%s:%s',
+                self::MISP_WORKERS_PROCESS_GROUP,
+                $name
+            ),
+            $waitForRestart
+        );
+    }
+
+    /**
+     * Stop worker by name or pid
+     *
+     * @param string|int $id
+     * @param boolean $waitForRestart
+     * @return boolean
+     */
+    public function stopWorker($id, bool $waitForRestart = false): bool
+    {
+        if (is_numeric($id)) {
+            $process = $this->getProcessByPid((int)$id);
+            $name = $process->offsetGet('name');
+        } else {
+            $name = $id;
+        }
+
+        $this->validateWorkerName($name);
+
+        return $this->Supervisor->stopProcess(
+            sprintf(
+                '%s:%s',
+                self::MISP_WORKERS_PROCESS_GROUP,
+                $name
+            ),
+            $waitForRestart
+        );
+    }
+
+    /**
+     * Restarts workers
+     *
+     * @param boolean $waitForRestart
+     * @return void
+     */
+    public function restartWorkers(bool $waitForRestart = false): void
+    {
+        $this->Supervisor->stopProcessGroup(self::MISP_WORKERS_PROCESS_GROUP, $waitForRestart);
+        $this->Supervisor->startProcessGroup(self::MISP_WORKERS_PROCESS_GROUP, $waitForRestart);
+    }
+
+    /**
      * Restarts workers with status != RUNNING
      *
      * @param boolean $waitForRestart
@@ -462,6 +527,19 @@ class BackgroundJobsTool
     public function restartDeadWorkers(bool $waitForRestart = false): void
     {
         $this->Supervisor->startProcessGroup(self::MISP_WORKERS_PROCESS_GROUP, $waitForRestart);
+    }
+
+    /**
+     * Purge queue
+     *
+     * @param string $queue
+     * @return void
+     */
+    public function purgeQueue(string $queue): void
+    {
+        $this->validateQueue($queue);
+
+        $this->RedisConnection->del($queue);
     }
 
     /**
@@ -499,6 +577,25 @@ class BackgroundJobsTool
                     implode(', ', self::ALLOWED_COMMANDS)
                 )
             );
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate worker name
+     *
+     * @return boolean
+     * @throws InvalidArgumentException
+     */
+    private function validateWorkerName(string $name): bool
+    {
+        list($queue, $id) = explode('_', $name);
+
+        $this->validateQueue($queue);
+
+        if (!$this->validateQueue($queue) || !is_numeric($id)) {
+            throw new InvalidArgumentException('Invalid worker name, must be one of format {queue_name}_{process_id}, example: default_00');
         }
 
         return true;
@@ -557,5 +654,28 @@ class BackgroundJobsTool
         $job->id = $jobId;
 
         return $job;
+    }
+
+    /**
+     * Get Supervisor process by PID
+     *
+     * @param integer $pid
+     * @return \Supervisor\Process
+     *
+     * @throws NotFoundException
+     */
+    private function getProcessByPid(int $pid): \Supervisor\Process
+    {
+        $procs = $this->Supervisor->getAllProcesses();
+
+        foreach ($procs as $proc) {
+            if ($proc->offsetGet('group') === self::MISP_WORKERS_PROCESS_GROUP && $proc->offsetGet('pid')  === $pid) {
+                return $proc;
+            }
+        }
+
+        throw new NotFoundException(
+            sprintf('Worker with pid=%s not found.', $pid)
+        );
     }
 }
