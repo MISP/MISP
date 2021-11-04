@@ -49,14 +49,10 @@ def _process_misp_files(version: str, input_names: Union[list, None], debug: boo
         return
     try:
         parser = MISPtoSTIX20Parser() if version == '2.0' else MISPtoSTIX21Parser()
-        for name in input_names[:-1]:
+        for name in input_names:
             parser.parse_json_content(name)
             with open(f'{name}.out', 'wt', encoding='utf-8') as f:
                 f.write(f'{json.dumps(parser.stix_objects, cls=STIXJSONEncoder)}')
-        name = input_names[-1]
-        parser.parse_json_content(name)
-        with open(f'{name}.out', 'wt', encoding='utf-8') as f:
-            f.write(json.dumps(parser.stix_objects, cls=STIXJSONEncoder))
         errors = parser.errors
         if errors:
             _handle_errors(errors)
