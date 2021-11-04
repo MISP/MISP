@@ -2123,15 +2123,15 @@ class Server extends AppModel
             if ($beforeResult !== true) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
-                $result = $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => $user['email'],
-                        'action' => 'serverSettingsEdit',
-                        'user_id' => $user['id'],
-                        'title' => 'Server setting issue',
-                        'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $value  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
+                $this->Log->save(array(
+                    'org' => $user['Organisation']['name'],
+                    'model' => 'Server',
+                    'model_id' => 0,
+                    'email' => $user['email'],
+                    'action' => 'serverSettingsEdit',
+                    'user_id' => $user['id'],
+                    'title' => 'Server setting issue',
+                    'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $value  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
                 ));
                 return $beforeResult;
             }
@@ -2184,6 +2184,13 @@ class Server extends AppModel
      */
     public function serverSettingsSaveValue($setting, $value)
     {
+        if (Configure::read('MISP.system_setting_db')) {
+            /** @var SystemSetting $systemSetting */
+            $systemSetting = ClassRegistry::init('SystemSetting');
+            $systemSetting->setSetting($setting, $value);
+            return true;
+        }
+
         $configFilePath = APP . 'Config' . DS . 'config.php';
         if (!is_writable($configFilePath)) {
             return false; // config file is not writeable

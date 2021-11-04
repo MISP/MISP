@@ -131,6 +131,8 @@ class AuditLog extends AppModel
         if (in_array($auditLog['model'], ['Attribute', 'Object', 'ShadowAttribute'], true)) {
             $modelName = $auditLog['model'] === 'ShadowAttribute' ? 'Proposal' : $auditLog['model'];
             $title = __('%s from Event #%s', $modelName, $auditLog['event_id']);
+        } else if ($auditLog['model'] === 'SystemSetting') {
+            $title = $auditLog['model'];
         } else {
             $title = "{$auditLog['model']} #{$auditLog['model_id']}";
         }
