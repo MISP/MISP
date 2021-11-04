@@ -4992,7 +4992,13 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
-                    'options' => array('0' => __('Your organisation only'), '1' => __('This community only'), '2' => __('Connected communities'), '3' => __('All communities'), 'event' => __('Inherit from event')),
+                    'options' => array(
+                        '0' => __('Your organisation only'),
+                        '1' => __('This community only'),
+                        '2' => __('Connected communities'),
+                        '3' => __('All communities'),
+                        'event' => __('Inherit from event')
+                    ),
                 ),
                 'default_event_threat_level' => array(
                     'level' => 1,
@@ -5606,7 +5612,7 @@ class Server extends AppModel
                     'null' => true,
                 ],
                 'warning_for_all' => [
-                    'level' => 1,
+                    'level' => self::SETTING_RECOMMENDED,
                     'description' => __('Enable warning list triggers regardless of the IDS flag value'),
                     'value' => false,
                     'errorMessage' => '',
