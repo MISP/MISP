@@ -73,7 +73,7 @@ Once the system is installed you can perform the following steps.
 installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
-  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 moreutils -qy
+  sudo apt-get install curl gcc git gpg-agent make python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 moreutils -qy
 
   # Install MariaDB (a MySQL fork/alternative)
   sudo apt-get install mariadb-client mariadb-server -qy
@@ -88,19 +88,22 @@ installCoreDeps () {
 
 # <snippet-begin 0_installDepsPhp80.sh>
 # Install Php 8.0 dependencies
+# FIXME: Ugly hack to get 7.4 working until 8.0 (cake4) will be implemented.
+echo "deb http://ppa.launchpad.net/ondrej/php/ubuntu devel main" |sudo tee /etc/apt/sources.list.d/ondrej-ubuntu-php-devel.list
+sudo apt update
 installDepsPhp80 () {
   debug "Installing PHP 8.0 dependencies"
-  PHP_ETC_BASE=/etc/php/8.0
+  PHP_ETC_BASE=/etc/php/7.4
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   checkAptLock
   sudo apt install -qy \
-  libapache2-mod-php8.0 \
-  php8.0 php8.0-cli \
-  php8.0-dev \
-  php-json php8.0-xml php8.0-mysql php8.0-opcache php8.0-readline php8.0-mbstring php8.0-zip \
-  php8.0-redis php-gnupg \
-  php8.0-intl php8.0-bcmath \
-  php8.0-gd
+  libapache2-mod-php7.4 \
+  php7.4 php7.4-cli \
+  php7.4-dev \
+  php-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip \
+  php7.4-redis php-gnupg \
+  php7.4-intl php7.4-bcmath \
+  php7.4-gd
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
