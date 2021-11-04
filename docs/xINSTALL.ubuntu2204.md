@@ -90,6 +90,7 @@ installCoreDeps () {
 # Install Php 8.0 dependencies
 # FIXME: Ugly hack to get 7.4 working until 8.0 (cake4) will be implemented.
 echo "deb http://ppa.launchpad.net/ondrej/php/ubuntu devel main" |sudo tee /etc/apt/sources.list.d/ondrej-ubuntu-php-devel.list
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4F4EA0AAE5267A6C
 sudo apt update
 installDepsPhp80 () {
   debug "Installing PHP 8.0 dependencies"
@@ -101,7 +102,7 @@ installDepsPhp80 () {
   php7.4 php7.4-cli \
   php7.4-dev \
   php-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip \
-  php7.4-redis php-gnupg \
+  php-redis php-gnupg \
   php7.4-intl php7.4-bcmath \
   php7.4-gd
 
