@@ -89,6 +89,35 @@ class SystemSetting extends AppModel
     }
 
     /**
+     * @param string|null $old Old (or current) encryption key.
+     * @param string|null $new New encryption key. If empty, encrypted values will be decrypted.
+     * @throws JsonException
+     */
+    public function reencrypt($old, $new)
+    {
+        $settings = $this->find('list', [
+            'fields' => ['SystemSetting.setting', 'SystemSetting.value'],
+        ]);
+        $toSave = [];
+        foreach ($settings as $setting => $value) {
+            if (!self::isSensitive($setting)) {
+                continue;
+            }
+            if (substr($value, 0, 2) === EncryptedValue::ENCRYPTED_MAGIC) {
+                $value = BetterSecurity::decrypt(substr($value, 2), $old);
+            }
+            if (!empty($new)) {
+                $value = EncryptedValue::ENCRYPTED_MAGIC . BetterSecurity::encrypt($value, $new);
+            }
+            $toSave[] = ['SystemSetting' => [
+                'setting' => $setting,
+                'value' => $value,
+            ]];
+        }
+        return $this->saveMany($toSave);
+    }
+
+    /**
      * @param string $value
      * @return EncryptedValue|mixed
      * @throws JsonException

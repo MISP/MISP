@@ -1382,7 +1382,11 @@ class Server extends AppModel
                 }
             }
             if (!empty($leafValue['test'])) {
-                $result = $this->{$leafValue['test']}($setting, empty($leafValue['errorMessage']) ? false : $leafValue['errorMessage']);
+                if ($leafValue['test'] instanceof Closure) {
+                    $result = $leafValue['test']($setting);
+                } else {
+                    $result = $this->{$leafValue['test']}($setting, empty($leafValue['errorMessage']) ? false : $leafValue['errorMessage']);
+                }
                 if ($result !== true) {
                     $leafValue['error'] = 1;
                     if ($result !== false) {
@@ -2150,8 +2154,12 @@ class Server extends AppModel
         } else if ($setting['type'] === 'numeric') {
             $value = (int)($value);
         }
-        if (!empty($setting['test'])) {
-            $testResult = $this->{$setting['test']}($value);
+        if (isset($setting['test'])) {
+            if ($setting['test'] instanceof Closure) {
+                $testResult = $setting['test']($value);
+            } else {
+                $testResult = $this->{$setting['test']}($value);
+            }
         } else {
             $testResult = true;  # No test defined for this setting: cannot fail
         }
@@ -2164,7 +2172,8 @@ class Server extends AppModel
             return $errorMessage;
         }
         $oldValue = Configure::read($setting['name']);
-        $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
+        $fileOnly = isset($setting['file_only']) && $setting['file_only'];
+        $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value, $fileOnly);
         if ($settingSaveResult) {
             if (SystemSetting::isSensitive($setting['name'])) {
                 $change = array($setting['name'] => array('*****', '*****'));
@@ -2175,7 +2184,11 @@ class Server extends AppModel
 
             // execute after hook
             if (isset($setting['afterHook'])) {
-                $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value));
+                if ($setting['afterHook'] instanceof Closure) {
+                    $afterResult = $setting['afterHook']($setting['name'], $value, $oldValue);
+                } else {
+                    $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value, $oldValue));
+                }
                 if ($afterResult !== true) {
                     $change = 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult;
                     $this->loadLog()->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting issue', $change);
@@ -2191,12 +2204,13 @@ class Server extends AppModel
     /**
      * @param string $setting
      * @param mixed $value
+     * @param bool $fileOnly If true, always store value in config file even when `MISP.system_setting_db` is enabled
      * @return bool
      * @throws Exception
      */
-    public function serverSettingsSaveValue($setting, $value)
+    public function serverSettingsSaveValue($setting, $value, $fileOnly = false)
     {
-        if (Configure::read('MISP.system_setting_db')) {
+        if (!$fileOnly && Configure::read('MISP.system_setting_db')) {
             /** @var SystemSetting $systemSetting */
             $systemSetting = ClassRegistry::init('SystemSetting');
             $systemSetting->setSetting($setting, $value);
@@ -5955,7 +5969,29 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
-                ]
+                ],
+                'encryption_key' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Encryption key used to store sensitive data (like authkeys) in database encrypted. If empty, data are stored unecrypted. Required PHP 7.1 or newer.'),
+                    'value' => '',
+                    'test' => function ($value) {
+                        if (strlen($value) < 32) {
+                            return __('Encryption key must be at least 32 chars long.');
+                        }
+                        return true;
+                    },
+                    'afterHook' => function ($setting, $new, $old) {
+                        /** @var SystemSetting $systemSetting */
+                        $systemSetting = ClassRegistry::init('SystemSetting');
+                        $systemSetting->reencrypt($old, $new);
+                        return true;
+                    },
+                    'type' => 'string',
+                    'null' => true,
+                    'cli_only' => true,
+                    'redacted' => true,
+                    'file_only' => true,
+                ],
             ),
             'SecureAuth' => array(
                 'branch' => 1,
