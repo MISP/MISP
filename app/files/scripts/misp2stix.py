@@ -47,8 +47,7 @@ def _handle_errors(errors: dict):
 
 def _process_misp_files(scope: str, orgname: str, version: str, return_format:str, input_names: Union[list, None], debug: bool):
     if input_names is None:
-        print('No input file provided.', file=sys.stderr)
-        print(json.dumps({'success': 1}))
+        print(json.dumps({'error': 'No input file provided.'}))
         return
     try:
         parser = MISPtoSTIX1EventsParser if scope == 'Event' else MISPtoSTIX1AttributesParser

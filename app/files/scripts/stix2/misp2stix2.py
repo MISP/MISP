@@ -44,8 +44,7 @@ def _handle_errors(errors: dict):
 
 def _process_misp_files(version: str, input_names: Union[list, None], debug: bool):
     if input_names is None:
-        print('No input file provided.', file=sys.stderr)
-        print(json.dumps({'success': 1}))
+        print(json.dumps({'error': 'No input file provided.'}))
         return
     try:
         parser = MISPtoSTIX20Parser() if version == '2.0' else MISPtoSTIX21Parser()
