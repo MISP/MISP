@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('JsonTool', 'Tools');
+App::uses('BetterSecurity', 'Tools');
 
 /**
  * Class for ondemand encryption of JSON serialized value
@@ -24,14 +25,7 @@ class EncryptedValue implements JsonSerializable
      */
     public function decrypt()
     {
-        $key = Configure::read('Security.encryption_key');
-        if (empty($key)) {
-            throw new Exception("Value is encrypted, but encryption key is not sed.");
-        }
-        $decrypt = Security::decrypt($this->value, $key);
-        if ($decrypt === false) {
-            throw new Exception("Could not decrypt.");
-        }
+        $decrypt = BetterSecurity::decrypt($this->value, Configure::read('Security.encryption_key'));
         return JsonTool::decode($decrypt);
     }
 
@@ -82,7 +76,7 @@ class SystemSetting extends AppModel
         // If encryption is enabled and setting name contains `password` or `apikey` string, encrypt value to protect it
         $key = Configure::read('Security.encryption_key');
         if ($key && (strpos($setting, 'password') !== false || strpos($setting, 'apikey') !== false)) {
-            $value = EncryptedValue::ENCRYPTED_MAGIC . Security::encrypt($value, $key);
+            $value = EncryptedValue::ENCRYPTED_MAGIC . BetterSecurity::encrypt($value, $key);
         }
 
         $valid = $this->save(['SystemSetting' => [
