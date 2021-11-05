@@ -15,6 +15,7 @@ class StixExport
     protected $__filenames = array();
     protected $__default_filters = null;
     protected $__version = null;
+    protected $__scope = null;
 
     private $__cluster_uuids = array();
     private $__converter = null;
@@ -22,7 +23,6 @@ class StixExport
     private $__empty_file = true;
     private $__event_galaxies = array();
     private $__framing = null;
-    private $__scope = null;
     private $__stix_file = null;
     private $__tmp_file = null;
     private $__n_attributes = 0;

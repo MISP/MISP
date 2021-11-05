@@ -23,6 +23,6 @@ class Stix1Export extends StixExport
     {
         $scriptFile = $this->__scripts_dir . $this->__script_name;
         $my_server = ClassRegistry::init('Server');
-        return shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . '-v ' . $this->__version . ' -f ' . $this->__return_format . ' -o ' . $this->__org . ' -i ' . $this->__tmp_dir . $filenames . $this->__end_of_cmd);
+        return shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . '-v ' . $this->__version . ' -f ' . $this->__return_format . ' -o ' . $this->__org . ' -i ' . $this->__tmp_dir . $filenames . ' -s ' . $this->__scope . $this->__end_of_cmd);
     }
 }
