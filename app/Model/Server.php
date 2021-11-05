@@ -2147,21 +2147,28 @@ class Server extends AppModel
                 return $beforeResult;
             }
         }
-        $value = trim($value);
-        if ($setting['type'] === 'boolean') {
-            $value = (bool)$value;
-        } else if ($setting['type'] === 'numeric') {
-            $value = (int)($value);
-        }
-        if (isset($setting['test'])) {
-            if ($setting['test'] instanceof Closure) {
-                $testResult = $setting['test']($value);
-            } else {
-                $testResult = $this->{$setting['test']}($value);
+        if ($value !== null) {
+            $value = trim($value);
+            if ($setting['type'] === 'boolean') {
+                $value = (bool)$value;
+            } else if ($setting['type'] === 'numeric') {
+                $value = (int)($value);
             }
+            if (isset($setting['test'])) {
+                if ($setting['test'] instanceof Closure) {
+                    $testResult = $setting['test']($value);
+                } else {
+                    $testResult = $this->{$setting['test']}($value);
+                }
+            } else {
+                $testResult = true;  # No test defined for this setting: cannot fail
+            }
+        } else if (isset($setting['null']) && $setting['null']) {
+            $testResult = true;
         } else {
-            $testResult = true;  # No test defined for this setting: cannot fail
+            $testResult = __('Value could not be null.');
         }
+
         if (!$forceSave && $testResult !== true) {
             if ($testResult === false) {
                 $errorMessage = $setting['errorMessage'];
