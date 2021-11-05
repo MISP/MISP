@@ -55,8 +55,8 @@ def _process_misp_files(scope: str, orgname: str, version: str, return_format:st
         parser = parser(orgname, version)
         for name in input_names:
             parser.parse_json_content(name)
-        with open(f'{name}.out', 'wt', encoding='utf-8') as f:
-            f.write(globals()[f'_get_{return_format}_events'](parser.stix_package))
+            with open(f'{name}.out', 'wt', encoding='utf-8') as f:
+                f.write(globals()[f'_get_{return_format}_events'](parser.stix_package))
         errors = parser.errors
         if errors:
             _handle_errors(errors)
