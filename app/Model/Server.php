@@ -1374,7 +1374,12 @@ class Server extends AppModel
     {
         if (isset($setting)) {
             if ($setting instanceof EncryptedValue) {
-                $setting = $setting->decrypt();
+                try {
+                    $setting = $setting->decrypt();
+                } catch (Exception $e) {
+                    $leafValue['errorMessage'] = 'Could not decrypt.';
+                    return $leafValue;
+                }
             }
             if (!empty($leafValue['test'])) {
                 $result = $this->{$leafValue['test']}($setting, empty($leafValue['errorMessage']) ? false : $leafValue['errorMessage']);
