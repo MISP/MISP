@@ -2161,7 +2161,11 @@ class Server extends AppModel
         $oldValue = Configure::read($setting['name']);
         $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
         if ($settingSaveResult) {
-            $change = array($setting['name'] => array($oldValue, $value));
+            if (SystemSetting::isSensitive($setting['name'])) {
+                $change = array($setting['name'] => array('*****', '*****'));
+            } else {
+                $change = array($setting['name'] => array($oldValue, $value));
+            }
             $this->loadLog()->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting changed', $change);
 
             // execute after hook

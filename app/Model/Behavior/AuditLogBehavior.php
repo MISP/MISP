@@ -351,7 +351,7 @@ class AuditLogBehavior extends ModelBehavior
                 continue;
             }
 
-            if ($key === 'password' || $key === 'authkey') {
+            if ($key === 'password' || $key === 'authkey' || ($key === 'value' && $model->name === 'SystemSetting' && SystemSetting::isSensitive($model->data[$model->alias]['setting']))) {
                 $value = '*****';
                 if ($old !== null) {
                     $old = $value;

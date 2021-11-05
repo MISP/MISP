@@ -75,7 +75,7 @@ class SystemSetting extends AppModel
 
         // If encryption is enabled and setting name contains `password` or `apikey` string, encrypt value to protect it
         $key = Configure::read('Security.encryption_key');
-        if ($key && (strpos($setting, 'password') !== false || strpos($setting, 'apikey') !== false)) {
+        if ($key && self::isSensitive($setting)) {
             $value = EncryptedValue::ENCRYPTED_MAGIC . BetterSecurity::encrypt($value, $key);
         }
 
@@ -100,5 +100,14 @@ class SystemSetting extends AppModel
         } else {
             return JsonTool::decode($value);
         }
+    }
+
+    /**
+     * @param $setting
+     * @return bool
+     */
+    public static function isSensitive($setting)
+    {
+        return strpos($setting, 'password') !== false || strpos($setting, 'apikey') !== false;
     }
 }
