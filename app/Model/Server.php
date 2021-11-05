@@ -1440,11 +1440,15 @@ class Server extends AppModel
 
     private function loadLocalOrganisations($strict = false)
     {
-        $localOrgs = $this->Organisation->find('list', array(
-            'conditions' => array('local' => 1),
-            'recursive' => -1,
-            'fields' => array('Organisation.id', 'Organisation.name')
-        ));
+        static $localOrgs;
+
+        if ($localOrgs === null) {
+            $localOrgs = $this->Organisation->find('list', array(
+                'conditions' => array('local' => 1),
+                'recursive' => -1,
+                'fields' => array('Organisation.id', 'Organisation.name')
+            ));
+        }
 
         if (!$strict) {
             return array_replace(array(0 => __('No organisation selected.')), $localOrgs);
@@ -1518,15 +1522,10 @@ class Server extends AppModel
 
     public function testLocalOrgStrict($value)
     {
-        $this->Organisation = ClassRegistry::init('Organisation');
         if ($value == 0) {
             return 'No organisation selected';
         }
-        $local_orgs = $this->Organisation->find('list', array(
-            'conditions' => array('local' => 1),
-            'recursive' => -1,
-            'fields' => array('Organisation.id', 'Organisation.name')
-        ));
+        $local_orgs = $this->loadLocalOrganisations(true);
         if (in_array($value, array_keys($local_orgs))) {
             return true;
         }
@@ -2250,22 +2249,11 @@ class Server extends AppModel
                 }
             }
         }
-        Configure::write($setting, $value);
-        $arrayFix = array(
-            'Security.auth',
-            'ApacheSecureAuth.ldapFilter'
-        );
-        foreach ($arrayFix as $settingFix) {
-            if (Configure::read($settingFix) && is_array(Configure::read($settingFix)) && !empty(Configure::read($settingFix))) {
-                $arrayElements = array();
-                foreach (Configure::read($settingFix) as $array) {
-                    if (!in_array($array, $arrayElements)) {
-                        $arrayElements[] = $array;
-                    }
-                }
-                Configure::write($settingFix, $arrayElements);
-            }
-        }
+
+        /** @var array $config */
+        require $configFilePath;
+        $config = Hash::insert($config, $setting, $value);
+
         $settingsToSave = array(
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
             'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
@@ -2274,7 +2262,9 @@ class Server extends AppModel
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
-            $settingsArray[$setting] = Configure::read($setting);
+            if (Hash::check($config, $setting)) {
+                $settingsArray[$setting] = Hash::get($config, $setting);
+            }
         }
         $settingsString = var_export($settingsArray, true);
         $settingsString = '<?php' . "\n" . '$config = ' . $settingsString . ';';

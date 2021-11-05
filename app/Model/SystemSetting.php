@@ -132,6 +132,7 @@ class SystemSetting extends AppModel
     }
 
     /**
+     * Sensitive setting are passwords or api keys.
      * @param $setting
      * @return bool
      */
