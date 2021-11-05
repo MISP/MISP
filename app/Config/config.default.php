@@ -32,6 +32,7 @@ $config = array(
         'email_subject_tag'              => 'tlp',
         'email_subject_include_tag_name' => true,
         'background_jobs'                => true,
+        'use_simple_background_jobs'     => false,
         'cached_attachments'             => true,
         'osuser'                         => 'www-data',
         'email'                          => 'email@example.com',
@@ -135,7 +136,7 @@ $config = array(
         'amount' => 5,
         'expire' => 300,
     ),
-    'BackgroundJobs' => array(
+    'SimpleBackgroundJobs' => array(
         'enabled' => true,
         'redis_host' => 'localhost',
         'redis_port' => 6379,

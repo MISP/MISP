@@ -2566,8 +2566,8 @@ class AppModel extends Model
 
             // TODO: remove after CakeResque is deprecated
             $settings = ['enabled' => false];
-            if (Configure::read('BackgroundJobs')) {
-                $settings = Configure::read('BackgroundJobs');
+            if (Configure::read('SimpleBackgroundJobs') && Configure::read('MISP.use_simple_background_jobs')) {
+                $settings = Configure::read('SimpleBackgroundJobs');
             }
 
             $backgroundJobsTool = new BackgroundJobsTool();

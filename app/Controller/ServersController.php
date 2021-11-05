@@ -1209,7 +1209,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
 
-        if (Configure::read('BackgroundJobs.enabled')) {
+        if (Configure::read('MISP.use_simple_background_jobs')) {
             $message = __('Worker start signal sent');
             $this->Server->getBackgroundJobsTool()->startWorker($type);
 
@@ -1261,7 +1261,7 @@ class ServersController extends AppController
 
         $message = __('Worker stop signal sent');
 
-        if (Configure::read('BackgroundJobs.enabled')) {
+        if (Configure::read('MISP.use_simple_background_jobs')) {
             $this->Server->getBackgroundJobsTool()->stopWorker($pid);
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Servers', 'stopWorker', $pid, $this->response->type(), $message);
@@ -1539,7 +1539,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
 
-        if (Configure::read('BackgroundJobs.enabled')) {
+        if (Configure::read('MISP.use_simple_background_jobs')) {
             $this->Server->getBackgroundJobsTool()->restartWorkers();
         } else {
             // CakeResque
@@ -1558,7 +1558,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
 
-        if (Configure::read('BackgroundJobs.enabled')) {
+        if (Configure::read('MISP.use_simple_background_jobs')) {
             $this->Server->getBackgroundJobsTool()->restartDeadWorkers();
         } else {
             // CakeResque
@@ -1791,7 +1791,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
 
-        if (Configure::read('BackgroundJobs.enabled')) {
+        if (Configure::read('MISP.use_simple_background_jobs')) {
             $this->Server->getBackgroundJobsTool()->purgeQueue($worker);
         } else {
             // CakeResque

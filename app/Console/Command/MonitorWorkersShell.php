@@ -18,7 +18,7 @@ class MonitorWorkersShell extends AppShell
     {
         parent::initialize();
         $this->BackgroundJobsTool = new BackgroundJobsTool();
-        $this->BackgroundJobsTool->initTool(Configure::read('BackgroundJobs'));
+        $this->BackgroundJobsTool->initTool(Configure::read('SimpleBackgroundJobs'));
     }
 
     public function getOptionParser(): ConsoleOptionParser
