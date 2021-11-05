@@ -145,6 +145,9 @@ in the list given by apache. By default, you can leave it at ';'.
 	       'possible_group_attribute_value_1' => 1,
           ),
          'DefaultOrg' => 'MISP_DEFAULT_ORG',
+         'DefaultRole' => false,        // set to a specific value if you wish to hard-set users created via ApacheShibbAuth
+         'BlockRoleModifications' => false,        // set to true if you wish for the roles never to be updated during login. Especially useful if you manually change roles in MISP
+         'BlockOrgModifications' => false,         // set to true if you wish for the organizations never to be updated during login. Especially useful if you manually change orgs in MISP
     ),
 ```
 
