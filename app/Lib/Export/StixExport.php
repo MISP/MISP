@@ -100,7 +100,10 @@ class StixExport
         $decoded = json_decode($result, true);
         if (!isset($decoded['success']) || !$decoded['success']) {
             $this->__delete_temporary_files();
-            $error = $decoded && !empty($decoded['error']) ? $decoded['error'] : $result;
+            $error = !empty($decoded['error']) ? $decoded['error'] : $result;
+            if (!empty($decoded['traceback'])) {
+                $error .= "\n" . $decoded['traceback'];
+            }
             return 'Error while processing your query: ' . $error;
         }
         foreach ($this->__filenames as $f => $filename) {
