@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
+App::uses('SystemSetting', 'Model');
 
 /**
  * @property-read array $serverSettings
@@ -1372,6 +1373,9 @@ class Server extends AppModel
     private function __evaluateLeaf($leafValue, $leafKey, $setting)
     {
         if (isset($setting)) {
+            if ($setting instanceof EncryptedValue) {
+                $setting = $setting->decrypt();
+            }
             if (!empty($leafValue['test'])) {
                 $result = $this->{$leafValue['test']}($setting, empty($leafValue['errorMessage']) ? false : $leafValue['errorMessage']);
                 if ($result !== true) {
@@ -1433,7 +1437,7 @@ class Server extends AppModel
             'fields' => array('Organisation.id', 'Organisation.name')
         ));
 
-        if(!$strict){
+        if (!$strict) {
             return array_replace(array(0 => __('No organisation selected.')), $localOrgs);
         }
 
@@ -1618,7 +1622,6 @@ class Server extends AppModel
         }
         return true;
     }
-
 
     public function getHost()
     {
@@ -2069,10 +2072,10 @@ class Server extends AppModel
     private function __serverSettingNormaliseValue($data, $value, $setting)
     {
         if (!empty($data['type'])) {
-            if ($data['type'] == 'boolean') {
-                $value = $value ? true : false;
-            } elseif ($data['type'] == 'numeric') {
-                $value = intval($value);
+            if ($data['type'] === 'boolean') {
+                $value = (bool)$value;
+            } elseif ($data['type'] === 'numeric') {
+                $value = (int)$value;
             }
         }
         return $value;
@@ -3263,7 +3266,7 @@ class Server extends AppModel
                 try {
                     $output['version'] = $gpg->getVersion();
                 } catch (Exception $e) {
-                    // ingore
+                    // ignore
                 }
 
                 try {
