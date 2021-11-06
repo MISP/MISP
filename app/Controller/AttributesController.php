@@ -11,12 +11,23 @@ class AttributesController extends AppController
 {
     public $components = array('Security', 'RequestHandler');
 
-    public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999,
-            'conditions' => array('AND' => array('Attribute.deleted' => 0)),
-            'order' => 'Attribute.event_id DESC'
-    );
+    public $paginate = [
+        'limit' => 60,
+        'maxLimit' => 9999,
+        'conditions' => array('AND' => array('Attribute.deleted' => 0)),
+        'order' => 'Attribute.event_id DESC',
+        'recursive' => -1,
+        'contain' => array(
+            'Event' => array(
+                'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
+            ),
+            'AttributeTag',
+            'Object' => array(
+                'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
+            ),
+            'SharingGroup' => ['fields' => ['SharingGroup.name']],
+        ),
+    ];
 
     public function beforeFilter()
     {
@@ -53,27 +64,11 @@ class AttributesController extends AppController
                 $this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
             }
         }
-        // do not show private to other orgs
-        if (!$this->_isSiteAdmin()) {
-            $this->paginate = Set::merge($this->paginate, array('conditions' => $this->Attribute->buildConditions($this->Auth->user())));
-        }
     }
 
     public function index()
     {
-        $this->Attribute->recursive = -1;
-        $this->paginate['recursive'] = -1;
-        $this->paginate['contain'] = array(
-            'Event' => array(
-                'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
-            ),
-            'AttributeTag',
-            'Object' => array(
-                'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
-            ),
-            'SharingGroup' => ['fields' => ['SharingGroup.name']],
-        );
-        $this->set('isSearch', 0);
+        $this->paginate['conditions']['AND'][] = $this->Attribute->buildConditions($this->Auth->user());
         $attributes = $this->paginate();
         $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
 
@@ -93,6 +88,7 @@ class AttributesController extends AppController
         }
 
         list($attributes, $sightingsData) = $this->__searchUI($attributes);
+        $this->set('isSearch', 0);
         $this->set('sightingsData', $sightingsData);
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
         $this->set('shortDist', $this->Attribute->shortDist);
@@ -1576,24 +1572,7 @@ class AttributesController extends AppController
             if (!isset($params['conditions']['Attribute.deleted'])) {
                 $params['conditions']['Attribute.deleted'] = 0;
             }
-            $this->paginate = $params;
-            if (empty($this->paginate['limit'])) {
-                $this->paginate['limit'] = 60;
-            }
-            if (empty($this->paginate['page'])) {
-                $this->paginate['page'] = 1;
-            }
-            $this->paginate['recursive'] = -1;
-            $this->paginate['contain'] = array(
-                'Event' => array(
-                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
-                ),
-                'AttributeTag',
-                'Object' => array(
-                    'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
-                ),
-                'SharingGroup' => ['fields' => ['SharingGroup.name']],
-            );
+            $this->paginate['conditions'] = $params['conditions'];
             $attributes = $this->paginate();
             $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
 
