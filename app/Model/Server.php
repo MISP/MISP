@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 App::uses('SystemSetting', 'Model');
 
 /**
@@ -160,14 +161,6 @@ class Server extends AppModel
             'ignore_disabled' => true,
             'url' => '/servers/releaseUpdateLock/'
         )
-    );
-
-    private $__settingTabMergeRules = array(
-            'GnuPG' => 'Encryption',
-            'SMIME' => 'Encryption',
-            'misc' => 'Security',
-            'Security' => 'Security',
-            'Session' => 'Security'
     );
 
     public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
@@ -1343,12 +1336,20 @@ class Server extends AppModel
 
     public function serverSettingsRead($unsorted = false)
     {
+        $settingTabMergeRules = array(
+            'GnuPG' => 'Encryption',
+            'SMIME' => 'Encryption',
+            'misc' => 'Security',
+            'Security' => 'Security',
+            'Session' => 'Security'
+        );
+
         $serverSettings = $this->getCurrentServerSettings();
         $currentSettings = Configure::read();
         $finalSettingsUnsorted = $this->__serverSettingsRead($serverSettings, $currentSettings);
         foreach ($finalSettingsUnsorted as $key => $temp) {
-            if (isset($this->__settingTabMergeRules[$temp['tab']])) {
-                $finalSettingsUnsorted[$key]['tab'] = $this->__settingTabMergeRules[$temp['tab']];
+            if (isset($settingTabMergeRules[$temp['tab']])) {
+                $finalSettingsUnsorted[$key]['tab'] = $settingTabMergeRules[$temp['tab']];
             }
         }
         if ($unsorted) {
@@ -2831,13 +2832,10 @@ class Server extends AppModel
 
     public function getExpectedDBSchema()
     {
-        App::uses('Folder', 'Utility');
-        $file = new File(ROOT . DS . 'db_schema.json', true);
-        $dbExpectedSchema = json_decode($file->read(), true);
-        $file->close();
-        if (!is_null($dbExpectedSchema)) {
-            return $dbExpectedSchema;
-        } else {
+        try {
+            $content = FileAccessTool::readFromFile(ROOT . DS . 'db_schema.json');
+            return JsonTool::decode($content);
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -2890,8 +2888,7 @@ class Server extends AppModel
                 }
                 $dbActualIndexes[$table] = $this->getDatabaseIndexes($this->getDataSource()->config['database'], $table);
             }
-        }
-        else if ($dataSource == 'Database/Postgres') {
+        } else if ($dataSource == 'Database/Postgres') {
             return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
         }
         return ['schema' => $dbActualSchema, 'column' => $tableColumnNames, 'indexes' => $dbActualIndexes];
