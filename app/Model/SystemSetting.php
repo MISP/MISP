@@ -133,11 +133,17 @@ class SystemSetting extends AppModel
 
     /**
      * Sensitive setting are passwords or api keys.
-     * @param $setting
+     * @param string $setting Setting name
      * @return bool
      */
     public static function isSensitive($setting)
     {
-        return strpos($setting, 'password') !== false || strpos($setting, 'apikey') !== false;
+        if ($setting === 'Security.encryption_key' || $setting === 'Security.salt') {
+            return true;
+        }
+        if (substr($setting, 0, 7) === 'Plugin.' && (strpos($setting, 'apikey') !== false || strpos($setting, 'secret') !== false)) {
+            return true;
+        }
+        return strpos($setting, 'password') !== false;
     }
 }
