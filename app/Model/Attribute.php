@@ -2031,7 +2031,7 @@ class Attribute extends AppModel
                 'Event' => array(
                     'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
                 ),
-                'AttributeTag', // tags are fetched separately, @see Attribute::__attachTagsToAttributes
+                'AttributeTag', // tags are fetched separately, @see Attribute::attachTagsToAttributes
                 'Object' => array(
                     'fields' => array('id', 'distribution', 'sharing_group_id')
                 )
@@ -2232,7 +2232,7 @@ class Attribute extends AppModel
                 unset($eventsById, $result); // unset result is important, because it is reference
             }
 
-            $this->__attachTagsToAttributes($results, $options);
+            $this->attachTagsToAttributes($results, $options);
 
             foreach ($results as $k => $result) {
                 if (!empty($options['includeSightings'])) {
@@ -2361,7 +2361,14 @@ class Attribute extends AppModel
         return $eventsById;
     }
 
-    private function __attachTagsToAttributes(array &$attributes, array $options)
+    /**
+     * Options:
+     *  - includeAllTags - if true, include also exportable tags
+     *
+     * @param array $attributes
+     * @param array $options
+     */
+    public function attachTagsToAttributes(array &$attributes, array $options)
     {
         $tagIdsToFetch = [];
         foreach ($attributes as $attribute) {
@@ -2382,15 +2389,12 @@ class Attribute extends AppModel
             $conditions['Tag.exportable'] = 1;
         }
 
-        $tagsToModify = $this->AttributeTag->Tag->find('all', [
+        $tags = $this->AttributeTag->Tag->find('all', [
             'conditions' => $conditions,
             'fields' => ['id', 'name', 'colour', 'numerical_value'],
             'recursive' => -1,
         ]);
-        $tags = [];
-        foreach ($tagsToModify as $tag) {
-            $tags[$tag['Tag']['id']] = $tag['Tag'];
-        }
+        $tags = array_column(array_column($tags, 'Tag'), null, 'id');
 
         foreach ($attributes as $k => $attribute) {
             $tagCulled = false;

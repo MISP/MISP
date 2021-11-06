@@ -67,19 +67,18 @@ class AttributesController extends AppController
             'Event' => array(
                 'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
             ),
-            'AttributeTag' => array('Tag'),
+            'AttributeTag',
             'Object' => array(
                 'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
             ),
             'SharingGroup' => ['fields' => ['SharingGroup.name']],
         );
-        $this->Attribute->contain(array('AttributeTag' => array('Tag')));
         $this->set('isSearch', 0);
         $attributes = $this->paginate();
+        $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
+
         if ($this->_isRest()) {
-            foreach ($attributes as $k => $attribute) {
-                $attributes[$k] = $attribute['Attribute'];
-            }
+            $attributes = array_column($attributes, 'Attribute');
             return $this->RestResponse->viewData($attributes, $this->response->type());
         }
 
@@ -1589,13 +1588,14 @@ class AttributesController extends AppController
                 'Event' => array(
                     'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
                 ),
-                'AttributeTag' => array('Tag'),
+                'AttributeTag',
                 'Object' => array(
                     'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
                 ),
                 'SharingGroup' => ['fields' => ['SharingGroup.name']],
             );
             $attributes = $this->paginate();
+            $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
 
             $orgTable = $this->Attribute->Event->Orgc->find('all', [
                 'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
