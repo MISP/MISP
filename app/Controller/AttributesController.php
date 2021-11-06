@@ -67,19 +67,18 @@ class AttributesController extends AppController
             'Event' => array(
                 'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
             ),
-            'AttributeTag' => array('Tag'),
+            'AttributeTag',
             'Object' => array(
                 'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
             ),
             'SharingGroup' => ['fields' => ['SharingGroup.name']],
         );
-        $this->Attribute->contain(array('AttributeTag' => array('Tag')));
         $this->set('isSearch', 0);
         $attributes = $this->paginate();
+        $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
+
         if ($this->_isRest()) {
-            foreach ($attributes as $k => $attribute) {
-                $attributes[$k] = $attribute['Attribute'];
-            }
+            $attributes = array_column($attributes, 'Attribute');
             return $this->RestResponse->viewData($attributes, $this->response->type());
         }
 
@@ -1589,13 +1588,14 @@ class AttributesController extends AppController
                 'Event' => array(
                     'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
                 ),
-                'AttributeTag' => array('Tag'),
+                'AttributeTag',
                 'Object' => array(
                     'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
                 ),
                 'SharingGroup' => ['fields' => ['SharingGroup.name']],
             );
             $attributes = $this->paginate();
+            $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
 
             $orgTable = $this->Attribute->Event->Orgc->find('all', [
                 'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
@@ -1649,7 +1649,7 @@ class AttributesController extends AppController
         }
     }
 
-    private function __searchUI($attributes)
+    private function __searchUI(array $attributes)
     {
         if (empty($attributes)) {
             return [[], []];
@@ -1661,9 +1661,9 @@ class AttributesController extends AppController
         $this->loadModel('AttachmentScan');
         $user = $this->Auth->user();
         $attributeIds = [];
-        foreach ($attributes as $k => $attribute) {
-            $attributeId = $attribute['Attribute']['id'];
-            $attributeIds[] = $attributeId;
+        $galaxyTags = [];
+        foreach ($attributes as &$attribute) {
+            $attributeIds[] = $attribute['Attribute']['id'];
             if ($this->Attribute->isImage($attribute['Attribute'])) {
                 if (extension_loaded('gd')) {
                     // if extension is loaded, the data is not passed to the view because it is asynchronously fetched
@@ -1671,21 +1671,30 @@ class AttributesController extends AppController
                 } else {
                     $attribute['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
                 }
-                $attributes[$k] = $attribute;
             }
             if ($attribute['Attribute']['type'] === 'attachment' && $this->AttachmentScan->isEnabled()) {
                 $infected = $this->AttachmentScan->isInfected(AttachmentScan::TYPE_ATTRIBUTE, $attribute['Attribute']['id']);
-                $attributes[$k]['Attribute']['infected'] = $infected;
+                $attribute['Attribute']['infected'] = $infected;
             }
 
             if ($attribute['Attribute']['distribution'] == 4) {
-                $attributes[$k]['Attribute']['SharingGroup'] = $attribute['SharingGroup'];
+                $attribute['Attribute']['SharingGroup'] = $attribute['SharingGroup'];
             }
 
-            $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
-            $attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($this->Auth->user(), $attributes[$k]['Attribute'], 'Attribute', $excludeGalaxy = false, $cullGalaxyTags = true);
-            unset($attributes[$k]['AttributeTag']);
+            $attribute['Attribute']['AttributeTag'] = $attribute['AttributeTag'];
+            foreach ($attribute['Attribute']['AttributeTag'] as $at) {
+                if (substr($at['Tag']['name'], 0, 12) === 'misp-galaxy:') {
+                    $galaxyTags[] = $at['Tag']['name'];
+                }
+            }
+            unset($attribute['AttributeTag']);
         }
+        unset($attribute);
+
+        // Fetch galaxy clusters in one query
+        $this->loadModel('GalaxyCluster');
+        $clusters = $this->GalaxyCluster->getClusters($galaxyTags, $user, true, false);
+        $clusters = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
 
         // Fetch correlations in one query
         $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, false, 'attribute');
@@ -1696,6 +1705,27 @@ class AttributesController extends AppController
         $attributesWithFeedCorrelations = $this->Feed->attachFeedCorrelations(array_column($attributes, 'Attribute'), $user, $fakeEventArray);
 
         foreach ($attributes as $k => $attribute) {
+            // Assign galaxies
+            $galaxies = [];
+            foreach ($attribute['Attribute']['AttributeTag'] as $k2 => $attributeTag) {
+                if (!isset($clusters[$attributeTag['Tag']['id']])) {
+                    continue;
+                }
+                $cluster = $clusters[$attributeTag['Tag']['id']];
+                $galaxyId = $cluster['Galaxy']['id'];
+                $cluster['local'] = isset($attributeTag['local']) ? $attributeTag['local'] : false;
+                if (isset($attribute['Attribute']['Galaxy'][$galaxyId])) {
+                    unset($cluster['Galaxy']);
+                    $galaxies[$galaxyId]['GalaxyCluster'][] = $cluster;
+                } else {
+                    $galaxies[$galaxyId] = $cluster['Galaxy'];
+                    unset($cluster['Galaxy']);
+                    $galaxies[$galaxyId]['GalaxyCluster'] = [$cluster];
+                }
+                unset($attributes[$k]['Attribute']['AttributeTag'][$k2]); // remove galaxy tag
+            }
+            $attributes[$k]['Attribute']['Galaxy'] = array_values($galaxies);
+
             if (isset($attributesWithFeedCorrelations[$k]['Feed'])) {
                 $attributes[$k]['Attribute']['Feed'] = $attributesWithFeedCorrelations[$k]['Feed'];
             }

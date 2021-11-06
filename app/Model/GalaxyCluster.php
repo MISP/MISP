@@ -1085,16 +1085,21 @@ class GalaxyCluster extends AppModel
         if (isset($options['list']) && $options['list']) {
             return $this->find('list', $params);
         }
+
         if (isset($options['first']) && $options['first']) {
             $clusters = $this->find('first', $params);
         } else if (isset($options['count']) && $options['count']) {
-            $clusterCount = $this->find('count', $params);
-            return $clusterCount;
+            return $this->find('count', $params);
         } else {
             $clusters = $this->find('all', $params);
         }
+
         if (empty($clusters)) {
             return $clusters;
+        }
+
+        if (isset($options['first']) && $options['first']) {
+            $clusters = [$clusters];
         }
 
         if ($full) {
@@ -1112,11 +1117,15 @@ class GalaxyCluster extends AppModel
             $tagsToFetch = Hash::extract($clusters, "{n}.GalaxyClusterRelation.{n}.GalaxyClusterRelationTag.{n}.tag_id");
             $tagsToFetch = array_merge($tagsToFetch, Hash::extract($targetingClusterRelations, "GalaxyClusterRelationTag.{n}.tag_id"));
 
-            $tags = $this->GalaxyClusterRelation->GalaxyClusterRelationTag->Tag->find('all', [
-                'conditions' => ['id' => array_unique($tagsToFetch)],
-                'recursive' => -1,
-            ]);
-            $tags = array_column(array_column($tags, 'Tag'), null, 'id');
+            if (!empty($tagsToFetch)) {
+                $tags = $this->GalaxyClusterRelation->GalaxyClusterRelationTag->Tag->find('all', [
+                    'conditions' => ['id' => array_unique($tagsToFetch)],
+                    'recursive' => -1,
+                ]);
+                $tags = array_column(array_column($tags, 'Tag'), null, 'id');
+            } else {
+                $tags = [];
+            }
 
             foreach ($targetingClusterRelations as $k => $targetingClusterRelation) {
                 if (!empty($targetingClusterRelation['GalaxyClusterRelationTag'])) {
@@ -1162,6 +1171,11 @@ class GalaxyCluster extends AppModel
             }
             $clusters[$i] = $this->arrangeData($clusters[$i]);
         }
+
+        if (isset($options['first']) && $options['first']) {
+            return $clusters[0];
+        }
+
         return $clusters;
     }
 
