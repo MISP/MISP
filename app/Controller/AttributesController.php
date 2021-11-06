@@ -915,28 +915,25 @@ class AttributesController extends AppController
         if (empty($attribute)) {
             return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status' => 200, 'type' => 'json'));
         }
-        $this->Attribute->data = $attribute;
-        $this->Attribute->id = $attribute['Attribute']['id'];
         if (!$this->__canModifyEvent($attribute)) {
             return new CakeResponse(array('body' => json_encode(array('fail' => false, 'errors' => 'You do not have permission to do that')), 'status' => 200, 'type' => 'json'));
         }
         if (!$this->_isRest()) {
             $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
         }
-        $validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution', 'first_seen', 'last_seen');
-        $changed = false;
         if (empty($this->request->data['Attribute'])) {
             $this->request->data = array('Attribute' => $this->request->data);
             if (empty($this->request->data['Attribute'])) {
                 throw new MethodNotAllowedException(__('Invalid input.'));
             }
         }
+        $validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution', 'first_seen', 'last_seen');
+        $changed = false;
         foreach ($this->request->data['Attribute'] as $changedKey => $changedField) {
-            if (!in_array($changedKey, $validFields)) {
+            if (!in_array($changedKey, $validFields, true)) {
                 throw new MethodNotAllowedException(__('Invalid field.'));
             }
             if ($attribute['Attribute'][$changedKey] == $changedField) {
-                $this->autoRender = false;
                 return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
             }
             $attribute['Attribute'][$changedKey] = $changedField;
@@ -947,16 +944,23 @@ class AttributesController extends AppController
         }
         $date = new DateTime();
         $attribute['Attribute']['timestamp'] = $date->getTimestamp();
-        if ($this->Attribute->save($attribute)) {
-            $this->Attribute->Event->unpublishEvent($attribute['Attribute']['event_id']);
+
+        $fieldsToSave = ['timestamp'];
+        if ($changedKey === 'value') {
+            $fieldsToSave[] = 'value1';
+            $fieldsToSave[] = 'value2';
+        } else {
+            $fieldsToSave[] = $changedKey;
+        }
+
+        if ($this->Attribute->save($attribute, true, $fieldsToSave)) {
+            $this->Attribute->Event->unpublishEvent($attribute['Attribute']['event_id'], false, $date->getTimestamp());
 
             if ($attribute['Attribute']['object_id'] != 0) {
                 $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
             }
-            $this->autoRender = false;
             return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
         } else {
-            $this->autoRender = false;
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)), 'status'=>200, 'type' => 'json'));
         }
     }
