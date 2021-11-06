@@ -2362,10 +2362,7 @@ class Event extends AppModel
             return;
         }
 
-        $clustersByTagNames = [];
-        foreach ($clusters as $cluster) {
-            $clustersByTagNames[mb_strtolower($cluster['GalaxyCluster']['tag_name'])] = $cluster['GalaxyCluster'];
-        }
+        $clustersByTagIds = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
         unset($clusters);
 
         if (isset($event['EventTag'])) {
@@ -2373,9 +2370,9 @@ class Event extends AppModel
                 if (!$eventTag['Tag']['is_galaxy']) {
                     continue;
                 }
-                $tagName = mb_strtolower($eventTag['Tag']['name']);
-                if (isset($clustersByTagNames[$tagName])) {
-                    $cluster = $clustersByTagNames[$tagName];
+                $tagId = $eventTag['Tag']['id'];
+                if (isset($clustersByTagIds[$tagId])) {
+                    $cluster = $clustersByTagIds[$tagId];
                     $galaxyId = $cluster['Galaxy']['id'];
                     $cluster['local'] = isset($eventTag['local']) ? $eventTag['local'] : false;
                     if (isset($event['Galaxy'][$galaxyId])) {
@@ -2397,9 +2394,9 @@ class Event extends AppModel
                         if (!$attributeTag['Tag']['is_galaxy']) {
                             continue;
                         }
-                        $tagName = mb_strtolower($attributeTag['Tag']['name']);
-                        if (isset($clustersByTagNames[$tagName])) {
-                            $cluster = $clustersByTagNames[$tagName];
+                        $tagId = $attributeTag['Tag']['id'];
+                        if (isset($clustersByTagIds[$tagId])) {
+                            $cluster = $clustersByTagIds[$tagId];
                             $galaxyId = $cluster['Galaxy']['id'];
                             $cluster['local'] = isset($attributeTag['local']) ? $attributeTag['local'] : false;
                             if (isset($attribute['Galaxy'][$galaxyId])) {
