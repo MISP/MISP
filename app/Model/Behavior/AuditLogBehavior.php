@@ -254,6 +254,8 @@ class AuditLogBehavior extends ModelBehavior
             }
             $id = $modelName === 'AttributeTag' ? $model->data[$model->alias]['attribute_id'] : $model->data[$model->alias]['event_id'];
             $modelName = $modelName === 'AttributeTag' ? 'Attribute' : 'Event';
+        } else if ($modelName === 'SystemSetting') {
+            $id = 0;
         }
 
         $this->auditLog()->insert(['AuditLog' => [

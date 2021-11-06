@@ -112,6 +112,13 @@ class SystemSetting extends AppModel
             return false; // blocked setting
         }
 
+        if ($value === '' || $value === null) {
+            if ($this->hasAny(['SystemSetting.setting' => $setting])) {
+                return $this->delete($setting); // delete the whole setting when value is empty
+            }
+            return true;
+        }
+
         $value = JsonTool::encode($value);
 
         // If encryption is enabled and setting name contains `password` or `apikey` string, encrypt value to protect it
