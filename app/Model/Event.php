@@ -5817,7 +5817,14 @@ class Event extends AppModel
         }
     }
 
-    public function unpublishEvent($id, $proposalLock = false)
+    /**
+     * @param int $id
+     * @param bool $proposalLock
+     * @param int|null $timestamp If not provided, current time will be used
+     * @return array|bool|mixed|null
+     * @throws Exception
+     */
+    public function unpublishEvent($id, $proposalLock = false, $timestamp = null)
     {
         $event = $this->find('first', array(
             'recursive' => -1,
@@ -5829,7 +5836,7 @@ class Event extends AppModel
         }
         $fields = ['published', 'timestamp'];
         $event['Event']['published'] = 0;
-        $event['Event']['timestamp'] = time();
+        $event['Event']['timestamp'] = $timestamp ?: time();
         if ($proposalLock) {
             $event['Event']['proposal_email_lock'] = 0;
             $fields[] = 'proposal_email_lock';
