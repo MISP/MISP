@@ -128,7 +128,7 @@ class AuditLogBehavior extends ModelBehavior
             if (isset($data['deleted'])) {
                 if ($data['deleted']) {
                     $action = AuditLog::ACTION_SOFT_DELETE;
-                } else if ($this->old[$model->alias]['deleted']) {
+                } else if (isset($this->old[$model->alias]['deleted']) && $this->old[$model->alias]['deleted']) {
                     $action = AuditLog::ACTION_UNDELETE;
                 }
             }

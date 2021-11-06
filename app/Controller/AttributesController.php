@@ -11,12 +11,23 @@ class AttributesController extends AppController
 {
     public $components = array('Security', 'RequestHandler');
 
-    public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999,
-            'conditions' => array('AND' => array('Attribute.deleted' => 0)),
-            'order' => 'Attribute.event_id DESC'
-    );
+    public $paginate = [
+        'limit' => 60,
+        'maxLimit' => 9999,
+        'conditions' => array('AND' => array('Attribute.deleted' => 0)),
+        'order' => 'Attribute.event_id DESC',
+        'recursive' => -1,
+        'contain' => array(
+            'Event' => array(
+                'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
+            ),
+            'AttributeTag',
+            'Object' => array(
+                'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
+            ),
+            'SharingGroup' => ['fields' => ['SharingGroup.name']],
+        ),
+    ];
 
     public function beforeFilter()
     {
@@ -53,35 +64,19 @@ class AttributesController extends AppController
                 $this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
             }
         }
-        // do not show private to other orgs
-        if (!$this->_isSiteAdmin()) {
-            $this->paginate = Set::merge($this->paginate, array('conditions' => $this->Attribute->buildConditions($this->Auth->user())));
-        }
     }
 
     public function index()
     {
-        $this->Attribute->recursive = -1;
-        $this->paginate['recursive'] = -1;
-        $this->paginate['contain'] = array(
-            'Event' => array(
-                'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
-            ),
-            'AttributeTag',
-            'Object' => array(
-                'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
-            ),
-            'SharingGroup' => ['fields' => ['SharingGroup.name']],
-        );
-        $this->set('isSearch', 0);
+        $this->paginate['conditions']['AND'][] = $this->Attribute->buildConditions($this->Auth->user());
         $attributes = $this->paginate();
-        $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
 
         if ($this->_isRest()) {
             $attributes = array_column($attributes, 'Attribute');
             return $this->RestResponse->viewData($attributes, $this->response->type());
         }
 
+        $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
         $orgTable = $this->Attribute->Event->Orgc->find('all', [
             'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
         ]);
@@ -93,6 +88,7 @@ class AttributesController extends AppController
         }
 
         list($attributes, $sightingsData) = $this->__searchUI($attributes);
+        $this->set('isSearch', 0);
         $this->set('sightingsData', $sightingsData);
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
         $this->set('shortDist', $this->Attribute->shortDist);
@@ -919,28 +915,25 @@ class AttributesController extends AppController
         if (empty($attribute)) {
             return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status' => 200, 'type' => 'json'));
         }
-        $this->Attribute->data = $attribute;
-        $this->Attribute->id = $attribute['Attribute']['id'];
         if (!$this->__canModifyEvent($attribute)) {
             return new CakeResponse(array('body' => json_encode(array('fail' => false, 'errors' => 'You do not have permission to do that')), 'status' => 200, 'type' => 'json'));
         }
         if (!$this->_isRest()) {
             $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
         }
-        $validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution', 'first_seen', 'last_seen');
-        $changed = false;
         if (empty($this->request->data['Attribute'])) {
             $this->request->data = array('Attribute' => $this->request->data);
             if (empty($this->request->data['Attribute'])) {
                 throw new MethodNotAllowedException(__('Invalid input.'));
             }
         }
+        $validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution', 'first_seen', 'last_seen');
+        $changed = false;
         foreach ($this->request->data['Attribute'] as $changedKey => $changedField) {
-            if (!in_array($changedKey, $validFields)) {
+            if (!in_array($changedKey, $validFields, true)) {
                 throw new MethodNotAllowedException(__('Invalid field.'));
             }
             if ($attribute['Attribute'][$changedKey] == $changedField) {
-                $this->autoRender = false;
                 return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
             }
             $attribute['Attribute'][$changedKey] = $changedField;
@@ -951,16 +944,23 @@ class AttributesController extends AppController
         }
         $date = new DateTime();
         $attribute['Attribute']['timestamp'] = $date->getTimestamp();
-        if ($this->Attribute->save($attribute)) {
-            $this->Attribute->Event->unpublishEvent($attribute['Attribute']['event_id']);
+
+        $fieldsToSave = ['timestamp'];
+        if ($changedKey === 'value') {
+            $fieldsToSave[] = 'value1';
+            $fieldsToSave[] = 'value2';
+        } else {
+            $fieldsToSave[] = $changedKey;
+        }
+
+        if ($this->Attribute->save($attribute, true, $fieldsToSave)) {
+            $this->Attribute->Event->unpublishEvent($attribute['Attribute']['event_id'], false, $date->getTimestamp());
 
             if ($attribute['Attribute']['object_id'] != 0) {
                 $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
             }
-            $this->autoRender = false;
             return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
         } else {
-            $this->autoRender = false;
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)), 'status'=>200, 'type' => 'json'));
         }
     }
@@ -1576,24 +1576,7 @@ class AttributesController extends AppController
             if (!isset($params['conditions']['Attribute.deleted'])) {
                 $params['conditions']['Attribute.deleted'] = 0;
             }
-            $this->paginate = $params;
-            if (empty($this->paginate['limit'])) {
-                $this->paginate['limit'] = 60;
-            }
-            if (empty($this->paginate['page'])) {
-                $this->paginate['page'] = 1;
-            }
-            $this->paginate['recursive'] = -1;
-            $this->paginate['contain'] = array(
-                'Event' => array(
-                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
-                ),
-                'AttributeTag',
-                'Object' => array(
-                    'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
-                ),
-                'SharingGroup' => ['fields' => ['SharingGroup.name']],
-            );
+            $this->paginate['conditions'] = $params['conditions'];
             $attributes = $this->paginate();
             $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
 
@@ -1692,9 +1675,13 @@ class AttributesController extends AppController
         unset($attribute);
 
         // Fetch galaxy clusters in one query
-        $this->loadModel('GalaxyCluster');
-        $clusters = $this->GalaxyCluster->getClusters($galaxyTags, $user, true, false);
-        $clusters = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
+        if (!empty($galaxyTags)) {
+            $this->loadModel('GalaxyCluster');
+            $clusters = $this->GalaxyCluster->getClusters($galaxyTags, $user, true, false);
+            $clusters = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
+        } else {
+            $clusters = [];
+        }
 
         // Fetch correlations in one query
         $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, false, 'attribute');
@@ -1735,65 +1722,6 @@ class AttributesController extends AppController
         }
         $sightingsData = $this->Sighting->attributesStatistics($attributes, $user);
         return array($attributes, $sightingsData);
-    }
-
-    // If the checkbox for the alternate search is ticked, then this method is called to return the data to be represented
-    // This alternate view will show a list of events with matching search results and the percentage of those matched attributes being marked as to_ids
-    // events are sorted based on relevance (as in the percentage of matches being flagged as indicators for IDS)
-    public function searchAlternate($data)
-    {
-        $attributes = $this->Attribute->fetchAttributes(
-            $this->Auth->user(),
-            array(
-                'conditions' => array(
-                    'AND' => $data
-                ),
-                'contain' => array('Event' => array('Orgc' => array('fields' => array('Orgc.name')))),
-                'fields' => array(
-                    'Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids', 'Attribute.value', 'Attribute.distribution',
-                    'Event.id', 'Event.org_id', 'Event.orgc_id', 'Event.info', 'Event.distribution', 'Event.attribute_count', 'Event.date',
-                )
-            )
-        );
-        $events = array();
-        foreach ($attributes as $attribute) {
-            if (isset($events[$attribute['Event']['id']])) {
-                if ($attribute['Attribute']['to_ids']) {
-                    $events[$attribute['Event']['id']]['to_ids']++;
-                } else {
-                    $events[$attribute['Event']['id']]['no_ids']++;
-                }
-            } else {
-                $events[$attribute['Event']['id']]['Event'] = $attribute['Event'];
-                $events[$attribute['Event']['id']]['to_ids'] = 0;
-                $events[$attribute['Event']['id']]['no_ids'] = 0;
-                if ($attribute['Attribute']['to_ids']) {
-                    $events[$attribute['Event']['id']]['to_ids']++;
-                } else {
-                    $events[$attribute['Event']['id']]['no_ids']++;
-                }
-            }
-        }
-        foreach ($events as $key => $event) {
-            $events[$key]['relevance'] = 100 * $event['to_ids'] / ($event['no_ids'] + $event['to_ids']);
-        }
-        if (!empty($events)) {
-            $events = $this->__subval_sort($events, 'relevance');
-        }
-        return $events;
-    }
-
-    // Sort the array of arrays based on a value of a sub-array
-    private function __subval_sort($a, $subkey)
-    {
-        foreach ($a as $k=>$v) {
-            $b[$k] = strtolower($v[$subkey]);
-        }
-        arsort($b);
-        foreach ($b as $key=>$val) {
-            $c[] = $a[$key];
-        }
-        return $c;
     }
 
     public function checkComposites()
