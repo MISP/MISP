@@ -5530,7 +5530,21 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                     'cli_only' => true,
-                ]
+                ],
+                'menu_custom_right_link' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Custom right menu URL.'),
+                    'value' => null,
+                    'type' => 'string',
+                    'null' => true,
+                ],
+                'menu_custom_right_link_html' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Custom right menu text (it is possible to use HTML).'),
+                    'value' => null,
+                    'type' => 'string',
+                    'null' => true,
+                ],
             ),
             'GnuPG' => array(
                 'branch' => 1,
