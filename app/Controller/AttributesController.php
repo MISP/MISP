@@ -1675,9 +1675,13 @@ class AttributesController extends AppController
         unset($attribute);
 
         // Fetch galaxy clusters in one query
-        $this->loadModel('GalaxyCluster');
-        $clusters = $this->GalaxyCluster->getClusters($galaxyTags, $user, true, false);
-        $clusters = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
+        if (!empty($galaxyTags)) {
+            $this->loadModel('GalaxyCluster');
+            $clusters = $this->GalaxyCluster->getClusters($galaxyTags, $user, true, false);
+            $clusters = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
+        } else {
+            $clusters = [];
+        }
 
         // Fetch correlations in one query
         $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, false, 'attribute');
