@@ -43,11 +43,6 @@ class EncryptedValue implements JsonSerializable
 class SystemSetting extends AppModel
 {
     public $actsAs = [
-        'SysLogLogable.SysLogLogable' => [
-            'userModel' => 'User',
-            'userKey' => 'user_id',
-            'change' => 'full'
-        ],
         'AuditLog'
     ];
 
