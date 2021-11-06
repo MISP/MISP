@@ -233,7 +233,12 @@ class Server extends AppModel
         return false;
     }
 
-    private function __updatePulledEventBeforeInsert(&$event, $server, $user)
+    /**
+     * @param array $event
+     * @param array $server
+     * @param array $user
+     */
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user)
     {
         // we have an Event array
         // The event came from a pull, so it should be locked.
@@ -261,9 +266,9 @@ class Server extends AppModel
                     }
                 }
             }
-            if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
-                foreach ($event['Event']['Attribute'] as $key => $a) {
-                    switch ($a['distribution']) {
+            if (isset($event['Event']['Attribute'])) {
+                foreach ($event['Event']['Attribute'] as $key => $attribute) {
+                    switch ($attribute['distribution']) {
                         case '1':
                             $event['Event']['Attribute'][$key]['distribution'] = '0';
                             break;
@@ -272,8 +277,8 @@ class Server extends AppModel
                             break;
                     }
                     // We remove local tags obtained via pull
-                    if (isset($a['Tag'])) {
-                        foreach ($a['Tag'] as $k => $v) {
+                    if (isset($attribute['Tag'])) {
+                        foreach ($attribute['Tag'] as $k => $v) {
                             if ($v['local']) {
                                 unset($event['Event']['Attribute'][$key]['Tag'][$k]);
                             }
@@ -281,9 +286,9 @@ class Server extends AppModel
                     }
                 }
             }
-            if (isset($event['Event']['Object']) && !empty($event['Event']['Object'])) {
-                foreach ($event['Event']['Object'] as $i => $o) {
-                    switch ($o['distribution']) {
+            if (isset($event['Event']['Object'])) {
+                foreach ($event['Event']['Object'] as $i => $object) {
+                    switch ($object['distribution']) {
                         case '1':
                             $event['Event']['Object'][$i]['distribution'] = '0';
                             break;
@@ -291,8 +296,8 @@ class Server extends AppModel
                             $event['Event']['Object'][$i]['distribution'] = '1';
                             break;
                     }
-                    if (isset($event['Event']['Object'][$i]['Attribute']) && !empty($event['Event']['Object'][$i]['Attribute'])) {
-                        foreach ($event['Event']['Object'][$i]['Attribute'] as $j => $a) {
+                    if (isset($object['Attribute'])) {
+                        foreach ($object['Attribute'] as $j => $a) {
                             switch ($a['distribution']) {
                                 case '1':
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '0';
@@ -313,7 +318,7 @@ class Server extends AppModel
                     }
                 }
             }
-            if (isset($event['Event']['EventReport']) && !empty($event['Event']['EventReport'])) {
+            if (isset($event['Event']['EventReport'])) {
                 foreach ($event['Event']['EventReport'] as $key => $r) {
                     switch ($r['distribution']) {
                         case '1':
@@ -329,10 +334,13 @@ class Server extends AppModel
 
         // Distribution, set reporter of the event, being the admin that initiated the pull
         $event['Event']['user_id'] = $user['id'];
-        return $event;
     }
 
-    private function __checkIfEventSaveAble($event)
+    /**
+     * @param array $event
+     * @return bool True if event is not empty
+     */
+    private function __checkIfEventSaveAble(array $event)
     {
         if (!empty($event['Event']['Attribute'])) {
             foreach ($event['Event']['Attribute'] as $attribute) {
@@ -379,7 +387,7 @@ class Server extends AppModel
             $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
             if ($result) {
                 $successes[] = $eventId;
-                if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                if ($this->pubToZmq('event')) {
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'add_from_connected_server');
                 }
@@ -393,7 +401,7 @@ class Server extends AppModel
                 $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong, $force);
                 if ($result === true) {
                     $successes[] = $eventId;
-                    if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                    if ($this->pubToZmq('event')) {
                         $pubSubTool = $this->getPubSubTool();
                         $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'edit_from_connected_server');
                     }
@@ -431,7 +439,7 @@ class Server extends AppModel
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
             }
-            $event = $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user);
+            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user);
             if (!$this->__checkIfEventSaveAble($event)) {
                 $fails[$eventId] = __('Empty event detected.');
             } else {
