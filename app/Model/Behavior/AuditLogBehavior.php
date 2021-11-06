@@ -39,6 +39,7 @@ class AuditLogBehavior extends ModelBehavior
         'TagCollection' => 'name',
         'Taxonomy' => 'namespace',
         'Organisation' => 'name',
+        'SystemSetting' => 'setting',
         'AdminSetting' => 'setting',
         'UserSetting' => 'setting',
         'Galaxy' => 'name',
@@ -117,7 +118,7 @@ class AuditLogBehavior extends ModelBehavior
             return;
         }
 
-        $id = $model->id ?: null;
+        $id = $model->id ?: 0;
         $data = $model->data[$model->alias];
 
         if ($created) {
@@ -177,14 +178,14 @@ class AuditLogBehavior extends ModelBehavior
             }
             $id = $modelName === 'AttributeTag' ? $data['attribute_id'] : $data['event_id'];
             $modelName = $modelName === 'AttributeTag' ? 'Attribute' : 'Event';
-        }
-
-        if ($modelName === 'Event') {
+        } else if ($modelName === 'Event') {
             if (isset($changedFields['published'][1]) && $changedFields['published'][1]) {
                 $action = AuditLog::ACTION_PUBLISH;
             } else if (isset($changedFields['sighting_timestamp'][1]) && $changedFields['sighting_timestamp'][1]) {
                 $action = AuditLog::ACTION_PUBLISH_SIGHTINGS;
             }
+        } else if ($modelName === 'SystemSetting') {
+            $id = 0;
         }
 
         $this->auditLog()->insert(['AuditLog' => [
@@ -350,7 +351,7 @@ class AuditLogBehavior extends ModelBehavior
                 continue;
             }
 
-            if ($key === 'password' || $key === 'authkey') {
+            if ($key === 'password' || $key === 'authkey' || ($key === 'value' && $model->name === 'SystemSetting' && SystemSetting::isSensitive($model->data[$model->alias]['setting']))) {
                 $value = '*****';
                 if ($old !== null) {
                     $old = $value;

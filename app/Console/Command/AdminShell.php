@@ -22,12 +22,18 @@ class AdminShell extends AppShell
                     'value' => ['help' => __('Setting value'), 'required' => true],
                 ],
                 'options' => [
-                    'force' => array(
+                    'force' => [
                         'short' => 'f',
                         'help' => 'Force the command.',
                         'default' => false,
                         'boolean' => true
-                    )
+                    ],
+                    'null' => [
+                        'short' => 'n',
+                        'help' => 'Set the value to null.',
+                        'default' => false,
+                        'boolean' => true
+                    ],
                 ]
             ],
         ]);
@@ -375,14 +381,13 @@ class AdminShell extends AppShell
 
     public function getSetting()
     {
-        $this->ConfigLoad->execute();
         $param = empty($this->args[0]) ? 'all' : $this->args[0];
         $settings = $this->Server->serverSettingsRead();
         $result = $settings;
-        if ($param != 'all') {
+        if ($param !== 'all') {
             $result = 'No valid setting found for ' . $param;
             foreach ($settings as $setting) {
-                if ($setting['setting'] == $param) {
+                if ($setting['setting'] === $param) {
                     $result = $setting;
                     break;
                 }
@@ -393,15 +398,17 @@ class AdminShell extends AppShell
 
     public function setSetting()
     {
-        $setting_name = !isset($this->args[0]) ? null : $this->args[0];
-        $value = !isset($this->args[1]) ? null : $this->args[1];
+        list($setting_name, $value) = $this->args;
         if ($value === 'false') {
             $value = 0;
         } elseif ($value === 'true') {
             $value = 1;
         }
+        if ($this->params['null']) {
+            $value = null;
+        }
         $cli_user = array('id' => 0, 'email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'));
-        if (empty($setting_name) || $value === null) {
+        if (empty($setting_name) || ($value === null && !$this->params['null'])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Set setting'] . PHP_EOL);
         }
         $setting = $this->Server->getSettingData($setting_name);
@@ -411,7 +418,7 @@ class AdminShell extends AppShell
         }
         $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value, $this->params['force']);
         if ($result === true) {
-            echo 'Setting "' . $setting_name . '" changed to ' . $value . PHP_EOL;
+            $this->out(__('Setting "%s" changed to %s', $setting_name, is_string($value) ? '"' . $value . '"' : (string)$value));
         } else {
             $message = __("The setting change was rejected. MISP considers the requested setting value as invalid and would lead to the following error:\n\n\"%s\"\n\nIf you still want to force this change, please supply the --force argument.\n", $result);
             $this->error(__('Setting change rejected.'), $message);

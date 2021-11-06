@@ -97,6 +97,10 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        if (Configure::read('MISP.system_setting_db')) {
+            $this->_setupSystemSettings();
+        }
+
         $this->_setupBaseurl();
         $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
 
@@ -1403,5 +1407,15 @@ class AppController extends Controller
         } catch (Exception $e) {
             return true;
         }
+    }
+
+    /**
+     * Load system settings from database and set as setting in Configure
+     */
+    protected function _setupSystemSettings()
+    {
+        $this->loadModel('SystemSetting');
+        $settings = $this->SystemSetting->getSettings();
+        Configure::write($settings);
     }
 }
