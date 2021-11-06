@@ -79,9 +79,9 @@ class GalaxyClusterRelation extends AppModel
 
     public function buildConditions($user, $clusterConditions = true)
     {
-        $this->Event = ClassRegistry::init('Event');
         $conditions = [];
         if (!$user['Role']['perm_site_admin']) {
+            $this->Event = ClassRegistry::init('Event');
             $alias = $this->alias;
             $sgids = $this->Event->cacheSgids($user, true);
             $gcOwnerIds = $this->SourceCluster->cacheGalaxyClusterOwnerIDs($user);
