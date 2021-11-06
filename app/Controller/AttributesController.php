@@ -70,13 +70,13 @@ class AttributesController extends AppController
     {
         $this->paginate['conditions']['AND'][] = $this->Attribute->buildConditions($this->Auth->user());
         $attributes = $this->paginate();
-        $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
 
         if ($this->_isRest()) {
             $attributes = array_column($attributes, 'Attribute');
             return $this->RestResponse->viewData($attributes, $this->response->type());
         }
 
+        $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
         $orgTable = $this->Attribute->Event->Orgc->find('all', [
             'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
         ]);
@@ -1722,65 +1722,6 @@ class AttributesController extends AppController
         }
         $sightingsData = $this->Sighting->attributesStatistics($attributes, $user);
         return array($attributes, $sightingsData);
-    }
-
-    // If the checkbox for the alternate search is ticked, then this method is called to return the data to be represented
-    // This alternate view will show a list of events with matching search results and the percentage of those matched attributes being marked as to_ids
-    // events are sorted based on relevance (as in the percentage of matches being flagged as indicators for IDS)
-    public function searchAlternate($data)
-    {
-        $attributes = $this->Attribute->fetchAttributes(
-            $this->Auth->user(),
-            array(
-                'conditions' => array(
-                    'AND' => $data
-                ),
-                'contain' => array('Event' => array('Orgc' => array('fields' => array('Orgc.name')))),
-                'fields' => array(
-                    'Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids', 'Attribute.value', 'Attribute.distribution',
-                    'Event.id', 'Event.org_id', 'Event.orgc_id', 'Event.info', 'Event.distribution', 'Event.attribute_count', 'Event.date',
-                )
-            )
-        );
-        $events = array();
-        foreach ($attributes as $attribute) {
-            if (isset($events[$attribute['Event']['id']])) {
-                if ($attribute['Attribute']['to_ids']) {
-                    $events[$attribute['Event']['id']]['to_ids']++;
-                } else {
-                    $events[$attribute['Event']['id']]['no_ids']++;
-                }
-            } else {
-                $events[$attribute['Event']['id']]['Event'] = $attribute['Event'];
-                $events[$attribute['Event']['id']]['to_ids'] = 0;
-                $events[$attribute['Event']['id']]['no_ids'] = 0;
-                if ($attribute['Attribute']['to_ids']) {
-                    $events[$attribute['Event']['id']]['to_ids']++;
-                } else {
-                    $events[$attribute['Event']['id']]['no_ids']++;
-                }
-            }
-        }
-        foreach ($events as $key => $event) {
-            $events[$key]['relevance'] = 100 * $event['to_ids'] / ($event['no_ids'] + $event['to_ids']);
-        }
-        if (!empty($events)) {
-            $events = $this->__subval_sort($events, 'relevance');
-        }
-        return $events;
-    }
-
-    // Sort the array of arrays based on a value of a sub-array
-    private function __subval_sort($a, $subkey)
-    {
-        foreach ($a as $k=>$v) {
-            $b[$k] = strtolower($v[$subkey]);
-        }
-        arsort($b);
-        foreach ($b as $key=>$val) {
-            $c[] = $a[$key];
-        }
-        return $c;
     }
 
     public function checkComposites()
