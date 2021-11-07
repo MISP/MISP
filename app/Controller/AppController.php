@@ -31,7 +31,7 @@ class AppController extends Controller
      */
     public $defaultModel = '';
 
-    public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
+    public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '131';
     public $pyMispVersion = '2.4.148';
@@ -69,30 +69,30 @@ class AppController extends Controller
     }
 
     public $components = array(
-            'Session',
-            'Auth' => array(
-                'authError' => 'Unauthorised access.',
-                'authenticate' => array(
-                    'Form' => array(
-                        'passwordHasher' => 'BlowfishConstant',
-                        'fields' => array(
-                            'username' => 'email'
-                        )
+        'Session',
+        'Auth' => array(
+            'authError' => 'Unauthorised access.',
+            'authenticate' => array(
+                'Form' => array(
+                    'passwordHasher' => 'BlowfishConstant',
+                    'fields' => array(
+                        'username' => 'email'
                     )
                 )
-            ),
-            'Security',
-            'ACL',
-            'CompressedRequestHandler',
-            'RestResponse',
-            'Flash',
-            'Toolbox',
-            'RateLimit',
-            'IndexFilter',
-            'Deprecation',
-            'RestSearch',
-            'CRUD'
-            //,'DebugKit.Toolbar'
+            )
+        ),
+        'Security',
+        'ACL',
+        'CompressedRequestHandler',
+        'RestResponse',
+        'Flash',
+        'Toolbox',
+        'RateLimit',
+        'IndexFilter',
+        'Deprecation',
+        'RestSearch',
+        'CRUD'
+        //,'DebugKit.Toolbar'
     );
 
     public function beforeFilter()
@@ -347,7 +347,7 @@ class AppController extends Controller
                     $this->User->Server->updateDatabase('cleanSessionTable');
                 }
             }
-            if (Configure::read('site_admin_debug') && (Configure::read('debug') < 2)) {
+            if (Configure::read('site_admin_debug') && Configure::read('debug') < 2) {
                 Configure::write('debug', 1);
             }
         }
@@ -378,7 +378,7 @@ class AppController extends Controller
             if (!empty($homepage)) {
                 $this->set('homepage', $homepage);
             }
-            if (version_compare(phpversion(), '8.0') >= 0) {
+            if (PHP_MAJOR_VERSION >= 8) {
                 $this->Flash->error(__('WARNING: MISP is currently running under PHP 8.0, which is unsupported. Background jobs will fail, so please contact your administrator to run a supported PHP version (such as 7.4)'));
             }
         }
