@@ -48,6 +48,47 @@ class SystemSetting extends AppModel
 
     public $primaryKey = 'setting';
 
+    // Blocked setting that cannot be saved or fetched from DB. The same as cli_only settings.
+    const BLOCKED_SETTINGS = [
+        'Security.encryption_key',
+        'Security.disable_local_feed_access',
+        'GnuPG.binary',
+        'MISP.python_bin',
+        'MISP.ca_path',
+        'MISP.tmpdir',
+        'MISP.system_setting_db',
+        'MISP.attachments_dir',
+    ];
+
+    // Allow to set config values just for these categories
+    const ALLOWED_CATEGORIES = [
+        'MISP',
+        'Security',
+        'GnuPG',
+        'SMIME',
+        'Proxy',
+        'SecureAuth',
+        'Session',
+        'Plugin',
+        'debug',
+        'site_admin_debug',
+    ];
+
+    /**
+     * Set config values from database into global Configure class
+     */
+    public static function setGlobalSetting()
+    {
+        $systemSetting = ClassRegistry::init('SystemSetting');
+        $settings = $systemSetting->getSettings();
+        foreach ($settings as $settingName => $settingValue) {
+            $firstPart = explode('.', $settingName)[0];
+            if (in_array($firstPart, self::ALLOWED_CATEGORIES, true) && !in_array($settingName, self::BLOCKED_SETTINGS, true)) {
+                Configure::write($settingName, $settingValue);
+            }
+        }
+    }
+
     /**
      * @return array
      */
@@ -66,6 +107,18 @@ class SystemSetting extends AppModel
      */
     public function setSetting($setting, $value)
     {
+        $firstPart = explode('.', $setting)[0];
+        if (!in_array($firstPart, self::ALLOWED_CATEGORIES, true) || in_array($setting, self::BLOCKED_SETTINGS, true)) {
+            return false; // blocked setting
+        }
+
+        if ($value === '' || $value === null) {
+            if ($this->hasAny(['SystemSetting.setting' => $setting])) {
+                return $this->delete($setting); // delete the whole setting when value is empty
+            }
+            return true;
+        }
+
         $value = JsonTool::encode($value);
 
         // If encryption is enabled and setting name contains `password` or `apikey` string, encrypt value to protect it
@@ -81,6 +134,7 @@ class SystemSetting extends AppModel
         if (!$valid) {
             throw new Exception("Could not save system setting `$setting` because of validation errors: " . JsonTool::encode($this->validationErrors));
         }
+        return true;
     }
 
     /**

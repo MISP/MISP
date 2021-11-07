@@ -2182,7 +2182,7 @@ class Server extends AppModel
             return $errorMessage;
         }
         $oldValue = Configure::read($setting['name']);
-        $fileOnly = isset($setting['file_only']) && $setting['file_only'];
+        $fileOnly = isset($setting['cli_only']) && $setting['cli_only'];
         $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value, $fileOnly);
         if ($settingSaveResult) {
             if (SystemSetting::isSensitive($setting['name'])) {
@@ -2223,8 +2223,7 @@ class Server extends AppModel
         if (!$fileOnly && Configure::read('MISP.system_setting_db')) {
             /** @var SystemSetting $systemSetting */
             $systemSetting = ClassRegistry::init('SystemSetting');
-            $systemSetting->setSetting($setting, $value);
-            return true;
+            return $systemSetting->setSetting($setting, $value);
         }
 
         $configFilePath = APP . 'Config' . DS . 'config.php';
@@ -6002,7 +6001,6 @@ class Server extends AppModel
                     'null' => true,
                     'cli_only' => true,
                     'redacted' => true,
-                    'file_only' => true,
                 ],
             ),
             'SecureAuth' => array(
