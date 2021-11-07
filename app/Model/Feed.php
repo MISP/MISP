@@ -2,7 +2,6 @@
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
-App::uses('FileAccessTool', 'Tools');
 App::uses('AttributeValidationTool', 'Tools');
 
 class Feed extends AppModel

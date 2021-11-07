@@ -1,9 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
-App::uses('FileAccessTool', 'Tools');
 App::uses('AttachmentTool', 'Tools');
-App::uses('JsonTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
 
