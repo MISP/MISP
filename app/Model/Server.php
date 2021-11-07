@@ -6699,9 +6699,25 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
+                'S3_aws_ca' => array(
+                    'level' => 2,
+                    'description' => __('AWS TLS CA, set to empty to use CURL internal trusted certificates or path for custom trusted CA'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'S3_aws_validate_ca' => array(
+                    'level' => 2,
+                    'description' => __('Validate CA'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
                 'S3_aws_endpoint' => array(
                     'level' => 2,
-                    'description' => __('External AWS compatible endpoint such as MinIO'),
+                    'description' => __('Uses external AWS compatible endpoint such as MinIO'),
                     'value' => '',
                     'errorMessage' => '',
                     'test' => 'testForEmpty',
