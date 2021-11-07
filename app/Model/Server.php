@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SystemSetting', 'Model');
+App::uses('EncryptedValue', 'Tools');
 
 /**
  * @property-read array $serverSettings
@@ -165,8 +166,11 @@ class Server extends AppModel
 
     public function beforeSave($options = array())
     {
-        $this->data['Server']['url'] = rtrim($this->data['Server']['url'], '/');
-        if (empty($this->data['Server']['id'])) {
+        $server = &$this->data['Server'];
+        if (!empty($server['url'])) {
+            $server['url'] = rtrim($server['url'], '/');
+        }
+        if (empty($server['id'])) {
             $max_prio = $this->find('first', array(
                 'recursive' => -1,
                 'order' => array('Server.priority' => 'DESC'),
@@ -177,7 +181,11 @@ class Server extends AppModel
             } else {
                 $max_prio = $max_prio['Server']['priority'];
             }
-            $this->data['Server']['priority'] = $max_prio + 1;
+            $server['priority'] = $max_prio + 1;
+        }
+        // Encrypt authkey if plain key provided and encryption is enabled
+        if (!empty($server['authkey']) && strlen($server['authkey']) === 40) {
+            $server['authkey'] = EncryptedValue::encryptIfEnabled($server['authkey']);
         }
         return true;
     }
@@ -4523,6 +4531,32 @@ class Server extends AppModel
     }
 
     /**
+     * @param string|null $old Old (or current) encryption key.
+     * @param string|null $new New encryption key. If empty, encrypted values will be decrypted.
+     * @throws Exception
+     */
+    public function reencryptAuthKeys($old, $new)
+    {
+        $servers = $this->find('list', [
+            'fields' => ['Server.id', 'Server.authkey'],
+        ]);
+        $toSave = [];
+        foreach ($servers as $id => $authkey) {
+            if (EncryptedValue::isEncrypted($authkey)) {
+                $authkey = BetterSecurity::decrypt(substr($authkey, 2), $old);
+            }
+            if (!empty($new)) {
+                $authkey = EncryptedValue::ENCRYPTED_MAGIC . BetterSecurity::encrypt($authkey, $new);
+            }
+            $toSave[] = ['Server' => [
+                'id' => $id,
+                'authkey' => $authkey,
+            ]];
+        }
+        return $this->saveMany($toSave);
+    }
+
+    /**
      * Generate just when required
      * @return array[]
      */
@@ -6001,6 +6035,12 @@ class Server extends AppModel
                         /** @var SystemSetting $systemSetting */
                         $systemSetting = ClassRegistry::init('SystemSetting');
                         $systemSetting->reencrypt($old, $new);
+
+                        $this->reencryptAuthKeys($old, $new);
+
+                        /** @var Cerebrate $cerebrate */
+                        $cerebrate = ClassRegistry::init('Cerebrate');
+                        $cerebrate->reencryptAuthKeys($old, $new);
                         return true;
                     },
                     'type' => 'string',
