@@ -69,30 +69,30 @@ class AppController extends Controller
     }
 
     public $components = array(
-            'Session',
-            'Auth' => array(
-                'authError' => 'Unauthorised access.',
-                'authenticate' => array(
-                    'Form' => array(
-                        'passwordHasher' => 'BlowfishConstant',
-                        'fields' => array(
-                            'username' => 'email'
-                        )
+        'Session',
+        'Auth' => array(
+            'authError' => 'Unauthorised access.',
+            'authenticate' => array(
+                'Form' => array(
+                    'passwordHasher' => 'BlowfishConstant',
+                    'fields' => array(
+                        'username' => 'email'
                     )
                 )
-            ),
-            'Security',
-            'ACL',
-            'CompressedRequestHandler',
-            'RestResponse',
-            'Flash',
-            'Toolbox',
-            'RateLimit',
-            'IndexFilter',
-            'Deprecation',
-            'RestSearch',
-            'CRUD'
-            //,'DebugKit.Toolbar'
+            )
+        ),
+        'Security',
+        'ACL',
+        'CompressedRequestHandler',
+        'RestResponse',
+        'Flash',
+        'Toolbox',
+        'RateLimit',
+        'IndexFilter',
+        'Deprecation',
+        'RestSearch',
+        'CRUD'
+        //,'DebugKit.Toolbar'
     );
 
     public function beforeFilter()
