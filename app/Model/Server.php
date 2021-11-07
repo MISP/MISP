@@ -2276,6 +2276,9 @@ class Server extends AppModel
 
         /** @var array $config */
         require $configFilePath;
+        if (!isset($config)) {
+            throw new Exception("Could not load config file `$configFilePath`.");
+        }
         $config = Hash::insert($config, $setting, $value);
 
         $settingsToSave = array(
@@ -4543,7 +4546,11 @@ class Server extends AppModel
         $toSave = [];
         foreach ($servers as $id => $authkey) {
             if (EncryptedValue::isEncrypted($authkey)) {
-                $authkey = BetterSecurity::decrypt(substr($authkey, 2), $old);
+                try {
+                    $authkey = BetterSecurity::decrypt(substr($authkey, 2), $old);
+                } catch (Exception $e) {
+                    throw new Exception("Could not decrypt auth key for server #$id", 0, $e);
+                }
             }
             if (!empty($new)) {
                 $authkey = EncryptedValue::ENCRYPTED_MAGIC . BetterSecurity::encrypt($authkey, $new);
@@ -4553,7 +4560,10 @@ class Server extends AppModel
                 'authkey' => $authkey,
             ]];
         }
-        return $this->saveMany($toSave);
+        if (empty($toSave)) {
+            return true;
+        }
+        return $this->saveMany($toSave, ['validate' => false, 'fields' => ['authkey']]);
     }
 
     /**

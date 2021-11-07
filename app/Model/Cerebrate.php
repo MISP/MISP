@@ -438,7 +438,11 @@ class Cerebrate extends AppModel
         $toSave = [];
         foreach ($cerebrates as $id => $authkey) {
             if (EncryptedValue::isEncrypted($authkey)) {
-                $authkey = BetterSecurity::decrypt(substr($authkey, 2), $old);
+                try {
+                    $authkey = BetterSecurity::decrypt(substr($authkey, 2), $old);
+                } catch (Exception $e) {
+                    throw new Exception("Could not decrypt auth key for Cerebrate #$id", 0, $e);
+                }
             }
             if (!empty($new)) {
                 $authkey = EncryptedValue::ENCRYPTED_MAGIC . BetterSecurity::encrypt($authkey, $new);
@@ -448,6 +452,9 @@ class Cerebrate extends AppModel
                 'authkey' => $authkey,
             ]];
         }
-        return $this->saveMany($toSave);
+        if (empty($toSave)) {
+            return true;
+        }
+        return $this->saveMany($toSave, ['validate' => false, 'fields' => ['authkey']]);
     }
 }

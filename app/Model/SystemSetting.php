@@ -122,7 +122,11 @@ class SystemSetting extends AppModel
                 continue;
             }
             if (EncryptedValue::isEncrypted($value)) {
-                $value = BetterSecurity::decrypt(substr($value, 2), $old);
+                try {
+                    $value = BetterSecurity::decrypt(substr($value, 2), $old);
+                } catch (Exception $e) {
+                    throw new Exception("Could not decrypt `$setting` setting.", 0, $e);
+                }
             }
             if (!empty($new)) {
                 $value = EncryptedValue::ENCRYPTED_MAGIC . BetterSecurity::encrypt($value, $new);
@@ -131,6 +135,9 @@ class SystemSetting extends AppModel
                 'setting' => $setting,
                 'value' => $value,
             ]];
+        }
+        if (empty($toSave)) {
+            return true;
         }
         return $this->saveMany($toSave);
     }
