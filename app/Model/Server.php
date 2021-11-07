@@ -2,8 +2,6 @@
 App::uses('AppModel', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
-App::uses('FileAccessTool', 'Tools');
-App::uses('JsonTool', 'Tools');
 App::uses('SystemSetting', 'Model');
 
 /**
