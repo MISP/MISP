@@ -98,6 +98,9 @@ class Tag extends AppModel
         if (!isset($tag['exportable'])) {
             $tag['exportable'] = 1;
         }
+        if (!isset($tag['local_only'])) {
+            $tag['local_only'] = 0;
+        }
         if (isset($tag['name']) && strlen($tag['name']) >= 255) {
             $tag['name'] = substr($tag['name'], 0, 255);
         }
@@ -315,6 +318,7 @@ class Tag extends AppModel
                     'name' => $tag['name'],
                     'colour' => $tag['colour'],
                     'exportable' => isset($tag['exportable']) ? $tag['exportable'] : 1,
+                    'local_only' => $tag['local_only'] ?? 0,
                     'org_id' => 0,
                     'user_id' => 0,
                     'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0
@@ -380,11 +384,14 @@ class Tag extends AppModel
         }
     }
 
-    public function quickEdit($tag, $name, $colour, $hide = false, $numerical_value = null)
+    public function quickEdit($tag, $name, $colour, $hide = false, $numerical_value = null, $local_only = -1)
     {
-        if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name || $hide !== false || $tag['Tag']['numerical_value'] !== $numerical_value) {
+        if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name || $hide !== false || $tag['Tag']['numerical_value'] !== $numerical_value || ($tag['Tag']['local_only'] !== $local_only && $local_only !== -1)) {
             $tag['Tag']['name'] = $name;
             $tag['Tag']['colour'] = $colour;
+            if ($tag['Tag']['local_only'] !== -1) {
+                $tag['Tag']['local_only'] = $local_only;
+            }
             if ($hide !== false) {
                 $tag['Tag']['hide_tag'] = $hide;
             }
