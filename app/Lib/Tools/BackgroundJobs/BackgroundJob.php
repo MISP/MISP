@@ -83,11 +83,13 @@ class BackgroundJob implements JsonSerializable
         ];
 
         $process = proc_open(
-            [
-                ROOT . DS . 'app' . DS . 'Console' . DS . 'cake',
-                $this->command(),
-                ...$this->args()
-            ],
+            array_merge(
+                [
+                    ROOT . DS . 'app' . DS . 'Console' . DS . 'cake',
+                    $this->command(),
+                ],
+                $this->args()
+            ),
             $descriptorSpec,
             $pipes
         );

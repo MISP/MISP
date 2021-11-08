@@ -31,7 +31,7 @@ class JobsController extends AppController
         $jobs = $this->paginate();
         foreach ($jobs as &$job) {
             if (!empty($job['Job']['process_id'])) {
-                $job['Job']['job_status'] = $this->getJobStatus($job['Job']['process_id']);
+                $job['Job']['job_status'] = $this->__getJobStatus($job['Job']['process_id']);
                 $job['Job']['failed'] = $job['Job']['job_status'] === 'Failed';
             } else {
                 $job['Job']['job_status'] = 'Unknown';
@@ -58,7 +58,7 @@ class JobsController extends AppController
             'Error' => 'error'
         );
         $this->set('fields', $fields);
-        $this->set('response', $this->getFailedJobLog($id));
+        $this->set('response', $this->__getFailedJobLog($id));
         $this->render('/Jobs/ajax/error');
     }
 
@@ -89,7 +89,7 @@ class JobsController extends AppController
             throw new NotFoundException("Job with ID `$id` not found");
         }
         $output = [
-            'job_status' => $this->getJobStatus($job['Job']['process_id']),
+            'job_status' => $this->__getJobStatus($job['Job']['process_id']),
             'progress' => (int)$job['Job']['progress'],
         ];
         return $this->RestResponse->viewData($output, 'json');
@@ -167,7 +167,7 @@ class JobsController extends AppController
         }
     }
 
-    private function getJobStatus(string $id): string
+    private function __getJobStatus(string $id): string
     {
         if (!Configure::read('MISP.use_simple_background_jobs')) {
             return $this->__jobStatusConverter(CakeResque::getJobStatus($id));
@@ -179,7 +179,7 @@ class JobsController extends AppController
         return $this->__jobStatusConverter($status);
     }
 
-    private function getFailedJobLog(string $id): array
+    private function __getFailedJobLog(string $id): array
     {
         if (!Configure::read('MISP.use_simple_background_jobs')) {
             return CakeResque::getFailedJobLog($id);

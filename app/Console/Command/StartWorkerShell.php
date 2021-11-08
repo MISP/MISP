@@ -18,7 +18,7 @@ class StartWorkerShell extends AppShell
     /** @var int */
     private $maxExecutionTime;
 
-    private const DEFAULT_SLEEP_INTERVAL = 0; // seconds
+    private const DEFAULT_SLEEP_INTERVAL = 5; // seconds
     private const DEFAULT_MAX_EXECUTION_TIME = 86400; // 1 day
 
 
