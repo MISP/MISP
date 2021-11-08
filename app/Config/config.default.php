@@ -51,7 +51,6 @@ $config = array(
         'unpublishedprivate'             => false,
         'disable_emailing'               => false,
         'manage_workers'                 => true,
-        'Attributes_Values_Filter_In_Event' => 'id, uuid, value, comment, type, category, Tag.name',
         'python_bin'                     => null,
         'external_baseurl'               => '',
         'forceHTTPSforPreLoginRequestedURL' => false,

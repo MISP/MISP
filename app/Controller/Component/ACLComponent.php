@@ -54,7 +54,6 @@ class ACLComponent extends Component
                     'returnAttributes' => array('*'),
                     'rpz' => array('*'),
                     'search' => array('*'),
-                    'searchAlternate' => array('*'),
                     'toggleCorrelation' => array('perm_add'),
                     'text' => array('*'),
                     'toggleToIDS' => array('perm_add'),

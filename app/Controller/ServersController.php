@@ -1485,18 +1485,18 @@ class ServersController extends AppController
                 }
             }
             $this->autoRender = false;
-            $this->loadModel('Log');
-            if (!is_writeable(APP . 'Config/config.php')) {
+            if (!Configure::read('MISP.system_setting_db') && !is_writeable(APP . 'Config/config.php')) {
+                $this->loadModel('Log');
                 $this->Log->create();
                 $this->Log->save(array(
-                        'org' => $this->Auth->user('Organisation')['name'],
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => $this->Auth->user('email'),
-                        'action' => 'serverSettingsEdit',
-                        'user_id' => $this->Auth->user('id'),
-                        'title' => 'Server setting issue',
-                        'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
+                    'org' => $this->Auth->user('Organisation')['name'],
+                    'model' => 'Server',
+                    'model_id' => 0,
+                    'email' => $this->Auth->user('email'),
+                    'action' => 'serverSettingsEdit',
+                    'user_id' => $this->Auth->user('id'),
+                    'title' => 'Server setting issue',
+                    'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
                 ));
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'app/Config.config.php is not writeable to the apache user.', $this->response->type());

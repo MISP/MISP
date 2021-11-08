@@ -131,13 +131,17 @@ class AuditLog extends AppModel
         if (in_array($auditLog['model'], ['Attribute', 'Object', 'ShadowAttribute'], true)) {
             $modelName = $auditLog['model'] === 'ShadowAttribute' ? 'Proposal' : $auditLog['model'];
             $title = __('%s from Event #%s', $modelName, $auditLog['event_id']);
-        } else {
-            $title = "{$auditLog['model']} #{$auditLog['model_id']}";
         }
+
         if (isset($auditLog['model_title']) && $auditLog['model_title']) {
-            $title .= ": {$auditLog['model_title']}";
+            if (isset($title)) {
+                $title .= ": {$auditLog['model_title']}";
+                return $title;
+            } else {
+                return $auditLog['model_title'];
+            }
         }
-        return $title;
+        return '';
     }
 
     /**

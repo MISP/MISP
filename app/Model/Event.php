@@ -1,9 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
-App::uses('FileAccessTool', 'Tools');
 App::uses('AttachmentTool', 'Tools');
-App::uses('JsonTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
 
@@ -2362,10 +2360,7 @@ class Event extends AppModel
             return;
         }
 
-        $clustersByTagNames = [];
-        foreach ($clusters as $cluster) {
-            $clustersByTagNames[mb_strtolower($cluster['GalaxyCluster']['tag_name'])] = $cluster['GalaxyCluster'];
-        }
+        $clustersByTagIds = array_column(array_column($clusters, 'GalaxyCluster'), null, 'tag_id');
         unset($clusters);
 
         if (isset($event['EventTag'])) {
@@ -2373,9 +2368,9 @@ class Event extends AppModel
                 if (!$eventTag['Tag']['is_galaxy']) {
                     continue;
                 }
-                $tagName = mb_strtolower($eventTag['Tag']['name']);
-                if (isset($clustersByTagNames[$tagName])) {
-                    $cluster = $clustersByTagNames[$tagName];
+                $tagId = $eventTag['Tag']['id'];
+                if (isset($clustersByTagIds[$tagId])) {
+                    $cluster = $clustersByTagIds[$tagId];
                     $galaxyId = $cluster['Galaxy']['id'];
                     $cluster['local'] = isset($eventTag['local']) ? $eventTag['local'] : false;
                     if (isset($event['Galaxy'][$galaxyId])) {
@@ -2397,9 +2392,9 @@ class Event extends AppModel
                         if (!$attributeTag['Tag']['is_galaxy']) {
                             continue;
                         }
-                        $tagName = mb_strtolower($attributeTag['Tag']['name']);
-                        if (isset($clustersByTagNames[$tagName])) {
-                            $cluster = $clustersByTagNames[$tagName];
+                        $tagId = $attributeTag['Tag']['id'];
+                        if (isset($clustersByTagIds[$tagId])) {
+                            $cluster = $clustersByTagIds[$tagId];
                             $galaxyId = $cluster['Galaxy']['id'];
                             $cluster['local'] = isset($attributeTag['local']) ? $attributeTag['local'] : false;
                             if (isset($attribute['Galaxy'][$galaxyId])) {
@@ -5848,7 +5843,14 @@ class Event extends AppModel
         }
     }
 
-    public function unpublishEvent($id, $proposalLock = false)
+    /**
+     * @param int $id
+     * @param bool $proposalLock
+     * @param int|null $timestamp If not provided, current time will be used
+     * @return array|bool|mixed|null
+     * @throws Exception
+     */
+    public function unpublishEvent($id, $proposalLock = false, $timestamp = null)
     {
         $event = $this->find('first', array(
             'recursive' => -1,
@@ -5860,7 +5862,7 @@ class Event extends AppModel
         }
         $fields = ['published', 'timestamp'];
         $event['Event']['published'] = 0;
-        $event['Event']['timestamp'] = time();
+        $event['Event']['timestamp'] = $timestamp ?: time();
         if ($proposalLock) {
             $event['Event']['proposal_email_lock'] = 0;
             $fields[] = 'proposal_email_lock';

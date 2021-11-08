@@ -6144,6 +6144,30 @@
                 "extra": ""
             }
         ],
+        "system_settings": [
+            {
+                "column_name": "setting",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "value",
+                "is_nullable": "NO",
+                "data_type": "blob",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": null,
+                "column_type": "blob",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
         "tags": [
             {
                 "column_name": "id",
@@ -8095,6 +8119,9 @@
             "uuid": true,
             "source": false,
             "type": false
+        },
+        "system_settings": {
+            "setting": true
         },
         "tags": {
             "id": true,

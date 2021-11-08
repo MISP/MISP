@@ -2,7 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
-App::uses('FileAccessTool', 'Tools');
+App::uses('SystemSetting', 'Model');
 
 /**
  * @property-read array $serverSettings
@@ -161,14 +161,6 @@ class Server extends AppModel
         )
     );
 
-    private $__settingTabMergeRules = array(
-            'GnuPG' => 'Encryption',
-            'SMIME' => 'Encryption',
-            'misc' => 'Security',
-            'Security' => 'Security',
-            'Session' => 'Security'
-    );
-
     public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
 
     public function beforeSave($options = array())
@@ -233,7 +225,12 @@ class Server extends AppModel
         return false;
     }
 
-    private function __updatePulledEventBeforeInsert(&$event, $server, $user)
+    /**
+     * @param array $event
+     * @param array $server
+     * @param array $user
+     */
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user)
     {
         // we have an Event array
         // The event came from a pull, so it should be locked.
@@ -261,9 +258,9 @@ class Server extends AppModel
                     }
                 }
             }
-            if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
-                foreach ($event['Event']['Attribute'] as $key => $a) {
-                    switch ($a['distribution']) {
+            if (isset($event['Event']['Attribute'])) {
+                foreach ($event['Event']['Attribute'] as $key => $attribute) {
+                    switch ($attribute['distribution']) {
                         case '1':
                             $event['Event']['Attribute'][$key]['distribution'] = '0';
                             break;
@@ -272,8 +269,8 @@ class Server extends AppModel
                             break;
                     }
                     // We remove local tags obtained via pull
-                    if (isset($a['Tag'])) {
-                        foreach ($a['Tag'] as $k => $v) {
+                    if (isset($attribute['Tag'])) {
+                        foreach ($attribute['Tag'] as $k => $v) {
                             if ($v['local']) {
                                 unset($event['Event']['Attribute'][$key]['Tag'][$k]);
                             }
@@ -281,9 +278,9 @@ class Server extends AppModel
                     }
                 }
             }
-            if (isset($event['Event']['Object']) && !empty($event['Event']['Object'])) {
-                foreach ($event['Event']['Object'] as $i => $o) {
-                    switch ($o['distribution']) {
+            if (isset($event['Event']['Object'])) {
+                foreach ($event['Event']['Object'] as $i => $object) {
+                    switch ($object['distribution']) {
                         case '1':
                             $event['Event']['Object'][$i]['distribution'] = '0';
                             break;
@@ -291,8 +288,8 @@ class Server extends AppModel
                             $event['Event']['Object'][$i]['distribution'] = '1';
                             break;
                     }
-                    if (isset($event['Event']['Object'][$i]['Attribute']) && !empty($event['Event']['Object'][$i]['Attribute'])) {
-                        foreach ($event['Event']['Object'][$i]['Attribute'] as $j => $a) {
+                    if (isset($object['Attribute'])) {
+                        foreach ($object['Attribute'] as $j => $a) {
                             switch ($a['distribution']) {
                                 case '1':
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '0';
@@ -313,7 +310,7 @@ class Server extends AppModel
                     }
                 }
             }
-            if (isset($event['Event']['EventReport']) && !empty($event['Event']['EventReport'])) {
+            if (isset($event['Event']['EventReport'])) {
                 foreach ($event['Event']['EventReport'] as $key => $r) {
                     switch ($r['distribution']) {
                         case '1':
@@ -329,10 +326,13 @@ class Server extends AppModel
 
         // Distribution, set reporter of the event, being the admin that initiated the pull
         $event['Event']['user_id'] = $user['id'];
-        return $event;
     }
 
-    private function __checkIfEventSaveAble($event)
+    /**
+     * @param array $event
+     * @return bool True if event is not empty
+     */
+    private function __checkIfEventSaveAble(array $event)
     {
         if (!empty($event['Event']['Attribute'])) {
             foreach ($event['Event']['Attribute'] as $attribute) {
@@ -379,7 +379,7 @@ class Server extends AppModel
             $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
             if ($result) {
                 $successes[] = $eventId;
-                if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                if ($this->pubToZmq('event')) {
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'add_from_connected_server');
                 }
@@ -393,7 +393,7 @@ class Server extends AppModel
                 $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong, $force);
                 if ($result === true) {
                     $successes[] = $eventId;
-                    if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                    if ($this->pubToZmq('event')) {
                         $pubSubTool = $this->getPubSubTool();
                         $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'edit_from_connected_server');
                     }
@@ -431,7 +431,7 @@ class Server extends AppModel
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
             }
-            $event = $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user);
+            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user);
             if (!$this->__checkIfEventSaveAble($event)) {
                 $fails[$eventId] = __('Empty event detected.');
             } else {
@@ -1342,12 +1342,20 @@ class Server extends AppModel
 
     public function serverSettingsRead($unsorted = false)
     {
+        $settingTabMergeRules = array(
+            'GnuPG' => 'Encryption',
+            'SMIME' => 'Encryption',
+            'misc' => 'Security',
+            'Security' => 'Security',
+            'Session' => 'Security'
+        );
+
         $serverSettings = $this->getCurrentServerSettings();
         $currentSettings = Configure::read();
         $finalSettingsUnsorted = $this->__serverSettingsRead($serverSettings, $currentSettings);
         foreach ($finalSettingsUnsorted as $key => $temp) {
-            if (isset($this->__settingTabMergeRules[$temp['tab']])) {
-                $finalSettingsUnsorted[$key]['tab'] = $this->__settingTabMergeRules[$temp['tab']];
+            if (isset($settingTabMergeRules[$temp['tab']])) {
+                $finalSettingsUnsorted[$key]['tab'] = $settingTabMergeRules[$temp['tab']];
             }
         }
         if ($unsorted) {
@@ -1372,8 +1380,20 @@ class Server extends AppModel
     private function __evaluateLeaf($leafValue, $leafKey, $setting)
     {
         if (isset($setting)) {
+            if ($setting instanceof EncryptedValue) {
+                try {
+                    $setting = $setting->decrypt();
+                } catch (Exception $e) {
+                    $leafValue['errorMessage'] = 'Could not decrypt.';
+                    return $leafValue;
+                }
+            }
             if (!empty($leafValue['test'])) {
-                $result = $this->{$leafValue['test']}($setting, empty($leafValue['errorMessage']) ? false : $leafValue['errorMessage']);
+                if ($leafValue['test'] instanceof Closure) {
+                    $result = $leafValue['test']($setting);
+                } else {
+                    $result = $this->{$leafValue['test']}($setting, empty($leafValue['errorMessage']) ? false : $leafValue['errorMessage']);
+                }
                 if ($result !== true) {
                     $leafValue['error'] = 1;
                     if ($result !== false) {
@@ -1397,7 +1417,7 @@ class Server extends AppModel
     {
         $dirs = glob(APP . 'Locale/*', GLOB_ONLYDIR);
         $languages = array('eng' => 'eng');
-        foreach ($dirs as $k => $dir) {
+        foreach ($dirs as $dir) {
             $dir = str_replace(APP . 'Locale' . DS, '', $dir);
             $languages[$dir] = $dir;
         }
@@ -1427,13 +1447,17 @@ class Server extends AppModel
 
     private function loadLocalOrganisations($strict = false)
     {
-        $localOrgs = $this->Organisation->find('list', array(
-            'conditions' => array('local' => 1),
-            'recursive' => -1,
-            'fields' => array('Organisation.id', 'Organisation.name')
-        ));
+        static $localOrgs;
 
-        if(!$strict){
+        if ($localOrgs === null) {
+            $localOrgs = $this->Organisation->find('list', array(
+                'conditions' => array('local' => 1),
+                'recursive' => -1,
+                'fields' => array('Organisation.id', 'Organisation.name')
+            ));
+        }
+
+        if (!$strict) {
             return array_replace(array(0 => __('No organisation selected.')), $localOrgs);
         }
 
@@ -1505,15 +1529,10 @@ class Server extends AppModel
 
     public function testLocalOrgStrict($value)
     {
-        $this->Organisation = ClassRegistry::init('Organisation');
         if ($value == 0) {
             return 'No organisation selected';
         }
-        $local_orgs = $this->Organisation->find('list', array(
-            'conditions' => array('local' => 1),
-            'recursive' => -1,
-            'fields' => array('Organisation.id', 'Organisation.name')
-        ));
+        $local_orgs = $this->loadLocalOrganisations(true);
         if (in_array($value, array_keys($local_orgs))) {
             return true;
         }
@@ -1619,7 +1638,6 @@ class Server extends AppModel
         return true;
     }
 
-
     public function getHost()
     {
         if (function_exists('apache_request_headers')) {
@@ -1668,11 +1686,14 @@ class Server extends AppModel
             }
             return true;
         }
+        if (empty($value)) {
+            return true;
+        }
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
         $regex = "/^(?<proto>https?):\/\/(?<host>([\w,\-,\.]+))(?::(?<port>[0-9]+))?(?<base>\/[a-z0-9_\-\.]+)?$/i";
-	if (
+        if (
             !preg_match($regex, $value, $matches) ||
             strtolower($matches['proto']) != strtolower($this->getProto()) ||
             (
@@ -2071,10 +2092,10 @@ class Server extends AppModel
     private function __serverSettingNormaliseValue($data, $value, $setting)
     {
         if (!empty($data['type'])) {
-            if ($data['type'] == 'boolean') {
-                $value = $value ? true : false;
-            } elseif ($data['type'] == 'numeric') {
-                $value = intval($value);
+            if ($data['type'] === 'boolean') {
+                $value = (bool)$value;
+            } elseif ($data['type'] === 'numeric') {
+                $value = (int)$value;
             }
         }
         return $value;
@@ -2125,30 +2146,41 @@ class Server extends AppModel
             if ($beforeResult !== true) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
-                $result = $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => $user['email'],
-                        'action' => 'serverSettingsEdit',
-                        'user_id' => $user['id'],
-                        'title' => 'Server setting issue',
-                        'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $value  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
+                $this->Log->save(array(
+                    'org' => $user['Organisation']['name'],
+                    'model' => 'Server',
+                    'model_id' => 0,
+                    'email' => $user['email'],
+                    'action' => 'serverSettingsEdit',
+                    'user_id' => $user['id'],
+                    'title' => 'Server setting issue',
+                    'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $value  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
                 ));
                 return $beforeResult;
             }
         }
-        $value = trim($value);
-        if ($setting['type'] === 'boolean') {
-            $value = (bool)$value;
-        } else if ($setting['type'] === 'numeric') {
-            $value = (int)($value);
-        }
-        if (!empty($setting['test'])) {
-            $testResult = $this->{$setting['test']}($value);
+        if ($value !== null) {
+            $value = trim($value);
+            if ($setting['type'] === 'boolean') {
+                $value = (bool)$value;
+            } else if ($setting['type'] === 'numeric') {
+                $value = (int)($value);
+            }
+            if (isset($setting['test'])) {
+                if ($setting['test'] instanceof Closure) {
+                    $testResult = $setting['test']($value);
+                } else {
+                    $testResult = $this->{$setting['test']}($value);
+                }
+            } else {
+                $testResult = true;  # No test defined for this setting: cannot fail
+            }
+        } else if (isset($setting['null']) && $setting['null']) {
+            $testResult = true;
         } else {
-            $testResult = true;  # No test defined for this setting: cannot fail
+            $testResult = __('Value could not be null.');
         }
+
         if (!$forceSave && $testResult !== true) {
             if ($testResult === false) {
                 $errorMessage = $setting['errorMessage'];
@@ -2158,14 +2190,23 @@ class Server extends AppModel
             return $errorMessage;
         }
         $oldValue = Configure::read($setting['name']);
-        $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
+        $fileOnly = isset($setting['cli_only']) && $setting['cli_only'];
+        $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value, $fileOnly);
         if ($settingSaveResult) {
-            $change = array($setting['name'] => array($oldValue, $value));
+            if (SystemSetting::isSensitive($setting['name'])) {
+                $change = array($setting['name'] => array('*****', '*****'));
+            } else {
+                $change = array($setting['name'] => array($oldValue, $value));
+            }
             $this->loadLog()->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting changed', $change);
 
             // execute after hook
             if (isset($setting['afterHook'])) {
-                $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value));
+                if ($setting['afterHook'] instanceof Closure) {
+                    $afterResult = $setting['afterHook']($setting['name'], $value, $oldValue);
+                } else {
+                    $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value, $oldValue));
+                }
                 if ($afterResult !== true) {
                     $change = 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult;
                     $this->loadLog()->createLogEntry($user, 'serverSettingsEdit', 'Server', 0, 'Server setting issue', $change);
@@ -2181,11 +2222,18 @@ class Server extends AppModel
     /**
      * @param string $setting
      * @param mixed $value
+     * @param bool $fileOnly If true, always store value in config file even when `MISP.system_setting_db` is enabled
      * @return bool
      * @throws Exception
      */
-    public function serverSettingsSaveValue($setting, $value)
+    public function serverSettingsSaveValue($setting, $value, $fileOnly = false)
     {
+        if (!$fileOnly && Configure::read('MISP.system_setting_db')) {
+            /** @var SystemSetting $systemSetting */
+            $systemSetting = ClassRegistry::init('SystemSetting');
+            return $systemSetting->setSetting($setting, $value);
+        }
+
         $configFilePath = APP . 'Config' . DS . 'config.php';
         if (!is_writable($configFilePath)) {
             return false; // config file is not writeable
@@ -2219,22 +2267,11 @@ class Server extends AppModel
                 }
             }
         }
-        Configure::write($setting, $value);
-        $arrayFix = array(
-            'Security.auth',
-            'ApacheSecureAuth.ldapFilter'
-        );
-        foreach ($arrayFix as $settingFix) {
-            if (Configure::read($settingFix) && is_array(Configure::read($settingFix)) && !empty(Configure::read($settingFix))) {
-                $arrayElements = array();
-                foreach (Configure::read($settingFix) as $array) {
-                    if (!in_array($array, $arrayElements)) {
-                        $arrayElements[] = $array;
-                    }
-                }
-                Configure::write($settingFix, $arrayElements);
-            }
-        }
+
+        /** @var array $config */
+        require $configFilePath;
+        $config = Hash::insert($config, $setting, $value);
+
         $settingsToSave = array(
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
             'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
@@ -2243,7 +2280,9 @@ class Server extends AppModel
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
-            $settingsArray[$setting] = Configure::read($setting);
+            if (Hash::check($config, $setting)) {
+                $settingsArray[$setting] = Hash::get($config, $setting);
+            }
         }
         $settingsString = var_export($settingsArray, true);
         $settingsString = '<?php' . "\n" . '$config = ' . $settingsString . ';';
@@ -2803,13 +2842,10 @@ class Server extends AppModel
 
     public function getExpectedDBSchema()
     {
-        App::uses('Folder', 'Utility');
-        $file = new File(ROOT . DS . 'db_schema.json', true);
-        $dbExpectedSchema = json_decode($file->read(), true);
-        $file->close();
-        if (!is_null($dbExpectedSchema)) {
-            return $dbExpectedSchema;
-        } else {
+        try {
+            $content = FileAccessTool::readFromFile(ROOT . DS . 'db_schema.json');
+            return JsonTool::decode($content);
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -2862,8 +2898,7 @@ class Server extends AppModel
                 }
                 $dbActualIndexes[$table] = $this->getDatabaseIndexes($this->getDataSource()->config['database'], $table);
             }
-        }
-        else if ($dataSource == 'Database/Postgres') {
+        } else if ($dataSource == 'Database/Postgres') {
             return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
         }
         return ['schema' => $dbActualSchema, 'column' => $tableColumnNames, 'indexes' => $dbActualIndexes];
@@ -3258,7 +3293,7 @@ class Server extends AppModel
                 try {
                     $output['version'] = $gpg->getVersion();
                 } catch (Exception $e) {
-                    // ingore
+                    // ignore
                 }
 
                 try {
@@ -4503,12 +4538,12 @@ class Server extends AppModel
                     'errorMessage' => __('The currently set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address).'),
                     'test' => 'testBaseURL',
                     'type' => 'string',
+                    'null' => true
                 ),
                 'external_baseurl' => array(
                     'level' => 0,
                     'description' => __('The base url of the application (in the format https://www.mymispinstance.com) as visible externally/by other MISPs. MISP will encode this URL in sharing groups when including itself. If this value is not set, the baseurl is used as a fallback.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testURL',
                     'type' => 'string',
                 ),
@@ -4516,7 +4551,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Unless set to true, the instance will only be accessible by site admins.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testLive',
                     'type' => 'boolean',
                 ),
@@ -4524,7 +4558,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Select the language MISP should use. The default is english.'),
                     'value' => 'eng',
-                    'errorMessage' => '',
                     'test' => 'testLanguage',
                     'type' => 'string',
                     'optionsSource' => function () {
@@ -4536,7 +4569,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This values controls the internal fetcher\'s memory envelope when it comes to attributes. The number provided is the amount of attributes that can be loaded for each MB of PHP memory available in one shot. Consider lowering this number if your instance has a lot of attribute tags / attribute galaxies attached.'),
                     'value' => 80,
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true
@@ -4545,7 +4577,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This value controls the divisor for attribute weighting when it comes to loading full events. Meaning that it will load coefficient / divisor number of attributes per MB of memory available. Consider raising this number if you have a lot of correlations or highly contextualised events (large number of event level galaxies/tags).'),
                     'value' => 3,
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true
@@ -4554,7 +4585,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Enable some performance heavy correlations (currently CIDR correlation)'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -4563,7 +4593,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -4572,7 +4601,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('It is highly recommended to install all the python dependencies in a virtualenv. The recommended location is: %s/venv', ROOT),
                     'value' => false,
-                    'errorMessage' => '',
                     'null' => false,
                     'test' => 'testForBinExec',
                     'beforeHook' => 'beforeHookBinExec',
@@ -4583,7 +4611,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('MISP will default to the bundled mozilla certificate bundle shipped with the framework, which is rather stale. If you wish to use an alternate bundle, just set this setting using the path to the bundle to use. This setting can only be modified via the CLI.'),
                     'value' => APP . 'Lib/cakephp/lib/Cake/Config/cacert.pem',
-                    'errorMessage' => '',
                     'null' => true,
                     'test' => 'testForCABundle',
                     'type' => 'string',
@@ -4593,7 +4620,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('In some cases, a heavily used MISP instance can generate unwanted blackhole errors due to a high number of requests hitting the server. Disable the auto logout functionality to ease the burden on the system.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -4602,7 +4628,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set the ssdeep score at which to consider two ssdeep hashes as correlating [1-100]'),
                     'value' => 40,
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
                 ),
@@ -4610,7 +4635,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Sets the maximum number of correlations that can be fetched with a single event. For extreme edge cases this can prevent memory issues. The default value is 5k.'),
                     'value' => 5000,
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true
@@ -4627,7 +4651,6 @@ class Server extends AppModel
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4635,7 +4658,6 @@ class Server extends AppModel
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4644,7 +4666,6 @@ class Server extends AppModel
                     'description' => __('Cached exports can take up a considerable amount of space and can be disabled instance wide using this setting. Disabling the cached exports is not recommended as it\'s a valuable feature, however, if your server is having free space issues it might make sense to take this step.'),
                     'value' => false,
                     'null' => true,
-                    'errorMessage' => '',
                     'test' => 'testDisableCache',
                     'type' => 'boolean',
                     'afterHook' => 'disableCacheAfterHook',
@@ -4654,7 +4675,6 @@ class Server extends AppModel
                     'description' => __('Disable displaying / modifications to the threat level altogether on the instance (deprecated field).'),
                     'value' => false,
                     'null' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -4662,7 +4682,6 @@ class Server extends AppModel
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4670,7 +4689,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Footer text prepending the "Powered by MISP" text.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4678,7 +4696,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Footer text following the "Powered by MISP" text.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4686,7 +4703,6 @@ class Server extends AppModel
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4694,7 +4710,6 @@ class Server extends AppModel
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4702,7 +4717,6 @@ class Server extends AppModel
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4710,31 +4724,27 @@ class Server extends AppModel
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
                 'footer_logo' => array(
-                    'level' => 2 ,
+                    'level' => 2,
                     'description' => __('If set, this setting allows you to display a logo on the right side of the footer. Upload it as a custom image in the file management tool.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForCustomImage',
                     'type' => 'string',
                 ),
                 'home_logo' => array(
-                    'level' => 2 ,
+                    'level' => 2,
                     'description' => __('If set, this setting allows you to display a logo as the home icon. Upload it as a custom image in the file management tool.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForCustomImage',
                     'type' => 'string',
                 ),
                 'main_logo' => array(
-                    'level' => 2 ,
+                    'level' => 2,
                     'description' => __('If set, the image specified here will replace the main MISP logo on the login screen. Upload it as a custom image in the file management tool.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForCustomImage',
                     'type' => 'string',
                 ),
@@ -4742,7 +4752,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The organisation tag of the hosting organisation. This is used in the e-mail subjects.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4750,7 +4759,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The hosting organisation of this instance. If this is not selected then replication instances cannot be added.'),
                     'value' => '0',
-                    'errorMessage' => '',
                     'test' => 'testLocalOrgStrict',
                     'type' => 'numeric',
                     'optionsSource' => function () {
@@ -4769,7 +4777,6 @@ class Server extends AppModel
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4777,7 +4784,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Setting this setting to \'false\' will hide all organisation names / logos.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -4785,7 +4791,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Put the event threat level in the notification E-mail subject.'),
                     'value' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -4793,7 +4798,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('This is the TLP string for e-mails when email_subject_tag is not found.'),
                     'value' => 'tlp:amber',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4801,7 +4805,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('If this tag is set on an event it\'s value will be sent in the E-mail subject. If the tag is not set the email_subject_TLP_string will be used.'),
                     'value' => 'tlp',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4809,7 +4812,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Include in name of the email_subject_tag in the subject. When false only the tag value is used.'),
                     'value' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -4817,7 +4819,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Notification e-mail sender name.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ],
@@ -4825,7 +4826,6 @@ class Server extends AppModel
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4833,7 +4833,6 @@ class Server extends AppModel
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4841,15 +4840,13 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enables the use of MISP\'s background processing.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testBoolTrue',
                     'type' => 'boolean',
                 ),
                 'attachments_dir' => array(
                     'level' => 2,
                     'description' => __('Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application.'),
-                    'value' =>  APP . '/files', # GUI display purpose only.
-                    'errorMessage' => '',
+                    'value' => APP . '/files', # GUI display purpose only.
                     'null' => false,
                     'test' => 'testForWritableDir',
                     'type' => 'string',
@@ -4859,7 +4856,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Allow the XML caches to include the encoded attachments.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -4867,7 +4863,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Always download attachments when loaded by a user in a browser'),
                     'value' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -4875,7 +4870,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The Unix user MISP (php) is running as'),
                     'value' => 'www-data',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4883,7 +4877,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The e-mail address that MISP should use for all notifications'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4891,7 +4884,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('You can disable all e-mailing using this setting. When enabled, no outgoing e-mails will be sent by MISP.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'null' => true,
                     'test' => 'testDisableEmail',
                     'type' => 'boolean',
@@ -4900,7 +4892,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This setting is deprecated. Please use `MISP.event_alert_metadata_only` instead.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'null' => true,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -4909,7 +4900,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The e-mail address that MISP should include as a contact address for the instance\'s support team.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4917,7 +4907,6 @@ class Server extends AppModel
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4925,7 +4914,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Turn Vulnerability type attributes into links linking to the provided CVE lookup'),
                     'value' => 'https://cve.circl.lu/cve/',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4933,7 +4921,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Turn Weakness type attributes into links linking to the provided CWE lookup'),
                     'value' => 'https://cve.circl.lu/cwe/',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -4941,7 +4928,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to disable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull. Quick recap: True = Emails are NOT sent, False = Emails are sent on events published via sync / REST.'),
                     'value' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -4949,7 +4935,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enabling this flag will allow the event description to be transmitted in the alert e-mail\'s subject. Be aware that this is not encrypted by GnuPG, so only enable it if you accept that part of the event description will be sent out in clear-text.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -4957,7 +4942,6 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('If enabled, any requested URL before login will have their HTTP part replaced by HTTPS. This can be usefull if MISP is running behind a reverse proxy responsible for SSL and communicating unencrypted with MISP.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -4965,7 +4949,6 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Send just event metadata (attributes and objects will be omitted) for event alert.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ],
@@ -4973,7 +4956,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The default distribution setting for events (0-3).'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'options' => array('0' => __('Your organisation only'), '1' => __('This community only'), '2' => __('Connected communities'), '3' => __('All communities')),
@@ -4982,16 +4964,20 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The default distribution setting for attributes, set it to \'event\' if you would like the attributes to default to the event distribution level. (0-3 or "event")'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
-                    'options' => array('0' => __('Your organisation only'), '1' => __('This community only'), '2' => __('Connected communities'), '3' => __('All communities'), 'event' => __('Inherit from event')),
+                    'options' => array(
+                        '0' => __('Your organisation only'),
+                        '1' => __('This community only'),
+                        '2' => __('Connected communities'),
+                        '3' => __('All communities'),
+                        'event' => __('Inherit from event')
+                    ),
                 ),
                 'default_event_threat_level' => array(
                     'level' => 1,
                     'description' => __('The default threat level setting when creating events.'),
                     'value' => 4,
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'options' => array('1' => 'High', '2' => 'Medium', '3' => 'Low', '4' => 'undefined'),
@@ -5000,7 +4986,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The tag collection to be applied to all events created manually.'),
                     'value' => 0,
-                    'errorMessage' => '',
                     'test' => 'testTagCollections',
                     'type' => 'numeric',
                     'optionsSource' => function () {
@@ -5011,7 +4996,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The default setting for publish alerts when creating users.'),
                     'value' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5020,7 +5004,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enable the tagging feature of MISP. This is highly recommended.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -5028,7 +5011,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Show the full tag names on the event index.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'options' => array(0 => 'Minimal tags', 1 => 'Full tags', 2 => 'Shortened tags'),
@@ -5037,7 +5019,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Used on the login page, before the MISP logo'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -5045,7 +5026,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Used on the login page, after the MISP logo'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -5053,7 +5033,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Used on the login page, to the left of the MISP logo, upload it as a custom image in the file management tool.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForCustomImage',
                     'type' => 'string',
                 ),
@@ -5061,7 +5040,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Used on the login page, to the right of the MISP logo, upload it as a custom image in the file management tool.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForCustomImage',
                     'type' => 'string',
                 ),
@@ -5069,7 +5047,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Used in the page title, after the name of the page'),
                     'value' => 'MISP',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -5077,7 +5054,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Allows users to take ownership of an event uploaded via the "Add MISP XML" button. This allows spoofing the creator of a manually imported event, also breaking possibly breaking the original intended releasability. Synchronising with an instance that has a different creator for the same event can lead to unwanted consequences.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -5085,7 +5061,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Choose whether the terms and conditions should be displayed inline (false) or offered as a download (true)'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -5093,7 +5068,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The filename of the terms and conditions file. Make sure that the file is located in your MISP/app/files/terms directory'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForTermsFile',
                     'type' => 'string'
                 ),
@@ -5101,7 +5075,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('True enables the alternate org fields for the event index (source org and member org) instead of the traditional way of showing only an org field. This allows users to see if an event was uploaded by a member organisation on their MISP instance, or if it originated on an interconnected instance.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -5109,7 +5082,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('True will deny access to unpublished events to users outside the organization of the submitter except site admins.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -5118,7 +5090,6 @@ class Server extends AppModel
                     'bigField' => true,
                     'description' => __('The message sent to the user after account creation (has to be sent manually from the administration interface). Use \\n for line-breaks. The following variables will be automatically replaced in the text: $password = a new temporary password that MISP generates, $username = the user\'s e-mail address, $misp = the url of this instance, $org = the organisation that the instance belongs to, as set in MISP.org, $contact = the e-mail address used to contact the support team, as set in MISP.contact. For example, "the password for $username is $password" would appear to a user with the e-mail address user@misp.org as "the password for user@misp.org is hNamJae81".'),
                     'value' => 'Dear new MISP user,\n\nWe would hereby like to welcome you to the $org MISP community.\n\n Use the credentials below to log into MISP at $misp, where you will be prompted to manually change your password to something of your own choice.\n\nUsername: $username\nPassword: $password\n\nIf you have any questions, don\'t hesitate to contact us at: $contact.\n\nBest regards,\nYour $org MISP support team',
-                    'errorMessage' => '',
                     'test' => 'testPasswordResetText',
                     'type' => 'string'
                 ),
@@ -5127,7 +5098,6 @@ class Server extends AppModel
                     'bigField' => true,
                     'description' => __('The message sent to the users when a password reset is triggered. Use \\n for line-breaks. The following variables will be automatically replaced in the text: $password = a new temporary password that MISP generates, $username = the user\'s e-mail address, $misp = the url of this instance, $contact = the e-mail address used to contact the support team, as set in MISP.contact. For example, "the password for $username is $password" would appear to a user with the e-mail address user@misp.org as "the password for user@misp.org is hNamJae81".'),
                     'value' => 'Dear MISP user,\n\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at $misp, where you will be prompted to manually change your password to something of your own choice.\n\nUsername: $username\nYour temporary password: $password\n\nIf you have any questions, don\'t hesitate to contact us at: $contact.\n\nBest regards,\nYour $org MISP support team',
-                    'errorMessage' => '',
                     'test' => 'testPasswordResetText',
                     'type' => 'string'
                 ),
@@ -5149,7 +5119,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('If enabled, all log entries will include the IP address of the user.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'beforeHook' => 'ipLogBeforeHook'
@@ -5158,7 +5127,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('If log_client_ip is enabled, you can customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy infront of your MISP instance.'),
                     'value' => 'REMOTE_ADDR',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true,
@@ -5167,7 +5135,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('If enabled, MISP will log all successful authentications using API keys. The requested URLs are also logged.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -5184,7 +5151,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                     'null' => true
@@ -5193,7 +5159,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('You can decide to skip the logging of the paranoid logs to the database.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testParanoidSkipDb',
                     'type' => 'boolean',
                     'null' => true
@@ -5202,7 +5167,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('If paranoid logging is enabled, include the POST body in the entries.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5211,7 +5175,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Log user IPs on each request. 30 day retention for lookups by IP to get the last authenticated user ID for the given IP, whilst on the reverse, indefinitely stores all associated IPs for a user ID.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5220,7 +5183,6 @@ class Server extends AppModel
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('Log user IP and key usage on each API request. All logs for given keys are deleted after one year when this key is not used.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5229,7 +5191,6 @@ class Server extends AppModel
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('Enable new audit log system.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5238,7 +5199,6 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Compress log changes by brotli algorithm. This will reduce log database size.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5247,7 +5207,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5256,7 +5215,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5265,7 +5223,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('When enabled, the number of proposals for the events are shown on the index.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5274,7 +5231,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('When enabled, the aggregate number of attribute sightings within the event becomes visible to the currently logged in user on the event index UI.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5283,7 +5239,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('When enabled, the aggregate number of discussion posts for the event becomes visible to the currently logged in user on the event index UI.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5292,7 +5247,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('When enabled, the aggregate number of event reports for the event becomes visible to the currently logged in user on the event index UI.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5301,7 +5255,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('When enabled only Org and Site admins can edit a user\'s profile.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => false,
@@ -5310,7 +5263,6 @@ class Server extends AppModel
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('When enabled only Site admins can change user email. This should be enabled if you manage user logins by external system.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => false,
@@ -5319,7 +5271,6 @@ class Server extends AppModel
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('When enabled only Site admins can change user password. This should be enabled if you manage user passwords by external system.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => false,
@@ -5328,7 +5279,6 @@ class Server extends AppModel
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('When enabled, Org Admins could not add new users. This should be enabled if you manage users by external system.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => false,
@@ -5337,7 +5287,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enable this setting to start blocking alert e-mails for events with a certain tag. Define the tag in MISP.block_event_alert_tag.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => false,
@@ -5346,7 +5295,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('If the MISP.block_event_alert setting is set, alert e-mails for events tagged with the tag defined by this setting will be blocked.'),
                     'value' => 'no-alerts="true"',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => false,
@@ -5355,7 +5303,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enable this setting to start blocking alert e-mails for events that have already been published since a specified amount of time. This threshold is defined by MISP.event_alert_republish_ban_threshold'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => false,
@@ -5364,7 +5311,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('If the MISP.event_alert_republish_ban setting is set, this setting will control how long no alerting by email will be done. Expected format: integer, in minutes'),
                     'value' => 5,
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => false,
@@ -5373,7 +5319,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('If the MISP.event_alert_republish_ban setting is set, this setting will control if a ban time should be reset if emails are tried to be sent during the ban.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => false,
@@ -5382,7 +5327,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enable this setting to start blocking users to send too many e-mails notification since a specified amount of time. This threshold is defined by MISP.user_email_notification_ban_threshold'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => false,
@@ -5391,7 +5335,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('If the MISP.user_email_notification_ban setting is set, this setting will control how long no notification by email will be done. Expected format: integer, in minutes'),
                     'value' => 120,
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => false,
@@ -5400,7 +5343,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('If the MISP.user_email_notification_ban setting is set, this setting will control how many notification by email can be send for the timeframe defined in MISP.user_email_notification_ban_time_threshold. Expected format: integer'),
                     'value' => 10,
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => false,
@@ -5409,7 +5351,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set a value to limit the number of email alerts that events can generate per creator organisation (for example, if an organisation pushes out 2000 events in one shot, only alert on the first 20).'),
                     'value' => 0,
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true,
@@ -5418,7 +5359,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enable this setting to start blocking alert e-mails for old events. The exact timing of what constitutes an old event is defined by MISP.block_old_event_alert_age.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => false,
@@ -5427,7 +5367,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "timestamp" field of the event is used. Expected format: integer, in days'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => false,
@@ -5436,7 +5375,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control the threshold for the event.date field, indicating how old an event can be for it to be alerted on. The "date" field of the event is used. Expected format: integer, in days'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => false,
@@ -5445,7 +5383,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to /tmp and will be used among others to store certain temporary files extracted from imports during the import process.'),
                     'value' => '/tmp',
-                    'errorMessage' => '',
                     'test' => 'testForPath',
                     'type' => 'string',
                     'null' => true,
@@ -5455,7 +5392,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('If you would like to customise the css, simply drop a css file in the /var/www/MISP/app/webroot/css directory and enter the name here.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForStyleFile',
                     'type' => 'string',
                     'null' => true,
@@ -5464,7 +5400,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Enable this setting to allow blocking attributes from to_ids sensitive exports if a proposal has been made to it to remove the IDS flag or to remove the attribute altogether. This is a powerful tool to deal with false-positives efficiently.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => false,
@@ -5473,7 +5408,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enable this settings if new tags synced / added via incoming events from any source should not be selectable by users by default.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => false
@@ -5482,7 +5416,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('*WARNING* This setting will completely disable the correlation on this instance and remove any existing saved correlations. Enabling this will trigger a full recorrelation of all data which is an extremely long and costly procedure. Only enable this if you know what you\'re doing.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                     'null' => true,
@@ -5492,7 +5425,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('*WARNING* This setting will give event creators the possibility to disable the correlation of individual events / attributes that they have created.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                     'null' => true
@@ -5501,7 +5433,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The host running the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.'),
                     'value' => '127.0.0.1',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -5509,7 +5440,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The port used by the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.'),
                     'value' => 6379,
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ),
@@ -5517,7 +5447,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The database on the redis server to be used for generic MISP tasks. If you run more than one MISP instance, please make sure to use a different database on each instance.'),
                     'value' => 13,
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ),
@@ -5525,7 +5454,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The password on the redis server (if any) to be used for generic MISP tasks.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => null,
                     'type' => 'string',
                     'redacted' => true
@@ -5534,7 +5462,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Specify which fields to filter on when you search on the event view. Default values are : "id, uuid, value, comment, type, category, Tag.name"'),
                     'value' => 'id, uuid, value, comment, type, category, Tag.name',
-                    'errorMessage' => '',
                     'test' => null,
                     'type' => 'string',
                 ),
@@ -5542,7 +5469,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Set this to false if you would like to disable MISP managing its own worker processes (for example, if you are managing the workers with a systemd unit).'),
                     'value' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -5550,7 +5476,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Only enable this if you have some tools using MISP with extreme high concurency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5567,7 +5492,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This is a performance tweak to change the behaviour of restSearch to use attribute filters solely for blocking. This means that a lookup on the event scope with for example the type field set will be ignored unless it\'s used to strip unwanted attributes from the results. If left disabled, passing [ip-src, ip-dst] for example will return any event with at least one ip-src or ip-dst attribute. This is generally not considered to be too useful and is a heavy burden on the database.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5576,7 +5500,6 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Name of enrichment module that will be used for attachment malware scanning. This module must return av-signature or sb-signature object.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'type' => 'string',
                     'null' => true,
                 ],
@@ -5584,7 +5507,6 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Send to attachment scan module just file hash. This can be useful if module sends attachment to remote service and you don\'t want to leak real data.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
@@ -5593,19 +5515,40 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('How long to wait for scan results in seconds.'),
                     'value' => 30,
-                    'errorMessage' => '',
                     'test' => 'testForPositiveInteger',
                     'type' => 'numeric',
                     'null' => true,
                 ],
                 'warning_for_all' => [
-                    'level' => 1,
-                    'description' => __('Enable warning list triggers regardless of the IDS flag value'),
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('Enable warning list triggers regardless of the IDS flag value.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
+                ],
+                'system_setting_db' => [
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('Enable storing setting in database.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => true,
+                ],
+                'menu_custom_right_link' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Custom right menu URL.'),
+                    'value' => null,
+                    'type' => 'string',
+                    'null' => true,
+                ],
+                'menu_custom_right_link_html' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Custom right menu text (it is possible to use HTML).'),
+                    'value' => null,
+                    'type' => 'string',
+                    'null' => true,
                 ],
             ),
             'GnuPG' => array(
@@ -5614,7 +5557,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The location of the GnuPG executable. If you would like to use a different GnuPG executable than /usr/bin/gpg, you can set it here. If the default is fine, just keep the setting suggested by MISP.'),
                     'value' => '/usr/bin/gpg',
-                    'errorMessage' => '',
                     'test' => 'testForGPGBinary',
                     'type' => 'string',
                     'cli_only' => 1
@@ -5623,7 +5565,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Allow (false) unencrypted e-mails to be sent to users that don\'t have a GnuPG key.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -5631,7 +5572,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Allow (false) the body of unencrypted e-mails to contain details about the event.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -5639,7 +5579,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enable the signing of GnuPG emails. By default, GnuPG emails are signed'),
                     'value' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -5647,7 +5586,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The e-mail address that the instance\'s GnuPG key is tied to.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -5655,7 +5593,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The password (if it is set) of the GnuPG key of the instance.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'redacted' => true
@@ -5664,7 +5601,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The location of the GnuPG homedir.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -5672,7 +5608,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('When enabled, the subject in signed and encrypted e-mails will not be sent in unencrypted form.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 )
@@ -5683,7 +5618,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enable S/MIME encryption. The encryption posture of the GnuPG.onlyencrypted and GnuPG.bodyonlyencrypted settings are inherited if S/MIME is enabled.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -5691,7 +5625,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The e-mail address that the instance\'s S/MIME key is tied to.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -5699,7 +5632,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The location of the public half of the signing certificate.'),
                     'value' => '/var/www/MISP/.smime/email@address.com.pem',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -5707,7 +5639,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The location of the private half of the signing certificate.'),
                     'value' => '/var/www/MISP/.smime/email@address.com.key',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -5715,7 +5646,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The password (if it is set) of the S/MIME key of the instance.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'redacted' => true
@@ -5727,7 +5657,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The hostname of an HTTP proxy for outgoing sync requests. Leave empty to not use a proxy.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -5735,7 +5664,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The TCP port for the HTTP proxy.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                 ),
@@ -5743,7 +5671,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The authentication method for the HTTP proxy. Currently supported are Basic or Digest. Leave empty for no proxy authentication.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -5751,7 +5678,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The authentication username for the HTTP proxy.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -5759,7 +5685,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The authentication password for the HTTP proxy.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -5779,7 +5704,6 @@ class Server extends AppModel
                     'level' => self::SETTING_CRITICAL,
                     'description' => __('Enforce CSP. Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certain types of attacks, including Cross Site Scripting (XSS) and data injection attacks. When disabled, violations will be just logged.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ],
@@ -5787,17 +5711,15 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The salt used for the hashed passwords. You cannot reset this from the GUI, only manually from the settings.php file. Keep in mind, this will invalidate all passwords in the database.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testSalt',
                     'type' => 'string',
                     'editable' => false,
                     'redacted' => true
                 ),
-                'log_each_individual_auth_fail' =>[
+                'log_each_individual_auth_fail' => [
                     'level' => 1,
                     'description' => __('By default API authentication failures that happen within the same hour for the same key are omitted and a single log entry is generated. This allows administrators to more easily keep track of attackers that try to brute force API authentication, by reducing the noise generated by expired API keys. On the other hand, this makes little sense for internal MISP instances where detecting the misconfiguration of tools becomes more interesting, so if you fall into the latter category, enable this feature.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ],
@@ -5805,7 +5727,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Advanced authkeys will allow each user to create and manage a set of authkeys for themselves, each with individual expirations and comments. API keys are stored in a hashed state and can no longer be recovered from MISP. Users will be prompted to note down their key when creating a new authkey. You can generate a new set of API keys for all users on demand in the diagnostics page, or by triggering %s.', sprintf('<a href="%s/servers/serverSettings/diagnostics#advanced_authkey_update">%s</a>', $this->baseurl, __('the advanced upgrade'))),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -5813,7 +5734,6 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Maximal key lifetime in days. Use can limit that validity even more. Just newly created keys will be affected. When not set, key validity is not limited.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'type' => 'numeric',
                     'test' => 'testForNumeric',
                     'null' => true,
@@ -5822,7 +5742,6 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('When enabled, session is kept between API requests.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
@@ -5831,7 +5750,6 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('This optionally can be enabled if an external auth provider is used. When set to true, it will disable the default form authentication.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ],
@@ -5839,7 +5757,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via the rest client. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5848,7 +5765,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('If left empty, the baseurl of your MISP is used. However, in some instances (such as port-forwarded VM installations) this will not work. You can override the baseurl with a url through which your MISP can reach itself (typically https://127.0.0.1 would work).'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => null,
                     'type' => 'string'
                 ),
@@ -5856,7 +5772,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5865,7 +5780,6 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Write syslog messages also to standard error output.'),
                     'value' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5874,7 +5788,6 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Syslog message identifier.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
@@ -5883,7 +5796,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('If enabled, any authkey will be replaced by asterisks in Audit log.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5892,7 +5804,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('If enabled, HTTP headers that block browser cache will be send. Static files (like images or JavaScripts) will still be cached, but not generated pages.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
@@ -5901,7 +5812,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('If enabled, any POST, PUT or AJAX request will be allow just when Sec-Fetch-Site header is not defined or contains "same-origin".'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
@@ -5910,35 +5820,31 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('If enabled, MISP server will consider all requests as secure. This is usually useful when you run MISP behind reverse proxy that terminates HTTPS.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
                 ],
                 'email_otp_enabled' => array(
-                    'level'=> 2,
+                    'level' => 2,
                     'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'beforeHook' => 'otpBeforeHook',
                     'type' => 'boolean',
                     'null' => true
                 ),
-                'email_otp_length' => array (
+                'email_otp_length' => array(
                     'level' => 2,
                     'description' => __('Define the length of the OTP code sent by email'),
                     'value' => '6',
-                    'errorMessage' => '',
                     'type' => 'numeric',
                     'test' => 'testForNumeric',
                     'null' => true,
                 ),
-                'email_otp_validity' => array (
+                'email_otp_validity' => array(
                     'level' => 2,
                     'description' => __('Define the validity (in minutes) of the OTP code sent by email'),
                     'value' => '5',
-                    'errorMessage' => '',
                     'type' => 'numeric',
                     'test' => 'testForNumeric',
                     'null' => true,
@@ -5948,7 +5854,6 @@ class Server extends AppModel
                     'bigField' => true,
                     'description' => __('The message sent to the user when a new OTP is requested. Use \\n for line-breaks. The following variables will be automatically replaced in the text: $otp = the new OTP generated by MISP, $username = the user\'s e-mail address, $org the Organisation managing the instance, $misp = the url of this instance, $contact = the e-mail address used to contact the support team (as set in MISP.contact), $ip the IP used to complete the first step of the login and $validity the validity time in minutes.'),
                     'value' => 'Dear MISP user,\n\nYou have attempted to login to MISP ($misp) from $ip with username $username.\n\n Use the following OTP to log into MISP: $otp\n This code is valid for the next $validity minutes.\n\nIf you have any questions, don\'t hesitate to contact us at: $contact.\n\nBest regards,\nYour $org MISP support team',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true,
@@ -5958,7 +5863,6 @@ class Server extends AppModel
                     'bigField' => true,
                     'description' => __('A comma separated list of emails for which the OTP is disabled. Note that if you remove someone from this list, the OTP will only be asked at next login.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true,
@@ -5967,7 +5871,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enabling this setting will allow users to have access to the pre-auth registration form. This will create an inbox entry for administrators to review.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -5977,7 +5880,6 @@ class Server extends AppModel
                     'bigField' => true,
                     'description' => __('The message sent shown to anyone trying to self-register.'),
                     'value' => 'If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators.',
-                    'errorMessage' => '',
                     'test' => false,
                     'type' => 'string'
                 ),
@@ -5985,7 +5887,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Password length requirement. If it is not set or it is set to 0, then the default value is assumed (12).'),
                     'value' => '12',
-                    'errorMessage' => '',
                     'test' => 'testPasswordLength',
                     'type' => 'numeric',
                 ),
@@ -5993,7 +5894,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Password complexity requirement. Leave it empty for the default setting (3 out of 4, with either a digit or a special char) or enter your own regex. Keep in mind that the length is checked in another key. Default (simple 3 out of 4 or minimum 16 characters): /^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'),
                     'value' => '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/',
-                    'errorMessage' => '',
                     'test' => 'testPasswordRegex',
                     'type' => 'string',
                 ),
@@ -6001,7 +5901,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enabling this setting will require users to submit their current password on any edits to their profile (including a triggered password change). For administrators, the confirmation will be required when changing the profile of any user. Could potentially mitigate an attacker trying to change a compromised user\'s password in order to establish persistance, however, enabling this feature will be highly annoying to users.'),
                     'value' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -6010,7 +5909,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enabling this setting will sanitise the contents of an attribute on a soft delete'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -6019,7 +5917,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enabling this setting will block the organisation index from being visible to anyone besides site administrators on the current instance. Keep in mind that users can still see organisations that produce data via events, proposals, event history log entries, etc.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -6028,7 +5925,6 @@ class Server extends AppModel
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('Enabling this setting will block the organisation list from being visible in sharing group besides user with sharing group permission.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -6037,7 +5933,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Disabling this setting will allow the creation/modification of local feeds (as opposed to network feeds). Enabling this setting will restrict feed sources to be network based only. When disabled, keep in mind that a malicious site administrator could get access to any arbitrary file on the system that the apache user has access to. Make sure that proper safe-guards are in place. This setting can only be modified via the CLI.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
@@ -6056,7 +5951,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Allow cross-origin requests to this instance, matching origins given in Security.cors_origins. Set to false to totally disable'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -6065,7 +5959,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma seperate if you need more than one.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
@@ -6074,7 +5967,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enable this setting to create verbose logs of synced event data for debugging reasons. Logs are saved in your MISP directory\'s app/files/scripts/tmp/ directory.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                     'null' => true
@@ -6083,7 +5975,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enables the functionality to monitor users - thereby enabling all logging functionalities for a single user. This functionality is intrusive and potentially heavy on the system - use it with care.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -6092,11 +5983,31 @@ class Server extends AppModel
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('When enabled, logged in username will be included in X-Username HTTP response header. This is useful for request logging on webserver/proxy side.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
-                ]
+                ],
+                'encryption_key' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Encryption key used to store sensitive data (like authkeys) in database encrypted. If empty, data are stored unecrypted. Required PHP 7.1 or newer.'),
+                    'value' => '',
+                    'test' => function ($value) {
+                        if (strlen($value) < 32) {
+                            return __('Encryption key must be at least 32 chars long.');
+                        }
+                        return true;
+                    },
+                    'afterHook' => function ($setting, $new, $old) {
+                        /** @var SystemSetting $systemSetting */
+                        $systemSetting = ClassRegistry::init('SystemSetting');
+                        $systemSetting->reencrypt($old, $new);
+                        return true;
+                    },
+                    'type' => 'string',
+                    'null' => true,
+                    'cli_only' => true,
+                    'redacted' => true,
+                ],
             ),
             'SecureAuth' => array(
                 'branch' => 1,
@@ -6104,7 +6015,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The number of tries a user can try to login and fail before the bruteforce protection kicks in.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'string',
                 ),
@@ -6112,7 +6022,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'string',
                 ),
@@ -6123,7 +6032,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Set to true to automatically regenerate sessions after x number of requests. This might lead to the user getting de-authenticated and is frustrating in general, so only enable it if you really need to regenerate sessions. (Not recommended)'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                 ),
@@ -6131,7 +6039,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Set to true to check for the user agent string in each request. This can lead to occasional logouts (not recommended).'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                 ),
@@ -6139,7 +6046,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The session type used by MISP. The default setting is php, which will use the session settings configured in php.ini for the session data (supported options: php, database). The recommended option is php and setting your PHP up to use redis sessions via your php.ini. Just add \'session.save_handler = redis\' and "session.save_path = \'tcp://localhost:6379\'" (replace the latter with your redis connection) to '),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForSessionDefaults',
                     'type' => 'string',
                     'options' => array('php' => 'php', 'database' => 'database', 'cake' => 'cake', 'cache' => 'cache'),
@@ -6148,7 +6054,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The timeout duration of sessions (in MINUTES). 0 does not mean infinite for the PHP session handler, instead sessions will invalidate immediately.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'string'
                 ),
@@ -6156,7 +6061,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The expiration of the cookie (in MINUTES). The session timeout gets refreshed frequently, however the cookies do not. Generally it is recommended to have a much higher cookie_timeout than timeout.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForCookieTimeout',
                     'type' => 'numeric'
                 )
@@ -6167,16 +6071,14 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The default policy action for the values added to the RPZ.'),
                     'value' => 1,
-                    'errorMessage' => '',
                     'test' => 'testForRPZBehaviour',
                     'type' => 'numeric',
-                    'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'Local-Data', 4 => 'PASSTHRU', 5 => 'TCP-only' ),
+                    'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'Local-Data', 4 => 'PASSTHRU', 5 => 'TCP-only'),
                 ),
                 'RPZ_walled_garden' => array(
                     'level' => 2,
                     'description' => __('The default walled garden used by the RPZ export if the Local-Data policy setting is picked for the export.'),
                     'value' => '127.0.0.1',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -6184,7 +6086,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting). Setting it to $time will give you an unixtime-based serial (good then you need more than 99 revisions per day).'),
                     'value' => '$date00',
-                    'errorMessage' => '',
                     'test' => 'testForRPZSerial',
                     'type' => 'string',
                 ),
@@ -6192,7 +6093,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The refresh specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)'),
                     'value' => '2h',
-                    'errorMessage' => '',
                     'test' => 'testForRPZDuration',
                     'type' => 'string',
                 ),
@@ -6200,7 +6100,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The retry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)'),
                     'value' => '30m',
-                    'errorMessage' => '',
                     'test' => 'testForRPZDuration',
                     'type' => 'string',
                 ),
@@ -6208,7 +6107,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The expiry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)'),
                     'value' => '30d',
-                    'errorMessage' => '',
                     'test' => 'testForRPZDuration',
                     'type' => 'string',
                 ),
@@ -6216,7 +6114,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The minimum TTL specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)'),
                     'value' => '1h',
-                    'errorMessage' => '',
                     'test' => 'testForRPZDuration',
                     'type' => 'string',
                 ),
@@ -6224,7 +6121,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The TTL of the zone file. (in seconds, or shorthand duration such as 15m)'),
                     'value' => '1w',
-                    'errorMessage' => '',
                     'test' => 'testForRPZDuration',
                     'type' => 'string',
                 ),
@@ -6232,7 +6128,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Nameserver'),
                     'value' => 'localhost.',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -6240,7 +6135,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Alternate nameserver'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -6248,7 +6142,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The e-mail address specified in the SOA portion of the zone file.'),
                     'value' => 'root.localhost',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -6256,7 +6149,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the Kafka pub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -6264,7 +6156,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('A comma separated list of Kafka bootstrap brokers'),
                     'value' => 'kafka:9092',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -6272,7 +6163,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('A path to an ini file with configuration options to be passed to rdkafka. Section headers in the ini file will be ignored.'),
                     'value' => '/etc/rdkafka.ini',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
@@ -6280,7 +6170,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enable this setting to include the base64 encoded payloads of malware-samples/attachments in the output.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6288,7 +6177,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of any event creations/edits/deletions.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6296,7 +6184,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Topic for publishing event creations/edits/deletions.'),
                     'value' => 'misp_event',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6304,7 +6191,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('If enabled it will publish to Kafka the event at the time that the event gets published in MISP. Event actions (creation or edit) will not be published to Kafka.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6312,7 +6198,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Topic for publishing event information on publish.'),
                     'value' => 'misp_event_publish',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6320,7 +6205,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of any object creations/edits/deletions.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6328,7 +6212,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Topic for publishing object creations/edits/deletions.'),
                     'value' => 'misp_object',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6336,7 +6219,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of any object reference creations/deletions.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6344,7 +6226,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Topic for publishing object reference creations/deletions.'),
                     'value' => 'misp_object_reference',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6352,7 +6233,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of any attribute creations/edits/soft deletions.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6360,7 +6240,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Topic for publishing attribute creations/edits/soft deletions.'),
                     'value' => 'misp_attribute',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6368,7 +6247,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of any proposal creations/edits/deletions.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6376,7 +6254,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Topic for publishing proposal creations/edits/deletions.'),
                     'value' => 'misp_shadow_attribute',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6384,7 +6261,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6392,7 +6268,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Topic for publishing tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
                     'value' => 'misp_tag',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6400,7 +6275,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of new sightings.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6408,7 +6282,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Topic for publishing sightings.'),
                     'value' => 'misp_sighting',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6416,7 +6289,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of new/modified users.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6424,7 +6296,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Topic for publishing new/modified users.'),
                     'value' => 'misp_user',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6432,7 +6303,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of new/modified organisations.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6440,7 +6310,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Topic for publishing new/modified organisations.'),
                     'value' => 'misp_organisation',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6448,7 +6317,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of log entries. Keep in mind, this can get pretty verbose depending on your logging settings.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6456,7 +6324,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Topic for publishing log entries.'),
                     'value' => 'misp_audit',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6464,7 +6331,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the pub/sub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'afterHook' => 'zmqAfterHook',
@@ -6473,7 +6339,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The host that the pub/sub feature will use.'),
                     'value' => '127.0.0.1',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
@@ -6482,7 +6347,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The port that the pub/sub feature will use.'),
                     'value' => 50000,
-                    'errorMessage' => '',
                     'test' => 'testForZMQPortNumber',
                     'type' => 'numeric',
                     'afterHook' => 'zmqAfterHook',
@@ -6491,7 +6355,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The username that client need to use to connect to ZeroMQ.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
@@ -6500,7 +6363,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The password that client need to use to connect to ZeroMQ.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
@@ -6509,7 +6371,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Location of the Redis db used by MISP and the Python PUB script to queue data to be published.'),
                     'value' => 'localhost',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
@@ -6518,7 +6379,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The port that Redis is listening on.'),
                     'value' => 6379,
-                    'errorMessage' => '',
                     'test' => 'testForPortNumber',
                     'type' => 'numeric',
                     'afterHook' => 'zmqAfterHook',
@@ -6527,7 +6387,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The password, if set for Redis.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
                 ),
@@ -6535,7 +6394,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The database to be used for queuing messages for the pub/sub functionality.'),
                     'value' => 1,
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
@@ -6544,7 +6402,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The namespace to be used for queuing messages for the pub/sub functionality.'),
                     'value' => 'mispq',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
@@ -6553,7 +6410,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enable this setting to include the base64 encoded payloads of malware-samples/attachments in the output.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6561,7 +6417,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of any event creations/edits/deletions.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6569,7 +6424,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of any object creations/edits/deletions.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6577,7 +6431,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of any object reference creations/deletions.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6585,7 +6438,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of any attribute creations/edits/soft deletions.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6593,7 +6445,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6601,7 +6452,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of new sightings to the ZMQ pubsub feed.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6609,7 +6459,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of new/modified users to the ZMQ pubsub feed.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6617,7 +6466,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of new/modified organisations to the ZMQ pubsub feed.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6625,15 +6473,13 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of log entries to the ZMQ pubsub feed. Keep in mind, this can get pretty verbose depending on your logging settings.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
-                'ZeroMQ_warninglist_notifications_enable' =>  array(
+                'ZeroMQ_warninglist_notifications_enable' => array(
                     'level' => 2,
                     'description' => __('Enables or disables the publishing of new/modified warninglist to the ZMQ pubsub feed.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6641,7 +6487,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enabled logging to an ElasticSearch instance'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6649,7 +6494,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The URL(s) at which to access ElasticSearch - comma separate if you want to have more than one.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6657,7 +6501,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The index in which to place logs'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6665,7 +6508,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enables or disables uploading of malware samples to S3 rather than to disk (WARNING: Get permission from amazon first!)'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6673,7 +6515,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Bucket name to upload to'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6681,7 +6522,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Region in which your S3 bucket resides'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6689,7 +6529,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('AWS key to use when uploading samples (WARNING: It\' highly recommended that you use EC2 IAM roles if at all possible)'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6697,7 +6536,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('AWS secret key to use when uploading samples'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6705,7 +6543,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner organisation alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and any organisation that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
                     'value' => 0,
-                    'errorMessage' => '',
                     'test' => 'testForSightingVisibility',
                     'type' => 'numeric',
                     'options' => array(
@@ -6719,7 +6556,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enabling the anonymisation of sightings will simply aggregate all sightings instead of showing the organisations that have reported a sighting. Users will be able to tell the number of sightings their organisation has submitted and the number of sightings for other organisations'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
@@ -6727,7 +6563,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('When pushing sightings to another server, report all sightings from this instance as this organisation. This effectively hides all sightings from this instance behind a single organisation to the outside world. Sightings pulled from this instance follow the Sightings_policy above.'),
                     'value' => '0',
-                    'errorMessage' => '',
                     'test' => 'testLocalOrg',
                     'type' => 'numeric',
                     'optionsSource' => function () {
@@ -6738,7 +6573,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set the range in which sightings will be taken into account when generating graphs. For example a sighting with a sighted_date of 7 years ago might not be relevant anymore. Setting given in number of days, default is 365 days'),
                     'value' => 365,
-                    'errorMessage' => '',
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ),
@@ -6746,7 +6580,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enable SightingDB integration.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6754,7 +6587,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
@@ -6764,7 +6596,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Set the header that MISP should look for here. If left empty it will default to the Authorization header.'),
                     'value' => 'Authorization',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
@@ -6773,7 +6604,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Use a header namespace for the auth header - default setting is enabled'),
                     'value' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -6782,7 +6612,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The default header namespace for the auth header - default setting is HTTP_'),
                     'value' => 'HTTP_',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
@@ -6791,7 +6620,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('If this setting is enabled then the only way to authenticate will be using the custom header. Alternatively, you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -6800,7 +6628,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('If you are using an external tool to authenticate with MISP and would like to only allow the tool\'s url as a valid point of entry then set this field. '),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
@@ -6809,7 +6636,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('The name of the authentication method, this is cosmetic only and will be shown on the user creation page and logs.'),
                     'value' => 'External authentication',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
@@ -6818,7 +6644,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Disable the logout button for users authenticate with the external auth mechanism.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6826,7 +6651,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Enable/disable the enrichment services'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6834,7 +6658,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set a timeout for the enrichment services'),
                     'value' => 10,
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
                 ),
@@ -6842,7 +6665,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Enable/disable the import services'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6850,7 +6672,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set a timeout for the import services'),
                     'value' => 10,
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
                 ),
@@ -6858,7 +6679,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The url used to access the import services. By default, it is accessible at http://127.0.0.1:6666'),
                     'value' => 'http://127.0.0.1',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6866,7 +6686,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The port used to access the import services. By default, it is accessible at 127.0.0.1:6666'),
                     'value' => '6666',
-                    'errorMessage' => '',
                     'test' => 'testForPortNumber',
                     'type' => 'numeric'
                 ),
@@ -6874,7 +6693,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The url used to access the export services. By default, it is accessible at http://127.0.0.1:6666'),
                     'value' => 'http://127.0.0.1',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6882,7 +6700,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The port used to access the export services. By default, it is accessible at 127.0.0.1:6666'),
                     'value' => '6666',
-                    'errorMessage' => '',
                     'test' => 'testForPortNumber',
                     'type' => 'numeric'
                 ),
@@ -6890,7 +6707,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Enable/disable the export services'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6898,7 +6714,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set a timeout for the export services'),
                     'value' => 10,
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
                 ),
@@ -6906,7 +6721,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Enable/disable the hover over information retrieved from the enrichment modules'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6914,7 +6728,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('When enabled, users have to click on the magnifier icon to show the enrichment'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6922,7 +6735,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set a timeout for the hover services'),
                     'value' => 5,
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
                 ),
@@ -6930,7 +6742,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666'),
                     'value' => 'http://127.0.0.1',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6938,7 +6749,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666'),
                     'value' => 6666,
-                    'errorMessage' => '',
                     'test' => 'testForPortNumber',
                     'type' => 'numeric'
                 ),
@@ -6946,7 +6756,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The url used to access Cortex. By default, it is accessible at http://cortex-url'),
                     'value' => 'http://127.0.0.1',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
@@ -6954,7 +6763,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('The port used to access Cortex. By default, this is port 9000'),
                     'value' => 9000,
-                    'errorMessage' => '',
                     'test' => 'testForPortNumber',
                     'type' => 'numeric'
                 ),
@@ -6962,7 +6770,6 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Enable/disable the Cortex services'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -6970,7 +6777,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set an authentication key to be passed to Cortex'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
@@ -6979,7 +6785,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set a timeout for the Cortex services'),
                     'value' => 120,
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
                 ),
@@ -6987,7 +6792,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set to false to disable SSL verification. This is not recommended.'),
                     'value' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -6996,7 +6800,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set to false if you wish to ignore hostname match errors when validating certificates.'),
                     'value' => true,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -7005,7 +6808,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set to true to enable self-signed certificates to be accepted. This requires Cortex_ssl_verify_peer to be enabled.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -7014,7 +6816,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set to the absolute path of the Certificate Authority file that you wish to use for verifying SSL certificates.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
@@ -7023,7 +6824,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Provide your custom authentication users with an external URL to the authentication system to reset their passwords.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
@@ -7032,7 +6832,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('Provide a custom logout URL for your users that will log them out using the authentication system you use.'),
                     'value' => '',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
@@ -7041,7 +6840,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Enable lookups for additional relations via CyCat.'),
                     'value' => false,
-                    'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -7050,7 +6848,6 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('URL to use for CyCat lookups, if enabled.'),
                     'value' => 'https://api.cycat.org',
-                    'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'null' => true
@@ -7060,7 +6857,6 @@ class Server extends AppModel
                 'level' => 0,
                 'description' => __('The debug level of the instance, always use 0 for production instances.'),
                 'value' => '',
-                'errorMessage' => '',
                 'test' => 'testDebug',
                 'type' => 'numeric',
                 'options' => array(0 => 'Debug off', 1 => 'Debug on', 2 => 'Debug + SQL dump'),
@@ -7069,7 +6865,6 @@ class Server extends AppModel
                 'level' => 0,
                 'description' => __('The debug level of the instance for site admins. This feature allows site admins to run debug mode on a live instance without exposing it to other users. The most verbose option of debug and site_admin_debug is used for site admins.'),
                 'value' => '',
-                'errorMessage' => '',
                 'test' => 'testDebugAdmin',
                 'type' => 'boolean',
                 'null' => true
