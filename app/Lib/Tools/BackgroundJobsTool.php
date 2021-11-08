@@ -377,7 +377,7 @@ class BackgroundJobsTool
         $this->RedisConnection->setex(
             self::JOB_STATUS_PREFIX . ':' . $job->id(),
             $this->settings['max_job_history_ttl'],
-            json_encode($job->jsonSerialize()),
+            json_encode($job->jsonSerialize())
         );
     }
 
