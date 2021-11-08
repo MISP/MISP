@@ -30,10 +30,10 @@ class AppShell extends Shell
 {
     public $tasks = array('ConfigLoad');
     
-    public function perform()
+    public function initialize()
     {
-        $this->initialize();
-        $this->{array_shift($this->args)}();
+        parent::initialize();
+        $this->ConfigLoad->execute();
     }
 
     protected function _welcome()
