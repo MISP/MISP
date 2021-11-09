@@ -31,7 +31,10 @@ sys.path.insert(2, str(_current_path / 'python-cybox'))
 sys.path.insert(3, str(_current_path / 'mixbox'))
 sys.path.insert(4, str(_current_path / 'misp-stix'))
 from stix.core import STIXPackage
-from misp_stix_converter import MISPtoSTIX1EventsParser, _get_json_events, _get_xml_events
+from misp_stix_converter import (
+    MISPtoSTIX1AttributesParser, MISPtoSTIX1EventsParser,
+    _get_json_events, _get_xml_events
+)
 
 
 def _handle_errors(errors: dict):
@@ -42,19 +45,17 @@ def _handle_errors(errors: dict):
         print(f'Errors encountered while parsing {identifier}:\n - {values}', file=sys.stderr)
 
 
-def _process_misp_files(orgname: str, version: str, return_format:str, input_names: Union[list, None], debug: bool):
+def _process_misp_files(scope: str, orgname: str, version: str, return_format:str, input_names: Union[list, None], debug: bool):
     if input_names is None:
-        print('No input file provided.', file=sys.stderr)
-        print(json.dumps({'success': 1}))
+        print(json.dumps({'error': 'No input file provided.'}))
         return
     try:
-        parser = MISPtoSTIX1EventsParser(orgname, version)
-        for name in input_names[:-1]:
+        parser = MISPtoSTIX1EventsParser if scope == 'Event' else MISPtoSTIX1AttributesParser
+        parser = parser(orgname, version)
+        for name in input_names:
             parser.parse_json_content(name)
-        name = input_names[-1]
-        parser.parse_json_content(name)
-        with open(f'{name}.out', 'wt', encoding='utf-8') as f:
-            f.write(globals()[f'_get_{return_format}_events'](parser.stix_package))
+            with open(f'{name}.out', 'wt', encoding='utf-8') as f:
+                f.write(globals()[f'_get_{return_format}_events'](parser.stix_package))
         errors = parser.errors
         if errors:
             _handle_errors(errors)
@@ -70,6 +71,7 @@ def _process_misp_files(orgname: str, version: str, return_format:str, input_nam
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description='Export MISP into STIX1.')
+    argparser.add_argument('-s', '--scope', default='Event', choices=['Attribute', 'Event'], help='Scope: which kind of data is exported.')
     argparser.add_argument('-v', '--version', default='1.1.1', choices=['1.1.1', '1.2'], help='STIX version (1.1.1 or 1.2).')
     argparser.add_argument('-f', '--format', default='xml', choices=['json', 'xml'], help='Output format (xml or json).')
     argparser.add_argument('-i', '--input', nargs='+', help='Input file(s) containing MISP standard format.')
@@ -77,6 +79,6 @@ if __name__ == "__main__":
     argparser.add_argument('-d', '--debug', action='store_true', help='Allow debug mode with warnings.')
     try:
         args = argparser.parse_args()
-        _process_misp_files(args.orgname, args.version, args.format, args.input, args.debug)
+        _process_misp_files(args.scope, args.orgname, args.version, args.format, args.input, args.debug)
     except SystemExit:
         print(json.dumps({'error': 'Arguments error, please check you entered a valid version and provided input file names.'}))

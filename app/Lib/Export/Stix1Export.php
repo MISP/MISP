@@ -19,10 +19,10 @@ class Stix1Export extends StixExport
         return $my_server->getPythonVersion() . ' ' . $this->__framing_script . ' stix1 -v ' . $this->__version . ' -n ' . $this->__baseurl . ' -o ' . $this->__org . ' -f ' . $this->__return_format . ' ' . $this->__end_of_cmd;
     }
 
-    protected function __parse_misp_events($filenames)
+    protected function __parse_misp_data($filenames)
     {
         $scriptFile = $this->__scripts_dir . $this->__script_name;
         $my_server = ClassRegistry::init('Server');
-        return shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . '-v ' . $this->__version . ' -f ' . $this->__return_format . ' -o ' . $this->__org . ' -i ' . $this->__tmp_dir . $filenames . $this->__end_of_cmd);
+        return shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . '-v ' . $this->__version . ' -f ' . $this->__return_format . ' -o ' . $this->__org . ' -i ' . $this->__tmp_dir . $filenames . ' -s ' . $this->__scope . $this->__end_of_cmd);
     }
 }
