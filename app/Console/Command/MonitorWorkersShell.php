@@ -14,6 +14,8 @@ class MonitorWorkersShell extends AppShell
 
     private const DEFAULT_SLEEP_INTERVAL = 5; // seconds
 
+    public $tasks = ['ConfigLoad'];
+
     public function initialize(): void
     {
         parent::initialize();
@@ -41,6 +43,7 @@ class MonitorWorkersShell extends AppShell
         CakeLog::info("[WORKERS MONITOR] - starting to monitor workers...");
 
         while (true) {
+            $this->ConfigLoad->execute();
             $this->checkWorkersProcessStatus($this->BackgroundJobsTool->getWorkers());
 
             sleep($this->sleepInterval);

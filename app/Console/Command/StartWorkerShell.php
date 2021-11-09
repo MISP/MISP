@@ -21,6 +21,7 @@ class StartWorkerShell extends AppShell
     private const DEFAULT_SLEEP_INTERVAL = 5; // seconds
     private const DEFAULT_MAX_EXECUTION_TIME = 86400; // 1 day
 
+    public $tasks = ['ConfigLoad'];
 
     public function initialize(): void
     {
@@ -76,6 +77,7 @@ class StartWorkerShell extends AppShell
         $this->BackgroundJobsTool->registerWorker($this->worker);
 
         while (true) {
+            $this->ConfigLoad->execute();
             $this->checkMaxExecutionTime();
 
             $job = $this->BackgroundJobsTool->dequeue($this->worker->queue());
