@@ -2574,11 +2574,10 @@ class AppModel extends Model
                 $settings = Configure::read('SimpleBackgroundJobs');
             }
 
-            $backgroundJobsTool = new BackgroundJobsTool();
-            $backgroundJobsTool->initTool($settings);
-            self::$loadedPubSubTool = $backgroundJobsTool;
+            $backgroundJobsTool = new BackgroundJobsTool($settings);
+            self::$loadedBackgroundJobsTool = $backgroundJobsTool;
         }
-        return self::$loadedPubSubTool;
+        return self::$loadedBackgroundJobsTool;
     }
 
     // generate a generic subquery - options needs to include conditions

@@ -20,8 +20,7 @@ class ServerShell extends AppShell
     public function initialize(): void
     {
         parent::initialize();
-        $this->BackgroundJobsTool = new BackgroundJobsTool();
-        $this->BackgroundJobsTool->initTool(Configure::read('SimpleBackgroundJobs'));
+        $this->BackgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs'));
     }
 
     public function list()

@@ -120,9 +120,8 @@ class BackgroundJobsTool
      *      ]
      *
      * @param array $settings
-     * @return void
      */
-    public function initTool(array $settings): void
+    public function __construct(array $settings)
     {
         $this->settings = $settings;
 
