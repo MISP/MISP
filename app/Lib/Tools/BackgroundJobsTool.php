@@ -174,7 +174,7 @@ class BackgroundJobsTool
 
         $this->RedisConnection->rpush(
             $queue,
-            json_encode($backgroundJob->jsonSerialize())
+            $backgroundJob
         );
 
         $this->update($backgroundJob);
@@ -239,9 +239,9 @@ class BackgroundJobsTool
 
         $rawJob = $this->RedisConnection->blpop($queue, $timeout);
 
-        if (!empty($rawJob) && $rawJob[0] === $queue) {
+        if (!empty($rawJob)) {
             try {
-                return new BackgroundJob(json_decode($rawJob[1], true));
+                return new BackgroundJob($rawJob[1]);
             } catch (Exception $exception) {
                 CakeLog::error("Failed to parse job, invalid format: {$rawJob[1]}. exception: {$exception->getMessage()}");
             }
@@ -265,7 +265,7 @@ class BackgroundJobsTool
         );
 
         if ($rawJob) {
-            return new BackgroundJob(json_decode($rawJob, true));
+            return new BackgroundJob($rawJob);
         }
 
         return null;
@@ -305,7 +305,7 @@ class BackgroundJobsTool
         $rawWorker = $this->RedisConnection->get(self::WORKER_STATUS_PREFIX . ':' . $workerPid);
 
         if ($rawWorker) {
-            return new Worker(json_decode($rawWorker, true));
+            return new Worker($rawWorker);
         }
 
         return null;
@@ -338,7 +338,7 @@ class BackgroundJobsTool
 
         $workers = [];
         foreach ($workersStatus as $worker) {
-            $workers[] = new Worker(json_decode($worker, true));
+            $workers[] = new Worker($worker);
         }
 
         return $workers;
@@ -376,7 +376,7 @@ class BackgroundJobsTool
         $this->RedisConnection->setex(
             self::JOB_STATUS_PREFIX . ':' . $job->id(),
             $this->settings['max_job_history_ttl'],
-            json_encode($job->jsonSerialize())
+            $job
         );
     }
 
@@ -414,7 +414,7 @@ class BackgroundJobsTool
     {
         $this->RedisConnection->set(
             self::WORKER_STATUS_PREFIX . ':' . $worker->pid(),
-            json_encode($worker->jsonSerialize())
+            $worker
         );
     }
 
@@ -440,7 +440,7 @@ class BackgroundJobsTool
 
         $this->RedisConnection->set(
             self::WORKER_STATUS_PREFIX . ':' . $workerPid,
-            json_encode($worker->jsonSerialize())
+            $worker
         );
     }
 
@@ -607,6 +607,8 @@ class BackgroundJobsTool
     {
         $redis = new Redis();
         $redis->connect($this->settings['redis_host'], $this->settings['redis_port']);
+        $redis->setOption(Redis::OPT_SERIALIZER, Redis::SERIALIZER_JSON);
+        $redis->setOption(Redis::OPT_PREFIX, $this->settings['redis_namespace'] . ':');
         $redisPassword = $this->settings['redis_password'];
 
         if (!empty($redisPassword)) {
