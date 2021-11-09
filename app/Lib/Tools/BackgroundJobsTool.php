@@ -180,8 +180,7 @@ class BackgroundJobsTool
         $this->update($backgroundJob);
 
         if ($jobId) {
-            $job = $this->getJobById($jobId);
-            $job->save(['process_id' => $backgroundJob->id()]);
+            $this->updateJobProcessId($jobId, $backgroundJob->id());
         }
 
         return $backgroundJob->id();
@@ -214,8 +213,7 @@ class BackgroundJobsTool
         );
 
         if ($jobId) {
-            $job = $this->getJobById($jobId);
-            $job->save(['process_id' => $process_id]);
+            $this->updateJobProcessId($jobId, $process_id);
         }
 
         return $process_id;
@@ -649,12 +647,11 @@ class BackgroundJobsTool
         return new \Supervisor\Supervisor($client);
     }
 
-    private function getJobById(int $jobId): ?Job
+    private function updateJobProcessId(int $jobId, string $processId): void
     {
         $job = ClassRegistry::init('Job');
         $job->id = $jobId;
-
-        return $job;
+        $job->save(['process_id' => $processId]);
     }
 
     /**
