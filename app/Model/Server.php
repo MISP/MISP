@@ -1347,7 +1347,8 @@ class Server extends AppModel
             'SMIME' => 'Encryption',
             'misc' => 'Security',
             'Security' => 'Security',
-            'Session' => 'Security'
+            'Session' => 'Security',
+            'SimpleBackgroundJobs' => 'SimpleBackgroundJobs'
         );
 
         $serverSettings = $this->getCurrentServerSettings();
@@ -2276,7 +2277,8 @@ class Server extends AppModel
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
             'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
             'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
-            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth', 'AadAuth'
+            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth', 
+            'AadAuth', 'SimpleBackgroundJobs'
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
@@ -3467,6 +3469,16 @@ class Server extends AppModel
             $worker_array['controls'] = Configure::read('MISP.manage_workers');
         }
         return $worker_array;
+    }
+
+    public function backgroundJobsDiagnostics(&$diagnostic_errors)
+    {
+        $backgroundJobsStatus = $this->getBackgroundJobsTool()->getStatus();
+
+        if ($backgroundJobsStatus > 0) {
+            $diagnostic_errors++;
+        }
+        return $backgroundJobsStatus;
     }
 
     public function retrieveCurrentSettings($branch, $subString)
@@ -4839,6 +4851,13 @@ class Server extends AppModel
                 'background_jobs' => array(
                     'level' => 1,
                     'description' => __('Enables the use of MISP\'s background processing.'),
+                    'value' => '',
+                    'test' => 'testBoolTrue',
+                    'type' => 'boolean',
+                ),
+                'use_simple_background_jobs' => array(
+                    'level' => 2,
+                    'description' => __('Use SimpleBackgroundJobs engine instead of CakeResque.'),
                     'value' => '',
                     'test' => 'testBoolTrue',
                     'type' => 'boolean',
@@ -6853,6 +6872,95 @@ class Server extends AppModel
                     'null' => true
                 ]
             ),
+            'SimpleBackgroundJobs' => [
+                'branch' => 1,
+                'enabled' => [
+                    'level' => 2,
+                    'description' => __('Enables or disables background jobs. Note that \'MISP.use_simple_background_jobs\' setting needs to be set to \'true\' too.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
+                'redis_host' => [
+                    'level' => 2,
+                    'description' => __('The host running the redis server to be used for background jobs.'),
+                    'value' => '127.0.0.1',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ],
+                'redis_port' => [
+                    'level' => 2,
+                    'description' => __('The port used by the redis server to be used for background jobs.'),
+                    'value' => 6379,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ],
+                'redis_database' => [
+                    'level' => 2,
+                    'description' => __('The database on the redis server to be used for background jobs. If you run more than one MISP instance, please make sure to use a different database on each instance.'),
+                    'value' => 1,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ],
+                'redis_password' => [
+                    'level' => 2,
+                    'description' => __('The password on the redis server (if any) to be used for background jobs.'),
+                    'value' => '',
+                    'test' => null,
+                    'type' => 'string',
+                    'redacted' => true
+                ],
+                'redis_namespace' => [
+                    'level' => 2,
+                    'description' => __('The namespace to be used for the background jobs related keys.'),
+                    'value' => '',
+                    'test' => null,
+                    'type' => 'string'
+                ],
+                'max_job_history_ttl' => [
+                    'level' => 2,
+                    'description' => __('The time in seconds the job statuses history will be kept.'),
+                    'value' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ],
+                'track_status' => [
+                    'level' => 2,
+                    'description' => __('Default behavior for tracking jobs statuses.'),
+                    'value' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
+                'supervisor_host' => [
+                    'level' => 2,
+                    'description' => __('The host where the Supervisor XML-RPC API is running.'),
+                    'value' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ],
+                'supervisor_port' => [
+                    'level' => 2,
+                    'description' => __('The port where the Supervisor XML-RPC API is running.'),
+                    'value' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ],
+                'supervisor_user' => [
+                    'level' => 2,
+                    'description' => __('The user of the Supervisor XML-RPC API.'),
+                    'value' => '',
+                    'test' => null,
+                    'type' => 'string'
+                ],
+                'supervisor_password' => [
+                    'level' => 2,
+                    'description' => __('The password of the Supervisor XML-RPC API.'),
+                    'value' => '',
+                    'test' => null,
+                    'type' => 'string',
+                    'redacted' => true
+                ],
+            ],
             'debug' => array(
                 'level' => 0,
                 'description' => __('The debug level of the instance, always use 0 for production instances.'),

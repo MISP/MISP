@@ -967,8 +967,10 @@ class ServersController extends AppController
             'Encryption' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-            'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
+            'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+            'SimpleBackgroundJobs' => array('count' => 0, 'errors' => 0, 'severity' => 5)
         );
+
         $writeableErrors = array(0 => __('OK'), 1 => __('not found'), 2 => __('is not writeable'));
         $readableErrors = array(0 => __('OK'), 1 => __('not readable'));
         $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed'));
@@ -976,6 +978,14 @@ class ServersController extends AppController
         $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
         $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
         $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
+        $backgroundJobsErrors = array(
+            BackgroundJobsTool::STATUS_RUNNING => __('OK'),
+            BackgroundJobsTool::STATUS_NOT_ENABLED => __('Not configured (so not tested)'),
+            BackgroundJobsTool::STATUS_REDIS_NOT_OK => __('Error connecting to Redis.'),
+            BackgroundJobsTool::STATUS_SUPERVISOR_NOT_OK => __('Error connecting to Supervisor.'),
+            BackgroundJobsTool::STATUS_REDIS_AND_SUPERVISOR_NOT_OK => __('Error connecting to Redis and Supervisor.'),
+
+        );
 
         $finalSettings = $this->Server->serverSettingsRead();
         $issues = array(
@@ -1106,6 +1116,9 @@ class ServersController extends AppController
             // if Proxy is set up in the settings, try to connect to a test URL
             $proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
 
+            // if SimpleBackgroundJobs is set up in the settings, try to connect to Redis
+            $backgroundJobsStatus = $this->Server->backgroundJobsDiagnostics($diagnostic_errors);
+
             // get the DB diagnostics
             $dbDiagnostics = $this->Server->dbSpaceUsage();
             $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
@@ -1175,7 +1188,8 @@ class ServersController extends AppController
                 'redisInfo' => $redisInfo,
                 'finalSettings' => $dumpResults,
                 'extensions' => $extensions,
-                'workers' => $worker_array
+                'workers' => $worker_array,
+                'backgroundJobsStatus' => $backgroundJobsErrors[$backgroundJobsStatus]
             );
             foreach ($dump['finalSettings'] as $k => $v) {
                 if (!empty($v['redacted'])) {

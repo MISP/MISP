@@ -145,7 +145,7 @@ $config = array(
         'max_job_history_ttl' => 86400,
         'track_status' => false,
         'supervisor_host' => 'localhost',
-        'supervisor_port' => '9001',
+        'supervisor_port' => 9001,
         'supervisor_user' => '',
         'supervisor_password' => '',
     ),

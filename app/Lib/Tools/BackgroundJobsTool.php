@@ -63,6 +63,13 @@ class BackgroundJobsTool
     public const MISP_WORKERS_PROCESS_GROUP = 'misp-workers';
 
     public const
+        STATUS_RUNNING = 0,
+        STATUS_NOT_ENABLED = 1,
+        STATUS_REDIS_NOT_OK = 2,
+        STATUS_SUPERVISOR_NOT_OK = 3,
+        STATUS_REDIS_AND_SUPERVISOR_NOT_OK = 4;
+
+    public const
         DEFAULT_QUEUE = 'default',
         EMAIL_QUEUE = 'email',
         CACHE_QUEUE = 'cache',
@@ -537,6 +544,43 @@ class BackgroundJobsTool
         $this->validateQueue($queue);
 
         $this->RedisConnection->del($queue);
+    }
+
+    /**
+     * Return Background Jobs status
+     *
+     * @return integer
+     */
+    public function getStatus(): int
+    {
+        $redisStatus = false;
+        $supervisorStatus = false;
+
+        if (!$this->settings['enabled']) {
+            return self::STATUS_NOT_ENABLED;
+        }
+
+        try {
+            $redisStatus = $this->RedisConnection->ping();
+        } catch (Exception $exception) {
+            CakeLog::error("SimpleBackgroundJobs Redis error: {$exception->getMessage()}");
+        }
+
+        try {
+            $supervisorStatus = ($this->Supervisor->getState()['statecode'] === \Supervisor\Supervisor::RUNNING);
+        } catch (Exception $exception) {
+            CakeLog::error("SimpleBackgroundJobs Supervisor error: {$exception->getMessage()}");
+        }
+
+        if ($redisStatus && $supervisorStatus) {
+            return self::STATUS_RUNNING;
+        } elseif (!$redisStatus && !$supervisorStatus) {
+            return self::STATUS_REDIS_AND_SUPERVISOR_NOT_OK;
+        } elseif ($redisStatus && !$supervisorStatus) {
+            return self::STATUS_SUPERVISOR_NOT_OK;
+        } else {
+            return self::STATUS_REDIS_NOT_OK;
+        }
     }
 
     /**

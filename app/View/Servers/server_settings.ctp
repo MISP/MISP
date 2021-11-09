@@ -5,7 +5,7 @@
     <h2><?php echo __('Server Settings & Maintenance');?></h2>
     <?php
         echo $this->element('healthElements/tabs', array('active_tab' => $tab));
-        if (in_array($tab, ['MISP', 'Security', 'Encryption', 'Proxy', 'Plugin'], true)) {
+        if (in_array($tab, ['MISP', 'Security', 'Encryption', 'Proxy', 'Plugin', 'SimpleBackgroundJobs'], true)) {
             echo $this->element('healthElements/settings_tab');
         } else if ($tab === 'diagnostics') {
             echo $this->element('healthElements/diagnostics');
