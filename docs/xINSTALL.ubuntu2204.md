@@ -7,7 +7,7 @@
 
 Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
 
-### 0/ MISP Ubuntu 20.04-server install - status
+### 0/ MISP Ubuntu 22.04-server install - status
 -------------------------
 !!! notice
     Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20211002
@@ -20,7 +20,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 ### 1/ Minimal Ubuntu install
 -------------------------
 
-#### Install a minimal Ubuntu 20.04-server system with the software:
+#### Install a minimal Ubuntu 22.04-server system with the software:
 - OpenSSH server
 - This guide assumes a user name of 'misp' with sudo working but can be overwritten by setting the environment variable: *${MISP_USER}*
 
@@ -101,10 +101,21 @@ installDepsPhp80 () {
   libapache2-mod-php7.4 \
   php7.4 php7.4-cli \
   php7.4-dev \
-  php-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip \
-  php-redis php-gnupg \
+  php7.4-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip \
   php7.4-intl php7.4-bcmath \
   php7.4-gd
+  # php-redis php-gnupg \
+
+  # Only needed while 7.4 downgrade
+  sudo apt install libgpgme-dev
+  sudo pecl channel-update pecl.php.net
+  sudo pecl install redis
+  sudo pecl install gnupg
+
+  echo "extension=redis.so" | sudo tee ${PHP_ETC_BASE}/mods-available/redis.ini
+  sudo phpenmod redis
+  echo "extension=gnupg.so" | sudo tee ${PHP_ETC_BASE}/mods-available/gnupg.ini
+  sudo phpenmod gnupg
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
@@ -143,6 +154,8 @@ installCore () {
 
     # install python-stix dependencies
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ordered-set python-dateutil six weakrefmethod
+    debug "Install misp-stix"
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/app/files/scripts/misp-stix
 
     debug "Install PyMISP"
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/PyMISP

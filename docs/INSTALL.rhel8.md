@@ -274,6 +274,8 @@ installCoreRHEL8 () {
 
   # install python-stix dependencies
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install ordered-set python-dateutil six weakrefmethod
+  debug "Install misp-stix"
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/app/files/scripts/misp-stix
 
   # install zmq, redis
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq redis
