@@ -45,6 +45,15 @@ class AdminShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('reencrypt', [
+            'help' => __('Reencrypt encrypted values in database (authkeys and sensitive system settings).'),
+            'parser' => [
+                'options' => [
+                    'old' => ['help' => __('Old key. If not provided, current key will be used.')],
+                    'new' => ['help' => __('New key. If not provided, new key will be generated.')],
+                ],
+            ],
+        ]);
         $parser->addSubcommand('removeOrphanedCorrelations', [
             'help' => __('Remove orphaned correlations.'),
         ]);
@@ -890,5 +899,52 @@ class AdminShell extends AppShell
             $newStatus = $this->Server->setupRedisWithException()->get('misp:live');
             $this->out('Redis: ' . ($newStatus !== '0' ? 'True' : 'False'));
         }
+    }
+
+    public function reencrypt()
+    {
+        $old = $this->params['old'] ?? null;
+        $new = $this->params['new'] ?? null;
+
+        if ($new !== null && strlen($new) < 32) {
+            $this->error('New key must be at least 32 char long.');
+        }
+
+        if ($old === null) {
+            $old = Configure::read('Security.encryption_key');
+        }
+
+        if ($new === null) {
+            // Generate random new key
+            $randomTool = new RandomTool();
+            $new = $randomTool->random_str();
+        }
+
+        $this->Server->getDataSource()->begin();
+
+        try {
+            /** @var SystemSetting $systemSetting */
+            $systemSetting = ClassRegistry::init('SystemSetting');
+            $systemSetting->reencrypt($old, $new);
+
+            $this->Server->reencryptAuthKeys($old, $new);
+
+            /** @var Cerebrate $cerebrate */
+            $cerebrate = ClassRegistry::init('Cerebrate');
+            $cerebrate->reencryptAuthKeys($old, $new);
+
+            $result = $this->Server->serverSettingsSaveValue('Security.encryption_key', $new, true);
+
+            $this->Server->getDataSource()->commit();
+
+            if (!$result) {
+                $this->error('Encrypt key was changed, but it is not possible to save key to config file', __('Please insert new key "%s" to config file manually.', $new));
+            }
+        } catch (Exception $e) {
+            $this->Server->getDataSource()->rollback();
+            throw $e;
+        }
+
+        $this->out(__('New encryption key "%s" saved into config file.', $new));
     }
 }
