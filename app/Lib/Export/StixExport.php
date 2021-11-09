@@ -101,9 +101,6 @@ class StixExport
         if (!isset($decoded['success']) || !$decoded['success']) {
             $this->__delete_temporary_files();
             $error = !empty($decoded['error']) ? $decoded['error'] : $result;
-            if (!empty($decoded['traceback'])) {
-                $error .= "\n" . $decoded['traceback'];
-            }
             return 'Error while processing your query: ' . $error;
         }
         foreach ($this->__filenames as $f => $filename) {
