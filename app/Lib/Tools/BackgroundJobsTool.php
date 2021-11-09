@@ -670,13 +670,14 @@ class BackgroundJobsTool
         $procs = $this->Supervisor->getAllProcesses();
 
         foreach ($procs as $proc) {
-            if ($proc->offsetGet('group') === self::MISP_WORKERS_PROCESS_GROUP && $proc->offsetGet('pid')  === $pid) {
+            if (
+                $proc->offsetGet('group') === self::MISP_WORKERS_PROCESS_GROUP &&
+                $proc->offsetGet('pid')  === $pid
+            ) {
                 return $proc;
             }
         }
 
-        throw new NotFoundException(
-            sprintf('Worker with pid=%s not found.', $pid)
-        );
+        throw new NotFoundException("Worker with pid=$pid not found.");
     }
 }
