@@ -565,9 +565,8 @@ class EventShell extends AppShell
 
         $inputFile = $this->args[0];
         $inputFile = $inputFile[0] === '/' ? $inputFile : APP . 'tmp/cache/ingest' . DS . $inputFile;
-        $inputData = FileAccessTool::readFromFile($inputFile);
+        $inputData = FileAccessTool::readAndDelete($inputFile);
         $inputData = $this->Event->jsonDecode($inputData);
-        FileAccessTool::deleteFile($inputFile);
         Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processModuleResultsData(
             $inputData['user'],
