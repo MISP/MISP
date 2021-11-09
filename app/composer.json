@@ -33,6 +33,7 @@
         "aws/aws-sdk-php": "To upload samples to S3",
         "jumbojett/openid-connect-php": "For OIDC authentication",
         "supervisorphp/supervisor": "For managing background jobs",
+        "lstrojny/fxmlrpc": "Required for supervisorphp/supervisor XML-RPC requests",
         "guzzlehttp/guzzle": "Required for supervisorphp/supervisor XML-RPC requests",
         "php-http/message": "Required for supervisorphp/supervisor XML-RPC requests"
     },
