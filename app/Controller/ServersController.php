@@ -979,12 +979,11 @@ class ServersController extends AppController
         $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
         $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
         $backgroundJobsErrors = array(
-            BackgroundJobsTool::STATUS_RUNNING => __('OK'),
-            BackgroundJobsTool::STATUS_NOT_ENABLED => __('Not configured (so not tested)'),
-            BackgroundJobsTool::STATUS_REDIS_NOT_OK => __('Error connecting to Redis.'),
-            BackgroundJobsTool::STATUS_SUPERVISOR_NOT_OK => __('Error connecting to Supervisor.'),
-            BackgroundJobsTool::STATUS_REDIS_AND_SUPERVISOR_NOT_OK => __('Error connecting to Redis and Supervisor.'),
-
+            0 => __('OK'),
+            1 => __('Not configured (so not tested)'),
+            2 => __('Error connecting to Redis.'),
+            3 => __('Error connecting to Supervisor.'),
+            4 => __('Error connecting to Redis and Supervisor.')
         );
 
         $finalSettings = $this->Server->serverSettingsRead();
