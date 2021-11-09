@@ -61,12 +61,8 @@ def _process_misp_files(scope: str, orgname: str, version: str, return_format:st
             _handle_errors(errors)
         print(json.dumps({'success': 1}))
     except Exception as e:
-        print(json.dumps(
-            {
-                'error': e.__str__(),
-                'traceback': ''.join(traceback.format_tb(e.__traceback__))
-            }
-        ))
+        print(json.dumps({'error': e.__str__()}))
+        traceback.print_tb()
 
 
 if __name__ == "__main__":
