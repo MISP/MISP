@@ -425,7 +425,6 @@ class EventShell extends AppShell
 
     public function publish_sightings()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[2]) || empty($this->args[3])) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish sightings'] . PHP_EOL);
         }
@@ -435,14 +434,8 @@ class EventShell extends AppShell
 
         $sightingsUuidsToPush = [];
         if (isset($this->args[4])) { // push just specific sightings
-            $path = APP . 'tmp/cache/ingest' . DS . $this->args[4];
-            $tempFile = new File($path);
-            $inputData = $tempFile->read();
-            if ($inputData === false) {
-                $this->error("File `$path` not found.");
-            }
-            $sightingsUuidsToPush = $this->Event->jsonDecode($inputData);
-            $tempFile->delete();
+            $path = $this->args[4][0] === '/' ? $this->args[4] : (APP . 'tmp/cache/ingest' . DS . $this->args[4]);
+            $sightingsUuidsToPush = $this->Event->jsonDecode(FileAccessTool::readAndDelete($path));
         }
 
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
@@ -549,9 +542,8 @@ class EventShell extends AppShell
 
         $inputFile = $this->args[0];
         $inputFile = $inputFile[0] === '/' ? $inputFile : APP . 'tmp/cache/ingest' . DS . $inputFile;
-        $inputData = FileAccessTool::readFromFile($inputFile);
+        $inputData = FileAccessTool::readAndDelete($inputFile);
         $inputData = $this->Event->jsonDecode($inputData);
-        FileAccessTool::deleteFile($inputFile);
         Configure::write('CurrentUserId', $inputData['user']['id']);
         $this->Event->processFreeTextData(
             $inputData['user'],
