@@ -769,12 +769,12 @@
             },
             {
                 "column_name": "authkey",
-                "is_nullable": "YES",
-                "data_type": "varchar",
-                "character_maximum_length": "40",
+                "is_nullable": "NO",
+                "data_type": "varbinary",
+                "character_maximum_length": "255",
                 "numeric_precision": null,
-                "collation_name": "ascii_general_ci",
-                "column_type": "varchar(40)",
+                "collation_name": null,
+                "column_type": "varbinary(255)",
                 "column_default": null,
                 "extra": ""
             },
@@ -5074,11 +5074,11 @@
             {
                 "column_name": "authkey",
                 "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "40",
+                "data_type": "varbinary",
+                "character_maximum_length": "255",
                 "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(40)",
+                "collation_name": null,
+                "column_type": "varbinary(255)",
                 "column_default": null,
                 "extra": ""
             },

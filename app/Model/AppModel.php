@@ -1597,6 +1597,8 @@ class AppModel extends Model
                       `value` blob NOT NULL,
                       PRIMARY KEY (`setting`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                $sqlArray[] = "ALTER TABLE `servers` MODIFY COLUMN `authkey` VARBINARY(255) NOT NULL;";
+                $sqlArray[] = "ALTER TABLE `cerebrates` MODIFY COLUMN `authkey` VARBINARY(255) NOT NULL;";
                 break;
             case 77:
                 $sqlArray[] = "ALTER TABLE `tags` ADD `local_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `is_custom_galaxy`;";
@@ -2687,15 +2689,21 @@ class AppModel extends Model
     {
         $version = implode('.', $this->checkMISPVersion());
         $commit = $this->checkMIPSCommit();
-        $request = array(
+
+        $authkey = $server[$model]['authkey'];
+        App::uses('EncryptedValue', 'Tools');
+        if (EncryptedValue::isEncrypted($authkey)) {
+            $authkey = (string)new EncryptedValue($authkey);
+        }
+
+        return array(
             'header' => array(
-                'Authorization' => $server[$model]['authkey'],
+                'Authorization' => $authkey,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
                 'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
             )
         );
-        return $request;
     }
 
     /**
