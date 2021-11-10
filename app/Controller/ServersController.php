@@ -1224,7 +1224,7 @@ class ServersController extends AppController
 
         if (Configure::read('MISP.use_simple_background_jobs')) {
             $message = __('Worker start signal sent');
-            $this->Server->getBackgroundJobsTool()->startWorker($type);
+            $this->Server->getBackgroundJobsTool()->startWorkerByQueue($type);
 
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Servers', 'startWorker', $type, $this->response->type(), $message);

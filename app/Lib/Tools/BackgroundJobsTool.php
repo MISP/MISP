@@ -391,6 +391,38 @@ class BackgroundJobsTool
     }
 
     /**
+     * Start worker by queue
+     *
+     * @param string $name
+     * @param boolean $waitForRestart
+     * @return boolean
+     */
+    public function startWorkerByQueue(string $queue, bool $waitForRestart = false): bool
+    {
+        $this->validateQueue($queue);
+
+        $procs = $this->Supervisor->getAllProcesses();
+
+        foreach ($procs as $proc) {
+            if ($proc->offsetGet('group') === self::MISP_WORKERS_PROCESS_GROUP) {
+                $name = explode("_", $proc->offsetGet('name'))[0];
+                if ($name === $queue && $proc->offsetGet('state') != \Supervisor\Process::RUNNING) {
+                    return $this->Supervisor->startProcess(
+                        sprintf(
+                            '%s:%s',
+                            self::MISP_WORKERS_PROCESS_GROUP,
+                            $proc->offsetGet('name')
+                        ),
+                        $waitForRestart
+                    );
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Stop worker by name or pid
      *
      * @param string|int $id
