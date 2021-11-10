@@ -295,14 +295,17 @@ class BackgroundJobsTool
 
         foreach ($procs as $proc) {
             if ($proc->offsetGet('group') === self::MISP_WORKERS_PROCESS_GROUP) {
-                $workers[] = new Worker([
-                    'pid' => $proc->offsetGet('pid'),
-                    'queue' => explode("_", $proc->offsetGet('name'))[0],
-                    'user' => trim(shell_exec(sprintf("ps -o uname= -p %s", (int) $proc->offsetGet('pid')))),
-                    'createdAt' => $proc->offsetGet('start'),
-                    'updatedAt' => $proc->offsetGet('now'),
-                    'status' => $this->convertProcessStatus($proc->offsetGet('state'))
-                ]);
+                if ($proc->offsetGet('pid') > 0) {
+                    $user = trim(shell_exec(sprintf("ps -o uname='' -p %s", (int) $proc->offsetGet('pid'))) ?? '');
+                    $workers[] = new Worker([
+                        'pid' => $proc->offsetGet('pid'),
+                        'queue' => explode("_", $proc->offsetGet('name'))[0],
+                        'user' => $user,
+                        'createdAt' => $proc->offsetGet('start'),
+                        'updatedAt' => $proc->offsetGet('now'),
+                        'status' => $this->convertProcessStatus($proc->offsetGet('state'))
+                    ]);
+                }
             }
         }
 

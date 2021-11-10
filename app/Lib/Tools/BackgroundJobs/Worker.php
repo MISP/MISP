@@ -6,7 +6,7 @@ App::uses('Model', 'Model');
 
 class Worker implements JsonSerializable
 {
-    /** @var integer */
+    /** @var integer|null */
     private $pid;
 
     /** @var string */
@@ -15,7 +15,7 @@ class Worker implements JsonSerializable
     /**
      * OS user
      *
-     * @var string
+     * @var string|null
      */
     private $user;
 
@@ -67,7 +67,7 @@ class Worker implements JsonSerializable
         ];
     }
 
-    public function pid(): int
+    public function pid(): ?int
     {
         return $this->pid;
     }
@@ -77,7 +77,7 @@ class Worker implements JsonSerializable
         return $this->queue;
     }
 
-    public function user(): string
+    public function user(): ?string
     {
         return $this->user;
     }
