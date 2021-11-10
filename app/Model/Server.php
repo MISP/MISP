@@ -6972,7 +6972,7 @@ class Server extends AppModel
                 ],
                 'redis_database' => [
                     'level' => 2,
-                    'description' => __('The database on the redis server to be used for background jobs. If you run more than one MISP instance, please make sure to use a different database on each instance.'),
+                    'description' => __('The database on the redis server to be used for background jobs. If you run more than one MISP instance, please make sure to use a different database or redis_namespace on each instance.'),
                     'value' => 1,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
