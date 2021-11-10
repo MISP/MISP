@@ -7009,7 +7009,7 @@ class Server extends AppModel
                 'supervisor_port' => [
                     'level' => 2,
                     'description' => __('The port where the Supervisor XML-RPC API is running.'),
-                    'value' => '',
+                    'value' => 9001,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
