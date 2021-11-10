@@ -7002,7 +7002,7 @@ class Server extends AppModel
                 'supervisor_host' => [
                     'level' => 2,
                     'description' => __('The host where the Supervisor XML-RPC API is running.'),
-                    'value' => '',
+                    'value' => 'localhost',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ],
