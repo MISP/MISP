@@ -37,7 +37,7 @@ class JobsController extends AppController
                 $job['Job']['job_status'] = 'Unknown';
                 $job['Job']['failed'] = null;
             }
-            if(Configure::read('MISP.use_simple_background_jobs')){
+            if(Configure::read('SimpleBackgroundJobs.enabled')){
                 $job['Job']['worker_status'] = true;
             }else{
                 $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'];
@@ -169,7 +169,7 @@ class JobsController extends AppController
 
     private function __getJobStatus(?string $id): string
     {
-        if (!Configure::read('MISP.use_simple_background_jobs')) {
+        if (!Configure::read('SimpleBackgroundJobs.enabled')) {
             return $this->__jobStatusConverter(CakeResque::getJobStatus($id));
         }
 
@@ -184,7 +184,7 @@ class JobsController extends AppController
 
     private function __getFailedJobLog(string $id): array
     {
-        if (!Configure::read('MISP.use_simple_background_jobs')) {
+        if (!Configure::read('SimpleBackgroundJobs.enabled')) {
             return CakeResque::getFailedJobLog($id);
         }
 

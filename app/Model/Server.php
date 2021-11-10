@@ -4899,13 +4899,6 @@ class Server extends AppModel
                     'test' => 'testBoolTrue',
                     'type' => 'boolean',
                 ),
-                'use_simple_background_jobs' => array(
-                    'level' => 2,
-                    'description' => __('Use SimpleBackgroundJobs engine instead of CakeResque.'),
-                    'value' => '',
-                    'test' => 'testBoolTrue',
-                    'type' => 'boolean',
-                ),
                 'attachments_dir' => array(
                     'level' => 2,
                     'description' => __('Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application.'),
@@ -6958,7 +6951,7 @@ class Server extends AppModel
                 'branch' => 1,
                 'enabled' => [
                     'level' => 2,
-                    'description' => __('Enables or disables background jobs. Note that \'MISP.use_simple_background_jobs\' setting needs to be set to \'true\' too.'),
+                    'description' => __('Enables or disables background jobs with Supervisor backend.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'
@@ -7166,7 +7159,7 @@ class Server extends AppModel
      */
     private function getWorkers(): array
     {
-        if (!Configure::read('MISP.use_simple_background_jobs')) {
+        if (!Configure::read('SimpleBackgroundJobs.enabled')) {
             try {
                 $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
             } catch (Exception $e) {
