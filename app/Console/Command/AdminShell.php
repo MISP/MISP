@@ -995,7 +995,28 @@ class AdminShell extends AppShell
 
         foreach ($feedIds as $k => $feedId) {
             if ($feedSizes[$k]) {
-                $output['cache_feed_size_' . $feedId] = $feedSizes[$k];
+                $output['feed_cache_size_' . $feedId] = $feedSizes[$k];
+            }
+        }
+
+        list($count, $size) = $this->redisSize($redis, 'misp:server_cache:*');
+        $output['server_cache_count'] = $count;
+        $output['server_cache_size'] = $size;
+
+        // Size of different server
+        $serverIds = $this->Server->find('column', [
+            'fields' => ['id'],
+        ]);
+
+        $redis->pipeline();
+        foreach ($serverIds as $serverId) {
+            $redis->rawCommand("memory", "usage", 'misp:server_cache:' . $serverId);
+        }
+        $serverSizes = $redis->exec();
+
+        foreach ($serverIds as $k => $serverId) {
+            if ($serverSizes[$k]) {
+                $output['server_cache_size_' . $serverId] = $serverSizes[$k];
             }
         }
 
