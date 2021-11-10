@@ -167,14 +167,17 @@ class JobsController extends AppController
         }
     }
 
-    private function __getJobStatus(string $id): string
+    private function __getJobStatus(?string $id): string
     {
         if (!Configure::read('MISP.use_simple_background_jobs')) {
             return $this->__jobStatusConverter(CakeResque::getJobStatus($id));
         }
 
-        $job = $this->Job->getBackgroundJobsTool()->getJob($id);
-        $status = $job ? $job->status() : 'Unknown';
+        $status = null;
+        if (!empty($id)) {
+            $job = $this->Job->getBackgroundJobsTool()->getJob($id);
+            $status = $job ? $job->status() : $status;
+        }
 
         return $this->__jobStatusConverter($status);
     }
