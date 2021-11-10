@@ -4241,7 +4241,7 @@ class Server extends AppModel
                 $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
             }
         }
-        $redis->set('misp:server_cache_timestamp:' . $server['Server']['id'], time());
+        $redis->set('misp:server_cache_timestamp:' . $serverId, time());
         return true;
     }
 
@@ -4261,7 +4261,7 @@ class Server extends AppModel
         }
         $results = $redis->exec();
         foreach ($servers as $k => $v) {
-            $data[$k]['Server']['cache_timestamp'] = $results[$k];
+            $servers[$k]['Server']['cache_timestamp'] = $results[$k];
         }
         return $servers;
     }
