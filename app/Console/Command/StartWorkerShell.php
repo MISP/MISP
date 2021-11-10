@@ -13,12 +13,8 @@ class StartWorkerShell extends AppShell
     private $worker;
 
     /** @var int */
-    private $sleepInterval;
-
-    /** @var int */
     private $maxExecutionTime;
 
-    private const DEFAULT_SLEEP_INTERVAL = 5; // seconds
     private const DEFAULT_MAX_EXECUTION_TIME = 86400; // 1 day
 
     public $tasks = ['ConfigLoad'];
@@ -42,13 +38,6 @@ class StartWorkerShell extends AppShell
                 'required' => true
             ])
             ->addOption(
-                'sleep',
-                [
-                    'help' => 'Sleep interval between jobs (seconds).',
-                    'default' => self::DEFAULT_SLEEP_INTERVAL,
-                    'required' => false
-                ]
-            )->addOption(
                 'maxExecutionTime',
                 [
                     'help' => 'Worker maximum execution time (seconds) before it self-destruct.',
@@ -70,7 +59,6 @@ class StartWorkerShell extends AppShell
             ]
         );
 
-        $this->sleepInterval = (int)$this->params['sleep'];
         $this->maxExecutionTime = (int)$this->params['maxExecutionTime'];
 
         CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - starting to process background jobs...");
@@ -93,8 +81,6 @@ class StartWorkerShell extends AppShell
                     $this->BackgroundJobsTool->update($job);
                 }
             }
-
-            sleep($this->sleepInterval);
         }
     }
 
