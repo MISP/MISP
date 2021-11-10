@@ -55,7 +55,7 @@ class StartWorkerShell extends AppShell
             [
                 'pid' => getmypid(),
                 'queue' => $this->args[0],
-                'user' => trim(shell_exec('whoami'))
+                'user' => $this->whoami()
             ]
         );
 
@@ -95,6 +95,15 @@ class StartWorkerShell extends AppShell
             CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - worker max execution time reached, exiting gracefully worker...");
             $this->BackgroundJobsTool->unregisterWorker($this->worker->pid());
             exit;
+        }
+    }
+
+    private function whoami(): string
+    {
+        if (function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
+            return posix_getpwuid(posix_geteuid())['name'];
+        } else {
+            return trim(shell_exec('whoami'));
         }
     }
 }
