@@ -10,13 +10,8 @@ App::uses('BackgroundJob', 'Tools/BackgroundJobs');
  * 
  * Utility class to queue jobs, run them and monitor workers.
  * 
- * The background jobs rely in two main scripts running:
- *      * StartWorkerShell.php
- *      * MonitorWorkersShell.php
- * 
- * To run them manually (debug only):
+ * To run a worker manually (debug only):
  *      $ ./Console/cake start_worker [queue]
- *      $ ./Console/cake monitor_workers
  * 
  * It is recommended to run these commands with [Supervisor](http://supervisord.org).
  * `Supervisor` has an extensive feature set to manage scripts as services, 
@@ -24,17 +19,6 @@ App::uses('BackgroundJob', 'Tools/BackgroundJobs');
  * All can be managed via the terminal or a XML-RPC API.
  * 
  * Use the following configuration as a template for the services:
- *      /etc/supervisor/conf.d/misp-workers-monitor.conf:
- *      [program:misp-workers-monitor]
- *      command=/var/www/MISP/app/Console/cake monitor_workers
- *      numprocs=1
- *      autostart=true
- *      autorestart=true
- *      redirect_stderr=false
- *      stderr_logfile=/var/www/MISP/app/tmp/logs/misp-workers-monitor-errors.log
- *      stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers-monitor.log
- *      user=www-data
- * 
  *      /etc/supervisor/conf.d/misp-workers.conf:
  *      [group:misp-workers]
  *      programs=default,email,cache,prio,update
