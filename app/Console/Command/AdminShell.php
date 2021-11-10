@@ -3,6 +3,7 @@ App::uses('AppShell', 'Console/Command');
 
 /**
  * @property Server $Server
+ * @property Feed $Feed
  */
 class AdminShell extends AppShell
 {
@@ -946,5 +947,90 @@ class AdminShell extends AppShell
         }
 
         $this->out(__('New encryption key "%s" saved into config file.', $new));
+    }
+
+    /**
+     * @param Redis $redis
+     * @param string $prefix
+     * @return array[int, int]
+     */
+    private function redisSize($redis, $prefix)
+    {
+        $keyCount = 0;
+        $size = 0;
+        $it = null;
+        while ($keys = $redis->scan($it, $prefix)) {
+            $redis->pipeline();
+            foreach ($keys as $key) {
+                $redis->rawCommand("memory", "usage", $key);
+            }
+            $result = $redis->exec();
+            $keyCount += count($keys);
+            $size += array_sum($result);
+        }
+        return [$keyCount, $size];
+    }
+
+    public function redisMemoryUsage()
+    {
+        $redis = $this->Server->setupRedisWithException();
+        $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
+
+        $output = [];
+
+        list($count, $size) = $this->redisSize($redis, 'misp:feed_cache:*');
+        $output['feed_cache_count'] = $count;
+        $output['feed_cache_size'] = $size;
+
+        // Size of different feeds
+        $feedIds = $this->Feed->find('column', [
+            'fields' => ['id'],
+        ]);
+
+        $redis->pipeline();
+        foreach ($feedIds as $feedId) {
+            $redis->rawCommand("memory", "usage", 'misp:feed_cache:' . $feedId);
+        }
+        $feedSizes = $redis->exec();
+
+        foreach ($feedIds as $k => $feedId) {
+            if ($feedSizes[$k]) {
+                $output['cache_feed_size_' . $feedId] = $feedSizes[$k];
+            }
+        }
+
+        list($count, $size) = $this->redisSize($redis, 'misp:wlc:*');
+        $output['warninglist_cache_count'] = $count;
+        $output['warninglist_cache_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:warninglist_entries_cache:*');
+        $output['warninglist_entries_count'] = $count;
+        $output['warninglist_entries_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:top_correlation');
+        $output['top_correlation_count'] = $count;
+        $output['top_correlation_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:correlation_exclusions');
+        $output['correlation_exclusions_count'] = $count;
+        $output['correlation_exclusions_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:event_lock:*');
+        $output['event_lock_count'] = $count;
+        $output['event_lock_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:user_ip:*');
+        $output['user_ip_count'] = $count;
+        $output['user_ip_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:ip_user:*');
+        $output['user_ip_count'] += $count;
+        $output['user_ip_size'] += $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:authkey_usage:*');
+        $output['authkey_usage_count'] = $count;
+        $output['authkey_usage_size'] = $size;
+
+        $this->json($output);
     }
 }

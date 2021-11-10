@@ -29,11 +29,16 @@ App::uses('AppModel', 'Model');
 class AppShell extends Shell
 {
     public $tasks = array('ConfigLoad');
-    
+
     public function initialize()
     {
         parent::initialize();
         $this->ConfigLoad->execute();
+    }
+
+    public function perform()
+    {
+        $this->{array_shift($this->args)}();
     }
 
     protected function _welcome()
