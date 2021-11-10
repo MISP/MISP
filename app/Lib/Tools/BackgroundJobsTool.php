@@ -102,7 +102,6 @@ class BackgroundJobsTool
     ];
 
     public const JOB_STATUS_PREFIX = 'job_status';
-    public const WORKER_STATUS_PREFIX = 'worker_status';
 
     /** @var array */
     private $settings;
@@ -301,49 +300,26 @@ class BackgroundJobsTool
     }
 
     /**
-     * Get worker by PID.
-     *
-     * @return Worker|null Worker instance.
-     */
-    public function getWorker(int $workerPid): ?Worker
-    {
-        $rawWorker = $this->RedisConnection->get(self::WORKER_STATUS_PREFIX . ':' . $workerPid);
-
-        if ($rawWorker) {
-            return new Worker($rawWorker);
-        }
-
-        return null;
-    }
-
-    /**
      * Get all workers' instances.
      *
      * @return Worker[] List of worker's instances.
      */
     public function getWorkers(): array
     {
-        $pattern = self::WORKER_STATUS_PREFIX . ':*';
-
-        // get existing workers status keys
-        $iterator = null;
-        $workersKeys = [];
-        while ($keys = $this->RedisConnection->scan($iterator, $pattern)) {
-            foreach ($keys as $key) {
-                $workersKeys[] = $key;
-            }
-        }
-
-        if (!$workersKeys) {
-            return [];
-        }
-
-        // get workers status
-        $workersStatus = $this->RedisConnection->mget($workersKeys);
-
         $workers = [];
-        foreach ($workersStatus as $worker) {
-            $workers[] = new Worker($worker);
+        $procs = $this->Supervisor->getAllProcesses();
+
+        foreach ($procs as $proc) {
+            if ($proc->offsetGet('group') === self::MISP_WORKERS_PROCESS_GROUP) {
+                $workers[] = new Worker([
+                    'pid' => $proc->offsetGet('pid'),
+                    'queue' => explode("_", $proc->offsetGet('name'))[0],
+                    'user' => trim(shell_exec(sprintf("ps -o uname= -p %s", (int) $proc->offsetGet('pid')))),
+                    'createdAt' => $proc->offsetGet('start'),
+                    'updatedAt' => $proc->offsetGet('now'),
+                    'status' => $this->convertProcessStatus($proc->offsetGet('state'))
+                ]);
+            }
         }
 
         return $workers;
@@ -404,61 +380,6 @@ class BackgroundJobsTool
         $this->update($job);
 
         return $job->returnCode();
-    }
-
-    /**
-     * Register worker
-     *
-     * @param integer $workerPid
-     * @param string  $queue
-     * @param integer $createdAt
-     * 
-     * @return void
-     */
-    public function registerWorker(Worker $worker): void
-    {
-        $this->RedisConnection->set(
-            self::WORKER_STATUS_PREFIX . ':' . $worker->pid(),
-            $worker
-        );
-    }
-
-    /**
-     * Update worker
-     *
-     * @param integer $workerPid
-     * @param integer $status
-     * 
-     * @return void
-     */
-    public function updateWorkerStatus(int $workerPid, int $status): void
-    {
-        $worker = $this->getWorker($workerPid);
-
-        if (!$worker) {
-            CakeLog::warning("updateWorkerStatus: worker with PID: {$workerPid} not found.");
-            return;
-        }
-
-        $worker->setUpdatedAt(time());
-        $worker->setStatus($status);
-
-        $this->RedisConnection->set(
-            self::WORKER_STATUS_PREFIX . ':' . $workerPid,
-            $worker
-        );
-    }
-
-    /**
-     * Unregister worker
-     *
-     * @param integer $workerPid
-     * 
-     * @return void
-     */
-    public function unregisterWorker(int $workerPid): void
-    {
-        $this->RedisConnection->del(self::WORKER_STATUS_PREFIX . ':' . $workerPid);
     }
 
     /**
@@ -720,5 +641,23 @@ class BackgroundJobsTool
         }
 
         throw new NotFoundException("Worker with pid=$pid not found.");
+    }
+
+    /**
+     * Convert process status to worker status
+     *
+     * @param integer $stateId
+     * @return integer
+     */
+    private function convertProcessStatus(int $stateId): int
+    {
+        switch ($stateId) {
+            case \Supervisor\Process::RUNNING:
+                return Worker::STATUS_RUNNING;
+            case \Supervisor\Process::UNKNOWN:
+                return Worker::STATUS_UNKNOWN;
+            default:
+                return Worker::STATUS_FAILED;
+        }
     }
 }

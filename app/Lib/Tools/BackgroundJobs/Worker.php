@@ -52,7 +52,7 @@ class Worker implements JsonSerializable
         $this->user = $properties['user'];
         $this->createdAt = $properties['createdAt'] ?? time();
         $this->updatedAt = $properties['updatedAt'] ?? null;
-        $this->status = $properties['status'] ?? self::STATUS_RUNNING;
+        $this->status = $properties['status'] ?? self::STATUS_UNKNOWN;
     }
 
     public function jsonSerialize(): array

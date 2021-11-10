@@ -62,7 +62,6 @@ class StartWorkerShell extends AppShell
         $this->maxExecutionTime = (int)$this->params['maxExecutionTime'];
 
         CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - starting to process background jobs...");
-        $this->BackgroundJobsTool->registerWorker($this->worker);
 
         while (true) {
             $this->ConfigLoad->execute();
@@ -93,7 +92,6 @@ class StartWorkerShell extends AppShell
     {
         if ((time() - $this->worker->createdAt()) > $this->maxExecutionTime) {
             CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - worker max execution time reached, exiting gracefully worker...");
-            $this->BackgroundJobsTool->unregisterWorker($this->worker->pid());
             exit;
         }
     }
