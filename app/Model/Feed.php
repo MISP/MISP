@@ -355,13 +355,10 @@ class Feed extends AppModel
      * @param array $feed
      * @param HttpSocket|null $HttpSocket Null can be for local feed
      * @param string $type
-     * @param int|string $page
-     * @param int $limit
-     * @param array $params
      * @return array|bool
      * @throws Exception
      */
-    public function getFreetextFeed($feed, HttpSocket $HttpSocket = null, $type = 'freetext', $page = 1, $limit = 60, &$params = array())
+    public function getFreetextFeed($feed, HttpSocket $HttpSocket = null, $type = 'freetext')
     {
         if ($this->isFeedLocal($feed)) {
             $feedUrl = $feed['Feed']['url'];
@@ -386,18 +383,9 @@ class Feed extends AppModel
         }
         $resultArray = $complexTypeTool->checkComplexRouter($data, $type, $settings);
         $this->Attribute = ClassRegistry::init('Attribute');
+        $typeDefinitions = $this->Attribute->typeDefinitions;
         foreach ($resultArray as &$value) {
-            $value['category'] = $this->Attribute->typeDefinitions[$value['default_type']]['default_category'];
-        }
-        App::uses('CustomPaginationTool', 'Tools');
-        $customPagination = new CustomPaginationTool();
-        $params = $customPagination->createPaginationRules($resultArray, array('page' => $page, 'limit' => $limit), 'Feed', $sort = false);
-        if (!empty($page) && $page != 'all') {
-            $start = ($page - 1) * $limit;
-            if ($start > count($resultArray)) {
-                return false;
-            }
-            $resultArray = array_slice($resultArray, $start, $limit);
+            $value['category'] = $typeDefinitions[$value['default_type']]['default_category'];
         }
         return $resultArray;
     }
@@ -1098,7 +1086,7 @@ class Feed extends AppModel
         } else {
             $this->jobProgress($jobId, 'Fetching data.');
             try {
-                $temp = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
+                $temp = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format']);
             } catch (Exception $e) {
                 $this->logException("Could not get freetext feed $feedId", $e);
                 $this->jobProgress($jobId, 'Could not fetch freetext feed. See error log for more details.');
@@ -1381,7 +1369,7 @@ class Feed extends AppModel
         $this->jobProgress($jobId, __("Feed %s: Fetching.", $feedId));
 
         try {
-            $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
+            $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format']);
         } catch (Exception $e) {
             $this->logException("Could not get freetext feed $feedId", $e);
             $this->jobProgress($jobId, __('Could not fetch freetext feed %s. See error log for more details.', $feedId));
