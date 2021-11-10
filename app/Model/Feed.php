@@ -1761,19 +1761,12 @@ class Feed extends AppModel
     {
         $hits = array();
         $this->Server = ClassRegistry::init('Server');
-        $result['Server'] = $this->Server->find('all', array(
-            'conditions' => array(
-                'caching_enabled' => 1
-            ),
-            'recursive' => -1,
-            'fields' => array('Server.id', 'Server.name', 'Server.url')
-        ));
         $redis = $this->setupRedis();
         $is_array = true;
         if (!is_array($value)) {
             $is_array = false;
             if (empty($value)) {
-                // old behaviour allowd for empty values to return all data
+                // old behaviour allowed for empty values to return all data
                 $value = [false];
             } else {
                 $value = [$value];
@@ -1835,7 +1828,6 @@ class Feed extends AppModel
                 }
             }
             if ($v === false || $redis->sismember('misp:server_cache:combined', md5($v))) {
-                $this->Server = ClassRegistry::init('Server');
                 $servers = $this->Server->find('all', array(
                     'conditions' => array(
                         'caching_enabled' => 1
