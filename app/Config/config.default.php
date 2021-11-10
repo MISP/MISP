@@ -142,7 +142,6 @@ $config = array(
         'redis_database' => 1,
         'redis_namespace' => 'background_jobs',
         'max_job_history_ttl' => 86400,
-        'track_status' => false,
         'supervisor_host' => 'localhost',
         'supervisor_port' => 9001,
         'supervisor_user' => '',

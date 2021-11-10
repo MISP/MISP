@@ -6988,23 +6988,16 @@ class Server extends AppModel
                 'redis_namespace' => [
                     'level' => 2,
                     'description' => __('The namespace to be used for the background jobs related keys.'),
-                    'value' => '',
+                    'value' => 'background_jobs',
                     'test' => null,
                     'type' => 'string'
                 ],
                 'max_job_history_ttl' => [
                     'level' => 2,
                     'description' => __('The time in seconds the job statuses history will be kept.'),
-                    'value' => '',
+                    'value' => 86400,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
-                ],
-                'track_status' => [
-                    'level' => 2,
-                    'description' => __('Default behavior for tracking jobs statuses.'),
-                    'value' => '',
-                    'test' => 'testBool',
-                    'type' => 'boolean'
                 ],
                 'supervisor_host' => [
                     'level' => 2,

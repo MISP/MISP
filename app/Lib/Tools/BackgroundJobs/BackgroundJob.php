@@ -21,9 +21,6 @@ class BackgroundJob implements JsonSerializable
     /** @var array */
     private $args;
 
-    /** @var bool */
-    private $trackStatus;
-
     /**
      * Creation time (UNIX timestamp)
      *
@@ -61,7 +58,6 @@ class BackgroundJob implements JsonSerializable
         $this->id = $properties['id'];
         $this->command = $properties['command'];
         $this->args = $properties['args'] ?? [];
-        $this->trackStatus = $properties['trackStatus'] ?? false;
         $this->createdAt = $properties['createdAt'] ?? time();
         $this->updatedAt = $properties['updatedAt'] ?? null;
         $this->status = $properties['status'] ?? self::STATUS_WAITING;
@@ -106,9 +102,7 @@ class BackgroundJob implements JsonSerializable
 
         if ($this->returnCode === 0 && empty($stderr)) {
             $this->setStatus(BackgroundJob::STATUS_COMPLETED);
-            if ($this->trackStatus) {
-                $this->setProgress(100);
-            }
+            $this->setProgress(100);
 
             CakeLog::info("[JOB ID: {$this->id()}] - completed.");
         } else {
@@ -126,7 +120,6 @@ class BackgroundJob implements JsonSerializable
             'id' => $this->id,
             'command' => $this->command,
             'args' => $this->args,
-            'trackStatus' => $this->trackStatus,
             'createdAt' => $this->createdAt,
             'updatedAt' => $this->updatedAt,
             'status' => $this->status,
@@ -149,11 +142,6 @@ class BackgroundJob implements JsonSerializable
     public function args(): array
     {
         return $this->args;
-    }
-
-    public function trackStatus(): bool
-    {
-        return $this->trackStatus;
     }
 
     public function progress(): int

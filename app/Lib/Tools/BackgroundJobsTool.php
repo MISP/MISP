@@ -102,7 +102,6 @@ class BackgroundJobsTool
      *           'redis_database' => 1,
      *           'redis_namespace' => 'background_jobs',
      *           'max_job_history_ttl' => 86400
-     *           'track_status' => 86400,
      *           'supervisor_host' => 'localhost',
      *           'supervisor_port' => '9001',
      *           'supervisor_user' => '',
@@ -157,7 +156,6 @@ class BackgroundJobsTool
                 'id' => CakeText::uuid(),
                 'command' => $command,
                 'args' => $args,
-                'trackStatus' => $trackStatus ?? $this->settings['track_status'],
                 'metadata' => $metadata
             ]
         );
