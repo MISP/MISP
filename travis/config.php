@@ -16,7 +16,6 @@ $config = array (
 		'org' => 'ORGNAME',
 		'showorg' => true,
 		'background_jobs' => false,
-		'cached_attachments' => false,
 		'email' => 'email@address.com',
 		'contact' => 'email@address.com',
 		'cveurl' => 'http://web.nvd.nist.gov/view/vuln/detail?vulnId=',

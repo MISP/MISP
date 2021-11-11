@@ -4896,13 +4896,6 @@ class Server extends AppModel
                     'type' => 'string',
                     'cli_only' => 1
                 ),
-                'cached_attachments' => array(
-                    'level' => 1,
-                    'description' => __('Allow the XML caches to include the encoded attachments.'),
-                    'value' => '',
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                ),
                 'download_attachments_on_load' => array(
                     'level' => 2,
                     'description' => __('Always download attachments when loaded by a user in a browser'),
