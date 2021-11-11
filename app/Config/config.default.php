@@ -134,6 +134,19 @@ $config = array(
         'amount' => 5,
         'expire' => 300,
     ),
+    'SimpleBackgroundJobs' => array(
+        'enabled' => false,
+        'redis_host' => 'localhost',
+        'redis_port' => 6379,
+        'redis_password' => '',
+        'redis_database' => 1,
+        'redis_namespace' => 'background_jobs',
+        'max_job_history_ttl' => 86400,
+        'supervisor_host' => 'localhost',
+        'supervisor_port' => 9001,
+        'supervisor_user' => '',
+        'supervisor_password' => '',
+    ),
     // Uncomment the following to enable client SSL certificate authentication
     /*
     'CertAuth'         => array(

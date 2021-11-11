@@ -142,28 +142,35 @@ class EventShell extends AppShell
         $fieldList = array('published', 'id', 'info');
         $this->Event->save($event, array('fieldList' => $fieldList));
         // only allow form submit CSRF protection.
-        $this->Job->saveField('status', 1);
-        $this->Job->saveField('message', 'Job done.');
+        $this->Job->save([
+            'status' => Job::STATUS_COMPLETED,
+            'message' => 'Job done.'
+        ]);
     }
 
     public function correlateValue()
     {
         $this->ConfigLoad->execute();
         $value = $this->args[0];
-        $this->Job->create();
-        $data = array(
-            'worker' => 'default',
-            'job_type' => 'correlateValue',
-            'job_input' => $value,
-            'status' => 0,
-            'retries' => 0,
-            'org' => 0,
-            'message' => 'Job created.',
-        );
-        $this->Job->save($data);
+
+        if (!empty($this->args[1])) {
+            $this->Job->id = intval($this->args[1]);
+        } else {
+            $this->Job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'correlateValue',
+                $value,
+                'Job created.'
+            );
+        }
+
         $this->Correlation->correlateValue($value, $this->Job->id);
-        $this->Job->saveField('status', 1);
-        $this->Job->saveField('message', 'Job done.');
+        $this->Job->save([
+            'status' => Job::STATUS_COMPLETED,
+            'message' => 'Job done.',
+            'progress' => 100
+        ]);
     }
 
     public function cache()
@@ -300,23 +307,35 @@ class EventShell extends AppShell
     public function postsemail()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
-            empty($this->args[3]) || empty($this->args[4]) || empty($this->args[5])) {
+        if (
+            empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
+            empty($this->args[3]) || empty($this->args[4]) || empty($this->args[5])
+        ) {
             die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Posts email'] . PHP_EOL);
         }
 
-        $userId = $this->args[0];
-        $postId = $this->args[1];
-        $eventId = $this->args[2];
+        $userId = intval($this->args[0]);
+        $postId = intval($this->args[1]);
+        $eventId = intval($this->args[2]);
         $title = $this->args[3];
         $message = $this->args[4];
-        $processId = $this->args[5];
-        $this->Job->id = $processId;
+        $this->Job->id = intval($this->args[5]);
+
         $result = $this->Post->sendPostsEmail($userId, $postId, $eventId, $title, $message);
-        $job['Job']['progress'] = 100;
-        $job['Job']['message'] = 'Emails sent.';
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $this->Job->save($job);
+
+        if ($result) {
+            $this->Job->save([
+                'progress' => 100,
+                'message' => 'Emails sent.',
+                'date_modified' => date('Y-m-d H:i:s'),
+                'status' =>  Job::STATUS_COMPLETED
+            ]);
+        } else {
+            $this->Job->save([
+                'date_modified' => date('Y-m-d H:i:s'),
+                'status' =>  Job::STATUS_FAILED
+            ]);
+        }
     }
 
     public function enqueueCaching()
@@ -392,6 +411,7 @@ class EventShell extends AppShell
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
         $result = $this->Event->publish($id, $passAlong);
         $job['Job']['progress'] = 100;
+        $job['Job']['status'] = Job::STATUS_COMPLETED;
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
         if ($result) {
             $job['Job']['message'] = 'Event published.';

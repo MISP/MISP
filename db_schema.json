@@ -3215,10 +3215,10 @@
                 "column_name": "process_id",
                 "is_nullable": "YES",
                 "data_type": "varchar",
-                "character_maximum_length": "32",
+                "character_maximum_length": "36",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
-                "column_type": "varchar(32)",
+                "column_type": "varchar(36)",
                 "column_default": null,
                 "extra": ""
             },
@@ -6487,10 +6487,10 @@
                 "column_name": "process_id",
                 "is_nullable": "YES",
                 "data_type": "varchar",
-                "character_maximum_length": "32",
+                "character_maximum_length": "36",
                 "numeric_precision": null,
                 "collation_name": "latin1_swedish_ci",
-                "column_type": "varchar(32)",
+                "column_type": "varchar(36)",
                 "column_default": null,
                 "extra": ""
             },
@@ -8251,5 +8251,5 @@
             "id": true
         }
     },
-    "db_version": "77"
+    "db_version": "78"
 }

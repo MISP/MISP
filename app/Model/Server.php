@@ -1355,7 +1355,8 @@ class Server extends AppModel
             'SMIME' => 'Encryption',
             'misc' => 'Security',
             'Security' => 'Security',
-            'Session' => 'Security'
+            'Session' => 'Security',
+            'SimpleBackgroundJobs' => 'SimpleBackgroundJobs'
         );
 
         $serverSettings = $this->getCurrentServerSettings();
@@ -2036,26 +2037,28 @@ class Server extends AppModel
                 $jobType = 'jobGenerateCorrelation';
                 $jobTypeText = 'generate correlation';
             }
+
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => $jobTypeText,
-                    'job_input' => 'All attributes',
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => 'ADMIN',
-                    'message' => 'Job created.',
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_PRIO,
+                $jobTypeText,
+                'All attributes',
+                'Job created.'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    array($jobType, $jobId),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'updateAfterPull',
+                    $jobType,
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
         }
         return true;
     }
@@ -2285,7 +2288,8 @@ class Server extends AppModel
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
             'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
             'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
-            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth', 'AadAuth'
+            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth', 
+            'AadAuth', 'SimpleBackgroundJobs'
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
@@ -3421,13 +3425,8 @@ class Server extends AppModel
             'update' => array('ok' => false),
             'scheduler' => array('ok' => false)
         );
-        try {
-            $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-        } catch (Exception $e) {
-            // redis connection failed
-            return $worker_array;
-        }
-        $workers = $this->ResqueStatus->getWorkers();
+        $workers = $this->getWorkers();
+
         if (function_exists('posix_getpwuid')) {
             $currentUser = posix_getpwuid(posix_geteuid());
             $currentUser = $currentUser['name'];
@@ -3468,7 +3467,7 @@ class Server extends AppModel
                 }
             }
             if ($k != 'scheduler') {
-                $worker_array[$k]['jobCount'] = CakeResque::getQueueSize($k);
+                $worker_array[$k]['jobCount'] = $this->getBackgroundJobsTool()->getQueueSize($k);
             }
             if (!isset($queue['workers'])) {
                 $workerIssueCount++;
@@ -3481,6 +3480,16 @@ class Server extends AppModel
             $worker_array['controls'] = Configure::read('MISP.manage_workers');
         }
         return $worker_array;
+    }
+
+    public function backgroundJobsDiagnostics(&$diagnostic_errors)
+    {
+        $backgroundJobsStatus = $this->getBackgroundJobsTool()->getStatus();
+
+        if ($backgroundJobsStatus > 0) {
+            $diagnostic_errors++;
+        }
+        return $backgroundJobsStatus;
     }
 
     public function retrieveCurrentSettings($branch, $subString)
@@ -3949,27 +3958,30 @@ class Server extends AppModel
 
     public function updateDatabaseAfterPullRouter($submodule_name, $user) {
         if (Configure::read('MISP.background_jobs')) {
+
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                'worker' => 'prio',
-                'job_type' => __('update_after_pull'),
-                'job_input' => __('Updating: ' . $submodule_name),
-                'status' => 0,
-                'retries' => 0,
-                'org_id' => $user['org_id'],
-                'org' => $user['Organisation']['name'],
-                'message' => 'Update the database after PULLing the submodule(s).',
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_PRIO,
+                'update_after_pull',
+                __('Updating: ' . $submodule_name),
+                'Update the database after PULLing the submodule(s).'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'prio',
-                    'AdminShell',
-                    array('updateAfterPull', $submodule_name, $jobId, $user['id']),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::PRIO_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'updateAfterPull',
+                    $submodule_name,
+                    $jobId,
+                    $user['id']
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
+
             return array('job_sent' => true, 'sync_result' => __('unknown'));
         } else {
             $result = $this->updateAfterPull($submodule_name, $user['id']);
@@ -6935,6 +6947,88 @@ class Server extends AppModel
                     'null' => true
                 ]
             ),
+            'SimpleBackgroundJobs' => [
+                'branch' => 1,
+                'enabled' => [
+                    'level' => 2,
+                    'description' => __('Enables or disables background jobs with Supervisor backend.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
+                'redis_host' => [
+                    'level' => 2,
+                    'description' => __('The host running the redis server to be used for background jobs.'),
+                    'value' => '127.0.0.1',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ],
+                'redis_port' => [
+                    'level' => 2,
+                    'description' => __('The port used by the redis server to be used for background jobs.'),
+                    'value' => 6379,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ],
+                'redis_database' => [
+                    'level' => 2,
+                    'description' => __('The database on the redis server to be used for background jobs. If you run more than one MISP instance, please make sure to use a different database or redis_namespace on each instance.'),
+                    'value' => 1,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ],
+                'redis_password' => [
+                    'level' => 2,
+                    'description' => __('The password on the redis server (if any) to be used for background jobs.'),
+                    'value' => '',
+                    'test' => null,
+                    'type' => 'string',
+                    'redacted' => true
+                ],
+                'redis_namespace' => [
+                    'level' => 2,
+                    'description' => __('The namespace to be used for the background jobs related keys.'),
+                    'value' => 'background_jobs',
+                    'test' => null,
+                    'type' => 'string'
+                ],
+                'max_job_history_ttl' => [
+                    'level' => 2,
+                    'description' => __('The time in seconds the job statuses history will be kept.'),
+                    'value' => 86400,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ],
+                'supervisor_host' => [
+                    'level' => 2,
+                    'description' => __('The host where the Supervisor XML-RPC API is running.'),
+                    'value' => 'localhost',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ],
+                'supervisor_port' => [
+                    'level' => 2,
+                    'description' => __('The port where the Supervisor XML-RPC API is running.'),
+                    'value' => 9001,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ],
+                'supervisor_user' => [
+                    'level' => 2,
+                    'description' => __('The user of the Supervisor XML-RPC API.'),
+                    'value' => '',
+                    'test' => null,
+                    'type' => 'string'
+                ],
+                'supervisor_password' => [
+                    'level' => 2,
+                    'description' => __('The password of the Supervisor XML-RPC API.'),
+                    'value' => '',
+                    'test' => null,
+                    'type' => 'string',
+                    'redacted' => true
+                ],
+            ],
             'debug' => array(
                 'level' => 0,
                 'description' => __('The debug level of the instance, always use 0 for production instances.'),
@@ -7049,5 +7143,37 @@ class Server extends AppModel
                 'header' => __('Managing the background workers')
             )
         );
+    }
+
+    /**
+     * Get workers
+     *
+     * @return array
+     */
+    private function getWorkers(): array
+    {
+        if (!Configure::read('SimpleBackgroundJobs.enabled')) {
+            try {
+                $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+            } catch (Exception $e) {
+                // redis connection failed
+                $this->logException("Failed to get Resque workers status.", $e);
+                return [];
+            }
+            return $this->ResqueStatus->getWorkers();
+        }
+
+        $worker_array = [];
+        $workers = $this->getBackgroundJobsTool()->getWorkers();
+
+        foreach ($workers as $worker) {
+            $worker_array[$worker->pid()] = [
+                'queue' => $worker->queue(),
+                'type' => 'regular', // for compatibility with Resque response
+                'user' => $worker->user()
+            ];
+        }
+
+        return $worker_array;
     }
 }

@@ -310,32 +310,31 @@ class Log extends AppModel
         ));
     }
 
-
     public function pruneUpdateLogsRouter($user)
     {
         if (Configure::read('MISP.background_jobs')) {
+
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'prune_update_logs',
-                    'job_input' => 'All update entries',
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Purging the heretic.',
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_DEFAULT,
+                'prune_update_logs',
+                'All update entries',
+                'Purging the heretic.'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    array('prune_update_logs', $jobId, $user['id']),
-                    true
+
+            return $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'prune_update_logs',
+                    $jobId,
+                    $user['id']
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
-            return $process_id;
         } else {
             $result = $this->pruneUpdateLogs(false, $user);
             return $result;

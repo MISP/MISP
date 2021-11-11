@@ -10,7 +10,8 @@ class Job extends AppModel
 
     const WORKER_EMAIL = 'email',
         WORKER_PRIO = 'prio',
-        WORKER_DEFAULT = 'default';
+        WORKER_DEFAULT = 'default',
+        WORKER_CACHE = 'cache';
 
     public $belongsTo = array(
         'Org' => array(
@@ -32,42 +33,49 @@ class Job extends AppModel
 
     public function cache($type, $user)
     {
-        $extra = null;
-        $extra2 = null;
-        $shell = 'Event';
-        $this->create();
-        $data = array(
-                'worker' => 'cache',
-                'job_type' => 'cache_' . $type,
-                'job_input' => $user['Role']['perm_site_admin'] ? 'All events.' : 'Events visible to: ' . $user['Organisation']['name'],
-                'status' => 0,
-                'retries' => 0,
-                'org_id' => $user['Role']['perm_site_admin'] ? 0 : $user['org_id'],
-                'message' => 'Fetching events.',
+        $jobId = $this->createJob(
+            $user,
+            Job::WORKER_CACHE,
+            'cache_' . $type,
+            $user['Role']['perm_site_admin'] ? 'All events.' : 'Events visible to: ' . $user['Organisation']['name'],
+            'Fetching events.'
         );
-        $this->save($data);
-        $id = $this->id;
+
         $this->Event = ClassRegistry::init('Event');
+
         if (in_array($type, array_keys($this->Event->export_types)) && $type !== 'bro') {
-            $process_id = CakeResque::enqueue(
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::CACHE_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                [
                     'cache',
-                    $shell . 'Shell',
-                    array('cache', $user['id'], $id, $type),
-                    true
+                    $user['id'],
+                    $jobId,
+                    $type
+                ],
+                true,
+                $jobId
             );
         } elseif ($type === 'bro') {
-            $type = 'bro';
-            $process_id = CakeResque::enqueue(
-                    'cache',
-                    $shell . 'Shell',
-                    array('cachebro', $user['id'], $id),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::CACHE_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                [
+                    'cachebro',
+                    $user['id'],
+                    $jobId,
+                    $type
+                ],
+                true,
+                $jobId
             );
         } else {
             throw new MethodNotAllowedException('Invalid export type.');
         }
-        $this->saveField('process_id', $process_id);
-        return $id;
+
+        return $jobId;
     }
 
     /**

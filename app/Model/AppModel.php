@@ -34,6 +34,9 @@ class AppModel extends Model
     /** @var KafkaPubTool */
     private $loadedKafkaPubTool;
 
+    /** @var BackgroundJobsTool */
+    private static $loadedBackgroundJobsTool;
+
     /** @var null|Redis */
     private static $__redisConnection;
 
@@ -82,7 +85,7 @@ class AppModel extends Model
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
-        75 => false, 76 => true, 77 => false
+        75 => false, 76 => true, 77 => false, 78 => false
     );
 
     public $advanced_updates_description = array(
@@ -1604,6 +1607,8 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `tags` ADD `local_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `is_custom_galaxy`;";
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `local_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `enabled`;";
                 break;
+            case 78:
+                $sqlArray[] = "ALTER TABLE `jobs` MODIFY COLUMN `process_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2086,26 +2091,28 @@ class AppModel extends Model
                     } else { // update worker not running, doing the update inline
                         return $this->runUpdates($verbose, false);
                     }
-                    $this->Job->create();
-                    $data = array(
-                        'worker' => $workerType,
-                        'job_type' => 'run_updates',
-                        'job_input' => 'command: ' . implode(',', $updates),
-                        'status' => 0,
-                        'retries' => 0,
-                        'org_id' => 0,
-                        'org' => '',
-                        'message' => 'Updating.',
+
+                    /** @var Job $job */
+                    $job = ClassRegistry::init('Job');
+                    $jobId = $job->createJob(
+                            'SYSTEM',
+                            Job::WORKER_PRIO,
+                            'run_updates',
+                            'command: ' . implode(',', $updates),
+                            'Updating.'
+                        );
+
+                    $this->getBackgroundJobsTool()->enqueue(
+                        BackgroundJobsTool::PRIO_QUEUE,
+                        BackgroundJobsTool::CMD_ADMIN,
+                        [
+                            'runUpdates',
+                            $jobId
+                        ],
+                        true,
+                        $jobId
                     );
-                    $this->Job->save($data);
-                    $jobId = $this->Job->id;
-                    $processId = CakeResque::enqueue(
-                            'prio',
-                            'AdminShell',
-                            array('runUpdates', $jobId),
-                            true
-                    );
-                    $this->Job->saveField('process_id', $processId);
+
                     return true;
                 }
 
@@ -2423,26 +2430,27 @@ class AppModel extends Model
     private function __generateCorrelations()
     {
         if (Configure::read('MISP.background_jobs')) {
-            $Job = ClassRegistry::init('Job');
-            $Job->create();
-            $data = array(
-                'worker' => 'default',
-                'job_type' => 'generate correlation',
-                'job_input' => 'All attributes',
-                'status' => 0,
-                'retries' => 0,
-                'org' => 'ADMIN',
-                'message' => 'Job created.',
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate correlation',
+                'All attributes',
+                'Job created.'
             );
-            $Job->save($data);
-            $jobId = $Job->id;
-            $process_id = CakeResque::enqueue(
-                'default',
-                'AdminShell',
-                array('jobGenerateCorrelation', $jobId),
-                true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateCorrelation',
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $Job->saveField('process_id', $process_id);
+
         }
         return true;
     }
@@ -2552,6 +2560,26 @@ class AppModel extends Model
             $this->elasticSearchClient = $client;
         }
         return $this->elasticSearchClient;
+    }
+
+    /**
+     * @return BackgroundJobsTool
+     */
+    public function getBackgroundJobsTool(): BackgroundJobsTool
+    {
+        if (!self::$loadedBackgroundJobsTool) {
+            App::uses('BackgroundJobsTool', 'Tools');
+
+            // TODO: remove after CakeResque is deprecated
+            $settings = ['enabled' => false];
+            if (Configure::read('SimpleBackgroundJobs') && Configure::read('SimpleBackgroundJobs.enabled')) {
+                $settings = Configure::read('SimpleBackgroundJobs');
+            }
+
+            $backgroundJobsTool = new BackgroundJobsTool($settings);
+            self::$loadedBackgroundJobsTool = $backgroundJobsTool;
+        }
+        return self::$loadedBackgroundJobsTool;
     }
 
     // generate a generic subquery - options needs to include conditions
