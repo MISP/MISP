@@ -32,7 +32,6 @@ $config = array(
         'email_subject_tag'              => 'tlp',
         'email_subject_include_tag_name' => true,
         'background_jobs'                => true,
-        'cached_attachments'             => true,
         'osuser'                         => 'www-data',
         'email'                          => 'email@example.com',
         'contact'                        => 'email@example.com',

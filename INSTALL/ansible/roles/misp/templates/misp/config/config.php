@@ -16,7 +16,6 @@ $config = array (
 		'org' => '',
 		'showorg' => true,
 		'background_jobs' => true,
-		'cached_attachments' => true,
 		'email' => '',
 		'contact' => '',
 		'cveurl' => 'http://cve.circl.lu/cve/',
