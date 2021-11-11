@@ -2211,9 +2211,9 @@ class Attribute extends AppModel
             $eventTags = array();
         }
 
-        $count_params = $params;
+        $find_params = $params;
         unset($find_params['limit']);
-        $result_count = $this->find('count', $count_params);
+        $result_count = $this->find('count', $find_params);
 
         while ($continue) {
             if ($loop) {
