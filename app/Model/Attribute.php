@@ -2022,7 +2022,7 @@ class Attribute extends AppModel
     //     conditions
     //     order
     //     group
-    public function fetchAttributes($user, $options = array(), &$continue = true)
+    public function fetchAttributes($user, $options = array(), &$continue = true, &$result_count = 0)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -2210,6 +2210,11 @@ class Attribute extends AppModel
         if (!empty($options['includeEventTags'])) {
             $eventTags = array();
         }
+
+        $count_params = $params;
+        unset($find_params['limit']);
+        $result_count = $this->find('count', $count_params);
+
         while ($continue) {
             if ($loop) {
                 $params['page'] = $params['page'] + 1;
@@ -3354,7 +3359,7 @@ class Attribute extends AppModel
         $elementCounter = 0;
         $continue = true;
         do {
-            $results = $this->fetchAttributes($user, $params, $continue);
+            $results = $this->fetchAttributes($user, $params, $continue, $elementCounter);
             if (empty($results)) {
                 break; // nothing found, skip rest
             }
@@ -3363,7 +3368,6 @@ class Attribute extends AppModel
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
             $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
-            $elementCounter += count($results);
             foreach ($results as $attribute) {
                 $handlerResult = $exportTool->handler($attribute, $exportToolParams);
                 if ($handlerResult !== '') {
