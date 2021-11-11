@@ -146,6 +146,7 @@ class PubSubTool
      * @param string $type
      * @param string|false $action
      * @return bool
+     * @throws JsonException
      */
     public function modified($data, $type, $action = false)
     {
@@ -237,6 +238,7 @@ class PubSubTool
      * @param string $ns
      * @param string|array $data
      * @return bool
+     * @throws JsonException
      */
     private function pushToRedis($ns, $data)
     {
@@ -284,9 +286,9 @@ class PubSubTool
     {
         $settings = array(
             'redis_host' => 'localhost',
-            'redis_port' => '6379',
+            'redis_port' => 6379,
             'redis_password' => '',
-            'redis_database' => '1',
+            'redis_database' => 1,
             'redis_namespace' => 'mispq',
             'host' => '127.0.0.1',
             'port' => '50000',

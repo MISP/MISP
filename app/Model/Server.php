@@ -4164,14 +4164,14 @@ class Server extends AppModel
 
     public function cacheServerInitiator($user, $id = 'all', $jobId = false)
     {
-        $params = array(
-            'conditions' => array('caching_enabled' => 1),
-            'recursive' => -1
-        );
         $redis = $this->setupRedis();
         if ($redis === false) {
             return 'Redis not reachable.';
         }
+        $params = array(
+            'conditions' => array('caching_enabled' => 1),
+            'recursive' => -1
+        );
         if ($id !== 'all') {
             $params['conditions']['Server.id'] = $id;
         } else {
@@ -4196,63 +4196,65 @@ class Server extends AppModel
         return true;
     }
 
+    /**
+     * @param array $server
+     * @param Redis $redis
+     * @param int|false $jobId
+     * @return bool
+     * @throws JsonException
+     */
     private function __cacheInstance($server, $redis, $jobId = false)
     {
-        $continue = true;
+        $serverId = $server['Server']['id'];
         $i = 0;
+        $chunk_size = 50000;
         if ($jobId) {
             $job = ClassRegistry::init('Job');
             $job->id = $jobId;
         }
-        $redis->del('misp:server_cache:' . $server['Server']['id']);
-        $HttpSocket = null;
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        while ($continue) {
+        $redis->del('misp:server_cache:' . $serverId);
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        while (true) {
             $i++;
-            $chunk_size = 50000;
-            $data = $this->__getCachedAttributes($server, $HttpSocket, $chunk_size, $i);
-            if (empty(trim($data))) {
-                $continue = false;
-            } else {
-                $pipe = $redis->multi(Redis::PIPELINE);
-                $data = explode(PHP_EOL, trim($data));
-                foreach ($data as $entry) {
-                    list($value, $uuid) = explode(',', $entry);
-                    if (!Validation::uuid($uuid)) {
-                        $continue = false;
-                        break;
-                    }
-                    if (!empty($value)) {
-                        $redis->sAdd('misp:server_cache:' . $server['Server']['id'], $value);
-                        $redis->sAdd('misp:server_cache:combined', $value);
-                        $redis->sAdd('misp:server_cache:event_uuid_lookup:' . $value, $server['Server']['id'] . '/' . $uuid);
-                    }
+            $rules = [
+                'returnFormat' => 'cache',
+                'includeEventUuid' => 1,
+                'page' => $i,
+                'limit' => $chunk_size,
+            ];
+            try {
+                $data = $serverSync->attributeSearch($rules)->body();
+            } catch (Exception $e) {
+                $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
+                break;
+            }
+
+            $data = trim($data);
+            if (empty($data)) {
+                break;
+            }
+
+            $data = explode(PHP_EOL, $data);
+            $pipe = $redis->pipeline();
+            foreach ($data as $entry) {
+                list($value, $uuid) = explode(',', $entry);
+                if (!Validation::uuid($uuid)) {
+                    break 2;
                 }
-                $pipe->exec();
-                if ($jobId) {
-                    $job->saveField('message', 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+                if (!empty($value)) {
+                    $redis->sAdd('misp:server_cache:' . $serverId, $value);
+                    $redis->sAdd('misp:server_cache:combined', $value);
+                    $redis->sAdd('misp:server_cache:event_uuid_lookup:' . $value, $serverId . '/' . $uuid);
                 }
             }
+            $pipe->exec();
+            if ($jobId) {
+                $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+            }
         }
-        $redis->set('misp:server_cache_timestamp:' . $server['Server']['id'], time());
+        $redis->set('misp:server_cache_timestamp:' . $serverId, time());
         return true;
-    }
-
-    private function __getCachedAttributes($server, $HttpSocket, $chunk_size, $i)
-    {
-        $filter_rules = array(
-            'returnFormat' => 'cache',
-            'includeEventUuid' => 1,
-            'page' => $i,
-            'limit' => $chunk_size
-        );
-        $request = $this->setupSyncRequest($server);
-        try {
-            $response = $HttpSocket->post($server['Server']['url'] . '/attributes/restSearch.json', json_encode($filter_rules), $request);
-        } catch (SocketException $e) {
-            return $e->getMessage();
-        }
-        return $response->body;
     }
 
     /**
@@ -4271,7 +4273,7 @@ class Server extends AppModel
         }
         $results = $redis->exec();
         foreach ($servers as $k => $v) {
-            $data[$k]['Server']['cache_timestamp'] = $results[$k];
+            $servers[$k]['Server']['cache_timestamp'] = $results[$k];
         }
         return $servers;
     }

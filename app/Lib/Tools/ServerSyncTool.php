@@ -86,6 +86,17 @@ class ServerSyncTool
     }
 
     /**
+     * @param array $rules
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function attributeSearch(array $rules)
+    {
+        return $this->post('/attributes/restSearch.json', $rules);
+    }
+
+    /**
      * @param array $params
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
