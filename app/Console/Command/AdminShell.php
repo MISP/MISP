@@ -61,6 +61,9 @@ class AdminShell extends AppShell
         $parser->addSubcommand('optimiseTables', [
             'help' => __('Optimise database tables.'),
         ]);
+        $parser->addSubcommand('redisMemoryUsage', [
+            'help' => __('Get detailed information about Redis memory usage.'),
+        ]);
         return $parser;
     }
 
@@ -959,7 +962,7 @@ class AdminShell extends AppShell
         $keyCount = 0;
         $size = 0;
         $it = null;
-        while ($keys = $redis->scan($it, $prefix)) {
+        while ($keys = $redis->scan($it, $prefix, 1000)) {
             $redis->pipeline();
             foreach ($keys as $key) {
                 $redis->rawCommand("memory", "usage", $key);
@@ -1052,6 +1055,6 @@ class AdminShell extends AppShell
         $output['authkey_usage_count'] = $count;
         $output['authkey_usage_size'] = $size;
 
-        $this->json($output);
+        $this->out($this->json($output));
     }
 }
