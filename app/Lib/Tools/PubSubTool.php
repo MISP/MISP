@@ -79,7 +79,7 @@ class PubSubTool
         return false;
     }
 
-    public function publishEvent($event)
+    public function publishEvent(array $event)
     {
         App::uses('JSONConverterTool', 'Tools');
         $json = JSONConverterTool::convert($event, false, true);
@@ -160,7 +160,7 @@ class PubSubTool
      * @return bool
      * @throws JsonException
      */
-    public function modified($data, $type, $action = false)
+    public function modified(array $data, $type, $action = false)
     {
         if (!empty($action)) {
             $data['action'] = $action;
@@ -168,7 +168,7 @@ class PubSubTool
         return $this->pushToRedis('data:misp_json_' . $type, $data);
     }
 
-    public function publish($data, $type, $action = false)
+    public function publish(array $data, $type, $action = false)
     {
         if (!empty($action)) {
             $data['action'] = $action;
@@ -265,12 +265,12 @@ class PubSubTool
 
     /**
      * @param string $ns
-     * @param string|array $data
+     * @param array $data
      * @return bool
      * @throws JsonException
      * @throws RedisException
      */
-    private function pushToRedis($ns, $data)
+    private function pushToRedis($ns, array $data)
     {
         $data = JsonTool::encode($data);
         $this->redis->rPush($ns, $data);
