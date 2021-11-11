@@ -7573,6 +7573,17 @@
                 "column_type": "bigint(20)",
                 "column_default": null,
                 "extra": ""
+            },
+            {
+                "column_name": "sub",
+                "is_nullable": "YES",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
             }
         ],
         "user_settings": [
@@ -8233,7 +8244,8 @@
             "id": true,
             "email": true,
             "org_id": false,
-            "server_id": false
+            "server_id": false,
+            "sub": true
         },
         "user_settings": {
             "id": true,
@@ -8251,5 +8263,5 @@
             "id": true
         }
     },
-    "db_version": "78"
+    "db_version": "79"
 }
