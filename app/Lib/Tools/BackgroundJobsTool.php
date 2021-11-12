@@ -114,11 +114,8 @@ class BackgroundJobsTool
     {
         $this->settings = $settings;
 
-        if (!$this->RedisConnection && $this->settings['enabled'] === true) {
+        if ($this->settings['enabled'] === true) {
             $this->RedisConnection = $this->createRedisConnection();
-        }
-
-        if (!$this->Supervisor && $this->settings['enabled'] === true) {
             $this->Supervisor = $this->createSupervisorConnection();
         }
     }
@@ -133,7 +130,7 @@ class BackgroundJobsTool
      * @param int|null $jobId Id of the relational database record representing the job.
      * @return string Background Job Id.
      * @param array $metadata Related to the job.
-     * @throws InvalidArgumentExceptiony
+     * @throws InvalidArgumentException
      */
     public function enqueue(
         string $queue,
@@ -491,9 +488,6 @@ class BackgroundJobsTool
      */
     public function getStatus(): int
     {
-        $redisStatus = false;
-        $supervisorStatus = false;
-
         if (!$this->settings['enabled']) {
             return self::STATUS_NOT_ENABLED;
         }
@@ -502,12 +496,14 @@ class BackgroundJobsTool
             $redisStatus = $this->RedisConnection->ping();
         } catch (Exception $exception) {
             CakeLog::error("SimpleBackgroundJobs Redis error: {$exception->getMessage()}");
+            $redisStatus = false;
         }
 
         try {
             $supervisorStatus = ($this->Supervisor->getState()['statecode'] === \Supervisor\Supervisor::RUNNING);
         } catch (Exception $exception) {
             CakeLog::error("SimpleBackgroundJobs Supervisor error: {$exception->getMessage()}");
+            $supervisorStatus = false;
         }
 
         if ($redisStatus && $supervisorStatus) {
@@ -529,10 +525,11 @@ class BackgroundJobsTool
      */
     private function validateQueue(string $queue): bool
     {
-        if (!in_array($queue, self::VALID_QUEUES)) {
+        if (!in_array($queue, self::VALID_QUEUES, true)) {
             throw new InvalidArgumentException(
                 sprintf(
-                    'Invalid background job queue, must be one of: [%s]',
+                    'Invalid background job queue %s, must be one of: [%s]',
+                    $queue,
                     implode(', ', self::VALID_QUEUES)
                 )
             );
@@ -549,10 +546,11 @@ class BackgroundJobsTool
      */
     private function validateCommand(string $command): bool
     {
-        if (!in_array($command, self::ALLOWED_COMMANDS)) {
+        if (!in_array($command, self::ALLOWED_COMMANDS, true)) {
             throw new InvalidArgumentException(
                 sprintf(
-                    'Invalid command, must be one of: [%s]',
+                    'Invalid command %s, must be one of: [%s]',
+                    $command,
                     implode(', ', self::ALLOWED_COMMANDS)
                 )
             );
@@ -564,6 +562,7 @@ class BackgroundJobsTool
     /**
      * Validate worker name
      *
+     * @param string $name
      * @return boolean
      * @throws InvalidArgumentException
      */
@@ -574,7 +573,7 @@ class BackgroundJobsTool
         $this->validateQueue($queue);
 
         if (!$this->validateQueue($queue) || !is_numeric($id)) {
-            throw new InvalidArgumentException('Invalid worker name, must be one of format {queue_name}_{process_id}, example: default_00');
+            throw new InvalidArgumentException("Invalid worker name $name, must be one of format {queue_name}_{process_id}, example: default_00");
         }
 
         return true;
@@ -651,7 +650,7 @@ class BackgroundJobsTool
         foreach ($procs as $proc) {
             if (
                 $proc->offsetGet('group') === self::MISP_WORKERS_PROCESS_GROUP &&
-                $proc->offsetGet('pid')  === $pid
+                $proc->offsetGet('pid') === $pid
             ) {
                 return $proc;
             }
