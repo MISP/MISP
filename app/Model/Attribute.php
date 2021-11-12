@@ -2014,15 +2014,24 @@ class Attribute extends AppModel
         ));
     }
 
-    // Method that fetches all attributes for the various exports
-    // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
-    // options:
-    //     fields
-    //     contain
-    //     conditions
-    //     order
-    //     group
-    public function fetchAttributes($user, $options = array(), &$continue = true, &$result_count = 0)
+    /**
+     * Method that fetches all attributes for the various exports
+     * very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
+     * options:
+     *  - fields
+     *  - contain
+     *  - conditions
+     *  - order
+     *  - group
+     *
+     * @param array $user
+     * @param array $options
+     * @param bool $continue
+     * @param int|false $result_count If false, count is not fetched
+     * @return array|int|null
+     * @throws Exception
+     */
+    public function fetchAttributes(array $user, array $options = [], &$continue = true, &$result_count = false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -2103,18 +2112,18 @@ class Attribute extends AppModel
         ) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
-                    'ShadowAttribute' => array(
-                            'conditions' => array(
-                                    'AND' => array(
-                                            'ShadowAttribute.deleted' => 0,
-                                            'OR' => array(
-                                                    'ShadowAttribute.proposal_to_delete' => 1,
-                                                    'ShadowAttribute.to_ids' => 0
-                                            )
-                                    )
-                            ),
-                            'fields' => array('ShadowAttribute.id', 'ShadowAttribute.value', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.to_ids')
-                    )
+                'ShadowAttribute' => array(
+                    'conditions' => array(
+                        'AND' => array(
+                            'ShadowAttribute.deleted' => 0,
+                            'OR' => array(
+                                'ShadowAttribute.proposal_to_delete' => 1,
+                                'ShadowAttribute.to_ids' => 0
+                            )
+                        )
+                    ),
+                    'fields' => array('ShadowAttribute.id', 'ShadowAttribute.value', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.to_ids')
+                )
             );
             $params['contain'] = array_merge($params['contain'], $proposalRestriction);
         }
@@ -2211,9 +2220,16 @@ class Attribute extends AppModel
             $eventTags = array();
         }
 
-        $find_params = $params;
-        unset($find_params['limit']);
-        $result_count = $this->find('count', $find_params);
+        // Do not fetch result count when `$result_count` is false
+        if ($result_count !== false) {
+            $find_params = $params;
+            unset($find_params['limit']);
+            $result_count = $this->find('count', $find_params);
+            if ($result_count === 0) { // skip early
+                $continue = false;
+                return [];
+            }
+        }
 
         while ($continue) {
             if ($loop) {
@@ -3349,17 +3365,19 @@ class Attribute extends AppModel
      * @param TmpFileTool $tmpfile
      * @param object $exportTool
      * @param array $exportToolParams
-     * @return int Number of attributes
+     * @return int Number of all attributes that matches given conditions
      * @throws Exception
      */
     private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams)
     {
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
-        $elementCounter = 0;
         $continue = true;
+        $elementCounter = 0;
         do {
             $results = $this->fetchAttributes($user, $params, $continue, $elementCounter);
+            $totalCount = $elementCounter;
+            $elementCounter = false; // do not call `count` again
             if (empty($results)) {
                 break; // nothing found, skip rest
             }
@@ -3377,7 +3395,7 @@ class Attribute extends AppModel
             $params['page'] += 1;
         } while ($loop && $continue);
 
-        return $elementCounter;
+        return $totalCount;
     }
 
     public function set_filter_uuid(&$params, $conditions, $options)
