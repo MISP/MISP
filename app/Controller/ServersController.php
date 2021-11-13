@@ -1058,7 +1058,7 @@ class ServersController extends AppController
 
             $this->set('advanced_attachments', $advanced_attachments);
             // check if the current version of MISP is outdated or not
-            $version = $this->__checkVersion();
+            $version = $this->Server->checkRemoteVersion();
             $this->set('version', $version);
             $gitStatus = $this->Server->getCurrentGitStatus();
             $this->set('branch', $gitStatus['branch']);
@@ -1303,32 +1303,6 @@ class ServersController extends AppController
             $worker_array = [__('Background jobs not enabled')];
         }
         return $this->RestResponse->viewData($worker_array);
-    }
-
-    private function __checkVersion()
-    {
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        try {
-            $HttpSocket = $syncTool->setupHttpSocket();
-            $response = $HttpSocket->get('https://api.github.com/repos/MISP/MISP/tags');
-            $tags = $response->body;
-        } catch (Exception $e) {
-            return false;
-        }
-        if ($response->isOK() && !empty($tags)) {
-            $json_decoded_tags = json_decode($tags);
-
-            // find the latest version tag in the v[major].[minor].[hotfix] format
-            for ($i = 0; $i < count($json_decoded_tags); $i++) {
-                if (preg_match('/^v[0-9]+\.[0-9]+\.[0-9]+$/', $json_decoded_tags[$i]->name)) {
-                    break;
-                }
-            }
-            return $this->Server->checkVersion($json_decoded_tags[$i]->name);
-        } else {
-            return false;
-        }
     }
 
     public function idTranslator($localId = null)

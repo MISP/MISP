@@ -2335,36 +2335,6 @@ class Server extends AppModel
         return true;
     }
 
-    public function checkVersion($newest)
-    {
-        $version_array = $this->checkMISPVersion();
-        $current = 'v' . $version_array['major'] . '.' . $version_array['minor'] . '.' . $version_array['hotfix'];
-        $newest_array = $this->__dissectVersion($newest);
-        $upToDate = $this->__compareVersions(array($version_array['major'], $version_array['minor'], $version_array['hotfix']), $newest_array, 0);
-        return array('current' => $current, 'newest' => $newest, 'upToDate' => $upToDate);
-    }
-
-    private function __dissectVersion($version)
-    {
-        $version = substr($version, 1);
-        return explode('.', $version);
-    }
-
-    private function __compareVersions($current, $newest, $i)
-    {
-        if ($current[$i] == $newest[$i]) {
-            if ($i < 2) {
-                return $this->__compareVersions($current, $newest, $i+1);
-            } else {
-                return 'same';
-            }
-        } elseif ($current[$i] < $newest[$i]) {
-            return 'older';
-        } else {
-            return 'newer';
-        }
-    }
-
     public function getFileRules()
     {
         $validItems = array(
@@ -3825,6 +3795,50 @@ class Server extends AppModel
             return false;
         }
         return true;
+    }
+
+    /**
+     * @param string $newest
+     * @return array
+     * @throws JsonException
+     */
+    private function checkVersion($newest)
+    {
+        $version_array = $this->checkMISPVersion();
+        $current = implode('.', $version_array);
+
+        $upToDate = version_compare($current, substr(1, $newest));
+        if ($upToDate === 0) {
+            $upToDate = 'same';
+        } else {
+            $upToDate = $upToDate === -1 ? 'older' : 'newer';
+        }
+        return array('current' => 'v' . $current, 'newest' => $newest, 'upToDate' => $upToDate);
+    }
+
+    /**
+     * Fetch latest MISP version from GitHub
+     * @return array|false
+     * @throws HttpSocketJsonException
+     */
+    public function checkRemoteVersion()
+    {
+        $HttpSocket = $this->setupHttpSocket(null, null, 3);
+        try {
+            $response = $HttpSocket->get('https://api.github.com/repos/MISP/MISP/tags?per_page=10');
+        } catch (Exception $e) {
+            return false;
+        }
+        if ($response->isOK()) {
+            $json_decoded_tags = $response->json();
+
+            // find the latest version tag in the v[major].[minor].[hotfix] format
+            foreach ($json_decoded_tags as $tag)
+                if (preg_match('/^v[0-9]+\.[0-9]+\.[0-9]+$/', $tag['name'])) {
+                    return $this->checkVersion($tag['name']);
+                }
+        }
+        return false;
     }
 
     public function getCurrentGitStatus()
