@@ -82,7 +82,7 @@ class GitTool
         $lines = ProcessTool::execute('git submodule status --cached', ROOT);
         $output = [];
         foreach (explode("\n", $lines) as $submodule) {
-            if ($submodule[0] === '-') {
+            if ($submodule === '' || $submodule[0] === '-') {
                 continue;
             }
             $parts = explode(' ', $submodule);
