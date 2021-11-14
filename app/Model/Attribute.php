@@ -2516,7 +2516,7 @@ class Attribute extends AppModel
     public function isAdvancedExtractionAvailable()
     {
         try {
-            $types = $this->loadAttachmentTool()->checkAdvancedExtractionStatus($this->getPythonVersion());
+            $types = $this->loadAttachmentTool()->checkAdvancedExtractionStatus();
         } catch (Exception $e) {
             return false;
         }
@@ -2830,7 +2830,7 @@ class Attribute extends AppModel
     public function advancedAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile)
     {
         try {
-            $result = $this->loadAttachmentTool()->advancedExtraction($this->getPythonVersion(), $tmpfile->path);
+            $result = $this->loadAttachmentTool()->advancedExtraction($tmpfile->path);
         } catch (Exception $e) {
             $this->logException("Could not finish advanced extraction", $e);
             return $this->simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile);

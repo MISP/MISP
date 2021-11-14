@@ -1050,7 +1050,7 @@ class ServersController extends AppController
 
             $attachmentTool = new AttachmentTool();
             try {
-                $advanced_attachments = $attachmentTool->checkAdvancedExtractionStatus($this->Server->getPythonVersion());
+                $advanced_attachments = $attachmentTool->checkAdvancedExtractionStatus();
             } catch (Exception $e) {
                 $this->log($e->getMessage(), LOG_NOTICE);
                 $advanced_attachments = false;
