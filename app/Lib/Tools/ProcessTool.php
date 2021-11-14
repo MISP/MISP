@@ -38,13 +38,14 @@ class ProcessTool
     const LOG_FILE = APP . 'tmp/logs/exec-errors.log';
 
     /**
-     * @param string|array $command If command is array, it is not necessary to escape arguments
+     * @param array $command If command is array, it is not necessary to escape arguments
      * @param string|null $cwd
+     * @param bool $stderrToFile IF true, log stderrr output to LOG_FILE
      * @return string Stdout
      * @throws ProcessException
      * @throws Exception
      */
-    public static function execute($command, $cwd = null, $stderrToFile = false)
+    public static function execute(array $command, $cwd = null, $stderrToFile = false)
     {
         $descriptorSpec = [
             1 => ["pipe", "w"], // stdout
@@ -52,12 +53,12 @@ class ProcessTool
         ];
 
         if ($stderrToFile) {
-            self::logMessage('Running command ' . self::commandFormat($command));
+            self::logMessage('Running command ' . implode(' ', $command));
             $descriptorSpec[2] = ["file", self::LOG_FILE, 'a'];
         }
 
         // PHP older than 7.4 do not support proc_open with array, so we need to convert values to string manually
-        if (PHP_VERSION_ID < 70400 && is_array($command)) {
+        if (PHP_VERSION_ID < 70400) {
             $command = array_map('escapeshellarg', $command);
             $command = implode(' ', $command);
         }
@@ -94,10 +95,18 @@ class ProcessTool
         return $stdout;
     }
 
+    /**
+     * @return string
+     */
+    public static function pythonBin()
+    {
+        return Configure::read('MISP.python_bin') ?: 'python3';
+    }
+
     private static function logMessage($message)
     {
         $logMessage = '[' . date("Y-m-d H:i:s") . ' ' . getmypid() . "] $message\n";
-        file_put_contents(self::LOG_FILE, $logMessage, FILE_APPEND);
+        file_put_contents(self::LOG_FILE, $logMessage, FILE_APPEND | LOCK_EX);
     }
 
     /**

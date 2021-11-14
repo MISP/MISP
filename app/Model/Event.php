@@ -5899,7 +5899,7 @@ class Event extends AppModel
         }
 
         $shell_command = [
-            $this->getPythonVersion(),
+            ProcessTool::pythonBin(),
             $scriptFile,
             $file,
             Configure::read('MISP.default_event_distribution'),

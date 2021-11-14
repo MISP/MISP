@@ -2,6 +2,7 @@
 App::uses('JSONConverterTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('ProcessTool', 'Tools');
 
 abstract class StixExport
 {
@@ -12,7 +13,6 @@ abstract class StixExport
     protected $__return_format = 'json';
     protected $__scripts_dir = APP . 'files/scripts/';
     protected $__framing_script = APP . 'files/scripts/misp_framing.py';
-    protected $__end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
     protected $__return_type = null;
 
     /** @var array Full paths to files to convert */
@@ -138,22 +138,11 @@ abstract class StixExport
     private function getFraming()
     {
         $framingCmd = $this->__initiate_framing_params();
-        $framing = json_decode(shell_exec($framingCmd), true);
+        $framing = json_decode(ProcessTool::execute($framingCmd, null, true), true);
         if ($framing === null || isset($framing['error'])) {
             throw new Exception("Could not get results from framing cmd when exporting STIX file.");
         }
         return $framing;
-    }
-
-    /**
-     * @return string
-     */
-    protected function pythonBin()
-    {
-        if (!isset($this->Server)) {
-            $this->Server = ClassRegistry::init('Server');
-        }
-        return $this->Server->getPythonVersion();
     }
 
     /**
@@ -163,7 +152,7 @@ abstract class StixExport
     abstract protected function __parse_misp_events(array $filenames);
 
     /**
-     * @return string
+     * @return array
      */
     abstract protected function __initiate_framing_params();
 }
