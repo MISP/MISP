@@ -1211,7 +1211,6 @@ class ServersController extends AppController
         $this->set('phptoonew', $this->phptoonew);
         $this->set('pythonmin', $this->pythonmin);
         $this->set('pythonrec', $this->pythonrec);
-        $this->set('pymisp', $this->pymisp);
         $this->set('title_for_layout', __('Diagnostics'));
     }
 
@@ -1757,8 +1756,8 @@ class ServersController extends AppController
         if (!empty($result)) {
             $this->set('events', $result['publishCount']);
             $this->set('messages', $result['messageCount']);
-            $this->set('time', date('Y/m/d H:i:s', $result['timestamp']));
-            $this->set('time2', date('Y/m/d H:i:s', $result['timestampSettings']));
+            $this->set('time', $result['timestamp']);
+            $this->set('time2', $result['timestampSettings']);
         }
         $this->render('ajax/zeromqstatus');
     }
