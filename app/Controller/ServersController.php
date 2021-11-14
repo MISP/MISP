@@ -1824,12 +1824,11 @@ class ServersController extends AppController
     public function update($branch = false)
     {
         if ($this->request->is('post')) {
-            $branch = false;
             $filterData = array(
                 'request' => $this->request,
                 'named_params' => $this->params['named'],
                 'paramArray' => ['branch'],
-                'ordered_url_params' => @compact($paramArray),
+                'ordered_url_params' => [],
                 'additional_delimiters' => PHP_EOL
             );
             $exception = false;
@@ -1852,8 +1851,8 @@ class ServersController extends AppController
                 return new CakeResponse(array('body' => $update, 'type' => 'txt'));
             }
         } else {
-            $branch = $this->Server->getCurrentBranch();
-            $this->set('branch', $branch);
+            $this->set('isUpdatePossible', $this->Server->isUpdatePossible());
+            $this->set('branch', $this->Server->getCurrentBranch());
             $this->render('ajax/update');
         }
     }

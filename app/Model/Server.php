@@ -3870,6 +3870,15 @@ class Server extends AppModel
         }
     }
 
+    /**
+     * Check if MISP update is possible.
+     * @return bool
+     */
+    public function isUpdatePossible()
+    {
+        return $this->getCurrentBranch() !== false && is_writable(APP);
+    }
+
     public function checkoutMain()
     {
         $mainBranch = '2.4';

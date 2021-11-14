@@ -183,8 +183,7 @@ function cancelPrompt(isolated) {
         $("#gray_out").fadeOut();
     }
     $("#popover_form").fadeOut();
-    $("#confirmation_box").fadeOut();
-    $("#confirmation_box").empty();
+    $("#confirmation_box").fadeOut().empty();
     $('.have-a-popover').popover('destroy');
 }
 

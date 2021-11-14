@@ -1,6 +1,6 @@
 <div class="confirmation">
-<legend><?php echo __('ZeroMQ Server Status');?></legend>
-    <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
+    <legend><?php echo __('ZeroMQ Server Status');?></legend>
+    <div class="inner">
     <?php if (isset($time)): ?>
         <p><b><?php echo __('Reply time');?></b>: <?= $this->Time->time($time); ?><br>
         <b><?php echo __('Start time');?></b>: <?= $this->Time->time($time2); ?><br>
