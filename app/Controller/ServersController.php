@@ -1057,13 +1057,12 @@ class ServersController extends AppController
             }
 
             $this->set('advanced_attachments', $advanced_attachments);
-            // check if the current version of MISP is outdated or not
-            $version = $this->Server->checkRemoteVersion();
-            $this->set('version', $version);
-            $gitStatus = $this->Server->getCurrentGitStatus();
+
+            $gitStatus = $this->Server->getCurrentGitStatus(true);
             $this->set('branch', $gitStatus['branch']);
             $this->set('commit', $gitStatus['commit']);
             $this->set('latestCommit', $gitStatus['latestCommit']);
+            $this->set('version', $gitStatus['version']);
 
             $phpSettings = array(
                 'max_execution_time' => array(

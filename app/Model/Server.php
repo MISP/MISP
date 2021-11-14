@@ -3820,9 +3820,8 @@ class Server extends AppModel
      * @return array|false
      * @throws JsonException
      */
-    public function checkRemoteVersion()
+    private function checkRemoteVersion($HttpSocket)
     {
-        $HttpSocket = $this->setupHttpSocket(null, null, 3);
         try {
             $json_decoded_tags = GitTool::getRemoveVersion($HttpSocket);
         } catch (Exception $e) {
@@ -3837,7 +3836,12 @@ class Server extends AppModel
         return false;
     }
 
-    public function getCurrentGitStatus()
+    /**
+     * @param bool $checkVersion
+     * @return array
+     * @throws JsonException
+     */
+    public function getCurrentGitStatus($checkVersion = false)
     {
         $HttpSocket = $this->setupHttpSocket(null, null, 3);
         try {
@@ -3846,11 +3850,15 @@ class Server extends AppModel
             $latestCommit = false;
         }
 
-        return [
+        $output = [
             'commit' => $this->checkMIPSCommit(),
             'branch' => $this->getCurrentBranch(),
             'latestCommit' => $latestCommit,
         ];
+        if ($checkVersion) {
+            $output['version'] = $latestCommit ? $this->checkRemoteVersion($HttpSocket) : false;
+        }
+        return $output;
     }
 
     public function getCurrentBranch()
