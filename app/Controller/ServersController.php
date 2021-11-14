@@ -1096,7 +1096,7 @@ class ServersController extends AppController
             }
             $this->set('phpSettings', $phpSettings);
 
-            if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) {
+            if ($gitStatus['version'] && $gitStatus['version']['upToDate'] === 'older') {
                 $diagnostic_errors++;
             }
 
@@ -1171,7 +1171,7 @@ class ServersController extends AppController
                 unset($dumpResults[$key]['description']);
             }
             $dump = array(
-                'version' => $version,
+                'version' => $gitStatus['version'],
                 'phpSettings' => $phpSettings,
                 'gpgStatus' => $gpgErrors[$gpgStatus['status']],
                 'proxyStatus' => $proxyErrors[$proxyStatus],

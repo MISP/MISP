@@ -3806,7 +3806,7 @@ class Server extends AppModel
         $version_array = $this->checkMISPVersion();
         $current = implode('.', $version_array);
 
-        $upToDate = version_compare($current, substr(1, $newest));
+        $upToDate = version_compare($current, substr($newest, 1));
         if ($upToDate === 0) {
             $upToDate = 'same';
         } else {
