@@ -4328,8 +4328,8 @@ class Server extends AppModel
     {
         $results = array();
         foreach (['Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate', 'ObjectRelationship'] as $target) {
-            $this->$target = ClassRegistry::init($target);
-            $result = $this->$target->update();
+            $model = ClassRegistry::init($target);
+            $result = $model->update();
             $results[$target] = $result === false ? false : true;
         }
         return $results;
