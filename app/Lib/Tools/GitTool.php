@@ -1,4 +1,5 @@
 <?php
+App::uses('ProcessTool', 'Tools');
 
 class GitTool
 {
@@ -70,5 +71,55 @@ class GitTool
         } else {
             throw new Exception("ref HEAD is not a symbolic ref");
         }
+    }
+
+    /**
+     * @return array
+     * @throws Exception
+     */
+    public static function submoduleStatus()
+    {
+        $lines = ProcessTool::execute('git submodule status --cached', ROOT);
+        $output = [];
+        foreach (explode("\n", $lines) as $submodule) {
+            if ($submodule[0] === '-') {
+                continue;
+            }
+            $parts = explode(' ', $submodule);
+            $output[] = [
+                'name' => $parts[2],
+                'commit' => $parts[1],
+            ];
+        }
+        return $output;
+    }
+
+    /**
+     * @param string $submodule Path to Git repo
+     * @return string|null
+     */
+    public static function submoduleCurrentCommit($submodule)
+    {
+        try {
+            $commit = ProcessTool::execute('git rev-parse HEAD', $submodule);
+        } catch (ProcessException $e) {
+            return null;
+        }
+        return rtrim($commit);
+    }
+
+    /**
+     * @param string $commit
+     * @param string|null $submodule Path to Git repo
+     * @return int|null
+     */
+    public static function commitTimestamp($commit, $submodule = null)
+    {
+        try {
+            $timestamp = ProcessTool::execute('git show -s --pretty=format:%ct ' . escapeshellarg($commit), $submodule);
+        } catch (ProcessException $e) {
+            return null;
+        }
+        return (int)rtrim($timestamp);
     }
 }

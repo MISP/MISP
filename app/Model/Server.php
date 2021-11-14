@@ -3887,14 +3887,16 @@ class Server extends AppModel
 
     public function getSubmodulesGitStatus()
     {
-        exec('cd ' . APP . '../; git submodule status --cached | grep -v ^- | cut -b 2- | cut -d " " -f 1,2 ', $submodules_names);
+        try {
+            $submodules = GitTool::submoduleStatus();
+        } catch (Exception $e) {
+            $this->logException('Could not fetch git submodules status', $e, LOG_NOTICE);
+            return [];
+        }
         $status = array();
-        foreach ($submodules_names as $submodule_name_info) {
-            $submodule_name_info = explode(' ', $submodule_name_info);
-            list($superproject_submodule_commit_id, $submodule_name) = $submodule_name_info;
-            $temp = $this->getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id);
-            if (!empty($temp) ) {
-                $status[$submodule_name] = $temp;
+        foreach ($submodules as $submodule) {
+            if ($this->_isAcceptedSubmodule($submodule['name'])) {
+                $status[$submodule['name']] = $this->getSubmoduleGitStatus($submodule['name'], $submodule['commit']);;
             }
         }
         return $status;
@@ -3926,54 +3928,56 @@ class Server extends AppModel
      */
     private function getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id)
     {
-        $status = array();
-        if ($this->_isAcceptedSubmodule($submodule_name)) {
-            $path = APP . '../' . $submodule_name;
-            $submodule_name=(strpos($submodule_name, '/') >= 0 ? explode('/', $submodule_name) : $submodule_name);
-            $submodule_name=end($submodule_name);
-            //$submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
-            exec(sprintf('cd %s; git rev-parse HEAD', $path), $submodule_current_commit_id);
-            if (!empty($submodule_current_commit_id[0])) {
-                $submodule_current_commit_id = $submodule_current_commit_id[0];
-            } else {
-                $submodule_current_commit_id = null;
-            }
-            $status = array(
-                'moduleName' => $submodule_name,
-                'current' => $submodule_current_commit_id,
-                'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
-                'remoteTimestamp' => exec(sprintf('cd %s; git show -s --pretty=format:%%ct %s', $path, $superproject_submodule_commit_id)),
-                'remote' => $superproject_submodule_commit_id,
-                'upToDate' => '',
-                'isReadable' => is_readable($path) && is_readable($path . '/.git'),
-            );
+        $path = APP . '../' . $submodule_name;
+        $submodule_name = (strpos($submodule_name, '/') >= 0 ? explode('/', $submodule_name) : $submodule_name);
+        $submodule_name = end($submodule_name);
 
-            if (!empty($status['remote'])) {
-                if ($status['remote'] == $status['current']) {
-                    $status['upToDate'] = 'same';
-                } else if ($status['currentTimestamp'] < $status['remoteTimestamp']) {
-                    $status['upToDate'] = 'older';
-                } else {
-                    $status['upToDate'] = 'younger';
-                }
-            } else {
-                $status['upToDate'] = 'error';
-            }
+        $submoduleCurrentCommitId = GitTool::submoduleCurrentCommit($path);
 
-            if ($status['isReadable'] && !empty($status['remoteTimestamp']) && !empty($status['currentTimestamp'])) {
-                $date1 = new DateTime();
-                $date1->setTimestamp($status['remoteTimestamp']);
-                $date2 = new DateTime();
-                $date2->setTimestamp($status['currentTimestamp']);
-                $status['timeDiff'] = $date1->diff($date2);
-            } else {
-                $status['upToDate'] = 'error';
-            }
+        $currentTimestamp = GitTool::commitTimestamp($submoduleCurrentCommitId, $path);
+        if ($submoduleCurrentCommitId !== $superproject_submodule_commit_id) {
+            $remoteTimestamp = GitTool::commitTimestamp($superproject_submodule_commit_id, $path);
+        } else {
+            $remoteTimestamp = $currentTimestamp;
         }
+
+        $status = array(
+            'moduleName' => $submodule_name,
+            'current' => $submoduleCurrentCommitId,
+            'currentTimestamp' => $currentTimestamp,
+            'remote' => $superproject_submodule_commit_id,
+            'remoteTimestamp' => $remoteTimestamp,
+            'upToDate' => '',
+            'isReadable' => is_readable($path) && is_readable($path . '/.git'),
+        );
+
+        if (!empty($status['remote'])) {
+            if ($status['remote'] === $status['current']) {
+                $status['upToDate'] = 'same';
+            } else if ($status['currentTimestamp'] < $status['remoteTimestamp']) {
+                $status['upToDate'] = 'older';
+            } else {
+                $status['upToDate'] = 'younger';
+            }
+        } else {
+            $status['upToDate'] = 'error';
+        }
+
+        if ($status['isReadable'] && !empty($status['remoteTimestamp']) && !empty($status['currentTimestamp'])) {
+            $date1 = new DateTime();
+            $date1->setTimestamp($status['remoteTimestamp']);
+            $date2 = new DateTime();
+            $date2->setTimestamp($status['currentTimestamp']);
+            $status['timeDiff'] = $date1->diff($date2);
+        } else {
+            $status['upToDate'] = 'error';
+        }
+
         return $status;
     }
 
-    public function updateSubmodule($user, $submodule_name=false) {
+    public function updateSubmodule($user, $submodule_name=false)
+    {
         $path = APP . '../';
         if ($submodule_name == false) {
             $command = sprintf('cd %s; git submodule update 2>&1', $path);
@@ -3997,9 +4001,9 @@ class Server extends AppModel
         return $res;
     }
 
-    public function updateDatabaseAfterPullRouter($submodule_name, $user) {
+    public function updateDatabaseAfterPullRouter($submodule_name, $user)
+    {
         if (Configure::read('MISP.background_jobs')) {
-
             /** @var Job $job */
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob(
@@ -4030,30 +4034,31 @@ class Server extends AppModel
         }
     }
 
-    public function updateAfterPull($submodule_name, $userId) {
+    public function updateAfterPull($submodule_name, $userId)
+    {
         $user = $this->User->getAuthUser($userId);
         $result = array();
         if ($user['Role']['perm_site_admin']) {
             $updateAll = empty($submodule_name);
             if ($submodule_name == 'app/files/misp-galaxy' || $updateAll) {
                 $this->Galaxy = ClassRegistry::init('Galaxy');
-                $result[] = ($this->Galaxy->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->Galaxy->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/misp-objects' || $updateAll) {
                 $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
-                $result[] = ($this->ObjectTemplate->update($user, false, false) ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->ObjectTemplate->update($user, false, false) ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/noticelists' || $updateAll) {
                 $this->Noticelist = ClassRegistry::init('Noticelist');
-                $result[] = ($this->Noticelist->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->Noticelist->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/taxonomies' || $updateAll) {
                 $this->Taxonomy = ClassRegistry::init('Taxonomy');
-                $result[] = ($this->Taxonomy->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->Taxonomy->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/warninglists' || $updateAll) {
                 $this->Warninglist = ClassRegistry::init('Warninglist');
-                $result[] = ($this->Warninglist->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->Warninglist->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
         }
         return implode('\n', $result);
