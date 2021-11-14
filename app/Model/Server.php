@@ -3425,6 +3425,11 @@ class Server extends AppModel
             'update' => array('ok' => false),
             'scheduler' => array('ok' => false)
         );
+
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            unset($worker_array['scheduler']);
+        }
+
         $workers = $this->getWorkers();
 
         if (function_exists('posix_getpwuid')) {

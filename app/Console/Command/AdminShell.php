@@ -64,6 +64,9 @@ class AdminShell extends AppShell
         $parser->addSubcommand('redisMemoryUsage', [
             'help' => __('Get detailed information about Redis memory usage.'),
         ]);
+        $parser->addSubcommand('redisReady', [
+            'help' => __('Check if it is possible connect to Redis.'),
+        ]);
         return $parser;
     }
 
@@ -499,7 +502,7 @@ class AdminShell extends AppShell
     {
         try {
             $redis = $this->Server->setupRedisWithException();
-            $redis->randomKey();
+            $redis->ping();
             $this->out('Successfully connected to Redis.');
         } catch (Exception $e) {
             $this->error('Redis connection is not available', $e->getMessage());

@@ -76,7 +76,7 @@ class StartWorkerShell extends AppShell
                     $this->BackgroundJobsTool->run($job);
                 } catch (Exception $exception) {
                     CakeLog::error("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - job id: {$job->id()} failed with exception: {$exception->getMessage()}");
-                    $job->status  = BackgroundJob::STATUS_FAILED;
+                    $job->setStatus(BackgroundJob::STATUS_FAILED);
                     $this->BackgroundJobsTool->update($job);
                 }
             }

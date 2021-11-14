@@ -291,11 +291,10 @@ class BackgroundJobsTool
         foreach ($procs as $proc) {
             if ($proc->offsetGet('group') === self::MISP_WORKERS_PROCESS_GROUP) {
                 if ($proc->offsetGet('pid') > 0) {
-                    $user = trim(shell_exec(sprintf("ps -o uname='' -p %s", (int) $proc->offsetGet('pid'))) ?? '');
                     $workers[] = new Worker([
                         'pid' => $proc->offsetGet('pid'),
                         'queue' => explode("_", $proc->offsetGet('name'))[0],
-                        'user' => $user,
+                        'user' => $this->processUser((int) $proc->offsetGet('pid')),
                         'createdAt' => $proc->offsetGet('start'),
                         'updatedAt' => $proc->offsetGet('now'),
                         'status' => $this->convertProcessStatus($proc->offsetGet('state'))
@@ -674,6 +673,22 @@ class BackgroundJobsTool
                 return Worker::STATUS_UNKNOWN;
             default:
                 return Worker::STATUS_FAILED;
+        }
+    }
+
+    /**
+     * Get effective user name
+     * @param int $pid
+     * @return string
+     */
+    private function processUser(int $pid)
+    {
+        if (function_exists('posix_getpwuid') && file_exists("/proc/$pid/status")) {
+            $content = file_get_contents("/proc/$pid/status");
+            preg_match("/Uid:\t([0-9]+)\t([0-9]+)/", $content, $matches);
+            return posix_getpwuid((int)$matches[2])['name'];
+        } else {
+            return trim(shell_exec(sprintf("ps -o uname='' -p %s", $pid)) ?? '');
         }
     }
 }
