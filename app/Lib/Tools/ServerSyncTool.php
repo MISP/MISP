@@ -184,6 +184,16 @@ class ServerSyncTool
     }
 
     /**
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function resetAuthKey()
+    {
+        return $this->post('/users/resetauthkey/me', []);
+    }
+
+    /**
      * @param string $testString
      * @return HttpSocketResponseExtended
      * @throws Exception

@@ -4317,45 +4317,22 @@ class Server extends AppModel
         if (empty($server)) {
             return __('Invalid server');
         }
-        $HttpSocket = $this->setupHttpSocket($server);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/users/resetauthkey/me';
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
         try {
-            $response = $HttpSocket->post($uri, '{}', $request);
+            $response = $serverSync->resetAuthKey();
         } catch (Exception $e) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
             $message = 'Could not reset the remote authentication key.';
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: ' . $message,
-            ));
+            $this->loadLog()->createLogEntry('SYSTEM', 'error',  'Server', $id, 'Error: ' . $message);
             return $message;
         }
         if ($response->isOk()) {
             try {
-                $response = $this->jsonDecode($response->body);
+                $response = $response->json();
             } catch (Exception $e) {
                 $message = 'Invalid response received from the remote instance.';
-
                 $this->logException($message, $e);
-
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => $id,
-                        'email' => 'SYSTEM',
-                        'action' => 'error',
-                        'user_id' => 0,
-                        'title' => 'Error: ' . $message,
-                ));
+                $this->loadLog()->createLogEntry('SYSTEM', 'error',  'Server', $id, 'Error: ' . $message);
                 return $message;
             }
             if (!empty($response['message'])) {
