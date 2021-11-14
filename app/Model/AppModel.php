@@ -2764,7 +2764,7 @@ class AppModel extends Model
     {
         static $commit;
         if ($commit === null) {
-            $commit = shell_exec('git log --pretty="%H" -n1 HEAD');
+            $commit = shell_exec('git rev-parse HEAD');
             if ($commit) {
                 $commit = trim($commit);
             } else {

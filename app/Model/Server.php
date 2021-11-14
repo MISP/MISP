@@ -3344,10 +3344,8 @@ class Server extends AppModel
         $proxyStatus = 0;
         $proxy = Configure::read('Proxy');
         if (!empty($proxy['host'])) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
             try {
-                $HttpSocket = $syncTool->setupHttpSocket();
+                $HttpSocket = $this->setupHttpSocket(null);
                 $proxyResponse = $HttpSocket->get('https://www.github.com/');
             } catch (Exception $e) {
                 $proxyStatus = 2;
@@ -3846,7 +3844,7 @@ class Server extends AppModel
         $latestCommit = exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
 
         $status = array();
-        $status['commit'] = exec('git rev-parse HEAD');
+        $status['commit'] = $this->checkMIPSCommit();
         $status['branch'] = $this->getCurrentBranch();
         $status['latestCommit'] = $latestCommit;
         return $status;
