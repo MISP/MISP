@@ -2764,8 +2764,11 @@ class AppModel extends Model
     {
         static $commit;
         if ($commit === null) {
-            $commit = exec('git rev-parse HEAD');
-            if (!$commit) {
+            App::uses('GitTool', 'Tools');
+            try {
+                $commit = GitTool::currentCommit();
+            } catch (Exception $e) {
+                $this->logException('Could not get current git commit', $e, LOG_NOTICE);
                 $commit = false;
             }
         }

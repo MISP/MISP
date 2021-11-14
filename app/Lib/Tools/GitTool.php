@@ -37,4 +37,38 @@ class GitTool
         }
         return $data[0]['sha'];
     }
+
+    /**
+     * `git rev-parse HEAD`
+     * @return string
+     * @throws Exception
+     */
+    public static function currentCommit()
+    {
+        $head = rtrim(FileAccessTool::readFromFile(ROOT . '/.git/HEAD'));
+        if (substr($head, 0, 5) === 'ref: ') {
+            $path = substr($head, 5);
+            return rtrim(FileAccessTool::readFromFile(ROOT . '/.git/' . $path));
+        }  else if (strlen($head) === 40) {
+            return $head;
+        } else {
+            throw new Exception("Invalid head $head");
+        }
+    }
+
+    /**
+     * `git symbolic-ref HEAD`
+     * @return string
+     * @throws Exception
+     */
+    public static function currentBranch()
+    {
+        $head = rtrim(FileAccessTool::readFromFile(ROOT . '/.git/HEAD'));
+        if (substr($head, 0, 5) === 'ref: ') {
+            $path = substr($head, 5);
+            return str_replace('refs/heads/', '', $path);
+        } else {
+            throw new Exception("ref HEAD is not a symbolic ref");
+        }
+    }
 }
