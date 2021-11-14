@@ -2764,10 +2764,8 @@ class AppModel extends Model
     {
         static $commit;
         if ($commit === null) {
-            $commit = shell_exec('git rev-parse HEAD');
-            if ($commit) {
-                $commit = trim($commit);
-            } else {
+            $commit = exec('git rev-parse HEAD');
+            if (!$commit) {
                 $commit = false;
             }
         }

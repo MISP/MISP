@@ -3863,7 +3863,11 @@ class Server extends AppModel
 
     public function getCurrentBranch()
     {
-        return exec("git symbolic-ref HEAD | sed 's!refs\/heads\/!!'");
+        $ref = exec("git symbolic-ref HEAD");
+        if ($ref) {
+            return str_replace('refs/heads/', '', $ref);
+        }
+        return false;
     }
 
     public function checkoutMain()
