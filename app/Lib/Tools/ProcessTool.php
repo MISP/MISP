@@ -1,8 +1,10 @@
 <?php
 class ProcessException extends Exception
 {
+    /** @var string */
     private $stderr;
 
+    /** @var string */
     private $stdout;
 
     /**
@@ -14,7 +16,7 @@ class ProcessException extends Exception
     public function __construct($command, $returnCode, $stderr, $stdout)
     {
         $commandForException = is_array($command) ? implode(' ', $command) : $command;
-        $message = "Command '$commandForException' return error code $returnCode. STDERR: '$stderr', STDOUT: '$stdout'";
+        $message = "Command '$commandForException' return error code $returnCode.\nSTDERR: '$stderr'\nSTDOUT: '$stdout'";
         $this->stderr = $stderr;
         $this->stdout = $stdout;
         parent::__construct($message, $returnCode);
@@ -33,44 +35,77 @@ class ProcessException extends Exception
 
 class ProcessTool
 {
+    const LOG_FILE = APP . 'tmp/logs/exec-errors.log';
+
     /**
      * @param string|array $command If command is array, it is not necessary to escape arguments
      * @param string|null $cwd
      * @return string Stdout
      * @throws ProcessException
+     * @throws Exception
      */
-    public static function execute($command, $cwd = null)
+    public static function execute($command, $cwd = null, $stderrToFile = false)
     {
         $descriptorSpec = [
             1 => ["pipe", "w"], // stdout
             2 => ["pipe", "w"], // stderr
         ];
 
+        if ($stderrToFile) {
+            self::logMessage('Running command ' . self::commandFormat($command));
+            $descriptorSpec[2] = ["file", self::LOG_FILE, 'a'];
+        }
+
+        // PHP older than 7.4 do not support proc_open with array, so we need to convert values to string manually
         if (PHP_VERSION_ID < 70400 && is_array($command)) {
             $command = array_map('escapeshellarg', $command);
             $command = implode(' ', $command);
         }
         $process = proc_open($command, $descriptorSpec, $pipes, $cwd);
         if (!$process) {
-            $commandForException = is_array($command) ? implode(' ', $command) : $command;
+            $commandForException = self::commandFormat($command);
             throw new Exception("Command '$commandForException' could be started.");
         }
 
         $stdout = stream_get_contents($pipes[1]);
         if ($stdout === false) {
-            $commandForException = is_array($command) ? implode(' ', $command) : $command;
+            $commandForException = self::commandFormat($command);
             throw new Exception("Could not get STDOUT of command '$commandForException'.");
         }
         fclose($pipes[1]);
 
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[2]);
+        if ($stderrToFile) {
+            $stderr = null;
+        } else {
+            $stderr = stream_get_contents($pipes[2]);
+            fclose($pipes[2]);
+        }
 
         $returnCode = proc_close($process);
+
+        if ($stderrToFile) {
+            self::logMessage("Process finished with return code $returnCode");
+        }
+
         if ($returnCode !== 0) {
             throw new ProcessException($command, $returnCode, $stderr, $stdout);
         }
 
         return $stdout;
+    }
+
+    private static function logMessage($message)
+    {
+        $logMessage = '[' . date("Y-m-d H:i:s") . ' ' . getmypid() . "] $message\n";
+        file_put_contents(self::LOG_FILE, $logMessage, FILE_APPEND);
+    }
+
+    /**
+     * @param array|string $command
+     * @return string
+     */
+    private static function commandFormat($command)
+    {
+        return  is_array($command) ? implode(' ', $command) : $command;
     }
 }
