@@ -8,7 +8,7 @@ class GitTool
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      */
-    public static function getRemoveVersion(HttpSocketExtended $HttpSocket)
+    public static function getLatestTags(HttpSocketExtended $HttpSocket)
     {
         $url = 'https://api.github.com/repos/MISP/MISP/tags?per_page=10';
         $response = $HttpSocket->get($url);
@@ -24,7 +24,7 @@ class GitTool
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      */
-    public static function getRemoteCommit(HttpSocketExtended $HttpSocket)
+    public static function getLatestCommit(HttpSocketExtended $HttpSocket)
     {
         $url = 'https://api.github.com/repos/MISP/MISP/commits?per_page=1';
         $response = $HttpSocket->get($url);

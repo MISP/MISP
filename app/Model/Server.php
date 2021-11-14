@@ -3823,7 +3823,7 @@ class Server extends AppModel
     private function checkRemoteVersion($HttpSocket)
     {
         try {
-            $json_decoded_tags = GitTool::getRemoveVersion($HttpSocket);
+            $json_decoded_tags = GitTool::getLatestTags($HttpSocket);
         } catch (Exception $e) {
             return false;
         }
@@ -3845,7 +3845,7 @@ class Server extends AppModel
     {
         $HttpSocket = $this->setupHttpSocket(null, null, 3);
         try {
-            $latestCommit = GitTool::getRemoteCommit($HttpSocket);
+            $latestCommit = GitTool::getLatestCommit($HttpSocket);
         } catch (Exception $e) {
             $latestCommit = false;
         }
