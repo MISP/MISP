@@ -4,6 +4,7 @@ App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SystemSetting', 'Model');
 App::uses('EncryptedValue', 'Tools');
+App::uses('GitTool', 'Tools');
 
 /**
  * @property-read array $serverSettings
@@ -3817,37 +3818,39 @@ class Server extends AppModel
     /**
      * Fetch latest MISP version from GitHub
      * @return array|false
-     * @throws HttpSocketJsonException
+     * @throws JsonException
      */
     public function checkRemoteVersion()
     {
         $HttpSocket = $this->setupHttpSocket(null, null, 3);
         try {
-            $response = $HttpSocket->get('https://api.github.com/repos/MISP/MISP/tags?per_page=10');
+            $json_decoded_tags = GitTool::getRemoveVersion($HttpSocket);
         } catch (Exception $e) {
             return false;
         }
-        if ($response->isOK()) {
-            $json_decoded_tags = $response->json();
-
-            // find the latest version tag in the v[major].[minor].[hotfix] format
-            foreach ($json_decoded_tags as $tag)
-                if (preg_match('/^v[0-9]+\.[0-9]+\.[0-9]+$/', $tag['name'])) {
-                    return $this->checkVersion($tag['name']);
-                }
+        // find the latest version tag in the v[major].[minor].[hotfix] format
+        foreach ($json_decoded_tags as $tag) {
+            if (preg_match('/^v[0-9]+\.[0-9]+\.[0-9]+$/', $tag['name'])) {
+                return $this->checkVersion($tag['name']);
+            }
         }
         return false;
     }
 
     public function getCurrentGitStatus()
     {
-        $latestCommit = exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
+        $HttpSocket = $this->setupHttpSocket(null, null, 3);
+        try {
+            $latestCommit = GitTool::getRemoteCommit($HttpSocket);
+        } catch (Exception $e) {
+            $latestCommit = false;
+        }
 
-        $status = array();
-        $status['commit'] = $this->checkMIPSCommit();
-        $status['branch'] = $this->getCurrentBranch();
-        $status['latestCommit'] = $latestCommit;
-        return $status;
+        return [
+            'commit' => $this->checkMIPSCommit(),
+            'branch' => $this->getCurrentBranch(),
+            'latestCommit' => $latestCommit,
+        ];
     }
 
     public function getCurrentBranch()
