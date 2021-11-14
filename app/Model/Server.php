@@ -3137,9 +3137,6 @@ class Server extends AppModel
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)
     {
-        App::uses('File', 'Utility');
-        App::uses('Folder', 'Utility');
-        // check writeable directories
         $writeableDirs = array(
             '/tmp' => 0,
             APP . 'tmp' => 0,
@@ -3158,19 +3155,14 @@ class Server extends AppModel
             APP . 'tmp' . DS . 'bro' => 0,
         );
         foreach ($writeableDirs as $path => &$error) {
-            $dir = new Folder($path);
-            if (is_null($dir->path)) {
+            if (!file_exists($path)) {
                 $error = 1;
-            }
-            $file = new File($path . DS . 'test.txt', true);
-            if ($error == 0 && !$file->write('test')) {
+            } else if (!is_writable($path)) {
                 $error = 2;
             }
-            if ($error != 0) {
+            if ($error !== 0) {
                 $diagnostic_errors++;
             }
-            $file->delete();
-            $file->close();
         }
         return $writeableDirs;
     }
@@ -3178,8 +3170,8 @@ class Server extends AppModel
     public function writeableFilesDiagnostics(&$diagnostic_errors)
     {
         $writeableFiles = array(
-                APP . 'Config' . DS . 'config.php' => 0,
-                ROOT .  DS . '.git' . DS . 'ORIG_HEAD' => 0,
+            APP . 'Config' . DS . 'config.php' => 0,
+            ROOT .  DS . '.git' . DS . 'ORIG_HEAD' => 0,
         );
         foreach ($writeableFiles as $path => &$error) {
             if (!file_exists($path)) {
@@ -3197,7 +3189,7 @@ class Server extends AppModel
     public function readableFilesDiagnostics(&$diagnostic_errors)
     {
         $readableFiles = array(
-                APP . 'files' . DS . 'scripts' . DS . 'stixtest.py' => 0
+            APP . 'files' . DS . 'scripts' . DS . 'stixtest.py' => 0
         );
         foreach ($readableFiles as $path => &$error) {
             if (!is_readable($path)) {
