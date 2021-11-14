@@ -79,7 +79,7 @@ class GitTool
      */
     public static function submoduleStatus()
     {
-        $lines = ProcessTool::execute('git submodule status --cached', ROOT);
+        $lines = ProcessTool::execute(['git', 'submodule', 'status', '--cached'], ROOT);
         $output = [];
         foreach (explode("\n", $lines) as $submodule) {
             if ($submodule === '' || $submodule[0] === '-') {
@@ -101,7 +101,7 @@ class GitTool
     public static function submoduleCurrentCommit($submodule)
     {
         try {
-            $commit = ProcessTool::execute('git rev-parse HEAD', $submodule);
+            $commit = ProcessTool::execute(['git', 'rev-parse', 'HEAD'], $submodule);
         } catch (ProcessException $e) {
             return null;
         }
@@ -116,7 +116,7 @@ class GitTool
     public static function commitTimestamp($commit, $submodule = null)
     {
         try {
-            $timestamp = ProcessTool::execute('git show -s --pretty=format:%ct ' . escapeshellarg($commit), $submodule);
+            $timestamp = ProcessTool::execute(['git', 'show', '-s', '--pretty=format:%ct', $commit], $submodule);
         } catch (ProcessException $e) {
             return null;
         }

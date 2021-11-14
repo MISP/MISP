@@ -6,14 +6,15 @@ class ProcessException extends Exception
     private $stdout;
 
     /**
-     * @param string $command
+     * @param string|array $command
      * @param int $returnCode
      * @param string $stderr
      * @param string $stdout
      */
     public function __construct($command, $returnCode, $stderr, $stdout)
     {
-        $message = "Command '$command' return error code $returnCode. STDERR: '$stderr', STDOUT: '$stdout'";
+        $commandForException = is_array($command) ? implode(' ', $command) : $command;
+        $message = "Command '$commandForException' return error code $returnCode. STDERR: '$stderr', STDOUT: '$stdout'";
         $this->stderr = $stderr;
         $this->stdout = $stdout;
         parent::__construct($message, $returnCode);
@@ -33,7 +34,7 @@ class ProcessException extends Exception
 class ProcessTool
 {
     /**
-     * @param string|array $command
+     * @param string|array $command If command is array, it is not necessary to escape arguments
      * @param string|null $cwd
      * @return string Stdout
      * @throws ProcessException
@@ -45,17 +46,20 @@ class ProcessTool
             2 => ["pipe", "w"], // stderr
         ];
 
-        if (is_array($command)) {
+        if (PHP_VERSION_ID < 70400 && is_array($command)) {
+            $command = array_map('escapeshellarg', $command);
             $command = implode(' ', $command);
         }
         $process = proc_open($command, $descriptorSpec, $pipes, $cwd);
         if (!$process) {
-            throw new Exception("Command '$command' could be started.");
+            $commandForException = is_array($command) ? implode(' ', $command) : $command;
+            throw new Exception("Command '$commandForException' could be started.");
         }
 
         $stdout = stream_get_contents($pipes[1]);
         if ($stdout === false) {
-            throw new Exception("Could not get STDOUT of command.");
+            $commandForException = is_array($command) ? implode(' ', $command) : $command;
+            throw new Exception("Could not get STDOUT of command '$commandForException'.");
         }
         fclose($pipes[1]);
 
