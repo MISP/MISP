@@ -5,6 +5,7 @@ App::uses('ServerSyncTool', 'Tools');
 App::uses('SystemSetting', 'Model');
 App::uses('EncryptedValue', 'Tools');
 App::uses('GitTool', 'Tools');
+App::uses('ProcessTool', 'Tools');
 
 /**
  * @property-read array $serverSettings
@@ -3202,7 +3203,8 @@ class Server extends AppModel
 
     public function yaraDiagnostics(&$diagnostic_errors)
     {
-        $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'yaratest.py');
+        $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'yaratest.py';
+        $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
         $scriptResult = json_decode($scriptResult, true);
         return array('operational' => $scriptResult['success'], 'plyara' => $scriptResult['plyara']);
     }
@@ -3211,7 +3213,8 @@ class Server extends AppModel
     {
         $expected = array('stix' => '>1.2.0.11', 'cybox' => '>2.1.0.21', 'mixbox' => '>1.0.5', 'maec' => '>4.1.0.17', 'stix2' => '>3.0.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
-        $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
+        $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';
+        $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
         try {
             $scriptResult = $this->jsonDecode($scriptResult);
         } catch (Exception $e) {
@@ -3397,7 +3400,7 @@ class Server extends AppModel
             $currentUser = posix_getpwuid(posix_geteuid());
             $currentUser = $currentUser['name'];
         } else {
-            $currentUser = trim(shell_exec('whoami'));
+            $currentUser = trim(ProcessTool::execute(['whoami']));
         }
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
