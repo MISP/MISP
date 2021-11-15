@@ -2027,7 +2027,7 @@ class Attribute extends AppModel
      * @param array $user
      * @param array $options
      * @param int|false $result_count If false, count is not fetched
-     * @return array|int|null
+     * @return array
      * @throws Exception
      */
     public function fetchAttributes(array $user, array $options = [], &$result_count = false)
