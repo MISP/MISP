@@ -57,17 +57,14 @@ class Galaxy extends AppModel
     /**
      * @param bool $force
      * @return array Galaxy type => Galaxy ID
-     * @throws JsonException
+     * @throws Exception
      */
     private function __load_galaxies($force = false)
     {
-        $dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'galaxies');
-        $files = $dir->find('.*\.json');
+        $files = new GlobIterator(APP . 'files' . DS . 'misp-galaxy' . DS . 'galaxies' . DS . '*.json');
         $galaxies = array();
         foreach ($files as $file) {
-            $file = new File($dir->pwd() . DS . $file);
-            $galaxies[] = $this->jsonDecode($file->read());
-            $file->close();
+            $galaxies[] = FileAccessTool::readJsonFromFile($file->getPathname());
         }
         $existingGalaxies = $this->find('all', array(
             'fields' => array('uuid', 'version', 'id', 'icon'),
@@ -245,14 +242,11 @@ class Galaxy extends AppModel
     public function update($force = false)
     {
         $galaxies = $this->__load_galaxies($force);
-        $dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters');
-        $files = $dir->find('.*\.json');
+        $files = new GlobIterator(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters' . DS . '*.json');
         $force = (bool)$force;
         $allRelations = [];
         foreach ($files as $file) {
-            $file = new File($dir->pwd() . DS . $file);
-            $cluster_package = $this->jsonDecode($file->read());
-            $file->close();
+            $cluster_package = FileAccessTool::readJsonFromFile($file->getPathname());
             if (!isset($galaxies[$cluster_package['type']])) {
                 continue;
             }

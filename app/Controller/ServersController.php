@@ -1050,20 +1050,19 @@ class ServersController extends AppController
 
             $attachmentTool = new AttachmentTool();
             try {
-                $advanced_attachments = $attachmentTool->checkAdvancedExtractionStatus($this->Server->getPythonVersion());
+                $advanced_attachments = $attachmentTool->checkAdvancedExtractionStatus();
             } catch (Exception $e) {
                 $this->log($e->getMessage(), LOG_NOTICE);
                 $advanced_attachments = false;
             }
 
             $this->set('advanced_attachments', $advanced_attachments);
-            // check if the current version of MISP is outdated or not
-            $version = $this->__checkVersion();
-            $this->set('version', $version);
-            $gitStatus = $this->Server->getCurrentGitStatus();
+
+            $gitStatus = $this->Server->getCurrentGitStatus(true);
             $this->set('branch', $gitStatus['branch']);
             $this->set('commit', $gitStatus['commit']);
             $this->set('latestCommit', $gitStatus['latestCommit']);
+            $this->set('version', $gitStatus['version']);
 
             $phpSettings = array(
                 'max_execution_time' => array(
@@ -1097,7 +1096,7 @@ class ServersController extends AppController
             }
             $this->set('phpSettings', $phpSettings);
 
-            if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) {
+            if ($gitStatus['version'] && $gitStatus['version']['upToDate'] === 'older') {
                 $diagnostic_errors++;
             }
 
@@ -1172,7 +1171,7 @@ class ServersController extends AppController
                 unset($dumpResults[$key]['description']);
             }
             $dump = array(
-                'version' => $version,
+                'version' => $gitStatus['version'],
                 'phpSettings' => $phpSettings,
                 'gpgStatus' => $gpgErrors[$gpgStatus['status']],
                 'proxyStatus' => $proxyErrors[$proxyStatus],
@@ -1212,7 +1211,6 @@ class ServersController extends AppController
         $this->set('phptoonew', $this->phptoonew);
         $this->set('pythonmin', $this->pythonmin);
         $this->set('pythonrec', $this->pythonrec);
-        $this->set('pymisp', $this->pymisp);
         $this->set('title_for_layout', __('Diagnostics'));
     }
 
@@ -1303,32 +1301,6 @@ class ServersController extends AppController
             $worker_array = [__('Background jobs not enabled')];
         }
         return $this->RestResponse->viewData($worker_array);
-    }
-
-    private function __checkVersion()
-    {
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        try {
-            $HttpSocket = $syncTool->setupHttpSocket();
-            $response = $HttpSocket->get('https://api.github.com/repos/MISP/MISP/tags');
-            $tags = $response->body;
-        } catch (Exception $e) {
-            return false;
-        }
-        if ($response->isOK() && !empty($tags)) {
-            $json_decoded_tags = json_decode($tags);
-
-            // find the latest version tag in the v[major].[minor].[hotfix] format
-            for ($i = 0; $i < count($json_decoded_tags); $i++) {
-                if (preg_match('/^v[0-9]+\.[0-9]+\.[0-9]+$/', $json_decoded_tags[$i]->name)) {
-                    break;
-                }
-            }
-            return $this->Server->checkVersion($json_decoded_tags[$i]->name);
-        } else {
-            return false;
-        }
     }
 
     public function idTranslator($localId = null)
@@ -1784,8 +1756,8 @@ class ServersController extends AppController
         if (!empty($result)) {
             $this->set('events', $result['publishCount']);
             $this->set('messages', $result['messageCount']);
-            $this->set('time', date('Y/m/d H:i:s', $result['timestamp']));
-            $this->set('time2', date('Y/m/d H:i:s', $result['timestampSettings']));
+            $this->set('time', $result['timestamp']);
+            $this->set('time2', $result['timestampSettings']);
         }
         $this->render('ajax/zeromqstatus');
     }
@@ -1852,12 +1824,11 @@ class ServersController extends AppController
     public function update($branch = false)
     {
         if ($this->request->is('post')) {
-            $branch = false;
             $filterData = array(
                 'request' => $this->request,
                 'named_params' => $this->params['named'],
                 'paramArray' => ['branch'],
-                'ordered_url_params' => @compact($paramArray),
+                'ordered_url_params' => [],
                 'additional_delimiters' => PHP_EOL
             );
             $exception = false;
@@ -1880,8 +1851,8 @@ class ServersController extends AppController
                 return new CakeResponse(array('body' => $update, 'type' => 'txt'));
             }
         } else {
-            $branch = $this->Server->getCurrentBranch();
-            $this->set('branch', $branch);
+            $this->set('isUpdatePossible', $this->Server->isUpdatePossible());
+            $this->set('branch', $this->Server->getCurrentBranch());
             $this->render('ajax/update');
         }
     }

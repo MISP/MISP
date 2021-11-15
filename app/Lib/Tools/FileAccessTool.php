@@ -1,4 +1,5 @@
 <?php
+App::uses('JsonTool', 'Tools');
 
 class FileAccessTool
 {
@@ -60,6 +61,21 @@ class FileAccessTool
             throw new Exception("An error has occurred while attempt to read file `$file`: $message.");
         }
         return $content;
+    }
+
+    /**
+     * @param string $file
+     * @return mixed
+     * @throws Exception
+     */
+    public static function readJsonFromFile($file)
+    {
+        $content = self::readFromFile($file);
+        try {
+            return JsonTool::decode($content);
+        } catch (Exception $e) {
+            throw new Exception("Could not decode JSON from file `$file`", 0, $e);
+        }
     }
 
     /**

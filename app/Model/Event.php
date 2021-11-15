@@ -4,6 +4,7 @@ App::uses('CakeEmail', 'Network/Email');
 App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
+App::uses('ProcessTool', 'Tools');
 
 /**
  * @property User $User
@@ -5887,22 +5888,26 @@ class Event extends AppModel
         $scriptDir = APP . 'files' . DS . 'scripts';
         if ($stix_version == '2') {
             $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
-            $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $file;
             $output_path = $file . '.stix2';
             $stix_version = "STIX 2.0";
         } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
             $scriptFile = $scriptDir . DS . 'stix2misp.py';
-            $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $file;
             $output_path = $file . '.json';
             $stix_version = "STIX 1.1";
         } else {
             throw new InvalidArgumentException('Invalid STIX version');
         }
-        $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution'));
-        $synonymsToTagNames = $this->__getTagNamesFromSynonyms($scriptDir);
-        $shell_command .= ' ' . $synonymsToTagNames;
-        $shell_command .= ' 2>' . APP . 'tmp/logs/exec-errors.log';
-        $result = shell_exec($shell_command);
+
+        $shell_command = [
+            ProcessTool::pythonBin(),
+            $scriptFile,
+            $file,
+            Configure::read('MISP.default_event_distribution'),
+            Configure::read('MISP.default_attribute_distribution'),
+            $this->__getTagNamesFromSynonyms($scriptDir),
+        ];
+
+        $result = ProcessTool::execute($shell_command, null, true);
         $result = preg_split("/\r\n|\n|\r/", trim($result));
         $result = trim(end($result));
         $tempFile = file_get_contents($file);

@@ -2764,10 +2764,11 @@ class AppModel extends Model
     {
         static $commit;
         if ($commit === null) {
-            $commit = shell_exec('git log --pretty="%H" -n1 HEAD');
-            if ($commit) {
-                $commit = trim($commit);
-            } else {
+            App::uses('GitTool', 'Tools');
+            try {
+                $commit = GitTool::currentCommit();
+            } catch (Exception $e) {
+                $this->logException('Could not get current git commit', $e, LOG_NOTICE);
                 $commit = false;
             }
         }

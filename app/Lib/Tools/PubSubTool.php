@@ -1,6 +1,7 @@
 <?php
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('ProcessTool', 'Tools');
 
 class PubSubTool
 {
@@ -32,17 +33,19 @@ class PubSubTool
      */
     public function checkIfRunning($pidFilePath = null)
     {
-        $pidFile = new File($pidFilePath ?: self::SCRIPTS_TMP . 'mispzmq.pid');
-        if (!$pidFile->exists()) {
+        $pidFile = $pidFilePath ?: self::SCRIPTS_TMP . 'mispzmq.pid';
+        clearstatcache(false, $pidFile);
+        if (!file_exists($pidFile)) {
             return false;
         }
-        $pid = $pidFile->read();
+        $pid = file_get_contents($pidFile);
         if ($pid === false || $pid === '') {
             return false;
         }
         if (!is_numeric($pid)) {
             throw new Exception('Internal error (invalid PID file for the MISP zmq script)');
         }
+        clearstatcache(false, "/proc/$pid");
         $result = file_exists("/proc/$pid");
         if ($result === false) {
             return false;
@@ -64,9 +67,9 @@ class PubSubTool
 
     public function checkIfPythonLibInstalled()
     {
-        $my_server = ClassRegistry::init('Server');
-        $result = trim(shell_exec($my_server->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmqtest.py'));
-        if ($result === "OK") {
+        $script = APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmqtest.py';
+        $result = ProcessTool::execute([ProcessTool::pythonBin(), $script]);
+        if (trim($result) === "OK") {
             return true;
         }
         return false;
@@ -76,7 +79,7 @@ class PubSubTool
     {
         App::uses('JSONConverterTool', 'Tools');
         $jsonTool = new JSONConverterTool();
-        $json = $jsonTool->convert($event);
+        $json = $jsonTool->convert($event, false, true);
         return $this->pushToRedis('data:misp_json', $json);
     }
 
@@ -229,8 +232,7 @@ class PubSubTool
             }
 
             $this->saveSettingToFile($settings);
-            $server = ClassRegistry::init('Server');
-            shell_exec($server->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmq.py >> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.log 2>> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.error.log &');
+            shell_exec(ProcessTool::pythonBin() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmq.py >> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.log 2>> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.error.log &');
         }
     }
 
@@ -242,10 +244,7 @@ class PubSubTool
      */
     private function pushToRedis($ns, $data)
     {
-        if (is_array($data)) {
-            $data = JsonTool::encode($data);
-        }
-
+        $data = JsonTool::encode($data);
         $this->redis->rPush($ns, $data);
         return true;
     }

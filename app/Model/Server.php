@@ -4,6 +4,8 @@ App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SystemSetting', 'Model');
 App::uses('EncryptedValue', 'Tools');
+App::uses('GitTool', 'Tools');
+App::uses('ProcessTool', 'Tools');
 
 /**
  * @property-read array $serverSettings
@@ -2335,36 +2337,6 @@ class Server extends AppModel
         return true;
     }
 
-    public function checkVersion($newest)
-    {
-        $version_array = $this->checkMISPVersion();
-        $current = 'v' . $version_array['major'] . '.' . $version_array['minor'] . '.' . $version_array['hotfix'];
-        $newest_array = $this->__dissectVersion($newest);
-        $upToDate = $this->__compareVersions(array($version_array['major'], $version_array['minor'], $version_array['hotfix']), $newest_array, 0);
-        return array('current' => $current, 'newest' => $newest, 'upToDate' => $upToDate);
-    }
-
-    private function __dissectVersion($version)
-    {
-        $version = substr($version, 1);
-        return explode('.', $version);
-    }
-
-    private function __compareVersions($current, $newest, $i)
-    {
-        if ($current[$i] == $newest[$i]) {
-            if ($i < 2) {
-                return $this->__compareVersions($current, $newest, $i+1);
-            } else {
-                return 'same';
-            }
-        } elseif ($current[$i] < $newest[$i]) {
-            return 'older';
-        } else {
-            return 'newer';
-        }
-    }
-
     public function getFileRules()
     {
         $validItems = array(
@@ -3166,9 +3138,6 @@ class Server extends AppModel
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)
     {
-        App::uses('File', 'Utility');
-        App::uses('Folder', 'Utility');
-        // check writeable directories
         $writeableDirs = array(
             '/tmp' => 0,
             APP . 'tmp' => 0,
@@ -3187,19 +3156,14 @@ class Server extends AppModel
             APP . 'tmp' . DS . 'bro' => 0,
         );
         foreach ($writeableDirs as $path => &$error) {
-            $dir = new Folder($path);
-            if (is_null($dir->path)) {
+            if (!file_exists($path)) {
                 $error = 1;
-            }
-            $file = new File($path . DS . 'test.txt', true);
-            if ($error == 0 && !$file->write('test')) {
+            } else if (!is_writable($path)) {
                 $error = 2;
             }
-            if ($error != 0) {
+            if ($error !== 0) {
                 $diagnostic_errors++;
             }
-            $file->delete();
-            $file->close();
         }
         return $writeableDirs;
     }
@@ -3207,8 +3171,8 @@ class Server extends AppModel
     public function writeableFilesDiagnostics(&$diagnostic_errors)
     {
         $writeableFiles = array(
-                APP . 'Config' . DS . 'config.php' => 0,
-                ROOT .  DS . '.git' . DS . 'ORIG_HEAD' => 0,
+            APP . 'Config' . DS . 'config.php' => 0,
+            ROOT .  DS . '.git' . DS . 'ORIG_HEAD' => 0,
         );
         foreach ($writeableFiles as $path => &$error) {
             if (!file_exists($path)) {
@@ -3226,7 +3190,7 @@ class Server extends AppModel
     public function readableFilesDiagnostics(&$diagnostic_errors)
     {
         $readableFiles = array(
-                APP . 'files' . DS . 'scripts' . DS . 'stixtest.py' => 0
+            APP . 'files' . DS . 'scripts' . DS . 'stixtest.py' => 0
         );
         foreach ($readableFiles as $path => &$error) {
             if (!is_readable($path)) {
@@ -3239,7 +3203,8 @@ class Server extends AppModel
 
     public function yaraDiagnostics(&$diagnostic_errors)
     {
-        $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'yaratest.py');
+        $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'yaratest.py';
+        $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
         $scriptResult = json_decode($scriptResult, true);
         return array('operational' => $scriptResult['success'], 'plyara' => $scriptResult['plyara']);
     }
@@ -3248,7 +3213,8 @@ class Server extends AppModel
     {
         $expected = array('stix' => '>1.2.0.11', 'cybox' => '>2.1.0.21', 'mixbox' => '>1.0.5', 'maec' => '>4.1.0.17', 'stix2' => '>3.0.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
-        $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
+        $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';
+        $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
         try {
             $scriptResult = $this->jsonDecode($scriptResult);
         } catch (Exception $e) {
@@ -3374,10 +3340,8 @@ class Server extends AppModel
         $proxyStatus = 0;
         $proxy = Configure::read('Proxy');
         if (!empty($proxy['host'])) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
             try {
-                $HttpSocket = $syncTool->setupHttpSocket();
+                $HttpSocket = $this->setupHttpSocket(null);
                 $proxyResponse = $HttpSocket->get('https://www.github.com/');
             } catch (Exception $e) {
                 $proxyStatus = 2;
@@ -3436,7 +3400,7 @@ class Server extends AppModel
             $currentUser = posix_getpwuid(posix_geteuid());
             $currentUser = $currentUser['name'];
         } else {
-            $currentUser = trim(shell_exec('whoami'));
+            $currentUser = trim(ProcessTool::execute(['whoami']));
         }
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
@@ -3827,20 +3791,87 @@ class Server extends AppModel
         return true;
     }
 
-    public function getCurrentGitStatus()
+    /**
+     * @param string $newest
+     * @return array
+     * @throws JsonException
+     */
+    private function checkVersion($newest)
     {
-        $latestCommit = exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
+        $version_array = $this->checkMISPVersion();
+        $current = implode('.', $version_array);
 
-        $status = array();
-        $status['commit'] = exec('git rev-parse HEAD');
-        $status['branch'] = $this->getCurrentBranch();
-        $status['latestCommit'] = $latestCommit;
-        return $status;
+        $upToDate = version_compare($current, substr($newest, 1));
+        if ($upToDate === 0) {
+            $upToDate = 'same';
+        } else {
+            $upToDate = $upToDate === -1 ? 'older' : 'newer';
+        }
+        return array('current' => 'v' . $current, 'newest' => $newest, 'upToDate' => $upToDate);
+    }
+
+    /**
+     * Fetch latest MISP version from GitHub
+     * @return array|false
+     * @throws JsonException
+     */
+    private function checkRemoteVersion($HttpSocket)
+    {
+        try {
+            $json_decoded_tags = GitTool::getLatestTags($HttpSocket);
+        } catch (Exception $e) {
+            return false;
+        }
+        // find the latest version tag in the v[major].[minor].[hotfix] format
+        foreach ($json_decoded_tags as $tag) {
+            if (preg_match('/^v[0-9]+\.[0-9]+\.[0-9]+$/', $tag['name'])) {
+                return $this->checkVersion($tag['name']);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param bool $checkVersion
+     * @return array
+     * @throws JsonException
+     */
+    public function getCurrentGitStatus($checkVersion = false)
+    {
+        $HttpSocket = $this->setupHttpSocket(null, null, 3);
+        try {
+            $latestCommit = GitTool::getLatestCommit($HttpSocket);
+        } catch (Exception $e) {
+            $latestCommit = false;
+        }
+
+        $output = [
+            'commit' => $this->checkMIPSCommit(),
+            'branch' => $this->getCurrentBranch(),
+            'latestCommit' => $latestCommit,
+        ];
+        if ($checkVersion) {
+            $output['version'] = $latestCommit ? $this->checkRemoteVersion($HttpSocket) : false;
+        }
+        return $output;
     }
 
     public function getCurrentBranch()
     {
-        return exec("git symbolic-ref HEAD | sed 's!refs\/heads\/!!'");
+        try {
+            return GitTool::currentBranch();
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if MISP update is possible.
+     * @return bool
+     */
+    public function isUpdatePossible()
+    {
+        return $this->getCurrentBranch() !== false && is_writable(APP);
     }
 
     public function checkoutMain()
@@ -3851,14 +3882,16 @@ class Server extends AppModel
 
     public function getSubmodulesGitStatus()
     {
-        exec('cd ' . APP . '../; git submodule status --cached | grep -v ^- | cut -b 2- | cut -d " " -f 1,2 ', $submodules_names);
+        try {
+            $submodules = GitTool::submoduleStatus();
+        } catch (Exception $e) {
+            $this->logException('Could not fetch git submodules status', $e, LOG_NOTICE);
+            return [];
+        }
         $status = array();
-        foreach ($submodules_names as $submodule_name_info) {
-            $submodule_name_info = explode(' ', $submodule_name_info);
-            list($superproject_submodule_commit_id, $submodule_name) = $submodule_name_info;
-            $temp = $this->getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id);
-            if (!empty($temp) ) {
-                $status[$submodule_name] = $temp;
+        foreach ($submodules as $submodule) {
+            if ($this->_isAcceptedSubmodule($submodule['name'])) {
+                $status[$submodule['name']] = $this->getSubmoduleGitStatus($submodule['name'], $submodule['commit']);;
             }
         }
         return $status;
@@ -3890,54 +3923,56 @@ class Server extends AppModel
      */
     private function getSubmoduleGitStatus($submodule_name, $superproject_submodule_commit_id)
     {
-        $status = array();
-        if ($this->_isAcceptedSubmodule($submodule_name)) {
-            $path = APP . '../' . $submodule_name;
-            $submodule_name=(strpos($submodule_name, '/') >= 0 ? explode('/', $submodule_name) : $submodule_name);
-            $submodule_name=end($submodule_name);
-            //$submoduleRemote=exec('cd ' . $path . '; git config --get remote.origin.url');
-            exec(sprintf('cd %s; git rev-parse HEAD', $path), $submodule_current_commit_id);
-            if (!empty($submodule_current_commit_id[0])) {
-                $submodule_current_commit_id = $submodule_current_commit_id[0];
-            } else {
-                $submodule_current_commit_id = null;
-            }
-            $status = array(
-                'moduleName' => $submodule_name,
-                'current' => $submodule_current_commit_id,
-                'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
-                'remoteTimestamp' => exec(sprintf('cd %s; git show -s --pretty=format:%%ct %s', $path, $superproject_submodule_commit_id)),
-                'remote' => $superproject_submodule_commit_id,
-                'upToDate' => '',
-                'isReadable' => is_readable($path) && is_readable($path . '/.git'),
-            );
+        $path = APP . '../' . $submodule_name;
+        $submodule_name = (strpos($submodule_name, '/') >= 0 ? explode('/', $submodule_name) : $submodule_name);
+        $submodule_name = end($submodule_name);
 
-            if (!empty($status['remote'])) {
-                if ($status['remote'] == $status['current']) {
-                    $status['upToDate'] = 'same';
-                } else if ($status['currentTimestamp'] < $status['remoteTimestamp']) {
-                    $status['upToDate'] = 'older';
-                } else {
-                    $status['upToDate'] = 'younger';
-                }
-            } else {
-                $status['upToDate'] = 'error';
-            }
+        $submoduleCurrentCommitId = GitTool::submoduleCurrentCommit($path);
 
-            if ($status['isReadable'] && !empty($status['remoteTimestamp']) && !empty($status['currentTimestamp'])) {
-                $date1 = new DateTime();
-                $date1->setTimestamp($status['remoteTimestamp']);
-                $date2 = new DateTime();
-                $date2->setTimestamp($status['currentTimestamp']);
-                $status['timeDiff'] = $date1->diff($date2);
-            } else {
-                $status['upToDate'] = 'error';
-            }
+        $currentTimestamp = GitTool::commitTimestamp($submoduleCurrentCommitId, $path);
+        if ($submoduleCurrentCommitId !== $superproject_submodule_commit_id) {
+            $remoteTimestamp = GitTool::commitTimestamp($superproject_submodule_commit_id, $path);
+        } else {
+            $remoteTimestamp = $currentTimestamp;
         }
+
+        $status = array(
+            'moduleName' => $submodule_name,
+            'current' => $submoduleCurrentCommitId,
+            'currentTimestamp' => $currentTimestamp,
+            'remote' => $superproject_submodule_commit_id,
+            'remoteTimestamp' => $remoteTimestamp,
+            'upToDate' => '',
+            'isReadable' => is_readable($path) && is_readable($path . '/.git'),
+        );
+
+        if (!empty($status['remote'])) {
+            if ($status['remote'] === $status['current']) {
+                $status['upToDate'] = 'same';
+            } else if ($status['currentTimestamp'] < $status['remoteTimestamp']) {
+                $status['upToDate'] = 'older';
+            } else {
+                $status['upToDate'] = 'younger';
+            }
+        } else {
+            $status['upToDate'] = 'error';
+        }
+
+        if ($status['isReadable'] && !empty($status['remoteTimestamp']) && !empty($status['currentTimestamp'])) {
+            $date1 = new DateTime();
+            $date1->setTimestamp($status['remoteTimestamp']);
+            $date2 = new DateTime();
+            $date2->setTimestamp($status['currentTimestamp']);
+            $status['timeDiff'] = $date1->diff($date2);
+        } else {
+            $status['upToDate'] = 'error';
+        }
+
         return $status;
     }
 
-    public function updateSubmodule($user, $submodule_name=false) {
+    public function updateSubmodule($user, $submodule_name=false)
+    {
         $path = APP . '../';
         if ($submodule_name == false) {
             $command = sprintf('cd %s; git submodule update 2>&1', $path);
@@ -3961,9 +3996,9 @@ class Server extends AppModel
         return $res;
     }
 
-    public function updateDatabaseAfterPullRouter($submodule_name, $user) {
+    public function updateDatabaseAfterPullRouter($submodule_name, $user)
+    {
         if (Configure::read('MISP.background_jobs')) {
-
             /** @var Job $job */
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob(
@@ -3994,30 +4029,31 @@ class Server extends AppModel
         }
     }
 
-    public function updateAfterPull($submodule_name, $userId) {
+    public function updateAfterPull($submodule_name, $userId)
+    {
         $user = $this->User->getAuthUser($userId);
         $result = array();
         if ($user['Role']['perm_site_admin']) {
             $updateAll = empty($submodule_name);
             if ($submodule_name == 'app/files/misp-galaxy' || $updateAll) {
                 $this->Galaxy = ClassRegistry::init('Galaxy');
-                $result[] = ($this->Galaxy->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->Galaxy->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/misp-objects' || $updateAll) {
                 $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
-                $result[] = ($this->ObjectTemplate->update($user, false, false) ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->ObjectTemplate->update($user, false, false) ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/noticelists' || $updateAll) {
                 $this->Noticelist = ClassRegistry::init('Noticelist');
-                $result[] = ($this->Noticelist->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->Noticelist->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/taxonomies' || $updateAll) {
                 $this->Taxonomy = ClassRegistry::init('Taxonomy');
-                $result[] = ($this->Taxonomy->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->Taxonomy->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/warninglists' || $updateAll) {
                 $this->Warninglist = ClassRegistry::init('Warninglist');
-                $result[] = ($this->Warninglist->update() ? 'Update `' . h($submodule_name) . '` Sucessful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->Warninglist->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
             }
         }
         return implode('\n', $result);
@@ -4287,8 +4323,8 @@ class Server extends AppModel
     {
         $results = array();
         foreach (['Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate', 'ObjectRelationship'] as $target) {
-            $this->$target = ClassRegistry::init($target);
-            $result = $this->$target->update();
+            $model = ClassRegistry::init($target);
+            $result = $model->update();
             $results[$target] = $result === false ? false : true;
         }
         return $results;
@@ -4303,45 +4339,22 @@ class Server extends AppModel
         if (empty($server)) {
             return __('Invalid server');
         }
-        $HttpSocket = $this->setupHttpSocket($server);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/users/resetauthkey/me';
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
         try {
-            $response = $HttpSocket->post($uri, '{}', $request);
+            $response = $serverSync->resetAuthKey();
         } catch (Exception $e) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
             $message = 'Could not reset the remote authentication key.';
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: ' . $message,
-            ));
+            $this->loadLog()->createLogEntry('SYSTEM', 'error',  'Server', $id, 'Error: ' . $message);
             return $message;
         }
         if ($response->isOk()) {
             try {
-                $response = $this->jsonDecode($response->body);
+                $response = $response->json();
             } catch (Exception $e) {
                 $message = 'Invalid response received from the remote instance.';
-
                 $this->logException($message, $e);
-
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => $id,
-                        'email' => 'SYSTEM',
-                        'action' => 'error',
-                        'user_id' => 0,
-                        'title' => 'Error: ' . $message,
-                ));
+                $this->loadLog()->createLogEntry('SYSTEM', 'error',  'Server', $id, 'Error: ' . $message);
                 return $message;
             }
             if (!empty($response['message'])) {
