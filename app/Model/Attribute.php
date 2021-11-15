@@ -2026,12 +2026,11 @@ class Attribute extends AppModel
      *
      * @param array $user
      * @param array $options
-     * @param bool $continue
      * @param int|false $result_count If false, count is not fetched
      * @return array|int|null
      * @throws Exception
      */
-    public function fetchAttributes(array $user, array $options = [], &$continue = true, &$result_count = false)
+    public function fetchAttributes(array $user, array $options = [], &$result_count = false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -2048,16 +2047,13 @@ class Attribute extends AppModel
         );
 
         if (!empty($options['includeProposals'])) {
-            $this->bindModel(
-                array('hasMany' => array(
-                        'ShadowAttribute' => array(
-                            'className' => 'ShadowAttribute',
-                            'foreignKey' => 'old_id',
-                            'conditions' => array('ShadowAttribute.deleted' => 0)
-                        )
-                    )
+            $this->bindModel(['hasMany' => array(
+                'ShadowAttribute' => array(
+                    'className' => 'ShadowAttribute',
+                    'foreignKey' => 'old_id',
+                    'conditions' => array('ShadowAttribute.deleted' => 0)
                 )
-            );
+            )]);
             $params['contain']['ShadowAttribute'] = array('fields' => array(
                 "id",
                 "old_id",
@@ -2106,10 +2102,7 @@ class Attribute extends AppModel
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
         }
-        if (
-            !empty($options['allow_proposal_blocking']) &&
-            Configure::read('MISP.proposals_block_attributes')
-        ) {
+        if (!empty($options['allow_proposal_blocking']) && Configure::read('MISP.proposals_block_attributes')) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
                 'ShadowAttribute' => array(
@@ -2136,12 +2129,10 @@ class Attribute extends AppModel
         if (empty($options['flatten'])) {
             $params['conditions']['AND'][] = array('Attribute.object_id' => 0);
         }
-        if (isset($options['order'])) {
-            $params['order'] = $options['order'];
-        }
+        $params['order'] = isset($options['order']) ? $options['order'] : [];
         if (!isset($options['withAttachments'])) {
             $options['withAttachments'] = false;
-        } else ($params['order'] = array());
+        }
         if (!isset($options['enforceWarninglist'])) {
             $options['enforceWarninglist'] = false;
         }
@@ -2165,7 +2156,7 @@ class Attribute extends AppModel
         } else {
             $options['includeDecayScore'] = true;
         }
-        //Add EventTags to attributes to take them into account when calculating decay score
+        // Add EventTags to attributes to take them into account when calculating decay score
         if ($options['includeDecayScore']) {
             $options['includeEventTags'] = true;
         }
@@ -2196,7 +2187,6 @@ class Attribute extends AppModel
             } else {
                 return $this->find('list', array(
                     'conditions' => $params['conditions'],
-                    'recursive' => -1,
                     'contain' => array('Event', 'Object'),
                     'fields' => array('Attribute.event_id'),
                     'order' => false
@@ -2207,17 +2197,14 @@ class Attribute extends AppModel
         if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->Warninglist)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
         }
+        // If no limit is provided, fetch attributes in bulk
         if (empty($params['limit'])) {
             $loopLimit = 50000;
             $loop = true;
             $params['limit'] = $loopLimit;
-            $params['page'] = 0;
+            $params['page'] = 1;
         } else {
             $loop = false;
-        }
-        $attributes = array();
-        if (!empty($options['includeEventTags'])) {
-            $eventTags = array();
         }
 
         // Do not fetch result count when `$result_count` is false
@@ -2226,115 +2213,102 @@ class Attribute extends AppModel
             unset($find_params['limit']);
             $result_count = $this->find('count', $find_params);
             if ($result_count === 0) { // skip early
-                $continue = false;
                 return [];
             }
         }
 
-        while ($continue) {
-            if ($loop) {
-                $params['page'] = $params['page'] + 1;
-                if (isset($results) && count($results) < $loopLimit) {
-                    $continue = false;
-                    continue;
-                }
-            }
+        $eventTags = []; // tag cache
+        $attributes = [];
+        do {
             $results = $this->find('all', $params);
+            if (empty($results)) {
+                break;
+            }
 
-            if (!empty($options['includeContext']) && !empty($results)) {
+            if (!empty($options['includeContext'])) {
                 $eventIds = [];
                 foreach ($results as $result) {
                     $eventIds[$result['Attribute']['event_id']] = true; // deduplicate
                 }
                 $eventsById = $this->__fetchEventsForAttributeContext($user, array_keys($eventIds), !empty($options['includeAllTags']));
-                foreach ($results as &$result) {
-                    $result['Event'] = $eventsById[$result['Attribute']['event_id']];
-                }
-                unset($eventsById, $result); // unset result is important, because it is reference
+                unset($eventIds);
             }
 
             $this->attachTagsToAttributes($results, $options);
+            $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
 
-            foreach ($results as $k => $result) {
+            foreach ($results as &$attribute) {
+                if (!empty($options['includeContext'])) {
+                    $attribute['Event'] = $eventsById[$attribute['Attribute']['event_id']];
+                }
                 if (!empty($options['includeSightings'])) {
-                    $temp = $result['Attribute'];
-                    $temp['Event'] = $result['Event'];
-                    $results[$k]['Attribute']['Sighting'] = $this->Sighting->attachToEvent($temp, $user, $temp['id']);
+                    $temp = $attribute['Attribute'];
+                    $temp['Event'] = $attribute['Event'];
+                    $attribute['Attribute']['Sighting'] = $this->Sighting->attachToEvent($temp, $user, $temp['id']);
                 }
                 if (!empty($options['includeCorrelations'])) {
                     $attributeFields = array('id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'to_ids', 'comment');
-                    $results[$k]['Attribute']['RelatedAttribute'] = ($this->getRelatedAttributes($user, $results[$k]['Attribute'], $attributeFields, true));
+                    $attribute['Attribute']['RelatedAttribute'] = $this->getRelatedAttributes($user, $attribute['Attribute'], $attributeFields, true);
                 }
-            }
-            if (!$loop) {
-                if (!empty($params['limit']) && count($results) < $params['limit']) {
-                    $continue = false;
-                }
-                $break = true;
-            }
-            // return false if we're paginating
-            if (isset($options['limit']) && empty($results)) {
-                return array();
-            }
-            $results = array_values($results);
-            $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
-            foreach ($results as $key => $attribute) {
                 if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
-                    unset($results[$key]); // Remove attribute that match any enabled warninglists
                     continue;
                 }
                 if (!empty($options['includeEventTags'])) {
-                    $results = $this->__attachEventTagsToAttributes($eventTags, $results, $key, $options);
+                    $attribute = $this->__attachEventTagsToAttributes($eventTags, $attribute, $options);
                 }
                 if ($options['includeWarninglistHits']) {
-                    $results[$key]['Attribute'] = $this->Warninglist->checkForWarning($results[$key]['Attribute']);
+                    $attribute['Attribute'] = $this->Warninglist->checkForWarning($attribute['Attribute']);
                 }
                 if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
-                    $results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
+                    $attribute['Attribute']['event_uuid'] = $attribute['Event']['uuid'];
                 }
                 if ($proposals_block_attributes) {
-                    $this->__blockAttributeViaProposal($results, $key);
-                }
-                if ($options['withAttachments']) {
-                    if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
-                        $encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
-                        $results[$key]['Attribute']['data'] = $encodedFile;
+                    if ($this->__blockAttributeViaProposal($attribute)) {
+                        continue;
                     }
+                    unset($attribute['ShadowAttribute']);
+                }
+                if ($options['withAttachments'] && $this->typeIsAttachment($attribute['Attribute']['type'])) {
+                    $encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
+                    $attribute['Attribute']['data'] = $encodedFile;
                 }
                 if ($options['includeDecayScore']) {
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
                     $include_full_model = isset($options['includeFullModel']) && $options['includeFullModel'] ? 1 : 0;
-                    if (empty($results[$key]['Attribute']['AttributeTag'])) {
-                        $results[$key]['Attribute']['AttributeTag'] = isset($results[$key]['AttributeTag']) ? $results[$key]['AttributeTag'] : array();
-                        $results[$key]['Attribute']['EventTag'] = isset($results[$key]['EventTag']) ? $results[$key]['EventTag'] : array();
+                    if (empty($attribute['Attribute']['AttributeTag'])) {
+                        $attribute['Attribute']['AttributeTag'] = isset($attribute['AttributeTag']) ? $attribute['AttributeTag'] : array();
+                        $attribute['Attribute']['EventTag'] = isset($attribute['EventTag']) ? $attribute['EventTag'] : array();
                     }
-                    $results[$key]['Attribute'] = $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel'], $options['modelOverrides'], $include_full_model);
-                    unset($results[$key]['Attribute']['AttributeTag']);
-                    unset($results[$key]['Attribute']['EventTag']);
-                    if ($options['excludeDecayed'] && !empty($results[$key]['Attribute']['decay_score'])) { // filter out decayed attribute
+                    $attribute['Attribute'] = $this->DecayingModel->attachScoresToAttribute($user, $attribute['Attribute'], $options['decayingModel'], $options['modelOverrides'], $include_full_model);
+                    unset($attribute['Attribute']['AttributeTag']);
+                    unset($attribute['Attribute']['EventTag']);
+                    if ($options['excludeDecayed'] && !empty($attribute['Attribute']['decay_score'])) { // filter out decayed attribute
                         $decayed_flag = true;
-                        foreach ($results[$key]['Attribute']['decay_score'] as $decayResult) { // remove attribute if ALL score results in a decay
+                        foreach ($attribute['Attribute']['decay_score'] as $decayResult) { // remove attribute if ALL score results in a decay
                             $decayed_flag = $decayed_flag && $decayResult['decayed'];
                         }
                         if ($decayed_flag) {
-                            unset($results[$key]);
+                            continue;
                         }
                     }
                 }
-                if (!empty($results[$key])) {
-                    if (!empty($options['includeGalaxy'])) {
-                        $massaged_attribute = $this->Event->massageTags($user, $results[$key], 'Attribute');
-                        $massaged_event = $this->Event->massageTags($user, $results[$key], 'Event');
-                        $massaged_attribute['Galaxy'] = array_merge_recursive($massaged_attribute['Galaxy'], $massaged_event['Galaxy']);
-                        $results[$key] = $massaged_attribute;
-                    }
-                    $attributes[] = $results[$key];
+                if (!empty($options['includeGalaxy'])) {
+                    $massaged_attribute = $this->Event->massageTags($user, $attribute, 'Attribute');
+                    $massaged_event = $this->Event->massageTags($user, $attribute, 'Event');
+                    $massaged_attribute['Galaxy'] = array_merge_recursive($massaged_attribute['Galaxy'], $massaged_event['Galaxy']);
+                    $attribute = $massaged_attribute;
                 }
+                $attributes[] = $attribute;
             }
-            if (!empty($break)) {
-                break;
+            unset($attribute);
+
+            if ($loop) {
+                if (count($results) < $loopLimit) { // we fetched less results than limit, so we can skip next query
+                    break;
+                }
+                $params['page']++;
             }
-        }
+        } while ($loop);
         return $attributes;
     }
 
@@ -2435,48 +2409,58 @@ class Attribute extends AppModel
         }
     }
 
-    private function __attachEventTagsToAttributes($eventTags, &$results, $key, $options)
+    /**
+     * @param array $eventTags
+     * @param array $attribute
+     * @param array $options
+     * @return array
+     */
+    private function __attachEventTagsToAttributes(&$eventTags, $attribute, $options)
     {
-        if (!isset($eventTags[$results[$key]['Event']['id']])) {
-            $tagConditions = array('EventTag.event_id' => $results[$key]['Event']['id']);
+        $eventId = $attribute['Event']['id'];
+        if (!isset($eventTags[$eventId])) {
+            $tagConditions = array('EventTag.event_id' => $eventId);
             if (empty($options['includeAllTags'])) {
                 $tagConditions['Tag.exportable'] = 1;
             }
             $temp = $this->Event->EventTag->find('all', array(
                 'recursive' => -1,
                 'contain' => array('Tag'),
-                'conditions' => $tagConditions
+                'conditions' => $tagConditions,
             ));
-            foreach ($temp as $tag) {
-                $tag['EventTag']['Tag'] = $tag['Tag'];
-                unset($tag['Tag']);
-                $eventTags[$results[$key]['Event']['id']][] = $tag;
+            if (empty($temp)) {
+                $eventTags[$eventId] = [];
+            } else {
+                foreach ($temp as $tag) {
+                    $tag['EventTag']['Tag'] = $tag['Tag'];
+                    unset($tag['Tag']);
+                    $eventTags[$eventId][] = $tag['EventTag'];
+                }
             }
         }
         if (!empty($eventTags)) {
-            foreach ($eventTags[$results[$key]['Event']['id']] as $eventTag) {
-                $results[$key]['EventTag'][] = $eventTag['EventTag'];
+            foreach ($eventTags[$eventId] as $eventTag) {
+                $attribute['EventTag'][] = $eventTag;
             }
         }
-        return $results;
+        return $attribute;
     }
 
-    private function __blockAttributeViaProposal(&$attributes, $k)
+    private function __blockAttributeViaProposal($attribute)
     {
-        if (!empty($attributes[$k]['ShadowAttribute'])) {
-            foreach ($attributes[$k]['ShadowAttribute'] as $sa) {
-                if ($sa['value'] === $attributes[$k]['Attribute']['value'] &&
-                    $sa['type'] === $attributes[$k]['Attribute']['type'] &&
-                    $sa['category'] === $attributes[$k]['Attribute']['category'] &&
+        if (!empty($attribute['ShadowAttribute'])) {
+            foreach ($attribute['ShadowAttribute'] as $sa) {
+                if ($sa['value'] === $attribute['Attribute']['value'] &&
+                    $sa['type'] === $attribute['Attribute']['type'] &&
+                    $sa['category'] === $attribute['Attribute']['category'] &&
                     ($sa['to_ids'] == 0 || $sa['to_ids'] == '') &&
-                    $attributes[$k]['Attribute']['to_ids'] == 1
+                    $attribute['Attribute']['to_ids'] == 1
                 ) {
-                    unset($attributes[$k]);
+                    return true;
                 }
             }
-        } else {
-            unset($attributes[$k]['ShadowAttribute']);
         }
+        return false;
     }
 
     // Method gets and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive
@@ -3372,10 +3356,9 @@ class Attribute extends AppModel
     {
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
-        $continue = true;
         $elementCounter = 0;
         do {
-            $results = $this->fetchAttributes($user, $params, $continue, $elementCounter);
+            $results = $this->fetchAttributes($user, $params, $elementCounter);
             $totalCount = $elementCounter;
             $elementCounter = false; // do not call `count` again
             if (empty($results)) {
@@ -3392,8 +3375,11 @@ class Attribute extends AppModel
                     $tmpfile->writeWithSeparator($handlerResult, $separator);
                 }
             }
+            if ($loop && count($results) < $params['limit']) {
+                break; // do not continue if we received less results than limit
+            }
             $params['page'] += 1;
-        } while ($loop && $continue);
+        } while ($loop);
 
         return $totalCount;
     }
