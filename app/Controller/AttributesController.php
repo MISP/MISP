@@ -1397,7 +1397,7 @@ class AttributesController extends AppController
             || ($clusters_ids_remove === null || count($clusters_ids_remove) > 0)
             || ($clusters_ids_add === null || count($clusters_ids_add) > 0);
 
-        $changeInAttribute = ($this->request->data['Attribute']['to_ids'] != 2) || ($this->request->data['Attribute']['distribution'] != 6) || ($this->request->data['Attribute']['comment'] != null);
+        $changeInAttribute = ($this->request->data['Attribute']['to_ids'] != 2) || ($this->request->data['Attribute']['distribution'] != 6) || ($this->request->data['Attribute']['comment'] != null) || ($this->request->data['Attribute']['disable_correlation'] != 2);
 
         if (!$changeInAttribute && !$changeInTagOrCluster) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
@@ -1432,6 +1432,12 @@ class AttributesController extends AppController
         if ($this->request->data['Attribute']['comment'] != null) {
             foreach ($attributes as $key => $attribute) {
                 $attributes[$key]['Attribute']['comment'] = $this->request->data['Attribute']['comment'];
+            }
+        }
+
+        if ($this->request->data['Attribute']['disable_correlation'] != 2) {
+            foreach ($attributes as $key => $attribute) {
+                $attributes[$key]['Attribute']['disable_correlation'] = $this->request->data['Attribute']['disable_correlation'] === '0' ? false : true;
             }
         }
 
