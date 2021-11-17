@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-App::uses('Model', 'Model');
-
 class Worker implements JsonSerializable
 {
     /** @var integer|null */
