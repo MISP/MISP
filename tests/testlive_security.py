@@ -1234,6 +1234,32 @@ class TestSecurity(unittest.TestCase):
         self.admin_misp_connector.delete_user(publisher_user)
         self.admin_misp_connector.delete_organisation(different_org)
 
+    def test_unpublished_private(self):
+        with self.__setting("MISP.unpublishedprivate", True):
+            created_event = self.admin_misp_connector.add_event(self.__generate_event())
+            self.assertIsInstance(created_event, MISPEvent, "Admin user should be able to create event")
+
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            # Event is not published, so normal user should not see that event
+            self.assertFalse(logged_in.event_exists(created_event.uuid))
+            fetched_event = logged_in.get_event(created_event.uuid)
+            self.assertEqual(fetched_event["errors"][0], 404)
+            attributes = logged_in.search(controller='attributes', uuid=created_event.uuid)
+            self.assertEqual(len(attributes["Attribute"]), 0, attributes)
+
+            # Publish
+            self.assertSuccessfulResponse(self.admin_misp_connector.publish(created_event))
+
+            # Event is published, so normal user should see that event
+            self.assertTrue(logged_in.event_exists(created_event.uuid))
+            fetched_event = logged_in.get_event(created_event.uuid)
+            self.assertSuccessfulResponse(fetched_event, "User should be able to see published event")
+            attributes = logged_in.search(controller='attributes', uuid=created_event.uuid)
+            self.assertEqual(len(attributes["Attribute"]), 1, attributes)
+
+            # Cleanup
+            self.admin_misp_connector.delete_event(created_event)
+
     def test_sg_index_user_cannot_see(self):
         org = self.__create_org()
         hidden_sg = self.__create_sharing_group()
