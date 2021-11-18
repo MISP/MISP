@@ -85,7 +85,9 @@ class BackgroundJob implements JsonSerializable
                 $this->args()
             ),
             $descriptorSpec,
-            $pipes
+            $pipes,
+            null,
+            ['BACKGROUND_JOB_ID' => $this->id]
         );
 
         $stdout = stream_get_contents($pipes[1]);
