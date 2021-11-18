@@ -383,7 +383,7 @@ class Galaxy extends AppModel
             throw new NotFoundException(__('Invalid %s.', $target_type));
         }
         $target = $target[0];
-        $local_only = $cluster['Galaxy']['local_only'];
+        $local_only = $cluster['GalaxyCluster']['Galaxy']['local_only'];
         if ($local_only && !$local) {
            throw new MethodNotAllowedException(__("This Cluster can only be attached in a local scope"));
         }
