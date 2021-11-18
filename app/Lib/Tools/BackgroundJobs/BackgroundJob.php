@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-App::uses('Model', 'Model');
-
 class BackgroundJob implements JsonSerializable
 {
     public const
