@@ -28,10 +28,7 @@ class StartWorkerShell extends AppShell
         $parser = parent::getOptionParser();
         $parser
             ->addArgument('queue', [
-                'help' => sprintf(
-                    'Name of the queue to process. Must be one of [%]',
-                    implode(', ', $this->BackgroundJobsTool->getQueues())
-                ),
+                'help' => 'Name of the queue to process.',
                 'choices' => $this->BackgroundJobsTool->getQueues(),
                 'required' => true
             ])
