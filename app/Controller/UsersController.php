@@ -741,7 +741,7 @@ class UsersController extends AppController
                                 $notification_message .= ' ' . __('User notification of new credentials could not be send.');
                             }
                         }
-                        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+                        if (!empty(Configure::read('Security.advanced_authkeys')) && $this->_isRest()) {
                             $this->loadModel('AuthKey');
                             $newKey = $this->AuthKey->createnewkey($this->User->id);
                         }
