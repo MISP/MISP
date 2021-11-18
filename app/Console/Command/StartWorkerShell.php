@@ -17,8 +17,6 @@ class StartWorkerShell extends AppShell
 
     private const DEFAULT_MAX_EXECUTION_TIME = 86400; // 1 day
 
-    public $tasks = ['ConfigLoad'];
-
     public function initialize(): void
     {
         parent::initialize();
@@ -30,17 +28,14 @@ class StartWorkerShell extends AppShell
         $parser = parent::getOptionParser();
         $parser
             ->addArgument('queue', [
-                'help' => sprintf(
-                    'Name of the queue to process. Must be one of [%]',
-                    implode(', ', $this->BackgroundJobsTool->getQueues())
-                ),
+                'help' => 'Name of the queue to process.',
                 'choices' => $this->BackgroundJobsTool->getQueues(),
                 'required' => true
             ])
             ->addOption(
                 'maxExecutionTime',
                 [
-                    'help' => 'Worker maximum execution time (seconds) before it self-destruct.',
+                    'help' => 'Worker maximum execution time (seconds) before it self-destruct. Zero means unlimited.',
                     'default' => self::DEFAULT_MAX_EXECUTION_TIME,
                     'required' => false
                 ]
@@ -64,18 +59,17 @@ class StartWorkerShell extends AppShell
         CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - starting to process background jobs...");
 
         while (true) {
-            $this->ConfigLoad->execute();
             $this->checkMaxExecutionTime();
 
             $job = $this->BackgroundJobsTool->dequeue($this->worker->queue());
 
             if ($job) {
-                CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - launching job with id: {$job->id()} ...");
+                CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - launching job with ID: {$job->id()}...");
 
                 try {
                     $this->BackgroundJobsTool->run($job);
                 } catch (Exception $exception) {
-                    CakeLog::error("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - job id: {$job->id()} failed with exception: {$exception->getMessage()}");
+                    CakeLog::error("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - job ID: {$job->id()} failed with exception: {$exception->getMessage()}");
                     $job->setStatus(BackgroundJob::STATUS_FAILED);
                     $this->BackgroundJobsTool->update($job);
                 }
@@ -90,6 +84,9 @@ class StartWorkerShell extends AppShell
      */
     private function checkMaxExecutionTime(): void
     {
+        if ($this->maxExecutionTime === 0) {
+            return;
+        }
         if ((time() - $this->worker->createdAt()) > $this->maxExecutionTime) {
             CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - worker max execution time reached, exiting gracefully worker...");
             exit;

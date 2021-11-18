@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-App::uses('Model', 'Model');
-
 class BackgroundJob implements JsonSerializable
 {
     public const
@@ -87,7 +85,9 @@ class BackgroundJob implements JsonSerializable
                 $this->args()
             ),
             $descriptorSpec,
-            $pipes
+            $pipes,
+            null,
+            ['BACKGROUND_JOB_ID' => $this->id]
         );
 
         $stdout = stream_get_contents($pipes[1]);

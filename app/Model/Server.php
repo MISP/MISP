@@ -3157,8 +3157,12 @@ class Server extends AppModel
         );
         foreach ($writeableDirs as $path => &$error) {
             if (!file_exists($path)) {
-                $error = 1;
-            } else if (!is_writable($path)) {
+                // Try to create directory if not exists
+                if (!mkdir($path, 0700, true)) {
+                    $error = 1;
+                }
+            }
+            if (!is_writable($path)) {
                 $error = 2;
             }
             if ($error !== 0) {
