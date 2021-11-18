@@ -54,7 +54,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mysql, mbstring, json, xml, opcache, readline, redis, gd
+          extensions: mysql, mbstring, json, xml, opcache, readline, redis, gd, apcu
 
       - name: Initialize variables
         run: |
