@@ -42,7 +42,11 @@ class SystemSetting extends AppModel
      */
     public static function setGlobalSetting()
     {
+        /** @var self $systemSetting */
         $systemSetting = ClassRegistry::init('SystemSetting');
+        if (!$systemSetting->databaseExists()) {
+            return;
+        }
         $settings = $systemSetting->getSettings();
         foreach ($settings as $settingName => $settingValue) {
             $firstPart = explode('.', $settingName)[0];
@@ -50,6 +54,12 @@ class SystemSetting extends AppModel
                 Configure::write($settingName, $settingValue);
             }
         }
+    }
+
+    public function databaseExists()
+    {
+        $tables = ConnectionManager::getDataSource($this->useDbConfig)->listSources();
+        return in_array('system_settings', $tables, true);
     }
 
     /**
