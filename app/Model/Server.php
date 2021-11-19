@@ -3758,7 +3758,11 @@ class Server extends AppModel
             ];
         }
         if (is_readable(APP . '/files/scripts/selftest.php')) {
-            $execResult = exec('php ' . APP . '/files/scripts/selftest.php ' . escapeshellarg(json_encode(array_keys($extensions))));
+            try {
+                $execResult = ProcessTool::execute(['php', APP . '/files/scripts/selftest.php', json_encode(array_keys($extensions))]);
+            } catch (Exception $e) {
+                // pass
+            }
             if (!empty($execResult)) {
                 $execResult = $this->jsonDecode($execResult);
                 $results['cli']['phpversion'] = $execResult['phpversion'];
