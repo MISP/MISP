@@ -73,13 +73,11 @@ class ProcessTool
             $commandForException = self::commandFormat($command);
             throw new Exception("Could not get STDOUT of command '$commandForException'.");
         }
-        fclose($pipes[1]);
 
         if ($stderrToFile) {
             $stderr = null;
         } else {
             $stderr = stream_get_contents($pipes[2]);
-            fclose($pipes[2]);
         }
 
         $returnCode = proc_close($process);
