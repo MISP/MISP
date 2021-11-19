@@ -66,10 +66,8 @@ class BackgroundJob implements JsonSerializable
 
     /**
      * Run the job command
-     *
-     * @return self
      */
-    public function run(): self
+    public function run(): void
     {
         $descriptorSpec = [
             1 => ["pipe", "w"], // stdout
@@ -90,28 +88,17 @@ class BackgroundJob implements JsonSerializable
             ['BACKGROUND_JOB_ID' => $this->id]
         );
 
-        $stdout = stream_get_contents($pipes[1]);
-        $this->setOutput($stdout);
-        fclose($pipes[1]);
-
-        $stderr = stream_get_contents($pipes[2]);
-        $this->setError($stderr);
-        fclose($pipes[2]);
+        $this->output = stream_get_contents($pipes[1]);
+        $this->error = stream_get_contents($pipes[2]);
 
         $this->returnCode = proc_close($process);
 
         if ($this->returnCode === 0 && empty($stderr)) {
             $this->setStatus(BackgroundJob::STATUS_COMPLETED);
             $this->setProgress(100);
-
-            CakeLog::info("[JOB ID: {$this->id()}] - completed.");
         } else {
             $this->setStatus(BackgroundJob::STATUS_FAILED);
-
-            CakeLog::error("[JOB ID: {$this->id()}] - failed with error code {$this->returnCode}. STDERR: {$stderr}. STDOUT: {$stdout}.");
         }
-
-        return $this;
     }
 
     public function jsonSerialize(): array

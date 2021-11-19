@@ -338,27 +338,6 @@ class BackgroundJobsTool
     }
 
     /**
-     * Run job
-     *
-     * @param BackgroundJob $job
-     * 
-     * @return integer Process return code.
-     */
-    public function run(BackgroundJob $job): int
-    {
-        $job->setStatus(BackgroundJob::STATUS_RUNNING);
-        CakeLog::info("[JOB ID: {$job->id()}] - started.");
-
-        $this->update($job);
-
-        $job = $job->run();
-
-        $this->update($job);
-
-        return $job->returnCode();
-    }
-
-    /**
      * Start worker by name
      *
      * @param string $name
