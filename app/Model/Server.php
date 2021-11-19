@@ -3155,6 +3155,17 @@ class Server extends AppModel
             APP . 'tmp' . DS . 'logs' => 0,
             APP . 'tmp' . DS . 'bro' => 0,
         );
+
+        $attachmentDir = Configure::read('MISP.attachments_dir');
+        if ($attachmentDir && !isset($writeableDirs[$attachmentDir])) {
+            $writeableDirs[$attachmentDir] = 0;
+        }
+
+        $tmpDir = Configure::read('MISP.tmpdir');
+        if ($tmpDir && !isset($writeableDirs[$tmpDir])) {
+            $writeableDirs[$tmpDir] = 0;
+        }
+
         foreach ($writeableDirs as $path => &$error) {
             if (!file_exists($path)) {
                 // Try to create directory if not exists
