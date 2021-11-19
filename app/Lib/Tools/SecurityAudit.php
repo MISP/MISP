@@ -216,7 +216,7 @@ class SecurityAudit
         if (version_compare(PHP_VERSION, '7.3.0', '<')) {
             $output['PHP'][] = [
                 'warning',
-                __('PHP version %s is not supported anymore. It can be still supported by your distribution. ', PHP_VERSION),
+                __('PHP version %s is not supported anymore. It can be still supported by your distribution.', PHP_VERSION),
                 'https://www.php.net/supported-versions.php'
             ];
         } else if (version_compare(PHP_VERSION, '7.4.0', '<')) {
@@ -260,7 +260,7 @@ class SecurityAudit
             ];
         }
 
-        $this->system($server, $output);
+        $this->system($output);
 
         return $output;
     }
@@ -373,7 +373,7 @@ class SecurityAudit
         }
     }
 
-    private function system(Server $server, array &$output)
+    private function system(array &$output)
     {
         $kernelBuildTime = $this->getKernelBuild();
         if ($kernelBuildTime) {
@@ -426,27 +426,30 @@ class SecurityAudit
         } catch (Exception $e) {
         }
 
-        $ubuntuVersion = $this->getUbuntuVersion();
-        if ($ubuntuVersion) {
-            if (in_array($ubuntuVersion, ['14.04', '19.10'])) {
-                $output['System'][] = [
-                    'warning',
-                    __('You are using Ubuntu %s. This version doesn\'t receive security support anymore.', $ubuntuVersion),
-                    'https://endoflife.date/ubuntu',
-                ];
-            } else if (in_array($ubuntuVersion, ['16.04'])) {
-                $output['System'][] = [
-                    'hint',
-                    __('You are using Ubuntu %s. This version will be not supported after 02 Apr 2021.', $ubuntuVersion),
-                    'https://endoflife.date/ubuntu',
-                ];
+        $linuxVersion = $this->getLinuxVersion();
+        if ($linuxVersion) {
+            list($name, $version) = $linuxVersion;
+            if ($name === 'Ubuntu') {
+                if (in_array($version, ['14.04', '19.10'], true)) {
+                    $output['System'][] = [
+                        'warning',
+                        __('You are using Ubuntu %s. This version doesn\'t receive security support anymore.', $version),
+                        'https://endoflife.date/ubuntu',
+                    ];
+                } else if (in_array($version, ['16.04'], true)) {
+                    $output['System'][] = [
+                        'hint',
+                        __('You are using Ubuntu %s. This version will be not supported after 02 Apr 2021.', $version),
+                        'https://endoflife.date/ubuntu',
+                    ];
+                }
             }
         }
     }
 
     private function getKernelBuild()
     {
-        if (!php_uname('s') !== 'Linux') {
+        if (PHP_OS !== 'Linux') {
             return false;
         }
 
@@ -458,9 +461,9 @@ class SecurityAudit
         return new DateTime($buildTime);
     }
 
-    private function getUbuntuVersion()
+    private function getLinuxVersion()
     {
-        if (!php_uname('s') !== 'Linux') {
+        if (PHP_OS !== 'Linux') {
             return false;
         }
         if (!is_readable('/etc/os-release')) {
@@ -474,16 +477,10 @@ class SecurityAudit
         if ($parsed === false) {
             return false;
         }
-        if (!isset($parsed['NAME'])) {
+        if (!isset($parsed['NAME']) || !isset($parsed['VERSION_ID'])) {
             return false;
         }
-        if ($parsed['NAME'] !== 'Ubuntu') {
-            return false;
-        }
-        if (!isset($parsed['VERSION_ID'])) {
-            return false;
-        }
-        return $parsed['VERSION_ID'];
+        return [$parsed['NAME'], $parsed['VERSION_ID']];
     }
 
     /**
