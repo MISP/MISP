@@ -43,6 +43,10 @@ class SecurityAudit
             $output['Database'][] = ['warning', __('Database password is too short, should be at least %s chars long.', self::STRONG_PASSWORD_LENGTH)];
         }
 
+        if (!Configure::read('Security.encryption_key')) {
+            $output['Database'][] = ['warning', __('Sensitive information like keys to remote server are stored in database unencrypted. Set `Security.encryption_key` to encrypt these values.')];
+        }
+
         $passwordPolicyLength = Configure::read('Security.password_policy_length') ?: $server->serverSettings['Security']['password_policy_length']['value'];
         if ($passwordPolicyLength < 8) {
             $output['Password'][] = ['error', __('Minimum password length is set to %s, it is highly advised to increase it.', $passwordPolicyLength)];
