@@ -605,6 +605,7 @@ class BackgroundJobsTool
 
     /**
      * @return \Supervisor\Supervisor
+     * @throws Exception
      */
     private function createSupervisorConnection(): \Supervisor\Supervisor
     {
@@ -618,10 +619,19 @@ class BackgroundJobsTool
             ];
         }
 
+        $host = null;
+        if (substr($this->settings['supervisor_host'], 0, 5) === 'unix:') {
+            if (!defined('CURLOPT_UNIX_SOCKET_PATH')) {
+                throw new Exception("For unix socket connection, cURL is required.");
+            }
+            $httpOptions['curl'][CURLOPT_UNIX_SOCKET_PATH] = substr($this->settings['supervisor_host'], 5);
+            $host = 'localhost';
+        }
+
         $client = new \fXmlRpc\Client(
             sprintf(
                 'http://%s:%s/RPC2',
-                $this->settings['supervisor_host'],
+                $host ?: $this->settings['supervisor_host'],
                 $this->settings['supervisor_port']
             ),
             new \fXmlRpc\Transport\HttpAdapterTransport(
