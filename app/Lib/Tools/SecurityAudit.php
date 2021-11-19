@@ -226,6 +226,14 @@ class SecurityAudit
                 'https://www.php.net/supported-versions.php'
             ];
         }
+
+        if (extension_loaded('xdebug')) {
+            $output['PHP'][] = [
+                'error',
+                __('The xdebug extension can reveal code and data to an attacker.'),
+            ];
+        }
+
         if (ini_get('session.use_strict_mode') != 1) {
             $output['PHP'][] = [
                 'warning',
