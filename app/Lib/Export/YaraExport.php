@@ -1,12 +1,12 @@
 <?php
 App::uses('JsonExport', 'Export');
 App::uses('AppModel', 'Model');
+App::uses('ProcessTool', 'Tools');
 
 class YaraExport
 {
     private $__script_path = APP . 'files/scripts/yara/yaraexport.py';
     private $__tmp_dir = APP . 'tmp/yara/';
-    private $__end_of_cmd = ' 2>>' . APP . 'tmp/logs/yara_export.log';
     private $__n_attributes = 0;
     private $__MAX_n_attributes = 15000;
     private $__yara_file_gen = null;
@@ -35,7 +35,7 @@ class YaraExport
         }
         $this->__initialize_yara_file();
         $this->__initialize_misp_file($options);
-        if($options['returnFormat'] === 'yara-json'){
+        if($options['returnFormat'] === 'yara-json') {
             $this->__raw_mode = false;
         }
         return '';
@@ -132,10 +132,20 @@ class YaraExport
         $in = $this->__curr_input_file->path;
         $out1 = $this->__yara_file_gen->path;
         $out2 = $this->__yara_file_asis->path;
-        $logging = $this->__end_of_cmd;
-        $raw_flag = $this->__raw_mode ? '--raw' : '';
-        $my_server = ClassRegistry::init('Server');
-        $result = shell_exec($my_server->getPythonVersion() . " $pythonScript --input $in --out-generated $out1 --out-asis $out2 $raw_flag $logging");
+
+        $command = [
+            ProcessTool::pythonBin(),
+            $pythonScript,
+            '--input', $in,
+            '--out-generated', $out1,
+            '--out-asis', $out2,
+        ];
+        if ($this->__raw_mode) {
+            $command[] = '--raw';
+        }
+
+        ProcessTool::execute($command, null, true);
+
         $this->__curr_input_file->close();
         $this->__curr_input_file->delete();
         $this->__n_attributes = 0;
