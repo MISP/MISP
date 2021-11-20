@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 App::uses('BackgroundJobsTool', 'Tools');
+App::uses('ProcessTool', 'Tools');
 
 class StartWorkerShell extends AppShell
 {
@@ -50,7 +51,7 @@ class StartWorkerShell extends AppShell
             [
                 'pid' => getmypid(),
                 'queue' => $this->args[0],
-                'user' => $this->whoami()
+                'user' => ProcessTool::whoami(),
             ]
         );
 
@@ -107,15 +108,6 @@ class StartWorkerShell extends AppShell
         if ((time() - $this->worker->createdAt()) > $this->maxExecutionTime) {
             CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - worker max execution time reached, exiting gracefully worker...");
             exit;
-        }
-    }
-
-    private function whoami(): string
-    {
-        if (function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
-            return posix_getpwuid(posix_geteuid())['name'];
-        } else {
-            return trim(shell_exec('whoami'));
         }
     }
 }

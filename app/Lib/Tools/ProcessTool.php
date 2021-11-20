@@ -94,6 +94,20 @@ class ProcessTool
     }
 
     /**
+     * Get current process user name
+     * @return string
+     * @throws ProcessException
+     */
+    public static function whoami()
+    {
+        if (function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
+            return posix_getpwuid(posix_geteuid())['name'];
+        } else {
+            return rtrim(self::execute(['whoami']));
+        }
+    }
+
+    /**
      * @return string
      */
     public static function pythonBin()

@@ -1,5 +1,6 @@
 <?php
 App::uses('AppShell', 'Console/Command');
+App::uses('ProcessTool', 'Tools');
 
 /**
  * @property Server $Server
@@ -462,11 +463,7 @@ class AdminShell extends AppShell
 
     public function runUpdates()
     {
-        if (function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
-            $whoami = posix_getpwuid(posix_geteuid())['name'];
-        } else {
-            $whoami = exec('whoami');
-        }
+        $whoami = ProcessTool::whoami();
         if (in_array($whoami, ['httpd', 'www-data', 'apache', 'wwwrun', 'travis', 'www'], true) || $whoami === Configure::read('MISP.osuser')) {
             $this->out('Executing all updates to bring the database up to date with the current version.');
             $processId = empty($this->args[0]) ? false : $this->args[0];

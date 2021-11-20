@@ -3411,12 +3411,7 @@ class Server extends AppModel
 
         $workers = $this->getWorkers();
 
-        if (function_exists('posix_getpwuid')) {
-            $currentUser = posix_getpwuid(posix_geteuid());
-            $currentUser = $currentUser['name'];
-        } else {
-            $currentUser = trim(ProcessTool::execute(['whoami']));
-        }
+        $currentUser = ProcessTool::whoami();
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
             $entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
