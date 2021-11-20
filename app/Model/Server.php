@@ -1377,11 +1377,6 @@ class Server extends AppModel
 
     public function serverSettingReadSingle($settingObject, $settingName, $leafKey)
     {
-        // invalidate config.php from php opcode cache
-        if (function_exists('opcache_reset')) {
-            opcache_reset();
-        }
-
         $setting = Configure::read($settingName);
         $result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
         $result['setting'] = $settingName;
@@ -2100,7 +2095,7 @@ class Server extends AppModel
         return true;
     }
 
-    private function __serverSettingNormaliseValue($data, $value, $setting)
+    private function __serverSettingNormaliseValue($data, $value)
     {
         if (!empty($data['type'])) {
             if ($data['type'] === 'boolean') {
@@ -2112,41 +2107,39 @@ class Server extends AppModel
         return $value;
     }
 
-    public function getSettingData($setting_name)
+    /**
+     * @param string $setting_name
+     * @return array|false False if setting doesn't exists
+     */
+    public function getSettingData($setting_name, $withOptions = true)
     {
-        // invalidate config.php from php opcode cache
-        if (function_exists('opcache_reset')) {
-            opcache_reset();
-        }
+        // This is just hack to reset opcache, so for next request cache will be reloaded.
+        $this->opcacheResetConfig();
+
         if (strpos($setting_name, 'Plugin.Enrichment') !== false || strpos($setting_name, 'Plugin.Import') !== false || strpos($setting_name, 'Plugin.Export') !== false || strpos($setting_name, 'Plugin.Cortex') !== false) {
             $serverSettings = $this->getCurrentServerSettings();
         } else {
             $serverSettings = $this->serverSettings;
         }
-        $setting = false;
-        foreach ($serverSettings as $k => $s) {
-            if (isset($s['branch'])) {
-                foreach ($s as $ek => $es) {
-                    if ($ek != 'branch') {
-                        if ($setting_name == $k . '.' . $ek) {
-                            $setting = $es;
-                            continue 2;
-                        }
-                    }
-                }
+
+        $setting = $serverSettings;
+        $parts = explode('.', $setting_name);
+        foreach ($parts as $part) {
+            if (isset($setting[$part])) {
+                $setting = $setting[$part];
             } else {
-                if ($setting_name == $k) {
-                    $setting = $s;
-                    continue;
-                }
+                $setting = false;
+                break;
             }
         }
-        if (!empty($setting)) {
+
+        if (isset($setting['level'])) {
             $setting['name'] = $setting_name;
+            if ($withOptions && isset($setting['optionsSource'])) {
+                $setting['options'] = $setting['optionsSource']();
+            }
         }
-        if (!empty($setting['optionsSource'])) {
-            $setting['options'] = $setting['optionsSource']();
-        }
+
         return $setting;
     }
 
@@ -2264,19 +2257,10 @@ class Server extends AppModel
                 throw new Exception("Could not create config backup `$backupFilePath`.");
             }
         }
-        $settingObject = $this->getCurrentServerSettings();
-        foreach ($settingObject as $branchName => $branch) {
-            if (!isset($branch['level'])) {
-                foreach ($branch as $settingName => $settingObject) {
-                    if ($setting === $branchName . '.' . $settingName) {
-                        $value = $this->__serverSettingNormaliseValue($settingObject, $value, $setting);
-                    }
-                }
-            } else {
-                if ($setting === $branchName) {
-                    $value = $this->__serverSettingNormaliseValue($branch, $value, $setting);
-                }
-            }
+
+        $settingObject = $this->getSettingData($setting, false);
+        if ($settingObject) {
+            $value = $this->__serverSettingNormaliseValue($settingObject, $value);
         }
 
         /** @var array $config */
@@ -2315,9 +2299,7 @@ class Server extends AppModel
                 FileAccessTool::deleteFile($tmpFile);
                 throw new Exception("Could not rename `$tmpFile` to config file `$configFilePath`.");
             }
-            if (function_exists('opcache_reset')) {
-                opcache_reset();
-            }
+            $this->opcacheResetConfig();
             chmod($configFilePath, octdec($previous_file_perm));
             $config_saved = FileAccessTool::readFromFile($configFilePath);
             // if the saved config file is empty, restore the backup.
@@ -2330,9 +2312,7 @@ class Server extends AppModel
             }
         } else {
             FileAccessTool::writeToFile($configFilePath, $settingsString);
-            if (function_exists('opcache_reset')) {
-                opcache_reset();
-            }
+            $this->opcacheResetConfig();
         }
         return true;
     }
@@ -4614,6 +4594,16 @@ class Server extends AppModel
             return true;
         }
         return $this->saveMany($toSave, ['validate' => false, 'fields' => ['authkey']]);
+    }
+
+    /**
+     * Invalidate config.php from php opcode cache
+     */
+    private function opcacheResetConfig()
+    {
+        if (function_exists('opcache_invalidate')) {
+            opcache_invalidate(APP . 'Config' . DS . 'config.php', true);
+        }
     }
 
     /**
