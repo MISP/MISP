@@ -2339,47 +2339,51 @@ class Server extends AppModel
 
     public function getFileRules()
     {
-        $validItems = array(
-                'orgs' => array(
-                        'name' => __('Organisation logos'),
-                        'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
-                        'expected' => array(),
-                        'valid_format' => __('48x48 pixel .png files'),
-                        'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
-                        'regex' => '.*\.(png|PNG)$',
-                        'regex_error' => __('Filename must be in the following format: *.png'),
-                        'files' => array(),
+        return array(
+            'orgs' => array(
+                'name' => __('Organisation logos'),
+                'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
+                'expected' => array(),
+                'valid_format' => __('48x48 pixel .png files'),
+                'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
+                'regex' => '.*\.(png|PNG)$',
+                'regex_error' => __('Filename must be in the following format: *.png'),
+                'files' => array(),
+            ),
+            'img' => array(
+                'name' => __('Additional image files'),
+                'description' => __('Image files uploaded into this directory can be used for various purposes, such as for the login page logos'),
+                'expected' => array(
+                    'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
+                    'MISP.home_logo' => Configure::read('MISP.home_logo'),
+                    'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
+                    'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
                 ),
-                'img' => array(
-                        'name' => __('Additional image files'),
-                        'description' => __('Image files uploaded into this directory can be used for various purposes, such as for the login page logos'),
-                        'expected' => array(
-                                'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
-                                'MISP.home_logo' => Configure::read('MISP.home_logo'),
-                                'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
-                                'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
-                        ),
-                        'valid_format' => __('text/html if served inline, anything that conveys the terms of use if served as download'),
-                        'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
-                        'regex' => '.*\.(png|PNG)$',
-                        'regex_error' => __('Filename must be in the following format: *.png'),
-                        'files' => array(),
-                ),
+                'valid_format' => __('PNG or SVG file'),
+                'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
+                'regex' => '.*\.(png|svg)$',
+                'regex_error' => __('Filename must be in the following format: *.png or *.svg'),
+                'files' => array(),
+            ),
         );
-        return $validItems;
     }
 
     public function grabFiles()
     {
         $validItems = $this->getFileRules();
         App::uses('Folder', 'Utility');
-        App::uses('File', 'Utility');
         foreach ($validItems as $k => $item) {
             $dir = new Folder($item['path']);
             $files = $dir->find($item['regex'], true);
             foreach ($files as $file) {
-                $f = new File($item['path'] . DS . $file);
-                $validItems[$k]['files'][] = array('filename' => $file, 'filesize' => $f->size(), 'read' => $f->readable(), 'write' => $f->writable(), 'execute' => $f->executable());
+                $f = new SplFileInfo($item['path'] . DS . $file);
+                $validItems[$k]['files'][] = [
+                    'filename' => $file,
+                    'filesize' => $f->getSize(),
+                    'read' => $f->isReadable(),
+                    'write' => $f->isWritable(),
+                    'execute' => $f->isExecutable(),
+                ];
             }
         }
         return $validItems;
