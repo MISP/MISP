@@ -227,6 +227,13 @@ class SecurityAudit
             ];
         }
 
+        if (ini_get('expose_php')) {
+            $output['PHP'][] = [
+                'hint',
+                __('PHP `expose_php` setting is enabled. That means that PHP version will be send in `X-Powered-By` header. This can help attackers.'),
+            ];
+        }
+
         if (extension_loaded('xdebug')) {
             $output['PHP'][] = [
                 'error',
