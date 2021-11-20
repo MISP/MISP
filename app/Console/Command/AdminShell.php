@@ -126,13 +126,6 @@ class AdminShell extends AppShell
         echo $this->Server->update($status) . PHP_EOL;
     }
 
-    public function restartWorkers()
-    {
-        $this->ConfigLoad->execute();
-        $this->Server->restartWorkers();
-        echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
-    }
-
     public function updateAfterPull()
     {
         $this->ConfigLoad->execute();
@@ -156,8 +149,23 @@ class AdminShell extends AppShell
         }
     }
 
+    public function restartWorkers()
+    {
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            $this->error('This method does nothing when SimpleBackgroundJobs are enabled.');
+        }
+
+        $this->ConfigLoad->execute();
+        $this->Server->restartWorkers();
+        echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
+    }
+
     public function restartWorker()
     {
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            $this->error('This method does nothing when SimpleBackgroundJobs are enabled.');
+        }
+
         $this->ConfigLoad->execute();
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Restart a worker'] . PHP_EOL);
@@ -180,6 +188,10 @@ class AdminShell extends AppShell
 
     public function killWorker()
     {
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            $this->error('This method does nothing when SimpleBackgroundJobs are enabled.');
+        }
+
         $this->ConfigLoad->execute();
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Kill a worker'] . PHP_EOL);
@@ -197,6 +209,10 @@ class AdminShell extends AppShell
 
     public function startWorker()
     {
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            $this->error('This method does nothing when SimpleBackgroundJobs are enabled.');
+        }
+
         $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Start a worker'] . PHP_EOL);
