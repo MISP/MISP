@@ -1575,19 +1575,20 @@ class Server extends AppModel
         if (substr($value, 0, 7) === "phar://") {
             return 'Phar protocol not allowed.';
         }
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if ($value === '') {
             return true;
         }
         if (is_executable($value)) {
-            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-pie-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
-                finfo_close($finfo);
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $type = finfo_file($finfo, $value);
+            finfo_close($finfo);
+            if ($type === "application/x-executable" || $type === "application/x-pie-executable" || $type === "application/x-sharedlib") {
                 return true;
             } else {
-                return 'Binary file not executable. It is of type: ' . finfo_file($finfo, $value);
+                return 'Binary file not executable. It is of type: ' . $type;
             }
         } else {
-            return false;
+            return 'Binary file not executable.';
         }
     }
 
