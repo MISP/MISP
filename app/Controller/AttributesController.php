@@ -315,28 +315,27 @@ class AttributesController extends AppController
         if (empty($attributes)) {
             throw new UnauthorizedException(__('Attribute does not exists or you do not have the permission to download this attribute.'));
         }
-        $this->__downloadAttachment($attributes[0]['Attribute']);
+        return $this->__downloadAttachment($attributes[0]['Attribute']);
     }
 
-    private function __downloadAttachment($attribute)
+    private function __downloadAttachment(array $attribute)
     {
         $file = $this->Attribute->getAttachmentFile($attribute);
 
-        if ('attachment' == $attribute['type']) {
+        if ('attachment' === $attribute['type']) {
             $filename = $attribute['value'];
             $fileExt = pathinfo($filename, PATHINFO_EXTENSION);
             $filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
-        } elseif ('malware-sample' == $attribute['type']) {
+        } elseif ('malware-sample' === $attribute['type']) {
             $filenameHash = explode('|', $attribute['value']);
             $filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
             $fileExt = "zip";
         } else {
             throw new NotFoundException(__('Attribute not an attachment or malware-sample'));
         }
-        $this->autoRender = false;
-        $this->response->type($fileExt);
+
         $download_attachments_on_load = Configure::check('MISP.download_attachments_on_load') ? Configure::read('MISP.download_attachments_on_load') : true;
-        $this->response->file($file->path, array('download' => $download_attachments_on_load, 'name' => $filename . '.' . $fileExt));
+        return $this->RestResponse->sendFile($file, $fileExt, $download_attachments_on_load, $filename . '.' . $fileExt);
     }
 
     public function add_attachment($eventId = null)
@@ -1762,7 +1761,7 @@ class AttributesController extends AppController
         if (empty($attributes)) {
             throw new UnauthorizedException(__('Attribute does not exists or you do not have the permission to download this attribute.'));
         }
-        $this->__downloadAttachment($attributes[0]['Attribute']);
+        return $this->__downloadAttachment($attributes[0]['Attribute']);
     }
 
     // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.

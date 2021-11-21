@@ -590,8 +590,8 @@ class RestResponseComponent extends Component
         }
 
         if ($response instanceof TmpFileTool) {
-            App::uses('CakeResponseTmp', 'Tools');
-            $cakeResponse = new CakeResponseTmp(['status' => $code, 'type' => $type]);
+            App::uses('CakeResponseFile', 'Tools');
+            $cakeResponse = new CakeResponseFile(['status' => $code, 'type' => $type]);
             $cakeResponse->file($response);
         } else {
             $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
@@ -655,13 +655,24 @@ class RestResponseComponent extends Component
         return $this->__sendResponse($data, 200, $format, $raw, $download, $headers);
     }
 
-    public function sendFile($path, $format = false, $download = false, $name = 'download')
+    /**
+     * @param string|File|TmpFileTool $path
+     * @param string|null $type
+     * @param bool $download
+     * @param string $name
+     * @return CakeResponseFile
+     * @throws Exception
+     */
+    public function sendFile($path, $type = null, $download = false, $name = 'download')
     {
-        $cakeResponse = new CakeResponse(array(
-            'status' => 200,
-            'type' => $format
-        ));
-        $cakeResponse->file($path, array('name' => $name, 'download' => true));
+        App::uses('CakeResponseFile', 'Tools');
+        $cakeResponse = new CakeResponseFile([
+            'type' => $type
+        ]);
+        $cakeResponse->file($path, ['name' => $name, 'download' => $download]);
+        if (Configure::read('Security.disable_browser_cache')) {
+            $cakeResponse->disableCache();
+        }
         return $cakeResponse;
     }
 
