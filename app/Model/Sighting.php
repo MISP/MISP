@@ -49,7 +49,7 @@ class Sighting extends AppModel
             ),
     );
 
-    public $type = array(
+    const TYPE = array(
         0 => 'sighting',
         1 => 'false-positive',
         2 => 'expiration'
@@ -63,7 +63,6 @@ class Sighting extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
         if (empty($this->data['Sighting']['id']) && empty($this->data['Sighting']['date_sighting'])) {
             $this->data['Sighting']['date_sighting'] = date('Y-m-d H:i:s');
         }
@@ -77,7 +76,7 @@ class Sighting extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable');
+        $pubToZmq = $this->pubToZmq('sighting');
         $kafkaTopic = $this->kafkaTopic('sighting');
         if ($pubToZmq || $kafkaTopic) {
             $user = array(
@@ -101,8 +100,7 @@ class Sighting extends AppModel
 
     public function beforeDelete($cascade = true)
     {
-        parent::beforeDelete();
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable');
+        $pubToZmq = $this->pubToZmq('sighting');
         $kafkaTopic = $this->kafkaTopic('sighting');
         if ($pubToZmq || $kafkaTopic) {
             $user = array(
@@ -441,7 +439,7 @@ class Sighting extends AppModel
         $sparklineData = [];
         $range = $this->getMaximumRange();
         foreach ($groupedSightings as $sighting) {
-            $type = $this->type[$sighting['type']];
+            $type = self::TYPE[$sighting['type']];
             $orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : __('Others');
             $count = (int)$sighting['sighting_count'];
             $inRange = strtotime($sighting['date']) >= $range;

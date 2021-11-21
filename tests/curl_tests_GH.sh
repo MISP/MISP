@@ -14,6 +14,6 @@ cat 1.csv
 cut -d, -f2 --complement event.csv | sort > compare.csv
 diff compare.csv 1.csv
 # Test alert email generating
-sudo -E su $USER -c '../app/Console/cake Event testEventNotificationEmail 1 1' > /dev/null
+sudo -u www-data ../app/Console/cake Event testEventNotificationEmail 1 1 > /dev/null
 # Delete created event
 curl -i -H "Accept: application/json" -H "content-type: application/json" -H "Authorization: $AUTH" -X POST http://${HOST}/events/delete/1

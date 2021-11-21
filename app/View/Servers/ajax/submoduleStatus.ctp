@@ -3,6 +3,7 @@
         <tr>
             <th><?php echo __('Submodule'); ?></th>
             <th><?php echo __('Current Version'); ?></th>
+            <th><?php echo __('Version date'); ?></th>
             <th><?php echo __('Status'); ?></th>
             <th><?php echo __('Action'); ?>
                 <?php
@@ -28,8 +29,7 @@
                     } else {
                         $class = 'warning';
                     }
-                    $versionText = __('Outdated version');
-                    $versionText .= sprintf(__(' (%s days, %s hours older than super project)'), $status['timeDiff']->format('%a'), $status['timeDiff']->format('%h'));
+                    $versionText = __('Outdated version (%s days, %s hours older than super project)', $status['timeDiff']->format('%a'), $status['timeDiff']->format('%h'));
                     break;
                 case 'younger':
                     $class = 'warning';
@@ -50,9 +50,10 @@
             }
             ?>
             <tr class="<?php echo $class;?>" >
-                <td><?php echo h($submodule) ?></td>
-                <td><?php echo h($status['current']) ?></td>
-                <td><?php echo h($versionText) ?></td>
+                <td><?= h($submodule) ?></td>
+                <td><code style="color: inherit"><?= h($status['current']) ?></code></td>
+                <td><?= $this->Time->time($status['currentTimestamp']) ?></td>
+                <td><?= $versionText ?></td>
                 <td class="updateActionCell">
                     <?php
                     if ($status['upToDate'] != 'same' && $status['isReadable']) {

@@ -23,23 +23,26 @@
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('RandomTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 class AppModel extends Model
 {
-    public $name;
-
     /** @var PubSubTool */
     private static $loadedPubSubTool;
 
     /** @var KafkaPubTool */
     private $loadedKafkaPubTool;
 
+    /** @var BackgroundJobsTool */
+    private static $loadedBackgroundJobsTool;
+
     /** @var null|Redis */
     private static $__redisConnection;
 
     private $__profiler = array();
 
-    public $elasticSearchClient = false;
+    public $elasticSearchClient;
 
     /** @var AttachmentTool|null */
     private $attachmentTool;
@@ -47,8 +50,6 @@ class AppModel extends Model
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-
-        $this->name = get_class($this);
         $this->findMethods['column'] = true;
     }
 
@@ -83,7 +84,8 @@ class AppModel extends Model
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
-        69 => false, 70 => false, 71 => true, 72 => true,
+        69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
+        75 => false, 76 => true, 77 => false, 78 => false, 79 => false,
     );
 
     public $advanced_updates_description = array(
@@ -246,13 +248,13 @@ class AppModel extends Model
         $result = $this->Feed->addDefaultFeeds($feeds);
         $this->Log->create();
         $entry = array(
-                'org' => 'SYSTEM',
-                'model' => 'Server',
-                'model_id' => 0,
-                'email' => 'SYSTEM',
-                'action' => 'update_database',
-                'user_id' => 0,
-                'title' => 'Added new default feeds.'
+            'org' => 'SYSTEM',
+            'model' => 'Server',
+            'model_id' => 0,
+            'email' => 'SYSTEM',
+            'action' => 'update_database',
+            'user_id' => 0,
+            'title' => 'Added new default feeds.'
         );
         if ($result) {
             $entry['change'] = 'Feeds added: ' . $feedNames;
@@ -1533,7 +1535,7 @@ class AppModel extends Model
                     `value` text NOT NULL,
                     `from_json` tinyint(1) default 0,
                     PRIMARY KEY (`id`),
-                    UNIQUE INDEX `value` (`value`(255))
+                    UNIQUE INDEX `value` (`value`(191))
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 66:
@@ -1577,6 +1579,40 @@ class AppModel extends Model
                 break;
             case 72:
                 $sqlArray[] = "ALTER TABLE `auth_keys` ADD `read_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `expiration`;";
+                break;
+            case 73:
+                $this->__dropIndex('user_settings', 'timestamp'); // index is not used
+                $sqlArray[] = "ALTER TABLE `user_settings` ADD UNIQUE INDEX `unique_setting` (`user_id`, `setting`)";
+                break;
+            case 74:
+                $sqlArray[] = "ALTER TABLE `users` MODIFY COLUMN `change_pw` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 75:
+                $this->__addIndex('object_references', 'event_id');
+                $this->__dropIndex('object_references', 'timestamp');
+                $this->__dropIndex('object_references', 'source_uuid');
+                $this->__dropIndex('object_references', 'relationship_type');
+                $this->__dropIndex('object_references', 'referenced_uuid');
+                break;
+            case 76:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `system_settings` (
+                      `setting` varchar(255) NOT NULL,
+                      `value` blob NOT NULL,
+                      PRIMARY KEY (`setting`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                $sqlArray[] = "ALTER TABLE `servers` MODIFY COLUMN `authkey` VARBINARY(255) NOT NULL;";
+                $sqlArray[] = "ALTER TABLE `cerebrates` MODIFY COLUMN `authkey` VARBINARY(255) NOT NULL;";
+                break;
+            case 77:
+                $sqlArray[] = "ALTER TABLE `tags` ADD `local_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `is_custom_galaxy`;";
+                $sqlArray[] = "ALTER TABLE `galaxies` ADD `local_only` tinyint(1) NOT NULL DEFAULT 0 AFTER `enabled`;";
+                break;
+            case 78:
+                $sqlArray[] = "ALTER TABLE `jobs` MODIFY COLUMN `process_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
+                break;
+            case 79:
+                $sqlArray[] = "ALTER TABLE `users` ADD `sub` varchar(255) NULL DEFAULT NULL;";
+                $sqlArray[] = "ALTER TABLE `users` ADD UNIQUE INDEX `sub` (`sub`);";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1767,14 +1803,14 @@ class AppModel extends Model
         if ($flagStop && $errorCount > 0) {
             $this->Log->create();
             $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => 0,
-                    'email' => 'SYSTEM',
-                    'action' => 'update_database',
-                    'user_id' => 0,
-                    'title' => __('Issues executing the SQL query for %s', $command),
-                    'change' => __('Database updates stopped as some errors occurred and the stop flag is enabled.')
+                'org' => 'SYSTEM',
+                'model' => 'Server',
+                'model_id' => 0,
+                'email' => 'SYSTEM',
+                'action' => 'update_database',
+                'user_id' => 0,
+                'title' => __('Issues executing the SQL query for %s', $command),
+                'change' => __('Database updates stopped as some errors occurred and the stop flag is enabled.')
             ));
             return false;
         }
@@ -1840,14 +1876,14 @@ class AppModel extends Model
             }
             $this->Log->create();
             $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => 0,
-                    'email' => 'SYSTEM',
-                    'action' => 'update_database',
-                    'user_id' => 0,
-                    'title' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
-                    'change' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
+                'org' => 'SYSTEM',
+                'model' => 'Server',
+                'model_id' => 0,
+                'email' => 'SYSTEM',
+                'action' => 'update_database',
+                'user_id' => 0,
+                'title' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
+                'change' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
             ));
         }
     }
@@ -1879,14 +1915,14 @@ class AppModel extends Model
         }
         $this->Log->create();
         $this->Log->save(array(
-                'org' => 'SYSTEM',
-                'model' => 'Server',
-                'model_id' => 0,
-                'email' => 'SYSTEM',
-                'action' => 'update_database',
-                'user_id' => 0,
-                'title' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table . ($duplicate ? ' (index already set)' : $errorMessage),
-                'change' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table . ($duplicate ? ' (index already set)' : $errorMessage),
+            'org' => 'SYSTEM',
+            'model' => 'Server',
+            'model_id' => 0,
+            'email' => 'SYSTEM',
+            'action' => 'update_database',
+            'user_id' => 0,
+            'title' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table . ($duplicate ? ' (index already set)' : $errorMessage),
+            'change' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table . ($duplicate ? ' (index already set)' : $errorMessage),
         ));
         $additionResult = array('success' => $result || $duplicate);
         if (!$result) {
@@ -1914,11 +1950,7 @@ class AppModel extends Model
 
     public function getPythonVersion()
     {
-        if (!empty(Configure::read('MISP.python_bin'))) {
-            return Configure::read('MISP.python_bin');
-        } else {
-            return 'python3';
-        }
+        return Configure::read('MISP.python_bin') ?: 'python3';
     }
 
     public function validateAuthkey($value)
@@ -1935,10 +1967,9 @@ class AppModel extends Model
     // alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
     public function valueNotEmpty($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
-        $value[$field] = trim($value[$field]);
-        if (!empty($value[$field])) {
+        $field = array_keys($value)[0];
+        $value = trim($value[$field]);
+        if (!empty($value)) {
             return true;
         }
         return ucfirst($field) . ' cannot be empty.';
@@ -1946,32 +1977,17 @@ class AppModel extends Model
 
     public function valueIsJson($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
-        $json_decoded = json_decode($value[$field]);
+        $value = array_values($value)[0];
+        $json_decoded = json_decode($value);
         if ($json_decoded === null) {
             return __('Invalid JSON.');
         }
         return true;
     }
 
-    public function valueIsJsonOrNull($value)
-    {
-        $field = array_keys($value);
-        $field = $field[0];
-        if (!is_null($value[$field])) {
-            $json_decoded = json_decode($value[$field]);
-            if ($json_decoded === null) {
-                return __('Invalid JSON.');
-            }
-        }
-        return true;
-    }
-
     public function valueIsID($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
+        $field = array_keys($value)[0];
         if (!is_numeric($value[$field]) || $value[$field] < 0) {
             return 'Invalid ' . ucfirst($field) . ' ID';
         }
@@ -1980,17 +1996,17 @@ class AppModel extends Model
 
     public function stringNotEmpty($value)
     {
-        $field = array_keys($value);
-        $field = $field[0];
-        $value[$field] = trim($value[$field]);
-        if (!isset($value[$field]) || ($value[$field] == false && $value[$field] !== "0")) {
+        $field = array_keys($value)[0];
+        $value = trim($value[$field]);
+        if (!isset($value) || ($value == false && $value !== "0")) {
             return ucfirst($field) . ' cannot be empty.';
         }
         return true;
     }
 
     // Try to create a table with a BIGINT(20)
-    public function seenOnAttributeAndObjectPreUpdate() {
+    public function seenOnAttributeAndObjectPreUpdate()
+    {
         $sqlArray[] = "CREATE TABLE IF NOT EXISTS testtable (
             `testfield` BIGINT(6) NULL DEFAULT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
@@ -2008,16 +2024,11 @@ class AppModel extends Model
         }
     }
 
-    public function failingPreUpdate() {
-        throw new Exception('Yolo fail');
-    }
-
     public function runUpdates($verbose = false, $useWorker = true, $processId = false)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->Job = ClassRegistry::init('Job');
-        $this->Log = ClassRegistry::init('Log');
-        $this->Server = ClassRegistry::init('Server');
+
         $db = ConnectionManager::getDataSource('default');
         $tables = $db->listSources();
         $requiresLogout = false;
@@ -2027,7 +2038,10 @@ class AppModel extends Model
             $requiresLogout = true;
         } else {
             $this->__runCleanDB();
-            $db_version = $this->AdminSetting->find('all', array('conditions' => array('setting' => 'db_version')));
+            $db_version = $this->AdminSetting->find('all', [
+                'conditions' => array('setting' => 'db_version'),
+                'fields' => ['id', 'value'],
+            ]);
             if (count($db_version) > 1) {
                 // we rgan into a bug where we have more than one db_version entry. This bug happened in some rare circumstances around 2.4.50-2.4.57
                 foreach ($db_version as $k => $v) {
@@ -2046,6 +2060,8 @@ class AppModel extends Model
                 $job = null;
             }
             if (!empty($updates)) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Server = ClassRegistry::init('Server');
                 // Exit if updates are locked.
                 // This is not as reliable as a real lock implementation
                 // However, as all updates are re-playable, there is no harm if they
@@ -2054,14 +2070,14 @@ class AppModel extends Model
                 if ($this->isUpdateLocked()) { // prevent creation of useless workers
                     $this->Log->create();
                     $this->Log->save(array(
-                            'org' => 'SYSTEM',
-                            'model' => 'Server',
-                            'model_id' => 0,
-                            'email' => 'SYSTEM',
-                            'action' => 'update_db_worker',
-                            'user_id' => 0,
-                            'title' => __('Issues executing run_updates'),
-                            'change' => __('Database updates are locked. Worker not spawned')
+                        'org' => 'SYSTEM',
+                        'model' => 'Server',
+                        'model_id' => 0,
+                        'email' => 'SYSTEM',
+                        'action' => 'update_db_worker',
+                        'user_id' => 0,
+                        'title' => __('Issues executing run_updates'),
+                        'change' => __('Database updates are locked. Worker not spawned')
                     ));
                     if (!empty($job)) { // if multiple prio worker is enabled, want to mark them as done
                         $job['Job']['progress'] = 100;
@@ -2080,26 +2096,28 @@ class AppModel extends Model
                     } else { // update worker not running, doing the update inline
                         return $this->runUpdates($verbose, false);
                     }
-                    $this->Job->create();
-                    $data = array(
-                        'worker' => $workerType,
-                        'job_type' => 'run_updates',
-                        'job_input' => 'command: ' . implode(',', $updates),
-                        'status' => 0,
-                        'retries' => 0,
-                        'org_id' => 0,
-                        'org' => '',
-                        'message' => 'Updating.',
+
+                    /** @var Job $job */
+                    $job = ClassRegistry::init('Job');
+                    $jobId = $job->createJob(
+                            'SYSTEM',
+                            Job::WORKER_PRIO,
+                            'run_updates',
+                            'command: ' . implode(',', $updates),
+                            'Updating.'
+                        );
+
+                    $this->getBackgroundJobsTool()->enqueue(
+                        BackgroundJobsTool::PRIO_QUEUE,
+                        BackgroundJobsTool::CMD_ADMIN,
+                        [
+                            'runUpdates',
+                            $jobId
+                        ],
+                        true,
+                        $jobId
                     );
-                    $this->Job->save($data);
-                    $jobId = $this->Job->id;
-                    $processId = CakeResque::enqueue(
-                            'prio',
-                            'AdminShell',
-                            array('runUpdates', $jobId),
-                            true
-                    );
-                    $this->Job->saveField('process_id', $processId);
+
                     return true;
                 }
 
@@ -2109,14 +2127,14 @@ class AppModel extends Model
                 if ($this->isUpdateLocked()) {
                     $this->Log->create();
                     $this->Log->save(array(
-                            'org' => 'SYSTEM',
-                            'model' => 'Server',
-                            'model_id' => 0,
-                            'email' => 'SYSTEM',
-                            'action' => 'update_db_worker',
-                            'user_id' => 0,
-                            'title' => __('Issues executing run_updates'),
-                            'change' => __('Updates are locked. Stopping worker gracefully')
+                        'org' => 'SYSTEM',
+                        'model' => 'Server',
+                        'model_id' => 0,
+                        'email' => 'SYSTEM',
+                        'action' => 'update_db_worker',
+                        'user_id' => 0,
+                        'title' => __('Issues executing run_updates'),
+                        'change' => __('Updates are locked. Stopping worker gracefully')
                     ));
                     if (!empty($job)) {
                         $job['Job']['progress'] = 100;
@@ -2367,19 +2385,17 @@ class AppModel extends Model
 
     private function __runCleanDB()
     {
-        $cleanDB = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'clean_db')));
-        if (empty($cleanDB) || $cleanDB['AdminSetting']['value'] == 1) {
+        $cleanDB = $this->AdminSetting->getSetting('clean_db');
+        if ($cleanDB === false || $cleanDB == 1) {
             $this->cleanCacheFiles();
-            if (empty($cleanDB)) {
-                $this->AdminSetting->create();
-                $cleanDB = array('AdminSetting' => array('setting' => 'clean_db', 'value' => 0));
-            } else {
-                $cleanDB['AdminSetting']['value'] = 0;
-            }
-            $this->AdminSetting->save($cleanDB);
+            $this->AdminSetting->changeSetting('clean_db', 0);
         }
     }
 
+    /**
+     * @param string $db_version
+     * @return array
+     */
     protected function findUpgrades($db_version)
     {
         $updates = array();
@@ -2419,82 +2435,29 @@ class AppModel extends Model
     private function __generateCorrelations()
     {
         if (Configure::read('MISP.background_jobs')) {
-            $Job = ClassRegistry::init('Job');
-            $Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'generate correlation',
-                    'job_input' => 'All attributes',
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => 'ADMIN',
-                    'message' => 'Job created.',
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate correlation',
+                'All attributes',
+                'Job created.'
             );
-            $Job->save($data);
-            $jobId = $Job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    array('jobGenerateCorrelation', $jobId),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateCorrelation',
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $Job->saveField('process_id', $process_id);
+
         }
         return true;
-    }
-
-    public function populateNotifications($user, $mode = 'full')
-    {
-        $notifications = array();
-        list($notifications['proposalCount'], $notifications['proposalEventCount']) = $this->_getProposalCount($user, $mode);
-        $notifications['total'] = $notifications['proposalCount'];
-        if (Configure::read('MISP.delegation')) {
-            $notifications['delegationCount'] = $this->_getDelegationCount($user);
-            $notifications['total'] += $notifications['delegationCount'];
-        }
-        return $notifications;
-    }
-
-    // if not using $mode === 'full', simply check if an entry exists. We really don't care about the real count for the top menu.
-    private function _getProposalCount($user, $mode = 'full')
-    {
-        $this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
-        $results[0] = $this->ShadowAttribute->find(
-            'count',
-            array(
-                'recursive' => -1,
-                'conditions' => array(
-                        'ShadowAttribute.event_org_id' => $user['org_id'],
-                        'ShadowAttribute.deleted' => 0,
-                )
-            )
-        );
-        if ($mode === 'full') {
-            $results[1] = $this->ShadowAttribute->find(
-                'count',
-                array(
-                    'recursive' => -1,
-                    'conditions' => array(
-                            'ShadowAttribute.event_org_id' => $user['org_id'],
-                            'ShadowAttribute.deleted' => 0,
-                    ),
-                    'fields' => 'distinct event_id'
-                )
-            );
-        } else {
-            $results[1] = $results[0];
-        }
-        return $results;
-    }
-
-    private function _getDelegationCount($user)
-    {
-        $this->EventDelegation = ClassRegistry::init('EventDelegation');
-        $delegations = $this->EventDelegation->find('count', array(
-            'recursive' => -1,
-            'conditions' => array('EventDelegation.org_id' => $user['org_id'])
-        ));
-        return $delegations;
     }
 
     public function checkFilename($filename)
@@ -2557,24 +2520,18 @@ class AppModel extends Model
     public function getKafkaPubTool()
     {
         if (!$this->loadedKafkaPubTool) {
-            $this->loadKafkaPubTool();
+            App::uses('KafkaPubTool', 'Tools');
+            $kafkaPubTool = new KafkaPubTool();
+            $rdkafkaIni = Configure::read('Plugin.Kafka_rdkafka_config');
+            $kafkaConf = array();
+            if (!empty($rdkafkaIni)) {
+                $kafkaConf = parse_ini_file($rdkafkaIni);
+            }
+            $brokers = Configure::read('Plugin.Kafka_brokers');
+            $kafkaPubTool->initTool($brokers, $kafkaConf);
+            $this->loadedKafkaPubTool = $kafkaPubTool;
         }
         return $this->loadedKafkaPubTool;
-    }
-
-    public function loadKafkaPubTool()
-    {
-        App::uses('KafkaPubTool', 'Tools');
-        $kafkaPubTool = new KafkaPubTool();
-        $rdkafkaIni = Configure::read('Plugin.Kafka_rdkafka_config');
-        $kafkaConf = array();
-        if (!empty($rdkafkaIni)) {
-            $kafkaConf = parse_ini_file($rdkafkaIni);
-        }
-        $brokers = Configure::read('Plugin.Kafka_brokers');
-        $kafkaPubTool->initTool($brokers, $kafkaConf);
-        $this->loadedKafkaPubTool = $kafkaPubTool;
-        return true;
     }
 
     public function publishKafkaNotification($topicName, $data, $action = false)
@@ -2599,26 +2556,40 @@ class AppModel extends Model
         return self::$loadedPubSubTool;
     }
 
-    public function getElasticSearchTool()
+    protected function getElasticSearchTool()
     {
         if (!$this->elasticSearchClient) {
-            $this->loadElasticSearchTool();
+            App::uses('ElasticSearchClient', 'Tools');
+            $client = new ElasticSearchClient();
+            $client->initTool();
+            $this->elasticSearchClient = $client;
         }
         return $this->elasticSearchClient;
     }
 
-    public function loadElasticSearchTool()
+    /**
+     * @return BackgroundJobsTool
+     */
+    public function getBackgroundJobsTool(): BackgroundJobsTool
     {
-        App::uses('ElasticSearchClient', 'Tools');
-        $client = new ElasticSearchClient();
-        $client->initTool();
-        $this->elasticSearchClient = $client;
+        if (!self::$loadedBackgroundJobsTool) {
+            App::uses('BackgroundJobsTool', 'Tools');
+
+            // TODO: remove after CakeResque is deprecated
+            $settings = ['enabled' => false];
+            if (Configure::read('SimpleBackgroundJobs.enabled')) {
+                $settings = Configure::read('SimpleBackgroundJobs');
+            }
+
+            $backgroundJobsTool = new BackgroundJobsTool($settings);
+            self::$loadedBackgroundJobsTool = $backgroundJobsTool;
+        }
+        return self::$loadedBackgroundJobsTool;
     }
 
     // generate a generic subquery - options needs to include conditions
-    public function subQueryGenerator($model, $options, $lookupKey, $negation = false)
+    protected function subQueryGenerator(AppModel $model, array $options, $lookupKey, $negation = false)
     {
-        $db = $model->getDataSource();
         $defaults = array(
             'fields' => array('*'),
             'table' => $model->table,
@@ -2631,17 +2602,15 @@ class AppModel extends Model
             'recursive' => -1
         );
         $params = array();
-        foreach (array_keys($defaults) as $key) {
+        foreach ($defaults as $key => $defaultValue) {
             if (isset($options[$key])) {
                 $params[$key] = $options[$key];
             } else {
-                $params[$key] = $defaults[$key];
+                $params[$key] = $defaultValue;
             }
         }
-        $subQuery = $db->buildStatement(
-            $params,
-            $model
-        );
+        $db = $model->getDataSource();
+        $subQuery = $db->buildStatement($params, $model);
         if ($negation) {
             $subQuery = $lookupKey . ' NOT IN (' . $subQuery . ') ';
         } else {
@@ -2712,15 +2681,6 @@ class AppModel extends Model
         }
     }
 
-    public function getRowCount($table = false)
-    {
-        if (empty($table)) {
-            $table = $this->table;
-        }
-        $table_data = $this->query("show table status like '" . $table . "'");
-        return $table_data[0]['TABLES']['Rows'];
-    }
-
     public function benchmarkCustomAdd($valueToAdd = 0, $name = 'default', $customName = 'custom')
     {
         if (empty($this->__profiler[$name]['custom'][$customName])) {
@@ -2762,15 +2722,21 @@ class AppModel extends Model
     {
         $version = implode('.', $this->checkMISPVersion());
         $commit = $this->checkMIPSCommit();
-        $request = array(
+
+        $authkey = $server[$model]['authkey'];
+        App::uses('EncryptedValue', 'Tools');
+        if (EncryptedValue::isEncrypted($authkey)) {
+            $authkey = (string)new EncryptedValue($authkey);
+        }
+
+        return array(
             'header' => array(
-                'Authorization' => $server[$model]['authkey'],
+                'Authorization' => $authkey,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
                 'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
             )
         );
-        return $request;
     }
 
     /**
@@ -2783,9 +2749,8 @@ class AppModel extends Model
     {
         static $versionArray;
         if ($versionArray === null) {
-            $file = new File(ROOT . DS . 'VERSION.json');
-            $versionArray = $this->jsonDecode($file->read());
-            $file->close();
+            $content = FileAccessTool::readFromFile(ROOT . DS . 'VERSION.json');
+            $versionArray = JsonTool::decode($content);
         }
         return $versionArray;
     }
@@ -2799,10 +2764,11 @@ class AppModel extends Model
     {
         static $commit;
         if ($commit === null) {
-            $commit = shell_exec('git log --pretty="%H" -n1 HEAD');
-            if ($commit) {
-                $commit = trim($commit);
-            } else {
+            App::uses('GitTool', 'Tools');
+            try {
+                $commit = GitTool::currentCommit();
+            } catch (Exception $e) {
+                $this->logException('Could not get current git commit', $e, LOG_NOTICE);
                 $commit = false;
             }
         }
@@ -2929,11 +2895,6 @@ class AppModel extends Model
         return $val / (1024 * 1024);
     }
 
-    public function getDefaultAttachments_dir()
-    {
-        return APP . 'files';
-    }
-
     private function __bumpReferences()
     {
         $this->Event = ClassRegistry::init('Event');
@@ -2991,14 +2952,14 @@ class AppModel extends Model
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $entry = array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => 0,
-                    'email' => 'SYSTEM',
-                    'action' => 'update_database',
-                    'user_id' => 0,
-                    'title' => 'Bumped the timestamps of locked events containing object references.',
-                    'change' => sprintf('Event timestamps updated: %s; Object timestamps updated: %s', count($event_ids), count($object_ids))
+                'org' => 'SYSTEM',
+                'model' => 'Server',
+                'model_id' => 0,
+                'email' => 'SYSTEM',
+                'action' => 'update_database',
+                'user_id' => 0,
+                'title' => 'Bumped the timestamps of locked events containing object references.',
+                'change' => sprintf('Event timestamps updated: %s; Object timestamps updated: %s', count($event_ids), count($object_ids))
             );
             $this->Log->save($entry);
         }
@@ -3017,10 +2978,10 @@ class AppModel extends Model
         }
         $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1);
         $lastChar = strtolower(substr($delta, -1));
-        if (!is_numeric($lastChar) && array_key_exists($lastChar, $multiplierArray)) {
+        if (!is_numeric($lastChar) && isset($multiplierArray[$lastChar])) {
             $multiplier = $multiplierArray[$lastChar];
             $delta = substr($delta, 0, -1);
-        } else if(strtotime($delta) !== false) {
+        } else if (strtotime($delta) !== false) {
             return strtotime($delta);
         } else {
             // invalid filter, make sure we don't return anything
@@ -3156,32 +3117,12 @@ class AppModel extends Model
         $message .= "\n";
 
         do {
-            $message .= sprintf("[%s] %s",
-                get_class($exception),
-                $exception->getMessage()
-            );
+            $message .= sprintf("[%s] %s", get_class($exception), $exception->getMessage());
             $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
             $exception = $exception->getPrevious();
         } while ($exception !== null);
 
         return $this->log($message, $type);
-    }
-
-    /**
-     * Generates random file name in tmp dir.
-     * @return string
-     */
-    protected function tempFileName()
-    {
-        return $this->tempDir() . DS . $this->generateRandomFileName();
-    }
-
-    /**
-     * @return string
-     */
-    protected function tempDir()
-    {
-        return Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
     }
 
     /**
@@ -3210,23 +3151,6 @@ class AppModel extends Model
         return $decoded;
     }
 
-    /*
-     *  Temporary solution for utf8 columns until we migrate to utf8mb4
-     *  via https://stackoverflow.com/questions/16496554/can-php-detect-4-byte-encoded-utf8-chars
-     */
-    public function handle4ByteUnicode($input)
-    {
-        return preg_replace(
-            '%(?:
-            \xF0[\x90-\xBF][\x80-\xBF]{2}
-            | [\xF1-\xF3][\x80-\xBF]{3}
-            | \xF4[\x80-\x8F][\x80-\xBF]{2}
-            )%xs',
-            '?',
-            $input
-        );
-    }
-
     /**
      * Faster version of default `hasAny` method
      * @param array|null $conditions
@@ -3239,7 +3163,20 @@ class AppModel extends Model
             'conditions' => $conditions,
             'recursive' => -1,
             'callbacks' => false,
+            'order' => [], // disable order
         ));
+    }
+
+    /**
+     * @param int $value Timestamp in microseconds
+     * @return string
+     */
+    protected function microTimestampToIso($value)
+    {
+        $sec = (int)($value / 1000000);
+        $micro = $value % 1000000;
+        $micro = str_pad($micro, 6, "0", STR_PAD_LEFT);
+        return DateTime::createFromFormat('U.u', "$sec.$micro")->format('Y-m-d\TH:i:s.uP');
     }
 
     /**
@@ -3294,5 +3231,21 @@ class AppModel extends Model
             return Configure::read("Plugin.Kafka_{$name}_notifications_topic") ?: null;
         }
         return null;
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    protected function pubToZmq($name)
+    {
+        static $zmqEnabled;
+        if ($zmqEnabled === null) {
+            $zmqEnabled = (bool)Configure::read('Plugin.ZeroMQ_enable');
+        }
+        if ($zmqEnabled) {
+            return Configure::read("Plugin.ZeroMQ_{$name}_notifications_enable");
+        }
+        return false;
     }
 }

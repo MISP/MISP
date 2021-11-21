@@ -29,7 +29,14 @@ App::uses('AppModel', 'Model');
 class AppShell extends Shell
 {
     public $tasks = array('ConfigLoad');
-    
+
+    public function initialize()
+    {
+        parent::initialize();
+        $this->ConfigLoad = $this->Tasks->load('ConfigLoad');
+        $this->ConfigLoad->execute();
+    }
+
     public function perform()
     {
         $this->initialize();

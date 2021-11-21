@@ -512,6 +512,7 @@ class RestResponseComponent extends Component
      * @param bool $download
      * @param array $headers
      * @return CakeResponse
+     * @throws Exception
      */
     private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
     {
@@ -535,7 +536,7 @@ class RestResponseComponent extends Component
             $type = 'xml';
         } elseif ($format === 'openioc') {
             $type = 'xml';
-        } elseif ($format === 'csv') {
+        } elseif ($format === 'csv' || $format === 'text/csv') {
             $type = 'csv';
         } else {
             if (empty($format)) {
@@ -582,6 +583,12 @@ class RestResponseComponent extends Component
         }
 
         App::uses('TmpFileTool', 'Tools');
+        if ($response instanceof Generator) {
+            $tmpFile = new TmpFileTool();
+            $tmpFile->writeWithSeparator($response, null);
+            $response = $tmpFile;
+        }
+
         if ($response instanceof TmpFileTool) {
             App::uses('CakeResponseTmp', 'Tools');
             $cakeResponse = new CakeResponseTmp(['status' => $code, 'type' => $type]);

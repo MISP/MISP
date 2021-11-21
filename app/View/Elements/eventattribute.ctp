@@ -33,6 +33,7 @@
                 $focus = $params['focus'];
             }
             unset($params['focus']);
+            $params += $advancedFilteringActiveRules;
             $url = array_merge(array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']), $params);
             $this->Paginator->options(array(
                 'url' => $url,

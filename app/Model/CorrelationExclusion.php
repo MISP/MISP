@@ -67,27 +67,26 @@ class CorrelationExclusion extends AppModel
     public function cleanRouter($user)
     {
         if (Configure::read('MISP.background_jobs')) {
-            $this->Job = ClassRegistry::init('Job');
-            $this->Job->create();
-            $data = [
-                    'worker' => 'default',
-                    'job_type' => 'clean_correlation_exclusions',
-                    'job_input' => '',
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $user['Organisation']['name'],
-                    'message' => __('Cleaning up excluded correlations.'),
-            ];
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    ['cleanExcludedCorrelations', $jobId],
-                    true
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_DEFAULT,
+                'clean_correlation_exclusions',
+                '',
+                __('Cleaning up excluded correlations.')
             );
-            $this->Job->saveField('process_id', $process_id);
-            $message = __('Cleanup queued for background execution.');
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'cleanExcludedCorrelations',
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
         } else {
             $this->clean();
         }

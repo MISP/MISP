@@ -43,29 +43,29 @@ class Correlation extends AppModel
     public function correlateValueRouter($value)
     {
         if (Configure::read('MISP.background_jobs')) {
-            if (empty($this->Job)) {
-                $this->Job = ClassRegistry::init('Job');
-            }
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'correlateValue',
-                    'job_input' => $value,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => 0,
-                    'org' => 0,
-                    'message' => 'Recorrelating',
+
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'correlateValue',
+                $value,
+                'Recorrelating'
             );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'EventShell',
-                    ['correlateValue', $value, $jobId],
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                [
+                    'correlateValue',
+                    $value,
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $this->Job->saveField('process_id', $process_id);
+
             return true;
         } else {
             return $this->correlateValue($value);
@@ -590,29 +590,27 @@ class Correlation extends AppModel
     public function generateTopCorrelationsRouter()
     {
         if (Configure::read('MISP.background_jobs')) {
-            if (empty($this->Job)) {
-                $this->Job = ClassRegistry::init('Job');
-            }
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'generateTopCorrelations',
-                    'job_input' => '',
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => 0,
-                    'org' => 0,
-                    'message' => 'Starting generation of top correlations.',
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generateTopCorrelations',
+                '',
+                'Starting generation of top correlations.'
             );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'EventShell',
-                    ['generateTopCorrelations', $jobId],
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                [
+                    'generateTopCorrelations',
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $this->Job->saveField('process_id', $process_id);
+
             return $jobId;
         } else {
             return $this->generateTopCorrelations();

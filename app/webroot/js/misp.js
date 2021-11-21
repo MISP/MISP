@@ -183,8 +183,7 @@ function cancelPrompt(isolated) {
         $("#gray_out").fadeOut();
     }
     $("#popover_form").fadeOut();
-    $("#confirmation_box").fadeOut();
-    $("#confirmation_box").empty();
+    $("#confirmation_box").fadeOut().empty();
     $('.have-a-popover').popover('destroy');
 }
 
@@ -1132,10 +1131,11 @@ function removeEventTag(event, tag) {
 
 function loadAttributeTags(id) {
     $.ajax({
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data) {
-            $("#Attribute_"+id+".attributeTagContainer").html(data);
+        success: function (data) {
+            // different approach for event view and attribute view
+            $("#Attribute_" + id + "_tr .attributeTagContainer, [data-primary-id=" + id + "] .attributeTagContainer").html(data);
         },
         error: xhrFailCallback,
         url: baseurl + "/tags/showAttributeTag/" + id
@@ -4224,7 +4224,11 @@ function checkAndSetPublishedInfo(skip_reload) {
     if (typeof skip_reload === "undefined") {
         skip_reload = false;
     }
-    var id = $('#hiddenSideMenuData').data('event-id');
+    var $el = $('#hiddenSideMenuData');
+    if ($el.length === 0) {
+        return;
+    }
+    var id = $el.data('event-id');
     if (id !== 'undefined' && !skip_reload) {
         $.get(baseurl + "/events/checkPublishedStatus/" + id, function(data) {
             if (data == 1) {

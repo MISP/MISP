@@ -30,7 +30,7 @@ class EventGraph extends AppModel
 
     public $validate = array(
         'network_json' => array(
-            'rule' => array('isValidJson'),
+            'rule' => 'valueIsJson',
             'message' => 'The provided eventGraph is not a valid json format',
             'required' => true,
         ),
@@ -41,16 +41,6 @@ class EventGraph extends AppModel
         parent::beforeValidate();
         $date = new DateTime();
         $this->data['EventGraph']['timestamp'] = $date->getTimestamp();
-        return true;
-    }
-
-    public function isValidJson($fields)
-    {
-        $text = $fields['network_json'];
-        $check = json_decode($text);
-        if ($check === null) {
-            return false;
-        }
         return true;
     }
 
