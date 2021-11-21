@@ -180,7 +180,7 @@ class AppController extends Controller
         Configure::write('CurrentController', $this->request->params['controller']);
         Configure::write('CurrentAction', $this->request->params['action']);
         $versionArray = $this->User->checkMISPVersion();
-        $this->mispVersion = implode('.', array_values($versionArray));
+        $this->mispVersion = implode('.', $versionArray);
         $this->Security->blackHoleCallback = 'blackHole';
 
         // send users away that are using ancient versions of IE
