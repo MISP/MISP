@@ -998,37 +998,46 @@ class AttributesController extends AppController
     {
         $conditions = $this->__idToConditions($id);
         $conditions['Attribute.type'] = 'attachment';
-        $options = array(
-            'conditions' => $conditions,
-            'includeAllTags' => false,
-            'includeAttributeUuid' => true,
-            'flatten' => true,
-            'deleted' => [0, 1]
-        );
 
         if ($this->_isRest()) {
-            $options['withAttachments'] = true;
+            $options = array(
+                'conditions' => $conditions,
+                'includeAllTags' => false,
+                'includeAttributeUuid' => true,
+                'flatten' => true,
+                'deleted' => [0, 1],
+                'withAttachments' => true,
+            );
+            $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $options);
+            if (empty($attribute)) {
+                throw new MethodNotAllowedException('Invalid attribute');
+            }
+            $attribute = $attribute[0];
+            if (!$this->Attribute->isImage($attribute['Attribute'])) {
+                throw new NotFoundException("Attribute is not an image.");
+            }
+            return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
         }
 
-        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $options);
+        $attribute = $this->Attribute->fetchAttributeSimple($this->Auth->user(), [
+            'conditions' => $conditions,
+            'fields' => ['Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'],
+        ]);
         if (empty($attribute)) {
             throw new MethodNotAllowedException('Invalid attribute');
         }
-        $attribute = $attribute[0];
-
         if (!$this->Attribute->isImage($attribute['Attribute'])) {
             throw new NotFoundException("Attribute is not an image.");
         }
 
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
-        } else {
-            $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
-            $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
-            $imageData = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
-            $extension = pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION);
-            return new CakeResponse(array('body' => $imageData, 'type' => strtolower($extension)));
-        }
+        $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
+        $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
+        $imageData = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
+        $extension = pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION);
+
+        $this->response->body($imageData);
+        $this->response->type(strtolower($extension));
+        return $this->response;
     }
 
     public function delete($id, $hard = false)

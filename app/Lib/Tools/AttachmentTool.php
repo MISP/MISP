@@ -425,8 +425,7 @@ class AttachmentTool
         // Output image to string
         ob_start();
         imagepng($imageThumbnail, null, 9);
-        $imageData = ob_get_contents();
-        ob_end_clean();
+        $imageData = ob_get_clean();
         imagedestroy($imageThumbnail);
 
         return $imageData;

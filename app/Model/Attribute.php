@@ -952,7 +952,7 @@ class Attribute extends AppModel
      * @return string
      * @throws Exception
      */
-    public function getPictureData(array $attribute, $thumbnail=false, $maxWidth=200, $maxHeight=200)
+    public function getPictureData(array $attribute, $thumbnail = false, $maxWidth = 200, $maxHeight = 200)
     {
         if ($thumbnail && extension_loaded('gd')) {
             if ($maxWidth == 200 && $maxHeight == 200) {
