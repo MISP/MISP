@@ -949,7 +949,7 @@ class Attribute extends AppModel
      * @param bool $thumbnail
      * @param int $maxWidth - When $thumbnail is true
      * @param int $maxHeight - When $thumbnail is true
-     * @return string
+     * @return string|File
      * @throws Exception
      */
     public function getPictureData(array $attribute, $thumbnail = false, $maxWidth = 200, $maxHeight = 200)
@@ -958,7 +958,7 @@ class Attribute extends AppModel
             if ($maxWidth == 200 && $maxHeight == 200) {
                 // Return thumbnail directly if already exists
                 try {
-                    return $this->getAttachment($attribute['Attribute'], $path_suffix = '_thumbnail');
+                    return $this->loadAttachmentTool()->getFile($attribute['Attribute']['event_id'], $attribute['Attribute']['id'], $path_suffix = '_thumbnail');
                 } catch (NotFoundException $e) {
                     // pass
                 }
@@ -973,11 +973,10 @@ class Attribute extends AppModel
                 $attribute['Attribute']['data'] = $imageData;
                 $this->saveAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
             }
-        } else {
-            $imageData = $this->getAttachment($attribute['Attribute']);
+            return $imageData;
         }
 
-        return $imageData;
+        return $this->loadAttachmentTool()->getFile($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
     }
 
     /**

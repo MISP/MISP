@@ -1031,8 +1031,12 @@ class AttributesController extends AppController
 
         $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
         $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
-        $imageData = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
         $extension = pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION);
+
+        $imageData = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
+        if ($imageData instanceof File) {
+            return $this->RestResponse->sendFile($imageData, strtolower($extension));
+        }
 
         $this->response->body($imageData);
         $this->response->type(strtolower($extension));

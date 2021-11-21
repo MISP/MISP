@@ -156,7 +156,7 @@ class AttachmentTool
         } else {
             $filepath = $this->attachmentDir() . DS . $path;
             $file = new File($filepath);
-            if (!$file->exists()) {
+            if (!is_file($file->path)) {
                 throw new NotFoundException("File '$filepath' does not exists.");
             }
         }
