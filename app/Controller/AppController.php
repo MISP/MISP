@@ -1415,12 +1415,15 @@ class AppController extends Controller
     }
 
     /**
-     * Override View class
-     * @return AppView
+     * Override default View class
+     * @return View
      */
     protected function _getViewObject()
     {
-        App::uses('AppView', 'View');
-        return new AppView($this);
+        if ($this->viewClass === 'View') {
+            App::uses('AppView', 'View');
+            return new AppView($this);
+        }
+        return parent::_getViewObject();
     }
 }
