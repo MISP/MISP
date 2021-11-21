@@ -1413,4 +1413,14 @@ class AppController extends Controller
             return true;
         }
     }
+
+    /**
+     * Override View class
+     * @return AppView
+     */
+    protected function _getViewObject()
+    {
+        App::uses('AppView', 'View');
+        return new AppView($this);
+    }
 }
