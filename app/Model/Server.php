@@ -2290,7 +2290,7 @@ class Server extends AppModel
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
             'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
             'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
-            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth', 
+            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth',
             'AadAuth', 'SimpleBackgroundJobs'
         );
         $settingsArray = array();
@@ -3979,7 +3979,7 @@ class Server extends AppModel
     {
         $path = APP . '../';
         if ($submodule_name == false) {
-            $command = sprintf('cd %s; git submodule update 2>&1', $path);
+            $command = sprintf('cd %s; git submodule update --init --recursive 2>&1', $path);
             exec($command, $output, $return_code);
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
@@ -3987,7 +3987,7 @@ class Server extends AppModel
                 $res = array_merge($res, $this->updateDatabaseAfterPullRouter($submodule_name, $user));
             }
         } else if ($this->_isAcceptedSubmodule($submodule_name)) {
-            $command = sprintf('cd %s; git submodule update -- %s 2>&1', $path, $submodule_name);
+            $command = sprintf('cd %s; git submodule update --init --recursive -- %s 2>&1', $path, $submodule_name);
             exec($command, $output, $return_code);
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
