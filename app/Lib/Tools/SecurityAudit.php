@@ -213,16 +213,10 @@ class SecurityAudit
             }
         } catch (RuntimeException $e) {}
 
-        if (version_compare(PHP_VERSION, '7.3.0', '<')) {
+        if (version_compare(PHP_VERSION, '7.4.0', '<')) {
             $output['PHP'][] = [
                 'warning',
                 __('PHP version %s is not supported anymore. It can be still supported by your distribution.', PHP_VERSION),
-                'https://www.php.net/supported-versions.php'
-            ];
-        } else if (version_compare(PHP_VERSION, '7.4.0', '<')) {
-            $output['PHP'][] = [
-                'hint',
-                __('PHP version 7.3 will not be supported after 6 Dec 2021. Even beyond that date, it can be still supported by your distribution.'),
                 'https://www.php.net/supported-versions.php'
             ];
         }
