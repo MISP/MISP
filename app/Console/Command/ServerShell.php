@@ -12,16 +12,7 @@ require_once 'AppShell.php';
  */
 class ServerShell extends AppShell
 {
-    /** @var BackgroundJobsTool */
-    private $BackgroundJobsTool;
-
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
-
-    public function initialize(): void
-    {
-        parent::initialize();
-        $this->BackgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs'));
-    }
 
     public function list()
     {
@@ -89,7 +80,7 @@ class ServerShell extends AppShell
 
         foreach ($servers as $serverId => $serverName) {
 
-            $backgroundJobId = $this->BackgroundJobsTool->enqueue(
+            $backgroundJobId = $this->Server->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_SERVER,
                 [
@@ -199,7 +190,7 @@ class ServerShell extends AppShell
 
         foreach ($servers as $serverId => $serverName) {
 
-            $jobId = $this->BackgroundJobsTool->enqueue(
+            $jobId = $this->Server->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_SERVER,
                 [
@@ -319,7 +310,7 @@ class ServerShell extends AppShell
 
         foreach ($servers as $serverId => $serverName) {
 
-            $jobId = $this->BackgroundJobsTool->enqueue(
+            $jobId = $this->Server->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_SERVER,
                 [
