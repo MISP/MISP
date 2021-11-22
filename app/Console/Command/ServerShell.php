@@ -79,6 +79,7 @@ class ServerShell extends AppShell
         ));
 
         foreach ($servers as $serverId => $serverName) {
+            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'pull', "Server: $serverId", 'Pulling.');
             $backgroundJobId = $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_SERVER,
@@ -86,8 +87,11 @@ class ServerShell extends AppShell
                     'pull',
                     $user['id'],
                     $serverId,
-                    $technique
-                ]
+                    $technique,
+                    $jobId,
+                ],
+                true,
+                $jobId
             );
 
             $this->out("Enqueued pulling from $serverName server as job $backgroundJobId");
