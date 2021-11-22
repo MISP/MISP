@@ -281,6 +281,7 @@ class AttachmentTool
             $s3 = $this->loadS3Client();
             $s3->deleteDirectory($eventId);
         } else {
+            App::uses('Folder', 'Utility');
             $dirPath = $this->attachmentDir();
 
             foreach (array($dirPath, $dirPath . DS . 'shadow') as $dirPath) {
