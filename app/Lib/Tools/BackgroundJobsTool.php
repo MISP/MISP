@@ -324,7 +324,7 @@ class BackgroundJobsTool
      * 
      * @return void
      */
-    public function update(BackgroundJob $job): void
+    public function update(BackgroundJob $job)
     {
         $job->setUpdatedAt(time());
 
@@ -422,7 +422,7 @@ class BackgroundJobsTool
      * @param boolean $waitForRestart
      * @return void
      */
-    public function restartWorkers(bool $waitForRestart = false): void
+    public function restartWorkers(bool $waitForRestart = false)
     {
         $this->getSupervisor()->stopProcessGroup(self::MISP_WORKERS_PROCESS_GROUP, $waitForRestart);
         $this->getSupervisor()->startProcessGroup(self::MISP_WORKERS_PROCESS_GROUP, $waitForRestart);
@@ -434,7 +434,7 @@ class BackgroundJobsTool
      * @param boolean $waitForRestart
      * @return void
      */
-    public function restartDeadWorkers(bool $waitForRestart = false): void
+    public function restartDeadWorkers(bool $waitForRestart = false)
     {
         $this->getSupervisor()->startProcessGroup(self::MISP_WORKERS_PROCESS_GROUP, $waitForRestart);
     }
@@ -445,7 +445,7 @@ class BackgroundJobsTool
      * @param string $queue
      * @return void
      */
-    public function purgeQueue(string $queue): void
+    public function purgeQueue(string $queue)
     {
         $this->validateQueue($queue);
 
@@ -620,7 +620,7 @@ class BackgroundJobsTool
         return new \Supervisor\Supervisor($client);
     }
 
-    private function updateJobProcessId(int $jobId, string $processId): void
+    private function updateJobProcessId(int $jobId, string $processId)
     {
         $job = ClassRegistry::init('Job');
         $job->id = $jobId;
