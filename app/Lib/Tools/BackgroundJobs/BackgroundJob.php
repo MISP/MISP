@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 class BackgroundJob implements JsonSerializable
 {
-    public const
+    const
         STATUS_WAITING = 1,
         STATUS_RUNNING = 2,
         STATUS_FAILED = 3,
