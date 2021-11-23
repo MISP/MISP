@@ -212,10 +212,9 @@ class BackgroundJobsTool
      *                  Must be less than your configured `read_write_timeout` 
      *                  for the redis connection.
      * 
-     * @return BackgroundJob|null.
      * @throws Exception
      */
-    public function dequeue($queue, int $timeout = 30): ?BackgroundJob
+    public function dequeue($queue, int $timeout = 30)
     {
         $this->validateQueue($queue);
 
@@ -233,10 +232,9 @@ class BackgroundJobsTool
      *
      * @param string $jobId Background Job Id.
      * 
-     * @return BackgroundJob|null job status.
      * 
      */
-    public function getJob(string $jobId): ?BackgroundJob
+    public function getJob(string $jobId)
     {
         $rawJob = $this->RedisConnection->get(
             self::JOB_STATUS_PREFIX . ':' . $jobId
