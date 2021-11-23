@@ -184,27 +184,27 @@ class BackgroundJob implements JsonSerializable
         return $this->returnCode;
     }
 
-    public function setStatus(int $status): void
+    public function setStatus(int $status)
     {
         $this->status = $status;
     }
 
-    public function setOutput(?string $output): void
+    public function setOutput(?string $output)
     {
         $this->output = $output;
     }
 
-    public function setError(?string $error): void
+    public function setError(?string $error)
     {
         $this->error = $error;
     }
 
-    public function setProgress(int $progress): void
+    public function setProgress(int $progress)
     {
         $this->progress = $progress;
     }
 
-    public function setUpdatedAt(int $updatedAt): void
+    public function setUpdatedAt(int $updatedAt)
     {
         $this->updatedAt = $updatedAt;
     }
