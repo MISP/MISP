@@ -22,6 +22,7 @@ App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
  * @property CompressedRequestHandlerComponent $CompressedRequestHandler
  * @property DeprecationComponent $Deprecation
  * @property RestSearchComponent $RestSearch
+ * @property BetterSecurityComponent $Security
  */
 class AppController extends Controller
 {
@@ -81,7 +82,9 @@ class AppController extends Controller
                 )
             )
         ),
-        'Security',
+        'Security' => [
+            'className' => 'BetterSecurity',
+        ],
         'ACL',
         'CompressedRequestHandler',
         'RestResponse',
@@ -217,6 +220,7 @@ class AppController extends Controller
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
             $this->Security->unlockedActions = array($this->request->action);
+            $this->Security->doNotGenerateToken = true;
         }
 
         if (
@@ -230,9 +234,7 @@ class AppController extends Controller
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
                 // disable CSRF for REST access
-                if (isset($this->components['Security'])) {
-                    $this->Security->csrfCheck = false;
-                }
+                $this->Security->csrfCheck = false;
                 if ($this->__loginByAuthKey() === false || $this->Auth->user() === null) {
                     if ($this->__loginByAuthKey() === null) {
                         $this->loadModel('Log');

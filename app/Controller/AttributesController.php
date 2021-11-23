@@ -9,7 +9,7 @@ App::uses('AttachmentTool', 'Tools');
  */
 class AttributesController extends AppController
 {
-    public $components = array('Security', 'RequestHandler');
+    public $components = array('RequestHandler');
 
     public $paginate = [
         'limit' => 60,
@@ -47,9 +47,8 @@ class AttributesController extends AppController
         $this->Security->unlockedActions[] = 'getMassEditForm';
         $this->Security->unlockedActions[] = 'search';
         if ($this->request->action === 'add_attachment') {
-            $this->Security->disabledFields = array('values');
+            $this->Security->unlockedFields = array('values');
         }
-        $this->Security->validatePost = true;
 
         // convert uuid to id if present in the url and overwrite id field
         if (isset($this->request->params->query['uuid'])) {

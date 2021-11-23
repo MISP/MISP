@@ -9,9 +9,7 @@ class UsersController extends AppController
     public $newkey;
 
     public $components = array(
-            'Security',
-            'Email',
-            'RequestHandler'
+        'RequestHandler'
     );
 
     public $paginate = array(

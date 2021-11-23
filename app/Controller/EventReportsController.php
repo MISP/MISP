@@ -7,7 +7,6 @@ App::uses('AppController', 'Controller');
 class EventReportsController extends AppController
 {
     public $components = array(
-        'Security',
         'AdminCrud',
         'RequestHandler'
     );
