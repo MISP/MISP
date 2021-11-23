@@ -970,7 +970,7 @@ class ACLComponent extends Component
             $fileContents = preg_replace('/\/\*[^\*]+?\*\//', '', $fileContents);
             preg_match_all($functionFinder, $fileContents, $functionArray);
             foreach ($functionArray[1] as $function) {
-                if (substr($function, 0, 1) !== '_' && $function !== 'beforeFilter' && $function !== 'afterFilter') {
+                if ($function[0] !== '_' && $function !== 'beforeFilter' && $function !== 'afterFilter' && $function !== 'beforeRender') {
                     $results[$controllerName][] = $function;
                 }
             }

@@ -2,6 +2,7 @@
 import os
 import unittest
 import uuid
+from xml.etree import ElementTree as ET
 from io import BytesIO
 import urllib3  # type: ignore
 
@@ -564,6 +565,33 @@ class TestComprehensive(unittest.TestCase):
         fetched_event = check_response(self.admin_misp_connector.get_event(event))
         self.assertEqual(1, len(fetched_event.tags), fetched_event.tags)
         self.assertTrue(fetched_event.tags[0].local, fetched_event.tags[0])
+
+    def test_export(self):
+        event = create_simple_event()
+        event.add_attribute("ip-src", "1.2.4.5", to_ids=True)
+        event = check_response(self.admin_misp_connector.add_event(event))
+
+        result = self._search({'returnFormat': "openioc", 'eventid': event.id, "published": [0, 1]})
+        ET.fromstring(result)  # check if result is valid XML
+        self.assertTrue("1.2.4.5" in result, result)
+
+        result = self._search({'returnFormat': "yara", 'eventid': event.id, "published": [0, 1]})
+        self.assertTrue("1.2.4.5" in result, result)
+        self.assertTrue("GENERATED" in result, result)
+        self.assertTrue("AS-IS" in result, result)
+
+        result = self._search({'returnFormat': "yara-json", 'eventid': event.id, "published": [0, 1]})
+        self.assertIn("generated", result)
+        self.assertEqual(len(result["generated"]), 1, result)
+        self.assertIn("as-is", result)
+
+        check_response(self.admin_misp_connector.delete_event(event))
+
+    def _search(self, query: dict):
+        response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
+        response = self.admin_misp_connector._check_response(response)
+        check_response(response)
+        return response
 
 
 if __name__ == '__main__':

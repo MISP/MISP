@@ -1948,11 +1948,6 @@ class AppModel extends Model
         return true;
     }
 
-    public function getPythonVersion()
-    {
-        return Configure::read('MISP.python_bin') ?: 'python3';
-    }
-
     public function validateAuthkey($value)
     {
         if (empty($value['authkey'])) {

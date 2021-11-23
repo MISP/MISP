@@ -79,16 +79,19 @@ class ServerShell extends AppShell
         ));
 
         foreach ($servers as $serverId => $serverName) {
-
-            $backgroundJobId = $this->Server->getBackgroundJobsTool()->enqueue(
+            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'pull', "Server: $serverId", 'Pulling.');
+            $backgroundJobId = $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_SERVER,
                 [
                     'pull',
                     $user['id'],
                     $serverId,
-                    $technique
-                ]
+                    $technique,
+                    $jobId,
+                ],
+                true,
+                $jobId
             );
 
             $this->out("Enqueued pulling from $serverName server as job $backgroundJobId");
@@ -189,8 +192,7 @@ class ServerShell extends AppShell
         ));
 
         foreach ($servers as $serverId => $serverName) {
-
-            $jobId = $this->Server->getBackgroundJobsTool()->enqueue(
+            $jobId = $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_SERVER,
                 [
@@ -309,8 +311,7 @@ class ServerShell extends AppShell
         ));
 
         foreach ($servers as $serverId => $serverName) {
-
-            $jobId = $this->Server->getBackgroundJobsTool()->enqueue(
+            $jobId = $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_SERVER,
                 [
@@ -320,7 +321,7 @@ class ServerShell extends AppShell
                 ]
             );
 
-            $this->out("Enqueued cacheServer from {$serverName} server as job $jobId");
+            $this->out("Enqueued cacheServer from $serverName server as job $jobId");
         }
     }
 
@@ -604,5 +605,16 @@ class ServerShell extends AppShell
             $this->error("Server with ID $serverId doesn't exists.");
         }
         return $server;
+    }
+
+    /**
+     * @return BackgroundJobsTool
+     */
+    private function getBackgroundJobsTool()
+    {
+        if (!$this->BackgroundJobsTool) {
+            $this->BackgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs'));
+        }
+        return $this->BackgroundJobsTool;
     }
 }

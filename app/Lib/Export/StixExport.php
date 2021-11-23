@@ -19,15 +19,12 @@ abstract class StixExport
     protected $__filenames = array();
     protected $__version = null;
 
-    private $__current_filename = null;
     private $__empty_file = null;
     /** @var File */
     private $__tmp_file = null;
     private $__n_attributes = 0;
 
     public $non_restrictive_export = true;
-
-    private $Server;
 
     public function setDefaultFilters($filters)
     {
@@ -56,7 +53,7 @@ abstract class StixExport
         } else {
             $this->__tmp_file->append(']}');
             $this->__tmp_file->close();
-            $this->__filenames[] = $this->__current_filename;
+            $this->__filenames[] = $this->__tmp_file->path;
             $this->__initialize_misp_file();
             $this->__tmp_file->append($event);
             $this->__n_attributes = $attributesCount;
@@ -88,7 +85,7 @@ abstract class StixExport
         } else {
             $this->__tmp_file->append(']}');
             $this->__tmp_file->close();
-            $this->__filenames[] = $this->__current_filename;
+            $this->__filenames[] = $this->__tmp_file->path;
         }
         $result = $this->__parse_misp_events($this->__filenames);
         $this->__delete_temporary_files();
@@ -118,9 +115,9 @@ abstract class StixExport
 
     private function __initialize_misp_file()
     {
-        $this->__current_filename = FileAccessTool::createTempFile();
-        $this->__tmp_file = new File($this->__current_filename);
-        $this->__tmp_file->write('{"response": [');
+        $tmpFile = FileAccessTool::createTempFile();
+        $this->__tmp_file = new File($tmpFile);
+        $this->__tmp_file->write('{"response":[');
         $this->__empty_file = true;
     }
 
@@ -138,11 +135,15 @@ abstract class StixExport
     private function getFraming()
     {
         $framingCmd = $this->__initiate_framing_params();
-        $framing = json_decode(ProcessTool::execute($framingCmd, null, true), true);
-        if ($framing === null || isset($framing['error'])) {
-            throw new Exception("Could not get results from framing cmd when exporting STIX file.");
+        try {
+            $framing = JsonTool::decode(ProcessTool::execute($framingCmd, null, true));
+            if (isset($framing['error'])) {
+                throw new Exception("Framing command error: " . $framing['error']);
+            }
+            return $framing;
+        } catch (Exception $e) {
+            throw new Exception("Could not get results from framing cmd when exporting STIX file.", 0, $e);
         }
-        return $framing;
     }
 
     /**

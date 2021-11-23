@@ -97,6 +97,11 @@ class AuditLogBehavior extends ModelBehavior
                 $fieldToFetch[] = 'event_id';
             }
 
+            // Fetch fields that are necessary to fill object title
+            if (isset($this->modelInfo[$model->name]) && is_string($this->modelInfo[$model->name]) && !in_array($this->modelInfo[$model->name], $fieldToFetch, true)) {
+                $fieldToFetch[] = $this->modelInfo[$model->name];
+            }
+
             if (empty($fieldToFetch))  {
                 $this->beforeSave = null;
                 return true;

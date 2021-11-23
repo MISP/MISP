@@ -73,13 +73,11 @@ class ProcessTool
             $commandForException = self::commandFormat($command);
             throw new Exception("Could not get STDOUT of command '$commandForException'.");
         }
-        fclose($pipes[1]);
 
         if ($stderrToFile) {
             $stderr = null;
         } else {
             $stderr = stream_get_contents($pipes[2]);
-            fclose($pipes[2]);
         }
 
         $returnCode = proc_close($process);
@@ -93,6 +91,20 @@ class ProcessTool
         }
 
         return $stdout;
+    }
+
+    /**
+     * Get current process user name
+     * @return string
+     * @throws ProcessException
+     */
+    public static function whoami()
+    {
+        if (function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
+            return posix_getpwuid(posix_geteuid())['name'];
+        } else {
+            return rtrim(self::execute(['whoami']));
+        }
     }
 
     /**
