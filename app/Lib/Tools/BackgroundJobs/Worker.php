@@ -38,7 +38,7 @@ class Worker implements JsonSerializable
      */
     private $status;
 
-    public const
+    const
         STATUS_RUNNING = 1,
         STATUS_FAILED = 2,
         STATUS_UNKNOWN = 3;

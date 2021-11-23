@@ -44,23 +44,23 @@ class BackgroundJobsTool
     /** @var \Supervisor\Supervisor */
     private $Supervisor;
 
-    public const MISP_WORKERS_PROCESS_GROUP = 'misp-workers';
+    const MISP_WORKERS_PROCESS_GROUP = 'misp-workers';
 
-    public const
+    const
         STATUS_RUNNING = 0,
         STATUS_NOT_ENABLED = 1,
         STATUS_REDIS_NOT_OK = 2,
         STATUS_SUPERVISOR_NOT_OK = 3,
         STATUS_REDIS_AND_SUPERVISOR_NOT_OK = 4;
 
-    public const
+    const
         DEFAULT_QUEUE = 'default',
         EMAIL_QUEUE = 'email',
         CACHE_QUEUE = 'cache',
         PRIO_QUEUE = 'prio',
         UPDATE_QUEUE = 'update';
 
-    public const VALID_QUEUES = [
+    const VALID_QUEUES = [
         self::DEFAULT_QUEUE,
         self::EMAIL_QUEUE,
         self::CACHE_QUEUE,
@@ -68,24 +68,24 @@ class BackgroundJobsTool
         self::UPDATE_QUEUE,
     ];
 
-    public const
+    const
         CMD_EVENT = 'event',
         CMD_SERVER = 'server',
         CMD_ADMIN = 'admin';
 
-    public const ALLOWED_COMMANDS = [
+    const ALLOWED_COMMANDS = [
         self::CMD_EVENT,
         self::CMD_SERVER,
         self::CMD_ADMIN
     ];
 
-    public const CMD_TO_SHELL_DICT = [
+    const CMD_TO_SHELL_DICT = [
         self::CMD_EVENT => 'EventShell',
         self::CMD_SERVER => 'ServerShell',
         self::CMD_ADMIN => 'AdminShell'
     ];
 
-    public const JOB_STATUS_PREFIX = 'job_status';
+    const JOB_STATUS_PREFIX = 'job_status';
 
     /** @var array */
     private $settings;

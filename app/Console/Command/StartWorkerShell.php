@@ -16,7 +16,7 @@ class StartWorkerShell extends AppShell
     /** @var int */
     private $maxExecutionTime;
 
-    private const DEFAULT_MAX_EXECUTION_TIME = 86400; // 1 day
+    const DEFAULT_MAX_EXECUTION_TIME = 86400; // 1 day
 
     public function initialize(): void
     {
