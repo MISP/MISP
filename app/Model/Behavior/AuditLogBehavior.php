@@ -16,7 +16,7 @@ class AuditLogBehavior extends ModelBehavior
     private $enabled;
 
     // Hash is faster that in_array
-    private $skipFields = [
+    const SKIP_FIELDS = [
         'id' => true,
         'lastpushedid' => true,
         'timestamp' => true,
@@ -86,7 +86,7 @@ class AuditLogBehavior extends ModelBehavior
         $fieldToFetch = [];
         if (!empty($options['fieldList'])) {
             foreach ($options['fieldList'] as $field) {
-                if (!isset($this->skipFields[$field])) {
+                if (!isset(self::SKIP_FIELDS[$field])) {
                     $fieldToFetch[] = $field;
                 }
             }
@@ -324,7 +324,7 @@ class AuditLogBehavior extends ModelBehavior
         $changedFields = [];
         $hasPrimaryField = isset($model->data[$model->alias][$model->primaryKey]);
         foreach ($model->data[$model->alias] as $key => $value) {
-            if (isset($this->skipFields[$key])) {
+            if (isset(self::SKIP_FIELDS[$key])) {
                 continue;
             }
             if (!isset($dbFields[$key])) {

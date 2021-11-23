@@ -300,9 +300,7 @@ class MispObject extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') &&
-            Configure::read('Plugin.ZeroMQ_object_notifications_enable') &&
-            empty($this->data['Object']['skip_zmq']);
+        $pubToZmq = $this->pubToZmq('object') && empty($this->data['Object']['skip_zmq']);
         $kafkaTopic = $this->kafkaTopic('object');
         $pubToKafka = $kafkaTopic && empty($this->data['Object']['skip_kafka']);
         if ($pubToZmq || $pubToKafka) {
@@ -329,10 +327,9 @@ class MispObject extends AppModel
     public function beforeDelete($cascade = true)
     {
         if (!empty($this->data['Object']['id'])) {
-            $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_notifications_enable');
-            $kafkaTopic = Configure::read('Plugin.Kafka_object_notifications_topic');
-            $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_object_notifications_enable') && !empty($kafkaTopic);
-            if ($pubToZmq || $pubToKafka) {
+            $pubToZmq = $this->pubToZmq('object');
+            $kafkaTopic = $this->kafkaTopic('object');
+            if ($pubToZmq || $kafkaTopic) {
                 $object = $this->find('first', array(
                     'recursive' => -1,
                     'conditions' => array('Object.id' => $this->data['Object']['id'])
@@ -341,7 +338,7 @@ class MispObject extends AppModel
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->object_save($object, 'delete');
                 }
-                if ($pubToKafka) {
+                if ($kafkaTopic) {
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $object, 'delete');
                 }

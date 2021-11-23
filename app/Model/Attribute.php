@@ -125,7 +125,7 @@ class Attribute extends AppModel
         'hostname|port',
     );
 
-    public $captureFields = array(
+    const CAPTURE_FIELDS = array(
         'event_id',
         'category',
         'type',
@@ -480,7 +480,7 @@ class Attribute extends AppModel
                 $result = $this->saveAttachment($attribute);
             }
         }
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable');
+        $pubToZmq = $this->pubToZmq('attribute');
         $kafkaTopic = $this->kafkaTopic('attribute');
         if ($pubToZmq || $kafkaTopic) {
             $attributeForPublish = $this->fetchAttribute($this->id);
@@ -532,7 +532,7 @@ class Attribute extends AppModel
         // update correlation..
         $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
         if (!empty($this->data['Attribute']['id'])) {
-            if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
+            if ($this->pubToZmq('attribute')) {
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->attribute_save($this->data, 'delete');
             }
@@ -2890,7 +2890,7 @@ class Attribute extends AppModel
             $attribute['distribution'] = $this->defaultDistribution();
         }
         $params = array(
-            'fieldList' => $this->captureFields
+            'fieldList' => self::CAPTURE_FIELDS,
         );
         if (!empty($parentEvent)) {
             $params['parentEvent'] = $parentEvent;

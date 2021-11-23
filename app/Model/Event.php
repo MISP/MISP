@@ -395,7 +395,7 @@ class Event extends AppModel
         }
 
         if (!empty($this->data['Event']['id'])) {
-            if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+            if ($this->pubToZmq('event')) {
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->event_save(array('Event' => $this->data['Event']), 'delete');
             }
@@ -522,7 +522,7 @@ class Event extends AppModel
                 $this->Attribute->Correlation->updateAll($updateCorrelation, ['Correlation.event_id' => (int)$event['id']]);
             }
         }
-        if (empty($event['unpublishAction']) && empty($event['skip_zmq']) && Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+        if (empty($event['unpublishAction']) && empty($event['skip_zmq']) && $this->pubToZmq('event')) {
             $pubSubTool = $this->getPubSubTool();
             $eventForZmq = $this->quickFetchEvent($event['id']);
             if (!empty($event)) {
