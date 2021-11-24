@@ -1237,8 +1237,8 @@ class Feed extends AppModel
                 continue;
             }
             $data[$key]['event_id'] = $event['Event']['id'];
-            $data[$key]['distribution'] = $feed['Feed']['distribution'];
-            $data[$key]['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
+            $data[$key]['distribution'] = 5;
+            $data[$key]['sharing_group_id'] = 0;
             $data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $value['to_ids'];
             $uniqueValues[$value['value']] = true;
         }
