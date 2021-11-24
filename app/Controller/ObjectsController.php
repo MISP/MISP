@@ -1,6 +1,7 @@
 <?php
 
 App::uses('AppController', 'Controller');
+App::uses('JsonTool', 'Tools');
 
 /**
  * @property MispObject $MispObject
@@ -414,7 +415,7 @@ class ObjectsController extends AppController
               $this->request->data['Object'] = $this->request->data;
             }
             if (isset($this->request->data['Object']['data'])) {
-                $this->request->data = json_decode($this->request->data['Object']['data'], true);
+                $this->request->data = JsonTool::decode($this->request->data['Object']['data']);
             }
             if (isset($this->request->data['Object'])) {
                 $this->request->data = array_merge($this->request->data, $this->request->data['Object']);

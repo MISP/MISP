@@ -737,7 +737,7 @@ class MispObject extends AppModel
      * @throws InternalErrorException
      * @throws Exception
      */
-    public function attributeCleanup($attributes)
+    public function attributeCleanup(array $attributes)
     {
         if (empty($attributes['Attribute'])) {
             return $attributes;
@@ -820,7 +820,7 @@ class MispObject extends AppModel
         return $object;
     }
 
-    public function deltaMerge($object, $objectToSave, $onlyAddNewAttribute=false, $user)
+    public function deltaMerge(array $object, array $objectToSave, $onlyAddNewAttribute=false, array $user)
     {
         if (!isset($objectToSave['Object'])) {
             $dataToBackup = array('ObjectReferences', 'Attribute', 'ShadowAttribute');
@@ -851,8 +851,8 @@ class MispObject extends AppModel
                 $object['Object']['sharing_group_id'] = $objectToSave['Object']['sharing_group_id'];
             }
         }
-        $date = new DateTime();
-        $object['Object']['timestamp'] = $date->getTimestamp();
+        $time = time();
+        $object['Object']['timestamp'] = $time;
         $forcedSeenOnElements = array();
         if (isset($objectToSave['Object']['first_seen'])) {
             $forcedSeenOnElements['first_seen'] = $objectToSave['Object']['first_seen'];
@@ -886,10 +886,15 @@ class MispObject extends AppModel
                                     $newAttribute['id'] = $originalAttribute['id'];
                                     $newAttribute['event_id'] = $object['Object']['event_id'];
                                     $newAttribute['object_id'] = $object['Object']['id'];
-                                    $newAttribute['timestamp'] = $date->getTimestamp();
+                                    $newAttribute['timestamp'] = $time;
                                     $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => Attribute::EDITABLE_FIELDS));
                                     if ($result) {
                                         $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
+                                    } else {
+                                        $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', $newAttribute['id'],
+                                            'Attribute dropped due to validation for Event ' . $object['Object']['event_id'] . ' failed',
+                                            'Validation errors: ' . json_encode($this->Event->Attribute->validationErrors) . ' Full Attribute: ' . json_encode($newAttribute)
+                                        );
                                     }
                                 }
                                 unset($object['Attribute'][$origKey]);
@@ -897,7 +902,6 @@ class MispObject extends AppModel
                             }
                         }
                     }
-                    $this->Event->Attribute->create();
                     $newAttribute['event_id'] = $object['Object']['event_id'];
                     $newAttribute['object_id'] = $object['Object']['id'];
                     // Set seen of object at attribute level
@@ -914,20 +918,23 @@ class MispObject extends AppModel
                         }
                     }
                     if (!isset($newAttribute['distribution'])) {
-                        $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-                        if ($newAttribute['distribution'] == 'event') {
-                            $newAttribute['distribution'] = 5;
-                        }
+                        $newAttribute['distribution'] = $this->Event->Attribute->defaultDistribution();
                     }
+                    $this->Event->Attribute->create();
                     $saveResult = $this->Event->Attribute->save($newAttribute);
                     if ($saveResult) {
                         $newAttribute['id'] = $this->Event->Attribute->id;
                         $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
+                    } else {
+                        $this->loadLog()->createLogEntry($user, 'add', 'Attribute', 0,
+                            'Attribute dropped due to validation for Event ' . $object['Object']['event_id'] . ' failed',
+                            'Validation errors: ' . json_encode($this->Event->Attribute->validationErrors) . ' Full Attribute: ' . json_encode($newAttribute)
+                        );
                     }
                     $attributeArrays['add'][] = $newAttribute;
                     unset($objectToSave['Attribute'][$newKey]);
                 }
-                foreach ($object['Attribute'] as $origKey => $originalAttribute) {
+                foreach ($object['Attribute'] as $originalAttribute) {
                     $originalAttribute['deleted'] = 1;
                     $this->Event->Attribute->save($originalAttribute, array('fieldList' => Attribute::EDITABLE_FIELDS));
                 }
@@ -950,12 +957,6 @@ class MispObject extends AppModel
             ) {
                 $newAttribute['last_seen'] = $object['Object']['last_seen'];
                 $different = true;
-            }
-            if (!isset($newAttribute['distribution'])) {
-                $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-                if ($newAttribute['distribution'] == 'event') {
-                    $newAttribute['distribution'] = 5;
-                }
             }
             $saveAttributeResult = $this->Attribute->saveAttributes(array($newAttribute), $user);
             return $saveAttributeResult ? $this->id : $this->validationErrors;
