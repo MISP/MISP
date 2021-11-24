@@ -24,6 +24,8 @@ class AuditLogBehavior extends ModelBehavior
         'last_login' => true, // User
         'newsread' => true, // User
         'proposal_email_lock' => true, // Event
+        'enable_password' => true,
+        'confirm_password' => true
     ];
 
     private $modelInfo = [
