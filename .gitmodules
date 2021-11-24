@@ -11,10 +11,6 @@
 [submodule "app/files/warninglists"]
 	path = app/files/warninglists
 	url = https://github.com/MISP/misp-warninglists.git
-[submodule "app/Lib/random_compat"]
-	path = app/Lib/random_compat
-	url = https://github.com/paragonie/random_compat
-	branch = master
 [submodule "app/files/misp-galaxy"]
 	path = app/files/misp-galaxy
 	url = https://github.com/MISP/misp-galaxy
