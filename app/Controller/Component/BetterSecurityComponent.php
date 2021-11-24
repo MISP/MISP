@@ -58,4 +58,27 @@ class BetterSecurityComponent extends SecurityComponent
         );
         return true;
     }
+
+    /**
+     * Avoid possible timing attacks by using `hash_equals` method to compare hashes.
+     * @param Controller $controller
+     * @return bool
+     */
+    protected function _validatePost(Controller $controller)
+    {
+        $token = $this->_validToken($controller);
+        $hashParts = $this->_hashParts($controller);
+        $check = sha1(implode('', $hashParts));
+
+        if (hash_equals($token, $check)) {
+            return true;
+        }
+
+        $msg = self::DEFAULT_EXCEPTION_MESSAGE;
+        if (Configure::read('debug')) {
+            $msg = $this->_debugPostTokenNotMatching($controller, $hashParts);
+        }
+
+        throw new AuthSecurityException($msg);
+    }
 }
