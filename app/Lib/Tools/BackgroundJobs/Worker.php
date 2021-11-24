@@ -38,7 +38,7 @@ class Worker implements JsonSerializable
      */
     private $status;
 
-    public const
+    const
         STATUS_RUNNING = 1,
         STATUS_FAILED = 2,
         STATUS_UNKNOWN = 3;
@@ -95,12 +95,12 @@ class Worker implements JsonSerializable
         return $this->status;
     }
 
-    public function setStatus(int $status): void
+    public function setStatus(int $status)
     {
         $this->status = $status;
     }
 
-    public function setUpdatedAt(int $updatedAt): void
+    public function setUpdatedAt(int $updatedAt)
     {
         $this->updatedAt = $updatedAt;
     }

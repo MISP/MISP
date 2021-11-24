@@ -15,9 +15,9 @@ class StartWorkerShell extends AppShell
     /** @var int */
     private $maxExecutionTime;
 
-    private const DEFAULT_MAX_EXECUTION_TIME = 86400; // 1 day
+    const DEFAULT_MAX_EXECUTION_TIME = 86400; // 1 day
 
-    public function initialize(): void
+    public function initialize()
     {
         parent::initialize();
         $this->BackgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs'));
@@ -44,7 +44,7 @@ class StartWorkerShell extends AppShell
         return $parser;
     }
 
-    public function main(): void
+    public function main()
     {
         $this->worker = new Worker(
             [
@@ -82,7 +82,7 @@ class StartWorkerShell extends AppShell
      *
      * @return void
      */
-    private function checkMaxExecutionTime(): void
+    private function checkMaxExecutionTime()
     {
         if ($this->maxExecutionTime === 0) {
             return;
