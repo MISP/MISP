@@ -9,6 +9,7 @@ App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('ComplexTypeTool', 'Tools');
 App::uses('AttributeValidationTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -1720,7 +1721,6 @@ class Attribute extends AppModel
         }
     }
 
-
     public function checkTemplateAttributes($template, $data, $event_id)
     {
         $result = array();
@@ -2874,10 +2874,7 @@ class Attribute extends AppModel
             if (!$this->Warninglist->filterWarninglistAttribute($attribute)) {
                 $this->validationErrors['warninglist'] = 'Attribute could not be saved as it trips over a warninglist and enforceWarninglist is enforced.';
                 $validationErrors = $this->validationErrors['warninglist'];
-                $this->loadLog()->createLogEntry($user, 'add', 'Attribute', 0,
-                    'Attribute dropped due to validation for Event ' . $eventId . ' failed',
-                    'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
-                );
+                $this->logDropped($user, $attribute);
                 return $attribute;
             }
         }
@@ -2901,12 +2898,8 @@ class Attribute extends AppModel
                 unset($attribute['sharing_group_id']);
             }
         }
-        if (!$this->save($attribute, $params)) {
-            $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
-            $this->loadLog()->createLogEntry($user, 'add', 'Attribute', 0,
-                'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
-                'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
-            );
+        if (!$this->save(['Attribute' => $attribute], $params)) {
+            $this->logDropped($user, $attribute);
         } else {
             if (!empty($attribute['AttributeTag'])) {
                 $toSave = [];
@@ -3023,12 +3016,8 @@ class Attribute extends AppModel
             $fieldList[] = 'object_id';
             $fieldList[] = 'object_relation';
         }
-        if (!$this->save($attribute, ['fieldList' => $fieldList, 'parentEvent' => $event])) {
-            $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
-            $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', 0,
-                'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
-                'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
-            );
+        if (!$this->save(['Attribute' => $attribute], ['fieldList' => $fieldList, 'parentEvent' => $event])) {
+            $this->logDropped($user, $attribute, 'edit');
             return $this->validationErrors;
         }
         if (!empty($attribute['Sighting'])) {
@@ -3456,6 +3445,25 @@ class Attribute extends AppModel
             }
         }
         return $distribution;
+    }
+
+    /**
+     * Log when attribute was dropped due to validation errors.
+     *
+     * @param array $user
+     * @param array $attribute
+     * @param string $action
+     * @throws JsonException
+     */
+    public function logDropped(array $user, array $attribute, $action = 'add')
+    {
+        $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+        $eventId = $attribute['event_id'];
+        $modelId = $action === 'add' ? 0 : $this->id;
+        $this->loadLog()->createLogEntry($user, 'add', 'Attribute',  $modelId,
+            "Attribute dropped due to validation for Event $eventId failed: $attribute_short",
+            'Validation errors: ' . JsonTool::encode($this->validationErrors) . ' Full Attribute: ' . JsonTool::encode($attribute)
+        );
     }
 
     public function __isset($name)
