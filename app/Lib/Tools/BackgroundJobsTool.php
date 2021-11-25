@@ -281,12 +281,7 @@ class BackgroundJobsTool
         try {
             $procs = $this->getSupervisor()->getAllProcesses();
         } catch (\Exception $exception) {
-            CakeLog::error(
-                "An error occured when getting the workers statuses via Supervisor API: {$exception->getMessage()}",
-                0,
-                $exception
-            );
-
+            CakeLog::error("An error occured when getting the workers statuses via Supervisor API: {$exception->getMessage()}");
             return [];
         }
 
