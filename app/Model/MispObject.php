@@ -888,10 +888,7 @@ class MispObject extends AppModel
                                     if ($result) {
                                         $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
                                     } else {
-                                        $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', $newAttribute['id'],
-                                            'Attribute dropped due to validation for Event ' . $object['Object']['event_id'] . ' failed',
-                                            'Validation errors: ' . json_encode($this->Event->Attribute->validationErrors) . ' Full Attribute: ' . json_encode($newAttribute)
-                                        );
+                                        $this->Event->Attribute->logDropped($user, $newAttribute, 'edit');
                                     }
                                 }
                                 unset($object['Attribute'][$origKey]);
@@ -923,12 +920,8 @@ class MispObject extends AppModel
                         $newAttribute['id'] = $this->Event->Attribute->id;
                         $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
                     } else {
-                        $this->loadLog()->createLogEntry($user, 'add', 'Attribute', 0,
-                            'Attribute dropped due to validation for Event ' . $object['Object']['event_id'] . ' failed',
-                            'Validation errors: ' . json_encode($this->Event->Attribute->validationErrors) . ' Full Attribute: ' . json_encode($newAttribute)
-                        );
+                        $this->Event->Attribute->logDropped($user, $newAttribute, 'add');
                     }
-                    $attributeArrays['add'][] = $newAttribute;
                     unset($objectToSave['Attribute'][$newKey]);
                 }
                 foreach ($object['Attribute'] as $originalAttribute) {
