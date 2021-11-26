@@ -278,9 +278,14 @@ class BackgroundJobsTool
      */
     public function getWorkers(): array
     {
-        $workers = [];
-        $procs = $this->getSupervisor()->getAllProcesses();
+        try {
+            $procs = $this->getSupervisor()->getAllProcesses();
+        } catch (\Exception $exception) {
+            CakeLog::error("An error occured when getting the workers statuses via Supervisor API: {$exception->getMessage()}");
+            return [];
+        }
 
+        $workers = [];
         foreach ($procs as $proc) {
             if ($proc->offsetGet('group') === self::MISP_WORKERS_PROCESS_GROUP) {
                 if ($proc->offsetGet('pid') > 0) {
@@ -471,7 +476,7 @@ class BackgroundJobsTool
         }
 
         try {
-            $supervisorStatus = $this->getSupervisor()->getState()['statecode'] === \Supervisor\Supervisor::RUNNING;
+            $supervisorStatus = $this->getSupervisorStatus();
         } catch (Exception $exception) {
             CakeLog::error("SimpleBackgroundJobs Supervisor error: {$exception->getMessage()}");
             $supervisorStatus = false;
@@ -486,6 +491,16 @@ class BackgroundJobsTool
         } else {
             return self::STATUS_REDIS_NOT_OK;
         }
+    }
+
+    /**
+     * Return true if Supervisor process is running.
+     *
+     * @return boolean
+     */
+    public function getSupervisorStatus(): bool
+    {
+        return $this->getSupervisor()->getState()['statecode'] === \Supervisor\Supervisor::RUNNING;
     }
 
     /**

@@ -3443,6 +3443,16 @@ class Server extends AppModel
         if (Configure::check('MISP.manage_workers')) {
             $worker_array['controls'] = Configure::read('MISP.manage_workers');
         }
+
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            try {
+                $worker_array['supervisord_status'] = $this->getBackgroundJobsTool()->getSupervisorStatus();
+            } catch (Exception $exception) {
+                $this->logException('Error getting supervisor status.', $exception);
+                $worker_array['supervisord_status'] = false;
+            }
+        }
+
         return $worker_array;
     }
 
