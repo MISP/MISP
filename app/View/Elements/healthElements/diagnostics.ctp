@@ -335,7 +335,9 @@
     <?php else: ?>
 
     <b><?= __('Current libraries status') ?>:</b>
-    <?php if ($stix['operational'] === 0): ?>
+    <?php if ($stix['test_run'] === false): ?>
+    <b class="red bold"><?= __('Failed to run STIX diagnostics tool.') ?></b>
+    <?php elseif ($stix['operational'] === 0): ?>
     <b class="red bold"><?= __('Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.') ?></b>
     <?php elseif ($stix['invalid_version']): ?>
     <span class="orange"><?= __('Some versions should be updated.') ?></span>
@@ -369,10 +371,14 @@
     <div class="diagnostics-box">
         <?php
             $colour = 'green';
-            $message = __('OK');
-            if ($yaraStatus['operational'] == 0) {
+            if ($yaraStatus['test_run'] === false) {
+                $colour = 'red';
+                $message = __('Failed to run yara diagnostics tool.');
+            }elseif ($yaraStatus['operational'] == 0) {
                 $colour = 'red';
                 $message = __('Invalid plyara version / plyara not installed. Please run pip3 install plyara');
+            }else{
+                $message = __('OK');
             }
             echo __('plyara library installed') . '…<span style="color:' . $colour . ';">' . $message . '</span>';
         ?>
