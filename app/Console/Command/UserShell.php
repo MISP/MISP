@@ -19,6 +19,14 @@ class UserShell extends AppShell
                 ],
             ]
         ]);
+        $parser->addSubcommand('authkey', [
+            'help' => __('Get information about given authkey.'),
+            'parser' => [
+                'arguments' => [
+                    'authkey' => ['help' => __('Authentication key. If not provide, it will be read from STDIN.')],
+                ],
+            ]
+        ]);
         $parser->addSubcommand('block', [
             'help' => __('Immediately block user.'),
             'parser' => [
@@ -108,6 +116,50 @@ class UserShell extends AppShell
             foreach ($users as $user) {
                 $this->out($user);
             }
+        }
+    }
+
+    public function authkey()
+    {
+        if (isset($this->args[0])) {
+            $authkey = $this->args[0];
+        } else {
+            $authkey = fgets(STDIN); // read line from STDIN
+        }
+        $authkey = trim($authkey);
+        if (strlen($authkey) !== 40) {
+            $this->error('Authkey has not valid format.');
+        }
+        if (Configure::read('Security.advanced_authkeys')) {
+            $user = $this->User->AuthKey->getAuthUserByAuthKey($authkey, true);
+            if (empty($user)) {
+                $this->error("Given authkey doesn't belong to any user.");
+            }
+
+            $isExpired = $user['authkey_expiration'] && $user['authkey_expiration'] < time();
+
+            $this->out($this->json([
+                'user_id' => $user['id'],
+                'email' => $user['email'],
+                'org_id' => $user['org_id'],
+                'authkey_id' => $user['authkey_id'],
+                'authkey_expiration' => $user['authkey_expiration'],
+                'authkey_expired' => $isExpired,
+                'allowed_ips' => $user['allowed_ips'],
+                'authkey_read_only' => $user['authkey_read_only'],
+            ]));
+
+            $this->_stop($isExpired ? 2 : 0);
+        } else {
+            $user = $this->User->getAuthUserByAuthkey($authkey);
+            if (empty($user)) {
+                $this->error("Given authkey doesn't belong to any user.");
+            }
+            $this->out($this->json([
+                'user_id' => $user['id'],
+                'email' => $user['email'],
+                'org_id' => $user['org_id'],
+            ]));
         }
     }
 
