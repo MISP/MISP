@@ -83,9 +83,9 @@
     <td>
         <?php
         if ($object['distribution'] == 4) {
-          echo $object['SharingGroup']['name'];
+            echo h($object['SharingGroup']['name']);
         } else {
-          echo $distributionLevels[$object['distribution']];
+            echo $distributionLevels[$object['distribution']];
         }
         ?>
     </td>
