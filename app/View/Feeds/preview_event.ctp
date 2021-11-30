@@ -26,6 +26,15 @@ $tableData[] = [
     'key_title' => $eventDescriptions['analysis']['desc'],
     'value' => $analysisLevels[$event['Event']['analysis']],
 ];
+if ($event['Event']['distribution'] == 4) {
+    $distributionText = $event['SharingGroup']['name'];
+} else {
+    $distributionText = $distributionLevels[$event['Event']['distribution']];
+}
+$tableData[] = [
+    'key' => __('Distribution'),
+    'value' => $distributionText
+];
 $tableData[] = [
     'key' => __('Info'),
     'value' => $event['Event']['info']

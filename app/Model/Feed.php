@@ -915,11 +915,49 @@ class Feed extends AppModel
             $event['Event']['Orgc'] = $event['Event']['orgc'];
             unset($event['Event']['orgc']);
         }
-        $event['Event']['distribution'] = $feed['Feed']['distribution'];
-        $event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
-        if (!empty($event['Event']['Attribute'])) {
-            foreach ($event['Event']['Attribute'] as $key => $attribute) {
-                $event['Event']['Attribute'][$key]['distribution'] = 5;
+        if (5 == $feed['Feed']['distribution'] && isset($event['Event']['distribution'])) {
+            // We inherit the distribution from the feed and should not rewrite the distributions.
+            // MISP magically parses the Sharing Group info and creates the SG if it didn't exist.
+        } else {
+            // rewrite the distributions to the one configured by the Feed settings
+            // overwrite Event distribution
+            if (5 == $feed['Feed']['distribution']) {
+                // We said to inherit the distribution from the feed, but the feed does not contain distribution
+                // rewrite the event to My org only distribution, and set all attributes to inherit the event distribution
+                $event['Event']['distribution'] = 0;
+                $event['Event']['sharing_group_id'] = 0;
+            } else {
+                $event['Event']['distribution'] = $feed['Feed']['distribution'];
+                $event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
+                if ($feed['Feed']['sharing_group_id']) {
+                    $sg = $this->SharingGroup->find('first', array(
+                        'recursive' => -1,
+                        'conditions' => array('SharingGroup.id' => $feed['Feed']['sharing_group_id'])
+                    ));
+                    if (!empty($sg)) {
+                        $event['Event']['SharingGroup'] = $sg['SharingGroup'];
+                    } else {
+                        // We have an SG ID for the feed, but the SG is gone. Make the event private as a fall-back.
+                        $event['Event']['distribution'] = 0;
+                        $event['Event']['sharing_group_id'] = 0;
+                    }
+                }
+            }
+            // overwrite Attributes and Objects distribution to Inherit
+            if (!empty($event['Event']['Attribute'])) {
+                foreach ($event['Event']['Attribute'] as $key => $attribute) {
+                    $event['Event']['Attribute'][$key]['distribution'] = 5;
+                }
+            }
+            if (!empty($event['Event']['Object'])) {
+                foreach ($event['Event']['Object'] as $key => $object) {
+                    $event['Event']['Object'][$key]['distribution'] = 5;
+                    if (!empty($event['Event']['Object'][$key]['Attribute'])) {
+                        foreach ($event['Event']['Object'][$key]['Attribute'] as $a_key => $attribute) {
+                            $event['Event']['Object'][$key]['Attribute'][$a_key]['distribution'] = 5;
+                        }
+                    }
+                }
             }
         }
         if ($feed['Feed']['tag_id']) {
@@ -938,19 +976,6 @@ class Feed extends AppModel
                 if (!empty($feedTag)) {
                     $event['Event']['Tag'][] = $feedTag['Tag'];
                 }
-            }
-        }
-        if ($feed['Feed']['sharing_group_id']) {
-            $sg = $this->SharingGroup->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('SharingGroup.id' => $feed['Feed']['sharing_group_id'])
-            ));
-            if (!empty($sg)) {
-                $event['Event']['SharingGroup'] = $sg['SharingGroup'];
-            } else {
-                // We have an SG ID for the feed, but the SG is gone. Make the event private as a fall-back.
-                $event['Event']['distribution'] = 0;
-                $event['Event']['sharing_group_id'] = 0;
             }
         }
         if (!$this->__checkIfEventBlockedByFilter($event, $filterRules)) {
