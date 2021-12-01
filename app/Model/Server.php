@@ -3204,9 +3204,18 @@ class Server extends AppModel
     public function yaraDiagnostics(&$diagnostic_errors)
     {
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'yaratest.py';
-        $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
-        $scriptResult = json_decode($scriptResult, true);
-        return array('operational' => $scriptResult['success'], 'plyara' => $scriptResult['plyara']);
+        try {
+            $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
+            $scriptResult = json_decode($scriptResult, true);
+        } catch (Exception $exception) {
+            $this->logException('Failed to run yara diagnostics.', $exception);
+            return array(
+                'operational' => 0,
+                'plyara' => 0,
+                'test_run' => false
+            );
+        }
+        return array('operational' => $scriptResult['success'], 'plyara' => $scriptResult['plyara'], 'test_run' => true);
     }
 
     public function stixDiagnostics(&$diagnostic_errors)
@@ -3214,7 +3223,17 @@ class Server extends AppModel
         $expected = array('stix' => '>1.2.0.11', 'cybox' => '>2.1.0.21', 'mixbox' => '>1.0.5', 'maec' => '>4.1.0.17', 'stix2' => '>3.0.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';
-        $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
+        try {
+            $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
+        } catch (Exception $exception) {
+            $this->logException('Failed to run STIX diagnostics.', $exception);
+            return [
+                'operational' => 0,
+                'invalid_version' => false,
+                'test_run' => false
+            ];
+        }
+
         try {
             $scriptResult = $this->jsonDecode($scriptResult);
         } catch (Exception $e) {
@@ -3237,6 +3256,7 @@ class Server extends AppModel
         $result = [
             'operational' => $scriptResult['operational'],
             'invalid_version' => false,
+            'test_run' => true
         ];
         foreach ($expected as $package => $expectedVersion) {
             $result[$package]['version'] = $scriptResult[$package];
