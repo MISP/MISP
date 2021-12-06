@@ -16,7 +16,7 @@
             $filterParamsString[] = sprintf(
                 '%s: %s',
                 h(ucfirst($k)),
-                h(is_array($v) ? http_build_query($v) : h($v) )
+                h($v)
             );
         }
 
