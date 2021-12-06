@@ -364,10 +364,21 @@ class EventsController extends AppController
                     if ($v == "") {
                         continue 2;
                     }
-                    if (preg_match('/^[0-9]+[mhdw]$/i', $v)) {
-                        $v = $this->Event->resolveTimeDelta($v);
+                    if (is_array($v) && isset($v[0]) && isset($v[1])) {
+                        if (!is_int($v)) {
+                            $v[0] = $this->Event->resolveTimeDelta($v[0]);
+                        }
+                        if (!is_int($v)) {
+                            $v[1] = $this->Event->resolveTimeDelta($v[1]);
+                        }
+                        $this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v[0]);
+                        $this->paginate['conditions']['AND'][] = array('Event.timestamp <=' => $v[1]);
+                    } else {
+                        if (!is_int($v)) {
+                            $v = $this->Event->resolveTimeDelta($v);
+                        }
+                        $this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v);
                     }
-                    $this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v);
                     break;
                 case 'publish_timestamp':
                 case 'publishtimestamp':
@@ -375,16 +386,16 @@ class EventsController extends AppController
                         continue 2;
                     }
                     if (is_array($v) && isset($v[0]) && isset($v[1])) {
-                        if (preg_match('/^[0-9]+[mhdw]$/i', $v[0])) {
+                        if (!is_int($v)) {
                             $v[0] = $this->Event->resolveTimeDelta($v[0]);
                         }
-                        if (preg_match('/^[0-9]+[mhdw]$/i', $v[1])) {
+                        if (!is_int($v)) {
                             $v[1] = $this->Event->resolveTimeDelta($v[1]);
                         }
                         $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v[0]);
                         $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp <=' => $v[1]);
                     } else {
-                        if (preg_match('/^[0-9]+[mhdw]$/i', $v)) {
+                        if (!is_int($v)) {
                             $v = $this->Event->resolveTimeDelta($v);
                         }
                         $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v);
@@ -1052,8 +1063,8 @@ class EventsController extends AppController
             'analysis' => array('OR' => array(), 'NOT' => array()),
             'attribute' => array('OR' => array(), 'NOT' => array()),
             'hasproposal' => 2,
-            'timestamp' => "",
-            'publishtimestamp' => ""
+            'timestamp' => array('from' => "", 'until' => ""),
+            'publishtimestamp' => array('from' => "", 'until' => ""),
         );
 
         if ($this->_isSiteAdmin()) {

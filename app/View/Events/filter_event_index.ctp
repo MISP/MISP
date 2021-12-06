@@ -10,7 +10,7 @@
                         'class' => 'input',
                         //'label' => 'Add Filtering Rule',
                         'onchange' => "indexRuleChange();",
-                        'style' => 'margin-right:3px;width:120px;',
+                        'style' => 'margin-right:3px;width:130px;',
                         'div' => false
                 ));
                 echo $this->Form->input('searchbool', array(
@@ -88,20 +88,36 @@
                         'div' => false
                 ));
 
-                echo $this->Form->input('searchtimestamp', array(
+                echo $this->Form->input('searchtimestampfrom', array(
                     'class' => 'input',
                     'label' => false,
-                    'style' => 'display:none;width:424px;',
+                    'style' => 'display:none;width:236px;margin-right:3px;',
                     'div' => false,
-                    'placeholder' => __("Time related filter: 7d, timestamps, [14d, 7d] for ranges")
+                    'placeholder' => __("YYYY:MM:DD HH:MM:SS")
                 ));
 
-                echo $this->Form->input('searchpublishtimestamp', array(
+                echo $this->Form->input('searchtimestampuntil', array(
                     'class' => 'input',
                     'label' => false,
-                    'style' => 'display:none;width:424px;',
+                    'style' => 'display:none;width:236px;margin-right:3px;',
                     'div' => false,
-                    'placeholder' => __("Time related filter: 7d, timestamps, [14d, 7d] for ranges")
+                    'placeholder' => __("YYYY:MM:DD HH:MM:SS")
+                ));
+
+                echo $this->Form->input('searchpublishtimestampfrom', array(
+                    'class' => 'input',
+                    'label' => false,
+                    'style' => 'display:none;width:236px;margin-right:3px;',
+                    'div' => false,
+                    'placeholder' => __("YYYY:MM:DD HH:MM:SS")
+                ));
+
+                echo $this->Form->input('searchpublishtimestampuntil', array(
+                    'class' => 'input',
+                    'label' => false,
+                    'style' => 'display:none;width:236px;margin-right:3px;',
+                    'div' => false,
+                    'placeholder' => __("YYYY:MM:DD HH:MM:SS")
                 ));
 
                 echo $this->Form->input('searcheventinfo', array(

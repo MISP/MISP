@@ -2095,15 +2095,23 @@ function indexEvaluateFiltering() {
         }
         $('#value_date').html(text);
 
-        if (filtering.timestamp != null) {
+        if (filtering.timestamp.from != null) {
             var text = "";
-            if (filtering.timestamp != "") text = "Last change at: " + $('<span>').text(filtering.timestamp).html();
+            if (filtering.timestamp.from != "") text = "From: " + $('<span>').text(filtering.timestamp.from).html();
+            if (filtering.timestamp.until != "") {
+                if (text != "") text += " ";
+                text += "Until: " + $('<span>').text(filtering.timestamp.until).html();
+            }
         }
         $('#value_timestamp').html(text);
 
-        if (filtering.publishtimestamp != null) {
+        if (filtering.publishtimestamp.from != null) {
             var text = "";
-            if (filtering.publishtimestamp != "") text = "Published at: " + $('<span>').text(filtering.publishtimestamp).html();
+            if (filtering.publishtimestamp.from != "") text = "From: " + $('<span>').text(filtering.publishtimestamp.from).html();
+            if (filtering.publishtimestamp.until != "") {
+                if (text != "") text += " ";
+                text += "Until: " + $('<span>').text(filtering.publishtimestamp.until).html();
+            }
         }
         $('#value_publishtimestamp').html(text);
 
@@ -2331,13 +2339,21 @@ function indexCreateFilters() {
             if (text != "") text += "/";
             text += "searchDateuntil:" + filtering.date.until;
         }
-        if (filtering.timestamp) {
+        if (filtering.timestamp.from) {
             if (text != "") text += "/";
-            text += "searchTimestamp:" + filtering.timestamp;
+            text += "searchTimestamp:" + filtering.timestamp.from;
         }
-        if (filtering.publishtimestamp) {
+        if (filtering.timestamp.until) {
             if (text != "") text += "/";
-            text += "searchPublishTimestamp:" + filtering.publishtimestamp;
+            text += "searchTimestamp:" + filtering.timestamp.until;
+        }
+        if (filtering.publishtimestamp.from) {
+            if (text != "") text += "/";
+            text += "searchPublishTimestamp:" + filtering.publishtimestamp.from;
+        }
+        if (filtering.publishtimestamp.until) {
+            if (text != "") text += "/";
+            text += "searchPublishTimestamp:" + filtering.publishtimestamp.until;
         }
         return baseurl + '/events/index/' + text;
     } else {
@@ -2414,23 +2430,17 @@ function indexEvaluateSimpleFiltering(field) {
 function indexAddRule(param) {
     var found = false;
     if (filterContext == 'event') {
-        if (param.data.param1 == "date") {
+        if (param.data.param1 == "date" || param.data.param1 == "timestamp" || param.data.param1 == "publishtimestamp") {
             var val1 = encodeURIComponent($('#EventSearch' + param.data.param1 + 'from').val());
             var val2 = encodeURIComponent($('#EventSearch' + param.data.param1 + 'until').val());
-            if (val1 != "") filtering.date.from = val1;
-            if (val2 != "") filtering.date.until = val2;
+            if (val1 != "") filtering[param.data.param1].from = val1;
+            if (val2 != "") filtering[param.data.param1].until = val2;
         } else if (param.data.param1 == "published") {
             var value = encodeURIComponent($('#EventSearchpublished').val());
             if (value != "") filtering.published = value;
         } else if (param.data.param1 == "hasproposal") {
             var value = encodeURIComponent($('#EventSearchhasproposal').val());
             if (value != "") filtering.hasproposal = value;
-        } else if (param.data.param1 == "timestamp") {
-            var value = encodeURIComponent($('#EventSearchtimestamp').val());
-            if (value != "") filtering.timestamp = value;
-        } else if (param.data.param1 == "publishtimestamp") {
-            var value = encodeURIComponent($('#EventSearchpublishtimestamp').val());
-            if (value != "") filtering.publishtimestamp = value;
         } else {
             var value = encodeURIComponent($('#EventSearch' + param.data.param1).val());
             var operator = operators[encodeURIComponent($('#EventSearchbool').val())];
@@ -2463,7 +2473,7 @@ function indexRuleChange() {
     $('[id^=' + context + 'Search]').hide();
     var rule = $('#' + context + 'Rule').val();
     var fieldName = '#' + context + 'Search' + rule;
-    if (fieldName === '#' + context + 'Searchdate') {
+    if (fieldName === '#' + context + 'Searchdate' || fieldName === '#' + context + 'Searchtimestamp' || fieldName === '#' + context + 'Searchpublishtimestamp') {
         $(fieldName + 'from').show();
         $(fieldName + 'until').show();
     } else {
@@ -2487,7 +2497,8 @@ function indexFilterClearRow(field) {
         filtering.date.from = "";
         filtering.date.until = "";
     } else if (field == "timestamp") {
-        filtering.timestamp = "";
+        filtering.timestamp.from = "";
+        filtering.timestamp.until = "";
     } else if (field == "publishtimestamp") {
         filtering.timestamp = "";
     } else if (field == "published") {
