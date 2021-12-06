@@ -93,7 +93,7 @@
                     'label' => false,
                     'style' => 'display:none;width:236px;margin-right:3px;',
                     'div' => false,
-                    'placeholder' => __("YYYY-MM-DD HH:MM:SS")
+                    'placeholder' => __("YYYY-MM-DD HH:mm:ss")
                 ));
 
                 echo $this->Form->input('searchtimestampuntil', array(
@@ -101,7 +101,7 @@
                     'label' => false,
                     'style' => 'display:none;width:236px;margin-right:3px;',
                     'div' => false,
-                    'placeholder' => __("YYYY-MM-DD HH:MM:SS")
+                    'placeholder' => __("YYYY-MM-DD HH:mm:ss")
                 ));
 
                 echo $this->Form->input('searchpublishtimestampfrom', array(

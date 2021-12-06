@@ -365,10 +365,10 @@ class EventsController extends AppController
                         continue 2;
                     }
                     if (is_array($v) && isset($v[0]) && isset($v[1])) {
-                        if (!is_int($v)) {
+                        if (!is_int($v[0])) {
                             $v[0] = $this->Event->resolveTimeDelta($v[0]);
                         }
-                        if (!is_int($v)) {
+                        if (!is_int($v[1])) {
                             $v[1] = $this->Event->resolveTimeDelta($v[1]);
                         }
                         $this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v[0]);
@@ -386,10 +386,10 @@ class EventsController extends AppController
                         continue 2;
                     }
                     if (is_array($v) && isset($v[0]) && isset($v[1])) {
-                        if (!is_int($v)) {
+                        if (!is_int($v[0])) {
                             $v[0] = $this->Event->resolveTimeDelta($v[0]);
                         }
-                        if (!is_int($v)) {
+                        if (!is_int($v[1])) {
                             $v[1] = $this->Event->resolveTimeDelta($v[1]);
                         }
                         $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v[0]);
