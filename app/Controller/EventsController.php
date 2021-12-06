@@ -56,6 +56,12 @@ class EventsController extends AppController
         'warninglistId' => '',
     );
 
+    // private
+    const DEFAULT_HIDDEN_INDEX_COLUMNS = [
+        'timestmap',
+        'publish_timestamp'
+    ];
+
     public $paginationFunctions = array('index', 'proposalEventIndex');
 
     public function beforeFilter()
@@ -933,6 +939,8 @@ class EventsController extends AppController
         }
 
         $possibleColumns[] = 'attribute_count';
+        $possibleColumns[] = 'timestamp';
+        $possibleColumns[] = 'publish_timestamp';
 
         if (Configure::read('MISP.showCorrelationsOnIndex')) {
             $possibleColumns[] = 'correlations';
@@ -958,12 +966,12 @@ class EventsController extends AppController
             $possibleColumns[] = 'creator_user';
         }
 
-        $userEnabledColumns = $this->User->UserSetting->getValueForUser($this->Auth->user()['id'], 'event_index_hide_columns');
-        if ($userEnabledColumns === null) {
-            $userEnabledColumns = [];
+        $userDisabledColumns = $this->User->UserSetting->getValueForUser($this->Auth->user()['id'], 'event_index_hide_columns');
+        if ($userDisabledColumns === null) {
+            $userDisabledColumns = self::DEFAULT_HIDDEN_INDEX_COLUMNS;
         }
 
-        $enabledColumns = array_diff($possibleColumns, $userEnabledColumns);
+        $enabledColumns = array_diff($possibleColumns, $userDisabledColumns);
 
         return [$possibleColumns, $enabledColumns];
     }
@@ -1044,6 +1052,8 @@ class EventsController extends AppController
             'analysis' => array('OR' => array(), 'NOT' => array()),
             'attribute' => array('OR' => array(), 'NOT' => array()),
             'hasproposal' => 2,
+            'timestamp' => "",
+            'publishtimestamp' => ""
         );
 
         if ($this->_isSiteAdmin()) {
@@ -1112,6 +1122,8 @@ class EventsController extends AppController
             'analysis' => __('Analysis'),
             'attribute' => __('Attribute'),
             'hasproposal' => __('Has proposal'),
+            'timestamp' => __('Last change at'),
+            'publishtimestamp' => __('Published at'),
         ];
 
         if ($this->_isSiteAdmin()) {

@@ -87,6 +87,23 @@
                         'style' => 'display:none;width:236px;',
                         'div' => false
                 ));
+
+                echo $this->Form->input('searchtimestamp', array(
+                    'class' => 'input',
+                    'label' => false,
+                    'style' => 'display:none;width:424px;',
+                    'div' => false,
+                    'placeholder' => __("Time related filter: 7d, timestamps, [14d, 7d] for ranges")
+                ));
+
+                echo $this->Form->input('searchpublishtimestamp', array(
+                    'class' => 'input',
+                    'label' => false,
+                    'style' => 'display:none;width:424px;',
+                    'div' => false,
+                    'placeholder' => __("Time related filter: 7d, timestamps, [14d, 7d] for ranges")
+                ));
+
                 echo $this->Form->input('searcheventinfo', array(
                         'label' => false,
                         'class' => 'input-large',
@@ -134,7 +151,7 @@
                         <th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
                     </tr>
                     <?php
-                        $fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'sharinggroup', 'attribute', 'hasproposal');
+                        $fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'sharinggroup', 'attribute', 'hasproposal', 'timestamp', 'publishtimestamp');
                         if ($isSiteAdmin) $fields[] = 'email';
                         foreach ($fields as $k => $field):
                     ?>
@@ -209,11 +226,11 @@ var filtering = <?php echo $filtering; ?>;
 
 var operators = ["<?php echo __('OR');?>", "<?php echo __('NOT');?>"];
 
-var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute", "hasproposal"];
+var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute", "hasproposal", "timestamp", "publishtimestamp"];
 
 var simpleFilters = ["tag", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute"];
 
-var differentFilters = ["published", "date", "hasproposal"];
+var differentFilters = ["published", "date", "hasproposal", "timestamp", "publishtimestamp"];
 
 var typedFields = ["tag", "threatlevel", "distribution", "analysis"];
 

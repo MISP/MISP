@@ -2094,6 +2094,19 @@ function indexEvaluateFiltering() {
             }
         }
         $('#value_date').html(text);
+
+        if (filtering.timestamp != null) {
+            var text = "";
+            if (filtering.timestamp != "") text = "Last change at: " + $('<span>').text(filtering.timestamp).html();
+        }
+        $('#value_timestamp').html(text);
+
+        if (filtering.publishtimestamp != null) {
+            var text = "";
+            if (filtering.publishtimestamp != "") text = "Published at: " + $('<span>').text(filtering.publishtimestamp).html();
+        }
+        $('#value_publishtimestamp').html(text);
+
         for (var i = 0; i < simpleFilters.length; i++) {
             indexEvaluateSimpleFiltering(simpleFilters[i]);
         }
@@ -2318,6 +2331,14 @@ function indexCreateFilters() {
             if (text != "") text += "/";
             text += "searchDateuntil:" + filtering.date.until;
         }
+        if (filtering.timestamp) {
+            if (text != "") text += "/";
+            text += "searchTimestamp:" + filtering.timestamp;
+        }
+        if (filtering.publishtimestamp) {
+            if (text != "") text += "/";
+            text += "searchPublishTimestamp:" + filtering.publishtimestamp;
+        }
         return baseurl + '/events/index/' + text;
     } else {
         return baseurl + '/admin/users/index/' + text;
@@ -2404,6 +2425,12 @@ function indexAddRule(param) {
         } else if (param.data.param1 == "hasproposal") {
             var value = encodeURIComponent($('#EventSearchhasproposal').val());
             if (value != "") filtering.hasproposal = value;
+        } else if (param.data.param1 == "timestamp") {
+            var value = encodeURIComponent($('#EventSearchtimestamp').val());
+            if (value != "") filtering.timestamp = value;
+        } else if (param.data.param1 == "publishtimestamp") {
+            var value = encodeURIComponent($('#EventSearchpublishtimestamp').val());
+            if (value != "") filtering.publishtimestamp = value;
         } else {
             var value = encodeURIComponent($('#EventSearch' + param.data.param1).val());
             var operator = operators[encodeURIComponent($('#EventSearchbool').val())];
@@ -2459,6 +2486,10 @@ function indexFilterClearRow(field) {
     if (field == "date") {
         filtering.date.from = "";
         filtering.date.until = "";
+    } else if (field == "timestamp") {
+        filtering.timestamp = "";
+    } else if (field == "publishtimestamp") {
+        filtering.timestamp = "";
     } else if (field == "published") {
         filtering.published = 2;
     } else if (field == "hasproposal") {
