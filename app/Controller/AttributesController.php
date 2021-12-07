@@ -1758,7 +1758,7 @@ class AttributesController extends AppController
             if (!$this->Auth->user()) {
                 throw new UnauthorizedException(__('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.'));
             }
-            $user = $this->_checkAuthUser($this->Auth->user('authkey'));
+            $user = $this->Auth->user();
         }
         // if the user is authorised to use the api key then user will be populated with the user's account
         // in addition we also set a flag indicating whether the user is a site admin or not.
