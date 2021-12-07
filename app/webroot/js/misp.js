@@ -2500,7 +2500,8 @@ function indexFilterClearRow(field) {
         filtering.timestamp.from = "";
         filtering.timestamp.until = "";
     } else if (field == "publishtimestamp") {
-        filtering.timestamp = "";
+        filtering.publishtimestamp.from = "";
+        filtering.publishtimestamp.until = "";
     } else if (field == "published") {
         filtering.published = 2;
     } else if (field == "hasproposal") {
