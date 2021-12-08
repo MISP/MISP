@@ -1974,7 +1974,7 @@ class ServersController extends AppController
         }
         $header = sprintf(
             "Authorization: %s \nAccept: application/json\nContent-type: application/json",
-            empty(Configure::read('Security.advanced_authkeys')) ? $this->Auth->user('authkey') : __('YOUR_API_KEY')
+            __('YOUR_API_KEY')
         );
         $this->set('header', $header);
         $this->set('allValidApis', $allValidApis);
@@ -2054,7 +2054,6 @@ class ServersController extends AppController
 
         $temp_headers = empty($request['header']) ? [] : explode("\n", $request['header']);
         $request['header'] = array(
-            'Authorization' => $this->Auth->user('authkey'),
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
             'User-Agent' => 'MISP REST Client',
@@ -2301,7 +2300,7 @@ misp.direct_call(relative_path, body)
             'Server' => array(
                 'url' => $baseurl,
                 'uuid' => Configure::read('MISP.uuid'),
-                'authkey' => $this->Auth->user('authkey'),
+                'authkey' => __('YOUR_API_KEY'),
                 'Organisation' => array(
                     'name' => $host_org['Organisation']['name'],
                     'uuid' => $host_org['Organisation']['uuid'],
