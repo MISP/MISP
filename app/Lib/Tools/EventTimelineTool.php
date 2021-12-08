@@ -88,6 +88,8 @@
                     'timestamp' => $attr['timestamp'],
                     'first_seen' => $attr['first_seen'],
                     'last_seen' => $attr['last_seen'],
+                    'attribute_type' => $attr['type'],
+                    'is_image' => $this->__eventModel->Attribute->isImage($attr),
                 );
                 $this->__json['items'][] = $toPush;
             }
@@ -127,6 +129,8 @@
                         'event_id' => $obj_attr['event_id'],
                         'group' => 'object_attribute',
                         'timestamp' => $obj_attr['timestamp'],
+                        'attribute_type' => $obj_attr['type'],
+                        'is_image' => $this->__eventModel->Attribute->isImage($obj_attr),
                     );
                     $toPush_obj['Attribute'][] = $toPush_attr;
                 }
