@@ -22,7 +22,6 @@ import json
 import sys
 import traceback
 from pathlib import Path
-from typing import Union
 
 _current_path = Path(__file__).resolve().parent
 sys.path.insert(0, str(_current_path / 'cti-python-stix2'))
@@ -30,39 +29,135 @@ sys.path.insert(1, str(_current_path / 'python-stix'))
 sys.path.insert(2, str(_current_path / 'python-cybox'))
 sys.path.insert(3, str(_current_path / 'mixbox'))
 sys.path.insert(4, str(_current_path / 'misp-stix'))
-from stix.core import STIXPackage
+from cybox.core.observable import Observables
+from stix.core import (
+    Campaigns, CoursesOfAction, ExploitTargets, Indicators, ThreatActors,
+    STIXHeader, STIXPackage
+)
+from stix.core.ttps import TTPs
 from misp_stix_converter import (
-    MISPtoSTIX1AttributesParser, MISPtoSTIX1EventsParser,
-    _get_json_events, _get_xml_events
+    MISPtoSTIX1AttributesParser, MISPtoSTIX1EventsParser, _get_events,
+    _get_campaigns, _get_campaigns_footer, _get_campaigns_header,
+    _get_courses_of_action, _get_courses_of_action_footer, _get_courses_of_action_header,
+    _get_indicators, _get_indicators_footer, _get_indicators_header,
+    _get_observables, _get_observables_footer, _get_observables_header,
+    _get_threat_actors, _get_threat_actors_footer, _get_threat_actors_header,
+    _get_ttps, _get_ttps_footer, _get_ttps_header
 )
 
 
-def _handle_errors(errors: dict):
-    for identifier, values in errors.items():
-        values = '\n - '.join(values)
-        if identifier != 'attributes_collection':
-            identifier = f'MISP event {identifier}'
-        print(f'Errors encountered while parsing {identifier}:\n - {values}', file=sys.stderr)
+class StixExport:
+    def __init__(self, format: str, debug: bool):
+        self.__return_format = format
+        self.__debug = debug
+
+    @property
+    def debug(self) -> bool:
+        return self.__debug
+
+    @property
+    def return_format(self) -> str:
+        return self.__return_format
+
+    def _handle_errors(self):
+        for identifier, values in self._parser.errors.items():
+            values = '\n - '.join(values)
+            if identifier != 'attributes_collection':
+                identifier = f'MISP event {identifier}'
+            print(f'Errors encountered while parsing {identifier}:\n - {values}', file=sys.stderr)
+
+    def parse_misp_files(self, filenames: list):
+        try:
+            for filename in filenames:
+                self._parser.parse_json_content(filename)
+                self._handle_stix_output(filename)
+            results = {'success': 1}
+            if hasattr(self, '_output_files'):
+                for feature, filename in self._output_files.items():
+                    with open(filename, 'at', encoding='utf-8') as f:
+                        f.write(globals()[f'_get_{feature}_footer'](self.return_format))
+                results['filenames'] = tuple(self._output_files.values())
+            errors = self._parser.errors
+            if self._parser.errors:
+                self._handle_errors()
+            print(json.dumps(results))
+        except Exception as e:
+            print(json.dumps({'error': e.__str__()}))
+            traceback.print_tb(e.__traceback__)
 
 
-def _process_misp_files(scope: str, orgname: str, version: str, return_format:str, input_names: Union[list, None], debug: bool):
-    if input_names is None:
-        print(json.dumps({'error': 'No input file provided.'}))
-        return
-    try:
-        parser = MISPtoSTIX1EventsParser if scope == 'Event' else MISPtoSTIX1AttributesParser
-        parser = parser(orgname, version)
-        for name in input_names:
-            parser.parse_json_content(name)
-            with open(f'{name}.out', 'wt', encoding='utf-8') as f:
-                f.write(globals()[f'_get_{return_format}_events'](parser.stix_package))
-        errors = parser.errors
-        if errors:
-            _handle_errors(errors)
-        print(json.dumps({'success': 1}))
-    except Exception as e:
-        print(json.dumps({'error': e.__str__()}))
-        traceback.print_tb()
+class StixAttributesExport(StixExport):
+    def __init__(self, orgname: str, format: str, version: str, debug: bool):
+        super().__init__(format, debug)
+        self._parser = MISPtoSTIX1AttributesParser(orgname, version)
+        self.__features = (
+            'campaigns', 'courses_of_action', 'exploit_targets', 'indicators',
+            'observables', 'threat_actors', 'ttps'
+        )
+        self._output_files = {}
+
+    @property
+    def features(self) -> tuple:
+        return self.__features
+
+    @staticmethod
+    def _check_campaigns_length(campaigns: Campaigns) -> bool:
+        return len(campaigns.campaign) > 0
+
+    @staticmethod
+    def _check_courses_of_action_length(courses_of_action: CoursesOfAction) -> bool:
+        return len(courses_of_action.course_of_action) > 0
+
+    @staticmethod
+    def _check_exploit_targets_length(exploit_targets: ExploitTargets) -> bool:
+        return len(exploit_targets.exploit_target) > 0
+
+    @staticmethod
+    def _check_indicators_length(indicators: Indicators) -> bool:
+        return len(indicators.indicator) > 0
+
+    @staticmethod
+    def _check_observables_length(observables: Observables) -> bool:
+        return len(observables.observables) > 0
+
+    @staticmethod
+    def _check_threat_actors_length(threat_actors: ThreatActors) -> bool:
+        return len(threat_actors.threat_actor) > 0
+
+    @staticmethod
+    def _check_ttps_length(ttps: TTPs) -> bool:
+        return len(ttps.ttp) > 0
+
+    def _handle_stix_output(self, filename: str):
+        with open(f'{filename}.out', 'wt', encoding='utf-8') as f:
+            f.write(json.dumps(self._parser.stix_package.to_dict(), indent=4))
+        for feature in self.features:
+            values = getattr(self._parser.stix_package, feature)
+            if values is not None and getattr(self, f'_check_{feature}_length')(values):
+                if feature not in self._output_files:
+                    output_file = f'{filename}_{feature}'
+                    with open(output_file, 'wt', encoding='utf-8') as f:
+                        f.write(globals()[f'_get_{feature}_header'](self.return_format))
+                    self._output_files[feature] = output_file
+                    with open(self._output_files[feature], 'at', encoding='utf-8') as f:
+                        f.write(globals()[f'_get_{feature}'](values, self.return_format))
+                    continue
+                with open(self._output_files[feature], 'at', encoding='utf-8') as f:
+                    values = globals()[f'_get_{feature}'](values, self.return_format)
+                    if self.return_format == 'json':
+                        values = f', {values}'
+                    f.write(values)
+
+
+class StixEventsExport(StixExport):
+    def __init__(self, orgname: str, format: str, version: str, debug: bool):
+        super().__init__(format, debug)
+        self._parser = MISPtoSTIX1EventsParser(orgname, version)
+
+    def _handle_stix_output(self, filename: str):
+        with open(f'{filename}.out', 'wt', encoding='utf-8') as f:
+            package = _get_events(self._parser.stix_package, self.return_format)
+            f.write(package if self.return_format == 'xml' else package.replace('stix:STIX_Package', 'stix:Package'))
 
 
 if __name__ == "__main__":
@@ -75,6 +170,11 @@ if __name__ == "__main__":
     argparser.add_argument('-d', '--debug', action='store_true', help='Allow debug mode with warnings.')
     try:
         args = argparser.parse_args()
-        _process_misp_files(args.scope, args.orgname, args.version, args.format, args.input, args.debug)
+        if args.input is None:
+            print(json.dumps({'error': 'No input file provided.'}))
+        else:
+            arguments = (args.orgname, args.format, args.version, args.debug)
+            exporter = globals()[f'Stix{args.scope}sExport'](*arguments)
+            exporter.parse_misp_files(args.input)
     except SystemExit:
         print(json.dumps({'error': 'Arguments error, please check you entered a valid version and provided input file names.'}))
