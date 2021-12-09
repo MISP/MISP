@@ -16,14 +16,14 @@ class StixExport
     protected $__default_filters = null;
     protected $__version = null;
     protected $__scope = null;
+    protected $__stix_file = null;
+    protected $__framing = null;
 
     private $__cluster_uuids = array();
     private $__converter = null;
     private $__current_filename = null;
     private $__empty_file = true;
     private $__event_galaxies = array();
-    private $__framing = null;
-    private $__stix_file = null;
     private $__tmp_file = null;
     private $__n_attributes = 0;
 
@@ -96,28 +96,15 @@ class StixExport
             $this->__filenames[] = $this->__current_filename;
         }
         $filenames = implode(' ' . $this->__tmp_dir, $this->__filenames);
-        $result = $this->__parse_misp_data($filenames);
-        $decoded = json_decode($result, true);
-        if (!isset($decoded['success']) || !$decoded['success']) {
-            $this->__delete_temporary_files();
-            $error = !empty($decoded['error']) ? $decoded['error'] : $result;
-            return 'Error while processing your query: ' . $error;
-        }
-        foreach ($this->__filenames as $f => $filename) {
-            $file = new File($this->__tmp_dir . $filename . '.out');
-            $stix_event = ($this->__return_type == 'stix') ? $file->read() : substr($file->read(), 1, -1);
-            $file->close();
-            $file->delete();
-            @unlink($this->__tmp_dir . $filename);
-            $this->__stix_file->append($stix_event . $this->__framing['separator']);
-            unset($stix_event);
-        }
+        $this->__parse_misp_data($filenames);
         $stix_event = $this->__stix_file->read();
         $this->__stix_file->close();
         $this->__stix_file->delete();
         $sep_len = strlen($this->__framing['separator']);
-        $stix_event = (empty($this->__filenames) ? $stix_event : substr($stix_event, 0, -$sep_len)) . $this->__framing['footer'];
-        return $stix_event;
+        if ($sep_len != 0 && !empty($this->__filenames)) {
+            $stix_event = substr($stix_event, 0, -$sep_len);
+        }
+        return $stix_event . $this->__framing['footer'];
     }
 
     public function separator()
@@ -318,7 +305,7 @@ class StixExport
         return (new RandomTool())->random_str(false, 12);
     }
 
-    private function __delete_temporary_files()
+    protected function __delete_temporary_files()
     {
         foreach ($this->__filenames as $f => $filename) {
             @unlink($this->__tmp_dir . $filename);
@@ -356,5 +343,15 @@ class StixExport
         }
         $this->__tmp_file->append(implode(', ', $galaxies));
         $this->__event_galaxies = array();
+    }
+
+    protected function __write_stix_content($filename)
+    {
+        $file = new File($filename);
+        $stix_content = ($this->__return_type == 'stix') ? $file->read() : substr($file->read(), 1, -1);
+        $file->close();
+        $file->delete();
+        $this->__stix_file->append($stix_content . $this->__framing['separator']);
+        unset($stix_content);
     }
 }

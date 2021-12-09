@@ -22,6 +22,16 @@ class Stix2Export extends StixExport
         $my_server = ClassRegistry::init('Server');
         $result = shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . '-v ' . $this->__version . ' -i ' . $this->__tmp_dir . $filenames . $this->__end_of_cmd);
         $result = preg_split("/\r\n|\n|\r/", trim($result));
-        return end($result);
+        $decoded = json_decode(end($result), true);
+        if (!isset($decoded['success']) || !$decoded['success']) {
+            $this->__delete_temporary_files();
+            $error = !empty($decoded['error']) ? $decoded['error'] : $result;
+            return 'Error while processing your query: ' . $error;
+        }
+        foreach ($this->__filenames as $f => $filename) {
+            $content_filename = $this->__tmp_dir . $filename;
+            $this->__write_stix_content($content_filename . '.out');
+            @unlink($content_filename);
+        }
     }
 }
