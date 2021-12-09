@@ -58,7 +58,7 @@ def _process_misp_files(version: str, input_names: Union[list, None], debug: boo
         print(json.dumps({'success': 1}))
     except Exception as e:
         print(json.dumps({'error': e.__str__()}))
-        traceback.print_tb()
+        traceback.print_tb(e.__traceback__)
 
 
 if __name__ == "__main__":
