@@ -129,8 +129,6 @@ class StixAttributesExport(StixExport):
         return len(ttps.ttp) > 0
 
     def _handle_stix_output(self, filename: str):
-        with open(f'{filename}.out', 'wt', encoding='utf-8') as f:
-            f.write(json.dumps(self._parser.stix_package.to_dict(), indent=4))
         for feature in self.features:
             values = getattr(self._parser.stix_package, feature)
             if values is not None and getattr(self, f'_check_{feature}_length')(values):
