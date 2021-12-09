@@ -163,6 +163,8 @@
         <span id="pull_tags_NOT" style="display:none;"><?php echo __('Events with the following tags blocked: ');?><span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
         <span id="pull_orgs_OR" style="display:none;"><?php echo __('Events with the following organisations allowed: ');?><span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
         <span id="pull_orgs_NOT" style="display:none;"><?php echo __('Events with the following organisations blocked: ');?><span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
+        <span id="pull_type_attributes_NOT" style="display:none;"><?php echo __('Attributes of the following types blocked: ');?><span id="pull_type_attributes_NOT_text" style="color:red;"></span><br /></span>
+        <span id="pull_type_objects_NOT" style="display:none;"><?php echo __('Objects of the following names blocked: ');?><span id="pull_type_objects_NOT_text" style="color:red;"></span><br /></span>
         <span id="pull_url_params" style="display:none;"><?php echo __('Additional parameters: ');?><span id="pull_url_params_text" style="color:green;"></span><br /></span>
         <span id="pull_modify" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify');?></span><br /><br />
     <?php
@@ -250,11 +252,13 @@ var rules = {
     "pull": {
         "tags": {"OR":[], "NOT":[]},
         "orgs": {"OR":[], "NOT":[]},
+        "type_attributes": {"NOT":[]},
+        "type_objects": {"NOT":[]},
         "url_params": ""
     }
 };
 var validOptions = ['pull', 'push'];
-var validFields = ['tags', 'orgs'];
+var validFields = ['tags', 'orgs', 'type_attributes', 'type_objects'];
 var tags = <?php echo json_encode($allTags); ?>;
 var orgs = <?php echo json_encode($allOrganisations); ?>;
 var delete_cert = false;

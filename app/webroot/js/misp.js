@@ -3549,7 +3549,7 @@ function convertServerFilterRules(rules) {
             rules[type] = JSON.parse($(container).val());
         } else {
             if (type === 'pull') {
-                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}, "url_params": ""}
+                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}, "type_attributes": {"NOT": []}, "type_objects": {"NOT": []}, "url_params": ""}
             } else {
                 rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}
             }
@@ -3565,24 +3565,28 @@ function serverRuleUpdate() {
         validFields.forEach(function(field) {
             if (type === 'push') {
                 var indexedList = {};
-                window[field].forEach(function(item) {
-                    indexedList[item.id] = item.name;
-                });
+                if (window[field] !== undefined) {
+                    window[field].forEach(function(item) {
+                        indexedList[item.id] = item.name;
+                    });
+                }
             }
             statusOptions.forEach(function(status) {
-                if (rules[type][field][status].length > 0) {
-                    $('#' + type + '_' + field + '_' + status).show();
-                    var t = '';
-                    rules[type][field][status].forEach(function(item) {
-                        if (t.length > 0) t += ', ';
-                        if (type === 'pull') t += item;
-                        else {
-                            t += indexedList[item] !== undefined ? indexedList[item] : item;
-                        }
-                    });
-                    $('#' + type + '_' + field + '_' + status + '_text').text(t);
-                } else {
-                    $('#' + type + '_' + field + '_' + status).hide();
+                if (rules[type][field] !== undefined && rules[type][field][status] !== undefined) {
+                    if (rules[type][field][status].length > 0) {
+                        $('#' + type + '_' + field + '_' + status).show();
+                        var t = '';
+                        rules[type][field][status].forEach(function(item) {
+                            if (t.length > 0) t += ', ';
+                            if (type === 'pull') t += item;
+                            else {
+                                t += indexedList[item] !== undefined ? indexedList[item] : item;
+                            }
+                        });
+                        $('#' + type + '_' + field + '_' + status + '_text').text(t);
+                    } else {
+                        $('#' + type + '_' + field + '_' + status).hide();
+                    }
                 }
             });
         });

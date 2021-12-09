@@ -240,7 +240,7 @@ class Server extends AppModel
      * @param array $server
      * @param array $user
      */
-    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user)
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules)
     {
         // we have an Event array
         // The event came from a pull, so it should be locked.
@@ -268,8 +268,13 @@ class Server extends AppModel
                     }
                 }
             }
+
             if (isset($event['Event']['Attribute'])) {
                 foreach ($event['Event']['Attribute'] as $key => $attribute) {
+                    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
+                        unset($event['Event']['Attribute'][$key]);
+                        continue;
+                    }
                     switch ($attribute['distribution']) {
                         case '1':
                             $event['Event']['Attribute'][$key]['distribution'] = '0';
@@ -290,6 +295,10 @@ class Server extends AppModel
             }
             if (isset($event['Event']['Object'])) {
                 foreach ($event['Event']['Object'] as $i => $object) {
+                    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['name'], $pullRules['type_objects']['NOT'])) {
+                        unset($event['Event']['Object'][$i]);
+                        continue;
+                    }
                     switch ($object['distribution']) {
                         case '1':
                             $event['Event']['Object'][$i]['distribution'] = '0';
@@ -300,6 +309,10 @@ class Server extends AppModel
                     }
                     if (isset($object['Attribute'])) {
                         foreach ($object['Attribute'] as $j => $a) {
+                            if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&  in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
+                                unset($event['Event']['Object'][$i]['Attribute'][$j]['Tag'][$k]);
+                                continue;
+                            }
                             switch ($a['distribution']) {
                                 case '1':
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '0';
@@ -441,7 +454,8 @@ class Server extends AppModel
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
             }
-            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user);
+            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules());
+
             if (!$this->__checkIfEventSaveAble($event)) {
                 $fails[$eventId] = __('Empty event detected.');
             } else {
@@ -5656,6 +5670,14 @@ class Server extends AppModel
                     'description' => __('Custom right menu text (it is possible to use HTML).'),
                     'value' => null,
                     'type' => 'string',
+                    'null' => true,
+                ],
+                'enable_synchronisation_filtering_on_type' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Allows server synchronisation to have filtering on Attribute type or Object name. Warning: This feature has some shortcoming and might introduce inconsistency in your MISP instance and those with whom you are synchronising with.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
                     'null' => true,
                 ],
             ),

@@ -311,7 +311,7 @@ class ServersController extends AppController
             if (!$fail) {
                 if ($this->_isRest()) {
                     $defaultPushRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []]]);
-                    $defaultPullRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []], "url_params" => ""]);
+                    $defaultPullRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []], "type_attributes" => ["NOT" => []], "type_objects" => ["NOT" => []], "url_params" => ""]);
                     $defaults = array(
                         'push' => 0,
                         'pull' => 0,
@@ -442,11 +442,25 @@ class ServersController extends AppController
                 $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
             }
 
+            $allTypes = [];
+            $this->loadModel('Attribute');
+            $this->loadModel('ObjectTemplate');
+            $objects = $this->ObjectTemplate->find('list', [
+                'fields' => ['name'],
+                'group' => ['name', 'id'],
+            ]);
+            $allTypes = [
+                'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
+                'object' => $objects
+            ];
+
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
             $this->set('organisationOptions', $organisationOptions);
             $this->set('localOrganisations', $localOrganisations);
             $this->set('externalOrganisations', $externalOrganisations);
             $this->set('allOrganisations', $allOrgs);
+            $this->set('allAttributeTypes', $allTypes['attribute']);
+            $this->set('allObjectTypes', $allTypes['object']);
 
             $this->set('allTags', $this->__getTags());
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
@@ -613,6 +627,18 @@ class ServersController extends AppController
                 $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
             }
 
+            $allTypes = [];
+            $this->loadModel('Attribute');
+            $this->loadModel('ObjectTemplate');
+            $objects = $this->ObjectTemplate->find('list', [
+                'fields' => ['name'],
+                'group' => ['name', 'id'],
+            ]);
+            $allTypes = [
+                'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
+                'object' => $objects
+            ];
+
             $oldRemoteSetting = 0;
             if (!$this->Server->data['RemoteOrg']['local']) {
                 $oldRemoteSetting = 1;
@@ -627,6 +653,8 @@ class ServersController extends AppController
             $this->set('allOrganisations', $allOrgs);
 
             $this->set('allTags', $this->__getTags());
+            $this->set('allAttributeTypes', $allTypes['attribute']);
+            $this->set('allObjectTypes', $allTypes['object']);
             $this->set('server', $s);
             $this->set('id', $id);
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
