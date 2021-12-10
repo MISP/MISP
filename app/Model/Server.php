@@ -240,7 +240,7 @@ class Server extends AppModel
      * @param array $server
      * @param array $user
      */
-    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules)
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules, bool &$pullRulesEmptiedEvent=false)
     {
         // we have an Event array
         // The event came from a pull, so it should be locked.
@@ -270,6 +270,7 @@ class Server extends AppModel
             }
 
             if (isset($event['Event']['Attribute'])) {
+                $originalCount = count($event['Event']['Attribute']);
                 foreach ($event['Event']['Attribute'] as $key => $attribute) {
                     if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
                         unset($event['Event']['Attribute'][$key]);
@@ -292,8 +293,12 @@ class Server extends AppModel
                         }
                     }
                 }
+                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalCount > 0 && count($event['Event']['Attribute']) == 0) {
+                    $pullRulesEmptiedEvent = true;
+                }
             }
             if (isset($event['Event']['Object'])) {
+                $originalObjectCount = count($event['Event']['Object']);
                 foreach ($event['Event']['Object'] as $i => $object) {
                     if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['template_uuid'], $pullRules['type_objects']['NOT'])) {
                         unset($event['Event']['Object'][$i]);
@@ -308,6 +313,7 @@ class Server extends AppModel
                             break;
                     }
                     if (isset($object['Attribute'])) {
+                        $originalAttributeCount = count($object['Attribute']);
                         foreach ($object['Attribute'] as $j => $a) {
                             if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&  in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
                                 unset($event['Event']['Object'][$i]['Attribute'][$j]['Tag'][$k]);
@@ -330,7 +336,13 @@ class Server extends AppModel
                                 }
                             }
                         }
+                        if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalAttributeCount > 0 && count($object['Attribute']) == 0) {
+                            $pullRulesEmptiedEvent = true;
+                        }
                     }
+                }
+                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalObjectCount > 0 && count($event['Event']['Object']) == 0) {
+                    $pullRulesEmptiedEvent = true;
                 }
             }
             if (isset($event['Event']['EventReport'])) {
@@ -454,10 +466,13 @@ class Server extends AppModel
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
             }
-            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules());
+            $pullRulesEmptiedEvent = false;
+            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules(), $pullRulesEmptiedEvent);
 
             if (!$this->__checkIfEventSaveAble($event)) {
-                $fails[$eventId] = __('Empty event detected.');
+                if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
+                    $fails[$eventId] = __('Empty event detected.');
+                }
             } else {
                 $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force);
             }
