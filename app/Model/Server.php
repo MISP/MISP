@@ -316,7 +316,7 @@ class Server extends AppModel
                         $originalAttributeCount = count($object['Attribute']);
                         foreach ($object['Attribute'] as $j => $a) {
                             if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&  in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
-                                unset($event['Event']['Object'][$i]['Attribute'][$j]['Tag'][$k]);
+                                unset($event['Event']['Object'][$i]['Attribute'][$j]);
                                 continue;
                             }
                             switch ($a['distribution']) {
