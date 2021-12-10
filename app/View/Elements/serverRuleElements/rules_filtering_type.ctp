@@ -12,7 +12,7 @@
             <ul>
                 <li><?= __('This instance will receive incomplete events (missing the filtered out types)') ?></li>
                 <li><?= __('If later you decide to have the filtered types back, the only way for this instance to have them is to completely delete the affected events as a full sync is needed') ?></li>
-                <li><?= __('Any synchronization with this instances will also receive incomplete events') ?></li>
+                <li><?= __('Any synchronisation with this instances will also receive incomplete events') ?></li>
             </ul>
             <strong><?= __('Any instance being synchronized with this one will also be affected by these defects!') ?></strong>
             <label class="checkbox">
