@@ -1201,9 +1201,6 @@ class Event extends AppModel
             $event['Event']['distribution'] = 1;
         }
 
-        debug($event);
-        throw new Exception("Error Processing Request", 1);
-        
         return $event;
     }
 

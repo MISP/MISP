@@ -5674,9 +5674,9 @@ class Server extends AppModel
                 ],
                 'enable_synchronisation_filtering_on_type' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Allows server synchronisation to have filtering on Attribute type or Object name. Warning: This feature has some shortcoming and might introduce inconsistency in your MISP instance and those with whom you are synchronising with.'),
+                    'description' => __('Allows server synchronisation to have filtering on Attribute type or Object name. Warning: This feature has some shortcoming and might introduce inconsistencies in your MISP instance and those with whom you are synchronising with.'),
                     'value' => false,
-                    'test' => 'testBool',
+                    'test' => 'testBoolFalse',
                     'type' => 'boolean',
                     'null' => true,
                 ],
