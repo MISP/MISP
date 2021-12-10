@@ -1117,7 +1117,7 @@ class Event extends AppModel
         return $data;
     }
 
-    private function __prepareAttributesForSync($data, $server)
+    private function __prepareAttributesForSync($data,$server, $pushRules)
     {
         // prepare attribute for sync
         if (!empty($data['Attribute'])) {
@@ -1128,13 +1128,16 @@ class Event extends AppModel
                 } else {
                     $data['Attribute'][$key] = $this->__removeNonExportableTags($data['Attribute'][$key], 'Attribute', $server);
                 }
+                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($attribute['type'], $pushRules['type_attributes']['NOT'])) {
+                    unset($data['Attribute'][$key]);
+                }
             }
             $data['Attribute'] = array_values($data['Attribute']);
         }
         return $data;
     }
 
-    private function __prepareObjectsForSync($data, $server)
+    private function __prepareObjectsForSync($data,$server, $pushRules)
     {
         // prepare Object for sync
         if (!empty($data['Object'])) {
@@ -1143,8 +1146,11 @@ class Event extends AppModel
                 if (empty($data['Object'][$key])) {
                     unset($data['Object'][$key]);
                 } else {
-                    $data['Object'][$key] = $this->__prepareAttributesForSync($data['Object'][$key], $server);
+                    $data['Object'][$key] = $this->__prepareAttributesForSync($data['Object'][$key], $server, $pushRules);
                 }
+            }
+            if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['name'], $pushRules['type_objects']['NOT'])) {
+                unset($data['Object'][$key]);
             }
             $data['Object'] = array_values($data['Object']);
         }
@@ -1184,14 +1190,20 @@ class Event extends AppModel
                 }
             }
         }
-        $event['Event'] = $this->__prepareAttributesForSync($event['Event'], $server);
-        $event['Event'] = $this->__prepareObjectsForSync($event['Event'], $server);
-        $event['Event'] = $this->__prepareEventReportForSync($event['Event'], $server);
+
+        $pushRules = $this->jsonDecode($server['Server']['push_rules']);
+        $event['Event'] = $this->__prepareAttributesForSync($event['Event'], $server, $pushRules);
+        $event['Event'] = $this->__prepareObjectsForSync($event['Event'], $server, $pushRules);
+        $event['Event'] = $this->__prepareEventReportForSync($event['Event'], $server, $pushRules);
 
         // Downgrade the event from connected communities to community only
         if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
             $event['Event']['distribution'] = 1;
         }
+
+        debug($event);
+        throw new Exception("Error Processing Request", 1);
+        
         return $event;
     }
 

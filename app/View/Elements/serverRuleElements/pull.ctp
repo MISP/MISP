@@ -80,65 +80,18 @@
         </div>
     </div>
 
-    <?php if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))) : ?>
-        <div id="eventreport_div">
-            <span class="report-title-section">
-                <label class="checkbox">
-                    <input id="type-filtering-cb" type="checkbox" onclick="$('.type-filtering-container').toggle()"><?= __('Type filtering') ?>
-                </label>
-            </span>
-            <div class="type-filtering-container hidden">
-                <div class="alert alert-error">
-                    <button type="button" class="close" data-dismiss="alert">&times;</button>
-                    <strong><?= __('Warning!') ?></strong>
-                    <?= __('Use this feature only if you know exactly what you are doing as it might introduce unwanted behaviour:') ?>
-                    <ul>
-                        <li><?= __('This instance will receive incomplete events (missing the filtered out types)') ?></li>
-                        <li><?= __('If later you decide to have the filtered types back, the only way for this instance to have them is to completely delete the affected events as a full sync is needed') ?></li>
-                        <li><?= __('Any synchronization with this instances will also receive incomplete events') ?></li>
-                    </ul>
-                    <strong><?= __('Any instance being synchronized with this one will also be affected by these defects!') ?></strong>
-                    <label class="checkbox">
-                        <input id="type-filtering-notice-cb" type="checkbox" onclick="$('.type-filtering-subcontainer').toggle()"><?= __('I understand the shortcomings of using these filters') ?>
-                    </label>
-                </div>
-                <div class="type-filtering-subcontainer" style="display: flex; flex-direction: column;">
-                    <div style="display: flex;">
-                        <h4 class="bold green" style=""></h4>
-                        <h4 class="bold red" style="margin-left: auto;"><?= __('AND NOT'); ?></h4>
-                    </div>
-                    <?php
-                    echo $this->element('serverRuleElements/rules_widget', [
-                        'scope' => 'type_attributes',
-                        'scopeI18n' => __('Attribute Types'),
-                        'technique' => 'pull',
-                        'allowEmptyOptions' => true,
-                        'options' => $allAttributeTypes,
-                        'optionNoValue' => true,
-                        'initAllowOptions' => [],
-                        'initBlockOptions' => $attributeTypeBlockRules,
-                        'disableAllow' => true,
-                        'disableFreeText' => true,
-                    ]);
-                    ?>
-                    <?php
-                    echo $this->element('serverRuleElements/rules_widget', [
-                        'scope' => 'type_objects',
-                        'scopeI18n' => __('Object Types'),
-                        'technique' => 'pull',
-                        'allowEmptyOptions' => true,
-                        'options' => $allObjectTypes,
-                        'optionNoValue' => true,
-                        'initAllowOptions' => [],
-                        'initBlockOptions' => $objectTypeBlockRules,
-                        'disableAllow' => true,
-                        'disableFreeText' => true,
-                    ]);
-                    ?>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
+    <?php
+    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))) {
+        echo $this->element('serverRuleElements/rules_filtering_type', [
+            'technique' => 'pull',
+            'allowEmptyOptions' => true,
+            'allAttributeTypes' => $allAttributeTypes,
+            'attributeTypeBlockRules' => $attributeTypeBlockRules,
+            'allObjectTypes' => $allObjectTypes,
+            'objectTypeBlockRules' => $objectTypeBlockRules,
+        ]);
+    }
+    ?>
 </div>
 
 <?php
@@ -169,11 +122,11 @@ echo $this->element('genericElements/assetLoader', array(
         <?php endif; ?>
         setupCodeMirror()
         <?php if (empty($attributeTypeBlockRules) && empty($objectTypeBlockRules)) : ?>
-            $('.type-filtering-subcontainer').hide()
+            $('div.server-rule-container-pull .type-filtering-subcontainer').hide()
         <?php else : ?>
-            $('#type-filtering-cb').prop('checked', true)
-            $('#type-filtering-notice-cb').prop('checked', true)
-            $('.type-filtering-container').show()
+            $('div.server-rule-container-pull #type-filtering-cb').prop('checked', true)
+            $('div.server-rule-container-pull #type-filtering-notice-cb').prop('checked', true)
+            $('div.server-rule-container-pull .type-filtering-container').show()
         <?php endif; ?>
 
         function addPullFilteringRulesToPicker() {

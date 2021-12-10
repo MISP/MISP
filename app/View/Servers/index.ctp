@@ -41,7 +41,7 @@ foreach ($servers as $server):
     $rules['push'] = json_decode($server['Server']['push_rules'], true);
     $rules['pull'] = json_decode($server['Server']['pull_rules'], true);
     $syncOptions = array('pull', 'push');
-    $fieldOptions = array('tags', 'orgs');
+    $fieldOptions = array('tags', 'orgs', 'type_attributes', 'type_objects');
     $typeOptions = array('OR' => array('colour' => 'green', 'text' => 'allowed'), 'NOT' => array('colour' => 'red', 'text' => 'blocked'));
     $ruleDescription = array('pull' => '', 'push' => '');
     foreach ($syncOptions as $syncOption) {
