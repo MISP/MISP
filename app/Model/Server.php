@@ -295,7 +295,7 @@ class Server extends AppModel
             }
             if (isset($event['Event']['Object'])) {
                 foreach ($event['Event']['Object'] as $i => $object) {
-                    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['name'], $pullRules['type_objects']['NOT'])) {
+                    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['template_uuid'], $pullRules['type_objects']['NOT'])) {
                         unset($event['Event']['Object'][$i]);
                         continue;
                     }

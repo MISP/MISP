@@ -1149,7 +1149,7 @@ class Event extends AppModel
                     $data['Object'][$key] = $this->__prepareAttributesForSync($data['Object'][$key], $server, $pushRules);
                 }
             }
-            if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['name'], $pushRules['type_objects']['NOT'])) {
+            if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['template_uuid'], $pushRules['type_objects']['NOT'])) {
                 unset($data['Object'][$key]);
             }
             $data['Object'] = array_values($data['Object']);

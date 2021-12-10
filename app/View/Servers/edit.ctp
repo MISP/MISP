@@ -159,7 +159,7 @@
         <span id="push_orgs_NOT" style="display:none;"><?php echo __('Events with the following organisations blocked: ');?><span id="push_orgs_NOT_text" style="color:red;"></span><br /></span>
         <?php if(!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))): ?>
         <span id="push_type_attributes_NOT" style="display:none;"><?php echo __('Attributes of the following types blocked: ');?><span id="push_type_attributes_NOT_text" style="color:red;"></span><br /></span>
-        <span id="push_type_objects_NOT" style="display:none;"><?php echo __('Objects of the following names blocked: ');?><span id="push_type_objects_NOT_text" style="color:red;"></span><br /></span>
+        <span id="push_type_objects_NOT" style="display:none;"><?php echo __('Objects of the following uuids blocked: ');?><span id="push_type_objects_NOT_text" style="color:red;"></span><br /></span>
         <?php endif; ?>
         <span id="push_modify" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify');?></span><br /><br />
         <b><?php echo __('Pull rules:');?></b><br />
@@ -169,7 +169,7 @@
         <span id="pull_orgs_NOT" style="display:none;"><?php echo __('Events with the following organisations blocked: ');?><span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
         <?php if(!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))): ?>
         <span id="pull_type_attributes_NOT" style="display:none;"><?php echo __('Attributes of the following types blocked: ');?><span id="pull_type_attributes_NOT_text" style="color:red;"></span><br /></span>
-        <span id="pull_type_objects_NOT" style="display:none;"><?php echo __('Objects of the following names blocked: ');?><span id="pull_type_objects_NOT_text" style="color:red;"></span><br /></span>
+        <span id="pull_type_objects_NOT" style="display:none;"><?php echo __('Objects of the following uuids blocked: ');?><span id="pull_type_objects_NOT_text" style="color:red;"></span><br /></span>
         <?php endif; ?>
         <span id="pull_url_params" style="display:none;"><?php echo __('Additional parameters: ');?><span id="pull_url_params_text" style="color:green;"></span><br /></span>
         <span id="pull_modify" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify');?></span><br /><br />

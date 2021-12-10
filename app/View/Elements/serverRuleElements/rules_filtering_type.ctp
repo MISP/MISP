@@ -45,7 +45,7 @@
                 'technique' => $technique,
                 'allowEmptyOptions' => true,
                 'options' => $allObjectTypes,
-                'optionNoValue' => true,
+                'optionNoValue' => false,
                 'initAllowOptions' => [],
                 'initBlockOptions' => $objectTypeBlockRules,
                 'disableAllow' => true,

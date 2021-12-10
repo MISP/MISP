@@ -63,7 +63,7 @@
         ]);
     ?>
 
-    <?php 
+    <?php
     if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))) {
         echo $this->element('serverRuleElements/rules_filtering_type', [
             'technique' => 'push',
