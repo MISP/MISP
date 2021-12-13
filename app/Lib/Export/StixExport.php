@@ -269,7 +269,7 @@ abstract class StixExport
             }
         }
         $converter = new JSONConverterTool();
-        $event = JsonTool::encode($converter->convert($data, false, true)); // we don't need pretty printed JSON
+        $event = JsonTool::encode($converter->convert($event, false, true)); // we don't need pretty printed JSON
         if ($this->__n_attributes + $attributes_count <= $this->__attributes_limit) {
             $this->__tmp_file->append($this->__n_attributes == 0 ? $event : ', ' . $event);
             $this->__n_attributes += $attributes_count;
@@ -368,7 +368,7 @@ abstract class StixExport
     private function __write_stix_content($filename, $separator)
     {
         $stix_content = FileAccessTool::readAndDelete($filename);
-        if ($this->__return_type === 'stix') {
+        if ($this->__return_type === 'stix2') {
             $stix_content = substr($stix_content, 1, -1);
         }
         $this->stixFile->writeWithSeparator($stix_content, $separator);
