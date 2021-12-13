@@ -643,7 +643,7 @@ class ServersController extends AppController
             $objects = $this->ObjectTemplate->find('all', [
                 'recursive' => -1,
                 'fields' => ['uuid', 'name'],
-                'group' => ['uuid', 'name', 'id'],
+                'group' => ['uuid', 'name'],
             ]);
             $allTypes = [
                 'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
