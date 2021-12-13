@@ -1,5 +1,4 @@
 <?php
-
 App::uses('StixExport', 'Export');
 
 class Stix2Export extends StixExport
@@ -7,31 +6,30 @@ class Stix2Export extends StixExport
     protected $__attributes_limit = 15000;
     protected $__default_version = '2.0';
     protected $__sane_versions = array('2.0', '2.1');
-    private $__script_name = 'stix2/misp2stix2.py ';
 
     protected function __initiate_framing_params()
     {
-        $my_server = ClassRegistry::init('Server');
-        return $my_server->getPythonVersion() . ' ' . $this->__framing_script . ' stix2 -v ' . $this->__version . ' --uuid ' . escapeshellarg(CakeText::uuid()) . $this->__end_of_cmd;
+        return [
+            ProcessTool::pythonBin(),
+            $this->__framing_script,
+            'stix2',
+            '-v', $this->__version,
+            '--uuid', CakeText::uuid(),
+        ];
     }
 
-    protected function __parse_misp_data($filenames)
+    protected function __parse_misp_data()
     {
-        $scriptFile = $this->__scripts_dir . $this->__script_name;
-        $filenames = implode(' ' . $this->__tmp_dir, $this->__filenames);
-        $my_server = ClassRegistry::init('Server');
-        $result = shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . '-v ' . $this->__version . ' -i ' . $this->__tmp_dir . $filenames . $this->__end_of_cmd);
+        $scriptFile = $this->__scripts_dir . 'stix2/misp2stix2.py';
+        $command = [
+            ProcessTool::pythonBin(),
+            $scriptFile,
+            '-v', $this->__version,
+            '-i',
+        ];
+        $command = array_merge($command, $this->__filenames);
+        $result = ProcessTool::execute($command, null, true);
         $result = preg_split("/\r\n|\n|\r/", trim($result));
-        $decoded = json_decode(end($result), true);
-        if (!isset($decoded['success']) || !$decoded['success']) {
-            $this->__delete_temporary_files();
-            $error = !empty($decoded['error']) ? $decoded['error'] : $result;
-            return 'Error while processing your query: ' . $error;
-        }
-        foreach ($this->__filenames as $f => $filename) {
-            $content_filename = $this->__tmp_dir . $filename;
-            $this->__write_stix_content($content_filename . '.out');
-            @unlink($content_filename);
-        }
+        return end($result);
     }
 }

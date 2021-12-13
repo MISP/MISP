@@ -5,6 +5,7 @@ App::uses('File', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('ComplexTypeTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('AttributeValidationTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -129,13 +130,13 @@ class ShadowAttribute extends AppModel
         'first_seen' => array(
             'rule' => array('datetimeOrNull'),
             'required' => false,
-            'message' => array('Invalid ISO 8601 format')
+            'message' => array('Invalid ISO 8601 format'),
         ),
         'last_seen' => array(
             'datetimeOrNull' => array(
                 'rule' => array('datetimeOrNull'),
                 'required' => false,
-                'message' => array('Invalid ISO 8601 format')
+                'message' => array('Invalid ISO 8601 format'),
             ),
             'validateLastSeenValue' => array(
                 'rule' => array('validateLastSeenValue'),
@@ -173,7 +174,7 @@ class ShadowAttribute extends AppModel
             $compositeTypes = $this->getCompositeTypes();
             // explode composite types in value1 and value2
             $pieces = explode('|', $this->data['ShadowAttribute']['value']);
-            if (in_array($this->data['ShadowAttribute']['type'], $compositeTypes)) {
+            if (in_array($this->data['ShadowAttribute']['type'], $compositeTypes, true)) {
                 if (2 != count($pieces)) {
                     throw new InternalErrorException('Composite type, but value not explodable');
                 }
@@ -300,58 +301,67 @@ class ShadowAttribute extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
-        // remove leading and trailing blanks
-        //$this->trimStringFields(); // TODO
-
-        if (!isset($this->data['ShadowAttribute']['comment'])) {
-            $this->data['ShadowAttribute']['comment'] = '';
-        }
-
-        if (!isset($this->data['ShadowAttribute']['type'])) {
+        $proposal = &$this->data['ShadowAttribute'];
+        if (!isset($proposal['type'])) {
+            $this->invalidate('type', 'No value provided.');
             return false;
         }
 
+        if (!isset($proposal['comment'])) {
+            $proposal['comment'] = '';
+        }
+
         // make some changes to the inserted value
-        if (isset($this->data['ShadowAttribute']['value'])) {
-            $value = trim($this->data['ShadowAttribute']['value']);
-            $value = ComplexTypeTool::refangValue($value, $this->data['ShadowAttribute']['type']);
-            $value = $this->Attribute->modifyBeforeValidation($this->data['ShadowAttribute']['type'], $value);
-            $this->data['ShadowAttribute']['value'] = $value;
+        if (isset($proposal['value'])) {
+            $value = trim($proposal['value']);
+            $value = ComplexTypeTool::refangValue($value, $proposal['type']);
+            $value = AttributeValidationTool::modifyBeforeValidation($proposal['type'], $value);
+            $proposal['value'] = $value;
         }
 
-        if (!isset($this->data['ShadowAttribute']['org'])) {
-            $this->data['ShadowAttribute']['org'] = '';
+        if (!isset($proposal['org'])) {
+            $proposal['org'] = '';
         }
 
-        if (empty($this->data['ShadowAttribute']['timestamp'])) {
-            $date = new DateTime();
-            $this->data['ShadowAttribute']['timestamp'] = $date->getTimestamp();
+        if (empty($proposal['timestamp'])) {
+            $proposal['timestamp'] = time();
         }
 
-        if (!isset($this->data['ShadowAttribute']['proposal_to_delete'])) {
-            $this->data['ShadowAttribute']['proposal_to_delete'] = 0;
+        if (!isset($proposal['proposal_to_delete'])) {
+            $proposal['proposal_to_delete'] = 0;
         }
 
         // generate UUID if it doesn't exist
-        if (empty($this->data['ShadowAttribute']['uuid'])) {
-            $this->data['ShadowAttribute']['uuid'] = CakeText::uuid();
+        if (empty($proposal['uuid'])) {
+            $proposal['uuid'] = CakeText::uuid();
         } else {
-            $this->data['ShadowAttribute']['uuid'] = strtolower($this->data['ShadowAttribute']['uuid']);
+            $proposal['uuid'] = strtolower($proposal['uuid']);
         }
 
-        if (!empty($this->data['ShadowAttribute']['type']) && empty($this->data['ShadowAttribute']['category'])) {
-            $this->data['ShadowAttribute']['category'] = $this->Attribute->typeDefinitions[$this->data['ShadowAttribute']['type']]['default_category'];
+        if (empty($proposal['category'])) {
+            $proposal['category'] = $this->Attribute->typeDefinitions[$proposal['type']]['default_category'];
         }
 
-        // always return true, otherwise the object cannot be saved
+        if (isset($proposal['first_seen'])) {
+            $proposal['first_seen'] = $proposal['first_seen'] === '' ? null : $proposal['first_seen'];
+        }
+        if (isset($proposal['last_seen'])) {
+            $proposal['last_seen'] = $proposal['last_seen'] === '' ? null : $proposal['last_seen'];
+        }
+
         return true;
     }
 
     public function afterFind($results, $primary = false)
     {
-        foreach ($results as $k => $v) {
-            $results[$k] = $this->Attribute->UTCToISODatetime($results[$k], $this->alias);
+        foreach ($results as &$v) {
+            $proposal = &$v['ShadowAttribute'];
+            if (!empty($proposal['first_seen'])) {
+                $proposal['first_seen'] = $this->microTimestampToIso($proposal['first_seen']);
+            }
+            if (!empty($proposal['last_seen'])) {
+                $proposal['last_seen'] = $this->microTimestampToIso($proposal['last_seen']);
+            }
         }
         return $results;
     }
@@ -373,7 +383,7 @@ class ShadowAttribute extends AppModel
     public function validateAttributeValue($fields)
     {
         $value = $fields['value'];
-        return $this->Attribute->runValidation($value, $this->data['ShadowAttribute']['type']);
+        return AttributeValidationTool::validate($this->data['ShadowAttribute']['type'], $value);
     }
 
     public function getCompositeTypes()
@@ -803,26 +813,28 @@ class ShadowAttribute extends AppModel
                 ));
             }
         } else {
+
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'generate proposal correlation',
-                    'job_input' => 'All attributes',
-                    'retries' => 0,
-                    'status' => 1,
-                    'org' => 'SYSTEM',
-                    'message' => 'Correlating Proposals.',
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate proposal correlation',
+                'All attributes',
+                'Correlating Proposals.'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    array('jobGenerateShadowAttributeCorrelation', $jobId),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateShadowAttributeCorrelation',
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
+
             $this->Log->create();
             $this->Log->save(array(
                     'org' => 'SYSTEM',

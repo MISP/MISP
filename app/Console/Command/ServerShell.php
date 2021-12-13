@@ -1,6 +1,7 @@
 <?php
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
+App::uses('BackgroundJobsTool', 'Tools');
 require_once 'AppShell.php';
 
 /**
@@ -78,12 +79,19 @@ class ServerShell extends AppShell
         ));
 
         foreach ($servers as $serverId => $serverName) {
-            $jobId = CakeResque::enqueue(
-                'default',
-                'ServerShell',
-                array('pull', $user['id'], $serverId, $technique)
+
+            $backgroundJobId = $this->Server->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                [
+                    'pull',
+                    $user['id'],
+                    $serverId,
+                    $technique
+                ]
             );
-            $this->out("Enqueued pulling from $serverName server as job $jobId");
+
+            $this->out("Enqueued pulling from $serverName server as job $backgroundJobId");
         }
     }
 
@@ -105,14 +113,14 @@ class ServerShell extends AppShell
         if (!empty($this->args[3])) {
             $jobId = $this->args[3];
         } else {
-            $jobId = $this->Job->createJob($user,Job::WORKER_DEFAULT, 'pull', 'Server: ' . $serverId, 'Pulling.');
+            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'pull', 'Server: ' . $serverId, 'Pulling.');
         }
         $force = false;
         if (!empty($this->args[4]) && $this->args[4] === 'force') {
             $force = true;
         }
         try {
-            $result = $this->Server->pull($user, $serverId, $technique, $server, $jobId, $force);
+            $result = $this->Server->pull($user, $technique, $server, $jobId, $force);
             if (is_array($result)) {
                 $message = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
                 $this->Job->saveStatus($jobId, true, $message);
@@ -137,23 +145,12 @@ class ServerShell extends AppShell
         $user = $this->getUser($userId);
         $serverId = $this->args[1];
         $server = $this->getServer($serverId);
-        if (!empty($this->args[2])) {
-            $jobId = $this->args[2];
+        $technique = empty($this->args[2]) ? 'full' : $this->args[2];
+        if (!empty($this->args[3])) {
+            $jobId = $this->args[3];
         } else {
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'push',
-                    'job_input' => 'Server: ' . $serverId,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Pushing.',
-            );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
+            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'push', 'Server: ' . $serverId, 'Pushing.');
         }
-        $technique = empty($this->args[3]) ? 'full' : $this->args[3];
         $this->Job->read(null, $jobId);
 
         App::uses('SyncTool', 'Tools');
@@ -192,11 +189,18 @@ class ServerShell extends AppShell
         ));
 
         foreach ($servers as $serverId => $serverName) {
-            $jobId = CakeResque::enqueue(
-                'default',
-                'ServerShell',
-                array('push', $user['id'], $serverId, $technique)
+
+            $jobId = $this->Server->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                [
+                    'push',
+                    $user['id'],
+                    $serverId,
+                    $technique
+                ]
             );
+
             $this->out("Enqueued pushing from $serverName server as job $jobId");
         }
     }
@@ -213,25 +217,13 @@ class ServerShell extends AppShell
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];
         } else {
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'fetch_feeds',
-                    'job_input' => 'Feed: ' . $feedId,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Starting fetch from Feed.',
-            );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
+            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'fetch_feeds', 'Feed: ' . $feedId, 'Starting fetch from Feed.');
         }
-        if ($feedId == 'all') {
-            $feedIds = $this->Feed->find('list', array(
-                'fields' => array('Feed.id', 'Feed.id'),
+        if ($feedId === 'all') {
+            $feedIds = $this->Feed->find('column', array(
+                'fields' => array('Feed.id'),
                 'conditions' => array('Feed.enabled' => 1)
             ));
-            $feedIds = array_values($feedIds);
             $successes = 0;
             $fails = 0;
             foreach ($feedIds as $k => $feedId) {
@@ -247,21 +239,21 @@ class ServerShell extends AppShell
             $this->Job->saveStatus($jobId, true, $message);
             echo $message . PHP_EOL;
         } else {
-            $temp = $this->Feed->find('first', array(
-                'fields' => array('Feed.id', 'Feed.id'),
-                'conditions' => array('Feed.enabled' => 1, 'Feed.id' => $feedId)
-            ));
-            if (!empty($temp)) {
+            $feedEnabled = $this->Feed->hasAny([
+                'Feed.enabled' => 1,
+                'Feed.id' => $feedId,
+            ]);
+            if ($feedEnabled) {
                 $result = $this->Feed->downloadFromFeedInitiator($feedId, $user, $jobId);
                 if (!$result) {
-                    $this->Job->saveStatus($jobId, false);
+                    $this->Job->saveStatus($jobId, false, 'Job failed. See error log for more details.');
                     echo 'Job failed.' . PHP_EOL;
                 } else {
                     $this->Job->saveStatus($jobId, true);
                     echo 'Job done.' . PHP_EOL;
                 }
             } else {
-                $message = "Feed with ID $feedId not found.";
+                $message = "Feed with ID $feedId not found or not enabled.";
                 $this->Job->saveStatus($jobId, false, $message);
                 echo $message . PHP_EOL;
             }
@@ -317,11 +309,17 @@ class ServerShell extends AppShell
         ));
 
         foreach ($servers as $serverId => $serverName) {
-            $jobId = CakeResque::enqueue(
-                'default',
-                'ServerShell',
-                array('cacheServer', $user['id'], $serverId)
+
+            $jobId = $this->Server->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_SERVER,
+                [
+                    'cacheServer',
+                    $user['id'],
+                    $serverId
+                ]
             );
+
             $this->out("Enqueued cacheServer from {$serverName} server as job $jobId");
         }
     }
@@ -338,7 +336,7 @@ class ServerShell extends AppShell
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];
         } else {
-            $jobId = $this->Job->createJob($user,Job::WORKER_DEFAULT, 'cache_feeds', 'Feed: ' . $scope, 'Starting feed caching.');
+            $jobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'cache_feeds', 'Feed: ' . $scope, 'Starting feed caching.');
         }
         try {
             $result = $this->Feed->cacheFeedInitiator($user, $jobId, $scope);
@@ -399,7 +397,7 @@ class ServerShell extends AppShell
             );
             $this->Job->save($data);
             $jobId = $this->Job->id;
-            $result = $this->Server->pull($user, $server['Server']['id'], 'full', $server, $jobId);
+            $result = $this->Server->pull($user, 'full', $server, $jobId);
             $this->Job->save(array(
                     'id' => $jobId,
                     'message' => 'Job done.',

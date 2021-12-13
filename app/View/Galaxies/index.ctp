@@ -80,6 +80,13 @@
                     'class' => 'short',
                     'data_path' => 'Galaxy.enabled',
                 ),
+                array(
+                    'name' => __('Local Only'),
+                    'element' => 'boolean',
+                    'sort' => 'local_only',
+                    'class' => 'short',
+                    'data_path' => 'Galaxy.local_only',
+                ),
             ),
             'title' => __('Galaxy index'),
             'actions' => array(

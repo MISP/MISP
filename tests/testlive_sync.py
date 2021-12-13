@@ -1,5 +1,5 @@
 import os
-from pymisp import PyMISP, MISPEvent
+from pymisp import PyMISP, MISPEvent, MISPGalaxyCluster
 
 
 def check_response(response):
@@ -53,6 +53,29 @@ check_response(event)
 # Publish that event
 check_response(pymisp.publish(event))
 
+# Publish event inline
+url = f'events/publish/{event.id}/disable_background_processing:1'
+push_event = pymisp._check_json_response(pymisp._prepare_request('POST', url))
+check_response(push_event)
+
+# Create testing galaxy cluster
+galaxy = pymisp.galaxies()[0]
+galaxy_cluster = MISPGalaxyCluster()
+galaxy_cluster.value = "Test Cluster"
+galaxy_cluster.authors = ["MISP"]
+galaxy_cluster.distribution = 1
+galaxy_cluster.description = "Example test cluster"
+galaxy_cluster = pymisp.add_galaxy_cluster(galaxy.id, galaxy_cluster)
+check_response(galaxy_cluster)
+
+# Publish that galaxy cluster
+check_response(pymisp.publish_galaxy_cluster(galaxy_cluster))
+
+# Preview index
+url = f'servers/previewIndex/{remote_server["id"]}'
+index_preview = pymisp._check_json_response(pymisp._prepare_request('GET', url))
+check_response(index_preview)
+
 # Preview event
 url = f'servers/previewEvent/{remote_server["id"]}/{event.uuid}'
 event_preview = pymisp._check_json_response(pymisp._prepare_request('GET', url))
@@ -92,3 +115,4 @@ check_response(rules_response)
 check_response(pymisp.delete_server(remote_server))
 check_response(pymisp.delete_event(event))
 check_response(pymisp.delete_event_blocklist(event))
+check_response(pymisp.delete_galaxy_cluster(galaxy_cluster))

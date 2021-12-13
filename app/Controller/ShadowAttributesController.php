@@ -708,7 +708,7 @@ class ShadowAttributesController extends AppController
                     }
                     throw new InternalErrorException(__('Could not save the proposal. Errors: %s', $message));
                 } else {
-                    $this->Flash->error(__('The ShadowAttribute could not be saved. Please, try again.'));
+                    $this->Flash->error(__('The proposed Attribute could not be saved. Please, try again.'));
                 }
             }
         } else {
@@ -1074,25 +1074,27 @@ class ShadowAttributesController extends AppController
             $this->Flash->success(__('All done. ' . $k . ' proposals processed.'));
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         } else {
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'generate proposal correlation',
-                    'job_input' => 'All attributes',
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => 'ADMIN',
-                    'message' => 'Job created.',
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate proposal correlation',
+                'All attributes',
+                'Job created.'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    array('jobGenerateShadowAttributeCorrelation', $jobId)
+
+            $this->Attribute->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateShadowAttributeCorrelation',
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
+
             $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         }

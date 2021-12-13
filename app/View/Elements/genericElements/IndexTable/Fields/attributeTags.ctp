@@ -6,8 +6,7 @@ $mayModify = ($isSiteAdmin || ($isAclModify && $event['user_id'] == $me['id'] &&
 $objectId = intval($attribute['id']);
 
 ?>
-
-<div id="Attribute_<?= $objectId ?>" class="attributeTagContainer">
+<div class="attributeTagContainer">
     <?php echo $this->element(
         'ajaxTags',
         array(
@@ -21,7 +20,6 @@ $objectId = intval($attribute['id']);
         )
     ); ?>
 </div>
-
 <?php
 if (!empty($includeRelatedTags)) {
     $element = '';

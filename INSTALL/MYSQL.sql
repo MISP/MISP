@@ -548,7 +548,7 @@ CREATE TABLE IF NOT EXISTS `jobs` (
   `message` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `progress` int(11) NOT NULL DEFAULT 0,
   `org_id` int(11) NOT NULL DEFAULT 0,
-  `process_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
+  `process_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   `date_created` datetime NOT NULL,
   `date_modified` datetime NOT NULL,
   PRIMARY KEY (`id`)
@@ -690,6 +690,7 @@ CREATE TABLE IF NOT EXISTS `object_references` (
   `comment` text COLLATE utf8_bin NOT NULL,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
+  UNIQUE INDEX `uuid` (`uuid`),
   INDEX `source_uuid` (`source_uuid`),
   INDEX `referenced_uuid` (`referenced_uuid`),
   INDEX `timestamp` (`timestamp`),
@@ -1056,6 +1057,7 @@ CREATE TABLE IF NOT EXISTS `sharing_groups` (
   INDEX `org_id` (`org_id`),
   INDEX `sync_user_id` (`sync_user_id`),
   UNIQUE INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `name` (`name`),
   INDEX `organisation_uuid` (`organisation_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 

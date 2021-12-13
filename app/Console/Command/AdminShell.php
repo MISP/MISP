@@ -3,6 +3,7 @@ App::uses('AppShell', 'Console/Command');
 
 /**
  * @property Server $Server
+ * @property Feed $Feed
  */
 class AdminShell extends AppShell
 {
@@ -22,12 +23,18 @@ class AdminShell extends AppShell
                     'value' => ['help' => __('Setting value'), 'required' => true],
                 ],
                 'options' => [
-                    'force' => array(
+                    'force' => [
                         'short' => 'f',
                         'help' => 'Force the command.',
                         'default' => false,
                         'boolean' => true
-                    )
+                    ],
+                    'null' => [
+                        'short' => 'n',
+                        'help' => 'Set the value to null.',
+                        'default' => false,
+                        'boolean' => true
+                    ],
                 ]
             ],
         ]);
@@ -38,6 +45,27 @@ class AdminShell extends AppShell
                     'state' => ['help' => __('Set Live state')],
                 ],
             ],
+        ]);
+        $parser->addSubcommand('reencrypt', [
+            'help' => __('Reencrypt encrypted values in database (authkeys and sensitive system settings).'),
+            'parser' => [
+                'options' => [
+                    'old' => ['help' => __('Old key. If not provided, current key will be used.')],
+                    'new' => ['help' => __('New key. If not provided, new key will be generated.')],
+                ],
+            ],
+        ]);
+        $parser->addSubcommand('removeOrphanedCorrelations', [
+            'help' => __('Remove orphaned correlations.'),
+        ]);
+        $parser->addSubcommand('optimiseTables', [
+            'help' => __('Optimise database tables.'),
+        ]);
+        $parser->addSubcommand('redisMemoryUsage', [
+            'help' => __('Get detailed information about Redis memory usage.'),
+        ]);
+        $parser->addSubcommand('redisReady', [
+            'help' => __('Check if it is possible connect to Redis.'),
         ]);
         return $parser;
     }
@@ -369,14 +397,13 @@ class AdminShell extends AppShell
 
     public function getSetting()
     {
-        $this->ConfigLoad->execute();
         $param = empty($this->args[0]) ? 'all' : $this->args[0];
         $settings = $this->Server->serverSettingsRead();
         $result = $settings;
-        if ($param != 'all') {
+        if ($param !== 'all') {
             $result = 'No valid setting found for ' . $param;
             foreach ($settings as $setting) {
-                if ($setting['setting'] == $param) {
+                if ($setting['setting'] === $param) {
                     $result = $setting;
                     break;
                 }
@@ -387,15 +414,17 @@ class AdminShell extends AppShell
 
     public function setSetting()
     {
-        $setting_name = !isset($this->args[0]) ? null : $this->args[0];
-        $value = !isset($this->args[1]) ? null : $this->args[1];
+        list($setting_name, $value) = $this->args;
         if ($value === 'false') {
             $value = 0;
         } elseif ($value === 'true') {
             $value = 1;
         }
+        if ($this->params['null']) {
+            $value = null;
+        }
         $cli_user = array('id' => 0, 'email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'));
-        if (empty($setting_name) || $value === null) {
+        if (empty($setting_name) || ($value === null && !$this->params['null'])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Set setting'] . PHP_EOL);
         }
         $setting = $this->Server->getSettingData($setting_name);
@@ -405,7 +434,7 @@ class AdminShell extends AppShell
         }
         $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value, $this->params['force']);
         if ($result === true) {
-            echo 'Setting "' . $setting_name . '" changed to ' . $value . PHP_EOL;
+            $this->out(__('Setting "%s" changed to %s', $setting_name, is_string($value) ? '"' . $value . '"' : (string)$value));
         } else {
             $message = __("The setting change was rejected. MISP considers the requested setting value as invalid and would lead to the following error:\n\n\"%s\"\n\nIf you still want to force this change, please supply the --force argument.\n", $result);
             $this->error(__('Setting change rejected.'), $message);
@@ -473,7 +502,7 @@ class AdminShell extends AppShell
     {
         try {
             $redis = $this->Server->setupRedisWithException();
-            $redis->randomKey();
+            $redis->ping();
             $this->out('Successfully connected to Redis.');
         } catch (Exception $e) {
             $this->error('Redis connection is not available', $e->getMessage());
@@ -756,6 +785,33 @@ class AdminShell extends AppShell
         $this->Job->saveField('status', 4);
     }
 
+    public function removeOrphanedCorrelations()
+    {
+        $count = $this->Server->removeOrphanedCorrelations();
+        $this->out(__('%s orphaned correlation removed', $count));
+    }
+
+    public function optimiseTables()
+    {
+        $dataSource = $this->Server->getDataSource();
+        $tables = $dataSource->listSources();
+
+        /** @var ProgressShellHelper $progress */
+        $progress = $this->helper('progress');
+        $progress->init([
+            'total' => count($tables),
+            'width' => 50,
+        ]);
+
+        foreach ($tables as $table) {
+            $dataSource->query('OPTIMISE TABLE ' . $dataSource->name($table));
+            $progress->increment();
+            $progress->draw();
+        }
+
+        $this->out('Optimised.');
+    }
+
     public function updatesDone()
     {
         $blocking = !empty($this->args[0]);
@@ -850,5 +906,158 @@ class AdminShell extends AppShell
             $newStatus = $this->Server->setupRedisWithException()->get('misp:live');
             $this->out('Redis: ' . ($newStatus !== '0' ? 'True' : 'False'));
         }
+    }
+
+    public function reencrypt()
+    {
+        $old = $this->params['old'] ?? null;
+        $new = $this->params['new'] ?? null;
+
+        if ($new !== null && strlen($new) < 32) {
+            $this->error('New key must be at least 32 char long.');
+        }
+
+        if ($old === null) {
+            $old = Configure::read('Security.encryption_key');
+        }
+
+        if ($new === null) {
+            // Generate random new key
+            $randomTool = new RandomTool();
+            $new = $randomTool->random_str();
+        }
+
+        $this->Server->getDataSource()->begin();
+
+        try {
+            /** @var SystemSetting $systemSetting */
+            $systemSetting = ClassRegistry::init('SystemSetting');
+            $systemSetting->reencrypt($old, $new);
+
+            $this->Server->reencryptAuthKeys($old, $new);
+
+            /** @var Cerebrate $cerebrate */
+            $cerebrate = ClassRegistry::init('Cerebrate');
+            $cerebrate->reencryptAuthKeys($old, $new);
+
+            $result = $this->Server->serverSettingsSaveValue('Security.encryption_key', $new, true);
+
+            $this->Server->getDataSource()->commit();
+
+            if (!$result) {
+                $this->error('Encrypt key was changed, but it is not possible to save key to config file', __('Please insert new key "%s" to config file manually.', $new));
+            }
+        } catch (Exception $e) {
+            $this->Server->getDataSource()->rollback();
+            throw $e;
+        }
+
+        $this->out(__('New encryption key "%s" saved into config file.', $new));
+    }
+
+    /**
+     * @param Redis $redis
+     * @param string $prefix
+     * @return array[int, int]
+     */
+    private function redisSize($redis, $prefix)
+    {
+        $keyCount = 0;
+        $size = 0;
+        $it = null;
+        while ($keys = $redis->scan($it, $prefix, 1000)) {
+            $redis->pipeline();
+            foreach ($keys as $key) {
+                $redis->rawCommand("memory", "usage", $key);
+            }
+            $result = $redis->exec();
+            $keyCount += count($keys);
+            $size += array_sum($result);
+        }
+        return [$keyCount, $size];
+    }
+
+    public function redisMemoryUsage()
+    {
+        $redis = $this->Server->setupRedisWithException();
+        $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
+
+        $output = [];
+
+        list($count, $size) = $this->redisSize($redis, 'misp:feed_cache:*');
+        $output['feed_cache_count'] = $count;
+        $output['feed_cache_size'] = $size;
+
+        // Size of different feeds
+        $feedIds = $this->Feed->find('column', [
+            'fields' => ['id'],
+        ]);
+
+        $redis->pipeline();
+        foreach ($feedIds as $feedId) {
+            $redis->rawCommand("memory", "usage", 'misp:feed_cache:' . $feedId);
+        }
+        $feedSizes = $redis->exec();
+
+        foreach ($feedIds as $k => $feedId) {
+            if ($feedSizes[$k]) {
+                $output['feed_cache_size_' . $feedId] = $feedSizes[$k];
+            }
+        }
+
+        list($count, $size) = $this->redisSize($redis, 'misp:server_cache:*');
+        $output['server_cache_count'] = $count;
+        $output['server_cache_size'] = $size;
+
+        // Size of different server
+        $serverIds = $this->Server->find('column', [
+            'fields' => ['id'],
+        ]);
+
+        $redis->pipeline();
+        foreach ($serverIds as $serverId) {
+            $redis->rawCommand("memory", "usage", 'misp:server_cache:' . $serverId);
+        }
+        $serverSizes = $redis->exec();
+
+        foreach ($serverIds as $k => $serverId) {
+            if ($serverSizes[$k]) {
+                $output['server_cache_size_' . $serverId] = $serverSizes[$k];
+            }
+        }
+
+        list($count, $size) = $this->redisSize($redis, 'misp:wlc:*');
+        $output['warninglist_cache_count'] = $count;
+        $output['warninglist_cache_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:warninglist_entries_cache:*');
+        $output['warninglist_entries_count'] = $count;
+        $output['warninglist_entries_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:top_correlation');
+        $output['top_correlation_count'] = $count;
+        $output['top_correlation_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:correlation_exclusions');
+        $output['correlation_exclusions_count'] = $count;
+        $output['correlation_exclusions_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:event_lock:*');
+        $output['event_lock_count'] = $count;
+        $output['event_lock_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:user_ip:*');
+        $output['user_ip_count'] = $count;
+        $output['user_ip_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:ip_user:*');
+        $output['user_ip_count'] += $count;
+        $output['user_ip_size'] += $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:authkey_usage:*');
+        $output['authkey_usage_count'] = $count;
+        $output['authkey_usage_size'] = $size;
+
+        $this->out($this->json($output));
     }
 }

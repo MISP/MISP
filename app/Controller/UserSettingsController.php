@@ -114,8 +114,8 @@ class UserSettingsController extends AppController
             $this->paginate['conditions'] = $conditions;
             $data = $this->paginate();
             foreach ($data as $k => $v) {
-                if (!empty($this->UserSetting->validSettings[$v['UserSetting']['setting']])) {
-                    $data[$k]['UserSetting']['restricted'] = empty($this->UserSetting->validSettings[$v['UserSetting']['setting']]['restricted']) ? '' : $this->UserSetting->validSettings[$v['UserSetting']['setting']]['restricted'];
+                if (!empty(UserSetting::VALID_SETTINGS[$v['UserSetting']['setting']])) {
+                    $data[$k]['UserSetting']['restricted'] = empty(UserSetting::VALID_SETTINGS[$v['UserSetting']['setting']]['restricted']) ? '' : UserSetting::VALID_SETTINGS[$v['UserSetting']['setting']]['restricted'];
                 } else {
                     $data[$k]['UserSetting']['restricted'] = array();
                 }
@@ -215,7 +215,6 @@ class UserSettingsController extends AppController
             return $this->RestResponse->describe('UserSettings', 'setSetting', false, $this->response->type());
         } else {
             // load the valid settings from the model
-            $validSettings = $this->UserSetting->validSettings;
             if ($this->_isSiteAdmin()) {
                 $users = $this->UserSetting->User->find('list', array(
                     'recursive' => -1,
@@ -235,33 +234,46 @@ class UserSettingsController extends AppController
             }
             $this->set('setting', $setting);
             $this->set('users', $users);
-            $this->set('validSettings', $validSettings);
+            $this->set('validSettings', UserSetting::VALID_SETTINGS);
         }
     }
 
-    public function getSetting($user_id, $setting)
+    public function getSetting($userId = null, $setting = null)
     {
-        if (!$this->UserSetting->checkSettingValidity($setting)) {
-            throw new MethodNotAllowedException(__('Invalid setting.'));
+        if ($this->request->is('post')) {
+            if (empty($this->request->data['setting'])) {
+                throw new BadRequestException("No setting name provided.");
+            }
+            $setting = $this->request->data['setting'];
+            $userId = $this->request->data['user_id'] ?? $this->Auth->user('id');
+        } else {
+            if (empty($userId) || empty($setting)) {
+                throw new BadRequestException("No setting name or user ID provided.");
+            }
         }
+
+        if (!$this->UserSetting->checkSettingValidity($setting)) {
+            throw new NotFoundException(__('Invalid setting.'));
+        }
+
         $userSetting = $this->UserSetting->find('first', array(
             'recursive' => -1,
-            'conditions' => array(
-                'UserSetting.user_id' => $user_id,
-                'UserSetting.setting' => $setting
-            ),
+            'conditions' => [
+                'UserSetting.user_id' => $userId,
+                'UserSetting.setting' => $setting,
+            ],
             'contain' => array('User.id', 'User.org_id')
         ));
-        $checkAccess = $this->UserSetting->checkAccess($this->Auth->user(), $userSetting, $user_id);
-        if (empty($checkAccess)) {
-            throw new MethodNotAllowedException(__('Invalid setting.'));
+
+        if (empty($userSetting)) {
+            throw new NotFoundException(__('Invalid setting.'));
         }
-        if (!empty($userSetting)) {
-            $userSetting = json_encode($userSetting['UserSetting']['value']);
-        } else {
-            $userSetting = '[]';
+
+        $checkAccess = $this->UserSetting->checkAccess($this->Auth->user(), $userSetting, $userId);
+        if (!$checkAccess) {
+            throw new NotFoundException(__('Invalid setting.'));
         }
-        return $this->RestResponse->viewData($userSetting, $this->response->type(), false, true);
+        return $this->RestResponse->viewData($userSetting['UserSetting'], $this->response->type());
     }
 
     public function delete($id = false)
@@ -274,15 +286,30 @@ class UserSettingsController extends AppController
              */
             return $this->RestResponse->describe('UserSettings', 'delete', false, $this->response->type());
         }
-        // check if the ID is valid and whether a user setting with the given ID exists
-        if (empty($id) || !is_numeric($id)) {
-            throw new InvalidArgumentException(__('Invalid ID passed.'));
+
+        if (!$this->request->is('post') && !$this->request->is('delete')) {
+            throw new MethodNotAllowedException(__('Expecting POST or DELETE request.'));
         }
+
+        if (empty($id)) {
+            if (empty($this->request->data['setting'])) {
+                throw new BadRequestException("No setting name to delete provided.");
+            }
+            $conditions = ['UserSetting.setting' => $this->request->data['setting']];
+            if (!empty($this->request->data['user_id'])) {
+                $conditions['UserSetting.user_id'] = $this->request->data['user_id'];
+            } else {
+                $conditions['UserSetting.user_id'] = $this->Auth->user('id'); // current user
+            }
+        } else if (is_numeric($id)) {
+            $conditions = ['UserSetting.id' => $id];
+        } else {
+            throw new BadRequestException(__('Invalid ID passed.'));
+        }
+
         $userSetting = $this->UserSetting->find('first', array(
             'recursive' => -1,
-            'conditions' => array(
-                'UserSetting.id' => $id
-            ),
+            'conditions' => $conditions,
             'contain' => array('User.id', 'User.org_id')
         ));
         if (empty($userSetting)) {
@@ -296,34 +323,30 @@ class UserSettingsController extends AppController
         if ($settingPermCheck !== true) {
             throw new MethodNotAllowedException(__('This setting is restricted and requires the following permission(s): %s', $settingPermCheck));
         }
-        if ($this->request->is('post') || $this->request->is('delete')) {
-            // Delete the setting that we were after.
-            $result = $this->UserSetting->delete($userSetting['UserSetting']['id']);
-            if ($result) {
-                // set the response for both the UI and API
-                $message = __('Setting deleted.');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('UserSettings', 'delete', $id, $this->response->type(), $message);
-                } else {
-                    $this->Flash->success($message);
-                }
+        // Delete the setting that we were after.
+        $result = $this->UserSetting->delete($userSetting['UserSetting']['id']);
+        if ($result) {
+            // set the response for both the UI and API
+            $message = __('Setting deleted.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('UserSettings', 'delete', $userSetting['UserSetting']['id'], $this->response->type(), $message);
             } else {
-                // set the response for both the UI and API
-                $message = __('Setting could not be deleted.');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('UserSettings', 'delete', $id, $message, $this->response->type());
-                } else {
-                    $this->Flash->error($message);
-                }
+                $this->Flash->success($message);
             }
-            /*
-             * The API responses stopped executing this function and returned a serialised response to the user.
-             * For UI users, redirect to where they issued the request from.
-             */
-            $this->redirect($this->referer());
         } else {
-            throw new MethodNotAllowedException(__('Expecting POST or DELETE request.'));
+            // set the response for both the UI and API
+            $message = __('Setting could not be deleted.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('UserSettings', 'delete', $userSetting['UserSetting']['id'], $message, $this->response->type());
+            } else {
+                $this->Flash->error($message);
+            }
         }
+        /*
+         * The API responses stopped executing this function and returned a serialised response to the user.
+         * For UI users, redirect to where they issued the request from.
+         */
+        $this->redirect($this->referer());
     }
 
     public function setHomePage()

@@ -22,5 +22,6 @@ python3 ./../app/files/scripts/stix2/stix2misp.py ./../tmp/test-stix2.json 1 1 .
 rm -f ./../app/files/scripts/tmp/{test-stix2.json,test-stix2.json.stix2}
 
 # Test converting MISP to STIX2
-python3 ./../app/files/scripts/stix2/misp2stix2.py -i event.json | python3 -c 'import sys, json; data = json.load(sys.stdin); print(data); sys.exit(0 if data["success"] == 1 else 1)'
-rm -f event.json.out
+cp event.json /tmp/
+python3 ./../app/files/scripts/stix2/misp2stix2.py -i /tmp/event.json | python3 -c 'import sys, json; data = json.load(sys.stdin); print(data); sys.exit(0 if data["success"] == 1 else 1)'
+rm -f /tmp/{event.json,event.json.out}

@@ -57,17 +57,14 @@ class Galaxy extends AppModel
     /**
      * @param bool $force
      * @return array Galaxy type => Galaxy ID
-     * @throws JsonException
+     * @throws Exception
      */
     private function __load_galaxies($force = false)
     {
-        $dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'galaxies');
-        $files = $dir->find('.*\.json');
+        $files = new GlobIterator(APP . 'files' . DS . 'misp-galaxy' . DS . 'galaxies' . DS . '*.json');
         $galaxies = array();
         foreach ($files as $file) {
-            $file = new File($dir->pwd() . DS . $file);
-            $galaxies[] = $this->jsonDecode($file->read());
-            $file->close();
+            $galaxies[] = FileAccessTool::readJsonFromFile($file->getPathname());
         }
         $existingGalaxies = $this->find('all', array(
             'fields' => array('uuid', 'version', 'id', 'icon'),
@@ -157,6 +154,10 @@ class Galaxy extends AppModel
         $relations = [];
         $elements = [];
         $this->GalaxyCluster->bulkEntry = true;
+
+        // Start transaction
+        $this->getDataSource()->begin();
+
         foreach ($cluster_package['values'] as $cluster) {
             if (empty($cluster['version'])) {
                 $cluster['version'] = 1;
@@ -182,7 +183,12 @@ class Galaxy extends AppModel
             $cluster_to_save['published'] = false;
             $cluster_to_save['org_id'] = 0;
             $cluster_to_save['orgc_id'] = 0;
-            $result = $this->GalaxyCluster->save($cluster_to_save, false);
+            // We are already in transaction
+            $result = $this->GalaxyCluster->save($cluster_to_save, ['atomic' => false, 'validate' => false]);
+            if (!$result) {
+                $this->log("Could not save galaxy cluster with UUID {$cluster_to_save['uuid']}.");
+                continue;
+            }
             $galaxyClusterId = $this->GalaxyCluster->id;
             if (isset($cluster['meta'])) {
                 foreach ($cluster['meta'] as $key => $value) {
@@ -206,7 +212,7 @@ class Galaxy extends AppModel
                             $elements[] = array(
                                 $galaxyClusterId,
                                 $key,
-                                strval($v)
+                                (string)$v
                             );
                         }
                     }
@@ -221,24 +227,26 @@ class Galaxy extends AppModel
                         'referenced_galaxy_cluster_type' => $relation['type'],
                         'default' => true,
                         'distribution' => 3,
-                        'tags' => !empty($relation['tags']) ? $relation['tags'] : []
+                        'tags' => $relation['tags'] ?? []
                     ];
                 }
             }
         }
+
+        // Commit transaction
+        $this->getDataSource()->commit();
+
         return [$elements, $relations];
     }
 
     public function update($force = false)
     {
         $galaxies = $this->__load_galaxies($force);
-        $dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters');
-        $files = $dir->find('.*\.json');
+        $files = new GlobIterator(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters' . DS . '*.json');
         $force = (bool)$force;
+        $allRelations = [];
         foreach ($files as $file) {
-            $file = new File($dir->pwd() . DS . $file);
-            $cluster_package = $this->jsonDecode($file->read());
-            $file->close();
+            $cluster_package = FileAccessTool::readJsonFromFile($file->getPathname());
             if (!isset($galaxies[$cluster_package['type']])) {
                 continue;
             }
@@ -253,10 +261,13 @@ class Galaxy extends AppModel
                 $fields = array('galaxy_cluster_id', 'key', 'value');
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
-            if (!empty($relations)) {
-                $this->GalaxyCluster->GalaxyClusterRelation->bulkSaveRelations($relations);
-            }
+            $allRelations = array_merge($allRelations, $relations);
         }
+        // Save relation as last part when all clusters are created
+        if (!empty($allRelations)) {
+            $this->GalaxyCluster->GalaxyClusterRelation->bulkSaveRelations($allRelations);
+        }
+        // Probably unnecessary anymore
         $this->GalaxyCluster->generateMissingRelations();
         return true;
     }
@@ -348,11 +359,15 @@ class Galaxy extends AppModel
         } else {
             $local = 0;
         }
+        $cluster_alias = $this->GalaxyCluster->alias;
+        $galaxy_alias = $this->alias;
         $cluster = $this->GalaxyCluster->fetchGalaxyClusters($user, array(
             'first' => true,
-            'conditions' => array('id' => $cluster_id),
-            'fields' => array('tag_name', 'id', 'value'),
+            'conditions' => array("${cluster_alias}.id" => $cluster_id),
+            'contain' => array('Galaxy'),
+            'fields' => array('tag_name', 'id', 'value', "${galaxy_alias}.local_only"),
         ), $full=false);
+
         if (empty($cluster)) {
             throw new NotFoundException(__('Invalid Galaxy cluster'));
         }
@@ -368,7 +383,11 @@ class Galaxy extends AppModel
             throw new NotFoundException(__('Invalid %s.', $target_type));
         }
         $target = $target[0];
-        $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user, true);
+        $local_only = $cluster['GalaxyCluster']['Galaxy']['local_only'];
+        if ($local_only && !$local) {
+           throw new MethodNotAllowedException(__("This Cluster can only be attached in a local scope"));
+        }
+        $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1, 'local_only' => $local_only), $user, true);
         $existingTag = $this->Tag->$connectorModel->find('first', array('conditions' => array($target_type . '_id' => $target_id, 'tag_id' => $tag_id)));
         if (!empty($existingTag)) {
             return 'Cluster already attached.';

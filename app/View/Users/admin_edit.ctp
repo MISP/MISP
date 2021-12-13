@@ -60,9 +60,14 @@
                     'label' => __('Organisation'),
             ));
         }
-        echo $this->Form->input('role_id', array('label' => __('Role')));   // TODO ACL, User edit role_id.
-        $authkeyLabel = __('Authkey') . ' <a class="useCursorPointer" onclick="$(\'#resetAuthKeyForm\').submit();">' . __('(Reset)') . '</a>';
-        echo $this->Form->input('authkey', array('disabled' => true, 'div' => 'input clear', 'label' => $authkeyLabel));
+        echo $this->Form->input('role_id', array(
+            'label' => __('Role'),
+            'div' => empty(Configure::read('Security.advanced_authkeys')) ? null : 'input clear'
+        ));
+        if (empty(Configure::read('Security.advanced_authkeys'))) {
+            $authkeyLabel = __('Authkey') . ' <a class="useCursorPointer" onclick="$(\'#resetAuthKeyForm\').submit();">' . __('(Reset)') . '</a>';
+            echo $this->Form->input('authkey', array('disabled' => true, 'div' => 'input clear', 'label' => $authkeyLabel));
+        }
         echo $this->Form->input('nids_sid', ['label' => __('NIDS SID')]);
     ?>
         <div id="syncServers" class="hidden">

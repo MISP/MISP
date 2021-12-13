@@ -1,4 +1,3 @@
-
 <?php if (!is_array($infoExtra)): ?>
     <?php if (strlen($infoExtra) < 50 && !(isset($forceIcon) && $forceIcon)): ?>
         <i style="float:right; font-size: smaller;margin-right: 5px;"><?php echo h($infoExtra); ?></i>

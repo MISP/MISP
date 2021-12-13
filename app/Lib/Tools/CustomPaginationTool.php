@@ -99,7 +99,6 @@ class CustomPaginationTool
             foreach ($sortArray as $k => $sortedElement) {
                 $sortArray[$k] = $items[$k];
             }
-            $items = array();
             $items = $sortArray;
         }
         if (!$escapeReindex) {
@@ -113,11 +112,12 @@ class CustomPaginationTool
         $params = $this->createPaginationRules($items, $options, $model, $sort, $focusKey);
         $items = $this->sortArray($items, $params, $escapeReindex);
         if (!empty($params['options']['focus'])) {
+            $focus =  $params['options']['focus'];
             foreach ($items as $k => $item) {
-                if ($item[$focusKey] == $params['options']['focus']) {
+                if ($item[$focusKey] === $focus) {
                     $params['page'] = 1 + intval(floor($k / $params['limit']));
                     $params['current'] = 1 + ($params['page'] - 1) * $params['limit'];
-                    continue;
+                    break;
                 }
             }
             unset($params['options']['focus']);

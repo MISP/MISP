@@ -505,6 +505,7 @@ class TagsController extends AppController
         $this->loadModel('Taxonomy');
         $expanded = array();
         $this->set('taxonomy_id', $taxonomy_id);
+        $local_tag = !empty($this->params['named']['local']);
         if ($taxonomy_id === 'collections') {
             $this->loadModel('TagCollection');
             // This method removes banned and hidden tags
@@ -528,7 +529,7 @@ class TagsController extends AppController
             }
         } else {
             if ($taxonomy_id === '0') {
-                $temp = $this->Taxonomy->getAllTaxonomyTags(true, $this->Auth->user(), true);
+                $temp = $this->Taxonomy->getAllTaxonomyTags(true, $this->Auth->user(), true, true, $local_tag);
                 $tags = array();
                 foreach ($temp as $tag) {
                     $tags[$tag['Tag']['id']] = $tag['Tag'];
@@ -543,6 +544,9 @@ class TagsController extends AppController
                     'Tag.user_id' => array(0, $this->Auth->user('id')),
                     'Tag.hide_tag' => 0,
                 );
+                if (!$local_tag) {
+                    $conditions['Tag.local_only'] = 0;
+                }
                 $favTags = $this->Tag->FavouriteTag->find('all', array(
                     'conditions' => $conditions,
                     'recursive' => -1,
@@ -561,6 +565,9 @@ class TagsController extends AppController
                 if (!$this->_isSiteAdmin()) {
                     $conditions['Tag.org_id'] = array(0, $this->Auth->user('org_id'));
                     $conditions['Tag.user_id'] = array(0, $this->Auth->user('id'));
+                }
+                if (!$local_tag) {
+                    $conditions['Tag.local_only'] = 0;
                 }
                 $allTags = $this->Tag->find('all', array(
                     'conditions' => $conditions,
@@ -584,6 +591,9 @@ class TagsController extends AppController
                             $tag = $entry['existing_tag']['Tag'];
                             if ($tag['hide_tag']) {
                                 continue; // do not include hidden tags
+                            }
+                            if ($tag['local_only'] && !$local_tag) {
+                                continue; // we skip the local tags for global entries
                             }
                             if (!$isSiteAdmin) {
                                 // Skip all tags that this user cannot use for tagging, determined by the org restriction on tags
@@ -706,19 +716,19 @@ class TagsController extends AppController
         return $this->RestResponse->viewData($results, 'json');
     }
 
+    /**
+     * @param string $object_uuid Attribute or Event UUID
+     * @param string $type
+     * @param string $scope
+     * @return array
+     * @throws MethodNotAllowedException
+     */
     private function __findObjectByUuid($object_uuid, &$type, $scope = 'modify')
     {
         $this->loadModel('Event');
-        if (!$this->userRole['perm_tagger']) {
-            throw new MethodNotAllowedException(__('This functionality requires tagging permission.'));
-        }
-        $object = $this->Event->fetchEvent($this->Auth->user(), array(
-            'event_uuid' => $object_uuid,
-            'metadata' => 1
-        ));
-        $type = 'Event';
+        $object = $this->Event->fetchSimpleEvent($this->Auth->user(), $object_uuid);
         if (!empty($object)) {
-            $object = $object[0];
+            $type = 'Event';
             if (
                 $scope !== 'view' &&
                 !$this->_isSiteAdmin() &&
@@ -732,17 +742,12 @@ class TagsController extends AppController
             }
         } else {
             $type = 'Attribute';
-            $object = $this->Event->Attribute->fetchAttributes(
-                $this->Auth->user(),
-                array(
-                    'conditions' => array(
-                        'Attribute.uuid' => $object_uuid
-                    ),
-                    'flatten' => 1
-                )
-            );
+            $object = $this->Event->Attribute->fetchAttributeSimple($this->Auth->user(), [
+                'conditions' => array(
+                    'Attribute.uuid' => $object_uuid
+                ),
+            ]);
             if (!empty($object)) {
-                $object = $object[0];
                 if (
                     $scope !== 'view' &&
                     !$this->_isSiteAdmin() &&
@@ -789,7 +794,7 @@ class TagsController extends AppController
         $successes = 0;
         $fails = array();
         $existingRelations = array();
-        foreach ($tags as $k => $tag) {
+        foreach ($tags as $tag) {
             if (is_numeric($tag)) {
                 $conditions = array('Tag.id' => $tag);
             } else {
@@ -813,13 +818,12 @@ class TagsController extends AppController
                         $fails[] = __('Tag not found and insufficient privileges to create it.');
                         continue;
                     }
-                    $this->Tag->create();
-                    $result = $this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
-                    if (!$result) {
+                    $createdTagId = $this->Tag->quickAdd($tag);
+                    if (!$createdTagId) {
                         $fails[] = __('Unable to create tag. Reason: ' . json_encode($this->Tag->validationErrors));
                         continue;
                     }
-                    $existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $this->Tag->id)));
+                    $existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $createdTagId)));
                 } else {
                     $fails[] = __('Invalid Tag.');
                     continue;
@@ -835,30 +839,30 @@ class TagsController extends AppController
                     continue;
                 }
             }
+            if ($existingTag['Tag']['local_only'] && !$local) {
+                $fails[] = __('Invalid Tag. This tag can only be set as a local tag.');
+                continue;
+            }
             $this->loadModel($objectType);
             $connectorObject = $objectType . 'Tag';
             $conditions = array(
                 strtolower($objectType) . '_id' => $object[$objectType]['id'],
                 'tag_id' => $existingTag['Tag']['id'],
-                'local' => ($local ? 1 : 0)
             );
-            $existingAssociation = $this->$objectType->$connectorObject->find('first', array(
-                'conditions' => $conditions
-            ));
-            if (!empty($existingAssociation)) {
+            $existingAssociation = $this->$objectType->$connectorObject->hasAny($conditions);
+            if ($existingAssociation) {
                 $message = __('%s already has the requested tag attached, no changes had to be made for tag %s.', $objectType, $existingTag['Tag']['name']);
                 $existingRelations[] = $existingTag['Tag']['name'];
                 $successes++;
                 continue;
             }
             $this->$objectType->$connectorObject->create();
-            $data = array(
-                $connectorObject => $conditions
-            );
-            if ($objectType == 'Attribute') {
-                $data[$connectorObject]['event_id'] = $object['Event']['id'];
+            $data = $conditions;
+            $data['local'] = $local ? 1 : 0;
+            if ($objectType === 'Attribute') {
+                $data['event_id'] = $object['Event']['id'];
             }
-            $result = $this->$objectType->$connectorObject->save($data);
+            $result = $this->$objectType->$connectorObject->save([$connectorObject => $data]);
             if ($result) {
                 if ($local) {
                     $message = 'Local tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
@@ -867,8 +871,7 @@ class TagsController extends AppController
                         'recursive' => -1,
                         'conditions' => array($objectType . '.id' => $object[$objectType]['id'])
                     ));
-                    $date = new DateTime();
-                    $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
+                    $tempObject[$objectType]['timestamp'] = time();
                     $this->$objectType->save($tempObject);
                     if ($objectType === 'Attribute') {
                         $this->$objectType->Event->unpublishEvent($object['Event']['id']);
