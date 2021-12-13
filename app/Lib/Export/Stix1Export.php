@@ -33,6 +33,6 @@ class Stix1Export extends StixExport
             '-i',
         ];
         $command = array_merge($command, $this->__filenames);
-        return = ProcessTool::execute($command, null, true);
+        return ProcessTool::execute($command, null, true);
     }
 }
