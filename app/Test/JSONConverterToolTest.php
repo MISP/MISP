@@ -37,9 +37,8 @@ class JSONConverterToolTest extends TestCase
 
     private function check(array $event): void
     {
-        $complexTypeTool = new JSONConverterTool();
         $json = '';
-        foreach ($complexTypeTool->streamConvert($event) as $part) {
+        foreach (JSONConverterTool::streamConvert($event) as $part) {
             $json .= $part;
         }
         if (defined('JSON_THROW_ON_ERROR')) {

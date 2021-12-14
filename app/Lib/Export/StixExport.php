@@ -41,8 +41,7 @@ abstract class StixExport
             }
         }
 
-        $converter = new JSONConverterTool();
-        $event = JsonTool::encode($converter->convert($data, false, true)); // we don't need pretty printed JSON
+        $event = JsonTool::encode(JSONConverterTool::convert($data, false, true)); // we don't need pretty printed JSON
         if ($this->__n_attributes + $attributesCount < $this->__attributes_limit) {
             $this->__tmp_file->append($this->__n_attributes === 0 ? $event : ',' . $event);
             $this->__n_attributes += $attributesCount;

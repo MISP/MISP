@@ -5742,9 +5742,8 @@ class Event extends AppModel
         $standard_format = !empty($module['meta']['require_standard_format']);
         if ($standard_format) {
             App::uses('JSONConverterTool', 'Tools');
-            $converter = new JSONConverterTool();
             foreach ($events as $k => $event) {
-                $events[$k] = $converter->convert($event, false, true);
+                $events[$k] = JSONConverterTool::convert($event, false, true);
             }
         }
         $modulePayload['data'] = $events;
