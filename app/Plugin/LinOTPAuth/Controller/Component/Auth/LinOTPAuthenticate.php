@@ -1,7 +1,7 @@
 <?php
 
 App::uses('BaseAuthenticate', 'Controller/Component/Auth');
-App::uses('LinOTP', 'LinOTPAuth.Lib');
+App::uses('HttpSocket', 'Network/Http');
 
 /**
  * @package       Controller.Component.Auth
@@ -10,6 +10,13 @@ App::uses('LinOTP', 'LinOTPAuth.Lib');
  */
 class LinOTPAuthenticate extends BaseAuthenticate
 {
+    /**
+	 * Holds the user information
+	 *
+	 * @var array
+	 */
+	protected static $user = false;
+
     /*
      * Try to authenticate the incoming request against the LinOTP backend.
      * The function may redirect the user if there are more authentication steps required that do not fit the standard function signature.
@@ -19,6 +26,34 @@ class LinOTPAuthenticate extends BaseAuthenticate
     {
         $user = $this->getUser($request);
         return $user;
+    }
+
+    /*
+     * Query LinOTP
+     */
+    private static function _linotp_verify($baseUrl, $realm, $user, $password, $verifyssl)
+    {
+        $params = array();
+        $params['ssl_allow_self_signed'] = !$verifyssl;
+        $params['ssl_verify_peer_name'] = $verifyssl;
+        $params['ssl_verify_peer'] = $verifyssl;
+
+        $HttpSocket = new HttpSocket($params);
+
+        // POST data
+        $data = array(
+            "user" => $email,
+            "pass" => $otp,
+            "realm" => $realm,
+        );
+
+        $url = "$baseUrl/validate/check";
+
+        CakeLog::debug( "Sending POST request to ${url}");
+        $results = $HttpSocket->post($url, $data);
+        $response = json_decode($results->body());
+
+        return $response;
     }
 
     /*
@@ -35,12 +70,17 @@ class LinOTPAuthenticate extends BaseAuthenticate
         $password = $userFields['password'];
         CakeLog::debug("getUser email: ${email}");
 
-        $linotp = new LinOTP(
-            Configure::read("LinOTPAuth.baseUrl"),
-            Configure::read("LinOTPAuth.realm")
-        );
+        $linOTP_baseUrl = rtrim(Configure::read("LinOTPAuth.baseUrl"), "/");
+        $linOTP_realm = Configure::read("LinOTPAuth.realm");
+        $linOTP_verifyssl = Configure::read("LinOTPAuth.verifyssl");
 
-        $response = $linotp->validate_check($email, $password);
+        $response = $this->_linotp_verify(
+            $linOTP_baseUrl,
+            $linOTP_realm,
+            $email,
+            $password,
+            $linOTP_verifyssl
+        );
 
         // If LinOTP didn't reject the request we can go on to further authentication steps, user login or creation
         if ($response !== false) {
@@ -63,14 +103,15 @@ class LinOTPAuthenticate extends BaseAuthenticate
                         $user = $this->_findUser($email);
                     }
 
-                    return $user;
+                    // Set instance user to prevent OTP lookup twice
+                    self::$user = $user;
                 } else {
                     CakeLog::error("User ${email} authenticated but not found in database.");
-                    return false;
+                    self::$user = false;
                 }
             }
         }
 
-        return false;
+        return self::$user;
     }
 }
