@@ -310,10 +310,18 @@ abstract class StixExport
         $this->__empty_file = true;
     }
 
-    protected function __delete_temporary_files()
+    protected function __delete_temporary_files($removeOutput = false, $custom = null)
     {
+        if (!is_null($custom)) {
+            foreach ($custom as $filename) {
+                FileAccessTool::deleteFileIfExists($filename);
+            }
+        }
         foreach ($this->__filenames as $filename) {
             FileAccessTool::deleteFileIfExists($filename);
+        }
+        if ($removeOutput) {
+            FileAccessTool::deleteFileIfExists($filename . '.out');
         }
     }
 
