@@ -114,21 +114,46 @@ class LinOTPAuthenticate extends BaseAuthenticate
         $linOTP_baseUrl = rtrim(Configure::read("LinOTPAuth.baseUrl"), "/");
         $linOTP_realm = Configure::read("LinOTPAuth.realm");
         $linOTP_verifyssl = Configure::read("LinOTPAuth.verifyssl");
+        $mixedauth = Configure::read("LinOTPAuth.mixedauth");
 
-        $response = $this->_linotp_verify(
-            $linOTP_baseUrl,
-            $linOTP_realm,
-            $email,
-            $password,
-            $linOTP_verifyssl
-        );
+        // If not mixed auth mode - concat password with otp
+        if (!$mixedauth) {
+            $password = $password . $otp;
+            $response = $this->_linotp_verify(
+                $linOTP_baseUrl,
+                $linOTP_realm,
+                $email,
+                $password,
+                $linOTP_verifyssl
+            );
+        } else {
+            // Enforce OTP token by Authentication Form
+            if (!$otp || $otp === "") {
+                throw new CakeException(__d('cake_dev', 'Missing OTP Token.', 'authenticate()'));
+                return false;
+            }
+
+            $response = $this->_linotp_verify(
+                $linOTP_baseUrl,
+                $linOTP_realm,
+                $email,
+                $otp,
+                $linOTP_verifyssl
+            );
+        }
 
         // If LinOTP didn't reject the request we can go on to further authentication steps, user login or creation
         if ($response !== false) {
             if ($response['value'] === true) { // user can be logged in, authentication successful
                 $this->settings['fields'] = array('username' => "email");
 
-                $user = $this->_findUser($email);
+                if ($mixedauth) {
+                    $this->settings['fields'] += array('password' => "password");
+                    $this->settings['passwordHasher'] = "BlowfishConstant";
+                    $user = $this->_findUser($email, $password);
+                } else {
+                    $user = $this->_findUser($email);
+                }
                 if ($user) {
                     // When the user logs in for the first time a password prompt will appear
                     // To avoid that very prompt we are changing the `change_pw` value to '0'.
@@ -152,7 +177,11 @@ class LinOTPAuthenticate extends BaseAuthenticate
                 }
             }
         }
-
+        // Don't fall back to FormAuthenticate in mixedauth mode.
+        // This enforces the second factor.
+        if ($mixedauth && !self::$user) {
+            throw new CakeException(__d('cake_dev', 'User could not be authenticated by LinOTP.', 'authenticate()'));
+        }
         return self::$user;
     }
 }

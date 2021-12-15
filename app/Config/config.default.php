@@ -204,6 +204,7 @@ $config = array(
         'userModel' => 'User', // name of the User class (MISP class) to check if the user exists
         'userModelKey' => 'email', // User field that will be used for querying.
         'verifyssl' => true, // Verify TLS Certificate or not
+        'mixedauth' => false, // false=>Query only LinOTP or true=>OTP from LinOTP, Password from MISP
     ),
     */
     // Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.
