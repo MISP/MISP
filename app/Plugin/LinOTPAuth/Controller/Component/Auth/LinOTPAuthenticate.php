@@ -107,6 +107,8 @@ class LinOTPAuthenticate extends BaseAuthenticate
         $userFields = $request->data['User'];
         $email = $userFields['email'];
         $password = $userFields['password'];
+        $otp = $userFields['otp'];
+
         CakeLog::debug("getUser email: ${email}");
 
         $linOTP_baseUrl = rtrim(Configure::read("LinOTPAuth.baseUrl"), "/");
