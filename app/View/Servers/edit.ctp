@@ -269,6 +269,7 @@ var validOptions = ['pull', 'push'];
 var validFields = ['tags', 'orgs', 'type_attributes', 'type_objects'];
 var tags = <?php echo json_encode($allTags); ?>;
 var orgs = <?php echo json_encode($allOrganisations); ?>;
+var type_objects = <?php echo json_encode($allObjectTypes); ?>;
 var delete_cert = false;
 var delete_client_cert = false;
 var host_org_id = "<?php echo h($host_org_id); ?>";

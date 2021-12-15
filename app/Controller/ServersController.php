@@ -648,7 +648,7 @@ class ServersController extends AppController
             $allTypes = [
                 'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
                 'object' => Hash::map($objects, '{n}.ObjectTemplate', function ($item) {
-                    return ['id' => $item['uuid'], 'name' => $item['name']];
+                    return ['id' => $item['uuid'], 'name' => sprintf('%s (%s)', $item['name'], $item['uuid'])];
                 })
             ];
 

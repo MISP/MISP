@@ -3563,8 +3563,8 @@ function serverRuleUpdate() {
     var statusOptions = ["OR", "NOT"];
     validOptions.forEach(function(type) {
         validFields.forEach(function(field) {
+            var indexedList = {};
             if (type === 'push') {
-                var indexedList = {};
                 if (window[field] !== undefined) {
                     window[field].forEach(function(item) {
                         indexedList[item.id] = item.name;
