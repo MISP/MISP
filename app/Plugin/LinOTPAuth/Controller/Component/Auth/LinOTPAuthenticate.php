@@ -42,8 +42,8 @@ class LinOTPAuthenticate extends BaseAuthenticate
 
         // POST data
         $data = array(
-            "user" => $email,
-            "pass" => $otp,
+            "user" => $user,
+            "pass" => $password,
             "realm" => $realm,
         );
 
