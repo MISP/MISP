@@ -53,7 +53,46 @@ class LinOTPAuthenticate extends BaseAuthenticate
         $results = $HttpSocket->post($url, $data);
         $response = json_decode($results->body());
 
-        return $response;
+        if ($response == false) {
+            CakeLog::error("LinOTP request for user ${user} failed.");
+            return false;
+        } else {
+            if (gettype($response) !== "object") {
+                CakeLog::error("Response from LinOTP is not an JSON dictionary/array. Got an " .gettype($response). ": ".$response);
+                return false;
+            }
+
+            if (!property_exists($response,"result")) {
+                CakeLog::error("Missing 'result' key in LinOTP response.");
+                return false;
+            }
+            $result = $response->result;
+
+            if (!property_exists($result,"status")) {
+                CakeLog::error("Missing 'status' key in result envelope from LinOTP.");
+                return false;
+            }
+            $status = $result->status;
+
+            if (!property_exists($result, "value")) {
+                CakeLog::error("Missing 'value' key in result envelop from LinOTP.");
+                return false;
+            }
+            $value = $result->value;
+
+            $ret = array(
+                "status" => $status,
+                "value" => $value,
+            );
+
+            if (property_exists($result, 'detail')) {
+                $ret['detail'] = $result->detail;
+            }
+
+            CakeLog::debug("user: ${user} - status: ${status} value: ${value}");
+            // CakeLog::debug(var_dump($ret));
+            return $ret;
+        }
     }
 
     /*
