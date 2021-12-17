@@ -510,6 +510,7 @@ function reload_timeline() {
                 eventTimeline.setGroups(null);
             }
             items_timeline.add(data.items);
+            eventTimeline.fit()
         },
         error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );
