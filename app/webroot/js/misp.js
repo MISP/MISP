@@ -3549,7 +3549,7 @@ function convertServerFilterRules(rules) {
             rules[type] = JSON.parse($(container).val());
         } else {
             if (type === 'pull') {
-                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}, "url_params": ""}
+                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}, "type_attributes": {"NOT": []}, "type_objects": {"NOT": []}, "url_params": ""}
             } else {
                 rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}
             }
@@ -3563,26 +3563,35 @@ function serverRuleUpdate() {
     var statusOptions = ["OR", "NOT"];
     validOptions.forEach(function(type) {
         validFields.forEach(function(field) {
-            if (type === 'push') {
-                var indexedList = {};
-                window[field].forEach(function(item) {
-                    indexedList[item.id] = item.name;
-                });
+            var indexedList = {};
+            if (type === 'push' || field == 'type_objects') {
+                if (window[field] !== undefined) {
+                    window[field].forEach(function(item) {
+                        indexedList[item.id] = item.name;
+                    });
+                }
             }
             statusOptions.forEach(function(status) {
-                if (rules[type][field][status].length > 0) {
-                    $('#' + type + '_' + field + '_' + status).show();
-                    var t = '';
-                    rules[type][field][status].forEach(function(item) {
-                        if (t.length > 0) t += ', ';
-                        if (type === 'pull') t += item;
-                        else {
-                            t += indexedList[item] !== undefined ? indexedList[item] : item;
-                        }
-                    });
-                    $('#' + type + '_' + field + '_' + status + '_text').text(t);
-                } else {
-                    $('#' + type + '_' + field + '_' + status).hide();
+                if (rules[type][field] !== undefined && rules[type][field][status] !== undefined) {
+                    if (rules[type][field][status].length > 0) {
+                        $('#' + type + '_' + field + '_' + status).show();
+                        var t = '';
+                        rules[type][field][status].forEach(function(item) {
+                            if (t.length > 0) t += ', ';
+                            if (type === 'pull') {
+                                if (indexedList[item] !== undefined) {
+                                    t += indexedList[item];
+                                } else {
+                                    t += item;
+                                }
+                            } else {
+                                t += indexedList[item] !== undefined ? indexedList[item] : item;
+                            }
+                        });
+                        $('#' + type + '_' + field + '_' + status + '_text').text(t);
+                    } else {
+                        $('#' + type + '_' + field + '_' + status).hide();
+                    }
                 }
             });
         });
