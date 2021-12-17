@@ -315,7 +315,7 @@ class Server extends AppModel
                     if (isset($object['Attribute'])) {
                         $originalAttributeCount = count($object['Attribute']);
                         foreach ($object['Attribute'] as $j => $a) {
-                            if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&  in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
+                            if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&  in_array($a['type'], $pullRules['type_attributes']['NOT'])) {
                                 unset($event['Event']['Object'][$i]['Attribute'][$j]);
                                 continue;
                             }
@@ -336,7 +336,8 @@ class Server extends AppModel
                                 }
                             }
                         }
-                        if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalAttributeCount > 0 && count($object['Attribute']) == 0) {
+                        if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
+                            unset($event['Event']['Object'][$i]); // Object is empty, get rid of it
                             $pullRulesEmptiedEvent = true;
                         }
                     }
