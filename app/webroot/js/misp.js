@@ -3564,7 +3564,7 @@ function serverRuleUpdate() {
     validOptions.forEach(function(type) {
         validFields.forEach(function(field) {
             var indexedList = {};
-            if (type === 'push') {
+            if (type === 'push' || field == 'type_objects') {
                 if (window[field] !== undefined) {
                     window[field].forEach(function(item) {
                         indexedList[item.id] = item.name;
@@ -3578,8 +3578,13 @@ function serverRuleUpdate() {
                         var t = '';
                         rules[type][field][status].forEach(function(item) {
                             if (t.length > 0) t += ', ';
-                            if (type === 'pull') t += item;
-                            else {
+                            if (type === 'pull') {
+                                if (indexedList[item] !== undefined) {
+                                    t += indexedList[item];
+                                } else {
+                                    t += item;
+                                }
+                            } else {
                                 t += indexedList[item] !== undefined ? indexedList[item] : item;
                             }
                         });
