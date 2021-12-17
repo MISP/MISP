@@ -5913,13 +5913,12 @@ class EventsController extends AppController
 
         if ($this->request->is('json')) {
             App::uses('JSONConverterTool', 'Tools');
-            $converter = new JSONConverterTool();
             if ($this->RestResponse->isAutomaticTool()) {
-                foreach ($converter->streamConvert($event) as $part) {
+                foreach (JSONConverterTool::streamConvert($event) as $part) {
                     $tmpFile->write($part);
                 }
             } else {
-                $tmpFile->write($converter->convert($event));
+                $tmpFile->write(JSONConverterTool::convert($event));
             }
             $format = 'json';
         } elseif ($this->request->is('xml')) {

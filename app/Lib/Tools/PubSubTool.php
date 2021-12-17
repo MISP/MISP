@@ -78,8 +78,7 @@ class PubSubTool
     public function publishEvent($event)
     {
         App::uses('JSONConverterTool', 'Tools');
-        $jsonTool = new JSONConverterTool();
-        $json = $jsonTool->convert($event, false, true);
+        $json = JSONConverterTool::convert($event, false, true);
         return $this->pushToRedis('data:misp_json', $json);
     }
 
