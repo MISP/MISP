@@ -1122,14 +1122,15 @@ class Event extends AppModel
         // prepare attribute for sync
         if (!empty($data['Attribute'])) {
             foreach ($data['Attribute'] as $key => $attribute) {
+                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($attribute['type'], $pushRules['type_attributes']['NOT'])) {
+                    unset($data['Attribute'][$key]);
+                    continue;
+                }
                 $data['Attribute'][$key] = $this->__updateAttributeForSync($attribute, $server);
                 if (empty($data['Attribute'][$key])) {
                     unset($data['Attribute'][$key]);
                 } else {
                     $data['Attribute'][$key] = $this->__removeNonExportableTags($data['Attribute'][$key], 'Attribute', $server);
-                }
-                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($attribute['type'], $pushRules['type_attributes']['NOT'])) {
-                    unset($data['Attribute'][$key]);
                 }
             }
             $data['Attribute'] = array_values($data['Attribute']);
@@ -1142,15 +1143,16 @@ class Event extends AppModel
         // prepare Object for sync
         if (!empty($data['Object'])) {
             foreach ($data['Object'] as $key => $object) {
+                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['template_uuid'], $pushRules['type_objects']['NOT'])) {
+                    unset($data['Object'][$key]);
+                    continue;
+                }
                 $data['Object'][$key] = $this->__updateObjectForSync($object, $server);
                 if (empty($data['Object'][$key])) {
                     unset($data['Object'][$key]);
                 } else {
                     $data['Object'][$key] = $this->__prepareAttributesForSync($data['Object'][$key], $server, $pushRules);
                 }
-            }
-            if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['template_uuid'], $pushRules['type_objects']['NOT'])) {
-                unset($data['Object'][$key]);
             }
             $data['Object'] = array_values($data['Object']);
         }
