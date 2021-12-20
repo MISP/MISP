@@ -2890,7 +2890,7 @@ mispmodulesRHEL () {
   # some misp-modules dependencies for RHEL<8
   ([[ "${DISTRI}" == "fedora33" ]] || [[ "${DIST_VER}" =~ ^[7].* ]]) && sudo dnf install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
   # some misp-modules dependencies for RHEL8
-  [[ "${DIST_VER}" =~ ^[8].* ]] && sudo dnf install https://packages.endpoint.com/rhel/8/main/x86_64/endpoint-repo-8-1.ep8.noarch.rpm -y && sudo dnf install zbar-devel opencv-devel -y
+  [[ "${DIST_VER}" =~ ^[8].* ]] && sudo dnf install https://packages.endpointdev.com/rhel/8/os/x86_64/endpoint-repo.x86_64.rpm -y && sudo dnf install zbar-devel opencv-devel -y
 
   echo "[Unit]
   Description=MISP modules
