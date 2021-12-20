@@ -210,6 +210,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
                   'scope' => 'Attribute',
                   'object' => $object,
                   'event' => $event,
+                  'withPivot' => true,
               ));
               echo '</ul>';
           }

@@ -1,5 +1,6 @@
 <?php
 App::uses('SyncTool', 'Tools');
+App::uses('ProcessTool', 'Tools');
 
 class SecurityAudit
 {
@@ -384,7 +385,7 @@ class SecurityAudit
 
         // uptime
         try {
-            $since = $this->execute(['uptime', '-s']);
+            $since = ProcessTool::execute(['uptime', '-s']);
             $since = new DateTime($since);
             $diff = (new DateTime())->diff($since);
             $diffDays = $diff->format('a');
@@ -399,7 +400,7 @@ class SecurityAudit
 
         // Python version
         try {
-            $pythonVersion = $this->execute([$server->getPythonVersion(), '-V']);
+            $pythonVersion = ProcessTool::execute([ProcessTool::pythonBin(), '-V']);
             $parts = explode(' ', $pythonVersion);
             if ($parts[0] !== 'Python') {
                 throw new Exception("Invalid python version response: $pythonVersion");
@@ -498,35 +499,5 @@ class SecurityAudit
             return trim($line);
         }
         throw new RuntimeException("CakePHP version not found in file '$filePath'.");
-    }
-
-    private function execute(array $command)
-    {
-        $descriptorspec = [
-            1 => ["pipe", "w"], // stdout
-            2 => ["pipe", "w"], // stderr
-        ];
-
-        $command = implode(' ', $command);
-        $process = proc_open($command, $descriptorspec, $pipes);
-        if (!$process) {
-            throw new Exception("Command '$command' could not be started.");
-        }
-
-        $stdout = stream_get_contents($pipes[1]);
-        if ($stdout === false) {
-            throw new Exception("Could not get STDOUT of command.");
-        }
-        fclose($pipes[1]);
-
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[2]);
-
-        $returnCode = proc_close($process);
-        if ($returnCode !== 0) {
-            throw new Exception("Command '$command' return error code $returnCode. STDERR: '$stderr', STDOUT: '$stdout'");
-        }
-
-        return $stdout;
     }
 }

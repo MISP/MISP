@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property GalaxyClusterRelationTag $GalaxyClusterRelationTag
+ * @property GalaxyCluster $TargetCluster
  */
 class GalaxyClusterRelation extends AppModel
 {
@@ -66,10 +67,10 @@ class GalaxyClusterRelation extends AppModel
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $result) {
-            if (isset($results[$k]['TargetCluster']) && key_exists('id', $results[$k]['TargetCluster']) && is_null($results[$k]['TargetCluster']['id'])) {
+            if (isset($result['TargetCluster']) && key_exists('id', $result['TargetCluster']) && is_null($result['TargetCluster']['id'])) {
                 $results[$k]['TargetCluster'] = array();
             }
-            if (isset($results[$k]['GalaxyClusterRelation']['distribution']) && $results[$k]['GalaxyClusterRelation']['distribution'] != 4) {
+            if (isset($result['GalaxyClusterRelation']['distribution']) && $result['GalaxyClusterRelation']['distribution'] != 4) {
                 unset($results[$k]['SharingGroup']);
             }
         }
@@ -78,9 +79,9 @@ class GalaxyClusterRelation extends AppModel
 
     public function buildConditions($user, $clusterConditions = true)
     {
-        $this->Event = ClassRegistry::init('Event');
         $conditions = [];
         if (!$user['Role']['perm_site_admin']) {
+            $this->Event = ClassRegistry::init('Event');
             $alias = $this->alias;
             $sgids = $this->Event->cacheSgids($user, true);
             $gcOwnerIds = $this->SourceCluster->cacheGalaxyClusterOwnerIDs($user);
@@ -346,44 +347,41 @@ class GalaxyClusterRelation extends AppModel
 
     public function bulkSaveRelations(array $relations)
     {
-        if (!isset($this->bulkCache)) {
-            $this->bulkCache = [
-                'tag_ids' => []
-            ];
-        }
+        // Fetch existing tags Name => ID mapping
+        $tagNameToId = $this->GalaxyClusterRelationTag->Tag->find('list', [
+            'fields' => ['Tag.name', 'Tag.id'],
+            'callbacks' => false,
+        ]);
+
+        // Fetch all cluster UUID => ID mapping
+        $galaxyClusterUuidToId =  $this->TargetCluster->find('list', [
+            'fields' => ['uuid', 'id'],
+            'callbacks' => false,
+        ]);
+
         $lookupSavedIds = [];
         $relationTagsToSave = [];
-        foreach ($relations as $k => $relation) {
-            $relations[$k]['referenced_galaxy_cluster_id'] = 0;
-            $lookupSavedIds[$relation['galaxy_cluster_id']] = true;
+        foreach ($relations as &$relation) {
+            if (isset($galaxyClusterUuidToId[$relation['referenced_galaxy_cluster_uuid']])) {
+                $relation['referenced_galaxy_cluster_id'] = $galaxyClusterUuidToId[$relation['referenced_galaxy_cluster_uuid']];
+            }  else {
+                $relation['referenced_galaxy_cluster_id'] = 0; // referenced cluster doesn't exists
+            }
             if (!empty($relation['tags'])) {
+                $lookupSavedIds[$relation['galaxy_cluster_id']] = true;
                 foreach ($relation['tags'] as $tag) {
-                    if (!isset($this->bulkCache['tag_ids'][$tag])) {
-                        $existingTag = $this->GalaxyClusterRelationTag->Tag->find('first', [
-                            'recursive' => -1,
-                            'fields' => ['Tag.id'],
-                            'conditions' => ['Tag.name' => $tag]
-                        ]);
-                        if (empty($existingTag)) {
-                            $this->GalaxyClusterRelationTag->Tag->create();
-                            $this->GalaxyClusterRelationTag->Tag->save([
-                                'name' => $tag,
-                                'colour' => $this->GalaxyClusterRelationTag->Tag->random_color(),
-                                'exportable' => 1,
-                                'org_id' => 0,
-                                'user_id' => 0,
-                                'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0
-                            ]);
-                            $this->bulkCache['tag_ids'][$tag] = $this->GalaxyClusterRelationTag->Tag->id;
-                        } else {
-                            $this->bulkCache['tag_ids'][$tag] = $existingTag['Tag']['id'];
-                        }
+                    if (!isset($tagNameToId[$tag])) {
+                        $tagNameToId[$tag] = $this->GalaxyClusterRelationTag->Tag->quickAdd($tag);
                     }
-                    $relationTagsToSave[$relation['galaxy_cluster_uuid']][$relation['referenced_galaxy_cluster_uuid']][] = $this->bulkCache['tag_ids'][$tag];
+                    $relationTagsToSave[$relation['galaxy_cluster_uuid']][$relation['referenced_galaxy_cluster_uuid']][] = $tagNameToId[$tag];
                 }
             }
         }
-        $this->saveAll($relations);
+        unset($galaxyClusterUuidToId, $tagNameToId);
+
+        $this->saveMany($relations, ['validate' => false]); // Some clusters uses invalid UUID :/
+
+        // Insert tags
         $savedRelations = $this->find('all', [
             'recursive' => -1,
             'conditions' => ['galaxy_cluster_id' => array_keys($lookupSavedIds)],
@@ -393,9 +391,9 @@ class GalaxyClusterRelation extends AppModel
         foreach ($savedRelations as $savedRelation) {
             $uuid1 = $savedRelation['GalaxyClusterRelation']['galaxy_cluster_uuid'];
             $uuid2 = $savedRelation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'];
-            if (!empty($relationTagsToSave[$uuid1][$uuid2])) {
-                foreach ($relationTagsToSave[$uuid1][$uuid2] as $tag) {
-                    $relation_tags[] = [$savedRelation['GalaxyClusterRelation']['id'], $tag];
+            if (isset($relationTagsToSave[$uuid1][$uuid2])) {
+                foreach ($relationTagsToSave[$uuid1][$uuid2] as $tagId) {
+                    $relation_tags[] = [$savedRelation['GalaxyClusterRelation']['id'], $tagId];
                 }
             }
         }

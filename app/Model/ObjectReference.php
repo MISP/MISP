@@ -38,17 +38,38 @@ class ObjectReference extends AppModel
         )
     );
 
+    public $validate = [
+        'uuid' => 'uuid',
+        'object_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+            'on' => 'create',
+        ],
+        'event_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+            'on' => 'create',
+        ],
+        'source_uuid' => 'uuid',
+        'referenced_uuid' => 'uuid',
+        'referenced_id' => 'numeric',
+        'referenced_type' => [
+            'rule' => ['inList', ['0', '1']],
+        ],
+        'deleted' => 'boolean',
+    ];
+
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
-        if (empty($this->data['ObjectReference']['uuid'])) {
-            $this->data['ObjectReference']['uuid'] = CakeText::uuid();
+        $reference = &$this->data['ObjectReference'];
+        if (empty($reference['uuid'])) {
+            $reference['uuid'] = CakeText::uuid();
         }
-        if (empty($this->data['ObjectReference']['timestamp'])) {
-            $this->data['ObjectReference']['timestamp'] = time();
+        if (empty($reference['timestamp'])) {
+            $reference['timestamp'] = time();
         }
-        if (!isset($this->data['ObjectReference']['comment'])) {
-            $this->data['ObjectReference']['comment'] = '';
+        if (!isset($reference['comment'])) {
+            $reference['comment'] = '';
         }
         return true;
     }
@@ -78,18 +99,24 @@ class ObjectReference extends AppModel
         return true;
     }
 
-    public function updateTimestamps($id, $objectReference = false)
+    /**
+     * @param int|array $objectReference
+     * @return false|void
+     * @throws Exception
+     */
+    public function updateTimestamps($objectReference)
     {
-        if (!$objectReference) {
+        if (is_numeric($objectReference)) {
             $objectReference = $this->find('first', array(
                 'recursive' => -1,
-                'conditions' => array('ObjectReference.id' => $id),
+                'conditions' => array('ObjectReference.id' => $objectReference),
                 'fields' => array('event_id', 'object_id')
             ));
+            if (empty($objectReference)) {
+                return false;
+            }
         }
-        if (empty($objectReference)) {
-            return false;
-        }
+
         if (!isset($objectReference['ObjectReference'])) {
             $objectReference = array('ObjectReference' => $objectReference);
         }
@@ -165,12 +192,18 @@ class ObjectReference extends AppModel
         if (!$result) {
             return $this->validationErrors;
         } else {
-            $this->updateTimestamps($this->id, $objectReference);
+            $this->updateTimestamps($objectReference);
         }
         return true;
     }
 
-    public function captureReference($reference, $eventId, $user)
+    /**
+     * @param array $reference
+     * @param int $eventId
+     * @return array|bool
+     * @throws Exception
+     */
+    public function captureReference(array $reference, $eventId)
     {
         if (isset($reference['uuid'])) {
             $existingReference = $this->find('first', array(
@@ -257,6 +290,9 @@ class ObjectReference extends AppModel
         $reference['object_uuid'] = $sourceObject['Object']['uuid'];
         $reference['event_id'] = $eventId;
         $result = $this->save(array('ObjectReference' => $reference));
+        if (!$result) {
+            return $this->validationErrors;
+        }
         return true;
     }
 
@@ -308,7 +344,8 @@ class ObjectReference extends AppModel
         return array($referenced_id, $referenced_uuid, $referenced_type);
     }
 
-    function isValidExtendedEventForReference($sourceEvent, $targetEventID, $user) {
+    private function isValidExtendedEventForReference(array $sourceEvent, $targetEventID, array $user)
+    {
         if ($sourceEvent['Event']['orgc_id'] != $user['org_id']) {
             return false;
         }

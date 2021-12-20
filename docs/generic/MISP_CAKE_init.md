@@ -25,6 +25,9 @@ coreCAKE () {
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Session.autoRegenerate" 0
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Session.timeout" 600
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Session.cookieTimeout" 3600
+ 
+  # Set the default temp dir
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.tmpdir" "${PATH_TO_MISP}/app/tmp"
 
   # Change base url, either with this CLI command or in the UI
   [[ ! -z ${MISP_BASEURL} ]] && ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Baseurl $MISP_BASEURL
@@ -46,7 +49,7 @@ coreCAKE () {
   # Enable installer org and tune some configurables
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.host_org_id" 1
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.email" "info@admin.test"
-  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.disable_emailing" true
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.disable_emailing" true --force
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.contact" "info@admin.test"
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.disablerestalert" true
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.showCorrelationsOnIndex" true
@@ -57,7 +60,7 @@ coreCAKE () {
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_services_url" "http://127.0.0.1"
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_services_port" 9000
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_timeout" 120
-  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_authkey" ""
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_authkey" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_ssl_verify_peer" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_ssl_verify_host" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Cortex_ssl_allow_self_signed" true
@@ -116,7 +119,7 @@ coreCAKE () {
          Plugin.ElasticSearch_logging_enable
          Plugin.S3_enable)
   for PLUG in "${PLUGS[@]}"; do
-    ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting ${PLUG} false
+    ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting ${PLUG} false 2> /dev/null
   done
 
   # Plugin CustomAuth tuneable
@@ -132,7 +135,7 @@ coreCAKE () {
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_minimum_ttl" "1h"
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_ttl" "1w"
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_ns" "localhost."
-  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_ns_alt" ""
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_ns_alt" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.RPZ_email" "root.localhost"
 
   # Kafka settings

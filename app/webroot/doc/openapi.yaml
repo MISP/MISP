@@ -212,7 +212,7 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /attributes/addTag/{attributeId}/{tagId}:
+  /attributes/addTag/{attributeId}/{tagId}/local:{local}:
     post:
       summary: "Add a tag to an attribute"
       operationId: tagAttribute
@@ -221,6 +221,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/attributeIdParameter"
         - $ref: "#/components/parameters/tagIdParameter"
+        - $ref: "#/components/parameters/localParameter"
       responses:
         "200":
           $ref: "#/components/responses/AddAttributeTagResponse"
@@ -457,7 +458,7 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /events/addTag/{eventId}/{tagId}:
+  /events/addTag/{eventId}/{tagId}/local:{local}:
     post:
       summary: "Add event tag"
       operationId: tagEvent
@@ -466,6 +467,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/eventIdParameter"
         - $ref: "#/components/parameters/tagIdParameter"
+        - $ref: "#/components/parameters/localParameter"
       responses:
         "200":
           $ref: "#/components/responses/AddEventTagResponse"
@@ -607,7 +609,7 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /galaxies/attachCluster/{attachTargetId}/{attachTargetType}:
+  /galaxies/attachCluster/{attachTargetId}/{attachTargetType}/local:{local}:
     post:
       summary: "Attach the galaxy cluster tag a given entity"
       operationId: attachGalaxyCluster
@@ -616,6 +618,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/attachTargetIdParameter"
         - $ref: "#/components/parameters/attachTargetTypeParameter"
+        - $ref: "#/components/parameters/localParameter"
       requestBody:
         $ref: "#/components/requestBodies/AttachGalaxyClusterRequest"
       responses:
@@ -5302,6 +5305,16 @@ components:
     IsLocal:
       type: boolean
 
+    Local:
+      type: integer
+      format: int32
+      maxLength: 1
+      default: 0
+      nullable: false
+      enum:
+        - 0
+        - 1
+
     IsReadOnly:
       type: boolean
 
@@ -5691,6 +5704,14 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/TagId"
+
+    localParameter:
+      name: local
+      in: path
+      description: "Whether the object should be attached locally or not to the target"
+      required: false
+      schema:
+        $ref: "#/components/schemas/Local"
 
     tagSearchTermParameter:
       name: tagSearchTerm
@@ -6082,7 +6103,7 @@ components:
                 format: date
                 example: "2021-03-05"
               org:
-                description: "Filter events by matching an the creator organisation name"
+                description: "Filter events by matching the creator organisation name"
                 type: string
                 nullable: true
                 example: "CIRCL"
@@ -6599,7 +6620,7 @@ components:
                     disable_correlation:
                       $ref: "#/components/schemas/DisableCorrelationFlag"
                     distribution:
-                      $ref: "#/components/schemas/DisableCorrelationFlag"
+                      $ref: "#/components/schemas/DistributionLevelId"
                     comment:
                       $ref: "#/components/schemas/AttributeComment"
                     object_relation:

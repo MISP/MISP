@@ -574,10 +574,13 @@ $(function () {
     queryEventLock('<?= h($event['Event']['id']); ?>', <?= (int)$event['Event']['timestamp'] ?>);
     popoverStartup();
 
-    $("th, td, dt, div, span, li").tooltip({
-        'placement': 'top',
-        'container' : 'body',
+    $(document.body).tooltip({
+        selector: 'span[title], td[title], time[title]',
+        placement: 'top',
+        container: 'body',
         delay: { show: 500, hide: 100 }
+    }).on('shown', function() {
+        $('.tooltip').not(":last").remove();
     });
 
     $.get("<?php echo $baseurl; ?>/threads/view/<?php echo h($event['Event']['id']); ?>/true", function(data) {

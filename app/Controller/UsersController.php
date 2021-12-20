@@ -741,7 +741,7 @@ class UsersController extends AppController
                                 $notification_message .= ' ' . __('User notification of new credentials could not be send.');
                             }
                         }
-                        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+                        if (!empty(Configure::read('Security.advanced_authkeys')) && $this->_isRest()) {
                             $this->loadModel('AuthKey');
                             $newKey = $this->AuthKey->createnewkey($this->User->id);
                         }
@@ -1210,8 +1210,7 @@ class UsersController extends AppController
                 }
             }
             // populate the DB with the first role (site admin) if it's empty
-            $this->loadModel('Role');
-            if ($this->Role->find('count') == 0) {
+            if (!$this->User->Role->hasAny()) {
                 $siteAdmin = array('Role' => array(
                     'id' => 1,
                     'name' => 'Site Admin',
@@ -1230,14 +1229,14 @@ class UsersController extends AppController
                     'perm_template' => 1,
                     'perm_tagger' => 1,
                 ));
-                $this->Role->save($siteAdmin);
+                $this->User->Role->save($siteAdmin);
                 // PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-                if ($dataSource == 'Database/Postgres') {
+                if ($dataSource === 'Database/Postgres') {
                     $sql = "SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));";
-                    $this->Role->query($sql);
+                    $this->User->Role->query($sql);
                 }
             }
-            if ($this->User->Organisation->find('count', array('conditions' => array('Organisation.local' => true))) == 0) {
+            if (!$this->User->Organisation->hasAny(array('Organisation.local' => true))) {
                 $this->User->runUpdates();
                 $date = date('Y-m-d H:i:s');
                 $org = array('Organisation' => array(
@@ -1253,23 +1252,25 @@ class UsersController extends AppController
                 ));
                 $this->User->Organisation->save($org);
                 // PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-                if ($dataSource == 'Database/Postgres') {
+                if ($dataSource === 'Database/Postgres') {
                     $sql = "SELECT setval('organisations_id_seq', (SELECT MAX(id) FROM organisations));";
                     $this->User->Organisation->query($sql);
                 }
                 $org_id = $this->User->Organisation->id;
-            } else {
-                $hostOrg = $this->User->Organisation->find('first', array('conditions' => array('Organisation.name' => Configure::read('MISP.org'), 'Organisation.local' => true), 'recursive' => -1));
-                if (!empty($hostOrg)) {
-                    $org_id = $hostOrg['Organisation']['id'];
-                } else {
-                    $firstOrg = $this->User->Organisation->find('first', array('conditions' => array('Organisation.local' => true), 'order' => 'Organisation.id ASC'));
-                    $org_id = $firstOrg['Organisation']['id'];
-                }
             }
 
             // populate the DB with the first user if it's empty
-            if ($this->User->find('count') == 0) {
+            if (!$this->User->hasAny()) {
+                if (!isset($org_id)) {
+                    $hostOrg = $this->User->Organisation->find('first', array('conditions' => array('Organisation.name' => Configure::read('MISP.org'), 'Organisation.local' => true), 'recursive' => -1));
+                    if (!empty($hostOrg)) {
+                        $org_id = $hostOrg['Organisation']['id'];
+                    } else {
+                        $firstOrg = $this->User->Organisation->find('first', array('conditions' => array('Organisation.local' => true), 'order' => 'Organisation.id ASC'));
+                        $org_id = $firstOrg['Organisation']['id'];
+                    }
+                }
+
                 $this->User->runUpdates();
                 $this->User->createInitialUser($org_id);
             }
@@ -1792,7 +1793,7 @@ class UsersController extends AppController
             // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
             $userForSendMail = $this->User->getUserById($user_id);
             $body = str_replace('\n', PHP_EOL, $body);
-            $result = $this->User->sendEmail($userForSendMail, $body, false, "[MISP " . Configure::read('MISP.org') . "] Email OTP");
+            $result = $this->User->sendEmail($userForSendMail, $body, false, "[" . Configure::read('MISP.org') . " MISP] Email OTP");
 
             if ($result) {
                 $this->Flash->success(__("An email containing a OTP has been sent."));

@@ -260,10 +260,6 @@ installSupported () {
   echo "Proceeding with the installation of MISP core"
   space
 
-  # Set Base URL - functionLocation('generic/supportFunctions.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
-  progress 4
-
   # Check if sudo is installed and etckeeper - functionLocation('generic/sudo_etckeeper.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper
   [[ ! -z ${MISP_USER} ]] && [[ ! -f /etc/sudoers.d/misp ]] && echo "%${MISP_USER} ALL=(ALL:ALL) NOPASSWD:ALL" |sudo tee /etc/sudoers.d/misp

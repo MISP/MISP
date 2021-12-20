@@ -51,6 +51,13 @@
                     'data_path' => 'Tag.hide_tag',
                 ],
                 [
+                    'name' => __('Local Only'),
+                    'sort' => 'Tag.local_only',
+                    'element' => 'boolean',
+                    'class' => 'short',
+                    'data_path' => 'Tag.local_only',
+                ],
+                [
                     'name' => __('Name'),
                     'sort' => 'Tag.name',
                     'class' => 'short',

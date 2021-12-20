@@ -1,7 +1,23 @@
 <?php
+App::uses('JsonTool', 'Tools');
 
 class FileAccessTool
 {
+    /**
+     * @param string $path
+     * @param int $permissions
+     * @throws Exception
+     */
+    public static function createFile($path, $permissions = 0600)
+    {
+        if (!file_exists($path)) {
+            if (!touch($path)) {
+                throw new Exception("Could not create file `$path`.");
+            }
+        }
+        @chmod($path, $permissions); // hide error if current user is not file owner
+    }
+
     /**
      * Creates temporary file, but you have to delete it after use.
      * @param string|null $dir
@@ -44,6 +60,33 @@ class FileAccessTool
             }
             throw new Exception("An error has occurred while attempt to read file `$file`: $message.");
         }
+        return $content;
+    }
+
+    /**
+     * @param string $file
+     * @return mixed
+     * @throws Exception
+     */
+    public static function readJsonFromFile($file)
+    {
+        $content = self::readFromFile($file);
+        try {
+            return JsonTool::decode($content);
+        } catch (Exception $e) {
+            throw new Exception("Could not decode JSON from file `$file`", 0, $e);
+        }
+    }
+
+    /**
+     * @param string $file
+     * @return string
+     * @throws Exception
+     */
+    public static function readAndDelete($file)
+    {
+        $content = self::readFromFile($file);
+        self::deleteFile($file);
         return $content;
     }
 
