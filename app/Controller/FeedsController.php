@@ -124,7 +124,9 @@ class FeedsController extends AppController
             'menuItem' => 'index'
         ]);
         $this->loadModel('Event');
-        $this->set('distributionLevels', $this->Event->distributionLevels);
+        $distributionLevels = $this->Event->distributionLevels;
+        $distributionLevels[5] = __('Inherit from feed');
+        $this->set('distributionLevels', $distributionLevels);
         $this->set('scope', $scope);
     }
 
@@ -286,6 +288,7 @@ class FeedsController extends AppController
         $this->loadModel('Event');
         $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $distributionLevels = $this->Event->distributionLevels;
+        $distributionLevels[5] = __('Inherit from feed');
         if (empty($sharingGroups)) {
             unset($distributionLevels[4]);
         }
@@ -424,6 +427,7 @@ class FeedsController extends AppController
         $this->loadModel('Event');
         $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $distributionLevels = $this->Event->distributionLevels;
+        $distributionLevels[5] = __('Inherit from feed');
         if (empty($sharingGroups)) {
             unset($distributionLevels[4]);
         }

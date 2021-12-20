@@ -132,7 +132,6 @@ if (Configure::read('MISP.baseurl')) {
 CakePlugin::load('SysLog');
 CakePlugin::load('Assets'); // having Logable
 CakePlugin::load('SysLogLogable');
-CakePlugin::load('UrlCache');
 
 /**
  * Uncomment the following line to enable client SSL certificate authentication.

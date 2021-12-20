@@ -87,7 +87,7 @@ class Organisation extends AppModel
             'User' => array('table' => 'users', 'fields' => array('org_id'))
     );
 
-    public $genericMISPOrganisation = array(
+    const GENERIC_MISP_ORGANISATION = [
         'id' => '0',
         'name' => 'MISP',
         'date_created' => '',
@@ -102,7 +102,7 @@ class Organisation extends AppModel
         'local' => true,
         'restricted_to_domain' => [],
         'landingpage' => null
-    );
+    ];
 
     public function beforeValidate($options = array())
     {
@@ -150,7 +150,7 @@ class Organisation extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_organisation_notifications_enable')) {
+        if ($this->pubToZmq('organisation')) {
             $pubSubTool = $this->getPubSubTool();
             $pubSubTool->modified($this->data, 'organisation');
         }

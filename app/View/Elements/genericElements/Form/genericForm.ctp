@@ -39,8 +39,10 @@ $fieldsArrayForPersistence = array();
 $formOptions = isset($formOptions) ? $formOptions : array();
 $formOptions = array_merge(['class' => 'genericForm'], $formOptions);
 $formCreate = $this->Form->create($modelForForm, $formOptions);
+$fieldsArray = [];
 if (!empty($data['fields'])) {
     foreach ($data['fields'] as $fieldData) {
+        $fieldsArray[] = $modelForForm . Inflector::camelize($fieldData['field']);
         if (isset($fieldData['requirements']) && !$fieldData['requirements']) {
             continue;
         }
@@ -124,6 +126,7 @@ if (!empty($ajax)) {
 ?>
 
 <script type="text/javascript">
+    var fieldsArray = <?= json_encode($fieldsArray) ?>;
     $(function() {
         popoverStartup();
     });

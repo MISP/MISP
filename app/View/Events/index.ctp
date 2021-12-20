@@ -16,7 +16,7 @@
             $filterParamsString[] = sprintf(
                 '%s: %s',
                 h(ucfirst($k)),
-                h($v)
+                h(is_array($v) ? http_build_query($v) : h($v) )
             );
         }
 
@@ -30,7 +30,9 @@
             'sightings' => __('Sightings'),
             'proposals' => __('Proposals'),
             'discussion' => __('Posts'),
-            'report_count' => __('Report count')
+            'report_count' => __('Report count'),
+            'timestamp' => __('Last change at'),
+            'publish_timestamp' => __('Published at')
         ];
 
         $columnsMenu = [];

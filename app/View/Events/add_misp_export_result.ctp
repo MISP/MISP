@@ -9,7 +9,6 @@
     </tr>
 <?php
     App::uses('JSONConverterTool', 'Tools');
-    $converter = new JSONConverterTool();
     foreach ($results as &$result):
         if ($result['result'] === false) {
             $status = __('Failed');
@@ -25,7 +24,7 @@
         } else if (is_numeric($result['result'])) {
             $text = __('Event with this UUID already exists.');
         }
-        if (!empty($result['validationIssues'])) $result['validationIssues'] = $converter->arrayPrinter($result['validationIssues']);
+        if (!empty($result['validationIssues'])) $result['validationIssues'] = JSONConverterTool::arrayPrinter($result['validationIssues']);
         else $result['validationIssues'] = false;
 ?>
         <tr>

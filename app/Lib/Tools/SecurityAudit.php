@@ -43,6 +43,10 @@ class SecurityAudit
             $output['Database'][] = ['warning', __('Database password is too short, should be at least %s chars long.', self::STRONG_PASSWORD_LENGTH)];
         }
 
+        if (!Configure::read('Security.encryption_key')) {
+            $output['Database'][] = ['warning', __('Sensitive information like keys to remote server are stored in database unencrypted. Set `Security.encryption_key` to encrypt these values.')];
+        }
+
         $passwordPolicyLength = Configure::read('Security.password_policy_length') ?: $server->serverSettings['Security']['password_policy_length']['value'];
         if ($passwordPolicyLength < 8) {
             $output['Password'][] = ['error', __('Minimum password length is set to %s, it is highly advised to increase it.', $passwordPolicyLength)];
@@ -209,19 +213,28 @@ class SecurityAudit
             }
         } catch (RuntimeException $e) {}
 
-        if (version_compare(PHP_VERSION, '7.3.0', '<')) {
+        if (version_compare(PHP_VERSION, '7.4.0', '<')) {
             $output['PHP'][] = [
                 'warning',
-                __('PHP version %s is not supported anymore. It can be still supported by your distribution. ', PHP_VERSION),
-                'https://www.php.net/supported-versions.php'
-            ];
-        } else if (version_compare(PHP_VERSION, '7.4.0', '<')) {
-            $output['PHP'][] = [
-                'hint',
-                __('PHP version 7.3 will not be supported after 6 Dec 2021. Even beyond that date, it can be still supported by your distribution.'),
+                __('PHP version %s is not supported anymore. It can be still supported by your distribution.', PHP_VERSION),
                 'https://www.php.net/supported-versions.php'
             ];
         }
+
+        if (ini_get('expose_php')) {
+            $output['PHP'][] = [
+                'hint',
+                __('PHP `expose_php` setting is enabled. That means that PHP version will be send in `X-Powered-By` header. This can help attackers.'),
+            ];
+        }
+
+        if (extension_loaded('xdebug')) {
+            $output['PHP'][] = [
+                'error',
+                __('The xdebug extension can reveal code and data to an attacker.'),
+            ];
+        }
+
         if (ini_get('session.use_strict_mode') != 1) {
             $output['PHP'][] = [
                 'warning',
@@ -256,7 +269,7 @@ class SecurityAudit
             ];
         }
 
-        $this->system($server, $output);
+        $this->system($output);
 
         return $output;
     }
@@ -369,7 +382,7 @@ class SecurityAudit
         }
     }
 
-    private function system(Server $server, array &$output)
+    private function system(array &$output)
     {
         $kernelBuildTime = $this->getKernelBuild();
         if ($kernelBuildTime) {
@@ -422,27 +435,30 @@ class SecurityAudit
         } catch (Exception $e) {
         }
 
-        $ubuntuVersion = $this->getUbuntuVersion();
-        if ($ubuntuVersion) {
-            if (in_array($ubuntuVersion, ['14.04', '19.10'])) {
-                $output['System'][] = [
-                    'warning',
-                    __('You are using Ubuntu %s. This version doesn\'t receive security support anymore.', $ubuntuVersion),
-                    'https://endoflife.date/ubuntu',
-                ];
-            } else if (in_array($ubuntuVersion, ['16.04'])) {
-                $output['System'][] = [
-                    'hint',
-                    __('You are using Ubuntu %s. This version will be not supported after 02 Apr 2021.', $ubuntuVersion),
-                    'https://endoflife.date/ubuntu',
-                ];
+        $linuxVersion = $this->getLinuxVersion();
+        if ($linuxVersion) {
+            list($name, $version) = $linuxVersion;
+            if ($name === 'Ubuntu') {
+                if (in_array($version, ['14.04', '19.10'], true)) {
+                    $output['System'][] = [
+                        'warning',
+                        __('You are using Ubuntu %s. This version doesn\'t receive security support anymore.', $version),
+                        'https://endoflife.date/ubuntu',
+                    ];
+                } else if (in_array($version, ['16.04'], true)) {
+                    $output['System'][] = [
+                        'hint',
+                        __('You are using Ubuntu %s. This version will be not supported after 02 Apr 2021.', $version),
+                        'https://endoflife.date/ubuntu',
+                    ];
+                }
             }
         }
     }
 
     private function getKernelBuild()
     {
-        if (!php_uname('s') !== 'Linux') {
+        if (PHP_OS !== 'Linux') {
             return false;
         }
 
@@ -454,9 +470,9 @@ class SecurityAudit
         return new DateTime($buildTime);
     }
 
-    private function getUbuntuVersion()
+    private function getLinuxVersion()
     {
-        if (!php_uname('s') !== 'Linux') {
+        if (PHP_OS !== 'Linux') {
             return false;
         }
         if (!is_readable('/etc/os-release')) {
@@ -470,16 +486,10 @@ class SecurityAudit
         if ($parsed === false) {
             return false;
         }
-        if (!isset($parsed['NAME'])) {
+        if (!isset($parsed['NAME']) || !isset($parsed['VERSION_ID'])) {
             return false;
         }
-        if ($parsed['NAME'] !== 'Ubuntu') {
-            return false;
-        }
-        if (!isset($parsed['VERSION_ID'])) {
-            return false;
-        }
-        return $parsed['VERSION_ID'];
+        return [$parsed['NAME'], $parsed['VERSION_ID']];
     }
 
     /**
