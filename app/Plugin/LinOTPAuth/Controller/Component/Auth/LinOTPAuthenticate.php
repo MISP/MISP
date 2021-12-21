@@ -93,6 +93,9 @@ class LinOTPAuthenticate extends BaseAuthenticate
             // CakeLog::debug(var_dump($ret));
             return $ret;
         }
+        // If bad things happens
+        CakeLog::debug("LinOTP-Plugin couldn't parse results from LinOTP API. Check logs.");
+        return false;
     }
 
     /*
