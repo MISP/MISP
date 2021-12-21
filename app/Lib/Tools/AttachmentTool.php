@@ -156,7 +156,7 @@ class AttachmentTool
         } else {
             $filepath = $this->attachmentDir() . DS . $path;
             $file = new File($filepath);
-            if (!$file->exists()) {
+            if (!is_file($file->path)) {
                 throw new NotFoundException("File '$filepath' does not exists.");
             }
         }
@@ -281,6 +281,7 @@ class AttachmentTool
             $s3 = $this->loadS3Client();
             $s3->deleteDirectory($eventId);
         } else {
+            App::uses('Folder', 'Utility');
             $dirPath = $this->attachmentDir();
 
             foreach (array($dirPath, $dirPath . DS . 'shadow') as $dirPath) {
@@ -425,8 +426,7 @@ class AttachmentTool
         // Output image to string
         ob_start();
         imagepng($imageThumbnail, null, 9);
-        $imageData = ob_get_contents();
-        ob_end_clean();
+        $imageData = ob_get_clean();
         imagedestroy($imageThumbnail);
 
         return $imageData;

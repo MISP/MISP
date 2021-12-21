@@ -278,9 +278,14 @@ class BackgroundJobsTool
      */
     public function getWorkers(): array
     {
-        $workers = [];
-        $procs = $this->getSupervisor()->getAllProcesses();
+        try {
+            $procs = $this->getSupervisor()->getAllProcesses();
+        } catch (\Exception $exception) {
+            CakeLog::error("An error occured when getting the workers statuses via Supervisor API: {$exception->getMessage()}");
+            return [];
+        }
 
+        $workers = [];
         foreach ($procs as $proc) {
             if ($proc->offsetGet('group') === self::MISP_WORKERS_PROCESS_GROUP) {
                 if ($proc->offsetGet('pid') > 0) {
@@ -333,27 +338,6 @@ class BackgroundJobsTool
             $this->settings['max_job_history_ttl'],
             $job
         );
-    }
-
-    /**
-     * Run job
-     *
-     * @param BackgroundJob $job
-     * 
-     * @return integer Process return code.
-     */
-    public function run(BackgroundJob $job): int
-    {
-        $job->setStatus(BackgroundJob::STATUS_RUNNING);
-        CakeLog::info("[JOB ID: {$job->id()}] - started.");
-
-        $this->update($job);
-
-        $job = $job->run();
-
-        $this->update($job);
-
-        return $job->returnCode();
     }
 
     /**
@@ -492,7 +476,7 @@ class BackgroundJobsTool
         }
 
         try {
-            $supervisorStatus = $this->getSupervisor()->getState()['statecode'] === \Supervisor\Supervisor::RUNNING;
+            $supervisorStatus = $this->getSupervisorStatus();
         } catch (Exception $exception) {
             CakeLog::error("SimpleBackgroundJobs Supervisor error: {$exception->getMessage()}");
             $supervisorStatus = false;
@@ -507,6 +491,16 @@ class BackgroundJobsTool
         } else {
             return self::STATUS_REDIS_NOT_OK;
         }
+    }
+
+    /**
+     * Return true if Supervisor process is running.
+     *
+     * @return boolean
+     */
+    public function getSupervisorStatus(): bool
+    {
+        return $this->getSupervisor()->getState()['statecode'] === \Supervisor\Supervisor::RUNNING;
     }
 
     /**
@@ -603,6 +597,7 @@ class BackgroundJobsTool
 
     /**
      * @return \Supervisor\Supervisor
+     * @throws Exception
      */
     private function createSupervisorConnection(): \Supervisor\Supervisor
     {
@@ -616,10 +611,19 @@ class BackgroundJobsTool
             ];
         }
 
+        $host = null;
+        if (substr($this->settings['supervisor_host'], 0, 5) === 'unix:') {
+            if (!defined('CURLOPT_UNIX_SOCKET_PATH')) {
+                throw new Exception("For unix socket connection, cURL is required.");
+            }
+            $httpOptions['curl'][CURLOPT_UNIX_SOCKET_PATH] = substr($this->settings['supervisor_host'], 5);
+            $host = 'localhost';
+        }
+
         $client = new \fXmlRpc\Client(
             sprintf(
                 'http://%s:%s/RPC2',
-                $this->settings['supervisor_host'],
+                $host ?: $this->settings['supervisor_host'],
                 $this->settings['supervisor_port']
             ),
             new \fXmlRpc\Transport\HttpAdapterTransport(

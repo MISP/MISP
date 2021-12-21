@@ -53,7 +53,7 @@ class Warninglist extends AppModel
         )
     );
 
-    private $__tlds = array(
+    const TLDS = array(
         'TLDs as known by IANA'
     );
 
@@ -725,7 +725,7 @@ class Warninglist extends AppModel
     public function fetchTLDLists()
     {
         $tldLists = $this->find('column', array(
-            'conditions' => array('Warninglist.name' => $this->__tlds),
+            'conditions' => array('Warninglist.name' => self::TLDS),
             'fields' => array('Warninglist.id')
         ));
         $tlds = array();
@@ -769,7 +769,7 @@ class Warninglist extends AppModel
     public function missingTldLists()
     {
         $missingTldLists = array();
-        foreach ($this->__tlds as $tldList) {
+        foreach (self::TLDS as $tldList) {
             $temp = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Warninglist.name' => $tldList),

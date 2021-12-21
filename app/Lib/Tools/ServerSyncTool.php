@@ -220,6 +220,34 @@ class ServerSyncTool
     }
 
     /**
+     * @param string $key
+     * @return array
+     */
+    public function decodeRule($key)
+    {
+        $rules = $this->server['Server'][$key];
+        return json_decode($rules, true);
+    }
+
+    /**
+     * @return array
+     */
+    public function pullRules()
+    {
+        
+        return $this->decodeRule('pull_rules');
+    }
+
+    /**
+     * @return array
+     */
+    public function pushRules()
+    {
+        
+        return $this->decodeRule('push_rules');
+    }
+
+    /**
      * @param string $flag
      * @return bool
      * @throws HttpSocketJsonException

@@ -6,6 +6,9 @@ class OrgImgHelper extends AppHelper
 {
     const IMG_PATH = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS;
 
+    /** @var array */
+    private $imageCache = [];
+
     public function getNameWithImg(array $organisation, $link = null)
     {
         if (!isset($organisation['Organisation'])) {
@@ -97,15 +100,26 @@ class OrgImgHelper extends AppHelper
      */
     private function findOrgImage(array $options)
     {
+        if (isset($options['id']) && array_key_exists($options['id'], $this->imageCache)) {
+            return $this->imageCache[$options['id']];
+        }
+
+        $image = null;
         foreach (['id', 'name', 'uuid'] as $field) {
             if (isset($options[$field])) {
                 foreach (['png', 'svg'] as $extensions) {
                     if (file_exists(self::IMG_PATH . $options[$field] . '.' . $extensions)) {
-                        return $options[$field] . '.' . $extensions;
+                        $image = $options[$field] . '.' . $extensions;
+                        break 2;
                     }
                 }
             }
         }
-        return null;
+
+        if (isset($options['id'])) {
+            $this->imageCache[$options['id']] = $image;
+        }
+
+        return $image;
     }
 }

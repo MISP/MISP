@@ -240,7 +240,7 @@ class Server extends AppModel
      * @param array $server
      * @param array $user
      */
-    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user)
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules, bool &$pullRulesEmptiedEvent=false)
     {
         // we have an Event array
         // The event came from a pull, so it should be locked.
@@ -268,8 +268,14 @@ class Server extends AppModel
                     }
                 }
             }
+
             if (isset($event['Event']['Attribute'])) {
+                $originalCount = count($event['Event']['Attribute']);
                 foreach ($event['Event']['Attribute'] as $key => $attribute) {
+                    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
+                        unset($event['Event']['Attribute'][$key]);
+                        continue;
+                    }
                     switch ($attribute['distribution']) {
                         case '1':
                             $event['Event']['Attribute'][$key]['distribution'] = '0';
@@ -287,9 +293,17 @@ class Server extends AppModel
                         }
                     }
                 }
+                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalCount > 0 && count($event['Event']['Attribute']) == 0) {
+                    $pullRulesEmptiedEvent = true;
+                }
             }
             if (isset($event['Event']['Object'])) {
+                $originalObjectCount = count($event['Event']['Object']);
                 foreach ($event['Event']['Object'] as $i => $object) {
+                    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['template_uuid'], $pullRules['type_objects']['NOT'])) {
+                        unset($event['Event']['Object'][$i]);
+                        continue;
+                    }
                     switch ($object['distribution']) {
                         case '1':
                             $event['Event']['Object'][$i]['distribution'] = '0';
@@ -299,7 +313,12 @@ class Server extends AppModel
                             break;
                     }
                     if (isset($object['Attribute'])) {
+                        $originalAttributeCount = count($object['Attribute']);
                         foreach ($object['Attribute'] as $j => $a) {
+                            if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&  in_array($a['type'], $pullRules['type_attributes']['NOT'])) {
+                                unset($event['Event']['Object'][$i]['Attribute'][$j]);
+                                continue;
+                            }
                             switch ($a['distribution']) {
                                 case '1':
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '0';
@@ -317,7 +336,14 @@ class Server extends AppModel
                                 }
                             }
                         }
+                        if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
+                            unset($event['Event']['Object'][$i]); // Object is empty, get rid of it
+                            $pullRulesEmptiedEvent = true;
+                        }
                     }
+                }
+                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalObjectCount > 0 && count($event['Event']['Object']) == 0) {
+                    $pullRulesEmptiedEvent = true;
                 }
             }
             if (isset($event['Event']['EventReport'])) {
@@ -441,9 +467,13 @@ class Server extends AppModel
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
             }
-            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user);
+            $pullRulesEmptiedEvent = false;
+            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules(), $pullRulesEmptiedEvent);
+
             if (!$this->__checkIfEventSaveAble($event)) {
-                $fails[$eventId] = __('Empty event detected.');
+                if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
+                    $fails[$eventId] = __('Empty event detected.');
+                }
             } else {
                 $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force);
             }
@@ -1377,11 +1407,6 @@ class Server extends AppModel
 
     public function serverSettingReadSingle($settingObject, $settingName, $leafKey)
     {
-        // invalidate config.php from php opcode cache
-        if (function_exists('opcache_reset')) {
-            opcache_reset();
-        }
-
         $setting = Configure::read($settingName);
         $result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
         $result['setting'] = $settingName;
@@ -1580,19 +1605,20 @@ class Server extends AppModel
         if (substr($value, 0, 7) === "phar://") {
             return 'Phar protocol not allowed.';
         }
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if ($value === '') {
             return true;
         }
         if (is_executable($value)) {
-            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-pie-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
-                finfo_close($finfo);
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $type = finfo_file($finfo, $value);
+            finfo_close($finfo);
+            if ($type === "application/x-executable" || $type === "application/x-pie-executable" || $type === "application/x-sharedlib") {
                 return true;
             } else {
-                return 'Binary file not executable. It is of type: ' . finfo_file($finfo, $value);
+                return 'Binary file not executable. It is of type: ' . $type;
             }
         } else {
-            return false;
+            return 'Binary file not executable.';
         }
     }
 
@@ -2100,7 +2126,7 @@ class Server extends AppModel
         return true;
     }
 
-    private function __serverSettingNormaliseValue($data, $value, $setting)
+    private function __serverSettingNormaliseValue($data, $value)
     {
         if (!empty($data['type'])) {
             if ($data['type'] === 'boolean') {
@@ -2112,41 +2138,39 @@ class Server extends AppModel
         return $value;
     }
 
-    public function getSettingData($setting_name)
+    /**
+     * @param string $setting_name
+     * @return array|false False if setting doesn't exists
+     */
+    public function getSettingData($setting_name, $withOptions = true)
     {
-        // invalidate config.php from php opcode cache
-        if (function_exists('opcache_reset')) {
-            opcache_reset();
-        }
+        // This is just hack to reset opcache, so for next request cache will be reloaded.
+        $this->opcacheResetConfig();
+
         if (strpos($setting_name, 'Plugin.Enrichment') !== false || strpos($setting_name, 'Plugin.Import') !== false || strpos($setting_name, 'Plugin.Export') !== false || strpos($setting_name, 'Plugin.Cortex') !== false) {
             $serverSettings = $this->getCurrentServerSettings();
         } else {
             $serverSettings = $this->serverSettings;
         }
-        $setting = false;
-        foreach ($serverSettings as $k => $s) {
-            if (isset($s['branch'])) {
-                foreach ($s as $ek => $es) {
-                    if ($ek != 'branch') {
-                        if ($setting_name == $k . '.' . $ek) {
-                            $setting = $es;
-                            continue 2;
-                        }
-                    }
-                }
+
+        $setting = $serverSettings;
+        $parts = explode('.', $setting_name);
+        foreach ($parts as $part) {
+            if (isset($setting[$part])) {
+                $setting = $setting[$part];
             } else {
-                if ($setting_name == $k) {
-                    $setting = $s;
-                    continue;
-                }
+                $setting = false;
+                break;
             }
         }
-        if (!empty($setting)) {
+
+        if (isset($setting['level'])) {
             $setting['name'] = $setting_name;
+            if ($withOptions && isset($setting['optionsSource'])) {
+                $setting['options'] = $setting['optionsSource']();
+            }
         }
-        if (!empty($setting['optionsSource'])) {
-            $setting['options'] = $setting['optionsSource']();
-        }
+
         return $setting;
     }
 
@@ -2264,19 +2288,10 @@ class Server extends AppModel
                 throw new Exception("Could not create config backup `$backupFilePath`.");
             }
         }
-        $settingObject = $this->getCurrentServerSettings();
-        foreach ($settingObject as $branchName => $branch) {
-            if (!isset($branch['level'])) {
-                foreach ($branch as $settingName => $settingObject) {
-                    if ($setting === $branchName . '.' . $settingName) {
-                        $value = $this->__serverSettingNormaliseValue($settingObject, $value, $setting);
-                    }
-                }
-            } else {
-                if ($setting === $branchName) {
-                    $value = $this->__serverSettingNormaliseValue($branch, $value, $setting);
-                }
-            }
+
+        $settingObject = $this->getSettingData($setting, false);
+        if ($settingObject) {
+            $value = $this->__serverSettingNormaliseValue($settingObject, $value);
         }
 
         /** @var array $config */
@@ -2291,7 +2306,7 @@ class Server extends AppModel
             'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
             'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
             'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth',
-            'AadAuth', 'SimpleBackgroundJobs'
+            'AadAuth', 'SimpleBackgroundJobs', 'LinOTPAuth'
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
@@ -2315,9 +2330,7 @@ class Server extends AppModel
                 FileAccessTool::deleteFile($tmpFile);
                 throw new Exception("Could not rename `$tmpFile` to config file `$configFilePath`.");
             }
-            if (function_exists('opcache_reset')) {
-                opcache_reset();
-            }
+            $this->opcacheResetConfig();
             chmod($configFilePath, octdec($previous_file_perm));
             $config_saved = FileAccessTool::readFromFile($configFilePath);
             // if the saved config file is empty, restore the backup.
@@ -2330,56 +2343,58 @@ class Server extends AppModel
             }
         } else {
             FileAccessTool::writeToFile($configFilePath, $settingsString);
-            if (function_exists('opcache_reset')) {
-                opcache_reset();
-            }
+            $this->opcacheResetConfig();
         }
         return true;
     }
 
     public function getFileRules()
     {
-        $validItems = array(
-                'orgs' => array(
-                        'name' => __('Organisation logos'),
-                        'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
-                        'expected' => array(),
-                        'valid_format' => __('48x48 pixel .png files'),
-                        'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
-                        'regex' => '.*\.(png|PNG)$',
-                        'regex_error' => __('Filename must be in the following format: *.png'),
-                        'files' => array(),
+        return array(
+            'orgs' => array(
+                'name' => __('Organisation logos'),
+                'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
+                'expected' => array(),
+                'valid_format' => __('48x48 pixel .png files'),
+                'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
+                'regex' => '.*\.(png|PNG)$',
+                'regex_error' => __('Filename must be in the following format: *.png'),
+                'files' => array(),
+            ),
+            'img' => array(
+                'name' => __('Additional image files'),
+                'description' => __('Image files uploaded into this directory can be used for various purposes, such as for the login page logos'),
+                'expected' => array(
+                    'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
+                    'MISP.home_logo' => Configure::read('MISP.home_logo'),
+                    'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
+                    'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
                 ),
-                'img' => array(
-                        'name' => __('Additional image files'),
-                        'description' => __('Image files uploaded into this directory can be used for various purposes, such as for the login page logos'),
-                        'expected' => array(
-                                'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
-                                'MISP.home_logo' => Configure::read('MISP.home_logo'),
-                                'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
-                                'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
-                        ),
-                        'valid_format' => __('text/html if served inline, anything that conveys the terms of use if served as download'),
-                        'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
-                        'regex' => '.*\.(png|PNG)$',
-                        'regex_error' => __('Filename must be in the following format: *.png'),
-                        'files' => array(),
-                ),
+                'valid_format' => __('PNG or SVG file'),
+                'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
+                'regex' => '.*\.(png|svg)$',
+                'regex_error' => __('Filename must be in the following format: *.png or *.svg'),
+                'files' => array(),
+            ),
         );
-        return $validItems;
     }
 
     public function grabFiles()
     {
         $validItems = $this->getFileRules();
         App::uses('Folder', 'Utility');
-        App::uses('File', 'Utility');
         foreach ($validItems as $k => $item) {
             $dir = new Folder($item['path']);
             $files = $dir->find($item['regex'], true);
             foreach ($files as $file) {
-                $f = new File($item['path'] . DS . $file);
-                $validItems[$k]['files'][] = array('filename' => $file, 'filesize' => $f->size(), 'read' => $f->readable(), 'write' => $f->writable(), 'execute' => $f->executable());
+                $f = new SplFileInfo($item['path'] . DS . $file);
+                $validItems[$k]['files'][] = [
+                    'filename' => $file,
+                    'filesize' => $f->getSize(),
+                    'read' => $f->isReadable(),
+                    'write' => $f->isWritable(),
+                    'execute' => $f->isExecutable(),
+                ];
             }
         }
         return $validItems;
@@ -3155,6 +3170,17 @@ class Server extends AppModel
             APP . 'tmp' . DS . 'logs' => 0,
             APP . 'tmp' . DS . 'bro' => 0,
         );
+
+        $attachmentDir = Configure::read('MISP.attachments_dir');
+        if ($attachmentDir && !isset($writeableDirs[$attachmentDir])) {
+            $writeableDirs[$attachmentDir] = 0;
+        }
+
+        $tmpDir = Configure::read('MISP.tmpdir');
+        if ($tmpDir && !isset($writeableDirs[$tmpDir])) {
+            $writeableDirs[$tmpDir] = 0;
+        }
+
         foreach ($writeableDirs as $path => &$error) {
             if (!file_exists($path)) {
                 // Try to create directory if not exists
@@ -3208,9 +3234,18 @@ class Server extends AppModel
     public function yaraDiagnostics(&$diagnostic_errors)
     {
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'yaratest.py';
-        $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
-        $scriptResult = json_decode($scriptResult, true);
-        return array('operational' => $scriptResult['success'], 'plyara' => $scriptResult['plyara']);
+        try {
+            $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
+            $scriptResult = json_decode($scriptResult, true);
+        } catch (Exception $exception) {
+            $this->logException('Failed to run yara diagnostics.', $exception);
+            return array(
+                'operational' => 0,
+                'plyara' => 0,
+                'test_run' => false
+            );
+        }
+        return array('operational' => $scriptResult['success'], 'plyara' => $scriptResult['plyara'], 'test_run' => true);
     }
 
     public function stixDiagnostics(&$diagnostic_errors)
@@ -3218,7 +3253,17 @@ class Server extends AppModel
         $expected = array('stix' => '>1.2.0.11', 'cybox' => '>2.1.0.21', 'mixbox' => '>1.0.5', 'maec' => '>4.1.0.17', 'stix2' => '>3.0.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';
-        $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
+        try {
+            $scriptResult = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile]);
+        } catch (Exception $exception) {
+            $this->logException('Failed to run STIX diagnostics.', $exception);
+            return [
+                'operational' => 0,
+                'invalid_version' => false,
+                'test_run' => false
+            ];
+        }
+
         try {
             $scriptResult = $this->jsonDecode($scriptResult);
         } catch (Exception $e) {
@@ -3241,6 +3286,7 @@ class Server extends AppModel
         $result = [
             'operational' => $scriptResult['operational'],
             'invalid_version' => false,
+            'test_run' => true
         ];
         foreach ($expected as $package => $expectedVersion) {
             $result[$package]['version'] = $scriptResult[$package];
@@ -3400,12 +3446,7 @@ class Server extends AppModel
 
         $workers = $this->getWorkers();
 
-        if (function_exists('posix_getpwuid')) {
-            $currentUser = posix_getpwuid(posix_geteuid());
-            $currentUser = $currentUser['name'];
-        } else {
-            $currentUser = trim(ProcessTool::execute(['whoami']));
-        }
+        $currentUser = ProcessTool::whoami();
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
             $entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
@@ -3452,6 +3493,16 @@ class Server extends AppModel
         if (Configure::check('MISP.manage_workers')) {
             $worker_array['controls'] = Configure::read('MISP.manage_workers');
         }
+
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            try {
+                $worker_array['supervisord_status'] = $this->getBackgroundJobsTool()->getSupervisorStatus();
+            } catch (Exception $exception) {
+                $this->logException('Error getting supervisor status.', $exception);
+                $worker_array['supervisord_status'] = false;
+            }
+        }
+
         return $worker_array;
     }
 
@@ -3758,7 +3809,11 @@ class Server extends AppModel
             ];
         }
         if (is_readable(APP . '/files/scripts/selftest.php')) {
-            $execResult = exec('php ' . APP . '/files/scripts/selftest.php ' . escapeshellarg(json_encode(array_keys($extensions))));
+            try {
+                $execResult = ProcessTool::execute(['php', APP . '/files/scripts/selftest.php', json_encode(array_keys($extensions))]);
+            } catch (Exception $e) {
+                // pass
+            }
             if (!empty($execResult)) {
                 $execResult = $this->jsonDecode($execResult);
                 $results['cli']['phpversion'] = $execResult['phpversion'];
@@ -4600,6 +4655,16 @@ class Server extends AppModel
             return true;
         }
         return $this->saveMany($toSave, ['validate' => false, 'fields' => ['authkey']]);
+    }
+
+    /**
+     * Invalidate config.php from php opcode cache
+     */
+    private function opcacheResetConfig()
+    {
+        if (function_exists('opcache_invalidate')) {
+            opcache_invalidate(APP . 'Config' . DS . 'config.php', true);
+        }
     }
 
     /**
@@ -5621,6 +5686,14 @@ class Server extends AppModel
                     'description' => __('Custom right menu text (it is possible to use HTML).'),
                     'value' => null,
                     'type' => 'string',
+                    'null' => true,
+                ],
+                'enable_synchronisation_filtering_on_type' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Allows server synchronisation connections to be filtered on Attribute type or Object name. Warning: This feature has can potentially cause your synchronisation partners to receive incomplete versions of the events you are propagating on behalf of others. This means that even if they would be receiving the unfiltered version through another instance, your filtered version might be the one they receive on a first-come-first-serve basis.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
                     'null' => true,
                 ],
             ),

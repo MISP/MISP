@@ -3,14 +3,14 @@ App::uses('AppModel', 'Model');
 
 class Log extends AppModel
 {
-    public $warningActions = array(
+    const WARNING_ACTIONS = array(
         'warning',
         'change_pw',
         'login_fail',
         'version_warning',
         'auth_fail'
     );
-    public $errorActions = array(
+    const ERROR_ACTIONS = array(
         'error'
     );
     public $validate = array(
@@ -382,10 +382,10 @@ class Log extends AppModel
         if ($this->syslog) {
             $action = 'info';
             if (isset($data['Log']['action'])) {
-                if (in_array($data['Log']['action'], $this->errorActions, true)) {
+                if (in_array($data['Log']['action'], self::ERROR_ACTIONS, true)) {
                     $action = 'err';
                 }
-                if (in_array($data['Log']['action'], $this->warningActions, true)) {
+                if (in_array($data['Log']['action'], self::WARNING_ACTIONS, true)) {
                     $action = 'warning';
                 }
             }

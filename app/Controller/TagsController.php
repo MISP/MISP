@@ -147,7 +147,7 @@ class TagsController extends AppController
                 $this->request->data['Tag'] = $this->request->data['Tag']['request'];
             }
             if (!isset($this->request->data['Tag']['colour'])) {
-                $this->request->data['Tag']['colour'] = $this->Tag->random_color();
+                $this->request->data['Tag']['colour'] = $this->Tag->tagColor($this->request->data['Tag']['name']);
             }
             if (isset($this->request->data['Tag']['id'])) {
                 unset($this->request->data['Tag']['id']);

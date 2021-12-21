@@ -27,16 +27,28 @@
             ?>
                 </div>
             <?php
+            echo '<div class="input clear"></div>';
             echo $this->Form->input('to_ids', array(
-                    'options' => array(__('No'), __('Yes'), __('Do not alter current settings')),
-                    'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
-                    'label' => __('For Intrusion Detection System'),
-                    'selected' => 2,
+                'options' => array(__('No'), __('Yes'), __('Do not alter current settings')),
+                'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
+                'label' => __('For Intrusion Detection System'),
+                'selected' => 2
             ));
+            echo '<div class="input clear"></div>';
             echo $this->Form->input('is_proposal', array(
                 'type' => 'checkbox',
                 'label' => __('Create proposals'),
                 'checked' => false
+            ));
+            echo '<div class="input clear"></div>';
+            echo $this->Form->input('disable_correlation', array(
+                'label' => __('Correlations'),
+                'options' => [
+                    '2' => __('Do not alter current settings'),
+                    '0' => __('Enable correlations'),
+                    '1' => __('Disable correlations')
+                ],
+                'selected' => '2'
             ));
             ?>
                 <div class="input clear"></div>
