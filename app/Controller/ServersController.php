@@ -445,13 +445,16 @@ class ServersController extends AppController
             $allTypes = [];
             $this->loadModel('Attribute');
             $this->loadModel('ObjectTemplate');
-            $objects = $this->ObjectTemplate->find('list', [
-                'fields' => ['name'],
-                'group' => ['name', 'id'],
+            $objects = $this->ObjectTemplate->find('all', [
+                'recursive' => -1,
+                'fields' => ['uuid', 'name'],
+                'group' => ['uuid', 'name'],
             ]);
             $allTypes = [
                 'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
-                'object' => $objects
+                'object' => Hash::map($objects, '{n}.ObjectTemplate', function ($item) {
+                    return ['id' => $item['uuid'], 'name' => sprintf('%s (%s)', $item['name'], $item['uuid'])];
+                })
             ];
 
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
