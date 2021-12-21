@@ -47,6 +47,7 @@
             <th><?php echo $this->Paginator->sort('comment');?></th>
             <th><?php echo __('Related Events');?></th>
             <th><?php echo __('Feed hits');?></th>
+            <th><?php echo __('Distribution');?></th>
             <th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
         </tr>
         <?php

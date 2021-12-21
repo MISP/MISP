@@ -9,7 +9,7 @@ class RestResponseComponent extends Component
 
     public $headers = array();
 
-    private $__convertActionToMessage = array(
+    const CONVERT_ACTION_TO_MESSAGE = array(
         'SharingGroup' => array(
             'addOrg' => 'add Organisation to',
             'removeOrg' => 'remove Organisation from',
@@ -473,8 +473,8 @@ class RestResponseComponent extends Component
         $response = array();
         $action = $this->__dissectAdminRouting($action);
         $stringifiedAction = $action['action'];
-        if (isset($this->__convertActionToMessage[$controller][$action['action']])) {
-            $stringifiedAction = $this->__convertActionToMessage[$controller][$action['action']];
+        if (isset(self::CONVERT_ACTION_TO_MESSAGE[$controller][$action['action']])) {
+            $stringifiedAction = self::CONVERT_ACTION_TO_MESSAGE[$controller][$action['action']];
         }
         $response['saved'] = false;
         $response['name'] = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
@@ -590,8 +590,8 @@ class RestResponseComponent extends Component
         }
 
         if ($response instanceof TmpFileTool) {
-            App::uses('CakeResponseTmp', 'Tools');
-            $cakeResponse = new CakeResponseTmp(['status' => $code, 'type' => $type]);
+            App::uses('CakeResponseFile', 'Tools');
+            $cakeResponse = new CakeResponseFile(['status' => $code, 'type' => $type]);
             $cakeResponse->file($response);
         } else {
             $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
@@ -640,7 +640,7 @@ class RestResponseComponent extends Component
     private function __dissectAdminRouting($action)
     {
         $admin = false;
-        if (strlen($action) > 6 && substr($action, 0, 6) == 'admin_') {
+        if (strlen($action) > 6 && substr($action, 0, 6) === 'admin_') {
             $action = substr($action, 6);
             $admin = true;
         }
@@ -655,13 +655,24 @@ class RestResponseComponent extends Component
         return $this->__sendResponse($data, 200, $format, $raw, $download, $headers);
     }
 
-    public function sendFile($path, $format = false, $download = false, $name = 'download')
+    /**
+     * @param string|File|TmpFileTool $path
+     * @param string|null $type
+     * @param bool $download
+     * @param string $name
+     * @return CakeResponseFile
+     * @throws Exception
+     */
+    public function sendFile($path, $type = null, $download = false, $name = 'download')
     {
-        $cakeResponse = new CakeResponse(array(
-            'status' => 200,
-            'type' => $format
-        ));
-        $cakeResponse->file($path, array('name' => $name, 'download' => true));
+        App::uses('CakeResponseFile', 'Tools');
+        $cakeResponse = new CakeResponseFile([
+            'type' => $type
+        ]);
+        $cakeResponse->file($path, ['name' => $name, 'download' => $download]);
+        if (Configure::read('Security.disable_browser_cache')) {
+            $cakeResponse->disableCache();
+        }
         return $cakeResponse;
     }
 

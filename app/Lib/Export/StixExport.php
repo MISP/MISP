@@ -22,7 +22,6 @@ abstract class StixExport
     protected $stixFile = null;
 
     private $__cluster_uuids = array();
-    private $__current_filename = null;
     private $__empty_file = null;
     private $__event_galaxies = array();
     /** @var File */
@@ -90,7 +89,7 @@ abstract class StixExport
             }
             $this->__tmp_file->append($this->__scope === 'Attribute' ? ']}}' : ']}');
             $this->__tmp_file->close();
-            $this->__filenames[] = $this->__current_filename;
+            $this->__filenames[] = $this->__tmp_file->path;
         }
         $result = $this->__parse_misp_data();
         $decoded = json_decode($result, true);
@@ -265,8 +264,7 @@ abstract class StixExport
                 $attributes_count += count($_object['Attribute']);
             }
         }
-        $converter = new JSONConverterTool();
-        $event = JsonTool::encode($converter->convert($event, false, true)); // we don't need pretty printed JSON
+        $event = JsonTool::encode(JSONConverterTool::convert($event, false, true)); // we don't need pretty printed JSON
         if ($this->__n_attributes + $attributes_count <= $this->__attributes_limit) {
             $this->__tmp_file->append($this->__n_attributes == 0 ? $event : ', ' . $event);
             $this->__n_attributes += $attributes_count;
@@ -304,8 +302,8 @@ abstract class StixExport
 
     private function __initialize_misp_file()
     {
-        $this->__current_filename = FileAccessTool::createTempFile();
-        $this->__tmp_file = new File($this->__current_filename);
+        $tmpFile = FileAccessTool::createTempFile();
+        $this->__tmp_file = new File($tmpFile);
         $this->__tmp_file->write('{"response": ' . ($this->__scope === 'Attribute' ? '{"Attribute": [' : '['));
         $this->__empty_file = true;
     }
@@ -332,11 +330,15 @@ abstract class StixExport
     private function getFraming()
     {
         $framingCmd = $this->__initiate_framing_params();
-        $framing = json_decode(ProcessTool::execute($framingCmd, null, true), true);
-        if ($framing === null || isset($framing['error'])) {
-            throw new Exception("Could not get results from framing cmd when exporting STIX file.");
+        try {
+            $framing = JsonTool::decode(ProcessTool::execute($framingCmd, null, true));
+            if (isset($framing['error'])) {
+                throw new Exception("Framing command error: " . $framing['error']);
+            }
+            return $framing;
+        } catch (Exception $e) {
+            throw new Exception("Could not get results from framing cmd when exporting STIX file.", 0, $e);
         }
-        return $framing;
     }
 
     private function __merge_galaxy_tag(&$galaxies, $tag_name)
@@ -354,7 +356,7 @@ abstract class StixExport
     {
         $this->__tmp_file->append($this->__scope === 'Attribute' ? ']}}' : ']}');
         $this->__tmp_file->close();
-        $this->__filenames[] = $this->__current_filename;
+        $this->__filenames[] = $this->__tmp_file->path;
         $this->__initialize_misp_file();
         $this->__tmp_file->append($content);
     }

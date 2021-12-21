@@ -1,4 +1,5 @@
 var max_displayed_char_timeline = 64;
+var imgSize = '80';
 var eventTimeline;
 var items_timeline;
 var items_backup;
@@ -179,7 +180,19 @@ function build_attr_template(attr) {
     if (!attr.seen_enabled) {
         span.addClass('timestamp-attr');
     }
-    span.text(attr.content);
+    if (attr.attribute_type == 'attachment' && attr.is_image) {
+        var $img = $('<img/>')
+            .addClass('screenshot img-rounded')
+            .attr('alt', attr.content)
+            .attr('title', attr.content)
+            .attr('loading', 'lazy')
+            .attr('src', '/attributes/viewPicture/' + attr.orig_id + '/1')
+            .attr('width', imgSize)
+            .attr('height', imgSize);
+        span.append($img)
+    } else {
+        span.text(attr.content);
+    }
     span.data('seen_enabled', attr.seen_enabled);
     var html = span[0].outerHTML;
     return html;
@@ -191,8 +204,26 @@ function build_object_template(obj) {
     if (!obj.seen_enabled) {
         table.addClass('timestamp-obj');
     }
+    var $imgContainer = $('<div/>');
+    for (var attr of obj.Attribute) {
+        if (attr.attribute_type == 'attachment' && attr.is_image) {
+            var $img = $('<img/>')
+                .addClass('screenshot img-rounded')
+                .attr('alt', attr.content)
+                .attr('title', attr.content)
+                .attr('loading', 'lazy')
+                .attr('src', '/attributes/viewPicture/' + attr.id + '/1')
+                .attr('width', imgSize)
+                .attr('height', imgSize)
+                .attr('style', $imgContainer.length > 0 ? 'margin-left: 5px' : '');
+            $imgContainer.append($img)
+        }
+    }
     var bolt_html = obj.overwrite_enabled ? " <i class=\"fa fa-bolt\" style=\"color: yellow; font-size: large;\" title=\"The Object is overwritten by its attributes\">" : "";
     table.append($('<tr class="timeline-objectName"><th>'+obj.content+bolt_html+'</th><th></th></tr>'));
+    if ($imgContainer.length > 0) {
+        table.append($('<tr/>').append('<td colspan="2"/>').append($imgContainer));
+    }
     for (var attr of obj.Attribute) {
         var overwritten = obj.overwrite_enabled && (attr.contentType == "first-seen" || attr.contentType == "last-seen") ? " <i class=\"fa fa-bolt\" style=\"color: yellow;\" title=\"Overwrite object "+attr.contentType+"\"></i>" : "";
         table.append(
@@ -479,6 +510,7 @@ function reload_timeline() {
                 eventTimeline.setGroups(null);
             }
             items_timeline.add(data.items);
+            eventTimeline.fit()
         },
         error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );

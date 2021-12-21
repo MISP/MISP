@@ -12,7 +12,7 @@ class ACLComponent extends Component
     // $action == array('OR' => array())  -  any role in the array has access
     // $action == array('AND' => array()) -  roles with all permissions in the array have access
     // If we add any new functionality to MISP and we don't add it to this list, it will only be visible to site admins.
-    private $__aclList = array(
+    const ACL_LIST = array(
             '*' => array(
                     'blackhole' => array(),
                     'debugACL' => array(),
@@ -906,10 +906,10 @@ class ACLComponent extends Component
         if ($user && $user['Role']['perm_site_admin']) {
             return true;
         }
-        if (!isset($this->__aclList[$controller])) {
+        if (!isset(self::ACL_LIST[$controller])) {
             throw new NotFoundException('Invalid controller.');
         }
-        $controllerAclList = array_change_key_case($this->__aclList[$controller]);
+        $controllerAclList = array_change_key_case(self::ACL_LIST[$controller]);
         if (!empty($controllerAclList[$action])) {
             $rules = $controllerAclList[$action];
             if (in_array('*', $rules, true)) {
@@ -970,7 +970,7 @@ class ACLComponent extends Component
             $fileContents = preg_replace('/\/\*[^\*]+?\*\//', '', $fileContents);
             preg_match_all($functionFinder, $fileContents, $functionArray);
             foreach ($functionArray[1] as $function) {
-                if (substr($function, 0, 1) !== '_' && $function !== 'beforeFilter' && $function !== 'afterFilter') {
+                if ($function[0] !== '_' && $function !== 'beforeFilter' && $function !== 'afterFilter' && $function !== 'beforeRender') {
                     $results[$controllerName][] = $function;
                 }
             }
@@ -991,8 +991,8 @@ class ACLComponent extends Component
         $missing = array();
         foreach ($results as $controller => $functions) {
             foreach ($functions as $function) {
-                if (!isset($this->__aclList[$controller])
-                || !in_array($function, array_keys($this->__aclList[$controller]))) {
+                if (!isset(self::ACL_LIST[$controller])
+                || !in_array($function, array_keys(self::ACL_LIST[$controller]))) {
                     $missing[$controller][] = $function;
                 }
             }
@@ -1026,7 +1026,7 @@ class ACLComponent extends Component
     {
         $result = array();
         $fakeUser = ['Role' => $role, 'org_id' => Configure::read('MISP.host_org_id')];
-        foreach ($this->__aclList as $controller => $actions) {
+        foreach (self::ACL_LIST as $controller => $actions) {
             $controllerNames = Inflector::variable($controller) === Inflector::underscore($controller) ?
                 array(Inflector::variable($controller)) :
                 array(Inflector::variable($controller), Inflector::underscore($controller));
