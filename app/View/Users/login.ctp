@@ -39,7 +39,7 @@
         <?php
             echo $this->Form->input('email', array('autocomplete' => 'off', 'autofocus'));
             echo $this->Form->input('password', array('autocomplete' => 'off'));
-            if (Configure::read('LinOTPAuth') == true) {
+            if (!empty(Configure::read('LinOTPAuth'))) {
                 echo $this->Form->input('otp', array('autocomplete' => 'off', 'type' => 'password', 'label' => 'OTP'));
             }
         ?>
@@ -85,7 +85,7 @@ function submitLoginForm() {
     var url = $form.attr('action')
     var email = $form.find('#UserEmail').val()
     var password = $form.find('#UserPassword').val()
-    if (Configure::read('LinOTPAuth') == true) {
+    if (!empty(Configure::read('LinOTPAuth'))) {
         var otp = $form.find('#UserOtp').val()
     }
     if (!$form[0].checkValidity()) {
@@ -100,7 +100,7 @@ function submitLoginForm() {
             var $tmpForm = $('#temp form#UserLoginForm')
             $tmpForm.find('#UserEmail').val(email)
             $tmpForm.find('#UserPassword').val(password)
-            if (Configure::read('LinOTPAuth') == true) {
+            if (!empty(Configure::read('LinOTPAuth'))) {
                 $tmpForm.find('#UserOtp').val(otp)
             }
             $tmpForm.submit()

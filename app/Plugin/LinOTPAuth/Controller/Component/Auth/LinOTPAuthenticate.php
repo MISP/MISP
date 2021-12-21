@@ -51,6 +51,9 @@ class LinOTPAuthenticate extends BaseAuthenticate
 
         CakeLog::debug( "Sending POST request to ${url}");
         $results = $HttpSocket->post($url, $data);
+        if ($results->code != "200") {
+            return false;
+        }
         $response = json_decode($results->body());
 
         if ($response == false) {
@@ -119,6 +122,15 @@ class LinOTPAuthenticate extends BaseAuthenticate
         $linOTP_verifyssl = Configure::read("LinOTPAuth.verifyssl");
         $mixedauth = Configure::read("LinOTPAuth.mixedauth");
 
+        if (!$linOTP_baseUrl || $linOTP_baseUrl === "") {
+            CakeLog::error("LinOTP: Please configure baseUrl.");
+            if ($mixedauth) {
+                throw new CakeException(__d('cake_dev', 'LinOTP: Missing "baseUrl" configuration - access denied!', 'authenticate()'));
+            } else {
+                return false;
+            }
+        }
+
         // If not mixed auth mode - concat password with otp
         if (!$mixedauth) {
             $password = $password . $otp;
@@ -133,7 +145,6 @@ class LinOTPAuthenticate extends BaseAuthenticate
             // Enforce OTP token by Authentication Form
             if (!$otp || $otp === "") {
                 throw new CakeException(__d('cake_dev', 'Missing OTP Token.', 'authenticate()'));
-                return false;
             }
 
             $response = $this->_linotp_verify(
