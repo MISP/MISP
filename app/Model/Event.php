@@ -4312,9 +4312,9 @@ class Event extends AppModel
     // If the distribution is sharing group only, check if the sync user is in the sharing group or not, return true if yes, false if no
     public function checkDistributionForPush($object, $server, $context = 'Event')
     {
-        $model = $context
+        $model = $context;
         if ($context === 'Sighting') {
-            $model = 'Event'
+            $model = 'Event';
         }
         if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] || Configure::read('MISP.host_org_id') != $server['Server']['remote_org_id']) {
             if ($context != 'Sighting' && $object[$model]['distribution'] < 2) {
