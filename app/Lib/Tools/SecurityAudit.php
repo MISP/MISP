@@ -461,13 +461,16 @@ class SecurityAudit
         if (PHP_OS !== 'Linux') {
             return false;
         }
-
         $version = php_uname('v');
         if (substr($version, 0, 7) !== '#1 SMP ') {
             return false;
         }
-        $buildTime = substr($version, 7);
-        return new DateTime($buildTime);
+        $buildTime = strtotime(substr($version, 7));
+        if ($buildTime) {
+            return new DateTime($buildTime);
+        } else {
+            return false;
+        }
     }
 
     private function getLinuxVersion()
