@@ -4313,12 +4313,12 @@ class Event extends AppModel
     public function checkDistributionForPush($object, $server, $context = 'Event')
     {
         if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] || Configure::read('MISP.host_org_id') != $server['Server']['remote_org_id']) {
-            if ($object[$context]['distribution'] < 2) {
+            if ($context != 'Sighting' && $object[$context]['distribution'] < 2) {
                 return false;
             }
         }
         if ($object[$context]['distribution'] == 4) {
-            if ($context === 'Event') {
+            if ($context === 'Event' || $context === 'Sighting') {
                 return $this->SharingGroup->checkIfServerInSG($object['SharingGroup'], $server);
             } else {
                 return $this->SharingGroup->checkIfServerInSG($object[$context]['SharingGroup'], $server);
@@ -4351,9 +4351,9 @@ class Event extends AppModel
         // TODO: This are new conditions, that was not used in old code
         // Filter out servers that do not match server conditions for event push
         $servers = $this->Server->eventFilterPushableServers($event, $servers);
-        // Filter out servers that do not match event distribution conditions for event push
+        // Filter out servers that do not match event sharing group distribution for event push
         $servers = array_filter($servers, function (array $server) use ($event) {
-            return $this->checkDistributionForPush($event, $server);
+            return $this->checkDistributionForPush($event, $server, 'Sighting');
         });
         if (empty($servers)) {
             return true;
