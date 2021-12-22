@@ -91,8 +91,8 @@ class StixAttributesExport(StixExport):
         super().__init__(format, debug)
         self._parser = MISPtoSTIX1AttributesParser(orgname, version)
         self.__features = (
-            'campaigns', 'courses_of_action', 'exploit_targets', 'indicators',
-            'observables', 'threat_actors', 'ttps'
+            'observables', 'indicators', 'ttps', 'exploit_targets',
+            'courses_of_action', 'campaigns', 'threat_actors'
         )
         self._output_files = {}
 
