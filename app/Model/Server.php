@@ -7040,35 +7040,35 @@ class Server extends AppModel
             'SimpleBackgroundJobs' => [
                 'branch' => 1,
                 'enabled' => [
-                    'level' => 2,
-                    'description' => __('Enables or disables background jobs with Supervisor backend.'),
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Enables or disables background jobs with Supervisor backend. <span class="red bold">Please read %s before setting this to `true`.</span>', '<a href="https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md" target="_blank">' . __('this guide') . '</a>'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ],
                 'redis_host' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The host running the redis server to be used for background jobs.'),
                     'value' => '127.0.0.1',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ],
                 'redis_port' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The port used by the redis server to be used for background jobs.'),
                     'value' => 6379,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
                 'redis_database' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The database on the redis server to be used for background jobs. If you run more than one MISP instance, please make sure to use a different database or redis_namespace on each instance.'),
                     'value' => 1,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
                 'redis_password' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The password on the redis server (if any) to be used for background jobs.'),
                     'value' => '',
                     'test' => null,
@@ -7076,42 +7076,42 @@ class Server extends AppModel
                     'redacted' => true
                 ],
                 'redis_namespace' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The namespace to be used for the background jobs related keys.'),
                     'value' => 'background_jobs',
                     'test' => null,
                     'type' => 'string'
                 ],
                 'max_job_history_ttl' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The time in seconds the job statuses history will be kept.'),
                     'value' => 86400,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
                 'supervisor_host' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The host where the Supervisor XML-RPC API is running.'),
                     'value' => 'localhost',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ],
                 'supervisor_port' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The port where the Supervisor XML-RPC API is running.'),
                     'value' => 9001,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
                 'supervisor_user' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The user of the Supervisor XML-RPC API.'),
                     'value' => '',
                     'test' => null,
                     'type' => 'string'
                 ],
                 'supervisor_password' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The password of the Supervisor XML-RPC API.'),
                     'value' => '',
                     'test' => null,

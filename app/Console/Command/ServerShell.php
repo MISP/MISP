@@ -612,7 +612,7 @@ class ServerShell extends AppShell
      */
     private function getBackgroundJobsTool()
     {
-        if (!$this->BackgroundJobsTool) {
+        if (!isset($this->BackgroundJobsTool)) {
             $this->BackgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs'));
         }
         return $this->BackgroundJobsTool;
