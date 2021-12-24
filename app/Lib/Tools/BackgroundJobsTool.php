@@ -632,6 +632,12 @@ class BackgroundJobsTool
             )
         );
 
+        if (class_exists('Supervisor\Connector\XmlRpc')) {
+            // for compatibility with older versions of supervisor
+            $connector = new \Supervisor\Connector\XmlRpc($client);
+            return new \Supervisor\Supervisor($connector);
+        }
+
         return new \Supervisor\Supervisor($client);
     }
 
