@@ -359,7 +359,7 @@ class MispObject extends AppModel
         }
     }
 
-    public function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectID, &$duplicateObjectUuid)
+    public function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectID, &$duplicatedObjectUUID)
     {
         $newObjectAttributes = array();
         if (isset($object['Object']['Attribute'])) {
@@ -384,7 +384,7 @@ class MispObject extends AppModel
                 if ($newObjectAttributeCount === count($previousNewObject)) {
                     if (empty(array_diff($previousNewObject, $newObjectAttributes))) {
                         $duplicatedObjectID = $previousNewObject['Object']['id'];
-                        $duplicateObjectUuid = $previousNewObject['Object']['uuid'];
+                        $duplicatedObjectUUID = $previousNewObject['Object']['uuid'];
                         return true;
                     }
                 }
@@ -413,6 +413,7 @@ class MispObject extends AppModel
                 }
                 if (empty(array_diff($temp, $newObjectAttributes))) {
                     $duplicatedObjectID = $existingObject['Object']['id'];
+                    $duplicatedObjectUUID = $existingObject['Object']['uuid'];
                     return true;
                 }
             }
@@ -443,10 +444,10 @@ class MispObject extends AppModel
         $object['Object']['event_id'] = $eventId;
         if ($breakOnDuplicate) {
             $duplicatedObjectID = null;
-            $duplicateObjectUuid = null;
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID, $dupicateObjectUuid);
+            $duplicatedObjectUUID = null;
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID, $duplicatedObjectUUID);
             if ($duplicate) {
-                return array('value' => array(__('Duplicate object found (id: %s, uuid: %s). Since breakOnDuplicate is set the object will not be added.', $duplicatedObjectID, $dupicateObjectUuid)));
+                return array('value' => array(__('Duplicate object found (id: %s, uuid: %s). Since breakOnDuplicate is set the object will not be added.', $duplicatedObjectID, $duplicatedObjectUUID)));
             }
         }
         $this->create();
@@ -972,11 +973,11 @@ class MispObject extends AppModel
         }
         if (!empty($object['Object']['breakOnDuplicate']) || $breakOnDuplicate) {
             $duplicatedObjectID = null;
-            $duplicateObjectUuid = null;
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID, $duplicateObjectUuid);
+            $duplicatedObjectUUID = null;
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID, $duplicatedObjectUUID);
             if ($duplicate) {
                 $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
-                    __('Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectID, $dupicateObjectUuid, $eventId),
+                    __('Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectID, $duplicatedObjectUUID, $eventId),
                     'Duplicate object found.'
                 );
                 return true;
