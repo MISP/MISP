@@ -1,11 +1,14 @@
 # INSTALLATION INSTRUCTIONS for RHEL 8.x based distros
 -------------------------
 
-### -2/ RHEL8/CentOS8/CentOS_Stream/Rocky8.4/Fedora34 - status
+### -2/ RHEL8/CentOS8/CentOS_Stream(8/9)/Rocky8.4/Rocky8.5/Fedora34/Fedora35 - status
 -------------------------
 !!! notice
     Tested fully working without SELinux by [@SteveClement](https://twitter.com/SteveClement) on 20210702
+
+!!! notice
     TODO: Fix SELinux permissions, *pull-requests welcome*.
+    TODO: Test CentOS Stram 9, misp-core works approximately.
 
 {!generic/manual-install-notes.md!}
 
@@ -100,7 +103,7 @@ sudo dnf install neovim -y || sudo dnf install vim -y || echo "neovim is not in 
 ## 1.5.c/ Install ntpdate (optional)
 ```bash
 # In case you time is wrong, this will fix it.
-sudo dnf install ntpdate -y || sudo dnf install ntpsec -y
+sudo dnf install ntpdate -y || sudo dnf install ntpsec -y || sudo dnf install chrony -y
 sudo ntpdate pool.ntp.org
 ```
 
@@ -121,7 +124,15 @@ enableEPEL_REMI_8 () {
   sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
   sudo dnf install dnf-utils -y
   sudo dnf module enable php:remi-7.4 -y
-  ([[ ${DISTRI} == "centos8stream" ]] || [[ ${DISTRI} == "centos8" ]] || [[ ${DISTRI} == "rocky8.4" ]]) && sudo dnf config-manager --set-enabled powertools
+  ([[ ${DISTRI} == "centos8stream" ]] || [[ ${DISTRI} == "centos8" ]] || [[ ${DISTRI} == "rocky8.4" ]] || [[ ${DISTRI} == "rocky8.5" ]]) && sudo dnf config-manager --set-enabled powertools
+}
+
+enableEPEL_REMI_9 () {
+  sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm -y
+  sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-9.rpm -y
+  sudo dnf install dnf-utils -y
+  sudo dnf module enable php:remi-7.4 -y
+  ([[ ${DISTRI} == "centos9stream" ]]) && sudo dnf config-manager --set-enabled powertools
 }
 
 enableREMI_fedora () {
@@ -168,6 +179,48 @@ yumInstallCoreDeps8 () {
 
   # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/8/php74/x86_64/repoview/
   sudo dnf install php php-fpm php-devel \
+                   php-mysqlnd \
+                   php-mbstring \
+                   php-xml \
+                   php-bcmath \
+                   php-opcache \
+                   php-zip \
+                   php-pear \
+                   php-brotli \
+                   php-intl \
+                   php-gd -y
+
+  # cake has php baked in, thus we link to it if necessary.
+  [[ ! -e "/usr/bin/php" ]] && sudo ln -s /usr/bin/php74 /usr/bin/php
+
+  sudo systemctl enable --now php-fpm.service
+}
+# <snippet-end 0_yumInstallCoreDeps8.sh>
+
+# <snippet-begin 0_yumInstallCoreDeps9.sh>
+yumInstallCoreDeps9 () {
+  # Install the dependencies:
+  PHP_BASE="/etc/"
+  PHP_INI="/etc/php.ini"
+  sudo dnf install httpd -y
+  sudo dnf install gcc git zip unzip \
+                   httpd \
+                   mod_ssl \
+                   redis \
+                   mariadb \
+                   mariadb-server \
+                   python3-devel python3-pip \
+                   python3-policycoreutils \
+                   policycoreutils-python-utils \
+                   langpacks-en glibc-all-langpacks \
+                   libxslt-devel zlib-devel ssdeep-devel -y
+  readlink -f /usr/bin/python | grep python3 || sudo alternatives --set python /usr/bin/python3
+
+  # Enable and start redis
+  sudo systemctl enable --now redis.service
+
+  # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/8/php74/x86_64/repoview/
+  sudo dnf --enablerepo=remi install php php-fpm php-devel \
                    php-mysqlnd \
                    php-mbstring \
                    php-xml \
@@ -261,13 +314,14 @@ installCoreRHEL8 () {
   # Create a python3 virtualenv
   [[ -e $(which virtualenv-3 2>/dev/null) ]] && $SUDO_WWW virtualenv-3 -p python3 $PATH_TO_MISP/venv
   [[ -e $(which virtualenv 2>/dev/null) ]] && $SUDO_WWW virtualenv -p python3 $PATH_TO_MISP/venv
+  [[ ! -e ${PATH_TO_MISP}/venv ]] && ${SUDO_WWW} python -m venv ${PATH_TO_MISP}/venv
   sudo mkdir /usr/share/httpd/.cache
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
 
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'fedora34' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
-  ([[ ${DISTRI} == 'centos8stream' ]] || [[ ${DISTRI} == 'centos8' ]] || [[ ${DISTRI} == 'rocky8.4' ]]) && sudo dnf install cmake -y && CMAKE_BIN='cmake'
+  ([[ ${DISTRI} == 'centos8stream' ]] || [[ ${DISTRI} == 'centos8' ]] || [[ ${DISTRI} == 'rocky8.4' ]] || [[ ${DISTRI} == 'rocky8.5' ]] || [[ ${DISTRI} == 'centos9stream']]) && sudo dnf install cmake -y && CMAKE_BIN='cmake'
 
   UMASK=$(umask)
   umask 0022
