@@ -1,14 +1,13 @@
 # INSTALLATION INSTRUCTIONS for RHEL 8.x based distros
 -------------------------
 
-### -2/ RHEL8/CentOS8/CentOS_Stream(8/9)/Rocky8.4/Rocky8.5/Fedora34/Fedora35 - status
+### -2/ RHEL8/Rocky8.4/Rocky8.5/Fedora34/Fedora35 - status
 -------------------------
 !!! notice
     Tested fully working without SELinux by [@SteveClement](https://twitter.com/SteveClement) on 20210702
 
 !!! notice
     TODO: Fix SELinux permissions, *pull-requests welcome*.
-    TODO: Test CentOS Stram 9, misp-core works approximately.
 
 {!generic/manual-install-notes.md!}
 
@@ -18,8 +17,6 @@
 {!generic/community.md!}
 
 ### 0/ Overview and Assumptions
-
-{!generic/rhelVScentos.md!}
 
 !!! warning
     The core MISP team cannot easily verify if this guide is working or not. Please help us in keeping it up to date and accurate.
@@ -32,8 +29,8 @@
 
 {!generic/manual-install-notes.md!}
 
-This document details the steps to install MISP on Red Hat Enterprise Linux 8.x (RHEL 8.x) and CentOS 8.x.
-This is a joint RHEL/CentOS install guide. The authors tried to make it contextually evident what applies to which flavor.
+This document details the steps to install MISP on Red Hat Enterprise Linux 8.x (RHEL 8.x) and Rocky Linux 8.x.
+This is a joint RHEL/Rocky install guide. The authors tried to make it contextually evident what applies to which flavor.
 
 The following assumptions with regard to this installation have been made.
 
@@ -59,7 +56,7 @@ The following assumptions with regard to this installation have been made.
 
 ### 1/ OS Install and additional repositories
 
-## 1.1/ Complete a minimal RHEL/CentOS installation, configure IP address to connect automatically.
+## 1.1/ Complete a minimal RHEL/Rocky installation, configure IP address to connect automatically.
 
 ## 1.2/ Configure system hostname (if not done during install)
 ```bash
@@ -125,14 +122,6 @@ enableEPEL_REMI_8 () {
   sudo dnf install dnf-utils -y
   sudo dnf module enable php:remi-7.4 -y
   ([[ ${DISTRI} == "centos8stream" ]] || [[ ${DISTRI} == "centos8" ]] || [[ ${DISTRI} == "rocky8.4" ]] || [[ ${DISTRI} == "rocky8.5" ]]) && sudo dnf config-manager --set-enabled powertools
-}
-
-enableEPEL_REMI_9 () {
-  sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm -y
-  sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-9.rpm -y
-  sudo dnf install dnf-utils -y
-  sudo dnf module enable php:remi-7.4 -y
-  ([[ ${DISTRI} == "centos9stream" ]]) && sudo dnf config-manager --set-enabled powertools
 }
 
 enableREMI_fedora () {
@@ -321,7 +310,7 @@ installCoreRHEL8 () {
 
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'fedora34' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
-  ([[ ${DISTRI} == 'centos8stream' ]] || [[ ${DISTRI} == 'centos8' ]] || [[ ${DISTRI} == 'rocky8.4' ]] || [[ ${DISTRI} == 'rocky8.5' ]] || [[ ${DISTRI} == 'centos9stream']]) && sudo dnf install cmake -y && CMAKE_BIN='cmake'
+  ([[ ${DISTRI} == 'centos8stream' ]] || [[ ${DISTRI} == 'centos8' ]] || [[ ${DISTRI} == 'rocky8.4' ]] || [[ ${DISTRI} == 'rocky8.5' ]]) && sudo dnf install cmake -y && CMAKE_BIN='cmake'
 
   UMASK=$(umask)
   umask 0022
@@ -345,7 +334,7 @@ installCoreRHEL8 () {
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
 
   # FIXME: Remove libfaup etc once the egg has the library baked-in
-  # BROKEN: This needs to be tested on RHEL/CentOS
+  # BROKEN: This needs to be tested on RHEL/Rocky
   sudo dnf install libcaca-devel -y
   cd /tmp
   [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
@@ -729,11 +718,11 @@ configWorkersRHEL () {
 
 {!generic/MISP_CAKE_init.md!}
 
-{!generic/misp-modules-centos.md!}
+{!generic/misp-modules-rhel.md!}
 
 {!generic/misp-modules-cake.md!}
 
-{!generic/misp-dashboard-centos.md!}
+{!generic/misp-dashboard-rhel.md!}
 
 {!generic/misp-dashboard-cake.md!}
 
