@@ -185,48 +185,6 @@ yumInstallCoreDeps8 () {
   sudo systemctl enable --now php-fpm.service
 }
 # <snippet-end 0_yumInstallCoreDeps8.sh>
-
-# <snippet-begin 0_yumInstallCoreDeps9.sh>
-yumInstallCoreDeps9 () {
-  # Install the dependencies:
-  PHP_BASE="/etc/"
-  PHP_INI="/etc/php.ini"
-  sudo dnf install httpd -y
-  sudo dnf install gcc git zip unzip \
-                   httpd \
-                   mod_ssl \
-                   redis \
-                   mariadb \
-                   mariadb-server \
-                   python3-devel python3-pip \
-                   python3-policycoreutils \
-                   policycoreutils-python-utils \
-                   langpacks-en glibc-all-langpacks \
-                   libxslt-devel zlib-devel ssdeep-devel -y
-  readlink -f /usr/bin/python | grep python3 || sudo alternatives --set python /usr/bin/python3
-
-  # Enable and start redis
-  sudo systemctl enable --now redis.service
-
-  # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/8/php74/x86_64/repoview/
-  sudo dnf --enablerepo=remi install php php-fpm php-devel \
-                   php-mysqlnd \
-                   php-mbstring \
-                   php-xml \
-                   php-bcmath \
-                   php-opcache \
-                   php-zip \
-                   php-pear \
-                   php-brotli \
-                   php-intl \
-                   php-gd -y
-
-  # cake has php baked in, thus we link to it if necessary.
-  [[ ! -e "/usr/bin/php" ]] && sudo ln -s /usr/bin/php74 /usr/bin/php
-
-  sudo systemctl enable --now php-fpm.service
-}
-# <snippet-end 0_yumInstallCoreDeps8.sh>
 ```
 
 ```bash
