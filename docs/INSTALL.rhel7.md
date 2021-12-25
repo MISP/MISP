@@ -639,7 +639,7 @@ configWorkersRHEL () {
 
 {!generic/misp-modules-cake.md!}
 
-{!generic/misp-dashboard-centos.md!}
+{!generic/misp-dashboard-rhel.md!}
 
 {!generic/misp-dashboard-cake.md!}
 
