@@ -148,7 +148,8 @@ yumInstallCoreDeps8 () {
   # Install the dependencies:
   PHP_BASE="/etc/"
   PHP_INI="/etc/php.ini"
-  sudo dnf install @httpd -y
+  # If the install group @httpd is not existent, fallback to httpd
+  sudo dnf install @httpd -y || sudo dnf install httpd -y
   sudo dnf install gcc git zip unzip \
                    httpd \
                    mod_ssl \
@@ -239,7 +240,8 @@ compileLiefRHEL8 () {
 
   # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
   echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
-  [[ "${DISTRI}" == "fedora33" ]] && (echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.9/site-packages/lief.pth)
+  ([[ "${DISTRI}" == "fedora33" ]] || [[ ${DISTRI} == 'fedora34' ]]) && (echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.9/site-packages/lief.pth)
+  [[ "${DISTRI}" == "fedora35" ]] && (echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.10/site-packages/lief.pth)
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic plyara
 }
 
@@ -267,7 +269,7 @@ installCoreRHEL8 () {
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
 
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
-  ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'fedora34' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
+  ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'fedora34' ]] || [[ ${DISTRI} == 'fedora35' ]] || [[ ${DISTRI} == 'rhel8.3' ]] || [[ ${DISTRI} == 'rhel8.4' ]] || [[ ${DISTRI} == 'rhel8.5' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
   ([[ ${DISTRI} == 'centos8stream' ]] || [[ ${DISTRI} == 'centos8' ]] || [[ ${DISTRI} == 'rocky8.4' ]] || [[ ${DISTRI} == 'rocky8.5' ]]) && sudo dnf install cmake -y && CMAKE_BIN='cmake'
 
   UMASK=$(umask)
