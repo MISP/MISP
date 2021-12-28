@@ -1,6 +1,6 @@
 <div class="servers form">
 <?php
-    echo $this->Form->create('Server', array('type' => 'file', 'novalidate'=>true));
+    echo $this->Form->create('Server', array('type' => 'file', 'novalidate' => true));
     echo '<fieldset>';
     echo sprintf('<legend>%s</legend>', $this->action === 'add' ? __('Add Server') : __('Edit Server'));
     echo '<h4 class="input clear">' . __('Instance identification') . '</h4>';
@@ -8,14 +8,14 @@
         'label' => __('Base URL'),
     ));
     echo $this->Form->input('name', array(
-            'label' => __('Instance name'),
+        'label' => __('Instance name'),
     ));
     echo sprintf(
-        '<div id="InternalDiv" class = "input clear" style="width:100%%;"><hr /><p class="red" style="width:50%%;">%s</p>%s</div>',
+        '<div id="InternalDiv" class="input clear" style="width:100%%;"><hr /><p class="red" style="width:50%%;">%s</p>%s</div>',
         __('You can set this instance up as an internal instance by checking the checkbox below. This means that any synchronisation between this instance and the remote will not be automatically degraded as it would in a normal synchronisation scenario. Please make sure that you own both instances and that you are OK with this otherwise dangerous change. This also requires that the current instance\'s host organisation and the remote sync organisation are the same.'),
         $this->Form->input('internal', array(
-                'label' => __('Internal instance'),
-                'type' => 'checkbox',
+            'label' => __('Internal instance'),
+            'type' => 'checkbox',
         ))
     );
     ?>
@@ -25,7 +25,7 @@
             <h4><?php echo __('Instance ownership and credentials'); ?></h4>
             <p class="red"><?php echo __('Information about the organisation that will receive the events, typically the remote instance\'s host organisation.');?></p>
         </div>
-        <div class = "input clear"></div>
+        <div class="input clear"></div>
     <?php
         $org_type_form = array(
             'label' => __('Organisation Type'),
@@ -68,23 +68,24 @@
         </div>
         <div id="ServerExternalNameContainer" class="input select hiddenField" style="display:none;">
             <label for="ServerExternalName"><?php echo __('Remote Organisation\'s Name');?></label>
-            <input type="text" id="ServerExternalName" <?php if (isset($this->request->data['Server']['external_name'])) echo 'value="' . $this->request->data['Server']['external_name'] . '"';?>>
+            <input type="text" id="ServerExternalName" <?php if (isset($this->request->data['Server']['external_name'])) echo 'value="' . h($this->request->data['Server']['external_name']) . '"';?>>
         </div>
         <div id="ServerExternalUuidContainer" class="input select hiddenField" style="display:none;">
             <label for="ServerExternalUuid"><?php echo __('Remote Organisation\'s UUID');?></label>
-            <input type="text" id="ServerExternalUuid" <?php if (isset($this->request->data['Server']['external_uuid'])) echo 'value="' . $this->request->data['Server']['external_uuid'] . '"';?>>
+            <input type="text" id="ServerExternalUuid" <?php if (isset($this->request->data['Server']['external_uuid'])) echo 'value="' . h($this->request->data['Server']['external_uuid']) . '"';?>>
         </div>
     <?php
-        echo '<div class = "input clear" style="width:100%;"><hr /></div>';
+        echo '<div class="input clear" style="width:100%;"><hr /></div>';
         echo sprintf(
             '<div id="AuthkeyContainer"><p class="red clear" style="width:50%%;">%s</p>%s</div>',
             __('Ask the owner of the remote instance for a sync account on their instance, log into their MISP using the sync user\'s credentials and retrieve your API key by navigating to Global actions -> My profile. This key is used to authenticate with the remote instance.'),
             $this->Form->input('authkey', [
+                'type' => 'text',
                 'placeholder' => __('Leave empty to use current key'),
                 'autocomplete' => 'off',
             ])
         );
-        echo '<div class = "input clear" style="width:100%;"><hr /></div>';
+        echo '<div class="input clear" style="width:100%;"><hr></div>';
         echo '<h4 class="input clear">' . __('Enabled synchronisation methods') . '</h4>';
         echo $this->Form->input('push', array());
         echo $this->Form->input('pull', array());
@@ -92,7 +93,7 @@
         echo $this->Form->input('caching_enabled', array());
         echo $this->Form->input('push_galaxy_clusters', array());
         echo $this->Form->input('pull_galaxy_clusters', array());
-        echo '<div class = "input clear" style="width:100%;"><hr /><h4>' . __('Misc settings') . '</h4></div>';
+        echo '<div class="input clear" style="width:100%;"><hr><h4>' . __('Misc settings') . '</h4></div>';
         echo $this->Form->input('unpublish_event', array(
             'type' => 'checkbox',
         ));
@@ -103,6 +104,7 @@
         echo '<div class="input clear"></div>';
         echo $this->Form->input('self_signed', array(
             'type' => 'checkbox',
+            'label' => 'Allow self signed certificates (unsecure)'
         ));
         echo '<div class="input clear"></div>';
         echo $this->Form->input('skip_proxy', array('type' => 'checkbox', 'label' => 'Skip proxy (if applicable)'));
@@ -229,25 +231,20 @@
         echo $this->element('genericElements/infoModal', $modalData);
     ?>
 </div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => $this->action));
-?>
-
-
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => $this->action)); ?>
 <script type="text/javascript">
-//
 var formInfoValues = {
-        'ServerUrl' : "<?php echo __('The base-url to the external server you want to sync with. Example: https://foo.sig.mil.be');?>",
-        'ServerOrganization' : "<?php echo __('The organization having the external server you want to sync with. Example: BE');?>",
-        'ServerName' : "<?php echo __('A name that will make it clear to your users what this instance is. For example: Organisation A\'s instance');?>",
-        'ServerAuthkey' : "<?php echo __('You can find the authentication key on your profile on the external server.');?>",
-        'ServerPush' : "<?php echo __('Allow the upload of events and their attributes.');?>",
-        'ServerPull' : "<?php echo __('Allow the download of events and their attributes from the server.');?>",
-        'ServerUnpublishEvent' : '<?php echo __('Unpublish new event (working with Push event).');?>',
-        'ServerPublishWithoutEmail' : '<?php echo __('Publish new event without email (working with Pull event).');?>',
-        'ServerSubmittedCert' : "<?php echo __('You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.');?>",
-        'ServerSubmittedClientCert' : "<?php echo __('You can also upload a client certificate file if the instance you are trying to connect requires this.');?>",
-        'ServerSelfSigned' : "<?php echo __('Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended).');?>"
+    'ServerUrl' : "<?php echo __('The base-url to the external server you want to sync with. Example: https://foo.sig.mil.be');?>",
+    'ServerOrganization' : "<?php echo __('The organization having the external server you want to sync with. Example: BE');?>",
+    'ServerName' : "<?php echo __('A name that will make it clear to your users what this instance is. For example: Organisation A\'s instance');?>",
+    'ServerAuthkey' : "<?php echo __('You can find the authentication key on your profile on the external server.');?>",
+    'ServerPush' : "<?php echo __('Allow the upload of events and their attributes.');?>",
+    'ServerPull' : "<?php echo __('Allow the download of events and their attributes from the server.');?>",
+    'ServerUnpublishEvent' : '<?php echo __('Unpublish new event (working with Push event).');?>',
+    'ServerPublishWithoutEmail' : '<?php echo __('Publish new event without email (working with Pull event).');?>',
+    'ServerSubmittedCert' : "<?php echo __('You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.');?>",
+    'ServerSubmittedClientCert' : "<?php echo __('You can also upload a client certificate file if the instance you are trying to connect requires this.');?>",
+    'ServerSelfSigned' : "<?php echo __('Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended).');?>"
 };
 
 var rules = {
@@ -274,24 +271,21 @@ var delete_cert = false;
 var delete_client_cert = false;
 var host_org_id = "<?php echo h($host_org_id); ?>";
 var modelContext = 'Server';
-$(document).ready(function() {
+$(function() {
     serverOrgTypeChange();
     $('#ServerOrganisationType').change(function() {
         serverOrgTypeChange();
     });
 
-    $("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerUnpublishEvent, #ServerPublishWithoutEmail, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned").on('mouseleave', function(e) {
-        $('#'+e.currentTarget.id).popover('destroy');
-    });
-
-    $("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerUnpublishEvent, #ServerPublishWithoutEmail, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned").on('mouseover', function(e) {
-        var $e = $(e.target);
-            $('#'+e.currentTarget.id).popover('destroy');
-            $('#'+e.currentTarget.id).popover({
-                trigger: 'focus',
-                placement: 'right',
-                content: formInfoValues[e.currentTarget.id],
-            }).popover('show');
+    $("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerUnpublishEvent, #ServerPublishWithoutEmail, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned")
+        .on('mouseleave', function() {
+        $(this).popover('destroy');
+    }).on('mouseover', function(e) {
+        $(this).popover('destroy').popover({
+            trigger: 'focus',
+            placement: 'right',
+            content: formInfoValues[e.currentTarget.id],
+        }).popover('show');
     });
     rules = convertServerFilterRules(rules);
     $("#push_modify").click(function() {
