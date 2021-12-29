@@ -104,7 +104,7 @@
     ?>
         <tr>
             <td class="shortish" style="<?php echo $style; ?>"><?php echo h($worker['pid']);?></td>
-            <td class="short" style="<?php echo $style; ?>"><?php echo h($worker['user']); ?></td>
+            <td class="short" style="<?php echo $style; ?>"><?php echo h($worker['user'] ?? __('Unknown')); ?></td>
             <td class="short" style="<?php echo $style; ?>"><?php echo $process; ?></td>
             <td style="<?php echo $style; ?>"><?php echo $message; ?></td>
             <td class="actions short" style="<?php echo $style; ?>">
