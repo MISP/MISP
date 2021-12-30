@@ -5,7 +5,6 @@ App::uses('AppController', 'Controller');
 class AllowedlistsController extends AppController
 {
     public $components = array(
-        'Security',
         'AdminCrud'
     );
 

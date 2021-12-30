@@ -9,7 +9,7 @@ App::uses('AttachmentTool', 'Tools');
  */
 class ShadowAttributesController extends AppController
 {
-    public $components = array('Acl', 'Security', 'RequestHandler', 'Email');
+    public $components = array('RequestHandler');
 
     public $paginate = array(
             'limit' => 60,
@@ -20,7 +20,6 @@ class ShadowAttributesController extends AppController
     {
         parent::beforeFilter();
         $this->set('title_for_layout', 'Proposals');
-        $this->Security->validatePost = true;
 
         // convert uuid to id if present in the url, and overwrite id field
         if (isset($this->params->query['uuid'])) {

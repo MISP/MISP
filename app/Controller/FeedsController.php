@@ -7,7 +7,6 @@ App::uses('AppController', 'Controller');
 class FeedsController extends AppController
 {
     public $components = array(
-        'Security',
         'CRUD',
         'RequestHandler'
     );   // XXX ACL component

@@ -8,7 +8,6 @@ App::uses('AppController', 'Controller');
 class TagCollectionsController extends AppController
 {
     public $components = array(
-        'Security',
         'AdminCrud',
         'RequestHandler'
     );

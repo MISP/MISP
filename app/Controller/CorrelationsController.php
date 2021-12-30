@@ -6,7 +6,7 @@ App::uses('AppController', 'Controller');
  */
 class CorrelationsController extends AppController
 {
-    public $components = array('Security', 'RequestHandler');
+    public $components = array('RequestHandler');
 
     public function top()
     {
