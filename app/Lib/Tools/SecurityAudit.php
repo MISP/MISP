@@ -439,19 +439,19 @@ class SecurityAudit
         if ($linuxVersion) {
             list($name, $version) = $linuxVersion;
             if ($name === 'Ubuntu') {
-                if (in_array($version, ['14.04', '19.10'], true)) {
+                if (in_array($version, ['14.04', '16.04', '19.10', '20.10', '21.04'], true)) {
                     $output['System'][] = [
                         'warning',
                         __('You are using Ubuntu %s. This version doesn\'t receive security support anymore.', $version),
                         'https://endoflife.date/ubuntu',
                     ];
-                } else if (in_array($version, ['16.04'], true)) {
-                    $output['System'][] = [
-                        'hint',
-                        __('You are using Ubuntu %s. This version will be not supported after 02 Apr 2021.', $version),
-                        'https://endoflife.date/ubuntu',
-                    ];
                 }
+            } else if ($name === 'CentOS Linux' && $version == 8) {
+                $output['System'][] = [
+                    'warning',
+                    __('You are using CentOS 8. This version doesn\'t receive security support anymore. Please migrate to CentOS 8 Stream.'),
+                    'https://endoflife.date/centos',
+                ];
             }
         }
     }
