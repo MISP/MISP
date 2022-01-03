@@ -204,8 +204,8 @@ class FeedsController extends AppController
                     if (empty($feed['Feed']['source_format'])) {
                         $feed['Feed']['source_format'] = 'freetext';
                     }
-                    if (empty($feed['Feed']['fixed_event'])) {
-                        $feed['Feed']['source_format'] = '1';
+                    if (!isset($feed['Feed']['fixed_event'])) {
+                        $feed['Feed']['fixed_event'] = '1';
                     }
                 }
 
