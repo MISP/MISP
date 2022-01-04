@@ -187,11 +187,27 @@ class UserShell extends AppShell
                 continue;
             }
 
-            if (Configure::read('Security.advanced_authkeys')) {
-                $user = $this->User->AuthKey->getAuthUserByAuthKey($authkey);
-            } else {
-                $user = $this->User->getAuthUserByAuthkey($authkey);
+            $user = false;
+            for ($i = 0; $i < 5; $i++) {
+                try {
+                    if (Configure::read('Security.advanced_authkeys')) {
+                        $user = $this->User->AuthKey->getAuthUserByAuthKey($authkey);
+                    } else {
+                        $user = $this->User->getAuthUserByAuthkey($authkey);
+                    }
+                    break;
+                } catch (PDOException $e) {
+                    $this->log($e->getMessage());
+                    // Reconnect in case of failure and try again
+                    try {
+                        $this->User->getDataSource()->connect();
+                    } catch (MissingConnectionException $e) {
+                        sleep(1);
+                        $this->log($e->getMessage());
+                    }
+                }
             }
+
             $user = (bool)$user;
             // Cache results for 5 seconds
             $cache[$keyHash] = [$user, $time + 5];
