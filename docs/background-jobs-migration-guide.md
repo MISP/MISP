@@ -19,7 +19,7 @@ Run on your MISP instance the following commands.
 2. Install required PHP packages:
     ```
     cd /var/www/MISP/app
-    sudo -u www-data composer require supervisorphp/supervisor \
+    sudo -u www-data composer require --with-all-dependencies supervisorphp/supervisor:^4.0 \
         guzzlehttp/guzzle \
         php-http/message  \
         lstrojny/fxmlrpc
