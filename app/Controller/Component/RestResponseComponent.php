@@ -1617,7 +1617,7 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'operators' => array('equal'),
                 'validation' => array('min' => 0, 'step' => 1),
-                'help' => __('A tad ID to attach to created events')
+                'help' => __('A tag ID to attach to created events')
             ),
             'tags' => array(
                 'input' => 'select',
