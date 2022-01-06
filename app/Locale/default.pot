@@ -4559,7 +4559,7 @@ msgid "Base64 encoded certificate"
 msgstr ""
 
 #: Controller/Component/RestResponseComponent.php:1620
-msgid "A tad ID to attach to created events"
+msgid "A tag ID to attach to created events"
 msgstr ""
 
 #: Controller/Component/RestResponseComponent.php:1633
