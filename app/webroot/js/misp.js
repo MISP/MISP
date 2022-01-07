@@ -2094,6 +2094,27 @@ function indexEvaluateFiltering() {
             }
         }
         $('#value_date').html(text);
+
+        if (filtering.timestamp.from != null) {
+            var text = "";
+            if (filtering.timestamp.from != "") text = "From: " + $('<span>').text(filtering.timestamp.from).html();
+            if (filtering.timestamp.until != "") {
+                if (text != "") text += " ";
+                text += "Until: " + $('<span>').text(filtering.timestamp.until).html();
+            }
+        }
+        $('#value_timestamp').html(text);
+
+        if (filtering.publishtimestamp.from != null) {
+            var text = "";
+            if (filtering.publishtimestamp.from != "") text = "From: " + $('<span>').text(filtering.publishtimestamp.from).html();
+            if (filtering.publishtimestamp.until != "") {
+                if (text != "") text += " ";
+                text += "Until: " + $('<span>').text(filtering.publishtimestamp.until).html();
+            }
+        }
+        $('#value_publishtimestamp').html(text);
+
         for (var i = 0; i < simpleFilters.length; i++) {
             indexEvaluateSimpleFiltering(simpleFilters[i]);
         }
@@ -2318,6 +2339,22 @@ function indexCreateFilters() {
             if (text != "") text += "/";
             text += "searchDateuntil:" + filtering.date.until;
         }
+        if (filtering.timestamp.from) {
+            if (text != "") text += "/";
+            text += "searchTimestamp:" + filtering.timestamp.from;
+        }
+        if (filtering.timestamp.until) {
+            if (text != "") text += "/";
+            text += "searchTimestamp:" + filtering.timestamp.until;
+        }
+        if (filtering.publishtimestamp.from) {
+            if (text != "") text += "/";
+            text += "searchPublishTimestamp:" + filtering.publishtimestamp.from;
+        }
+        if (filtering.publishtimestamp.until) {
+            if (text != "") text += "/";
+            text += "searchPublishTimestamp:" + filtering.publishtimestamp.until;
+        }
         return baseurl + '/events/index/' + text;
     } else {
         return baseurl + '/admin/users/index/' + text;
@@ -2393,11 +2430,11 @@ function indexEvaluateSimpleFiltering(field) {
 function indexAddRule(param) {
     var found = false;
     if (filterContext == 'event') {
-        if (param.data.param1 == "date") {
+        if (param.data.param1 == "date" || param.data.param1 == "timestamp" || param.data.param1 == "publishtimestamp") {
             var val1 = encodeURIComponent($('#EventSearch' + param.data.param1 + 'from').val());
             var val2 = encodeURIComponent($('#EventSearch' + param.data.param1 + 'until').val());
-            if (val1 != "") filtering.date.from = val1;
-            if (val2 != "") filtering.date.until = val2;
+            if (val1 != "") filtering[param.data.param1].from = val1;
+            if (val2 != "") filtering[param.data.param1].until = val2;
         } else if (param.data.param1 == "published") {
             var value = encodeURIComponent($('#EventSearchpublished').val());
             if (value != "") filtering.published = value;
@@ -2436,7 +2473,7 @@ function indexRuleChange() {
     $('[id^=' + context + 'Search]').hide();
     var rule = $('#' + context + 'Rule').val();
     var fieldName = '#' + context + 'Search' + rule;
-    if (fieldName === '#' + context + 'Searchdate') {
+    if (fieldName === '#' + context + 'Searchdate' || fieldName === '#' + context + 'Searchtimestamp' || fieldName === '#' + context + 'Searchpublishtimestamp') {
         $(fieldName + 'from').show();
         $(fieldName + 'until').show();
     } else {
@@ -2459,6 +2496,12 @@ function indexFilterClearRow(field) {
     if (field == "date") {
         filtering.date.from = "";
         filtering.date.until = "";
+    } else if (field == "timestamp") {
+        filtering.timestamp.from = "";
+        filtering.timestamp.until = "";
+    } else if (field == "publishtimestamp") {
+        filtering.publishtimestamp.from = "";
+        filtering.publishtimestamp.until = "";
     } else if (field == "published") {
         filtering.published = 2;
     } else if (field == "hasproposal") {
@@ -3506,7 +3549,7 @@ function convertServerFilterRules(rules) {
             rules[type] = JSON.parse($(container).val());
         } else {
             if (type === 'pull') {
-                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}, "url_params": ""}
+                rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}, "type_attributes": {"NOT": []}, "type_objects": {"NOT": []}, "url_params": ""}
             } else {
                 rules[type] = {"tags": {"OR": [], "NOT": []}, "orgs": {"OR": [], "NOT": []}}
             }
@@ -3520,26 +3563,35 @@ function serverRuleUpdate() {
     var statusOptions = ["OR", "NOT"];
     validOptions.forEach(function(type) {
         validFields.forEach(function(field) {
-            if (type === 'push') {
-                var indexedList = {};
-                window[field].forEach(function(item) {
-                    indexedList[item.id] = item.name;
-                });
+            var indexedList = {};
+            if (type === 'push' || field == 'type_objects') {
+                if (window[field] !== undefined) {
+                    window[field].forEach(function(item) {
+                        indexedList[item.id] = item.name;
+                    });
+                }
             }
             statusOptions.forEach(function(status) {
-                if (rules[type][field][status].length > 0) {
-                    $('#' + type + '_' + field + '_' + status).show();
-                    var t = '';
-                    rules[type][field][status].forEach(function(item) {
-                        if (t.length > 0) t += ', ';
-                        if (type === 'pull') t += item;
-                        else {
-                            t += indexedList[item] !== undefined ? indexedList[item] : item;
-                        }
-                    });
-                    $('#' + type + '_' + field + '_' + status + '_text').text(t);
-                } else {
-                    $('#' + type + '_' + field + '_' + status).hide();
+                if (rules[type][field] !== undefined && rules[type][field][status] !== undefined) {
+                    if (rules[type][field][status].length > 0) {
+                        $('#' + type + '_' + field + '_' + status).show();
+                        var t = '';
+                        rules[type][field][status].forEach(function(item) {
+                            if (t.length > 0) t += ', ';
+                            if (type === 'pull') {
+                                if (indexedList[item] !== undefined) {
+                                    t += indexedList[item];
+                                } else {
+                                    t += item;
+                                }
+                            } else {
+                                t += indexedList[item] !== undefined ? indexedList[item] : item;
+                            }
+                        });
+                        $('#' + type + '_' + field + '_' + status + '_text').text(t);
+                    } else {
+                        $('#' + type + '_' + field + '_' + status).hide();
+                    }
                 }
             });
         });

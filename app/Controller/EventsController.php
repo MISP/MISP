@@ -56,6 +56,12 @@ class EventsController extends AppController
         'warninglistId' => '',
     );
 
+    // private
+    const DEFAULT_HIDDEN_INDEX_COLUMNS = [
+        'timestmap',
+        'publish_timestamp'
+    ];
+
     public $paginationFunctions = array('index', 'proposalEventIndex');
 
     public function beforeFilter()
@@ -358,10 +364,21 @@ class EventsController extends AppController
                     if ($v == "") {
                         continue 2;
                     }
-                    if (preg_match('/^[0-9]+[mhdw]$/i', $v)) {
-                        $v = $this->Event->resolveTimeDelta($v);
+                    if (is_array($v) && isset($v[0]) && isset($v[1])) {
+                        if (!is_int($v[0])) {
+                            $v[0] = $this->Event->resolveTimeDelta($v[0]);
+                        }
+                        if (!is_int($v[1])) {
+                            $v[1] = $this->Event->resolveTimeDelta($v[1]);
+                        }
+                        $this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v[0]);
+                        $this->paginate['conditions']['AND'][] = array('Event.timestamp <=' => $v[1]);
+                    } else {
+                        if (!is_int($v)) {
+                            $v = $this->Event->resolveTimeDelta($v);
+                        }
+                        $this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v);
                     }
-                    $this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v);
                     break;
                 case 'publish_timestamp':
                 case 'publishtimestamp':
@@ -369,16 +386,16 @@ class EventsController extends AppController
                         continue 2;
                     }
                     if (is_array($v) && isset($v[0]) && isset($v[1])) {
-                        if (preg_match('/^[0-9]+[mhdw]$/i', $v[0])) {
+                        if (!is_int($v[0])) {
                             $v[0] = $this->Event->resolveTimeDelta($v[0]);
                         }
-                        if (preg_match('/^[0-9]+[mhdw]$/i', $v[1])) {
+                        if (!is_int($v[1])) {
                             $v[1] = $this->Event->resolveTimeDelta($v[1]);
                         }
                         $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v[0]);
                         $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp <=' => $v[1]);
                     } else {
-                        if (preg_match('/^[0-9]+[mhdw]$/i', $v)) {
+                        if (!is_int($v)) {
                             $v = $this->Event->resolveTimeDelta($v);
                         }
                         $this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v);
@@ -933,6 +950,8 @@ class EventsController extends AppController
         }
 
         $possibleColumns[] = 'attribute_count';
+        $possibleColumns[] = 'timestamp';
+        $possibleColumns[] = 'publish_timestamp';
 
         if (Configure::read('MISP.showCorrelationsOnIndex')) {
             $possibleColumns[] = 'correlations';
@@ -958,12 +977,12 @@ class EventsController extends AppController
             $possibleColumns[] = 'creator_user';
         }
 
-        $userEnabledColumns = $this->User->UserSetting->getValueForUser($this->Auth->user()['id'], 'event_index_hide_columns');
-        if ($userEnabledColumns === null) {
-            $userEnabledColumns = [];
+        $userDisabledColumns = $this->User->UserSetting->getValueForUser($this->Auth->user()['id'], 'event_index_hide_columns');
+        if ($userDisabledColumns === null) {
+            $userDisabledColumns = self::DEFAULT_HIDDEN_INDEX_COLUMNS;
         }
 
-        $enabledColumns = array_diff($possibleColumns, $userEnabledColumns);
+        $enabledColumns = array_diff($possibleColumns, $userDisabledColumns);
 
         return [$possibleColumns, $enabledColumns];
     }
@@ -1044,6 +1063,8 @@ class EventsController extends AppController
             'analysis' => array('OR' => array(), 'NOT' => array()),
             'attribute' => array('OR' => array(), 'NOT' => array()),
             'hasproposal' => 2,
+            'timestamp' => array('from' => "", 'until' => ""),
+            'publishtimestamp' => array('from' => "", 'until' => ""),
         );
 
         if ($this->_isSiteAdmin()) {
@@ -1112,6 +1133,8 @@ class EventsController extends AppController
             'analysis' => __('Analysis'),
             'attribute' => __('Attribute'),
             'hasproposal' => __('Has proposal'),
+            'timestamp' => __('Last change at'),
+            'publishtimestamp' => __('Published at'),
         ];
 
         if ($this->_isSiteAdmin()) {
@@ -5890,13 +5913,12 @@ class EventsController extends AppController
 
         if ($this->request->is('json')) {
             App::uses('JSONConverterTool', 'Tools');
-            $converter = new JSONConverterTool();
             if ($this->RestResponse->isAutomaticTool()) {
-                foreach ($converter->streamConvert($event) as $part) {
+                foreach (JSONConverterTool::streamConvert($event) as $part) {
                     $tmpFile->write($part);
                 }
             } else {
-                $tmpFile->write($converter->convert($event));
+                $tmpFile->write(JSONConverterTool::convert($event));
             }
             $format = 'json';
         } elseif ($this->request->is('xml')) {

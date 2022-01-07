@@ -597,7 +597,7 @@ ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 sudo sed -i -e '$i \sudo -u apache ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
 ```
 
-{!generic/misp-dashboard-centos.md!}
+{!generic/misp-dashboard-rhel.md!}
 
 {!generic/misp-dashboard-cake.md!}
 

@@ -19,8 +19,6 @@ class User extends AppModel
 {
     public $displayField = 'email';
 
-    public $orgField = array('Organisation', 'name');
-
     public $validate = array(
         'role_id' => array(
             'numeric' => array(
@@ -278,7 +276,7 @@ class User extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable');
+        $pubToZmq = $this->pubToZmq('user');
         $kafkaTopic = $this->kafkaTopic('user');
         if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->data)) {

@@ -315,28 +315,27 @@ class AttributesController extends AppController
         if (empty($attributes)) {
             throw new UnauthorizedException(__('Attribute does not exists or you do not have the permission to download this attribute.'));
         }
-        $this->__downloadAttachment($attributes[0]['Attribute']);
+        return $this->__downloadAttachment($attributes[0]['Attribute']);
     }
 
-    private function __downloadAttachment($attribute)
+    private function __downloadAttachment(array $attribute)
     {
         $file = $this->Attribute->getAttachmentFile($attribute);
 
-        if ('attachment' == $attribute['type']) {
+        if ('attachment' === $attribute['type']) {
             $filename = $attribute['value'];
             $fileExt = pathinfo($filename, PATHINFO_EXTENSION);
             $filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
-        } elseif ('malware-sample' == $attribute['type']) {
+        } elseif ('malware-sample' === $attribute['type']) {
             $filenameHash = explode('|', $attribute['value']);
             $filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
             $fileExt = "zip";
         } else {
             throw new NotFoundException(__('Attribute not an attachment or malware-sample'));
         }
-        $this->autoRender = false;
-        $this->response->type($fileExt);
+
         $download_attachments_on_load = Configure::check('MISP.download_attachments_on_load') ? Configure::read('MISP.download_attachments_on_load') : true;
-        $this->response->file($file->path, array('download' => $download_attachments_on_load, 'name' => $filename . '.' . $fileExt));
+        return $this->RestResponse->sendFile($file, $fileExt, $download_attachments_on_load, $filename . '.' . $fileExt);
     }
 
     public function add_attachment($eventId = null)
@@ -998,37 +997,50 @@ class AttributesController extends AppController
     {
         $conditions = $this->__idToConditions($id);
         $conditions['Attribute.type'] = 'attachment';
-        $options = array(
-            'conditions' => $conditions,
-            'includeAllTags' => false,
-            'includeAttributeUuid' => true,
-            'flatten' => true,
-            'deleted' => [0, 1]
-        );
 
         if ($this->_isRest()) {
-            $options['withAttachments'] = true;
+            $options = array(
+                'conditions' => $conditions,
+                'includeAllTags' => false,
+                'includeAttributeUuid' => true,
+                'flatten' => true,
+                'deleted' => [0, 1],
+                'withAttachments' => true,
+            );
+            $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $options);
+            if (empty($attribute)) {
+                throw new MethodNotAllowedException('Invalid attribute');
+            }
+            $attribute = $attribute[0];
+            if (!$this->Attribute->isImage($attribute['Attribute'])) {
+                throw new NotFoundException("Attribute is not an image.");
+            }
+            return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
         }
 
-        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $options);
+        $attribute = $this->Attribute->fetchAttributeSimple($this->Auth->user(), [
+            'conditions' => $conditions,
+            'fields' => ['Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'],
+        ]);
         if (empty($attribute)) {
             throw new MethodNotAllowedException('Invalid attribute');
         }
-        $attribute = $attribute[0];
-
         if (!$this->Attribute->isImage($attribute['Attribute'])) {
             throw new NotFoundException("Attribute is not an image.");
         }
 
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
-        } else {
-            $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
-            $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
-            $imageData = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
-            $extension = pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION);
-            return new CakeResponse(array('body' => $imageData, 'type' => strtolower($extension)));
+        $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
+        $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
+        $extension = pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION);
+
+        $imageData = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
+        if ($imageData instanceof File) {
+            return $this->RestResponse->sendFile($imageData, strtolower($extension));
         }
+
+        $this->response->body($imageData);
+        $this->response->type(strtolower($extension));
+        return $this->response;
     }
 
     public function delete($id, $hard = false)
@@ -1397,7 +1409,7 @@ class AttributesController extends AppController
             || ($clusters_ids_remove === null || count($clusters_ids_remove) > 0)
             || ($clusters_ids_add === null || count($clusters_ids_add) > 0);
 
-        $changeInAttribute = ($this->request->data['Attribute']['to_ids'] != 2) || ($this->request->data['Attribute']['distribution'] != 6) || ($this->request->data['Attribute']['comment'] != null);
+        $changeInAttribute = ($this->request->data['Attribute']['to_ids'] != 2) || ($this->request->data['Attribute']['distribution'] != 6) || ($this->request->data['Attribute']['comment'] != null) || ($this->request->data['Attribute']['disable_correlation'] != 2);
 
         if (!$changeInAttribute && !$changeInTagOrCluster) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
@@ -1432,6 +1444,12 @@ class AttributesController extends AppController
         if ($this->request->data['Attribute']['comment'] != null) {
             foreach ($attributes as $key => $attribute) {
                 $attributes[$key]['Attribute']['comment'] = $this->request->data['Attribute']['comment'];
+            }
+        }
+
+        if ($this->request->data['Attribute']['disable_correlation'] != 2) {
+            foreach ($attributes as $key => $attribute) {
+                $attributes[$key]['Attribute']['disable_correlation'] = $this->request->data['Attribute']['disable_correlation'] === '0' ? false : true;
             }
         }
 
@@ -1753,7 +1771,7 @@ class AttributesController extends AppController
         if (empty($attributes)) {
             throw new UnauthorizedException(__('Attribute does not exists or you do not have the permission to download this attribute.'));
         }
-        $this->__downloadAttachment($attributes[0]['Attribute']);
+        return $this->__downloadAttachment($attributes[0]['Attribute']);
     }
 
     // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.

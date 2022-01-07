@@ -635,11 +635,11 @@ configWorkersRHEL () {
 
 {!generic/MISP_CAKE_init.md!}
 
-{!generic/misp-modules-centos.md!}
+{!generic/misp-modules-rhel.md!}
 
 {!generic/misp-modules-cake.md!}
 
-{!generic/misp-dashboard-centos.md!}
+{!generic/misp-dashboard-rhel.md!}
 
 {!generic/misp-dashboard-cake.md!}
 

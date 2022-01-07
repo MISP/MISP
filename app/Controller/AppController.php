@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '131';
-    public $pyMispVersion = '2.4.151';
+    private $__queryVersion = '135';
+    public $pyMispVersion = '2.4.152';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -180,7 +180,7 @@ class AppController extends Controller
         Configure::write('CurrentController', $this->request->params['controller']);
         Configure::write('CurrentAction', $this->request->params['action']);
         $versionArray = $this->User->checkMISPVersion();
-        $this->mispVersion = implode('.', array_values($versionArray));
+        $this->mispVersion = implode('.', $versionArray);
         $this->Security->blackHoleCallback = 'blackHole';
 
         // send users away that are using ancient versions of IE
@@ -368,9 +368,13 @@ class AppController extends Controller
                 }
             }
         }
+    }
 
+    public function beforeRender()
+    {
         // Notifications and homepage is not necessary for AJAX or REST requests
-        if ($user && !$this->_isRest() && !$isAjax) {
+        $user = $this->Auth->user();
+        if ($user && !$this->_isRest() && !$this->request->is('ajax')) {
             $hasNotifications = $this->User->hasNotifications($user);
             $this->set('hasNotifications', $hasNotifications);
 
@@ -1408,5 +1412,18 @@ class AppController extends Controller
         } catch (Exception $e) {
             return true;
         }
+    }
+
+    /**
+     * Override default View class
+     * @return View
+     */
+    protected function _getViewObject()
+    {
+        if ($this->viewClass === 'View') {
+            App::uses('AppView', 'View');
+            return new AppView($this);
+        }
+        return parent::_getViewObject();
     }
 }

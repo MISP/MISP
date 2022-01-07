@@ -80,6 +80,15 @@
     <td class="shortish">
       &nbsp;
     </td>
+    <td>
+        <?php
+        if ($object['distribution'] == 4) {
+            echo h($object['SharingGroup']['name']);
+        } else {
+            echo $distributionLevels[$object['distribution']];
+        }
+        ?>
+    </td>
     <td class="short">
       <div id="Attribute_<?php echo $object['uuid']; ?>_to_ids_solid" class="inline-field-solid">
         <?php echo $object['to_ids'] ? __('Yes') : __('No'); ?>

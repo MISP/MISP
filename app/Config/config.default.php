@@ -20,6 +20,7 @@ $config = array(
         //'auth'                            => array('CertAuth.Certificate'), // additional authentication methods
         //'auth'                            => array('ShibbAuth.ApacheShibb'),
         //'auth'                            => array('AadAuth.AadAuthenticate'),
+        //'auth'                            => array('LinOTPAuth.LinOTP'),
     ),
     'MISP' => array(
         'baseurl'                        => '',
@@ -104,6 +105,7 @@ $config = array(
         'user_email_notification_ban_amount_threshold' => 10,
         'user_email_notification_ban_refresh_on_retry' => true,
         'warning_for_all'                => true,
+        'enable_synchronisation_filtering_on_type' => false,
     ),
     'GnuPG' => array(
         'onlyencrypted'     => false,
@@ -202,6 +204,8 @@ $config = array(
         'realm' => 'lino', // the (default) realm of all the users logging in through this system
         'userModel' => 'User', // name of the User class (MISP class) to check if the user exists
         'userModelKey' => 'email', // User field that will be used for querying.
+        'verifyssl' => true, // Verify TLS Certificate or not
+        'mixedauth' => false, // false=>Query only LinOTP or true=>OTP from LinOTP, Password from MISP
     ),
     */
     // Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.

@@ -68,6 +68,21 @@ class TmpFileTool
     }
 
     /**
+     * @param string $path
+     * @throws Exception
+     */
+    public function writeFromFile($path)
+    {
+        $file = fopen($path, 'r');
+        if (!$file) {
+            throw new Exception("Could not open file $file.");
+        }
+        if (stream_copy_to_stream($file, $this->tmpfile) === false) {
+            throw new Exception("Could not copy content of file $file into TmpFile.");
+        }
+    }
+
+    /**
      * Returns generator of parsed CSV line from file.
      *
      * @param string $delimiter

@@ -2,7 +2,7 @@
 ```bash
 # <snippet-begin 2_core-cake.sh>
 # Core cake commands to tweak MISP and aleviate some of the configuration pains
-# The ${RUN_PHP} is ONLY set on RHEL/CentOS installs and can thus be ignored
+# The ${RUN_PHP} is ONLY set on RHEL installs and can thus be ignored
 # This file is NOT an excuse to NOT read the settings and familiarize ourselves with them ;)
 
 coreCAKE () {

@@ -129,23 +129,30 @@ class AuthKey extends AppModel
 
     /**
      * @param string $authkey
+     * @param bool $includeExpired
      * @return array|false
      */
-    public function getAuthUserByAuthKey($authkey)
+    public function getAuthUserByAuthKey($authkey, $includeExpired = false)
     {
         $start = substr($authkey, 0, 4);
         $end = substr($authkey, -4);
+
+        $conditions = [
+            'authkey_start' => $start,
+            'authkey_end' => $end,
+        ];
+
+        if (!$includeExpired) {
+            $conditions['OR'] = [
+                'expiration >' => time(),
+                'expiration' => 0
+            ];
+        }
+
         $possibleAuthkeys = $this->find('all', [
             'recursive' => -1,
             'fields' => ['id', 'authkey', 'user_id', 'expiration', 'allowed_ips', 'read_only'],
-            'conditions' => [
-                'OR' => [
-                    'expiration >' => time(),
-                    'expiration' => 0
-                ],
-                'authkey_start' => $start,
-                'authkey_end' => $end,
-            ]
+            'conditions' => $conditions,
         ]);
         $passwordHasher = $this->getHasher();
         foreach ($possibleAuthkeys as $possibleAuthkey) {

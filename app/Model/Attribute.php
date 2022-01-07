@@ -9,6 +9,7 @@ App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('ComplexTypeTool', 'Tools');
 App::uses('AttributeValidationTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -125,7 +126,7 @@ class Attribute extends AppModel
         'hostname|port',
     );
 
-    public $captureFields = array(
+    const CAPTURE_FIELDS = array(
         'event_id',
         'category',
         'type',
@@ -177,6 +178,9 @@ class Attribute extends AppModel
         'openioc' => array('xml', 'OpeniocExport', 'ioc'),
         'rpz' => array('txt', 'RPZExport', 'rpz'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
+        'stix' => array('xml', 'Stix1Export', 'xml'),
+        'stix-json' => array('json', 'Stix1Export', 'json'),
+        'stix2' => array('json', 'Stix2Export', 'json'),
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'text' => array('txt', 'TextExport', 'txt'),
         'xml' => array('xml', 'XmlExport', 'xml'),
@@ -480,7 +484,7 @@ class Attribute extends AppModel
                 $result = $this->saveAttachment($attribute);
             }
         }
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable');
+        $pubToZmq = $this->pubToZmq('attribute');
         $kafkaTopic = $this->kafkaTopic('attribute');
         if ($pubToZmq || $kafkaTopic) {
             $attributeForPublish = $this->fetchAttribute($this->id);
@@ -532,7 +536,7 @@ class Attribute extends AppModel
         // update correlation..
         $this->Correlation->beforeSaveCorrelation($this->data['Attribute']);
         if (!empty($this->data['Attribute']['id'])) {
-            if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
+            if ($this->pubToZmq('attribute')) {
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->attribute_save($this->data, 'delete');
             }
@@ -949,16 +953,16 @@ class Attribute extends AppModel
      * @param bool $thumbnail
      * @param int $maxWidth - When $thumbnail is true
      * @param int $maxHeight - When $thumbnail is true
-     * @return string
+     * @return string|File
      * @throws Exception
      */
-    public function getPictureData(array $attribute, $thumbnail=false, $maxWidth=200, $maxHeight=200)
+    public function getPictureData(array $attribute, $thumbnail = false, $maxWidth = 200, $maxHeight = 200)
     {
         if ($thumbnail && extension_loaded('gd')) {
             if ($maxWidth == 200 && $maxHeight == 200) {
                 // Return thumbnail directly if already exists
                 try {
-                    return $this->getAttachment($attribute['Attribute'], $path_suffix = '_thumbnail');
+                    return $this->loadAttachmentTool()->getFile($attribute['Attribute']['event_id'], $attribute['Attribute']['id'], $path_suffix = '_thumbnail');
                 } catch (NotFoundException $e) {
                     // pass
                 }
@@ -973,11 +977,10 @@ class Attribute extends AppModel
                 $attribute['Attribute']['data'] = $imageData;
                 $this->saveAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
             }
-        } else {
-            $imageData = $this->getAttachment($attribute['Attribute']);
+            return $imageData;
         }
 
-        return $imageData;
+        return $this->loadAttachmentTool()->getFile($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
     }
 
     /**
@@ -1720,7 +1723,6 @@ class Attribute extends AppModel
             return $this->validationErrors;
         }
     }
-
 
     public function checkTemplateAttributes($template, $data, $event_id)
     {
@@ -2875,10 +2877,7 @@ class Attribute extends AppModel
             if (!$this->Warninglist->filterWarninglistAttribute($attribute)) {
                 $this->validationErrors['warninglist'] = 'Attribute could not be saved as it trips over a warninglist and enforceWarninglist is enforced.';
                 $validationErrors = $this->validationErrors['warninglist'];
-                $this->loadLog()->createLogEntry($user, 'add', 'Attribute', 0,
-                    'Attribute dropped due to validation for Event ' . $eventId . ' failed',
-                    'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
-                );
+                $this->logDropped($user, $attribute);
                 return $attribute;
             }
         }
@@ -2890,7 +2889,7 @@ class Attribute extends AppModel
             $attribute['distribution'] = $this->defaultDistribution();
         }
         $params = array(
-            'fieldList' => $this->captureFields
+            'fieldList' => self::CAPTURE_FIELDS,
         );
         if (!empty($parentEvent)) {
             $params['parentEvent'] = $parentEvent;
@@ -2902,12 +2901,8 @@ class Attribute extends AppModel
                 unset($attribute['sharing_group_id']);
             }
         }
-        if (!$this->save($attribute, $params)) {
-            $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
-            $this->loadLog()->createLogEntry($user, 'add', 'Attribute', 0,
-                'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
-                'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
-            );
+        if (!$this->save(['Attribute' => $attribute], $params)) {
+            $this->logDropped($user, $attribute);
         } else {
             if (!empty($attribute['AttributeTag'])) {
                 $toSave = [];
@@ -3024,12 +3019,8 @@ class Attribute extends AppModel
             $fieldList[] = 'object_id';
             $fieldList[] = 'object_relation';
         }
-        if (!$this->save($attribute, ['fieldList' => $fieldList, 'parentEvent' => $event])) {
-            $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
-            $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', 0,
-                'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
-                'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
-            );
+        if (!$this->save(['Attribute' => $attribute], ['fieldList' => $fieldList, 'parentEvent' => $event])) {
+            $this->logDropped($user, $attribute, 'edit');
             return $this->validationErrors;
         }
         if (!empty($attribute['Sighting'])) {
@@ -3457,6 +3448,25 @@ class Attribute extends AppModel
             }
         }
         return $distribution;
+    }
+
+    /**
+     * Log when attribute was dropped due to validation errors.
+     *
+     * @param array $user
+     * @param array $attribute
+     * @param string $action
+     * @throws JsonException
+     */
+    public function logDropped(array $user, array $attribute, $action = 'add')
+    {
+        $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+        $eventId = $attribute['event_id'];
+        $modelId = $action === 'add' ? 0 : $this->id;
+        $this->loadLog()->createLogEntry($user, 'add', 'Attribute',  $modelId,
+            "Attribute dropped due to validation for Event $eventId failed: $attribute_short",
+            'Validation errors: ' . JsonTool::encode($this->validationErrors) . ' Full Attribute: ' . JsonTool::encode($attribute)
+        );
     }
 
     public function __isset($name)
