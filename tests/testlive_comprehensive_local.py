@@ -11,7 +11,7 @@ logging.disable(logging.CRITICAL)
 logger = logging.getLogger('pymisp')
 
 
-from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog, MISPSighting, Distribution, ThreatLevel, Analysis
+from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog, MISPSighting, Distribution, ThreatLevel, Analysis, MISPEventReport
 
 # Load access information for env variables
 url = "http://" + os.environ["HOST"]
@@ -586,6 +586,20 @@ class TestComprehensive(unittest.TestCase):
         self.assertIn("as-is", result)
 
         check_response(self.admin_misp_connector.delete_event(event))
+
+    def test_event_report_empty_name(self):
+        event = create_simple_event()
+        new_event_report = MISPEventReport()
+        new_event_report.name = ""
+        new_event_report.content = "# Example report markdown"
+        new_event_report.distribution = 5  # Inherit
+
+        try:
+            event = check_response(self.user_misp_connector.add_event(event))
+            new_event_report = self.user_misp_connector.add_event_report(event.id, new_event_report)
+            self.assertIn("errors", new_event_report)
+        finally:
+            self.user_misp_connector.delete_event(event)
 
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
