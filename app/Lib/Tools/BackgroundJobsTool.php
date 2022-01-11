@@ -58,7 +58,8 @@ class BackgroundJobsTool
         EMAIL_QUEUE = 'email',
         CACHE_QUEUE = 'cache',
         PRIO_QUEUE = 'prio',
-        UPDATE_QUEUE = 'update';
+        UPDATE_QUEUE = 'update',
+        SCHEDULER_QUEUE = 'scheduler';
 
     const VALID_QUEUES = [
         self::DEFAULT_QUEUE,
@@ -66,6 +67,7 @@ class BackgroundJobsTool
         self::CACHE_QUEUE,
         self::PRIO_QUEUE,
         self::UPDATE_QUEUE,
+        self::SCHEDULER_QUEUE,
     ];
 
     const
