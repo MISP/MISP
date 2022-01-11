@@ -8,9 +8,10 @@ class SecurityAudit
 
     /**
      * @param Server $server
+     * @param bool $systemOnly Run only system checks
      * @return array
      */
-    public function run(Server $server)
+    public function run(Server $server, $systemOnly = false)
     {
         $output = [];
 
@@ -203,8 +204,10 @@ class SecurityAudit
         }
         */
 
-        $this->feeds($output);
-        $this->remoteServers($output);
+        if (!$systemOnly) {
+            $this->feeds($output);
+            $this->remoteServers($output);
+        }
 
         try {
             $cakeVersion = $this->getCakeVersion();
@@ -456,6 +459,9 @@ class SecurityAudit
         }
     }
 
+    /**
+     * @return DateTime|false
+     */
     private function getKernelBuild()
     {
         if (PHP_OS !== 'Linux') {
@@ -465,14 +471,16 @@ class SecurityAudit
         if (substr($version, 0, 7) !== '#1 SMP ') {
             return false;
         }
-        $buildTime = strtotime(substr($version, 7));
-        if ($buildTime) {
-            return new DateTime('@' . $buildTime);
-        } else {
+        try {
+            return new DateTime('@' . substr($version, 7));
+        } catch (Exception $e) {
             return false;
         }
     }
 
+    /**
+     * @return array|false
+     */
     private function getLinuxVersion()
     {
         if (PHP_OS !== 'Linux') {
