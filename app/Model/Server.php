@@ -1388,6 +1388,7 @@ class Server extends AppModel
             'misc' => 'Security',
             'Security' => 'Security',
             'Session' => 'Security',
+            'LinOTPAuth' => 'Security',
             'SimpleBackgroundJobs' => 'SimpleBackgroundJobs'
         );
 
@@ -7134,6 +7135,37 @@ class Server extends AppModel
                 'test' => 'testDebugAdmin',
                 'type' => 'boolean',
                 'null' => true
+            ),
+            'LinOTPAuth' => array(
+                'branch' => 1,
+                'baseUrl' => array(
+                    'level' => 2,
+                    'description' => __('The default LinOTP URL.'),
+                    'value' => 'https://linotp',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'realm' => array(
+                    'level' => 2,
+                    'description' => __('The LinOTP realm to authenticate against.'),
+                    'value' => 'lino',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'verifyssl' => array(
+                    'level' => 2,
+                    'description' => __('Set to false to skip SSL/TLS verify'),
+                    'value' => true,
+                    'test' => 'testBoolTrue',
+                    'type' => 'boolean',
+                ),
+                'mixedauth' => array(
+                    'level' => 2,
+                    'description' => __('Set to true to enforce OTP usage'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                ),
             ),
         );
     }
