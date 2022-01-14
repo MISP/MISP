@@ -6897,6 +6897,47 @@ class Event extends AppModel
         }
     }
 
+
+    public function restSearchFilterMassage($filters, $non_restrictive_export)
+    {
+        if (!empty($filters['ignore'])) {
+            $filters['to_ids'] = array(0, 1);
+            $filters['published'] = array(0, 1);
+        }
+        if (!empty($filters['quickFilter'])) {
+            $filters['searchall'] = $filters['quickFilter'];
+            if (!empty($filters['value'])) {
+                unset($filters['value']);
+            }
+        }
+        if (isset($filters['searchall'])) {
+            if (!empty($filters['value'])) {
+                $filters['wildcard'] = $filters['value'];
+            } else {
+                $filters['wildcard'] = $filters['searchall'];
+            }
+        }
+
+        if (isset($filters['tag']) and !isset($filters['tags'])) {
+            $filters['tags'] = $filters['tag'];
+        }
+        if (!empty($filters['withAttachments'])) {
+            $filters['includeAttachments'] = 1;
+        }
+        if (empty($non_restrictive_export)) {
+            if (!isset($filters['to_ids'])) {
+                $filters['to_ids'] = 1;
+            }
+            if (!isset($filters['published'])) {
+                $filters['published'] = 1;
+            }
+            $filters['allow_proposal_blocking'] = 1;
+        }
+        $subqueryElements = $this->harvestSubqueryElements($filters);
+        $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
+        return $filters;
+    }
+
     /**
      * @param array $user
      * @param string $returnFormat
@@ -6925,49 +6966,18 @@ class Event extends AppModel
             $exportTool->setDefaultFilters($filters);
         }
 
-        if (empty($exportTool->non_restrictive_export)) {
-            if (!isset($filters['to_ids'])) {
-                $filters['to_ids'] = 1;
-            }
-            if (!isset($filters['published'])) {
-                $filters['published'] = 1;
-            }
-            $filters['allow_proposal_blocking'] = 1;
-        }
-
         if (!empty($exportTool->renderView)) {
             $renderView = $exportTool->renderView;
         }
+        $non_restrictive_export = !empty($exportTool->non_restrictive_export);
+        $filters = $this->restSearchFilterMassage($filters, $non_restrictive_export);
 
-        if (!empty($filters['ignore'])) {
-            $filters['to_ids'] = array(0, 1);
-            $filters['published'] = array(0, 1);
-        }
-        if (!empty($filters['quickFilter'])) {
-            $filters['searchall'] = $filters['quickFilter'];
-            if (!empty($filters['value'])) {
-                unset($filters['value']);
-            }
-        }
-        if (isset($filters['searchall'])) {
-            if (!empty($filters['value'])) {
-                $filters['wildcard'] = $filters['value'];
-            } else {
-                $filters['wildcard'] = $filters['searchall'];
-            }
-        }
-
-        if (isset($filters['tag']) and !isset($filters['tags'])) {
-            $filters['tags'] = $filters['tag'];
-        }
-        $subqueryElements = $this->harvestSubqueryElements($filters);
-        $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->addFiltersFromUserSettings($user, $filters);
         if (empty($exportTool->mock_query_only)) {
             $filters['include_attribute_count'] = 1;
             $eventid = $this->filterEventIds($user, $filters, $elementCounter);
             $eventCount = count($eventid);
-            $eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
+            $eventids_chunked = $this->clusterEventIds($exportTool, $eventid);
             unset($eventid);
         } else {
             $eventids_chunked = array();
@@ -6993,9 +7003,6 @@ class Event extends AppModel
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
         $i = 0;
-        if (!empty($filters['withAttachments'])) {
-            $filters['includeAttachments'] = 1;
-        }
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
         unset($filters['page']);
@@ -7034,7 +7041,7 @@ class Event extends AppModel
      *  Chunk them by the attribute count to fit the memory limits
      *
      */
-    private function __clusterEventIds($exportTool, $eventIds)
+    public function clusterEventIds($exportTool, $eventIds)
     {
         $memory_in_mb = $this->Attribute->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
         $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;

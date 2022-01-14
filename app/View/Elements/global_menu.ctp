@@ -320,6 +320,11 @@
                         'requirement' => $canAccess('cerebrates', 'index'),
                     ),
                     array(
+                        'text' => __('List Taxii Servers'),
+                        'url' => $baseurl . '/TaxiiServers/index',
+                        'requirement' => $canAccess('taxiiServers', 'index'),
+                    ),
+                    array(
                         'text' => __('Event ID translator'),
                         'url' => '/servers/idTranslator',
                         'requirement' => $canAccess('servers', 'idTranslator')
