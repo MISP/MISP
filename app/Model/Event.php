@@ -7581,7 +7581,7 @@ class Event extends AppModel
             if ($redis === false) {
                 $banStatus['error'] = true;
                 $banStatus['active'] = true;
-                $banStatus['message'] =  __('Reason: Could not reach redis to chech republish emailing ban status.');
+                $banStatus['message'] =  __('Reason: Could not reach redis to check republish emailing ban status.');
                 return $banStatus;
             }
             $redisKey = "misp:event_alert_republish_ban:{$event['Event']['uuid']}";

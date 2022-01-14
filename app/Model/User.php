@@ -1478,7 +1478,7 @@ class User extends AppModel
             if ($redis === false) {
                 $banStatus['error'] = true;
                 $banStatus['active'] = true;
-                $banStatus['message'] =  __('Reason: Could not reach redis to chech user email notification ban status.');
+                $banStatus['message'] =  __('Reason: Could not reach redis to check user email notification ban status.');
                 return $banStatus;
             }
 

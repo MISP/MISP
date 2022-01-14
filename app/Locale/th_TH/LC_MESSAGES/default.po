@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2022-01-05 08:09\n"
+"PO-Revision-Date: 2022-01-07 02:22\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Thai\n"
 "MIME-Version: 1.0\n"
@@ -44,7 +44,7 @@ msgstr "จำเป็น"
 
 #: Console/Command/APIShell.php:70
 msgid "Optional"
-msgstr "ไม่จำเป็น"
+msgstr "ตัวเลือก"
 
 #: Console/Command/APIShell.php:79
 msgid "API Documentation"
@@ -191,51 +191,51 @@ msgstr "อัปเดตคำจำกัดความ JSON ของ MISP"
 
 #: Console/Command/AdminShell.php:20
 msgid "Set setting in PHP config file."
-msgstr ""
+msgstr "ตั้งค่าในไฟล์กำหนดค่า PHP"
 
 #: Console/Command/AdminShell.php:23
 msgid "Setting name"
-msgstr ""
+msgstr "ตั้งค่าชื่อ"
 
 #: Console/Command/AdminShell.php:24
 msgid "Setting value"
-msgstr ""
+msgstr "การตั้งค่า"
 
 #: Console/Command/AdminShell.php:43
 msgid "Set if MISP instance is live and accessible for users."
-msgstr ""
+msgstr "ตั้งค่าว่าอินสแตนซ์ MISP ใช้งานได้จริงและเข้าถึงได้สำหรับผู้ใช้"
 
 #: Console/Command/AdminShell.php:46
 msgid "Set Live state"
-msgstr ""
+msgstr "ตั้งสถานะเปิดใช้งาน"
 
 #: Console/Command/AdminShell.php:51
 msgid "Reencrypt encrypted values in database (authkeys and sensitive system settings)."
-msgstr ""
+msgstr "เข้ารหัสค่าที่เข้ารหัสในฐานข้อมูลอีกครั้ง (คีย์รับรองความถูกต้องและการตั้งค่าระบบที่ละเอียดอ่อน)"
 
 #: Console/Command/AdminShell.php:54
 msgid "Old key. If not provided, current key will be used."
-msgstr ""
+msgstr "คีย์เก่า. หากไม่ระบุ ระบบจะใช้คีย์ปัจจุบัน"
 
 #: Console/Command/AdminShell.php:55
 msgid "New key. If not provided, new key will be generated."
-msgstr ""
+msgstr "คีย์ใหม่ หากไม่ระบุ ระบบจะสร้างคีย์ใหม่"
 
 #: Console/Command/AdminShell.php:60
 msgid "Remove orphaned correlations."
-msgstr ""
+msgstr "ลบความสัมพันธ์ที่ถูกทอดทิ้ง"
 
 #: Console/Command/AdminShell.php:63
 msgid "Optimise database tables."
-msgstr ""
+msgstr "ปรับตารางฐานข้อมูลให้เหมาะสม"
 
 #: Console/Command/AdminShell.php:66
 msgid "Get detailed information about Redis memory usage."
-msgstr ""
+msgstr "ข้อมูลโดยละเอียดเกี่ยวกับการใช้หน่วยความจำ Redis"
 
 #: Console/Command/AdminShell.php:69
 msgid "Check if it is possible connect to Redis."
-msgstr ""
+msgstr "ตรวจสอบว่าสามารถเชื่อมต่อกับ Redis ได้หรือไม่"
 
 #: Console/Command/AdminShell.php:146
 msgid "Database updated: "
@@ -308,7 +308,7 @@ msgstr "การเปลี่ยนแปลงการตั้งค่า
 
 #: Console/Command/AdminShell.php:454
 msgid "Setting \"%s\" changed to %s"
-msgstr ""
+msgstr "การตั้งค่า \"%s\" เปลี่ยนเป็น %s"
 
 #: Console/Command/AdminShell.php:456
 msgid "The setting change was rejected. MISP considers the requested setting value as invalid and would lead to the following error:\n\n"
@@ -332,7 +332,7 @@ msgstr "DB ไม่เคยอัปเดตสำเร็จหรือเ
 
 #: Console/Command/AdminShell.php:658
 msgid "MISP mass sync authkey reset command line tool"
-msgstr ""
+msgstr "เครื่องมือบรรทัดคำสั่งรีเซ็ต MISP mass sync authkey"
 
 #: Console/Command/AdminShell.php:665
 #: Controller/UsersController.php:1357;2402
@@ -365,7 +365,7 @@ msgstr "พบบางอย่างผิดปกติ. ไม่พบเ�
 #: Console/Command/AdminShell.php:804
 #: Controller/ServersController.php:2542
 msgid "%s orphaned correlation removed"
-msgstr ""
+msgstr "%s ความสัมพันธ์ที่ถูกทอดทิ้งถูกลบออก"
 
 #: Console/Command/AdminShell.php:846
 #: Controller/UsersController.php:2750
@@ -374,11 +374,11 @@ msgstr "กระบวนการอัปเกรดเสร็จสมบ
 
 #: Console/Command/AdminShell.php:961
 msgid "Please insert new key \"%s\" to config file manually."
-msgstr ""
+msgstr "โปรดใส่คีย์ใหม่ \"%s\" เพื่อกำหนดค่าไฟล์ด้วยตนเอง"
 
 #: Console/Command/AdminShell.php:968
 msgid "New encryption key \"%s\" saved into config file."
-msgstr ""
+msgstr "บันทึกคีย์การเข้ารหัส \"%s\" ใหม่ลงในไฟล์ปรับแต่งแล้ว"
 
 #: Console/Command/DevShell.php:7
 msgid "Massaging the feed metadata file."
@@ -430,23 +430,23 @@ msgstr "ID ผู้ใช้"
 
 #: Console/Command/EventShell.php:45
 msgid "Show duplicate tags"
-msgstr ""
+msgstr "แสดงแท็กที่ซ้ำกัน"
 
 #: Console/Command/EventShell.php:48
 msgid "Merge tags"
-msgstr ""
+msgstr "รวมแท็ก"
 
 #: Console/Command/EventShell.php:51
 msgid "Source tag ID or name. Source tag will be deleted."
-msgstr ""
+msgstr "ID แท็กที่มาหรือชื่อ แท็กที่มาจะถูกลบ"
 
 #: Console/Command/EventShell.php:52
 msgid "Destination tag ID or name."
-msgstr ""
+msgstr "ID แท็กปลายทางหรือชื่อ"
 
 #: Console/Command/EventShell.php:106
 msgid "%s attribute or event tags changed"
-msgstr ""
+msgstr "%s แอตทริบิวต์หรือแท็กเหตุการณ์มีการเปลี่ยนแปลง"
 
 #: Console/Command/EventShell.php:125
 #: Controller/AttributesController.php:112;1186;1258;1389
@@ -514,7 +514,7 @@ msgstr "ขนาดดัชนี:"
 
 #: Console/Command/LogShell.php:113;137
 msgid "Reclaimable size:"
-msgstr ""
+msgstr "ขนาดที่สามารถเรียกคืนได้:"
 
 #: Console/Command/LogShell.php:146
 msgid "Compressed items:"
@@ -543,7 +543,7 @@ msgstr "ข้อผิดพลาด: %s"
 
 #: Console/Command/ServerShell.php:350;518
 msgid "Job failed. See error logs for more details."
-msgstr ""
+msgstr "งานล้มเหลว ดูบันทึกข้อผิดพลาดสำหรับรายละเอียดเพิ่มเติม"
 
 #: Console/Command/ServerShell.php:361;529
 msgid "See error logs for more details."
@@ -560,11 +560,11 @@ msgstr "องค์กรที่กำลังดำเนินการ %s
 
 #: Console/Command/StatisticsShell.php:202
 msgid "Total local orgs: %s%s"
-msgstr "องค์กรในพื้นที่ทั้งหมด: %s%s"
+msgstr "องค์กรในเครื่องทั้งหมด: %s%s"
 
 #: Console/Command/StatisticsShell.php:203
 msgid "Local orgs with event creations: %s%s"
-msgstr "องค์กรในพื้นที่ที่มีการสร้างสรรค์กิจกรรม: %s%s"
+msgstr "องค์กรในเครื่องที่มีการสร้างสรรคเหตุการณ์: %s%s"
 
 #: Console/Command/StatisticsShell.php:204
 msgid "Average days until first event: %s"
@@ -576,7 +576,7 @@ msgstr "การเติบโตของจำนวนองค์กรป
 
 #: Console/Command/StatisticsShell.php:250
 msgid "%s: %s %s%s"
-msgstr ""
+msgstr "%s: %s %s%s"
 
 #: Console/Command/TrainingShell.php:682
 msgid "verbose mode"
@@ -588,68 +588,68 @@ msgstr "โหมดโต้ตอบ"
 
 #: Console/Command/UserShell.php:15
 msgid "Get list of user accounts."
-msgstr ""
+msgstr "รายชื่อบัญชีผู้ใช้"
 
 #: Console/Command/UserShell.php:18;76;87
 msgid "Output as JSON."
-msgstr ""
+msgstr "เอาต์พุตเป็น JSON"
 
 #: Console/Command/UserShell.php:23
 msgid "Get information about given authkey."
-msgstr ""
+msgstr "ข้อมูลเกี่ยวกับ authkey ที่ให้มา"
 
 #: Console/Command/UserShell.php:26
 msgid "Authentication key. If not provide, it will be read from STDIN."
-msgstr ""
+msgstr "คีย์การตรวจสอบสิทธิ์ หากไม่ระบุ ระบบจะอ่านจาก STDIN"
 
 #: Console/Command/UserShell.php:31
 msgid "Check if given authkey by STDIN is valid."
-msgstr ""
+msgstr "ตรวจสอบว่า authkey ที่ได้รับจาก STDIN นั้นถูกต้องหรือไม่"
 
 #: Console/Command/UserShell.php:34
 msgid "Immediately block user."
-msgstr ""
+msgstr "บล็อกผู้ใช้ทันที"
 
 #: Console/Command/UserShell.php:37;45;53;65;73
 msgid "User ID or e-mail address."
-msgstr ""
+msgstr "ID ผู้ใช้หรือที่อยู่อีเมล"
 
 #: Console/Command/UserShell.php:42
 msgid "Unblock blocked user."
-msgstr ""
+msgstr "เลิกบล็อกผู้ใช้ที่ถูกบล็อก"
 
 #: Console/Command/UserShell.php:50
 msgid "Change user password."
-msgstr ""
+msgstr "เปลี่ยนรหัสผ่านผู้ใช้"
 
 #: Console/Command/UserShell.php:54
 msgid "New user password."
-msgstr ""
+msgstr "รหัสผ่านผู้ใช้ใหม่"
 
 #: Console/Command/UserShell.php:57
 msgid "Do not require password change."
-msgstr ""
+msgstr "ไม่ต้องเปลี่ยนรหัสผ่าน"
 
 #: Console/Command/UserShell.php:62
 msgid "Change authkey. When advanced authkeys are enabled, old authkeys will be disabled."
-msgstr ""
+msgstr "เปลี่ยน authkey เมื่อเปิดใช้งาน authkeys ขั้นสูง authkeys เก่าจะถูกปิดการใช้งาน"
 
 #: Console/Command/UserShell.php:70
 msgid "Show IP addresses that user uses to access MISP."
-msgstr ""
+msgstr "แสดงที่อยู่ IP ที่ผู้ใช้ใช้เพื่อเข้าถึง MISP"
 
 #: Console/Command/UserShell.php:81
 msgid "Get user ID for user IP. If multiple users use the same IP, only last user ID will be returned."
-msgstr ""
+msgstr "ID ผู้ใช้สำหรับ IP ผู้ใช้ หากผู้ใช้หลายรายใช้ IP เดียวกัน ระบบจะส่งคืนเฉพาะ ID ผู้ใช้ล่าสุดเท่านั้น"
 
 #: Console/Command/UserShell.php:84
 msgid "IPv4 or IPv6 address."
-msgstr ""
+msgstr "ที่อยู่ IPv4 หรือ IPv6"
 
 #: Console/Command/UserShell.php:252
 #: Model/User.php:1167
 msgid "Authentication key for user %s (%s) updated."
-msgstr ""
+msgstr "อัปเดตรหัสการตรวจสอบผู้ใช้ %s (%s) แล้ว"
 
 #: Controller/AppController.php:362
 msgid "WARNING: This functionality is deprecated and will be removed in the near future. "
@@ -794,11 +794,11 @@ msgstr "ไม่สามารถบันทึกแอตทริบิว
 #: Controller/EventsController.php:2616
 #: Controller/ShadowAttributesController.php:677
 msgid "Invalid input."
-msgstr ""
+msgstr "อินพุตไม่ถูกต้อง"
 
 #: Controller/AttributesController.php:933
 msgid "Invalid field."
-msgstr ""
+msgstr "ฟิลด์ไม่ถูกต้อง."
 
 #: Controller/AttributesController.php:1082;1157
 msgid "This function is only accessible via POST requests."
@@ -806,7 +806,7 @@ msgstr "ฟังก์ชันนี้สามารถเข้าถึง
 
 #: Controller/AttributesController.php:1089;1099
 msgid "Attribute deleted"
-msgstr ""
+msgstr "แอตทริบิวต์ถูกลบ"
 
 #: Controller/AttributesController.php:1094;1096
 msgid "Attribute was not deleted"
@@ -882,7 +882,7 @@ msgstr "ไม่พบเหตุการณ์หรือคุณไม่
 
 #: Controller/AttributesController.php:2104
 msgid "This action can only be accessed via AJAX."
-msgstr ""
+msgstr "ฟังก์ชันนี้สามารถเข้าถึงได้ผ่าน AJAX เท่านั้น"
 
 #: Controller/AttributesController.php:2113;2364;2378;2389
 #: Controller/EventsController.php:2490
@@ -1129,15 +1129,15 @@ msgstr "ดึงทั้งหมด"
 
 #: Controller/CerebratesController.php:156
 msgid "Added %s new sharing groups, updated %s existing sharing groups, %s failures."
-msgstr ""
+msgstr "เพิ่ม %s องค์กรใหม่ อัปเดต %s องค์กรที่มีอยู่ ล้มเหลว %s"
 
 #: Controller/CerebratesController.php:165
 msgid "Sync sharing group information"
-msgstr ""
+msgstr "ซิงค์ข้อมูลกลุ่มการแบ่งปัน"
 
 #: Controller/CerebratesController.php:166
 msgid "Are you sure you want to download and add / update the remote sharing group from the Cerebrate node?"
-msgstr ""
+msgstr "คุณแน่ใจหรือไม่ว่าต้องการดาวน์โหลดและเพิ่ม / อัปเดตองค์กรระยะไกลจากโหนด Cerebrate"
 
 #: Controller/CerebratesController.php:229
 msgid "Organisation downloaded."
@@ -1145,7 +1145,7 @@ msgstr "ดาวน์โหลดองค์กรแล้ว"
 
 #: Controller/CerebratesController.php:237
 msgid "Download organisation information"
-msgstr ""
+msgstr "ดาวน์โหลดข้อมูลองค์กร"
 
 #: Controller/CerebratesController.php:238
 msgid "Are you sure you want to download and add / update the remote organisation?"
@@ -1160,15 +1160,15 @@ msgstr "ดาวน์โหลด"
 
 #: Controller/CerebratesController.php:301
 msgid "Sharing Group downloaded."
-msgstr ""
+msgstr "ดาวน์โหลดกลุ่มการแบ่งปันแล้ว"
 
 #: Controller/CerebratesController.php:309
 msgid "Download sharing group information"
-msgstr ""
+msgstr "ดาวน์โหลดข้อมูลกลุ่มการแบ่งปัน"
 
 #: Controller/CerebratesController.php:310
 msgid "Are you sure you want to download and add / update the remote sharing group?"
-msgstr ""
+msgstr "คุณแน่ใจหรือว่าต้องการดาวน์โหลดและเพิ่ม / อัปเดตกลุ่มการแบ่งปันระยะไกล?"
 
 #: Controller/CommunitiesController.php:150
 msgid "Request sent."
@@ -1420,7 +1420,7 @@ msgstr "เกณฑ์การตัดยอด"
 #: Controller/DecayingModelController.php:495
 #: View/DecayingModel/add.ctp:56
 msgid "Cutoff value at which an indicator will be marked as decayed instead of 0"
-msgstr ""
+msgstr "ค่าคัทออฟที่ตัวบ่งชี้จะถูกทำเครื่องหมายว่าเสื่อมแทน 0"
 
 #: Controller/DecayingModelController.php:563
 msgid "Error Processing Request, can't parse the body"
@@ -1658,13 +1658,13 @@ msgstr "มีข้อเสนอ"
 #: Controller/EventsController.php:1136
 #: View/Events/index.ctp:34
 msgid "Last change at"
-msgstr ""
+msgstr "เปลี่ยนแปลงล่าสุดเมื่อ"
 
 #: Controller/EventsController.php:1137
 #: View/Elements/Events/eventIndexTable.ctp:41
 #: View/Events/index.ctp:35
 msgid "Published at"
-msgstr ""
+msgstr "เผยแพร่เมื่อ"
 
 #: Controller/EventsController.php:1141
 #: View/Events/proposal_event_index.ctp:21
@@ -1727,15 +1727,15 @@ msgstr "มีกิจกรรมอยู่แล้ว หากคุณ�
 
 #: Controller/EventsController.php:2154
 msgid "Event blocked by organisation blocklist."
-msgstr ""
+msgstr "เหตุการณ์ถูกบล็อกโดยรายการที่บล็อกขององค์กร"
 
 #: Controller/EventsController.php:2156
 msgid "Event blocked by event blocklist."
-msgstr ""
+msgstr "เหตุการณ์ถูกบล็อกโดยรายการบล็อกของเหตุการณ์"
 
 #: Controller/EventsController.php:2158
 msgid "Blocked by event block rules."
-msgstr ""
+msgstr "ถูกบล็อกโดยกฎการบล็อกเหตุการณ์"
 
 #: Controller/EventsController.php:2165
 msgid "A blocklist entry is blocking you from creating any events. Please contact the administration team of this instance"
@@ -1751,11 +1751,11 @@ msgstr "กิจกรรมที่สร้างขึ้นจะปรา
 
 #: Controller/EventsController.php:2251
 msgid "No file uploaded."
-msgstr ""
+msgstr "ไม่มีไฟล์ที่อัปโหลด"
 
 #: Controller/EventsController.php:2256
 msgid "No file was uploaded."
-msgstr ""
+msgstr "ไม่มีไฟล์ถูกอัพโหลด."
 
 #: Controller/EventsController.php:2265
 msgid "You may only upload MISP XML or MISP JSON files."
@@ -1775,7 +1775,7 @@ msgstr "นำเข้าเอกสาร STIX"
 
 #: Controller/EventsController.php:2331
 msgid "Could not import STIX document: %s"
-msgstr ""
+msgstr "ไม่สามารถนำเข้าเอกสาร STIX: %s"
 
 #: Controller/EventsController.php:2338
 msgid "File upload failed. Make sure that you select a STIX file to be uploaded and that the file doesn't exceed the maximum file size of %s MB."
@@ -1804,11 +1804,11 @@ msgstr "รวมข้อมูลจากเหตุการณ์"
 
 #: Controller/EventsController.php:2645
 msgid "Event was not deleted."
-msgstr ""
+msgstr "เหตุการณ์ไม่ถูกลบ"
 
 #: Controller/EventsController.php:2645
 msgid "Event deleted."
-msgstr ""
+msgstr "ลบเหตุการณ์แล้ว"
 
 #: Controller/EventsController.php:2688;2900;3908;3924
 #: Controller/GalaxiesController.php:266
@@ -1904,7 +1904,7 @@ msgstr "ไม่อนุญาตให้แท็กเนื่องจา
 #: Controller/EventsController.php:3546
 #: Controller/TagsController.php:843
 msgid "Invalid Tag. This tag can only be set as a local tag."
-msgstr ""
+msgstr "แท็กไม่ถูกต้อง แท็กนี้สามารถตั้งค่าเป็นแท็กในเครื่องเท่านั้น"
 
 #: Controller/EventsController.php:3587
 msgid ", but %s could not be added: %s"
@@ -2092,7 +2092,7 @@ msgstr "ทุกอย่างเสร็จเรียบร้อย. attr
 #: Controller/EventsController.php:2649
 msgid "%s event deleted."
 msgid_plural "%s events deleted."
-msgstr[0] ""
+msgstr[0] "ลบ %s เหตุการณ์แล้ว"
 
 #: Controller/EventsController.php:3586
 msgid "Tag added"
@@ -2114,7 +2114,7 @@ msgstr "ฟีด"
 
 #: Controller/FeedsController.php:128;291;430
 msgid "Inherit from feed"
-msgstr ""
+msgstr "สืบทอดมาจากฟีด"
 
 #: Controller/FeedsController.php:242;393
 msgid "Invalid exclude regex. Make sure it's a delimited PCRE regex pattern."
@@ -2463,7 +2463,7 @@ msgstr "งานที่เสร็จแล้วทั้งหมดถู
 
 #: Controller/JobsController.php:192
 msgid "Job status not found."
-msgstr ""
+msgstr "ไม่พบสถานะงาน"
 
 #: Controller/NewsController.php:46
 msgid "News item added."
@@ -2674,7 +2674,7 @@ msgstr "องค์กร %s"
 
 #: Controller/OrganisationsController.php:407
 msgid "This action is not enabled on this instance."
-msgstr ""
+msgstr "การดำเนินการนี้ไม่ได้เปิดใช้งานบนอินสแตนซ์นี้"
 
 #: Controller/OrganisationsController.php:429
 msgid "The organisation has been successfully merged."
@@ -2975,19 +2975,19 @@ msgstr "ไม่พบโมดูล"
 
 #: Controller/ServersController.php:1027
 msgid "Not configured (so not tested)"
-msgstr ""
+msgstr "ไม่ได้กำหนดค่า (ไม่ได้ทดสอบ)"
 
 #: Controller/ServersController.php:1028
 msgid "Error connecting to Redis."
-msgstr ""
+msgstr "เกิดข้อผิดพลาดในการเชื่อมต่อกับ Redis"
 
 #: Controller/ServersController.php:1029
 msgid "Error connecting to Supervisor."
-msgstr ""
+msgstr "เกิดข้อผิดพลาดในการเชื่อมต่อกับ Supervisor"
 
 #: Controller/ServersController.php:1030
 msgid "Error connecting to Redis and Supervisor."
-msgstr ""
+msgstr "เกิดข้อผิดพลาดในการเชื่อมต่อ Redis และ Supervisor"
 
 #: Controller/ServersController.php:1038
 msgid "MISP will not operate correctly or will be unsecure until these issues are resolved."
@@ -3084,7 +3084,7 @@ msgstr "พบบางอย่างผิดปกติ. %s"
 
 #: Controller/ServersController.php:2021;2050;2347
 msgid "YOUR_API_KEY"
-msgstr ""
+msgstr "YOUR_API_KEY"
 
 #: Controller/ServersController.php:2279
 msgid "Starting server caching."
@@ -3136,7 +3136,7 @@ msgstr "วิธีนี้สามารถเข้าถึงได้ผ
 
 #: Controller/ServersController.php:2663
 msgid "Job created."
-msgstr ""
+msgstr "สร้างงานแล้ว"
 
 #: Controller/ShadowAttributesController.php:232
 msgid "Could not discard proposal."
@@ -3188,7 +3188,7 @@ msgstr "บันทึกแอตทริบิวต์ที่เสนอ
 
 #: Controller/ShadowAttributesController.php:711
 msgid "The proposed Attribute could not be saved. Please, try again."
-msgstr ""
+msgstr "ไม่สามารถบันทึกแอตทริบิวต์ที่เสนอได้ กรุณาลองอีกครั้ง."
 
 #: Controller/ShadowAttributesController.php:827;848
 msgid "Invalid proposal."
@@ -3386,7 +3386,7 @@ msgstr "เป้าหมายไม่ถูกต้อง"
 
 #: Controller/TagsController.php:809
 msgid "Local tags can only be added by users of the host organisation."
-msgstr "แท็กท้องถิ่นสามารถเพิ่มได้โดยผู้ใช้ขององค์กรโฮสต์เท่านั้น"
+msgstr "แท็กในเครื่องสามารถเพิ่มได้โดยผู้ใช้ขององค์กรโฮสต์เท่านั้น"
 
 #: Controller/TagsController.php:818
 msgid "Tag not found and insufficient privileges to create it."
@@ -3440,7 +3440,7 @@ msgstr "%s แท็ก %s (%s) ถูกลบออกจาก %s(%s) เร�
 #: View/Organisations/index.ctp:117
 #: View/Organisations/view.ctp:17
 msgid "Local"
-msgstr "เฉพาะที่"
+msgstr "ในเครื่อง"
 
 #: Controller/TagsController.php:963
 msgid "Global"
@@ -3489,7 +3489,7 @@ msgstr " อย่างไรก็ตามไม่สามารถอั�
 
 #: Controller/TaxonomiesController.php:352;465
 msgid "Taxonomy ID or tag name must be provided."
-msgstr ""
+msgstr "ต้องระบุ ID อนุกรมวิธาน หรือชื่อแท็ก"
 
 #: Controller/TaxonomiesController.php:376;415;445
 msgid "The tag(s) has been saved."
@@ -3682,71 +3682,71 @@ msgstr "ปิดการใช้งาน"
 
 #: Controller/UsersController.php:1125
 msgid "All users have already their field `%s` %s"
-msgstr ""
+msgstr "ผู้ใช้ทุกคนมีฟิลด์ `%s` %s. แล้ว"
 
 #: Controller/UsersController.php:1207
 msgid "Invalid username or password, try again"
-msgstr ""
+msgstr "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง โปรดลองอีกครั้ง"
 
 #: Controller/UsersController.php:1297
 msgid "Welcome! Last login was on %s"
-msgstr ""
+msgstr "ยินดีต้อนรับ! เข้าสู่ระบบครั้งล่าสุดเมื่อ %s"
 
 #: Controller/UsersController.php:1329
 msgid "Good-Bye"
-msgstr ""
+msgstr "ลาก่อน"
 
 #: Controller/UsersController.php:1346;1370
 msgid "This functionality is only accessible via POST requests."
-msgstr ""
+msgstr "ฟังก์ชันนี้สามารถเข้าถึงได้ผ่านคำขอ POST เท่านั้น"
 
 #: Controller/UsersController.php:1360
 msgid "New authkey generated."
-msgstr ""
+msgstr "สร้าง authkey ใหม่แล้ว"
 
 #: Controller/UsersController.php:1374
 msgid "Job initiated."
-msgstr ""
+msgstr "เริ่มงาน."
 
 #: Controller/UsersController.php:1376
 msgid "%s authkeys reset, %s could not be reset."
-msgstr ""
+msgstr "%s รีเซ็ตคีย์ตรวจสอบสิทธิ์, %s ไม่สามารถรีเซ็ตได้"
 
 #: Controller/UsersController.php:1493
 msgid "You accepted the Terms and Conditions."
-msgstr ""
+msgstr "คุณยอมรับข้อกำหนดและเงื่อนไข"
 
 #: Controller/UsersController.php:1621
 msgid "Recipient email not provided"
-msgstr ""
+msgstr "ไม่ได้ระบุอีเมลผู้รับ"
 
 #: Controller/UsersController.php:1626
 msgid "Recipient organisation not provided"
-msgstr ""
+msgstr "ไม่ได้ระบุองค์กรผู้รับ"
 
 #: Controller/UsersController.php:1663
 msgid "E-mails sent, but failed to deliver the messages to the following recipients: "
-msgstr ""
+msgstr "ส่งอีเมลแล้วแต่ไม่สามารถส่งข้อความไปยังผู้รับต่อไปนี้: "
 
 #: Controller/UsersController.php:1665
 msgid "E-mails sent."
-msgstr ""
+msgstr "ส่งอีเมล์แล้ว"
 
 #: Controller/UsersController.php:1753
 msgid "The OTP is incorrect or has expired"
-msgstr ""
+msgstr "OTP ไม่ถูกต้องหรือหมดอายุแล้ว"
 
 #: Controller/UsersController.php:1799
 msgid "An email containing a OTP has been sent."
-msgstr ""
+msgstr "ส่งอีเมลที่มี OTP แล้ว"
 
 #: Controller/UsersController.php:1801
 msgid "The email couldn't be sent, please reach out to your administrator."
-msgstr ""
+msgstr "ไม่สามารถส่งอีเมลได้ โปรดติดต่อผู้ดูแลระบบของคุณ"
 
 #: Controller/UsersController.php:1829
 msgid "Usage data"
-msgstr ""
+msgstr "ข้อมูลการใช้งาน"
 
 #: Controller/UsersController.php:1830
 #: View/Cerebrates/view.ctp:57
@@ -3756,11 +3756,11 @@ msgstr ""
 #: View/SharingGroups/view.ctp:51
 #: View/Users/statistics_data.ctp:34
 msgid "Organisations"
-msgstr ""
+msgstr "องค์กร"
 
 #: Controller/UsersController.php:1831
 msgid "User and Organisation statistics"
-msgstr ""
+msgstr "สถิติผู้ใช้และองค์กร"
 
 #: Controller/UsersController.php:1832
 #: View/Attributes/index.ctp:52
@@ -3789,19 +3789,19 @@ msgstr ""
 #: View/Templates/add.ctp:20
 #: View/Templates/view.ctp:24
 msgid "Tags"
-msgstr ""
+msgstr "แท็ก"
 
 #: Controller/UsersController.php:1833
 msgid "Attribute histogram"
-msgstr ""
+msgstr "ฮิสโตแกรมแอตทริบิวต์"
 
 #: Controller/UsersController.php:1834
 msgid "Sightings toplists"
-msgstr ""
+msgstr "รายการที่พบเจอบ่อย"
 
 #: Controller/UsersController.php:1835
 msgid "Galaxy Matrix"
-msgstr ""
+msgstr "กาแล็กซี่เมทริกซ์"
 
 #: Controller/UsersController.php:2193
 #: View/AuthKeys/view.ctp:53
@@ -3824,39 +3824,39 @@ msgstr ""
 #: View/Users/admin_index.ctp:66
 #: View/Warninglists/index.ctp:20
 msgid "All"
-msgstr ""
+msgstr "ทั้งหมด"
 
 #: Controller/UsersController.php:2434
 msgid "Self registration is not enabled on this instance."
-msgstr ""
+msgstr "การลงทะเบียนด้วยตนเองไม่ได้เปิดใช้งานบนอินสแตนซ์นี้"
 
 #: Controller/UsersController.php:2466
 msgid "We require at least the email field to be filled."
-msgstr ""
+msgstr "เราต้แงการให้กรอกอีเมล์เป็นอย่างน้อย"
 
 #: Controller/UsersController.php:2472
 msgid "Request could not be created."
-msgstr ""
+msgstr "ไม่สามารถสร้างคำขอได้"
 
 #: Controller/UsersController.php:2474
 msgid "Errors: %s"
-msgstr ""
+msgstr "ข้อผิดพลาด: %s"
 
 #: Controller/UsersController.php:2485
 msgid "User registration for %s."
-msgstr ""
+msgstr "การลงทะเบียนผู้ใช้สำหรับ %s"
 
 #: Controller/UsersController.php:2493
 msgid "Request could not be created. Make sure that the email and org name fields are filled."
-msgstr ""
+msgstr "ไม่สามารถสร้างคำขอได้ ตรวจสอบให้แน่ใจว่าได้กรอกฟิลด์อีเมลและชื่อองค์กรแล้ว"
 
 #: Controller/UsersController.php:2500
 msgid "Request sent. The administrators of this community have been notified."
-msgstr ""
+msgstr "ส่งคำร้อง. ผู้ดูแลระบบของชุมชนนี้ได้รับแจ้งแล้ว"
 
 #: Controller/UsersController.php:2547
 msgid "default"
-msgstr ""
+msgstr "ค่าเริ่มต้น"
 
 #: Controller/UsersController.php:2550;2551;2552
 #: Model/Server.php:4519
@@ -3904,7 +3904,7 @@ msgstr ""
 #: View/TemplateElements/ajax/templateElementConfirmationForm.ctp:11
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:27
 msgid "Yes"
-msgstr ""
+msgstr "ใช่"
 
 #: Controller/UsersController.php:2550;2551;2552
 #: Model/Server.php:4519
@@ -3956,2654 +3956,2655 @@ msgstr ""
 #: View/TemplateElements/ajax/templateElementConfirmationForm.ctp:16
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:32
 msgid "No"
-msgstr ""
+msgstr "ไม่"
 
 #: Controller/UsersController.php:2697
 msgid "Role ID not provided and no default role exist on the instance"
-msgstr ""
+msgstr "ไม่ได้ระบุ ID บทบาทและไม่มีบทบาทเริ่มต้นอยู่ในอินสแตนซ์"
 
 #: Controller/UsersController.php:2701
 msgid "No organisation selected. Supply an Organisation ID"
-msgstr ""
+msgstr "ไม่ได้เลือกองค์กร ระบ ID องค์กร"
 
 #: Controller/UsersController.php:2719
 msgid "Added %s user(s)."
-msgstr ""
+msgstr "เพิ่มผู้ใช้ %s แล้ว"
 
 #: Controller/UsersController.php:2722
 msgid "Could not add %s user(s), reasons for the failure have been logged."
-msgstr ""
+msgstr "ไม่สามารถเพิ่มผู้ใช้ %s สาเหตุของความล้มเหลวได้ถูกบันทึกไว้แล้ว"
 
 #: Controller/UsersController.php:2725
 msgid "No new users added - there was nothing to add."
-msgstr ""
+msgstr "ไม่มีการเพิ่มผู้ใช้ใหม่ - ไม่มีอะไรจะเพิ่ม"
 
 #: Controller/UsersController.php:2747
 msgid "This endpoint can only be triggered via POST requests."
-msgstr ""
+msgstr "ปลายทางนี้สามารถเข้าถึงได้ผ่านคำขอ POST เท่านั้น"
 
 #: Controller/WarninglistsController.php:83
 msgid "Warning list updated"
-msgstr ""
+msgstr "อัพเดทรายการเตือนแล้ว"
 
 #: Controller/WarninglistsController.php:99
 msgid "Warning list failed to update"
-msgstr ""
+msgstr "ไม่สามารถอัปเดตรายการเตือน"
 
 #: Controller/WarninglistsController.php:100
 msgid "%s could not be installed/updated. Error: %s"
-msgstr ""
+msgstr "%s ไม่สามารถติดตั้ง/อัปเดตได้ ข้อผิดพลาด: %s"
 
 #: Controller/WarninglistsController.php:114
 msgid "Warninglist update (nothing to update)"
-msgstr ""
+msgstr "ปรับปรุงรายการเตือน (ไม่มีอะไรต้องปรับปรุง)"
 
 #: Controller/WarninglistsController.php:115
 msgid "Executed an update of the warning lists, but there was nothing to update."
-msgstr ""
+msgstr "ดำเนินการอัปเดตรายการเตือนแล้ว แต่ไม่มีอะไรต้องอัปเดต"
 
 #: Controller/WarninglistsController.php:120
 msgid "All warninglists are up to date already."
-msgstr ""
+msgstr "รายการเตือนทั้งหมดเป็นปัจจุบันแล้ว"
 
 #: Controller/WarninglistsController.php:123
 msgid "Could not update any of the warning lists"
-msgstr ""
+msgstr "ไม่สามารถอัปเดตรายการเตือนใด ๆ ได้"
 
 #: Controller/WarninglistsController.php:126
 msgid "Successfully updated %s warninglists."
-msgstr ""
+msgstr "อัปเดตรายการเตือน %s เรียบร้อยแล้ว"
 
 #: Controller/WarninglistsController.php:128
 msgid " However, could not update %s warninglists."
-msgstr ""
+msgstr " อย่างไรก็ตาม ไม่สามารถอัปเดตรายการเตือน %s ได้"
 
 #: Controller/WarninglistsController.php:236;364
 msgid "This function only accepts POST requests."
-msgstr ""
+msgstr "ฟังก์ชันนี้ยอมรับเฉพาะคำขอ POST"
 
 #: Controller/WarninglistsController.php:263;338;392;399
 msgid "Warninglist not found."
-msgstr ""
+msgstr "ไม่พบรายการเตือน"
 
 #: Controller/WarninglistsController.php:267
 msgid "Warninglist(s) not found."
-msgstr ""
+msgstr "ไม่พบรายการเตือน"
 
 #: Controller/WarninglistsController.php:292
 msgid " warninglist(s) "
-msgstr ""
+msgstr " รายการเตือน "
 
 #: Controller/WarninglistsController.php:294
 msgid "Warninglist(s) could not be toggled."
-msgstr ""
+msgstr "ไม่สามารถสลับรายการเตือน"
 
 #: Controller/WarninglistsController.php:302
 msgid "Invalid Warninglist."
-msgstr ""
+msgstr "รายการเตือนไม่ถูกต้อง"
 
 #: Controller/WarninglistsController.php:311
 msgid "Warninglist disabled"
-msgstr ""
+msgstr "ปิดรายการเตือน"
 
 #: Controller/WarninglistsController.php:314
 msgid "Warninglist enabled"
-msgstr ""
+msgstr "เปิดรายการคำเตือน"
 
 #: Controller/WarninglistsController.php:322
 msgid "This action is available via AJAX only."
-msgstr ""
+msgstr "การดำเนินการนี้ใช้ได้ผ่าน AJAX เท่านั้น"
 
 #: Controller/WarninglistsController.php:368;443
 msgid "No valid data received."
-msgstr ""
+msgstr "ไม่ได้รับข้อมูลเหตุการณ์ที่ถูกต้อง"
 
 #: Controller/WarninglistsController.php:373
 msgid "No valid data received: field `%s` is missing."
-msgstr ""
+msgstr "ไม่ได้รับข้อมูลที่ถูกต้อง: ฟิลด์ `%s` หายไป"
 
 #: Controller/WarninglistsController.php:378
 msgid "No valid data received: `list` field is not array"
-msgstr ""
+msgstr "ไม่ได้รับข้อมูลที่ถูกต้อง: ฟิลด์ `list` ไม่ใช่อาร์เรย์"
 
 #: Controller/WarninglistsController.php:383
 msgid "Warninglist imported"
-msgstr ""
+msgstr "นำเข้ารายการเตือน"
 
 #: Controller/WarninglistsController.php:423
 msgid "Warninglist successfully deleted."
-msgstr ""
+msgstr "ลบรายการเตือนเรียบร้อยแล้ว"
 
 #: Controller/WarninglistsController.php:426
 msgid "Warninglists could not be deleted."
-msgstr ""
+msgstr "ไม่สามารถลบรายการเตือนได้"
 
 #: Controller/Component/ACLComponent.php:804
 msgid "This could be an indication of an attempted privilege escalation on older vulnerable versions of MISP (<2.4.115)"
-msgstr ""
+msgstr "นี่อาจเป็นเครื่องบ่งชี้ถึงความพยายามยกระดับสิทธิ์ใน MISP เวอร์ชันเก่าที่มีช่องโหว่ (<2.4.115)"
 
 #: Controller/Component/ACLComponent.php:857
 msgid "User triggered security alert by attempting to access /%s/%s. Reason why this endpoint is of interest: %s"
-msgstr ""
+msgstr "ผู้ใช้เรียกการแจ้งเตือนความปลอดภัยโดยพยายามเข้าถึง /%s/%s เหตุผลที่ปลายทางนี้เป็นที่สนใจ: %s"
 
 #: Controller/Component/AdminCrudComponent.php:20
 msgid "The %s has been saved."
-msgstr ""
+msgstr "บันทึก %s แล้ว"
 
 #: Controller/Component/AdminCrudComponent.php:24;61
 msgid "The %s could not be saved. Please, try again."
-msgstr ""
+msgstr "ไม่สามารถบันทึก %s ได้ กรุณาลองอีกครั้ง."
 
 #: Controller/Component/AdminCrudComponent.php:52;85
 msgid "Invalid %s"
-msgstr ""
+msgstr "%s. ไม่ถูกต้อง"
 
 #: Controller/Component/AdminCrudComponent.php:57
 msgid "The %s has been saved"
-msgstr ""
+msgstr "บันทึก %s แล้ว"
 
 #: Controller/Component/AdminCrudComponent.php:88
 msgid "%s deleted"
-msgstr ""
+msgstr "ลบ %s แล้ว"
 
 #: Controller/Component/AdminCrudComponent.php:91
 msgid "%s was not deleted"
-msgstr ""
+msgstr "%s ไม่ถูกลบ"
 
 #: Controller/Component/BlockListComponent.php:54
 msgid "Pass a list of uuids via the \"uuids\" key in the request object."
-msgstr ""
+msgstr "ส่งรายการ uuids ผ่านคีย์ \"uuids\" ในออบเจกต์คำขอ"
 
 #: Controller/Component/BlockListComponent.php:84
 msgid "Done. Added %d new entries to the blocklist. %d entries could not be saved."
-msgstr ""
+msgstr "เสร็จแล้ว. เพิ่ม %d รายการใหม่ในรายการที่บล็อก ไม่สามารถบันทึก %d รายการ"
 
 #: Controller/Component/BlockListComponent.php:113
 msgid "Blocklist item not found."
-msgstr ""
+msgstr "ไม่พบรายการที่บล็อก"
 
 #: Controller/Component/BlockListComponent.php:153
 msgid "Blocklist item added."
-msgstr ""
+msgstr "เพิ่มรายการบล็อกแล้ว"
 
 #: Controller/Component/BlockListComponent.php:160
 msgid "Could not save the blocklist item"
-msgstr ""
+msgstr "ไม่สามารถบันทึกรายการที่บล็อกได้"
 
 #: Controller/Component/BlockListComponent.php:183
 msgid "Blocklist entry removed"
-msgstr ""
+msgstr "รายการบล็อกถูกลบออก"
 
 #: Controller/Component/BlockListComponent.php:189
 msgid "Could not remove the blocklist entry"
-msgstr ""
+msgstr "ไม่สามารถลบรายการบล็อก"
 
 #: Controller/Component/CRUDComponent.php:113
 msgid "%s added."
-msgstr ""
+msgstr "เพิ่ม %s แล้ว"
 
 #: Controller/Component/CRUDComponent.php:142
 msgid "%s could not be added."
-msgstr ""
+msgstr "ไม่สามารถเพิ่ม %s ได้"
 
 #: Controller/Component/CRUDComponent.php:159;177;235;247;264;277
 #: Controller/Component/ToolboxComponent.php:16;21;29
 #: Model/Galaxy.php:383;456;466;480
 msgid "Invalid %s."
-msgstr ""
+msgstr "%s ไม่ถูกต้อง"
 
 #: Controller/Component/CRUDComponent.php:297
 msgid "%s deleted."
-msgstr ""
+msgstr "ลบ %s แล้ว"
 
 #: Controller/Component/DeprecationComponent.php:15
 msgid "Use /attributes/restSearch to export RPZ rules."
-msgstr ""
+msgstr "ใช้ /attributes/restSearch เพื่อส่งออกกฎ RPZ"
 
 #: Controller/Component/DeprecationComponent.php:16
 msgid "Use /attributes/restSearch to export flat indicator lists."
-msgstr ""
+msgstr "ใช้ /attributes/restSearch เพื่อส่งออกรายการตัวบ่งชี้แบบแฟลต"
 
 #: Controller/Component/DeprecationComponent.php:19
 msgid "Use MISP modules to import in OpenIOC format."
-msgstr ""
+msgstr "ใช้โมดูล MISP เพื่อนำเข้าในรูปแบบ OpenIOC"
 
 #: Controller/Component/DeprecationComponent.php:20
 msgid "Use /events/restSearch to export in CSV format."
-msgstr ""
+msgstr "ใช้ /events/restSearch เพื่อส่งออกในรูปแบบ CSV"
 
 #: Controller/Component/DeprecationComponent.php:21
 msgid "Use the REST client to refine your search conditions and export in any of the given formats with much more control."
-msgstr ""
+msgstr "ใช้ไคลเอ็นต์ REST เพื่อปรับแต่งเงื่อนไขการค้นหาและส่งออกในรูปแบบที่กำหนดด้วยการควบคุมที่มากขึ้น"
 
 #: Controller/Component/DeprecationComponent.php:22
 msgid "Use /events/restSearch to export hashes."
-msgstr ""
+msgstr "ใช้ /events/restSearch เพื่อส่งออกแฮช"
 
 #: Controller/Component/DeprecationComponent.php:23
 msgid "Use /events/restSearch to export in the various NIDS formats."
-msgstr ""
+msgstr "ใช้ /events/restSearch เพื่อเอ็กซ์พอร์ตในรูปแบบ NIDS ต่างๆ"
 
 #: Controller/Component/DeprecationComponent.php:24
 msgid "Use /events/restSearch to export in STIX format."
-msgstr ""
+msgstr "ใช้ /events/restSearch เพื่อส่งออกในรูปแบบ STIX"
 
 #: Controller/Component/DeprecationComponent.php:25
 msgid "Use /events/restSearch to export in STIX2 format."
-msgstr ""
+msgstr "ใช้ /events/restSearch เพื่อส่งออกในรูปแบบ STIX2"
 
 #: Controller/Component/DeprecationComponent.php:26
 msgid "Use /events/restSearch to export in XML format. It is highly recommended to use JSON whenever possible."
-msgstr ""
+msgstr "ใช้ /events/restSearch เพื่อส่งออกในรูปแบบ XML ขอแนะนำให้ใช้ JSON ทุกครั้งที่ทำได้"
 
 #: Controller/Component/RateLimitComponent.php:36
 msgid "API searches are not allowed for this user role."
-msgstr ""
+msgstr "ไม่อนุญาตให้ค้นหา API สำหรับบทบาทผู้ใช้นี้"
 
 #: Controller/Component/RateLimitComponent.php:48
 msgid "Rate limit exceeded."
-msgstr ""
+msgstr "เกินขีดจำกัดที่กำหนด"
 
 #: Controller/Component/RestResponseComponent.php:746
 msgid "The action that the user performed"
-msgstr ""
+msgstr "การกระทำที่ผู้ใช้ทำ"
 
 #: Controller/Component/RestResponseComponent.php:752
 msgid "Is the sharing group selectable (active) when choosing distribution"
-msgstr ""
+msgstr "เลือกกลุ่มการแบ่งปัน (ใช้งานอยู่) เมื่อเลือกการแจกจ่าย"
 
 #: Controller/Component/RestResponseComponent.php:757;1535
 msgid "Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields"
-msgstr ""
+msgstr "ค้นหาสตริงย่อยทั้งหมดหรือสตริงย่อย (คั่นด้วย % สำหรับสตริงย่อย) ในข้อมูลเหตุการณ์ แท็กเหตุการณ์ แท็กแอตทริบิวต์ ค่าแอตทริบิวต์ หรือช่องความคิดเห็นเกี่ยวกับแอตทริบิวต์"
 
 #: Controller/Component/RestResponseComponent.php:763
 msgid "All organisations contained on the instance will be part of the sharing group"
-msgstr ""
+msgstr "ทุกองค์กรที่อยู่ในอินสแตนซ์จะเป็นส่วนหนึ่งของกลุ่มการแบ่งปัน"
 
 #: Controller/Component/RestResponseComponent.php:769
 msgid "hard-delete already soft-deleted attributes"
-msgstr ""
+msgstr "ลบแบบ hard ของแอตทริบิวต์ที่ถูกลบแบบ soft"
 
 #: Controller/Component/RestResponseComponent.php:776
 msgid "Maturity of the event"
-msgstr ""
+msgstr "ครบกำหนดของเหตุการณ์"
 
 #: Controller/Component/RestResponseComponent.php:783
 msgid "Anonymise the information regarding the server on which the request was issued"
-msgstr ""
+msgstr "ปิดบังข้อมูลเกี่ยวกับเซิร์ฟเวอร์ที่ออกคำขอ"
 
 #: Controller/Component/RestResponseComponent.php:789
 msgid "Filter on attribute value"
-msgstr ""
+msgstr "กรองค่าแอตทริบิวต์"
 
 #: Controller/Component/RestResponseComponent.php:795
 msgid "The authorisation key found on the external server"
-msgstr ""
+msgstr "คีย์การให้สิทธิ์ที่พบในเซิร์ฟเวอร์ภายนอก"
 
 #: Controller/Component/RestResponseComponent.php:801
 msgid "The user receive alerts when events are published"
-msgstr ""
+msgstr "ผู้ใช้จะได้รับการแจ้งเตือนเมื่อมีการเผยแพร่เหตุการณ์"
 
 #: Controller/Component/RestResponseComponent.php:807
 msgid "The email's body"
-msgstr ""
+msgstr "เนื้อหาอีเมล"
 
 #: Controller/Component/RestResponseComponent.php:813
 msgid "The feed is cached"
-msgstr ""
+msgstr "ฟีดถูกแคชไว้"
 
 #: Controller/Component/RestResponseComponent.php:825
 msgid "A valid x509 certificate "
-msgstr ""
+msgstr "ใบรับรอง x509 ที่ถูกต้อง "
 
 #: Controller/Component/RestResponseComponent.php:831
 msgid "The text contained in the change field"
-msgstr ""
+msgstr "ข้อความที่อยู่ในช่องเปลี่ยนแปลง"
 
 #: Controller/Component/RestResponseComponent.php:837
 msgid "The user will be prompted the change the password"
-msgstr ""
+msgstr "ผู้ใช้จะได้รับแจ้งให้เปลี่ยนรหัสผ่าน"
 
 #: Controller/Component/RestResponseComponent.php:843
 msgid "A valid hexadecimal colour `#ffffff`"
-msgstr ""
+msgstr "ค่าสีที่ถูกต้อง ต้องเป็นเลขฐานสิบหก `#ffffff`"
 
 #: Controller/Component/RestResponseComponent.php:854
 msgid "Contact details for the organisation"
-msgstr ""
+msgstr "รายละเอียดการติดต่อองค์กร"
 
 #: Controller/Component/RestResponseComponent.php:860
 msgid "The user receive alerts from `contact reporter` requests"
-msgstr ""
+msgstr "ผู้ใช้ได้รับการแจ้งเตือนจากคำขอ \"ติดต่อผู้รายงาน\""
 
 #: Controller/Component/RestResponseComponent.php:877
 msgid "Base64 encoded file contents"
-msgstr ""
+msgstr "เนื้อหาไฟล์ที่เข้ารหัส Base64"
 
 #: Controller/Component/RestResponseComponent.php:889
 msgid "The user set date field on the event level. If you are using restSearch, you can use any of the valid time related filters (examples: 7d, timestamps, [14d, 7d] for ranges, etc.)"
-msgstr ""
+msgstr "ผู้ใช้ตั้งค่าฟิลด์วันที่ในระดับเหตุการณ์ หากคุณกำลังใช้ restSearch คุณสามารถใช้ตัวกรองที่เกี่ยวข้องกับเวลาที่ถูกต้อง (เช่น 7d, timestamps, [14d, 7d] สำหรับช่วง ฯลฯ)"
 
 #: Controller/Component/RestResponseComponent.php:924
 msgid "The role is a default role (selected by default)"
-msgstr ""
+msgstr "บทบาทเป็นบทบาทเริ่มต้น (เลือกโดยค่าเริ่มต้น)"
 
 #: Controller/Component/RestResponseComponent.php:930
 msgid "Remove file after ingestion"
-msgstr ""
+msgstr "ลบไฟล์หลังการนำเข้า"
 
 #: Controller/Component/RestResponseComponent.php:936
 msgid "Include deleted elements"
-msgstr ""
+msgstr "รวมองค์ประกอบที่ถูกลบ"
 
 #: Controller/Component/RestResponseComponent.php:942
 msgid "Merge attributes (only add new attribute, remove revoked attributes)"
-msgstr ""
+msgstr "รวมแอตทริบิวต์ (เพิ่มเฉพาะแอตทริบิวต์ใหม่ ลบแอตทริบิวต์ที่ถูกเพิกถอน)"
 
 #: Controller/Component/RestResponseComponent.php:953
 msgid "Disable the user account"
-msgstr ""
+msgstr "ปิดการใช้งานบัญชีผู้ใช้"
 
 #: Controller/Component/RestResponseComponent.php:965
 msgid "Filter on user email"
-msgstr ""
+msgstr "กรองอีเมลผู้ใช้"
 
 #: Controller/Component/RestResponseComponent.php:971
 msgid "Set the password manually"
-msgstr ""
+msgstr "ตั้งรหัสผ่านด้วยตนเอง"
 
 #: Controller/Component/RestResponseComponent.php:982
 msgid "When uploading malicious samples, set this flag to tell MISP to encrypt the sample and extract the file hashes. This will create a MISP object with the appropriate attributes."
-msgstr ""
+msgstr "เมื่ออัปโหลดตัวอย่างที่เป็นอันตราย ให้ตั้งค่าสถานะนี้เพื่อบอกให้ MISP เข้ารหัสตัวอย่างและแยกไฟล์แฮช ระบบจะสร้างอ็อบเจ็กต์ MISP พร้อมแอตทริบิวต์ที่เหมาะสม"
 
 #: Controller/Component/RestResponseComponent.php:993
 msgid "Should the warning list be enforced. Adds `blocked` field for matching attributes"
-msgstr ""
+msgstr "หากมีการบังคับใช้รายการเตือน เพิ่มฟิลด์ `blocked` สำหรับแอตทริบิวต์ที่ตรงกัน"
 
 #: Controller/Component/RestResponseComponent.php:1000
 #: View/Attributes/alternate_search_result.ctp:6
 #: View/EventDelegations/index.ctp:70
 msgid "Event id"
-msgstr ""
+msgstr "Id เหตุการณ์"
 
 #: Controller/Component/RestResponseComponent.php:1006
 msgid "Provide filters on which the sightings should be applied to when fetching attributes to be sighted. Support most parameters exposed in /attributes/restSearch."
-msgstr ""
+msgstr "จัดเตรียมตัวกรองที่ควรใช้การพบเห็นเมื่อดึงข้อมูลแอตทริบิวต์ที่พบเห็น รองรับพารามิเตอร์ส่วนใหญ่ที่แสดงใน /attributes/restSearch"
 
 #: Controller/Component/RestResponseComponent.php:1019
 msgid "The timestamp at which the event was last modified"
-msgstr ""
+msgstr "ประทับเวลาที่แก้ไขเหตุการณ์ครั้งล่าสุด"
 
 #: Controller/Component/RestResponseComponent.php:1026
 msgid "The timestamp at which the attribute was last modified"
-msgstr ""
+msgstr "ประทับเวลาที่แก้ไขแอตทริบิวต์ครั้งล่าสุด"
 
 #: Controller/Component/RestResponseComponent.php:1038;1183
 msgid "Quick event description"
-msgstr ""
+msgstr "คำอธิบายเหตุการณ์สั้นๆ"
 
 #: Controller/Component/RestResponseComponent.php:1044
 msgid "The tag is exported when synchronising with other instances"
-msgstr ""
+msgstr "แท็กจะถูกส่งออกเมื่อซิงโครไนซ์กับอินสแตนซ์อื่น"
 
 #: Controller/Component/RestResponseComponent.php:1056
 msgid "Exclude local tags from the export"
-msgstr ""
+msgstr "ยกเว้นแท็กในเครื่องจากการส่งออก"
 
 #: Controller/Component/RestResponseComponent.php:1062
 msgid "The organisation have write access to this sharing group (they can add/remove other organisation)"
-msgstr ""
+msgstr "องค์กรมีสิทธิ์เขียนในกลุ่มการแบ่งปันนี้ (สามารถเพิ่ม/ลบองค์กรอื่นได้)"
 
 #: Controller/Component/RestResponseComponent.php:1068
 msgid "An external authorisation is required for this user"
-msgstr ""
+msgstr "จำเป็นต้องมีการอนุญาตภายนอกสำหรับผู้ใช้รายนี้"
 
 #: Controller/Component/RestResponseComponent.php:1074
 msgid "A valid external auth key"
-msgstr ""
+msgstr "คีย์การตรวจสอบสิทธิ์ภายนอกที่ถูกต้อง"
 
 #: Controller/Component/RestResponseComponent.php:1087
 msgid "target_event option might be considered"
-msgstr ""
+msgstr "ตัวเลือก target_event อาจได้รับการพิจารณา"
 
 #: Controller/Component/RestResponseComponent.php:1099
 msgid "The date from which the event was published"
-msgstr ""
+msgstr "วันที่เผยแพร่เหตุการณ์"
 
 #: Controller/Component/RestResponseComponent.php:1105
 msgid "Source galaxy cluster UUID"
-msgstr ""
+msgstr "UUID คลัสเตอร์กาแล็กซี่ต้นทาง"
 
 #: Controller/Component/RestResponseComponent.php:1111
 msgid "A valid GPG key"
-msgstr ""
+msgstr "คีย์ GPG ที่ถูกต้อง"
 
 #: Controller/Component/RestResponseComponent.php:1117
 msgid "The event contains proposals"
-msgstr ""
+msgstr "ภายในงานประกอบด้วยข้อเสนอ"
 
 #: Controller/Component/RestResponseComponent.php:1123
 msgid "Headers to be passed with the requests. All separated by `\\n`"
-msgstr ""
+msgstr "ส่วนหัวที่จะส่งผ่านกับคำขอ ทั้งหมดคั่นด้วย `\\n`"
 
 #: Controller/Component/RestResponseComponent.php:1129
 msgid "The tag is hidden (not selectable)"
-msgstr ""
+msgstr "แท็กถูกซ่อน (ไม่สามารถเลือกได้)"
 
 #: Controller/Component/RestResponseComponent.php:1141
 msgid "Include matching attributes in the response"
-msgstr ""
+msgstr "รวมแอตทริบิวต์ที่ตรงกันในการตอบกลับ"
 
 #: Controller/Component/RestResponseComponent.php:1153
 msgid "Include matching events in the response"
-msgstr ""
+msgstr "รวมเหตุการณ์ที่ตรงกันในการตอบกลับ"
 
 #: Controller/Component/RestResponseComponent.php:1159
 msgid "Include matching eventUuids in the response"
-msgstr ""
+msgstr "รวม eventUuids ที่ตรงกันในการตอบกลับ"
 
 #: Controller/Component/RestResponseComponent.php:1165
 msgid "Include tags of matching events in the response"
-msgstr ""
+msgstr "รวมแท็กของเหตุการณ์ที่ตรงกันในการตอบกลับ"
 
 #: Controller/Component/RestResponseComponent.php:1177
 msgid "Include proposals of matching events in the response"
-msgstr ""
+msgstr "รวมข้อเสนอของเหตุการณ์ที่ตรงกันในการตอบกลับ"
 
 #: Controller/Component/RestResponseComponent.php:1190
 msgid "Specify whether the source (url field) is a directory (local) or an geniun url (network)"
-msgstr ""
+msgstr "ระบุว่าแหล่งที่มา (ฟิลด์ url) เป็นไดเร็กทอรี (ในเครื่อง) หรือ geniun url (เครือข่าย)"
 
 #: Controller/Component/RestResponseComponent.php:1196
 msgid "The IP of a login attempt"
-msgstr ""
+msgstr "IP ของความพยายามเข้าสู่ระบบ"
 
 #: Controller/Component/RestResponseComponent.php:1202
 msgid "JSON containing ID, UUID and name"
-msgstr ""
+msgstr "JSON ที่มี ID, UUID และชื่อ"
 
 #: Controller/Component/RestResponseComponent.php:1208
 msgid "Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
-msgstr ""
+msgstr "เหตุการณ์ที่เผยแพร่ภายในระยะเวลา x ล่าสุด โดยที่ x สามารถกำหนดเป็นวัน ชั่วโมง นาที (เช่น 5 วัน หรือ 12 ชั่วโมง หรือ 30 นาที)"
 
 #: Controller/Component/RestResponseComponent.php:1221
 msgid "Limit on the pagination"
-msgstr ""
+msgstr "จำกัดเลขหน้า"
 
 #: Controller/Component/RestResponseComponent.php:1227
 #: View/Organisations/admin_add.ctp:18
 msgid "If the organisation should have access to this instance, make sure that the Local organisation setting is checked. If you would only like to add a known external organisation for inclusion in sharing groups, uncheck the Local organisation setting."
-msgstr ""
+msgstr "ถ้าองค์กรควรมีสิทธิ์เข้าถึงอินสแตนซ์นี้ ตรวจสอบให้แน่ใจว่าได้เลือกการตั้งค่าองค์กรภายในแล้ว หากคุณต้องการเพิ่มเฉพาะองค์กรภายนอกที่รู้จักเพื่อรวมในกลุ่มการแชร์ ให้ยกเลิกการเลือกการตั้งค่าองค์กรภายใน"
 
 #: Controller/Component/RestResponseComponent.php:1233
 msgid "The lookup will not be visible in the feed correlation"
-msgstr ""
+msgstr "การค้นหาจะไม่ปรากฏให้เห็นในความสัมพันธ์ของฟีด"
 
 #: Controller/Component/RestResponseComponent.php:1239
 msgid "Message to be included"
-msgstr ""
+msgstr "ข้อความที่จะรวม"
 
 #: Controller/Component/RestResponseComponent.php:1245
 msgid "Will only return the metadata of the given query scope, contained data is omitted."
-msgstr ""
+msgstr "จะส่งคืนเฉพาะข้อมูลเมตาของขอบเขตการสืบค้นที่กำหนด ข้อมูลที่มีอยู่จะถูกละเว้น"
 
 #: Controller/Component/RestResponseComponent.php:1251
 msgid "Will only return  id, timestamp, published and uuid"
-msgstr ""
+msgstr "จะส่งคืนเฉพาะ id, timestamp, เผยแพร่และ uuid"
 
 #: Controller/Component/RestResponseComponent.php:1258
 msgid "Mock the query"
-msgstr ""
+msgstr "จำลองคำขอ"
 
 #: Controller/Component/RestResponseComponent.php:1282
 msgid "The last time the sharing group was modified"
-msgstr ""
+msgstr "ครั้งสุดท้ายที่กลุ่มการแบ่งปันถูกแก้ไข"
 
 #: Controller/Component/RestResponseComponent.php:1300
 msgid "The news are read"
-msgstr ""
+msgstr "ข่าวถูกอ่าน"
 
 #: Controller/Component/RestResponseComponent.php:1307
 msgid "The unique Signature Identification"
-msgstr ""
+msgstr "การระบุลายเซ็นที่เป็นเอกลักษณ์"
 
 #: Controller/Component/RestResponseComponent.php:1313
 msgid "Can be either the ORG_ID or the ORG_NAME"
-msgstr ""
+msgstr "สามารถเป็นได้ทั้ง ORG_ID หรือ ORG_NAME"
 
 #: Controller/Component/RestResponseComponent.php:1319
 msgid "Describe the organisation"
-msgstr ""
+msgstr "อธิบายเกี่ยวกับองค์กร"
 
 #: Controller/Component/RestResponseComponent.php:1325
 msgid "Organisation identifier (name)"
-msgstr ""
+msgstr "ตัวระบุองค์กร (ชื่อ)"
 
 #: Controller/Component/RestResponseComponent.php:1337;1343
 msgid "Globally used uuid of an organisation"
-msgstr ""
+msgstr "ค่าส่วนกลางใช้ uiid ขององค์กร"
 
 #: Controller/Component/RestResponseComponent.php:1349
 msgid "The IDS flags will be set to off for this feed"
-msgstr ""
+msgstr "ค่าสถานะ IDS จะถูกตั้งค่าเป็นปิดสำหรับฟีดนี้"
 
 #: Controller/Component/RestResponseComponent.php:1356
 msgid "Page number for the pagination"
-msgstr ""
+msgstr "หมายเลขหน้าสำหรับการแบ่งหน้า"
 
 #: Controller/Component/RestResponseComponent.php:1362
 msgid "The hardcoded password"
-msgstr ""
+msgstr "รหัสผ่านฮาร์ดโค้ด"
 
 #: Controller/Component/RestResponseComponent.php:1439
 msgid "The name of the feed provider"
-msgstr ""
+msgstr "ชื่อของผู้ให้บริการฟีด"
 
 #: Controller/Component/RestResponseComponent.php:1445
 msgid "The event will be published"
-msgstr ""
+msgstr "งานจะถูกเผยแพร่"
 
 #: Controller/Component/RestResponseComponent.php:1468
 msgid "Allow the download of events and their attribute from the server"
-msgstr ""
+msgstr "อนุญาตให้ดาวน์โหลดเหตุการณ์และแอตทริบิวต์จากเซิร์ฟเวอร์"
 
 #: Controller/Component/RestResponseComponent.php:1474
 msgid "Allow the upload of events and their attribute to the server"
-msgstr ""
+msgstr "อนุญาตให้อัปโหลดเหตุการณ์และแอตทริบิวต์ไปยังเซิร์ฟเวอร์"
 
 #: Controller/Component/RestResponseComponent.php:1480
 msgid "Allow the upload of sightings to the server"
-msgstr ""
+msgstr "อนุญาตให้อัปโหลดการพบเห็นไปยังเซิร์ฟเวอร์"
 
 #: Controller/Component/RestResponseComponent.php:1486
 msgid "Destination galaxy cluster UUID"
-msgstr ""
+msgstr "UUID คลัสเตอร์กาแล็กซี่ปลายทาง"
 
 #: Controller/Component/RestResponseComponent.php:1492
 msgid "The type of the relation. Example: `is`, `related-to`, ..."
-msgstr ""
+msgstr "ประเภทของความสัมพันธ์ ตัวอย่าง: `is`, `related-to`, ..."
 
 #: Controller/Component/RestResponseComponent.php:1498
 msgid "Concise summary for who this sharing group is releasable to"
-msgstr ""
+msgstr "สรุปโดยย่อว่าใครบ้างที่กลุ่มการแบ่งปันนี้เผยแพร่ให้"
 
 #: Controller/Component/RestResponseComponent.php:1516
 msgid "Pass the event to any connected instance where the sync connection is tied to an organisation contained in the SG organisation list"
-msgstr ""
+msgstr "ส่งต่อเหตุการณ์ไปยังอินสแตนซ์ที่เชื่อมต่อใดๆ ที่การเชื่อมต่อการซิงค์เชื่อมโยงกับองค์กรที่อยู่ในรายชื่อองค์กร SG"
 
 #: Controller/Component/RestResponseComponent.php:1541
 msgid "The sector of the organisation"
-msgstr ""
+msgstr "ภาคส่วนขององค์กร"
 
 #: Controller/Component/RestResponseComponent.php:1553
 msgid "Will only return the sharing group ID"
-msgstr ""
+msgstr "จะส่งคืนเฉพาะ ID กลุ่มการแบ่งปัน"
 
 #: Controller/Component/RestResponseComponent.php:1566
 msgid "Sharing group ID"
-msgstr ""
+msgstr "ID กลุ่มแบ่งปัน"
 
 #: Controller/Component/RestResponseComponent.php:1572
 msgid "The source of the Sighting (e.g. honeypot_1)"
-msgstr ""
+msgstr "ที่มาของการพบเห็น (เช่น honeypot_1)"
 
 #: Controller/Component/RestResponseComponent.php:1584
 msgid "Only returns tags matching exactly the tag name (thus skipping synonyms and cluster's value)"
-msgstr ""
+msgstr "ส่งคืนเฉพาะแท็กที่ตรงกับชื่อแท็กเท่านั้น (ดังนั้นจึงข้ามคำพ้องความหมายและค่าของคลัสเตอร์)"
 
 #: Controller/Component/RestResponseComponent.php:1590
 msgid "The email's subject"
-msgstr ""
+msgstr "หัวเรื่องของอีเมล"
 
 #: Controller/Component/RestResponseComponent.php:1596;1602
 msgid "Base64 encoded certificate"
-msgstr ""
+msgstr "ใบรับรองการเข้ารหัสแบบ Base64"
 
 #: Controller/Component/RestResponseComponent.php:1620
-msgid "A tad ID to attach to created events"
+msgid "A tag ID to attach to created events"
 msgstr ""
 
 #: Controller/Component/RestResponseComponent.php:1633
 msgid "The provided ID will be reused as an existing event"
-msgstr ""
+msgstr "ID ที่ให้ไว้จะถูกนำมาใช้ซ้ำเป็นเหตุการณ์ที่มีอยู่"
 
 #: Controller/Component/RestResponseComponent.php:1656
 msgid "Time of the sighting with the form `h:i:s`"
-msgstr ""
+msgstr "เวลาที่พบเห็นด้วยรูปแบบ `h:i:s`"
 
 #: Controller/Component/RestResponseComponent.php:1668
 msgid "The title of the log"
-msgstr ""
+msgstr "ชื่อของบันทึก"
 
 #: Controller/Component/RestResponseComponent.php:1680
 msgid "The date to which the event was published"
-msgstr ""
+msgstr "วันที่เผยแพร่เหตุการณ์"
 
 #: Controller/Component/RestResponseComponent.php:1686
 msgid "The state of the `to_ids` flag"
-msgstr ""
+msgstr "สถานะของแฟล็ก `to_ids`"
 
 #: Controller/Component/RestResponseComponent.php:1692
 msgid "The type of the attribute"
-msgstr ""
+msgstr "ประเภทของแอตทริบิวต์"
 
 #: Controller/Component/RestResponseComponent.php:1720
 msgid "Placeholder containing values to sight"
-msgstr ""
+msgstr "ตัวยึดตำแหน่งที่มีค่าการพบเห็น"
 
 #: Controller/Component/RestResponseComponent.php:1733
 msgid "Not supported (warninglist->checkvalues) expect an array"
-msgstr ""
+msgstr "ไม่รองรับ (warninglist->checkvalues) ควรจะเป็นค่าแบบ array"
 
 #: Controller/Component/RestResponseComponent.php:1739;1745;1751;1758;1764;1770;1776;1782;1793
 msgid "Not supported"
-msgstr ""
+msgstr "ไม่รองรับ"
 
 #: Controller/Component/RestResponseComponent.php:1940
 msgid "Also supports array of tags"
-msgstr ""
+msgstr "รองรับแท็กแบบค่าอาร์เรย์"
 
 #: Controller/Component/RestResponseComponent.php:1945
 msgid "Attribute id"
-msgstr ""
+msgstr "Id แอตทริบิวต์"
 
 #: Controller/Component/RestResponseComponent.php:1966
 msgid "Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)"
-msgstr ""
+msgstr "เห็นภายในระยะเวลา x สุดท้าย โดยที่ x สามารถกำหนดเป็นวัน ชั่วโมง นาที (เช่น 5d หรือ 12h หรือ 30m)"
 
 #: Model/AppModel.php:1699
 msgid "Indexing %s -> %s"
-msgstr ""
+msgstr "กำลังสร้างดัชนี %s -> %s"
 
 #: Model/AppModel.php:1713
 msgid "Issues executing the pre-update test `%s`. The returned error is: %s"
-msgstr ""
+msgstr "ปัญหาในการดำเนินการทดสอบก่อนการอัปเดต `%s` ข้อผิดพลาดที่ตอบกลับคือ: %s"
 
 #: Model/AppModel.php:1735
 msgid "Successfully executed the SQL query for "
-msgstr ""
+msgstr "ดำเนินการค้นหา SQL สำเร็จสำหรับ "
 
 #: Model/AppModel.php:1736
 msgid "The executed SQL query was: %s"
-msgstr ""
+msgstr "คิวรี SQL ที่ดำเนินการคือ: %s"
 
 #: Model/AppModel.php:1738
 msgid "Successfully executed the SQL query for %s"
-msgstr ""
+msgstr "ดำเนินการคิวรี SQL สำเร็จสำหรับ %s"
 
 #: Model/AppModel.php:1749;1812
 msgid "Issues executing the SQL query for %s"
-msgstr ""
+msgstr "ปัญหาในการรันคิวรี่ SQL สำหรับ %s"
 
 #: Model/AppModel.php:1750
 msgid "The executed SQL query was: "
-msgstr ""
+msgstr "คิวรี SQL ที่ดำเนินการคือ: "
 
 #: Model/AppModel.php:1750
 msgid " The returned error is: "
-msgstr ""
+msgstr " ข้อผิดพลาดที่ตอบกลับคือ: "
 
 #: Model/AppModel.php:1752
 msgid "Issues executing the SQL query for `%s`. The returned error is: "
-msgstr ""
+msgstr "ปัญหาในการดำเนินการคิวรี่ SQL สำหรับ `%s` ข้อผิดพลาดที่ส่งกลับคือ: "
 
 #: Model/AppModel.php:1761
 msgid "However, as this error is allowed, the update went through."
-msgstr ""
+msgstr "อย่างไรก็ตาม เนื่องจากข้อผิดพลาดนี้ได้รับอนุญาต การอัปเดตจึงผ่านพ้นไป"
 
 #: Model/AppModel.php:1780
 msgid "Successfully indexed %s -> %s"
-msgstr ""
+msgstr "สร้างดัชนีสำเร็จแล้ว %s -> %s"
 
 #: Model/AppModel.php:1783
 msgid "Failed to add index"
-msgstr ""
+msgstr "ไม่สามารถเพิ่มดัชนี"
 
 #: Model/AppModel.php:1785
 msgid "The returned error is:"
-msgstr ""
+msgstr "ข้อผิดพลาดที่ส่งกลับคือ:"
 
 #: Model/AppModel.php:1813
 msgid "Database updates stopped as some errors occurred and the stop flag is enabled."
-msgstr ""
+msgstr "การอัปเดตฐานข้อมูลหยุดลงเนื่องจากมีข้อผิดพลาดเกิดขึ้นและเปิดใช้งานแฟล็กการหยุด"
 
 #: Model/AppModel.php:1978
 msgid "Invalid JSON."
-msgstr ""
+msgstr "JSON ไม่ถูกต้อง."
 
 #: Model/AppModel.php:2074;2131
 msgid "Issues executing run_updates"
-msgstr ""
+msgstr "ปัญหาในการดำเนินการ run_updates"
 
 #: Model/AppModel.php:2075
 msgid "Database updates are locked. Worker not spawned"
-msgstr ""
+msgstr "การอัปเดตฐานข้อมูลถูกล็อค ตัวปฏิบัติงานไม่ถูกสร้าง"
 
 #: Model/AppModel.php:2079;2136;2171
 msgid "Update done"
-msgstr ""
+msgstr "อัพเดทเสร็จแล้ว"
 
 #: Model/AppModel.php:2132
 msgid "Updates are locked. Stopping worker gracefully"
-msgstr ""
+msgstr "การอัปเดตถูกล็อค หยุดตัวปฏิบัติงานได้อย่างสมบูรณ์"
 
 #: Model/AppModel.php:2151
 msgid "Running update %s"
-msgstr ""
+msgstr "กำลังดำเนินการอัปเดต %s"
 
 #: Model/AppModel.php:2177
 msgid "Update done in another worker. Gracefully stopping."
-msgstr ""
+msgstr "อัปเดตเสร็จสิ้นตัวปฏิบัติงานอื่น หยุดได้อย่างสมบูรณ์"
 
 #: Model/Attribute.php:90
 #: Model/Server.php:5099;5108
 #: View/Events/filter_event_index.ctp:46;214
 msgid "Your organisation only"
-msgstr ""
+msgstr "องค์กรของคุณเท่านั้น"
 
 #: Model/Attribute.php:91
 #: Model/Server.php:5099;5109
 #: View/Events/filter_event_index.ctp:46;215
 msgid "This community only"
-msgstr ""
+msgstr "ชุมชนนี้เท่านั้น"
 
 #: Model/Attribute.php:92
 #: Model/Server.php:5099;5110
 #: View/Events/filter_event_index.ctp:46;216
 #: View/Pages/doc/using_the_system.ctp:51
 msgid "Connected communities"
-msgstr ""
+msgstr "ชุมชนที่เชื่อมต่อ"
 
 #: Model/Attribute.php:93
 #: Model/Server.php:5099;5111
 #: View/Events/filter_event_index.ctp:46;217
 #: View/Pages/doc/using_the_system.ctp:58
 msgid "All communities"
-msgstr ""
+msgstr "ทุกชุมชน"
 
 #: Model/Attribute.php:95
 msgid "Inherit event"
-msgstr ""
+msgstr "สืบทอดเหตุการณ์"
 
 #: Model/Attribute.php:393
 msgid "Composite type, but value not explodable"
-msgstr ""
+msgstr "ชนิดคอมโพสิต แต่ไม่สามารถแยกค่าต่างๆ ได้"
 
 #: Model/Attribute.php:685
 msgid "The entered string is too long and would get truncated. Please consider adding the data as an attachment instead"
-msgstr ""
+msgstr "สตริงที่ป้อนยาวเกินไปและจะถูกตัดทอน โปรดพิจารณาเพิ่มข้อมูลเป็นไฟล์แนบแทน"
 
 #: Model/Attribute.php:1074;1146
 msgid "Could not read user."
-msgstr ""
+msgstr "ไม่สามารถอ่านผู้ใช้"
 
 #: Model/Attribute.php:1078
 msgid "Invalid hash type."
-msgstr ""
+msgstr "ประเภทแฮชไม่ถูกต้อง"
 
 #: Model/Attribute.php:1801
 msgid "This field is mandatory."
-msgstr ""
+msgstr "ฟิลด์นี้เป็นฟิลด์บังคับ"
 
 #: Model/Attribute.php:2471
 msgid "Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample."
-msgstr ""
+msgstr "มีบางอย่างผิดพลาด ได้รับ ID เหตุการณ์ที่ไม่ใช่ตัวเลขขณะพยายามสร้างไฟล์ zip ของตัวอย่างมัลแวร์ที่อัปโหลด"
 
 #: Model/Attribute.php:3501
 msgid "Reference used by the publishing party (e.g. ticket number)"
-msgstr ""
+msgstr "ข้อมูลอ้างอิงที่ใช้โดยฝ่ายเผยแพร่ (เช่น หมายเลขทิคเก็ต)"
 
 #: Model/Attribute.php:3505
 msgid "Internal Attack Targeting and Compromise Information"
-msgstr ""
+msgstr "ผู้ที่ตกเป้าหมายการโจมตีภายใน และข้อมูลการละเมิด"
 
 #: Model/Attribute.php:3506
 msgid "Targeting information to include recipient email, infected machines, department, and or locations."
-msgstr ""
+msgstr "ข้อมูลผู้ที่ตกเป็นเป้าหมายรวมถึงอีเมลผู้รับ เครื่องที่ติดไวรัส แผนก และหรือสถานที่"
 
 #: Model/Attribute.php:3510
 msgid "All the info about how the malware is detected by the antivirus products"
-msgstr ""
+msgstr "ข้อมูลทั้งหมดเกี่ยวกับวิธีการตรวจพบมัลแวร์โดยผลิตภัณฑ์ป้องกันไวรัส"
 
 #: Model/Attribute.php:3511
 msgid "List of anti-virus vendors detecting the malware or information on detection performance (e.g. 13/43 or 67%). Attachment with list of detection or link to VirusTotal could be placed here as well."
-msgstr ""
+msgstr "รายชื่อผู้จำหน่ายโปรแกรมป้องกันไวรัสที่ตรวจพบมัลแวร์หรือข้อมูลเกี่ยวกับประสิทธิภาพการตรวจจับ (เช่น 13/43 หรือ 67%) สามารถแนบไฟล์แนบพร้อมรายการการตรวจจับหรือลิงก์ไปยัง VirusTotal ได้ที่นี่เช่นกัน"
 
 #: Model/Attribute.php:3515
 msgid "Information about how the malware is delivered"
-msgstr ""
+msgstr "ข้อมูลเกี่ยวกับวิธีการส่งมัลแวร์"
 
 #: Model/Attribute.php:3516
 msgid "Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here."
-msgstr ""
+msgstr "ข้อมูลเกี่ยวกับวิธีส่ง payload ของมัลแวร์ในขั้นต้น เช่น ข้อมูลเกี่ยวกับอีเมลหรือเว็บไซต์ ช่องโหว่ที่ใช้ IP ต้นทาง ฯลฯ ควรแนบตัวอย่างมัลแวร์ไว้ที่นี่"
 
 #: Model/Attribute.php:3520
 msgid "Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system"
-msgstr ""
+msgstr "Artifact ต่างๆ (ไฟล์ รีจิสตรีคีย์ ฯลฯ) ที่ถูกเปิดเผยจากมัลแวร์หรือการดัดแปลงอื่นๆ ในระบบ"
 
 #: Model/Attribute.php:3524
 msgid "Info on where the malware gets installed in the system"
-msgstr ""
+msgstr "ข้อมูลเกี่ยวกับตำแหน่งที่มัลแวร์ได้รับการติดตั้งในระบบ"
 
 #: Model/Attribute.php:3525
 msgid "Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e."
-msgstr ""
+msgstr "ตำแหน่งที่วางเพย์โหลดไว้ในระบบและวิธีการติดตั้ง ตัวอย่างเช่น แอตทริบิวต์ประเภท filename|md5 ตัวอย่างเช่น: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e"
 
 #: Model/Attribute.php:3529
 msgid "Mechanisms used by the malware to start at boot"
-msgstr ""
+msgstr "กลไกที่มัลแวร์ใช้เพื่อเริ่มต้นเมื่อบูท"
 
 #: Model/Attribute.php:3530
 msgid "Mechanisms used by the malware to start at boot. This could be a registry key, legitimate driver modification, LNK file in startup"
-msgstr ""
+msgstr "กลไกที่มัลแวร์ใช้เพื่อเริ่มต้นเมื่อบู๊ตเครื่อง เช่น รีจิสตรีคีย์ การแก้ไขไดรเวอร์ที่ถูกต้อง ไฟล์ LNK ในการเริ่มต้น"
 
 #: Model/Attribute.php:3534
 msgid "Information about network traffic generated by the malware"
-msgstr ""
+msgstr "ข้อมูลเกี่ยวกับการรับส่งข้อมูลเครือข่ายที่สร้างโดยมัลแวร์"
 
 #: Model/Attribute.php:3538
 msgid "Information about the final payload(s)"
-msgstr ""
+msgstr "ข้อมูลเกี่ยวกับเพย์โหลดสุดท้าย"
 
 #: Model/Attribute.php:3539
 msgid "Information about the final payload(s). Can contain a function of the payload, e.g. keylogger, RAT, or a name if identified, such as Poison Ivy."
-msgstr ""
+msgstr "ข้อมูลเกี่ยวกับเพย์โหลดสุดท้าย สามารถมีฟังก์ชันของ payload ได้ เช่น keylogger, RAT หรือชื่อหากระบุได้ เช่น Poison Ivy"
 
 #: Model/Attribute.php:3543
 msgid "Identification of the group, organisation, or country behind the attack"
-msgstr ""
+msgstr "การระบุกลุ่ม องค์กร หรือประเทศที่อยู่เบื้องหลังการโจมตี"
 
 #: Model/Attribute.php:3547
 msgid "Any other result from additional analysis of the malware like tools output"
-msgstr ""
+msgstr "ผลลัพธ์อื่นๆ จากการวิเคราะห์เพิ่มเติมของมัลแวร์ เช่น ผลลัพธ์ของเครื่องมือ"
 
 #: Model/Attribute.php:3548
 msgid "Any other result from additional analysis of the malware like tools output Examples: pdf-parser output, automated sandbox analysis, reverse engineering report."
-msgstr ""
+msgstr "ผลลัพธ์อื่นๆ จากการวิเคราะห์เพิ่มเติมของมัลแวร์ เช่น เอาต์พุตของเครื่องมือ ตัวอย่าง: เอาต์พุต pdf-parser ผลการวิเคราะห์จากแซนด์บ็อกซ์อัตโนมัติ รายงานผลการทำวิศวกรรมย้อนกลับ"
 
 #: Model/Attribute.php:3552
 msgid "Financial Fraud indicators"
-msgstr ""
+msgstr "ตัวบ่งชี้การทุจริตทางการเงิน"
 
 #: Model/Attribute.php:3553
 msgid "Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc."
-msgstr ""
+msgstr "ตัวบ่งชี้การทุจริตทางการเงิน เช่น หมายเลข IBAN รหัส BIC หมายเลขบัตรเครดิต ฯลฯ"
 
 #: Model/Attribute.php:3557
 msgid "Tools supporting analysis or detection of the event"
-msgstr ""
+msgstr "เครื่องมือที่รองรับการวิเคราะห์หรือตรวจจับเหตุการณ์"
 
 #: Model/Attribute.php:3561
 msgid "Social networks and platforms"
-msgstr ""
+msgstr "โซเชียลเน็ตเวิร์กและแพลตฟอร์ม"
 
 #: Model/Attribute.php:3566
 msgid "A human being - natural person"
-msgstr ""
+msgstr "มนุษย์ - บุคคลธรรมดา"
 
 #: Model/Attribute.php:3570
 msgid "Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future"
-msgstr ""
+msgstr "คุณลักษณะที่ไม่ได้เป็นส่วนหนึ่งของหมวดหมู่อื่นใดหรือมีวัตถุประสงค์เพื่อใช้เป็นส่วนประกอบในวัตถุ MISP ในอนาคต"
 
 #: Model/Attribute.php:3584;3689
 msgid "A checksum in md5 format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ md5"
 
 #: Model/Attribute.php:3584
 msgid "You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|md5 แทน เช็คซัมในรูปแบบ md5 ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3585
 msgid "A checksum in sha1 format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ sha1"
 
 #: Model/Attribute.php:3585
 msgid "You are encouraged to use filename|sha1 instead. A checksum in sha1 format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|sha1 แทน เช็คซัมในรูปแบบ sha1 ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3586
 msgid "A checksum in sha256 format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ sha256"
 
 #: Model/Attribute.php:3586
 msgid "You are encouraged to use filename|sha256 instead. A checksum in sha256 format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|sha256 แทน เช็คซัมในรูปแบบ sha256 ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3587
 #: View/Elements/healthElements/files.ctp:29
 msgid "Filename"
-msgstr ""
+msgstr "ชื่อไฟล์"
 
 #: Model/Attribute.php:3588
 msgid "Microsoft Program database (PDB) path information"
-msgstr ""
+msgstr "ข้อมูลพาธของฐานข้อมูลโปรแกรม Microsoft (PDB)"
 
 #: Model/Attribute.php:3589
 msgid "A filename and an md5 hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช md5 คั่นด้วย |"
 
 #: Model/Attribute.php:3589
 msgid "A filename and an md5 hash separated by a | (no spaces)"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช md5 คั่นด้วย | (ไม่มีช่องว่าง)"
 
 #: Model/Attribute.php:3590
 msgid "A filename and an sha1 hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha1 คั่นด้วย |"
 
 #: Model/Attribute.php:3590
 msgid "A filename and an sha1 hash separated by a | (no spaces)"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha1 คั่นด้วย | (ไม่มีช่องว่าง)"
 
 #: Model/Attribute.php:3591
 msgid "A filename and an sha256 hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha256 คั่นด้วย |"
 
 #: Model/Attribute.php:3591
 msgid "A filename and an sha256 hash separated by a | (no spaces)"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha256 คั่นด้วย | (ไม่มีช่องว่าง)"
 
 #: Model/Attribute.php:3592
 msgid "A source IP address of the attacker"
-msgstr ""
+msgstr "ที่อยู่ IP ต้นทางของผู้โจมตี"
 
 #: Model/Attribute.php:3593
 msgid "A destination IP address of the attacker or C&C server"
-msgstr ""
+msgstr "ที่อยู่ IP ปลายทางของผู้โจมตีหรือเซิร์ฟเวอร์ C&C"
 
 #: Model/Attribute.php:3593
 msgid "A destination IP address of the attacker or C&C server. Also set the IDS flag on when this IP is hardcoded in malware"
-msgstr ""
+msgstr "ที่อยู่ IP ปลายทางของผู้โจมตีหรือเซิร์ฟเวอร์ C&C ตั้งค่าสถานะ IDS เมื่อ IP นี้ถูกฮาร์ดโค้ดในมัลแวร์"
 
 #: Model/Attribute.php:3594
 msgid "A full host/dnsname of an attacker"
-msgstr ""
+msgstr "โฮสต์/ชื่อ DNS แบบเต็มของผู้โจมตี"
 
 #: Model/Attribute.php:3594
 msgid "A full host/dnsname of an attacker. Also set the IDS flag on when this hostname is hardcoded in malware"
-msgstr ""
+msgstr "โฮสต์/ชื่อ DNS แบบเต็มของผู้โจมตี ตั้งค่าสถานะ IDS เมื่อชื่อโฮสต์นี้ถูกฮาร์ดโค้ดในมัลแวร์"
 
 #: Model/Attribute.php:3595
 msgid "A domain name used in the malware"
-msgstr ""
+msgstr "ชื่อโดเมนที่ใช้ในมัลแวร์"
 
 #: Model/Attribute.php:3595
 msgid "A domain name used in the malware. Use this instead of hostname when the upper domain is important or can be used to create links between events."
-msgstr ""
+msgstr "ชื่อโดเมนที่ใช้ในมัลแวร์ ใช้สิ่งนี้แทนชื่อโฮสต์เมื่อโดเมนระดับบนมีความสำคัญหรือสามารถใช้เพื่อสร้างลิงก์ระหว่างเหตุการณ์"
 
 #: Model/Attribute.php:3596
 msgid "A domain name and its IP address (as found in DNS lookup) separated by a |"
-msgstr ""
+msgstr "ชื่อโดเมนและที่อยู่ IP (ตามที่พบในการทำ DNS lookup) คั่นด้วย |"
 
 #: Model/Attribute.php:3596
 msgid "A domain name and its IP address (as found in DNS lookup) separated by a | (no spaces)"
-msgstr ""
+msgstr "ชื่อโดเมนและที่อยู่ IP (ตามที่พบในการทำ DNS lookup) คั่นด้วย | (ไม่มีช่องว่าง)"
 
 #: Model/Attribute.php:3598
 msgid "The source email address. Used to describe the sender when describing an e-mail."
-msgstr ""
+msgstr "ที่อยู่อีเมลต้นทาง ใช้เพื่ออธิบายผู้ส่งเมื่ออธิบายถึงอีเมล"
 
 #: Model/Attribute.php:3599
 msgid "eduPersonPrincipalName - eppn - the NetId of the person for the purposes of inter-institutional authentication. Should be stored in the form of user@univ.edu, where univ.edu is the name of the local security domain."
-msgstr ""
+msgstr "eduPersonPrincipalName - eppn - NetId ของบุคคลเพื่อวัตถุประสงค์ในการตรวจสอบสิทธิ์ระหว่างสถาบัน ควรจัดเก็บในรูปแบบของ user@univ.edu โดยที่ univ.edu เป็นชื่อของโดเมนความปลอดภัยในเครื่อง"
 
 #: Model/Attribute.php:3600
 msgid "The destination email address. Used to describe the recipient when describing an e-mail."
-msgstr ""
+msgstr " ที่อยู่อีเมลปลายทาง ใช้เพื่ออธิบายเกี่ยวกับผู้รับเมื่ออธิบายถึงอีเมล"
 
 #: Model/Attribute.php:3601
 msgid "The subject of the email"
-msgstr ""
+msgstr "หัวเรื่องของอีเมล"
 
 #: Model/Attribute.php:3602
 msgid "File name of the email attachment."
-msgstr ""
+msgstr "ชื่อไฟล์ที่แนบมากับอีเมล"
 
 #: Model/Attribute.php:3603
 msgid "Email body"
-msgstr ""
+msgstr "เนื้อหาอีเมล"
 
 #: Model/Attribute.php:3604
 msgid "A floating point value."
-msgstr ""
+msgstr "ค่าทศนิยม"
 
 #: Model/Attribute.php:3605
 msgid "A git commit ID."
-msgstr ""
+msgstr "git commit ID"
 
 #: Model/Attribute.php:3606
 msgid "url"
-msgstr ""
+msgstr "url"
 
 #: Model/Attribute.php:3607
 msgid "HTTP method used by the malware (e.g. POST, GET, ...)."
-msgstr ""
+msgstr "HTTP method ที่มัลแวร์ใช้ (เช่น POST, GET, ...)"
 
 #: Model/Attribute.php:3608
 msgid "The user-agent used by the malware in the HTTP request."
-msgstr ""
+msgstr "User-agent ที่มัลแวร์ใช้ในคำขอ HTTP"
 
 #: Model/Attribute.php:3609
 msgid "JA3 is a method for creating SSL/TLS client fingerprints that should be easy to produce on any platform and can be easily shared for threat intelligence."
-msgstr ""
+msgstr "JA3 เป็นวิธีการสำหรับสร้างลาย SSL/TLS client fingerprints ที่ควรสร้างได้ง่ายบนแพลตฟอร์มใดๆ และสามารถแชร์ข้อมูลภัยคุกคามได้อย่างง่าย"
 
 #: Model/Attribute.php:3610
 msgid "JARM is a method for creating SSL/TLS server fingerprints."
-msgstr ""
+msgstr "JARM คือวิธีการสร้าง SSL/TLS server fingerprints"
 
 #: Model/Attribute.php:3611
 msgid "favicon-mmh3 is the murmur3 hash of a favicon as used in Shodan."
-msgstr ""
+msgstr "favicon-mmh3 คือแฮช murmur3 ของ favicon ที่ใช้ใน Shodan"
 
 #: Model/Attribute.php:3612
 msgid "hassh is a network fingerprinting standard which can be used to identify specific Client SSH implementations. The fingerprints can be easily stored, searched and shared in the form of an MD5 fingerprint."
-msgstr ""
+msgstr "hassh เป็นมาตรฐาน fingerprinting ทางเครือข่าย ซึ่งสามารถใช้เพื่อระบุการใช้งาน Client SSH ที่เฉพาะเจาะจงได้ fingerprints สามารถจัดเก็บ ค้นหา และแบ่งปันได้อย่างง่ายดายในรูปแบบของ MD5 fingerprints"
 
 #: Model/Attribute.php:3613
 msgid "hasshServer is a network fingerprinting standard which can be used to identify specific Server SSH implementations. The fingerprints can be easily stored, searched and shared in the form of an MD5 fingerprint."
-msgstr ""
+msgstr "hasshServer เป็นมาตรฐาน fingerprinting ทางเครือข่าย ซึ่งสามารถใช้เพื่อระบุการใช้งาน Server SSH ที่เฉพาะเจาะจงได้ fingerprints สามารถจัดเก็บ ค้นหา และแบ่งปันได้อย่างง่ายดายในรูปแบบของ MD5 fingerprints"
 
 #: Model/Attribute.php:3614
 msgid "Registry key or value"
-msgstr ""
+msgstr "คีย์หรือค่ารีจิสทรี"
 
 #: Model/Attribute.php:3615
 msgid "Registry value + data separated by |"
-msgstr ""
+msgstr "ค่ารีจิสทรี + ข้อมูล คั่นด้วย |"
 
 #: Model/Attribute.php:3616
 msgid "Autonomous system"
-msgstr ""
+msgstr "ระบบ Autonomous"
 
 #: Model/Attribute.php:3617
 msgid "An IDS rule in Snort rule-format"
-msgstr ""
+msgstr "IDS rule ในรูปแบบ Snort rule-format"
 
 #: Model/Attribute.php:3617
 msgid "An IDS rule in Snort rule-format. This rule will be automatically rewritten in the NIDS exports."
-msgstr ""
+msgstr "IDS rule ในรูปแบบ Snort rule-format กฎนี้จะถูกเขียนใหม่โดยอัตโนมัติใน NIDS export"
 
 #: Model/Attribute.php:3618
 msgid "An NIDS rule in the Bro rule-format"
-msgstr ""
+msgstr "NIDS rule ในรูปแบบของ Bro rule-format"
 
 #: Model/Attribute.php:3618
 msgid "An NIDS rule in the Bro rule-format."
-msgstr ""
+msgstr "NIDS rule ในรูปแบบของ Bro rule-format"
 
 #: Model/Attribute.php:3619
 msgid "An NIDS rule in the Zeek rule-format"
-msgstr ""
+msgstr "NIDS rule ในรูปแบบของ Zeek rule-format"
 
 #: Model/Attribute.php:3619
 msgid "An NIDS rule in the Zeek rule-format."
-msgstr ""
+msgstr "NIDS rule ในรูปแบบของ Zeek rule-format"
 
 #: Model/Attribute.php:3620
 msgid "a community ID flow hashing algorithm to map multiple traffic monitors into common flow id"
-msgstr ""
+msgstr "อัลกอริทึมการแฮช ID ชุมชนเพื่อแมปการมอนิเตอร์ทราฟฟิกหลายรายการเข้ากับ id โฟลว์ทั่วไป"
 
 #: Model/Attribute.php:3621
 msgid "Pattern in file that identifies the malware"
-msgstr ""
+msgstr "รูปแบบในไฟล์ที่ใช้ระบุมัลแวร์"
 
 #: Model/Attribute.php:3622
 msgid "Pattern in network traffic that identifies the malware"
-msgstr ""
+msgstr "รูปแบบการรับส่งข้อมูลเครือข่ายที่ใช้ระบุมัลแวร์"
 
 #: Model/Attribute.php:3623
 msgid "Pattern in memory dump that identifies the malware"
-msgstr ""
+msgstr "รูปแบบในการถ่ายโอนข้อมูลหน่วยความจำที่ใช้ระบุมัลแวร์"
 
 #: Model/Attribute.php:3624
 msgid "A pattern in the name of a file"
-msgstr ""
+msgstr "รูปแบบในชื่อไฟล์"
 
 #: Model/Attribute.php:3625
 msgid "A PGP public key"
-msgstr ""
+msgstr "กุญแจสาธารณะ PGP"
 
 #: Model/Attribute.php:3626
 msgid "A PGP private key"
-msgstr ""
+msgstr "คีย์ส่วนตัว PGP"
 
 #: Model/Attribute.php:3627
 msgid "A fingerprint of SSH key material"
-msgstr ""
+msgstr "fingerprint ของ SSH key material"
 
 #: Model/Attribute.php:3628
 msgid "Yara signature"
-msgstr ""
+msgstr "Yara signature"
 
 #: Model/Attribute.php:3629
 msgid "STIX 2 pattern"
-msgstr ""
+msgstr "รูปแบบ STIX 2"
 
 #: Model/Attribute.php:3630
 msgid "Sigma - Generic Signature Format for SIEM Systems"
-msgstr ""
+msgstr "Sigma - Generic Signature Format สำหรับ SIEM Systems"
 
 #: Model/Attribute.php:3631
 msgid "GENE - Go Evtx sigNature Engine"
-msgstr ""
+msgstr "GENE - Go Evtx sigNature Engine"
 
 #: Model/Attribute.php:3632
 msgid "Kusto query - Kusto from Microsoft Azure is a service for storing and running interactive analytics over Big Data."
-msgstr ""
+msgstr "Kusto query - Kusto จาก Microsoft Azure เป็นบริการสำหรับจัดเก็บและเรียกใช้การวิเคราะห์เชิงโต้ตอบผ่าน Big Data"
 
 #: Model/Attribute.php:3633
 msgid "A media type (also MIME type and content type) is a two-part identifier for file formats and format contents transmitted on the Internet"
-msgstr ""
+msgstr "ประเภทสื่อ (เช่นประเภท MIME และประเภทเนื้อหา) เป็นตัวระบุสองส่วนสำหรับรูปแบบไฟล์และเนื้อหารูปแบบที่ส่งบนอินเทอร์เน็ต"
 
 #: Model/Attribute.php:3634
 msgid "Identity card number"
-msgstr ""
+msgstr "เลขบัตรประจำตัว"
 
 #: Model/Attribute.php:3635
 msgid "HTTP cookie as often stored on the user web client. This can include authentication cookie or session cookie."
-msgstr ""
+msgstr "HTTP cookie ที่มักจะจัดเก็บไว้ในเว็บไคลเอ็นต์ของผู้ใช้ ซึ่งอาจรวมถึงคุกกี้รับรองความถูกต้องหรือคุกกี้เซสชัน"
 
 #: Model/Attribute.php:3636
 msgid "A reference to the vulnerability used in the exploit"
-msgstr ""
+msgstr "การอ้างอิงถึงช่องโหว่ที่ใช้ในการหาช่องโหว่"
 
 #: Model/Attribute.php:3637
 msgid "Common Platform Enumeration - structured naming scheme for information technology systems, software, and packages."
-msgstr ""
+msgstr "Common Platform Enumeration - โครงร่างการตั้งชื่อที่มีโครงสร้างสำหรับระบบเทคโนโลยีสารสนเทศ ซอฟต์แวร์ และแพ็คเกจ"
 
 #: Model/Attribute.php:3638
 msgid "A reference to the weakness used in the exploit"
-msgstr ""
+msgstr "การอ้างอิงถึงจุดอ่อนที่ใช้ในการ exploit"
 
 #: Model/Attribute.php:3639
 msgid "Attachment with external information"
-msgstr ""
+msgstr "เอกสารแนบพร้อมข้อมูลภายนอก"
 
 #: Model/Attribute.php:3639;3640
 msgid "Please upload files using the <em>Upload Attachment</em> button."
-msgstr ""
+msgstr "โปรดอัปโหลดไฟล์โดยใช้ปุ่ม <em>อัปโหลดไฟล์แนบ</em>"
 
 #: Model/Attribute.php:3640
 msgid "Attachment containing encrypted malware sample"
-msgstr ""
+msgstr "ไฟล์แนบที่มีตัวอย่างมัลแวร์เข้ารหัส"
 
 #: Model/Attribute.php:3641
 msgid "Link to an external information"
-msgstr ""
+msgstr "ลิงค์ไปยังข้อมูลภายนอก"
 
 #: Model/Attribute.php:3642
 msgid "Comment or description in a human language"
-msgstr ""
+msgstr "ความคิดเห็นหรือคำอธิบายในภาษาที่เข้าใจง่าย"
 
 #: Model/Attribute.php:3642
 msgid "Comment or description in a human language.  This will not be correlated with other attributes"
-msgstr ""
+msgstr "ความคิดเห็นหรือคำอธิบายในภาษาที่เข้าใจง่าย สิ่งนี้จะไม่สัมพันธ์กับคุณสมบัติอื่น ๆ"
 
 #: Model/Attribute.php:3643
 msgid "Name, ID or a reference"
-msgstr ""
+msgstr "ชื่อ ID หรือการอ้างอิง"
 
 #: Model/Attribute.php:3644
 msgid "A value in hexadecimal format"
-msgstr ""
+msgstr "ค่าในรูปแบบเลขฐานสิบหก"
 
 #: Model/Attribute.php:3645
 msgid "Other attribute"
-msgstr ""
+msgstr "แอตทริบิวต์อื่น ๆ"
 
 #: Model/Attribute.php:3646
 msgid "Named pipe, use the format \\.\\pipe\\<PipeName>"
-msgstr ""
+msgstr "Named pipe, ใช้รูปแบบ \\.\\pipe\\<PipeName>"
 
 #: Model/Attribute.php:3647
 msgid "Mutex, use the format \\BaseNamedObjects\\<Mutex>"
-msgstr ""
+msgstr "Mutex, ใช้รูปแบบ \\BaseNamedObjects\\<Mutex>"
 
 #: Model/Attribute.php:3648
 msgid "State of a process"
-msgstr ""
+msgstr "สถานะของกระบวนการ"
 
 #: Model/Attribute.php:3649
 msgid "Attack Targets Username(s)"
-msgstr ""
+msgstr "ชื่อผู้ใช้ที่เป็นเป้าหมายการโจมตี"
 
 #: Model/Attribute.php:3650
 msgid "Attack Targets Email(s)"
-msgstr ""
+msgstr "อีเมลที่เป็นเป้าหมายการโจมตี"
 
 #: Model/Attribute.php:3651
 msgid "Attack Targets Machine Name(s)"
-msgstr ""
+msgstr "ชื่อเครื่องที่เป็นเป้าหมายการโจมตี"
 
 #: Model/Attribute.php:3652
 msgid "Attack Targets Department or Organization(s)"
-msgstr ""
+msgstr "หน่วยงานหรือองค์กรที่เป็นเป้าหมายการโจมตี"
 
 #: Model/Attribute.php:3653
 msgid "Attack Targets Physical Location(s)"
-msgstr ""
+msgstr "ตำแหน่งทางกายภาพที่เป็นเป้าหมายการโจมตี"
 
 #: Model/Attribute.php:3654
 msgid "External Target Organizations Affected by this Attack"
-msgstr ""
+msgstr "องค์กรเป้าหมายภายนอกที่ได้รับผลกระทบจากการโจมตีครั้งนี้"
 
 #: Model/Attribute.php:3655
 msgid "Bitcoin Address"
-msgstr ""
+msgstr "บัญชีบิทคอยน์"
 
 #: Model/Attribute.php:3656
 msgid "Dash Address"
-msgstr ""
+msgstr "บัญชีแดสช์"
 
 #: Model/Attribute.php:3657
 msgid "Monero Address"
-msgstr ""
+msgstr "บัญชี Monero"
 
 #: Model/Attribute.php:3658
 msgid "International Bank Account Number"
-msgstr ""
+msgstr "หมายเลขบัญชีธนาคารระหว่างประเทศ"
 
 #: Model/Attribute.php:3659
 msgid "Bank Identifier Code Number also known as SWIFT-BIC, SWIFT code or ISO 9362 code"
-msgstr ""
+msgstr "หมายเลขรหัสระบุธนาคารหรือที่เรียกว่า SWIFT-BIC, รหัส SWIFT หรือรหัส ISO 9362"
 
 #: Model/Attribute.php:3660
 msgid "Bank account number without any routing number"
-msgstr ""
+msgstr "หมายเลขบัญชีธนาคารที่ไม่มีหมายเลขเส้นทาง"
 
 #: Model/Attribute.php:3661
 msgid "ABA routing transit number"
-msgstr ""
+msgstr "หมายเลขเส้นทางของ ABA routing"
 
 #: Model/Attribute.php:3662
 msgid "Bank Identification Number"
-msgstr ""
+msgstr "หมายเลขระบุทางธนาคาร"
 
 #: Model/Attribute.php:3663
 msgid "Credit-Card Number"
-msgstr ""
+msgstr "หมายเลขบัตรเครดิต"
 
 #: Model/Attribute.php:3664
 msgid "Premium-Rate Telephone Number"
-msgstr ""
+msgstr "หมายเลขโทรศัพท์อัตราพิเศษ"
 
 #: Model/Attribute.php:3665
 msgid "Telephone Number"
-msgstr ""
+msgstr "หมายเลขโทรศัพท์"
 
 #: Model/Attribute.php:3666
 msgid "A string identifying the threat actor"
-msgstr ""
+msgstr "สตริงระบุตัวผู้คุกคาม"
 
 #: Model/Attribute.php:3667
 msgid "Associated campaign name"
-msgstr ""
+msgstr "ชื่อแคมเปญที่เกี่ยวข้อง"
 
 #: Model/Attribute.php:3668
 msgid "Associated campaign ID"
-msgstr ""
+msgstr "รหัสแคมเปญที่เกี่ยวข้อง"
 
 #: Model/Attribute.php:3670
 msgid "Uniform Resource Identifier"
-msgstr ""
+msgstr "Uniform Resource Identifier"
 
 #: Model/Attribute.php:3671
 msgid "Authenticode executable signature hash"
-msgstr ""
+msgstr "แฮช Authenticode executable signature"
 
 #: Model/Attribute.php:3671
 msgid "You are encouraged to use filename|authentihash instead. Authenticode executable signature hash, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|authentihash แทน แฮช Authenticode executable signature ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3672
 msgid "A VirusTotal checksum"
-msgstr ""
+msgstr "เช็คซัม VirusTotal"
 
 #: Model/Attribute.php:3672
 msgid "You are encouraged to use filename|vhash instead. A checksum from VirusTotal, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช filename|vhash แทน เช็คซัมจาก VirusTotal ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3673;3691
 msgid "A checksum in ssdeep format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ ssdeep"
 
 #: Model/Attribute.php:3673
 msgid "You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|ssdeep แทน เช็คซัมในรูปแบบ SSDeep ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3674;3692
 msgid "Import hash - a hash created based on the imports in the sample."
-msgstr ""
+msgstr "แฮชนำเข้า - แฮชที่สร้างขึ้นตามการนำเข้าในตัวอย่าง"
 
 #: Model/Attribute.php:3674
 msgid "You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช filename|imphash แทน แฮชที่สร้างขึ้นตามการนำเข้าในตัวอย่าง ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3675
 msgid "telfhash is symbol hash for ELF files, just like imphash is imports hash for PE files."
-msgstr ""
+msgstr "telfhash เป็นสัญลักษณ์แฮชสำหรับไฟล์ ELF เช่นเดียวกับ imphash นำเข้าแฮชสำหรับไฟล์ PE"
 
 #: Model/Attribute.php:3675
 msgid "You are encouraged to use a file object with telfash"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ file object กับtelfash"
 
 #: Model/Attribute.php:3676
 msgid "PEhash - a hash calculated based of certain pieces of a PE executable file"
-msgstr ""
+msgstr "PEhash - แฮชที่คำนวณจากไฟล์ปฏิบัติการ PE บางชิ้น"
 
 #: Model/Attribute.php:3677
 msgid "A fuzzy hash of import table of Portable Executable format"
-msgstr ""
+msgstr "fuzzy hash ของตารางนำเข้าของ Portable Executable format"
 
 #: Model/Attribute.php:3677
 msgid "You are encouraged to use filename|impfuzzy instead. A fuzzy hash created based on the imports in the sample, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช filename|impfuzzy แทน แฮชแบบคลุมเครือที่สร้างขึ้นตามการนำเข้าในตัวอย่าง ใช้สิ่งนี้หากคุณไม่ทราบชื่อไฟล์ที่ถูกต้องเท่านั้น"
 
 #: Model/Attribute.php:3678
 msgid "A checksum in sha-224 format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ sha-224"
 
 #: Model/Attribute.php:3678
 msgid "You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|sha224 แทน เช็คซัมในรูปแบบ sha224 ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3679
 msgid "A checksum in sha-384 format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ sha-384"
 
 #: Model/Attribute.php:3679
 msgid "You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|sha384 แทน เช็คซัมในรูปแบบ sha384 ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3680
 msgid "A checksum in sha-512 format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ sha-512"
 
 #: Model/Attribute.php:3680
 msgid "You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|sha512 แทน เช็คซัมในรูปแบบ sha512 ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3681
 msgid "A checksum in the sha-512/224 format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ sha-512/224"
 
 #: Model/Attribute.php:3681
 msgid "You are encouraged to use filename|sha512/224 instead. A checksum in sha512/224 format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|sha512/224 แทน เช็คซัมในรูปแบบ sha512/224 ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3682
 msgid "A checksum in the sha-512/256 format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ sha-512/256"
 
 #: Model/Attribute.php:3682
 msgid "You are encouraged to use filename|sha512/256 instead. A checksum in sha512/256 format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช filename|sha512/256 แทน เช็คซัมในรูปแบบ sha512/256 ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3683
 msgid "A checksum in sha3-224 format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ sha3-224"
 
 #: Model/Attribute.php:3683
 msgid "You are encouraged to use filename|sha3-224 instead. A checksum in sha3-224 format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|sha3-224 แทน เช็คซัมในรูปแบบ sha3-224 ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3684
 msgid "A checksum in sha3-256 format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ sha3-256"
 
 #: Model/Attribute.php:3684
 msgid "You are encouraged to use filename|sha3-256 instead. A checksum in sha3-256 format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|sha3-256 แทน เช็คซัมในรูปแบบ sha3-256 ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3685
 msgid "A checksum in sha3-384 format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ sha3-384"
 
 #: Model/Attribute.php:3685
 msgid "You are encouraged to use filename|sha3-384 instead. A checksum in sha3-384 format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|sha3-384 แทน เช็คซัมในรูปแบบ sha3-384 ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3686
 msgid "A checksum in sha3-512 format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบ sha3-512"
 
 #: Model/Attribute.php:3686
 msgid "You are encouraged to use filename|sha3-512 instead. A checksum in sha3-512 format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|sha3-512 แทน เช็คซัมในรูปแบบ sha3-512 ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้อง"
 
 #: Model/Attribute.php:3687
 msgid "A checksum in the Trend Micro Locality Sensitive Hash format"
-msgstr ""
+msgstr "เช็คซัมในรูปแบบแฮชของ Trend Micro Locality Sensitive"
 
 #: Model/Attribute.php:3687
 msgid "You are encouraged to use filename|tlsh instead. A checksum in the Trend Micro Locality Sensitive Hash format, only use this if you don't know the correct filename"
-msgstr ""
+msgstr "ขอแนะนำให้ใช้ filename|tlsh แทน Checksum ในรูปแบบ Trend Micro Locality Sensitive Hash ใช้เฉพาะเมื่อคุณไม่ทราบชื่อไฟล์ที่ถูกต้องเท่านั้น"
 
 #: Model/Attribute.php:3688
 msgid "An Apple Code Directory Hash, identifying a code-signed Mach-O executable file"
-msgstr ""
+msgstr "Apple Code Directory Hash ระบุไฟล์ปฏิบัติการ Mach-O ที่ลงนามด้วยรหัส"
 
 #: Model/Attribute.php:3690
 msgid "A filename and a VirusTotal hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช VirusTotal คั่นด้วย |"
 
 #: Model/Attribute.php:3693
 msgid "Import fuzzy hash - a fuzzy hash created based on the imports in the sample."
-msgstr ""
+msgstr "Import fuzzy hash - fuzzy hash สร้างขึ้นตามการนำเข้าในตัวอย่าง"
 
 #: Model/Attribute.php:3694
 msgid "A filename and a PEhash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และ PEhash คั่นด้วย |"
 
 #: Model/Attribute.php:3695
 msgid "A filename and a sha-224 hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha-224 คั่นด้วย |"
 
 #: Model/Attribute.php:3696
 msgid "A filename and a sha-384 hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha-384 คั่นด้วย |"
 
 #: Model/Attribute.php:3697
 msgid "A filename and a sha-512 hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha-512 คั่นด้วย |"
 
 #: Model/Attribute.php:3698
 msgid "A filename and a sha-512/224 hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha-512/224 คั่นด้วย |"
 
 #: Model/Attribute.php:3699
 msgid "A filename and a sha-512/256 hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha-512/256 คั่นด้วย |"
 
 #: Model/Attribute.php:3700
 msgid "A filename and an sha3-224 hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha3-224 คั่นด้วย |"
 
 #: Model/Attribute.php:3701
 msgid "A filename and an sha3-256 hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha3-256 คั่นด้วย |"
 
 #: Model/Attribute.php:3702
 msgid "A filename and an sha3-384 hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha3-384 คั่นด้วย |"
 
 #: Model/Attribute.php:3703
 msgid "A filename and an sha3-512 hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และแฮช sha3-512 คั่นด้วย |"
 
 #: Model/Attribute.php:3704
 msgid "A filename and a Trend Micro Locality Sensitive Hash separated by a |"
-msgstr ""
+msgstr "ชื่อไฟล์และ Trend Micro Locality Sensitive Hash คั่นด้วย |"
 
 #: Model/Attribute.php:3705
 msgid "A scheduled task in windows"
-msgstr ""
+msgstr "งานที่กำหนดเวลาไว้ใน windows"
 
 #: Model/Attribute.php:3706
 msgid "A windows service name. This is the name used internally by windows. Not to be confused with the windows-service-displayname."
-msgstr ""
+msgstr "ชื่อบริการของ windows คือชื่อที่ใช้ภายในโดย windows, ระวังสับสนกับ windows-service-displayname"
 
 #: Model/Attribute.php:3707
 msgid "A windows service's displayname, not to be confused with the windows-service-name. This is the name that applications will generally display as the service's name in applications."
-msgstr ""
+msgstr "ชื่อที่แสดงของ windows service เพื่อไม่ให้สับสนกับ windows-service-name นี่คือชื่อที่แอปพลิเคชันมักจะแสดงเป็นชื่อของบริการในแอปพลิเคชัน"
 
 #: Model/Attribute.php:3708
 msgid "The e-mail of a domain's registrant, obtained from the WHOIS information."
-msgstr ""
+msgstr "อีเมลของผู้ลงทะเบียนโดเมนที่ได้รับจากข้อมูล WHOIS"
 
 #: Model/Attribute.php:3709
 msgid "The phone number of a domain's registrant, obtained from the WHOIS information."
-msgstr ""
+msgstr "หมายเลขโทรศัพท์ของผู้จดทะเบียนโดเมน ซึ่งได้มาจากข้อมูล WHOIS"
 
 #: Model/Attribute.php:3710
 msgid "The name of a domain's registrant, obtained from the WHOIS information."
-msgstr ""
+msgstr "ชื่อของผู้จดทะเบียนโดเมน ได้มาจากข้อมูล WHOIS"
 
 #: Model/Attribute.php:3711
 msgid "The org of a domain's registrant, obtained from the WHOIS information."
-msgstr ""
+msgstr "องค์กรของผู้จดทะเบียนโดเมน ได้มาจากข้อมูล WHOIS"
 
 #: Model/Attribute.php:3712
 msgid "The registrar of the domain, obtained from the WHOIS information."
-msgstr ""
+msgstr "ผู้รับจดทะเบียนโดเมนที่ได้รับจากข้อมูล WHOIS"
 
 #: Model/Attribute.php:3713
 msgid "The date of domain's creation, obtained from the WHOIS information."
-msgstr ""
+msgstr "วันที่สร้างโดเมน ได้มาจากข้อมูล WHOIS"
 
 #: Model/Attribute.php:3718
 msgid "X509 fingerprint in SHA-1 format"
-msgstr ""
+msgstr "X509 fingerprint ในรูปแบบ SHA-1"
 
 #: Model/Attribute.php:3719
 msgid "X509 fingerprint in MD5 format"
-msgstr ""
+msgstr "X509 fingerprint ในรูปแบบ MD5"
 
 #: Model/Attribute.php:3720
 msgid "X509 fingerprint in SHA-256 format"
-msgstr ""
+msgstr "X509 fingerprint ในรูปแบบ SHA-256"
 
 #: Model/Attribute.php:3721
 msgid "RFC1035 mandates that DNS zones should have a SOA (Statement Of Authority) record that contains an email address where a PoC for the domain could be contacted. This can sometimes be used for attribution/linkage between different domains even if protected by whois privacy"
-msgstr ""
+msgstr "RFC1035 กำหนดให้โซน DNS ควรมีบันทึก SOA (Statement Of Authority) ที่มีที่อยู่อีเมลที่สามารถติดต่อ PoC สำหรับโดเมนได้ บางครั้งสามารถใช้เพื่อระบุแหล่งที่มา/เชื่อมโยงระหว่างโดเมนต่างๆ แม้ว่าจะได้รับการคุ้มครองโดยความเป็นส่วนตัวของใครก็ตาม"
 
 #: Model/Attribute.php:3722
 msgid "Size expressed in bytes"
-msgstr ""
+msgstr "ขนาดแสดงในหน่วยไบต์"
 
 #: Model/Attribute.php:3723
 msgid "An integer counter, generally to be used in objects"
-msgstr ""
+msgstr "ตัวนับจำนวนเต็ม โดยทั่วไปจะใช้ในอ็อบเจกต์"
 
 #: Model/Attribute.php:3724
 msgid "Datetime in the ISO 8601 format"
-msgstr ""
+msgstr "วันที่และเวลาในรูปแบบ ISO 8601"
 
 #: Model/Attribute.php:3725
 msgid "Port number"
-msgstr ""
+msgstr "หมายเลขพอร์ต"
 
 #: Model/Attribute.php:3726
 msgid "IP destination and port number separated by a |"
-msgstr ""
+msgstr "IP ปลายทาง และหมายเลขพอร์ตคั่นด้วย |"
 
 #: Model/Attribute.php:3727
 msgid "IP source and port number separated by a |"
-msgstr ""
+msgstr "IP ต้นทาง และหมายเลขพอร์ตคั่นด้วย |"
 
 #: Model/Attribute.php:3728
 msgid "Hostname and port number separated by a |"
-msgstr ""
+msgstr "ชื่อโฮสต์และหมายเลขพอร์ตคั่นด้วย |"
 
 #: Model/Attribute.php:3729
 msgid "Mac address"
-msgstr ""
+msgstr "ที่อยู่ MAC"
 
 #: Model/Attribute.php:3730
 msgid "Mac EUI-64 address"
-msgstr ""
+msgstr "ที่อยู่ Mac EUI-64"
 
 #: Model/Attribute.php:3732
 msgid "Email destination display name"
-msgstr ""
+msgstr "ชื่อที่แสดงของอีเมลปลายทาง"
 
 #: Model/Attribute.php:3733
 msgid "Email source display name"
-msgstr ""
+msgstr "ชื่อที่แสดงที่มาของอีเมล"
 
 #: Model/Attribute.php:3734
 msgid "Email header"
-msgstr ""
+msgstr "ส่วนหัวอีเมล"
 
 #: Model/Attribute.php:3735
 msgid "Email reply to header"
-msgstr ""
+msgstr "ส่วนหัวอีเมลตอบกลับ"
 
 #: Model/Attribute.php:3736
 msgid "Email x-mailer header"
-msgstr ""
+msgstr "ส่วนหัวอีเมล x-mailer"
 
 #: Model/Attribute.php:3737
 msgid "The email mime boundary separating parts in a multipart email"
-msgstr ""
+msgstr "ขอบเขต mime ของอีเมลที่แยกส่วนต่างๆ ในอีเมลที่มีหลายส่วน"
 
 #: Model/Attribute.php:3738
 msgid "The email thread index header"
-msgstr ""
+msgstr "The email thread index header"
 
 #: Model/Attribute.php:3739
 msgid "The email message ID"
-msgstr ""
+msgstr "ID ข้อความอีเมล"
 
 #: Model/Attribute.php:3740
 msgid "A github user name"
-msgstr ""
+msgstr "ชื่อผู้ใช้ github"
 
 #: Model/Attribute.php:3741
 msgid "A github repository"
-msgstr ""
+msgstr "ที่เก็บบน github"
 
 #: Model/Attribute.php:3742
 msgid "A github organisation"
-msgstr ""
+msgstr "องค์กรบน GitHub"
 
 #: Model/Attribute.php:3743
 msgid "Jabber ID"
-msgstr ""
+msgstr "Jabber ID"
 
 #: Model/Attribute.php:3744
 msgid "Twitter ID"
-msgstr ""
+msgstr "Twitter ID"
 
 #: Model/Attribute.php:3745
 msgid "DKIM public key"
-msgstr ""
+msgstr "กุญแจสาธารณะ DKIM"
 
 #: Model/Attribute.php:3746
 msgid "DKIM signature"
-msgstr ""
+msgstr "DKIM signature"
 
 #: Model/Attribute.php:3747
 msgid "First name of a natural person"
-msgstr ""
+msgstr "ชื่อบุคคลธรรมดา"
 
 #: Model/Attribute.php:3748
 msgid "Middle name of a natural person"
-msgstr ""
+msgstr "ชื่อกลางของบุคคลธรรมดา"
 
 #: Model/Attribute.php:3749
 msgid "Last name of a natural person"
-msgstr ""
+msgstr "นามสกุลของบุคคลธรรมดา"
 
 #: Model/Attribute.php:3750
 msgid "Full name of a natural person"
-msgstr ""
+msgstr "ชื่อเต็มของบุคคลธรรมดา"
 
 #: Model/Attribute.php:3751
 msgid "Date of birth of a natural person (in YYYY-MM-DD format)"
-msgstr ""
+msgstr "วันเดือนปีเกิดของบุคคลธรรมดา (ในรูปแบบ YYYY-MM-DD)"
 
 #: Model/Attribute.php:3752
 msgid "Place of birth of a natural person"
-msgstr ""
+msgstr "สถานที่เกิดของบุคคลธรรมดา"
 
 #: Model/Attribute.php:3753
 msgid "The gender of a natural person (Male, Female, Other, Prefer not to say)"
-msgstr ""
+msgstr "เพศของบุคคลธรรมดา (ชาย, หญิง, อื่นๆ, ไม่เปิดเผย)"
 
 #: Model/Attribute.php:3754
 msgid "The passport number of a natural person"
-msgstr ""
+msgstr "หมายเลขหนังสือเดินทางของบุคคลธรรมดา"
 
 #: Model/Attribute.php:3755
 msgid "The country in which the passport was issued"
-msgstr ""
+msgstr "ประเทศที่ออกหนังสือเดินทาง"
 
 #: Model/Attribute.php:3756
 msgid "The expiration date of a passport"
-msgstr ""
+msgstr "วันหมดอายุของหนังสือเดินทาง"
 
 #: Model/Attribute.php:3757
 msgid "The Redress Control Number is the record identifier for people who apply for redress through the DHS Travel Redress Inquiry Program (DHS TRIP). DHS TRIP is for travelers who have been repeatedly identified for additional screening and who want to file an inquiry to have erroneous information corrected in DHS systems"
-msgstr ""
+msgstr "หมายเลขควบคุมการชดใช้เป็นตัวระบุเรกคอร์ดสำหรับผู้ที่สมัครขอรับการชดใช้ผ่านโปรแกรมสอบถามการชดใช้การเดินทางของ DHS (DHS TRIP) DHS TRIP สำหรับผู้เดินทางที่ได้รับการระบุซ้ำสำหรับการตรวจคัดกรองเพิ่มเติมและผู้ที่ต้องการยื่นคำร้องเพื่อแก้ไขข้อมูลที่ผิดพลาดในระบบ DHS"
 
 #: Model/Attribute.php:3758
 msgid "The nationality of a natural person"
-msgstr ""
+msgstr "สัญชาติของบุคคลธรรมดา"
 
 #: Model/Attribute.php:3759
 msgid "Visa number"
-msgstr ""
+msgstr "หมายเลขวีซ่า"
 
 #: Model/Attribute.php:3760
 msgid "The date on which the visa was issued"
-msgstr ""
+msgstr "วันที่ออกวีซ่า"
 
 #: Model/Attribute.php:3761
 msgid "The primary residence of a natural person"
-msgstr ""
+msgstr "ที่อยู่อาศัยหลักของบุคคลธรรมดา"
 
 #: Model/Attribute.php:3762
 msgid "The country of residence of a natural person"
-msgstr ""
+msgstr "ประเทศที่พำนักของบุคคลธรรมดา"
 
 #: Model/Attribute.php:3763
 msgid "A Special Service Request is a function to an airline to provide a particular facility for A Passenger or passengers. "
-msgstr ""
+msgstr "คำขอบริการพิเศษเป็นหน้าที่ของสายการบินในการจัดหาสิ่งอำนวยความสะดวกเฉพาะสำหรับผู้โดยสารหรือผู้โดยสาร "
 
 #: Model/Attribute.php:3764
 msgid "The frequent flyer number of a passenger"
-msgstr ""
+msgstr "จำนวนผู้โดยสารที่บินบ่อย"
 
 #: Model/Attribute.php:3767
 msgid "Travel details"
-msgstr ""
+msgstr "รายละเอียดการเดินทาง"
 
 #: Model/Attribute.php:3768
 msgid "Payment details"
-msgstr ""
+msgstr "รายละเอียดการจ่ายเงิน"
 
 #: Model/Attribute.php:3769
 msgid "The original port of embarkation"
-msgstr ""
+msgstr "ท่าเรือต้นทาง"
 
 #: Model/Attribute.php:3770
 msgid "The port of clearance"
-msgstr ""
+msgstr "ท่าเทียบเรือ"
 
 #: Model/Attribute.php:3771
 msgid "A Port where the passenger is transiting to"
-msgstr ""
+msgstr "ท่าเรือที่ผู้โดยสารกำลังจะเปลี่ยนเครื่องไปยัง"
 
 #: Model/Attribute.php:3772
 msgid "The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers."
-msgstr ""
+msgstr "ตัวระบุตำแหน่งบันทึกชื่อผู้โดยสารคือกุญแจสำหรับบันทึกการจองการเดินทางในระบบ PNR ประกอบด้วยชื่อ ส่วนเที่ยวบิน และที่อยู่ของผู้โดยสาร มันถูกกำหนดโดยการรวมกันของห้าหรือหกตัวอักษรและตัวเลข"
 
 #: Model/Attribute.php:3773
 msgid "The application id of a mobile application"
-msgstr ""
+msgstr "รหัสแอปพลิเคชันของแอปพลิเคชันมือถือ"
 
 #: Model/Attribute.php:3774
 msgid "Chrome extension id"
-msgstr ""
+msgstr "รหัสส่วนขยายของ Chrome"
 
 #: Model/Attribute.php:3775
 msgid "Cortex analysis result"
-msgstr ""
+msgstr "ผลการวิเคราะห์คอร์เทกซ์"
 
 #: Model/Attribute.php:3776
 msgid "Boolean value - to be used in objects"
-msgstr ""
+msgstr "ค่าบูลีน - เพื่อใช้ในอ็อบเจกต์"
 
 #: Model/Attribute.php:3777
 msgid "Anonymised value - described with the anonymisation object via a relationship"
-msgstr ""
+msgstr "ค่าที่ไม่ระบุชื่อ - อธิบายด้วยออบเจ็กต์การไม่ระบุชื่อผ่านความสัมพันธ์"
 
 #: Model/Attribute.php:3777
 msgid "Anonymised value - described with the anonymisation object via a relationship."
-msgstr ""
+msgstr "ค่าที่ไม่ระบุชื่อ - อธิบายด้วยออบเจ็กต์การไม่ระบุชื่อผ่านความสัมพันธ์"
 
 #: Model/AuditLog.php:113;123
 #: View/Attributes/ajax/tagRemoveConfirmation.ctp:8
 #: View/Servers/id_translator.ctp:22
 msgid "local"
-msgstr ""
+msgstr "ในเครื่อง"
 
 #: Model/AuditLog.php:113;123
 #: View/Attributes/ajax/tagRemoveConfirmation.ctp:8
 msgid "global"
-msgstr ""
+msgstr "ทั้งหมด"
 
 #: Model/AuditLog.php:115
 msgid "Attached %s tag \"%s\" to %s #%s"
-msgstr ""
+msgstr "แนบ %s แท็ก \"%s\" กับ %s #%s"
 
 #: Model/AuditLog.php:117
 msgid "Detached %s tag \"%s\" from %s #%s"
-msgstr ""
+msgstr "แยก %s แท็ก \"%s\" กับ %s #%s"
 
 #: Model/AuditLog.php:125
 msgid "Attached %s galaxy cluster \"%s\" to %s #%s"
-msgstr ""
+msgstr "แนบ %s กาแลคซีคลัสเตอร์ \"%s\" กับ %s #%s"
 
 #: Model/AuditLog.php:127
 msgid "Detached %s galaxy cluster \"%s\" from %s #%s"
-msgstr ""
+msgstr "แยก %s กาแลคซีคลัสเตอร์ \"%s\" กับ %s #%s"
 
 #: Model/AuditLog.php:133
 msgid "%s from Event #%s"
-msgstr ""
+msgstr "%s จากเหตุการณ์ #%s"
 
 #: Model/AuthKey.php:79
 msgid "Expiration must be in YYYY-MM-DD format."
-msgstr ""
+msgstr "วันหมดอายุต้องอยู่ในรูปแบบ YYYY-MM-DD"
 
 #: Model/AuthKey.php:82
 msgid "Maximal key validity is %s days."
-msgstr ""
+msgstr "อายุการใช้งานของคีย์สูงสุดคือ %s วัน"
 
 #: Model/AuthKey.php:219
 msgid "Created by resetting auth key %s\n"
 "%s"
-msgstr ""
+msgstr "สร้างโดยรีเซ็ตคียคีย์ตรวจสอบสิทธิ์ %s\n"
+"%s"
 
 #: Model/Cerebrate.php:55
 msgid "Something went wrong. Error returned: %s"
-msgstr ""
+msgstr "มีบางอย่างผิดพลาด ข้อผิดพลาดที่พบ: %s"
 
 #: Model/Cerebrate.php:58
 msgid "Authentication failed."
-msgstr ""
+msgstr "การยืนยันตัวนไม่สำเร็จ"
 
 #: Model/Cerebrate.php:60
 msgid "Something went wrong with the request or the remote side is having issues."
-msgstr ""
+msgstr "มีบางอย่างผิดปกติกับคำขอหรือทางฝั่งระยะไกลมีปัญหา"
 
 #: Model/Cerebrate.php:202;423
 msgid "The organisation could not be saved."
-msgstr ""
+msgstr "ไม่สามารถบันทึกองค์กรได้"
 
 #: Model/Cerebrate.php:209
 msgid "The retrieved data isn't a valid organisation."
-msgstr ""
+msgstr "ข้อมูลที่เรียกมาไม่ใช่องค์กรที่ถูกต้อง"
 
 #: Model/Cerebrate.php:425
 msgid "The retrieved data isn't a valid sharing group."
-msgstr ""
+msgstr "ข้อมูลทเรียกมาไม่ใช่กลุ่มการแบ่งปันที่ถูกต้อง"
 
 #: Model/Community.php:26;67
 msgid "Default community list not found."
-msgstr ""
+msgstr "ไม่พบรายชื่อชุมชนเริ่มต้น"
 
 #: Model/Community.php:30;71
 msgid "Default community list empty."
-msgstr ""
+msgstr "รายการชุมชนเริ่มต้นว่างเปล่า"
 
 #: Model/Community.php:35;76
 msgid "Default community list not in the expected format."
-msgstr ""
+msgstr "รายการชุมชนเริ่มต้นไม่อยู่ในรูปแบบที่คาดไว้"
 
 #: Model/Community.php:93
 msgid "Community not found."
-msgstr ""
+msgstr "ไม่พบชุมชน"
 
 #: Model/Correlation.php:230
 msgid "Correlating Attributes based on value. %s attributes correlated out of %s."
-msgstr ""
+msgstr "แอตทริบิวต์ที่สัมพันธ์กันตามค่า แอตทริบิวต์ %s สัมพันธ์กันจาก %s"
 
 #: Model/Correlation.php:625
 msgid "No redis connection found."
-msgstr ""
+msgstr "ไม่พบการเชื่อมต่อ redis"
 
 #: Model/Correlation.php:668
 msgid "Generating top correlations. Processed %s IDs."
-msgstr ""
+msgstr "สร้างความสัมพันธ์สูงสุด ประมวลผล %s ID แล้ว"
 
 #: Model/CorrelationExclusion.php:77
 msgid "Cleaning up excluded correlations."
-msgstr ""
+msgstr "การล้างความสัมพันธ์ทยกเว้น"
 
 #: Model/Dashboard.php:55;64
 msgid "Invalid widget or widget not found."
-msgstr ""
+msgstr "ไม่พบวิดเจ็ตหรือวิดเจ็ตไม่ถูกต้อง"
 
 #: Model/DecayingModel.php:162
 msgid "Models could not be loaded or default decaying models folder is empty"
-msgstr ""
+msgstr "ไม่สามารถโหลดโมเดลหรือโฟลเดอร์โมเดลความเสื่อมเริ่มต้นว่างเปล่า"
 
 #: Model/DecayingModel.php:368
 msgid "No tags nor predicates with `numerical_value`"
-msgstr ""
+msgstr "ไม่มีแท็กหรือ predicates ที่มี `numerical_value`"
 
 #: Model/DecayingModel.php:375
 msgid "No predicate"
-msgstr ""
+msgstr "ไม่มี predicates"
 
 #: Model/DecayingModel.php:453
 msgid "The class for `%s` was not found or not loaded correctly"
-msgstr ""
+msgstr "ไม่พบคลาสสำหรับ `%s` หรือโหลดไม่ถูกต้อง"
 
 #: Model/Event.php:279
 msgid "Click this to download all events and attributes that you have access to in MISP JSON format."
-msgstr ""
+msgstr "คลิกที่นี่เพื่อดาวน์โหลดเหตุการณ์และแอตทริบิวต์ทั้งหมดที่คุณมีสิทธิ์เข้าถึงในรูปแบบ MISP JSON"
 
 #: Model/Event.php:287
 msgid "Click this to download all events and attributes that you have access to in MISP XML format."
-msgstr ""
+msgstr "คลิกที่นี่เพื่อดาวน์โหลดเหตุการณ์และแอตทริบิวต์ทั้งหมดที่คุณมีสิทธิ์เข้าถึงในรูปแบบ MISP XML"
 
 #: Model/Event.php:295
 #: View/Events/export_alternate.ctp:19
 msgid "Click this to download all attributes that are indicators and that you have access to (except file attachments) in CSV format."
-msgstr ""
+msgstr "คลิกที่นี่เพื่อดาวน์โหลดแอตทริบิวต์ทั้งหมดที่เป็นตัวบ่งชี้และคุณมีสิทธิ์เข้าถึง (ยกเว้นไฟล์แนบ) ในรูปแบบ CSV"
 
 #: Model/Event.php:303
 #: View/Events/export_alternate.ctp:26
 msgid "Click this to download all attributes that you have access to (except file attachments) in CSV format."
-msgstr ""
+msgstr "คลิกที่นี่เพื่อดาวน์โหลดแอตทริบิวต์ทั้งหมดที่คุณมีสิทธิ์เข้าถึง (ยกเว้นไฟล์แนบ) ในรูปแบบ CSV"
 
 #: Model/Event.php:311
 msgid "Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export."
-msgstr ""
+msgstr "คลิกที่นี่เพื่อดาวน์โหลดแอตทริบิวต์ที่เกี่ยวข้องกับเครือข่ายทั้งหมดที่คุณสามารถเข้าถึงได้ภายใต้รูปแบบ Suricata rule เฉพาะกิจกรรมที่เผยแพร่และแอตทริบิวต์ที่ทำเครื่องหมายว่าเป็น IDS signature เท่านั้นที่จะถูกส่งออก การดูแลระบบสามารถรักษารายการที่อนุญาตซึ่งมีโฮสต์ ชื่อโดเมน และหมายเลข IP เพื่อแยกออกจากการส่งออก NIDS"
 
 #: Model/Event.php:319
 msgid "Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export."
-msgstr ""
+msgstr "คลิกที่นี่เพื่อดาวน์โหลดแอตทริบิวต์ที่เกี่ยวข้องกับเครือข่ายทั้งหมดที่คุณสามารถเข้าถึงได้ภายใต้รูปแบบ Snort rule เฉพาะกิจกรรมที่เผยแพร่และแอตทริบิวต์ที่ทำเครื่องหมายว่าเป็น IDS signature เท่านั้นที่จะถูกส่งออก การดูแลระบบสามารถรักษารายการที่อนุญาตซึ่งมีโฮสต์ ชื่อโดเมน และหมายเลข IP เพื่อแยกออกจากการส่งออก NIDS"
 
 #: Model/Event.php:327
 msgid "Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export."
-msgstr ""
+msgstr "คลิกที่นี่เพื่อดาวน์โหลดแอตทริบิวต์ที่เกี่ยวข้องกับเครือข่ายทั้งหมดที่คุณสามารถเข้าถึงได้ภายใต้รูปแบบ Bro rule เฉพาะกิจกรรมที่เผยแพร่และแอตทริบิวต์ที่ทำเครื่องหมายว่าเป็น IDS signature เท่านั้นที่จะถูกส่งออก การดูแลระบบสามารถรักษารายการที่อนุญาตซึ่งมีโฮสต์ ชื่อโดเมน และหมายเลข IP เพื่อแยกออกจากการส่งออก NIDS"
 
 #: Model/Event.php:335
 msgid "Click this to download a STIX document containing the STIX version of all events and attributes that you have access to."
-msgstr ""
+msgstr "คลิกที่นี่เพื่อดาวน์โหลดเอกสาร STIX ที่มีรุ่น STIX ของเหตุการณ์และแอตทริบิวต์ทั้งหมดที่คุณมีสิทธิ์เข้าถึง"
 
 #: Model/Event.php:343
 msgid "Click this to download a STIX2 document containing the STIX2 version of all events and attributes that you have access to."
-msgstr ""
+msgstr "คลิกที่นี่เพื่อดาวน์โหลดเอกสาร STIX2 ที่มีรุ่น STIX2 ของเหตุการณ์และแอตทริบิวต์ทั้งหมดที่คุณมีสิทธิ์เข้าถึง"
 
 #: Model/Event.php:351
 #: View/Events/export_alternate.ctp:56
 msgid "Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported."
-msgstr ""
+msgstr "คลิกที่นี่เพื่อดาวน์โหลดไฟล์ RPZ Zone ที่สร้างจาก ip-src/ip-dst ชื่อโฮสต์ โดเมนแอตทริบิวต์ทั้งหมด สิ่งนี้มีประโยชน์สำหรับไฟร์วอลล์ระดับ DNS เฉพาะกิจกรรมที่เผยแพร่และแอตทริบิวต์ที่ทำเครื่องหมายว่าเป็น IDS signature เท่านั้นที่จะถูกส่งออก"
 
 #: Model/Event.php:359
 msgid "Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported."
-msgstr ""
+msgstr "คลิกที่ปุ่มใดปุ่มหนึ่งด้านล่างเพื่อดาวน์โหลดแอตทริบิวต์ทั้งหมดที่มีประเภทการจับคู่ รายการนี้สามารถใช้ป้อนซอฟต์แวร์นิติวิทยาศาสตร์เมื่อค้นหาไฟล์ที่น่าสงสัย เฉพาะเหตุการณ์ที่เผยแพร่และแอตทริบิวต์ที่ทำเครื่องหมายเป็น IDS Signature เท่านั้นที่จะถูกส่งออก"
 
 #: Model/Event.php:367
 msgid "Click this to download Yara rules generated from all relevant attributes."
-msgstr ""
+msgstr "คลิกที่นี่เพื่อดาวน์โหลดง Yara rules ที่สร้างจากแอตทริบิวต์ที่เกี่ยวข้องทั้งหมด"
 
 #: Model/Event.php:375
 msgid "Click this to download Yara rules generated from all relevant attributes. Rules are returned in a JSON format with information about origin (generated or parsed) and validity."
-msgstr ""
+msgstr "คลิกที่นี่เพื่อดาวน์โหลด Yara rules ที่สร้างจากแอตทริบิวต์ที่เกี่ยวข้องทั้งหมด Rules จะถูกส่งคืนในรูปแบบ JSON พร้อมข้อมูลเกี่ยวกับต้นทาง (สร้างหรือแยกวิเคราะห์) และความถูกต้อง"
 
 #: Model/Event.php:393
 msgid "Automatically blocked by deleting event"
-msgstr ""
+msgstr "ถูกบล็อกโดยอัตโนมัติโดยการลบเหตุการณ์"
 
 #: Model/Event.php:1312
 msgid "Remote version does not support event report."
-msgstr ""
+msgstr "เวอร์ชันรีโมตไม่รองรับรายงานเหตุการณ์"
 
 #: Model/Event.php:3129
 msgid "E-mail alerts not sent out during publishing"
-msgstr ""
+msgstr "ไม่ได้ส่งการแจ้งเตือนทางอีเมลในระหว่างการเผยแพร่"
 
 #: Model/Event.php:3186
 msgid "Mails blocked by org alert threshold."
-msgstr ""
+msgstr "เมลถูกบล็อกตามเกณฑ์การแจ้งเตือนขององค์กร"
 
 #: Model/Event.php:3224
 msgid "Mails sent."
-msgstr ""
+msgstr "ส่งเมลแล้ว"
 
 #: Model/Event.php:3607
 msgid "This is not a valid MISP XML file."
-msgstr ""
+msgstr "นี่ไม่ใช่ไฟล์ MISP XML ที่ถูกต้อง"
 
 #: Model/Event.php:3607
 msgid "This is not a valid MISP JSON file."
-msgstr ""
+msgstr "นี่ไม่ใช่ไฟล์ MISP JSON ที่ถูกต้อง"
 
 #: Model/Event.php:4549
 msgid "Publishing sightings."
-msgstr ""
+msgstr "เผยแพร่การพบเห็น"
 
 #: Model/Event.php:4549
 msgid "Publishing %s sightings."
-msgstr ""
+msgstr "กำลังเผยแพร่ %s การพบเห็น"
 
 #: Model/Event.php:5947
 msgid "Event with the same UUID already exists."
-msgstr ""
+msgstr "มีเหตุการณ์ที่มี UUID เดียวกันอยู่แล้ว"
 
 #: Model/Event.php:5953
 msgid "Issues while loading the stix file."
-msgstr ""
+msgstr "ปัญหาขณะโหลดไฟล์ stix"
 
 #: Model/Event.php:5955
 msgid "Issues with the maec library."
-msgstr ""
+msgstr "ปัญหาเกี่ยวกับไลบรารีของ maec"
 
 #: Model/Event.php:5957
 msgid "Issues executing the ingestion script or invalid input."
-msgstr ""
+msgstr "ปัญหาในการเรียกใช้สคริปต์การส่งผ่านข้อมูลหรืออินพุตที่ไม่ถูกต้อง"
 
 #: Model/Event.php:5960
 msgid "Please ask your administrator to"
-msgstr ""
+msgstr "กรุณาขอให้ผู้ดูแลระบบของคุณ"
 
 #: Model/Event.php:5962
 msgid "Please"
-msgstr ""
+msgstr "กรุณา"
 
 #: Model/Event.php:5964
 msgid "check whether the dependencies for STIX are met via the diagnostic tool."
-msgstr ""
+msgstr "ตรวจสอบว่าการขึ้นต่อกันของ STIX ตรงตามเครื่องมือวิเคราะห์หรือไม่"
 
 #: Model/Event.php:6044
 msgid "#"
-msgstr ""
+msgstr "#"
 
 #: Model/Event.php:6053
 msgid "%s not set"
-msgstr ""
+msgstr "%s ไม่ได้ตั้งค่า"
 
 #: Model/Event.php:6313
 msgid "Could not add tags."
-msgstr ""
+msgstr "ไม่สามารถเพิ่มแท็ก"
 
 #: Model/Event.php:6354
 msgid "Processing complete. %s"
-msgstr ""
+msgstr "การประมวลผลเสร็จสมบูรณ์ %s"
 
 #: Model/Event.php:6944
 msgid "%s from another event"
-msgstr ""
+msgstr "%s จากเหตุการณ์อื่น"
 
 #: Model/Event.php:7564
 msgid "Event publish is not banned"
-msgstr ""
+msgstr "เผยแพรเหตุการณ์ไม่ได้ถูกห้าม"
 
 #: Model/Event.php:7584
 msgid "Reason: Could not reach redis to chech republish emailing ban status."
-msgstr ""
+msgstr "เหตุผล: ไม่สามารถเข้าถึง redis เพื่อตรวจสอบสถานะการแบนการส่งอีเมลซ้ำได้"
 
 #: Model/Event.php:7597
 msgid "Reason: Event is banned from sending out emails. Ban has been refreshed and will be lifted in %smin"
-msgstr ""
+msgstr "เหตุผล: กิจกรรมถูกแบนจากการส่งอีเมล การแบนได้รับการรีเฟรชแล้วและจะถูกยกเลิกใน %s นาที"
 
 #: Model/Event.php:7599
 msgid "Reason: Event is banned from sending out emails. Ban will be lifted in %smin %ssec."
-msgstr ""
+msgstr "เหตุผล: กิจกรรมถูกแบนจากการส่งอีเมล การแบนจะถูกยกเลิกใน %s นาที %s วินาที"
 
 #: Model/Event.php:7610
 msgid "Emailing republishing ban setting is not enabled"
-msgstr ""
+msgstr "ไม่ได้เปิดใช้งานการตั้งค่าการห้ามเผยแพร่ซ้ำทางอีเมล"
 
 #: Model/EventReport.php:112
 msgid "Event Report dropped due to validation for Event report %s failed: %s"
-msgstr ""
+msgstr "รายงานเหตุการณภูกทิ้งเนื่องจากการตรวจสอบความถูกต้องสำหรับรายงานเหตุการณ์ %s ล้มเหลว: %s"
 
 #: Model/EventReport.php:113
 msgid "Validation errors: %s.%sFull report: %s"
-msgstr ""
+msgstr "ข้อผิดพลาดในการตรวจสอบความถูกต้อง: %s.%s รายงานฉบับสมบูรณ์: %s"
 
 #: Model/EventReport.php:150
 msgid "Event Report doesn't have an UUID"
-msgstr ""
+msgstr "รายงานเหตุการณ์ไม่มี UUID"
 
 #: Model/EventReport.php:162
 msgid "Event Report not found."
-msgstr ""
+msgstr "ไม่พบรายงานเหตุการณ์"
 
 #: Model/EventReport.php:201
 msgid "Failed to delete report"
-msgstr ""
+msgstr "ลบรายงานไม่สำเร็จ"
 
 #: Model/EventReport.php:327;337;396
 msgid "Invalid report"
-msgstr ""
+msgstr "รายงานไม่ถูกต้อง"
 
 #: Model/EventReport.php:388
 #: Model/GalaxyCluster.php:1462
 msgid "Invalid authorization requested"
-msgstr ""
+msgstr "ร้องขอการให้สิทธิ์ไม่ถูกต้อง"
 
 #: Model/EventReport.php:426
 msgid "Could not find associated event"
-msgstr ""
+msgstr "ไม่พบเหตุการณ์ที่เกี่ยวข้อง"
 
 #: Model/EventReport.php:429
 msgid "Only the creator organisation of the event can modify the report"
-msgstr ""
+msgstr "เฉพาะผู้สร้างองค์กรของเหตุการณ์เท่านั้นที่สามารถแก้ไขรายงานได้"
 
 #: Model/Feed.php:114
 msgid "Invalid input source. The only valid options are %s. %s"
-msgstr ""
+msgstr "แหล่งอินพุตไม่ถูกต้อง ตัวเลือกที่ถูกต้องเท่านั้นคือ %s %s"
 
 #: Model/Feed.php:118
 msgid "Security.disable_local_feed_access is currently enabled, local feeds are thereby not allowed."
-msgstr ""
+msgstr "Security.disable_local_feed_access เปิดใช้งานอยู่ในขณะนี้ จึงไม่อนุญาตฟีดในเครื่อง"
 
 #: Model/Feed.php:1108
 msgid "Fetching %s events."
-msgstr ""
+msgstr "กำลังดึงข้อมูล %s เหตุการณ์"
 
 #: Model/Feed.php:1394
 msgid "Feed %s: Fetching."
-msgstr ""
+msgstr "ฟีด %s: กำลังดึงข้อมูล"
 
 #: Model/Feed.php:1400
 msgid "Could not fetch freetext feed %s. See error log for more details."
-msgstr ""
+msgstr "ไม่สามารถดึงฟีดข้อความอิสระ %s ดูบันทึกข้อผิดพลาดสำหรับรายละเอียดเพิ่มเติม"
 
 #: Model/Feed.php:1420
 msgid "Feed %s: %s/%s values cached."
-msgstr ""
+msgstr "ฟีด %s: %s/%s ค่าที่แคชไว้"
 
 #: Model/Feed.php:1832;1879
 msgid "Event %s"
-msgstr ""
+msgstr "เหตุการณ์ %s"
 
 #: Model/Feed.php:1846
 msgid "Feed %s"
-msgstr ""
+msgstr "ฟีด %s"
 
 #: Model/Feed.php:2044
 msgid "Invalid feed id."
-msgstr ""
+msgstr "ID ฟีดไม่ถูกต้อง"
 
 #: Model/Feed.php:2047
 msgid "Feed has to be either a CSV or a freetext feed for the purging to work."
-msgstr ""
+msgstr "ฟีดจะต้องเป็น CSV หรือฟีดข้อความอิสระสำหรับการล้างข้อมูลจึงจะได้ผล"
 
 #: Model/Feed.php:2052
 msgid "Invalid user id."
-msgstr ""
+msgstr "id ผู้ใช้ไม่ถูกต้อง"
 
 #: Model/Feed.php:2072
 msgid "Events related to feed %s purged."
-msgstr ""
+msgstr "ลบเหตุการณ์ที่เกี่ยวข้องกับฟีด %s แล้ว"
 
 #: Model/Galaxy.php:331;336
 #: Model/GalaxyCluster.php:261
 msgid "Galaxy not found"
-msgstr ""
+msgstr "ไม่พบกาแล็กซี่"
 
 #: Model/Galaxy.php:372
 msgid "Invalid Galaxy cluster"
-msgstr ""
+msgstr "คลัสเตอร์ Galaxy ไม่ถูกต้อง"
 
 #: Model/Galaxy.php:388
 msgid "This Cluster can only be attached in a local scope"
-msgstr ""
+msgstr "สามารถแนบคลัสเตอร์นี้ได้เฉพาะในขอบเขตในเครื่องเท่านั้น"
 
 #: Model/Galaxy.php:600
 msgid "Galaxy cannot be represented as a matrix"
-msgstr ""
+msgstr "กาแล็กซีไม่สามารถแสดงเป็นเมทริกซ์ได้"
 
 #: Model/GalaxyCluster.php:254;379
 msgid "Incorrect permission"
-msgstr ""
+msgstr "สิทธิ์ไม่ถูกต้อง"
 
 #: Model/GalaxyCluster.php:272;746
 msgid "Blocked by blocklist"
-msgstr ""
+msgstr "ถูกบล็อกโดย blocklist"
 
 #: Model/GalaxyCluster.php:280
 msgid "Cluster already exists in another galaxy"
-msgstr ""
+msgstr "มีคลัสเตอร์อยู่แล้วในกาแลคซีอื่น"
 
 #: Model/GalaxyCluster.php:284
 msgid "Edit not allowed on default clusters"
-msgstr ""
+msgstr "ไม่อนุญาตให้แก้ไขในคลัสเตอร์เริ่มต้น"
 
 #: Model/GalaxyCluster.php:288
 msgid "Edit not allowed"
-msgstr ""
+msgstr "ไม่อนุญาตให้แก้ไข"
 
 #: Model/GalaxyCluster.php:309
 msgid "Cluster forks have to belong to the same galaxy as the parent"
-msgstr ""
+msgstr "การแยกคลัสเตอร์ต้องอยู่ในกาแลคซีเดียวกันกับแหล่งเริ่มต้น"
 
 #: Model/GalaxyCluster.php:328
 msgid "The sync user has to have access to the sharing group in order to be able to edit it"
-msgstr ""
+msgstr "ผู้ใช้แบบซิงค์ต้องมีสิทธิ์เข้าถึงกลุ่มการแชร์จึงจะสามารถแก้ไขได้"
 
 #: Model/GalaxyCluster.php:384
 #: Model/GalaxyClusterRelation.php:296
 msgid "UUID not provided"
-msgstr ""
+msgstr "ไม่ได้ระบุ UUID"
 
 #: Model/GalaxyCluster.php:387
 msgid "Unkown UUID"
-msgstr ""
+msgstr "ไม่รู้จัก UUID"
 
 #: Model/GalaxyCluster.php:399
 msgid "Galaxy Cluster could not be saved: The sync user has to have access to the sharing group in order to be able to edit it."
-msgstr ""
+msgstr "ไม่สามารถบันทึก Galaxy Cluster: ผู้ใช้แบบซิงค์ต้องมีสิทธิ์เข้าถึงกลุ่มการแบ่งปันจึงจะสามารถแก้ไขได้"
 
 #: Model/GalaxyCluster.php:403
 msgid "Galaxy Cluster could not be saved: The user used to edit the cluster is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the cluster whilst also not being a site administrator."
-msgstr ""
+msgstr "ไม่สามารถบันทึก Galaxy Cluster: ผู้ใช้ที่ใช้ในการแก้ไขคลัสเตอร์ไม่ได้รับอนุญาตให้ทำเช่นนั้น ซึ่งอาจเกิดจากผู้ใช้ไม่ใช่องค์กรเดียวกับผู้สร้างคลัสเตอร์เดิมในขณะที่ไม่ได้เป็นผู้ดูแลระบบไซต์"
 
 #: Model/GalaxyCluster.php:776
 msgid "Organisation blocklisted (%s)"
-msgstr ""
+msgstr "องค์กรที่ถูกบล็อก (%s)"
 
 #: Model/GalaxyCluster.php:783
 msgid "Only non-default clusters can be saved"
-msgstr ""
+msgstr "บันทึกได้เฉพาะคลัสเตอร์ที่ไม่ใช่ค่าเริ่มต้นเท่านั้น"
 
 #: Model/GalaxyCluster.php:810
 msgid "Blocked an edit to an cluster that was created locally. This can happen if a synchronised cluster that was created on this instance was modified by an administrator on the remote side."
-msgstr ""
+msgstr "บล็อกการแก้ไขคลัสเตอร์ที่สร้างขึ้นในเครื่อง กรณีนี้อาจเกิดขึ้นได้หากคลัสเตอร์ที่ซิงโครไนซ์ซึ่งสร้างขึ้นบนอินสแตนซ์นี้ถูกแก้ไขโดยผู้ดูแลระบบทางฝั่งระยะไกล"
 
 #: Model/GalaxyCluster.php:818
 msgid "Remote version is not newer than local one for cluster (%s)"
-msgstr ""
+msgstr "เวอร์ชันรีโมตไม่ได้ใหม่กว่าเวอร์ชันภายในสำหรับคลัสเตอร์ (%s)"
 
 #: Model/GalaxyCluster.php:837
 msgid "Issues while capturing relations have been logged."
-msgstr ""
+msgstr "ปัญหาในขณะที่จับความสัมพันธ์ได้รับการบันทึกไว้แล้ว"
 
 #: Model/GalaxyCluster.php:1430;1437;1470
 msgid "Invalid galaxy cluster"
-msgstr ""
+msgstr "คลัสเตอร์ Galaxy ไม่ถูกต้อง"
 
 #: Model/GalaxyCluster.php:1486
 msgid "You don't have the permission to do that."
-msgstr ""
+msgstr "คุณไม่ได้รับอนุญาตให้ทำเช่นนั้น"
 
 #: Model/GalaxyCluster.php:1494
 msgid "Only the creator organisation can modify the galaxy cluster"
-msgstr ""
+msgstr "เฉพาะองค์กรผู้สร้างเท่านั้นที่สามารถแก้ไขคลัสเตอร์ Galaxy"
 
 #: Model/GalaxyCluster.php:1503
 msgid "Only the creator organisation with publishing capabilities can publish the galaxy cluster"
-msgstr ""
+msgstr "เฉพาะองค์กรผู้สร้างที่มีความสามารถในการเผยแพร่เท่านั้นที่สามารถเผยแพร่คลัสเตอร์กาแล็กซี่"
 
 #: Model/GalaxyCluster.php:1680
 msgid "The remote user does not have the permission to manipulate galaxies - the upload of the galaxy clusters has been blocked."
-msgstr ""
+msgstr "ผู้ใช้ระยะไกลไม่ได้รับอนุญาตให้จัดการกาแลคซี - การอัปโหลด่คลัสเตอร์กาแล็กซี่ถูกบล็อก"
 
 #: Model/GalaxyCluster.php:1927
 msgid "The distribution level of the cluster blocks it from being pushed."
-msgstr ""
+msgstr "ระดับการกระจายของคลัสเตอร์ถูกบล็อกจากการถูกพูช"
 
 #: Model/GalaxyCluster.php:1929
 msgid "The sync user on the remote instance does not have the required privileges to handle this cluster."
-msgstr ""
+msgstr "ผู้ใช้การซิงค์บนอินสแตนซ์ระยะไกลไม่มีสิทธิ์ที่จำเป็นเพื่อจัดการคลัสเตอร์นี้"
 
 #: Model/GalaxyCluster.php:1934
 msgid "Uploading GalaxyCluster (%s) to Server (%s)"
-msgstr ""
+msgstr "กำลังอัปโหลด GalaxyCluster (%s) ไปยังเซิร์ฟเวอร์ (%s)"
 
 #: Model/GalaxyCluster.php:2036
 msgid "Failed because of errors: "
-msgstr ""
+msgstr "ล้มเหลวเนื่องจากข้อผิดพลาด: "
 
 #: Model/GalaxyCluster.php:2039
 msgid "failed downloading the galaxy cluster"
-msgstr ""
+msgstr "ไม่สามารถดาวน์โหลดคลัสเตอร์กาแล็กซี่"
 
 #: Model/GalaxyClusterRelation.php:216;461
 msgid "Relation already exists"
-msgstr ""
+msgstr "มีความสัมพันธ์อยู่แล้ว"
 
 #: Model/GalaxyClusterRelation.php:226;319
 msgid "referenced_galaxy_cluster_uuid not provided"
-msgstr ""
+msgstr "ไม่ได้ระบุ referenced_galaxy_cluster_uuid"
 
 #: Model/GalaxyClusterRelation.php:232;324
 msgid "Invalid referenced galaxy cluster"
-msgstr ""
+msgstr "อ้างอิงคลัสเตอร์กาแล็กซี่ไม่ถูกต้อง"
 
 #: Model/GalaxyClusterRelation.php:257
 msgid "Tags could not be saved for relation (%s)"
-msgstr ""
+msgstr "ไม่สามารถบันทึกแท็กสำหรับความสัมพันธ์ (%s)"
 
 #: Model/GalaxyClusterRelation.php:284
 msgid "galaxy_cluster_id not provided"
-msgstr ""
+msgstr "galaxy_cluster_id ไม่ได้ระบุ"
 
 #: Model/GalaxyClusterRelation.php:299
 msgid "Unkown ID"
-msgstr ""
+msgstr "ไม่รู้จัก ID"
 
 #: Model/GalaxyClusterRelation.php:306
 msgid "Invalid source galaxy cluster"
-msgstr ""
+msgstr "คลัสเตอร์ Galaxy ต้นทางไม่ถูกต้อง"
 
 #: Model/GalaxyClusterRelation.php:430
 msgid "No referenced cluster UUID provided"
-msgstr ""
+msgstr "ไม่ได้ระบุ UUID ของคลัสเตอร์อ้างอิง"
 
 #: Model/GalaxyClusterRelation.php:430
 msgid "relation for cluster (%s)"
-msgstr ""
+msgstr "ความสัมพันธ์สำหรับคลัสเตอร์ (%s)"
 
 #: Model/GalaxyClusterRelation.php:445
 msgid "Referenced cluster not found"
-msgstr ""
+msgstr "ไม่พบคลัสเตอร์ที่อ้างอิง"
 
 #: Model/GalaxyClusterRelation.php:445;461
 msgid "relation to (%s) for cluster (%s)"
-msgstr ""
+msgstr "สัมพันธ์กับ (%s) สำหรับคลัสเตอร์ (%s)"
 
 #: Model/GalaxyClusterRelationTag.php:70
 msgid "Could not attach tag %s"
-msgstr ""
+msgstr "ไม่สามารถแนบแท็ก %s"
 
 #: Model/GalaxyClusterRelationTag.php:70
 msgid "relation (%s)"
-msgstr ""
+msgstr "ความสัมพันธ์ (%s)"
 
 #: Model/Job.php:156
 msgid "Job failed."
-msgstr ""
+msgstr "งานล้มเหลว"
 
 #: Model/MispObject.php:439
 msgid "No valid template found and object lacking template information. (%s)"
-msgstr ""
+msgstr "ไม่พบเทมเพลตที่ถูกต้องและวัตถุขาดข้อมูลเทมเพลต (%s)"
 
 #: Model/MispObject.php:449
 msgid "Duplicate object found (id: %s, uuid: %s). Since breakOnDuplicate is set the object will not be added."
-msgstr ""
+msgstr "พบวัตถุที่ซ้ำกัน (id: %s, uuid: %s) เนื่องจากตั้งค่า breakOnDuplicate อ็อบเจ็กต์จะไม่ถูกเพิ่ม"
 
 #: Model/MispObject.php:979
 msgid "Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s"
-msgstr ""
+msgstr "ออบเจ็กต์หลุดเนื่องจากซ้ำกัน (ID: %s, UUID: %s) และมีการขอ breakOnDuplicate สำหรับเหตุการณ์ %s"
 
 #: Model/MispObject.php:1259
 msgid "Selected Attributes do not exist."
-msgstr ""
+msgstr "ไม่มีแอตทริบิวต์ที่เลือก"
 
 #: Model/Role.php:223
 msgid "Unrestricted access to any data and functionality on this instance."
-msgstr ""
+msgstr "ไม่จำกัดการเข้าถึงข้อมูลและการทำงานใดๆ บนอินสแตนซ์นี้"
 
 #: Model/Role.php:229
 msgid "Limited organisation admin - create, manage users of their own organisation."
-msgstr ""
+msgstr "ผู้ดูแลระบบองค์กรแบบจำกัด - สร้าง จัดการผู้ใช้ในองค์กรของตนเอง"
 
 #: Model/Role.php:235
 msgid "Synchronisation permission, can be used to connect two MISP instances create data on behalf of other users. Make sure that the role with this permission has also access to tagging and tag editing rights."
-msgstr ""
+msgstr "สิทธิ์ในการซิงโครไนซ์สามารถใช้เพื่อเชื่อมต่ออินสแตนซ์ MISP สองรายการเพื่อสร้างข้อมูลในนามของผู้ใช้รายอื่น ตรวจสอบให้แน่ใจว่าบทบาทที่มีสิทธิ์นี้มีสิทธิ์เข้าถึงการแท็กและการแก้ไขแท็กด้วย"
 
 #: Model/Role.php:241
 msgid "Access to the audit logs of the user's organisation."
-msgstr ""
+msgstr "Access to the audit logs of the user's organisation."
 
 #: Model/Role.php:247
 msgid "Users with this permission have access to authenticating via their Auth keys, granting them access to the API."
-msgstr ""
+msgstr "ผู้ใช้ที่ได้รับอนุญาตนี้จะมีสิทธิ์เข้าถึงการตรวจสอบสิทธิ์ผ่านคีย์การตรวจสอบสิทธิ์ ซึ่งทำให้เข้าถึง API ได้"
 
 #: Model/Role.php:254
 msgid "Users with this role can modify the regex rules affecting how data is fed into MISP. Make sure that caution is advised with handing out roles that include this permission, user controlled executed regexes are dangerous."
-msgstr ""
+msgstr "ผู้ใช้ที่มีบทบาทนี้สามารถแก้ไขกฎ regex ที่ส่งผลต่อวิธีการป้อนข้อมูลลงใน MISP ตรวจสอบให้แน่ใจว่าควรใช้ความระมัดระวังในการแจกบทบาทที่รวมถึงการอนุญาตนี้ regexes ที่ควบคุมโดยผู้ใช้นั้นเป็นอันตราย"
 
 #: Model/Role.php:260
 msgid "Users with roles that include this permission can attach or detach existing tags to and from events/attributes."
-msgstr ""
+msgstr "ผู้ใช้ที่มีบทบาทที่มีสิทธิ์นี้สามารถแนบหรือถอดแท็กที่มีอยู่เข้าและออกจากเหตุการณ์/แอตทริบิวต์ได้"
 
 #: Model/Role.php:266
 msgid "This permission gives users the ability to create tags."
-msgstr ""
+msgstr "การอนุญาตนี้ทำให้ผู้ใช้สามารถสร้างแท็กได้"
 
 #: Model/Role.php:272
 msgid "Create or modify templates, to be used when populating events."
-msgstr ""
+msgstr "สร้างหรือแก้ไขเทมเพลต เพื่อใช้ในการเติมข้อมูลเหตุการณ์"
 
 #: Model/Role.php:278
 msgid "Permission to create or modify sharing groups."
-msgstr ""
+msgstr "สิทธิ์ในการสร้างหรือแก้ไขกลุ่มการแบ่งปัน"
 
 #: Model/Role.php:284
 msgid "Allow users to create delegation requests for their own org only events to trusted third parties."
-msgstr ""
+msgstr "อนุญาตให้ผู้ใช้สร้างคำขอรับมอบสิทธิ์สำหรับกิจกรรมองค์กรของตนเองเท่านั้นให้กับบุคคลที่สามที่เชื่อถือได้"
 
 #: Model/Role.php:290
 msgid "Permits the user to push feedback on attributes into MISP by providing sightings."
-msgstr ""
+msgstr "อนุญาตให้ผู้ใช้พุชฟีดแบ็คเกี่ยวกับแอตทริบิวต์ไปยัง MISP ได้โดยการให้ข้อมูลการพบเห็น"
 
 #: Model/Role.php:296
 msgid "Create or modify MISP Object templates."
-msgstr ""
+msgstr "สร้างหรือแก้ไขเทมเพลต MISP Object"
 
 #: Model/Role.php:302
 msgid "Create or modify MISP Galaxies and MISP Galaxies Clusters."
-msgstr ""
+msgstr "สร้างหรือแก้ไข MISP Galaxies และ MISP Galaxies Clusters"
 
 #: Model/Role.php:308
 msgid "Create or modify MISP Decaying Models."
-msgstr ""
+msgstr "สร้างหรือแก้ไข MISP Decaying Models"
 
 #: Model/Role.php:314
 msgid "Allow users to publish data to the ZMQ pubsub channel via the publish event to ZMQ button."
-msgstr ""
+msgstr "อนุญาตให้ผู้ใช้เผยแพร่ข้อมูลไปยังช่องทางสาธารณะของ ZMQ ผ่านปุ่มเผยแพร่เหตุการณ์ไปยัง ZMQ"
 
 #: Model/Role.php:320
 msgid "Allow users to publish data to Kafka via the publish event to Kafka button."
-msgstr ""
+msgstr "อนุญาตให้ผู้ใช้เผยแพร่ข้อมูลไปยัง Kafka ผ่านปุ่มเผยแพร่เหตุการณ์ไปยัง Kafka"
 
 #: Model/Role.php:326
 msgid "Allow to manage warninglists."
-msgstr ""
+msgstr "อนุญาตให้จัดการรายการเตือน"
 
 #: Model/Server.php:140
 msgid "Server unreachable"
-msgstr ""
+msgstr "ไม่​สามารถ​เข้า​ถึง​เซิร์ฟเวอร์"
 
 #: Model/Server.php:141
 msgid "Unexpected error"
-msgstr ""
+msgstr "ความผิดพลาดที่ไม่ได้คาดคิด"
 
 #: Model/Server.php:142
 msgid "Authentication failed"
-msgstr ""
+msgstr "การยืนยันตัวนไม่สำเร็จ"
 
 #: Model/Server.php:143
 msgid "Password change required"
-msgstr ""
+msgstr "จำเป็นต้องเปลี่ยนรหัสผ่าน"
 
 #: Model/Server.php:144
 msgid "Terms not accepted"
-msgstr ""
+msgstr "ไม่ยอมรับเงื่อนไข"
 
 #: Model/Server.php:423
 msgid "Failed (partially?) because of validation errors: "
-msgstr ""
+msgstr "ล้มเหลว (บางส่วน?) เนื่องจากข้อผิดพลาดในการตรวจสอบความถูกต้อง: "
 
 #: Model/Server.php:427
 msgid "Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side."
-msgstr ""
+msgstr "บล็อกการแก้ไขเหตุการณ์ที่สร้างขึ้นในเครื่อง กรณีนี้อาจเกิดขึ้นได้หากเหตุการณ์ที่ซิงโครไนซ์ซึ่งสร้างขึ้นบนอินสแตนซ์นี้ได้รับการแก้ไขโดยผู้ดูแลระบบทางฝั่งระยะไกล"
 
 #: Model/Server.php:462;482
 msgid "failed downloading the event"
-msgstr ""
+msgstr "ไม่สามารถดาวน์โหลดเหตุการณ์"
 
 #: Model/Server.php:475
 msgid "Empty event detected."
-msgstr ""
+msgstr "ตรวจพบเหตุการณ์ที่ว่างเปล่า"
 
 #: Model/Server.php:514;546
 msgid "Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting."
-msgstr ""
+msgstr "ไม่ได้รับอนุญาต สาเหตุอาจเป็นเพราะคีย์ตรวจสอบสิทธิ์ไม่ถูกต้อง หรือเนื่องจากผู้ใช้ซิงค์ไม่ได้เปิดใช้สิทธิ์การตรวจสอบสิทธิ์บนเซิร์ฟเวอร์ระยะไกล อีกสาเหตุหนึ่งอาจเป็นการตั้งค่าเซิร์ฟเวอร์การซิงค์ที่ไม่ถูกต้อง"
 
 #: Model/Server.php:527
 msgid "Pulling relevant galaxy clusters."
-msgstr ""
+msgstr "ดึงกาแลคซีคลัสเตอร์ที่เกี่ยวข้อง"
 
 #: Model/Server.php:527
 msgid "Pulling galaxy clusters."
-msgstr ""
+msgstr "ดึงกาแลคซีคลัสเตอร์"
 
 #: Model/Server.php:898
 msgid "Push to server %s failed. Reason: %s"
-msgstr ""
+msgstr "การพุชไปยังเซิร์ฟเวอร์ %s ล้มเหลว เหตุผล: %s"
 
 #: Model/Server.php:1070
 msgid "Push to server %s complete."
-msgstr ""
+msgstr "การพุชไปยังเซิร์ฟเวอร์ %s เสร็จสมบูรณ์"
 
 #: Model/Server.php:1137
 msgid "GalaxyCluster %s"
-msgstr ""
+msgstr "GalaxyCluster %s"
 
 #: Model/Server.php:1306
 msgid "Enable or disable the %s module."
-msgstr ""
+msgstr "เปิดหรือปิดใช้งานโมดูล %s"
 
 #: Model/Server.php:1309
 msgid "Restrict the %s module to the given organisation."
-msgstr ""
+msgstr "จำกัดโมดูล %s ให้กับองค์กรที่กำหนด"
 
 #: Model/Server.php:1319
 msgid "Set this required module specific setting."
-msgstr ""
+msgstr "การตั้งค่านี้ต้องการระบุการตั้งค่าโมดูล"
 
 #: Model/Server.php:1446
 msgid "Value not set."
-msgstr ""
+msgstr "ไม่ได้ตั้งค่า"
 
 #: Model/Server.php:1467
 msgid "Invalid language."
-msgstr ""
+msgstr "ภาษาไม่ถูกต้อง"
 
 #: Model/Server.php:1497
 msgid "No organisation selected."
-msgstr ""
+msgstr "ไม่ได้เลือกองค์กร"
 
 #: Model/Server.php:1507
 msgid "Invalid tag_collection."
-msgstr ""
+msgstr "tag_collection ไม่ถูกต้อง"
 
 #: Model/Server.php:1515
 msgid "This setting has to be a number."
-msgstr ""
+msgstr "การตั้งค่านี้ต้องเป็นตัวเลข"
 
 #: Model/Server.php:1525
 msgid "The value has to be a whole number greater or equal 0."
-msgstr ""
+msgstr "ค่าต้องเป็นจำนวนเต็มมากกว่าหรือเท่ากับ 0"
 
 #: Model/Server.php:1535
 msgid "The cookie timeout is currently lower than the session timeout. This will invalidate the cookie before the session expires."
-msgstr ""
+msgstr "ระยะหมดเวลาของคุกกี้ในปัจจุบันต่ำกว่าระยะหมดเวลาของเซสชั่น การดำเนินการนี้จะทำให้คุกกี้ใช้งานไม่ได้ก่อนที่เซสชันจะหมดอายุ"
 
 #: Model/Server.php:1791
 msgid "Value is not a boolean, make sure that you convert 'true' to true for example."
-msgstr ""
+msgstr "ค่าไม่ใช่บูลีน ตรวจสอบให้แน่ใจว่าคุณแปลง 'true' เป็น true เป็นต้น"
 
 #: Model/Server.php:1857
 msgid "Invalid file path or file not accessible."
-msgstr ""
+msgstr "ไฟล์พาธไม่ถูกต้องหรือไฟล์ไม่สามารถเข้าถึงได้"
 
 #: Model/Server.php:1860
 msgid "File has to be in .pem format."
-msgstr ""
+msgstr "ไฟล์ต้องอยู่ในรูปแบบ .pem"
 
 #: Model/Server.php:1984
 msgid "Emailing is currently disabled. Enabling OTP without e-mailing being configured would lock all users out."
-msgstr ""
+msgstr "การส่งอีเมลถูกปิดใช้งานในขณะนี้ การเปิดใช้งาน OTP โดยไม่ได้กำหนดค่าอีเมลจะเป็นการล็อกผู้ใช้ทั้งหมด"
 
 #: Model/Server.php:2216
 msgid "Value could not be null."
-msgstr ""
+msgstr "ต้องไม่เป็นค่า null"
 
 #: Model/Server.php:2253
 msgid "Something went wrong. MISP tried to save a malformed config file. Setting change reverted."
-msgstr ""
+msgstr "มีบางอย่างผิดพลาด MISP พยายามบันทึกไฟล์กำหนดค่าที่มีรูปแบบไม่ถูกต้อง เปลี่ยนการตั้งค่ากลับคืน"
 
 #: Model/Server.php:2355
 msgid "Organisation logos"
-msgstr ""
+msgstr "โลโก้องค์กร"
 
 #: Model/Server.php:2356
 msgid "The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name."
-msgstr ""
+msgstr "โลโก้ที่ใช้โดยองค์กรในดัชนีเหตุการณ์ มุมมองเหตุการณ์ การอภิปราย ข้อเสนอ ฯลฯ ตรวจสอบให้แน่ใจว่าชื่อไฟล์อยู่ในรูปแบบ org.png โดยที่ org เป็นชื่อองค์กรที่คำนึงถึงขนาดตัวพิมพ์"
 
 #: Model/Server.php:2358
 msgid "48x48 pixel .png files"
-msgstr ""
+msgstr "ไฟล์ .png 48x48 พิกเซล"
 
 #: Model/Server.php:2361
 msgid "Filename must be in the following format: *.png"
-msgstr ""
+msgstr "ชื่อไฟล์ต้องอยู่ในรูปแบบต่อไปนี้: *.png"
 
 #: Model/Server.php:2365
 msgid "Additional image files"
-msgstr ""
+msgstr "ไฟล์รูปภาพเพิ่มเติม"
 
 #: Model/Server.php:2366
 msgid "Image files uploaded into this directory can be used for various purposes, such as for the login page logos"
-msgstr ""
+msgstr "ไฟล์ภาพที่อัพโหลดลงในไดเร็กทอรีนี้สามารถใช้เพื่อวัตถุประสงค์ต่างๆ เช่น สำหรับโลโก้หน้าเข้าสู่ระบบ"
 
 #: Model/Server.php:2373
 msgid "PNG or SVG file"
-msgstr ""
+msgstr "ไฟล์ PNG หรือ SVG"
 
 #: Model/Server.php:2376
 msgid "Filename must be in the following format: *.png or *.svg"
-msgstr ""
+msgstr "ชื่อไฟล์ต้องอยู่ในรูปแบบต่อไปนี้: *.png หรือ *.svg"
 
 #: Model/Server.php:2415;2416
 #: View/SharingGroups/index.ctp:121
 msgid "Not defined"
-msgstr ""
+msgstr "ไม่ได้กำหนดไว้"
 
 #: Model/Server.php:2501
 msgid "Response was empty."
-msgstr ""
+msgstr "การตอบกลับว่างเปล่า"
 
 #: Model/Server.php:2556
 msgid "Error: Server didn't send the expected response. This may be because the remote server version is outdated."
-msgstr ""
+msgstr "ข้อผิดพลาด: เซิร์ฟเวอร์ไม่ส่งการตอบกลับที่คาดไว้ อาจเป็นเพราะรุ่นเซิร์ฟเวอร์ระยะไกลล้าสมัย"
 
 #: Model/Server.php:2833
 msgid "% The command below is a suggestion and might be incorrect. Please ask if you are not sure what you are doing."
-msgstr ""
+msgstr "% คำสั่งด้านล่างเป็นข้อเสนอแนะและอาจไม่ถูกต้อง กรุณาถามถ้าคุณไม่แน่ใจว่าสิ่งที่คุณทำ"
 
 #: Model/Server.php:2902
 msgid "Can't check database schema for Postgres database type"
-msgstr ""
+msgstr "ไม่สามารถตรวจสอบสคีมาฐานข้อมูลสำหรับประเภทฐานข้อมูล Postgres"
 
 #: Model/Server.php:2919
 msgid "Table `%s` does not exist"
-msgstr ""
+msgstr "ตาราง `%s` ไม่มีอยู่"
 
 #: Model/Server.php:2946
 msgid "Column `%s` exists but should not"
-msgstr ""
+msgstr "คอลัมน์ `%s` มีอยู่แต่ไม่ควร"
 
 #: Model/Server.php:2979
 msgid "Column `%s` is different"
-msgstr ""
+msgstr "คอลัมน์ `%s` ต่างกัน"
 
 #: Model/Server.php:2989
 msgid "Column `%s` does not exist but should"
-msgstr ""
+msgstr "ไม่มีคอลัมน์ `%s` แต่ควร"
 
 #: Model/Server.php:3002
 msgid "Table `%s` is an additional table"
-msgstr ""
+msgstr "ตาราง `%s` เป็นตารางเพิ่มเติม"
 
 #: Model/Server.php:3075
 msgid "Column `%s` should be unique indexed, but contains duplicate values"
-msgstr ""
+msgstr "คอลัมน์ `%s` ควรจัดทำดัชนีไม่ซ้ำกัน แต่มีค่าที่ซ้ำกัน"
 
 #: Model/Server.php:3081
 msgid "Column `%s` should be indexed"
-msgstr ""
+msgstr "คอลัมน์ `%s` ควรได้รับการจัดทำดัชนี"
 
 #: Model/Server.php:3089
 msgid "Column `%s` is indexed but should not"
-msgstr ""
+msgstr "คอลัมน์ `%s` ถูกสร้างดัชนีแต่ไม่ควร"
 
 #: Model/Server.php:3101
 msgid "Column `%s` has unique index, but should be non unique"
-msgstr ""
+msgstr "คอลัมน์ `%s` มีดัชนีไม่ซ้ำกัน แต่ไม่ควรซ้ำกัน"
 
 #: Model/Server.php:3108
 msgid "Column `%s` should be unique index, but contains duplicate values"
-msgstr ""
+msgstr "คอลัมน์ `%s` ควรเป็นดัชนีที่ไม่ซ้ำ แต่มีค่าที่ซ้ำกัน"
 
 #: Model/Server.php:3119
 msgid "Column `%s` should be unique index"
-msgstr ""
+msgstr "Column `%s` should be unique index"
 
 #: Model/Server.php:3644
 msgid "Removing a dead worker."
-msgstr ""
+msgstr "การกำจัดตัวปฏิบัติงานที่ตายแล้ว"
 
 #: Model/Server.php:3645
 msgid "Removing dead worker data. Worker was of type %s with pid %s"
-msgstr ""
+msgstr "ลบข้อมูลตัวปฏิบัติงานที่ตายแล้ว ตัวปฏิบัติงานเป็นประเภท %s มี pid %s"
 
 #: Model/Server.php:3649
 msgid "Stopping a worker."
-msgstr ""
+msgstr "หยุดตัวปฏิบัติงาน."
 
 #: Model/Server.php:3650
 msgid "Stopping a worker. Worker was of type %s with pid %s"
-msgstr ""
+msgstr "หยุดตัวปฏิบัติงาน ตัวปฏิบัติงานเป็นประเภท %s มี pid %s"
 
 #: Model/Server.php:4053
 msgid "Invalid submodule."
-msgstr ""
+msgstr "โมดูลย่อยไม่ถูกต้อง"
 
 #: Model/Server.php:4053;4084
 msgid "unknown"
-msgstr ""
+msgstr "ไม่รู้จัก"
 
 #: Model/Server.php:4067
 msgid "Updating: "
-msgstr ""
+msgstr "กำลังอัพเดต: "
 
 #: Model/Server.php:4241
 msgid "Invalid worker."
-msgstr ""
+msgstr "ตัวปฏิบัติงานไม่ถูกต้อง"
 
 #: Model/Server.php:4248
 msgid "Background workers not enabled."
-msgstr ""
+msgstr "ไม่ได้เปิดใช้งานตัวปฏิบัติงานเบื้องหลัง"
 
 #: Model/Server.php:4255
 msgid "Invalid worker type."
-msgstr ""
+msgstr "ประเภทตัวปฏิบัติงานไม่ถูกต้อง"
 
 #: Model/Server.php:4429
 msgid "Could not reset the remote authentication key."
-msgstr ""
+msgstr "ไม่สามารถรีเซ็ตคีย์การตรวจสอบสิทธิ์ระยะไกล"
 
 #: Model/Server.php:4480
 msgid "Fetching the '%s' failed with HTTP error 404: Not Found"
-msgstr ""
+msgstr "การดึงข้อมูลฟิลด์ '%s' ล้มเหลวด้วยข้อผิดพลาด HTTP 404: Not Found"
 
 #: Model/Server.php:4484;4489
 msgid "Fetching the '%s' failed with HTTP error %s: %s"
-msgstr ""
+msgstr "การดึงข้อมูลฟิลด์ '%s' ล้มเหลวด้วยข้อผิดพลาด HTTP error %s: %s"
 
 #: Model/Server.php:4517
 #: View/AuditLogs/admin_index.ctp:241
@@ -6618,31 +6619,31 @@ msgstr ""
 #: View/TagCollections/index.ctp:14
 #: View/UserSettings/index.ctp:56
 msgid "User"
-msgstr ""
+msgstr "ผู้ใช้"
 
 #: Model/Server.php:4518
 msgid "Role name"
-msgstr ""
+msgstr "ชื่อบทบาท"
 
 #: Model/Server.php:4518;4519
 msgid "Unknown, outdated instance"
-msgstr ""
+msgstr "อินสแตนซ์ที่ไม่รู้จัก ล้าสมัย"
 
 #: Model/Server.php:4519
 msgid "Sync flag"
-msgstr ""
+msgstr "ซิงค์แฟล็ก"
 
 #: Model/Server.php:4523
 msgid "Auth key expiration"
-msgstr ""
+msgstr "การหมดอายุของคีย์การตรวจสอบสิทธิ์"
 
 #: Model/Server.php:4531
 msgid "Could not fetch remote user account."
-msgstr ""
+msgstr "ไม่สามารถดึงบัญชีผู้ใช้ระยะไกล"
 
 #: Model/Server.php:4602
 msgid "Connection failed. Error returned: %s"
-msgstr ""
+msgstr "การเชื่อมต่อล้มเหลว. ข้อผิดพลาดที่ส่งคืน: %s"
 
 #: Model/Server.php:4681
 msgid "The base url of the application (in the format https://www.mymispinstance.com or https://myserver.com/misp). Several features depend on this setting being correctly set to function."
@@ -10128,11 +10129,11 @@ msgstr ""
 
 #: View/Elements/ajaxTags.ctp:61;62
 msgid "Local tag"
-msgstr ""
+msgstr "แท็กในเครื่อง"
 
 #: View/Elements/ajaxTags.ctp:61;62
 msgid "Global tag"
-msgstr ""
+msgstr "แท็กทั้งหมด"
 
 #: View/Elements/ajaxTags.ctp:96
 msgid "Remove tag %s"
@@ -10145,7 +10146,7 @@ msgstr ""
 
 #: View/Elements/ajaxTags.ctp:128;129
 msgid "Add a local tag"
-msgstr ""
+msgstr "เพิ่มแท็กในเครื่อง"
 
 #: View/Elements/eventattribute.ctp:50;52;214;216
 #: View/Elements/Feeds/eventattribute.ctp:28;31;96;99
@@ -10507,11 +10508,11 @@ msgstr ""
 
 #: View/Elements/galaxyQuickViewNew.ctp:97
 msgid "Local galaxy"
-msgstr ""
+msgstr "กาแล็กซี่ในเครื่อง"
 
 #: View/Elements/galaxyQuickViewNew.ctp:97
 msgid "Global galaxy"
-msgstr ""
+msgstr "กาแล็กซี่ทั้งหมด"
 
 #: View/Elements/galaxyQuickViewNew.ctp:101
 msgid "View details about this cluster"
@@ -10718,7 +10719,7 @@ msgstr ""
 #: View/Elements/global_menu.ctp:177
 #: View/Pages/doc/general.ctp:22;54
 msgid "Global Actions"
-msgstr ""
+msgstr "Global Actions"
 
 #: View/Elements/global_menu.ctp:180
 #: View/News/index.ctp:38
@@ -16847,7 +16848,7 @@ msgstr ""
 #: View/Galaxies/view.ctp:11
 #: View/Tags/index.ctp:54
 msgid "Local Only"
-msgstr ""
+msgstr "ในเซิร์ฟเวอร์เท่านั้น"
 
 #: View/Galaxies/index.ctp:91
 msgid "Galaxy index"
@@ -18050,7 +18051,7 @@ msgstr ""
 
 #: View/Organisations/view.ctp:13
 msgid "Local or remote"
-msgstr ""
+msgstr "โลคัลหรือรีโมต"
 
 #: View/Organisations/view.ctp:17
 msgid "Remote"
@@ -18303,7 +18304,7 @@ msgstr ""
 #: View/Pages/doc/user_management.ctp:6
 #: View/Pages/doc/using_the_system.ctp:6
 msgid "User Management and Global actions"
-msgstr ""
+msgstr "การจัดการผู้ใช้และการดำเนินการทั้งหมด"
 
 #: View/Pages/doc/administration.ctp:7
 #: View/Pages/doc/concepts.ctp:7
@@ -21556,7 +21557,7 @@ msgstr ""
 
 #: View/Servers/id_translator.ctp:48
 msgid "Local ID"
-msgstr ""
+msgstr "รหัสในระบบ"
 
 #: View/Servers/id_translator.ctp:51
 msgid "Remote ID:"
@@ -22214,7 +22215,7 @@ msgstr ""
 
 #: View/SharingGroups/add.ctp:135
 msgid "Local instance"
-msgstr ""
+msgstr "อินสแตนซ์ในเครื่อง"
 
 #: View/SharingGroups/edit.ctp:111
 msgid "<span class=\"bold\">General: </span>You are about to create the <span id=\"summarytitle\" class=\"red bold\"></span> sharing group, which is intended to be releasable to <span id=\"summaryreleasable\" class=\"red bold\"></span>. </p>\n"
