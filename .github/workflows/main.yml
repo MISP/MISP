@@ -233,7 +233,6 @@ jobs:
       - name: Build test
         run: |
               . ./venv/bin/activate
-              pip install git+https://github.com/kbandla/pydeep.git
               pushd tests
               ./build-test.sh
 
