@@ -180,7 +180,7 @@ class AuditLog extends AppModel
         if (!isset($auditLog['ip']) && $this->logClientIp) {
             $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
             if (isset($_SERVER[$ipHeader])) {
-                $auditLog['ip'] = utf8_encode(inet_pton($_SERVER[$ipHeader])); // convert to binary form
+                $auditLog['ip'] = $_SERVER[$ipHeader];
             }
         }
 
@@ -216,8 +216,12 @@ class AuditLog extends AppModel
 
         $this->logData($this->data);
 
+        if (isset($auditLog['ip'])) {
+            $auditLog['ip'] = inet_pton($auditLog['ip']); // convert to binary form to save into database
+        }
+
         if (isset($auditLog['change'])) {
-            $change = json_encode($auditLog['change'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $change = JsonTool::encode($auditLog['change']);
             if ($this->compressionEnabled && strlen($change) >= self::BROTLI_MIN_LENGTH) {
                 $change = self::BROTLI_HEADER . brotli_compress($change, 4, BROTLI_TEXT);
             }

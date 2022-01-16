@@ -172,6 +172,7 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1'
 
       - name: Update Galaxies
         run: sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'

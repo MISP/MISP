@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import os
-import unittest
+import json
 import uuid
+import subprocess
+import unittest
 from xml.etree import ElementTree as ET
 from io import BytesIO
 import urllib3  # type: ignore
@@ -36,6 +38,30 @@ def check_response(response):
     return response
 
 
+class MISPSetting:
+    def __init__(self, admin_connector: PyMISP, new_setting: dict):
+        self.admin_connector = admin_connector
+        self.new_setting = new_setting
+
+    def __enter__(self):
+        self.original = self.__run("modify", json.dumps(self.new_setting))
+        # Try to reset config cache
+        self.admin_connector.get_server_setting("MISP.live")
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.__run("replace", self.original)
+        # Try to reset config cache
+        self.admin_connector.get_server_setting("MISP.live")
+
+    @staticmethod
+    def __run(command: str, data: str) -> str:
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        r = subprocess.run(["php", dir_path + "/modify_config.php", command, data], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if r.returncode != 0:
+            raise Exception([r.returncode, r.stdout, r.stderr])
+        return r.stdout.decode("utf-8")
+
+
 class TestComprehensive(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -47,7 +73,7 @@ class TestComprehensive(unittest.TestCase):
         organisation = MISPOrganisation()
         organisation.name = 'Test Org'
         cls.test_org = cls.admin_misp_connector.add_organisation(organisation, pythonify=True)
-        # Set the refault role (id 3 on the VM)
+        # Set the default role (id 3 on the VM)
         cls.admin_misp_connector.set_default_role(3)
         # Creates a user
         user = MISPUser()
@@ -599,6 +625,12 @@ class TestComprehensive(unittest.TestCase):
             new_event_report = self.user_misp_connector.add_event_report(event.id, new_event_report)
             self.assertIn("errors", new_event_report)
         finally:
+            self.user_misp_connector.delete_event(event)
+
+    def test_new_audit(self):
+        with MISPSetting(self.admin_misp_connector, {"MISP.log_new_audit": True}):
+            event = create_simple_event()
+            event = check_response(self.user_misp_connector.add_event(event))
             self.user_misp_connector.delete_event(event)
 
     def _search(self, query: dict):
