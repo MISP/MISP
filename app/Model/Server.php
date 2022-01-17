@@ -7141,7 +7141,7 @@ class Server extends AppModel
                 'baseUrl' => array(
                     'level' => 2,
                     'description' => __('The default LinOTP URL.'),
-                    'value' => 'https://linotp',
+                    'value' => 'https://<your-linotp-baseUrl>',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
