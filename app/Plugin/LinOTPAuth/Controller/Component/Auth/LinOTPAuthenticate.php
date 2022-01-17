@@ -50,7 +50,13 @@ class LinOTPAuthenticate extends BaseAuthenticate
         $url = "$baseUrl/validate/check";
 
         CakeLog::debug( "Sending POST request to ${url}");
-        $results = $HttpSocket->post($url, $data);
+        try {
+            $results = $HttpSocket->post($url, $data);
+        }
+        catch (SocketException $ex) {
+            CakeLog::error("LinOTP: {$ex->getMessage()}.");
+            return false;
+        }
         if ($results->code != "200") {
             return false;
         }
