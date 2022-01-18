@@ -406,6 +406,9 @@ class AppController extends Controller
             $namedParamAuthkey = $this->request->params['named']['apikey'];
         }
         // Authenticate user with authkey in Authorization HTTP header
+        if (!empty($_SERVER['HTTP_AUTHORIZATION']) && strcasecmp(substr($_SERVER['HTTP_AUTHORIZATION'], 0, 5), "Basic") == 0) { // Skip Basic Authorizations
+            return null;
+        }
         if (!empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($namedParamAuthkey)) {
             $foundMispAuthKey = false;
             $authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
