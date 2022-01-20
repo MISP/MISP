@@ -277,6 +277,50 @@ class SecurityAudit
         return $output;
     }
 
+    /**
+     * @return array|string[][]
+     * @throws Exception
+     */
+    public function tlsConnections()
+    {
+        $urls = [
+            'TLSv1.0' => ['url' => 'https://tls-v1-0.badssl.com:1010/'],
+            'TLSv1.1' => ['url' => 'https://tls-v1-1.badssl.com:1011/'],
+            'TLSv1.2' => ['url' => 'https://tls-v1-2.badssl.com:1012/'],
+            'DH480' => ['url' => 'https://dh480.badssl.com/', 'expected' => false],
+            'DH512' => ['url' => 'https://dh512.badssl.com/', 'expected' => false],
+            'DH1024' => ['url' => 'https://dh1024.badssl.com/', 'expected' => false],
+            'DH2048' => ['url' => 'https://dh2048.badssl.com/'],
+            'RC4-MD5' => ['url' => 'https://rc4-md5.badssl.com/', 'expected' => false],
+            'RC4' => ['url' => 'https://rc4.badssl.com/', 'expected' => false],
+            '3DES' => ['url' => 'https://3des.badssl.com/', 'expected' => false],
+            'NULL' => ['url' => 'https://null.badssl.com/', 'expected' => false],
+            'SHA1 2016' => ['url' => 'https://sha1-2016.badssl.com/', 'expected' => false],
+            'SHA1 2017' => ['url' => 'https://sha1-2017.badssl.com/', 'expected' => false],
+            'SHA1 intermediate' => ['url' => 'https://sha1-intermediate.badssl.com/', 'expected' => false],
+            'Invalid expected sct' => ['url' => 'https://invalid-expected-sct.badssl.com/', 'expected' => false],
+            'Expired' => ['url' => 'https://expired.badssl.com/', 'expected' => false],
+            'Wrong host' => ['url' => 'https://wrong.host.badssl.com/', 'expect' => false],
+            'Self-signed' => ['url' => 'https://self-signed.badssl.com/', 'expected' => false],
+            'Untrusted-root' => ['url' => 'https://untrusted-root.badssl.com/', 'expected' => false],
+            'Revoked' => ['url' => 'https://revoked.badssl.com/'],
+            'Pinning test' => ['url' => 'https://pinning-test.badssl.com/'],
+            'Bad DNSSEC' => ['url' => 'http://rhybar.cz', 'expected' => false],
+        ];
+        $syncTool = new SyncTool();
+        foreach ($urls as $type => $details) {
+            $httpSocket = $syncTool->createHttpSocket();
+            try {
+                $httpSocket->get($details['url']);
+                $urls[$type]['success'] = true;
+            } catch (Exception $e) {
+                $urls[$type]['success'] = false;
+                $urls[$type]['exception'] = $e;
+            }
+        }
+        return $urls;
+    }
+
     private function feeds(array &$output)
     {
         /** @var Feed $feed */

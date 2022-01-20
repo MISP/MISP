@@ -71,6 +71,9 @@ class AdminShell extends AppShell
         $parser->addSubcommand('securityAudit', [
             'help' => __('Run security audit.'),
         ]);
+        $parser->addSubcommand('securityAuditTls', [
+            'help' => __('Run security audit to test TLS connections.'),
+        ]);
         return $parser;
     }
 
@@ -1108,6 +1111,19 @@ class AdminShell extends AppShell
                 $this->out('==============================');
                 $this->out($value);
             }
+        }
+    }
+
+    public function securityAuditTls()
+    {
+        App::uses('SecurityAudit', 'Tools');
+        $securityAudit = (new SecurityAudit())->tlsConnections();
+        foreach ($securityAudit as $type => $details) {
+            $result = $details['success'] ? 'True' : 'False';
+            if (isset($details['expected']) && $details['expected'] === false && $details['success'] === true) {
+                $result = "<error>$result</error>";
+            }
+            $this->out("$type: $result");
         }
     }
 }
