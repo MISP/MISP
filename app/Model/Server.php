@@ -1860,6 +1860,7 @@ class Server extends AppModel
         if ($file->ext() !== 'pem') {
             return __('File has to be in .pem format.');
         }
+        return true;
     }
 
     public function testForStyleFile($value)
