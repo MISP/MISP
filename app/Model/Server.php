@@ -1332,15 +1332,15 @@ class Server extends AppModel
         foreach ($serverSettings as $branchKey => &$branchValue) {
             if (isset($branchValue['branch'])) {
                 foreach ($branchValue as $leafKey => &$leafValue) {
-                    if ($leafKey !== 'branch' && $leafValue['level'] == 3 && !(isset($currentSettings[$branchKey][$leafKey]))) {
+                    if ($leafKey !== 'branch' && $leafValue['level'] == 3 && !isset($currentSettings[$branchKey][$leafKey])) {
                         continue;
                     }
                     $setting = null;
                     if (isset($currentSettings[$branchKey][$leafKey])) {
                         $setting = $currentSettings[$branchKey][$leafKey];
                     }
-                    $leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
-                    if ($leafKey != 'branch') {
+                    if ($leafKey !== 'branch') {
+                        $leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
                         if ($branchKey == 'Plugin') {
                             $pluginData = explode('_', $leafKey);
                             $leafValue['subGroup'] = $pluginData[0];
@@ -1414,7 +1414,13 @@ class Server extends AppModel
         return $result;
     }
 
-    private function __evaluateLeaf($leafValue, $leafKey, $setting)
+    /**
+     * @param array $leafValue
+     * @param string $leafKey
+     * @param mixed $setting
+     * @return array
+     */
+    private function __evaluateLeaf(array $leafValue, $leafKey, $setting)
     {
         if (isset($setting)) {
             if ($setting instanceof EncryptedValue) {
