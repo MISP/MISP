@@ -5097,7 +5097,12 @@ class Server extends AppModel
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
-                    'options' => array('0' => __('Your organisation only'), '1' => __('This community only'), '2' => __('Connected communities'), '3' => __('All communities')),
+                    'options' => [
+                        '0' => __('Your organisation only'),
+                        '1' => __('This community only'),
+                        '2' => __('Connected communities'),
+                        '3' => __('All communities')
+                    ],
                 ),
                 'default_attribute_distribution' => array(
                     'level' => 0,
@@ -6136,7 +6141,7 @@ class Server extends AppModel
                 ],
                 'encryption_key' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Encryption key used to store sensitive data (like authkeys) in database encrypted. If empty, data are stored unecrypted. Required PHP 7.1 or newer.'),
+                    'description' => __('Encryption key used to store sensitive data (like authkeys) in database encrypted. If empty, data are stored unencrypted. Requires PHP 7.1 or newer.'),
                     'value' => '',
                     'test' => function ($value) {
                         if (strlen($value) < 32) {
@@ -6160,6 +6165,20 @@ class Server extends AppModel
                     'null' => true,
                     'cli_only' => true,
                     'redacted' => true,
+                ],
+                'min_tls_version' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Minimal required TLS version when connecting to external resources.'),
+                    'value' => '',
+                    'type' => 'string',
+                    'null' => true,
+                    'options' => [
+                        '' => __('All versions'),
+                        'tlsv1_0' => 'TLSv1.0',
+                        'tlsv1_1' => 'TLSv1.1',
+                        'tlsv1_2' => 'TLSv1.2',
+                        'tlsv1_3' => 'TLSv1.3',
+                    ],
                 ],
             ),
             'SecureAuth' => array(
