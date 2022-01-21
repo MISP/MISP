@@ -1444,11 +1444,20 @@ class Server extends AppModel
                     }
                 }
             }
+            if (isset($leafValue['optionsSource'])) {
+                $leafValue['options'] = $leafValue['optionsSource']();
+            }
+            if (!isset($leafValue['error']) && isset($leafValue['options']) && !isset($leafValue['options'][$setting])) {
+                $leafValue['error'] = 1;
+                $validValues = implode(', ', array_keys($leafValue['options']));
+                $leafValue['errorMessage'] = __('Invalid setting `%s`, valid values are: %s', $setting, $validValues);
+            }
+
             if ($setting !== '') {
                 $leafValue['value'] = $setting;
             }
         } else {
-            if ($leafKey != 'branch' && (!isset($leafValue['null']) || !$leafValue['null'])) {
+            if ($leafKey !== 'branch' && (!isset($leafValue['null']) || !$leafValue['null'])) {
                 $leafValue['error'] = 1;
                 $leafValue['errorMessage'] = __('Value not set.');
             }
@@ -1962,18 +1971,6 @@ class Server extends AppModel
         }
         if ($value < 0 || $value > 5) {
             return 'Invalid setting, valid range is 0-5 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden, 4 = PASSTHRU, 5 = TCP-only.';
-        }
-        return true;
-    }
-
-    public function testForSightingVisibility($value)
-    {
-        $numeric = $this->testForNumeric($value);
-        if ($numeric !== true) {
-            return $numeric;
-        }
-        if ($value < 0 || $value > 2) {
-            return 'Invalid setting, valid range is 0-2 (0 = Event owner, 1 = Sighting reporters, 2 = Everyone.';
         }
         return true;
     }
@@ -6195,14 +6192,14 @@ class Server extends AppModel
                     'description' => __('The number of tries a user can try to login and fail before the bruteforce protection kicks in.'),
                     'value' => '',
                     'test' => 'testForNumeric',
-                    'type' => 'string',
+                    'type' => 'numeric',
                 ),
                 'expire' => array(
                     'level' => 0,
                     'description' => __('The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.'),
                     'value' => '',
                     'test' => 'testForNumeric',
-                    'type' => 'string',
+                    'type' => 'numeric',
                 ),
             ),
             'Session' => array(
@@ -6234,7 +6231,7 @@ class Server extends AppModel
                     'description' => __('The timeout duration of sessions (in MINUTES). 0 does not mean infinite for the PHP session handler, instead sessions will invalidate immediately.'),
                     'value' => '',
                     'test' => 'testForNumeric',
-                    'type' => 'string'
+                    'type' => 'numeric'
                 ),
                 'cookieTimeout' => array(
                     'level' => 0,
@@ -6754,7 +6751,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner organisation alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and any organisation that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
                     'value' => 0,
-                    'test' => 'testForSightingVisibility',
                     'type' => 'numeric',
                     'options' => array(
                         0 => __('Event Owner Organisation'),
