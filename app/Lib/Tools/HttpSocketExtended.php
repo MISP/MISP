@@ -163,6 +163,17 @@ class HttpSocketExtended extends HttpSocket
     }
 
     /**
+     * @return array|null
+     */
+    public function getMetaData()
+    {
+        if ($this->connection) {
+            return stream_get_meta_data($this->connection);
+        }
+        return null;
+    }
+
+    /**
      * @param array $request
      * @return HttpSocketResponseExtended
      */

@@ -220,21 +220,10 @@ class ServerSyncTool
     }
 
     /**
-     * @param string $key
-     * @return array
-     */
-    public function decodeRule($key)
-    {
-        $rules = $this->server['Server'][$key];
-        return json_decode($rules, true);
-    }
-
-    /**
      * @return array
      */
     public function pullRules()
     {
-        
         return $this->decodeRule('pull_rules');
     }
 
@@ -243,7 +232,6 @@ class ServerSyncTool
      */
     public function pushRules()
     {
-        
         return $this->decodeRule('push_rules');
     }
 
@@ -276,6 +264,14 @@ class ServerSyncTool
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
+    }
+
+    /**
+     * @return array|null
+     */
+    public function connectionMetaData()
+    {
+        return $this->socket->getMetaData();
     }
 
     /**
@@ -335,6 +331,16 @@ class ServerSyncTool
             throw new HttpSocketHttpException($response, $url);
         }
         return $response;
+    }
+
+    /**
+     * @param string $key
+     * @return array
+     */
+    private function decodeRule($key)
+    {
+        $rules = $this->server['Server'][$key];
+        return json_decode($rules, true);
     }
 
     /**
