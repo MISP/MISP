@@ -72,7 +72,7 @@ class AdminShell extends AppShell
             'help' => __('Run security audit.'),
         ]);
         $parser->addSubcommand('securityAuditTls', [
-            'help' => __('Run security audit to test TLS connections.'),
+            'help' => __('Run security audit to test enabled/disabled ciphers and protocols in TLS connections.'),
         ]);
         $parser->addSubcommand('configLint', [
             'help' => __('Check if settings has correct value.'),
@@ -1123,7 +1123,7 @@ class AdminShell extends AppShell
         $securityAudit = (new SecurityAudit())->tlsConnections();
         foreach ($securityAudit as $type => $details) {
             $result = $details['success'] ? 'True' : 'False';
-            if (isset($details['expected']) && $details['expected'] === false && $details['success'] === true) {
+            if (isset($details['expected']) && $details['expected'] !== $details['success']) {
                 $result = "<error>$result</error>";
             }
             $this->out("$type: $result");
