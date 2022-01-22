@@ -74,6 +74,9 @@ class AdminShell extends AppShell
         $parser->addSubcommand('securityAuditTls', [
             'help' => __('Run security audit to test TLS connections.'),
         ]);
+        $parser->addSubcommand('configLint', [
+            'help' => __('Check if settings has correct value.'),
+        ]);
         return $parser;
     }
 
@@ -1124,6 +1127,20 @@ class AdminShell extends AppShell
                 $result = "<error>$result</error>";
             }
             $this->out("$type: $result");
+        }
+    }
+
+    public function configLint()
+    {
+        $serverSettings = $this->Server->serverSettingsRead();
+        foreach ($serverSettings as $setting) {
+            if (!isset($setting['error'])) {
+                continue;
+            }
+            if ($setting['errorMessage'] === 'Value not set.') {
+                continue; // Skip not set values.
+            }
+            $this->out($setting['setting'] . ': ' . $setting['errorMessage']);
         }
     }
 }
