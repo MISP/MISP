@@ -16,7 +16,7 @@ class Stix1Export extends StixExport
             '-s', $this->__scope,
             '-v', $this->__version,
             '-n', Configure::read('MISP.baseurl'),
-            '-o', Configure::read('MISP.org'),
+            '-o', str_replace(' ', '_', Configure::read('MISP.org')),
             '-f', $this->__return_format,
         ];
     }
