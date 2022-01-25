@@ -475,7 +475,7 @@ class StixFromMISPParser(StixParser):
         if hasattr(galaxy, 'labels'):
             return [label for label in galaxy.labels if label.startswith('misp-galaxy:')]
         try:
-            return self._synonyms_to_tag_names[name]
+            return self._synonyms_to_tag_names[galaxy.name]
         except KeyError:
             print(f'Unknown {galaxy._type} name: {galaxy.name}', file=sys.stderr)
             return [f'misp-galaxy:{galaxy._type}="{galaxy.name}"']
