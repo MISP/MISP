@@ -3,7 +3,6 @@ App::uses('AppController', 'Controller');
 class ModulesController extends AppController
 {
     public $components = array(
-    'Security',
     'RequestHandler'
   );
 

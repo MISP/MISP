@@ -11,11 +11,12 @@ sys.path.insert(1, str(_current_path / 'python-stix'))
 sys.path.insert(2, str(_current_path / 'python-cybox'))
 sys.path.insert(3, str(_current_path / 'mixbox'))
 sys.path.insert(4, str(_current_path / 'misp-stix'))
-from misp_stix_converter import stix1_framing, stix20_framing, stix21_framing
+from misp_stix_converter import stix1_attributes_framing, stix1_framing, stix20_framing, stix21_framing
 
 
 def stix_framing(args: argparse.Namespace) -> dict:
-    header, separator, footer = stix1_framing(args.namespace, args.orgname, args.format, args.version)
+    arguments = (args.namespace, args.orgname, args.format, args.version)
+    header, separator, footer = stix1_framing(*arguments) if args.scope == 'Event' else stix1_attributes_framing(*arguments)
     return {'header': header, 'separator': separator, 'footer': footer}
 
 
@@ -29,6 +30,7 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers()
 
     stix1_parser = subparsers.add_parser('stix1', help='STIX1 framing.')
+    stix1_parser.add_argument('-s', '--scope', default='Event', choices=['Attribute', 'Event'], help='Scope: which kind of data is exported.')
     stix1_parser.add_argument('-v', '--version', default='1.1.1', choices=['1.1.1', '1.2'], help='STIX1 version (1.1.1 or 1.2).')
     stix1_parser.add_argument('-f', '--format', default='xml', choices=['json', 'xml'], help='Return format (xml or json).')
     stix1_parser.add_argument('-n', '--namespace', default='https://misp-project.org', help='Default namespace to include in the namespaces defined in the STIX header.')

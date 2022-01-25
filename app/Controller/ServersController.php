@@ -9,7 +9,7 @@ App::uses('SecurityAudit', 'Tools');
  */
 class ServersController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');   // XXX ACL component
+    public $components = array('RequestHandler');   // XXX ACL component
 
     public $paginate = array(
         'limit' => 60,
@@ -311,7 +311,7 @@ class ServersController extends AppController
             if (!$fail) {
                 if ($this->_isRest()) {
                     $defaultPushRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []]]);
-                    $defaultPullRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []], "url_params" => ""]);
+                    $defaultPullRules = json_encode(["tags" => ["OR" => [], "NOT" => []], "orgs" => ["OR" => [], "NOT" => []], "type_attributes" => ["NOT" => []], "type_objects" => ["NOT" => []], "url_params" => ""]);
                     $defaults = array(
                         'push' => 0,
                         'pull' => 0,
@@ -442,11 +442,28 @@ class ServersController extends AppController
                 $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
             }
 
+            $allTypes = [];
+            $this->loadModel('Attribute');
+            $this->loadModel('ObjectTemplate');
+            $objects = $this->ObjectTemplate->find('all', [
+                'recursive' => -1,
+                'fields' => ['uuid', 'name'],
+                'group' => ['uuid', 'name'],
+            ]);
+            $allTypes = [
+                'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
+                'object' => Hash::map($objects, '{n}.ObjectTemplate', function ($item) {
+                    return ['id' => $item['uuid'], 'name' => sprintf('%s (%s)', $item['name'], $item['uuid'])];
+                })
+            ];
+
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
             $this->set('organisationOptions', $organisationOptions);
             $this->set('localOrganisations', $localOrganisations);
             $this->set('externalOrganisations', $externalOrganisations);
             $this->set('allOrganisations', $allOrgs);
+            $this->set('allAttributeTypes', $allTypes['attribute']);
+            $this->set('allObjectTypes', $allTypes['object']);
 
             $this->set('allTags', $this->__getTags());
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
@@ -495,6 +512,16 @@ class ServersController extends AppController
                     return $this->RestResponse->saveFailResponse('Servers', 'edit', false, array('push_rules' => $error_msg), $this->response->type());
                 } else {
                     $this->Flash->error($error_msg);
+                }
+            }
+            $pushRules = $this->Server->jsonDecode($this->request->data['Server']['push_rules']);
+            $this->loadModel('Tag');
+            foreach ($pushRules['tags'] as $operator => $list) {
+                foreach ($list as $i => $tagName) {
+                    if (!is_numeric($tagName)) { // tag added from freetext
+                        $tag_id = $this->Tag->captureTag(['name' => $tagName], $this->Auth->user());
+                        $list[$i] = $tag_id;
+                    }
                 }
             }
             if (!$fail) {
@@ -613,6 +640,21 @@ class ServersController extends AppController
                 $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
             }
 
+            $allTypes = [];
+            $this->loadModel('Attribute');
+            $this->loadModel('ObjectTemplate');
+            $objects = $this->ObjectTemplate->find('all', [
+                'recursive' => -1,
+                'fields' => ['uuid', 'name'],
+                'group' => ['uuid', 'name'],
+            ]);
+            $allTypes = [
+                'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
+                'object' => Hash::map($objects, '{n}.ObjectTemplate', function ($item) {
+                    return ['id' => $item['uuid'], 'name' => sprintf('%s (%s)', $item['name'], $item['uuid'])];
+                })
+            ];
+
             $oldRemoteSetting = 0;
             if (!$this->Server->data['RemoteOrg']['local']) {
                 $oldRemoteSetting = 1;
@@ -627,6 +669,8 @@ class ServersController extends AppController
             $this->set('allOrganisations', $allOrgs);
 
             $this->set('allTags', $this->__getTags());
+            $this->set('allAttributeTypes', $allTypes['attribute']);
+            $this->set('allObjectTypes', $allTypes['object']);
             $this->set('server', $s);
             $this->set('id', $id);
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));

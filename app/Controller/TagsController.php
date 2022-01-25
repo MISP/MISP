@@ -6,7 +6,7 @@ App::uses('AppController', 'Controller');
  */
 class TagsController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');
+    public $components = array('RequestHandler');
 
     public $paginate = array(
             'limit' => 50,
@@ -147,7 +147,7 @@ class TagsController extends AppController
                 $this->request->data['Tag'] = $this->request->data['Tag']['request'];
             }
             if (!isset($this->request->data['Tag']['colour'])) {
-                $this->request->data['Tag']['colour'] = $this->Tag->random_color();
+                $this->request->data['Tag']['colour'] = $this->Tag->tagColor($this->request->data['Tag']['name']);
             }
             if (isset($this->request->data['Tag']['id'])) {
                 unset($this->request->data['Tag']['id']);

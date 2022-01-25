@@ -9,7 +9,6 @@ App::uses('AppController', 'Controller');
 class PostsController extends AppController
 {
     public $components = array(
-        'Security',
         'Session',
         'RequestHandler'
     );

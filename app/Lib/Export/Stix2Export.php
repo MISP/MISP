@@ -18,7 +18,7 @@ class Stix2Export extends StixExport
         ];
     }
 
-    protected function __parse_misp_events(array $filenames)
+    protected function __parse_misp_data()
     {
         $scriptFile = $this->__scripts_dir . 'stix2/misp2stix2.py';
         $command = [
@@ -27,7 +27,7 @@ class Stix2Export extends StixExport
             '-v', $this->__version,
             '-i',
         ];
-        $command = array_merge($command, $filenames);
+        $command = array_merge($command, $this->__filenames);
         $result = ProcessTool::execute($command, null, true);
         $result = preg_split("/\r\n|\n|\r/", trim($result));
         return end($result);

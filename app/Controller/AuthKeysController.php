@@ -7,7 +7,6 @@ App::uses('AppController', 'Controller');
 class AuthKeysController extends AppController
 {
     public $components = array(
-        'Security',
         'CRUD',
         'RequestHandler'
     );

@@ -312,7 +312,7 @@ class Tag extends AppModel
             if ($force || $user['Role']['perm_tag_editor']) {
                 $this->create();
                 if (empty($tag['colour'])) {
-                    $tag['colour'] = $this->random_color();
+                    $tag['colour'] = $this->tagColor($tag['name']);
                 }
                 $tag = array(
                     'name' => $tag['name'],
@@ -347,13 +347,14 @@ class Tag extends AppModel
         return $existingTag['Tag']['id'];
     }
 
-    public function random_color()
+    /**
+     * Generate tag color according to name. So color will be same on all instances.
+     * @param string $tagName
+     * @return string
+     */
+    public function tagColor($tagName)
     {
-        $colour = '#';
-        for ($i = 0; $i < 3; $i++) {
-            $colour .= str_pad(dechex(mt_rand(0, 255)), 2, '0', STR_PAD_LEFT);
-        }
-        return $colour;
+        return '#' . substr(md5($tagName), 0, 6);
     }
 
     /**
@@ -367,7 +368,7 @@ class Tag extends AppModel
     {
         $this->create();
         if ($colour === false) {
-            $colour = $this->random_color();
+            $colour = $this->tagColor($name);
         }
         $data = array(
             'name' => $name,

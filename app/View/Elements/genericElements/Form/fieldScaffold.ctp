@@ -7,11 +7,11 @@
         if (file_exists(ROOT . '/app/View/Elements/genericElements/Form/Fields/' . $fieldData['type'] . 'Field.ctp')) {
             $fieldTemplate = $fieldData['type'] . 'Field';
         }
-        if (empty($fieldData['label'])) {
+        if (!isset($fieldData['label'])) {
             $fieldData['label'] = Inflector::humanize($fieldData['field']);
         }
-        
-        if (!empty($fieldDesc[$fieldData['field']])) {
+
+        if (!empty($fieldData['field']) && !empty($fieldDesc[$fieldData['field']])) {
             $fieldData['label'] .= $this->element(
                 'genericElements/Form/formInfo', array(
                     'field' => $fieldData,

@@ -240,7 +240,7 @@ class Server extends AppModel
      * @param array $server
      * @param array $user
      */
-    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user)
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules, bool &$pullRulesEmptiedEvent=false)
     {
         // we have an Event array
         // The event came from a pull, so it should be locked.
@@ -268,8 +268,14 @@ class Server extends AppModel
                     }
                 }
             }
+
             if (isset($event['Event']['Attribute'])) {
+                $originalCount = count($event['Event']['Attribute']);
                 foreach ($event['Event']['Attribute'] as $key => $attribute) {
+                    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
+                        unset($event['Event']['Attribute'][$key]);
+                        continue;
+                    }
                     switch ($attribute['distribution']) {
                         case '1':
                             $event['Event']['Attribute'][$key]['distribution'] = '0';
@@ -287,9 +293,17 @@ class Server extends AppModel
                         }
                     }
                 }
+                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalCount > 0 && count($event['Event']['Attribute']) == 0) {
+                    $pullRulesEmptiedEvent = true;
+                }
             }
             if (isset($event['Event']['Object'])) {
+                $originalObjectCount = count($event['Event']['Object']);
                 foreach ($event['Event']['Object'] as $i => $object) {
+                    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['template_uuid'], $pullRules['type_objects']['NOT'])) {
+                        unset($event['Event']['Object'][$i]);
+                        continue;
+                    }
                     switch ($object['distribution']) {
                         case '1':
                             $event['Event']['Object'][$i]['distribution'] = '0';
@@ -299,7 +313,12 @@ class Server extends AppModel
                             break;
                     }
                     if (isset($object['Attribute'])) {
+                        $originalAttributeCount = count($object['Attribute']);
                         foreach ($object['Attribute'] as $j => $a) {
+                            if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&  in_array($a['type'], $pullRules['type_attributes']['NOT'])) {
+                                unset($event['Event']['Object'][$i]['Attribute'][$j]);
+                                continue;
+                            }
                             switch ($a['distribution']) {
                                 case '1':
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '0';
@@ -317,7 +336,14 @@ class Server extends AppModel
                                 }
                             }
                         }
+                        if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
+                            unset($event['Event']['Object'][$i]); // Object is empty, get rid of it
+                            $pullRulesEmptiedEvent = true;
+                        }
                     }
+                }
+                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalObjectCount > 0 && count($event['Event']['Object']) == 0) {
+                    $pullRulesEmptiedEvent = true;
                 }
             }
             if (isset($event['Event']['EventReport'])) {
@@ -441,9 +467,13 @@ class Server extends AppModel
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
             }
-            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user);
+            $pullRulesEmptiedEvent = false;
+            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules(), $pullRulesEmptiedEvent);
+
             if (!$this->__checkIfEventSaveAble($event)) {
-                $fails[$eventId] = __('Empty event detected.');
+                if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
+                    $fails[$eventId] = __('Empty event detected.');
+                }
             } else {
                 $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force);
             }
@@ -1302,15 +1332,15 @@ class Server extends AppModel
         foreach ($serverSettings as $branchKey => &$branchValue) {
             if (isset($branchValue['branch'])) {
                 foreach ($branchValue as $leafKey => &$leafValue) {
-                    if ($leafKey !== 'branch' && $leafValue['level'] == 3 && !(isset($currentSettings[$branchKey][$leafKey]))) {
+                    if ($leafKey !== 'branch' && $leafValue['level'] == 3 && !isset($currentSettings[$branchKey][$leafKey])) {
                         continue;
                     }
                     $setting = null;
                     if (isset($currentSettings[$branchKey][$leafKey])) {
                         $setting = $currentSettings[$branchKey][$leafKey];
                     }
-                    $leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
-                    if ($leafKey != 'branch') {
+                    if ($leafKey !== 'branch') {
+                        $leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
                         if ($branchKey == 'Plugin') {
                             $pluginData = explode('_', $leafKey);
                             $leafValue['subGroup'] = $pluginData[0];
@@ -1358,6 +1388,7 @@ class Server extends AppModel
             'misc' => 'Security',
             'Security' => 'Security',
             'Session' => 'Security',
+            'LinOTPAuth' => 'Security',
             'SimpleBackgroundJobs' => 'SimpleBackgroundJobs'
         );
 
@@ -1383,7 +1414,13 @@ class Server extends AppModel
         return $result;
     }
 
-    private function __evaluateLeaf($leafValue, $leafKey, $setting)
+    /**
+     * @param array $leafValue
+     * @param string $leafKey
+     * @param mixed $setting
+     * @return array
+     */
+    private function __evaluateLeaf(array $leafValue, $leafKey, $setting)
     {
         if (isset($setting)) {
             if ($setting instanceof EncryptedValue) {
@@ -1407,11 +1444,20 @@ class Server extends AppModel
                     }
                 }
             }
+            if (isset($leafValue['optionsSource'])) {
+                $leafValue['options'] = $leafValue['optionsSource']();
+            }
+            if (!isset($leafValue['error']) && isset($leafValue['options']) && !isset($leafValue['options'][$setting])) {
+                $leafValue['error'] = 1;
+                $validValues = implode(', ', array_keys($leafValue['options']));
+                $leafValue['errorMessage'] = __('Invalid setting `%s`, valid values are: %s', $setting, $validValues);
+            }
+
             if ($setting !== '') {
                 $leafValue['value'] = $setting;
             }
         } else {
-            if ($leafKey != 'branch' && (!isset($leafValue['null']) || !$leafValue['null'])) {
+            if ($leafKey !== 'branch' && (!isset($leafValue['null']) || !$leafValue['null'])) {
                 $leafValue['error'] = 1;
                 $leafValue['errorMessage'] = __('Value not set.');
             }
@@ -1829,6 +1875,7 @@ class Server extends AppModel
         if ($file->ext() !== 'pem') {
             return __('File has to be in .pem format.');
         }
+        return true;
     }
 
     public function testForStyleFile($value)
@@ -1924,18 +1971,6 @@ class Server extends AppModel
         }
         if ($value < 0 || $value > 5) {
             return 'Invalid setting, valid range is 0-5 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden, 4 = PASSTHRU, 5 = TCP-only.';
-        }
-        return true;
-    }
-
-    public function testForSightingVisibility($value)
-    {
-        $numeric = $this->testForNumeric($value);
-        if ($numeric !== true) {
-            return $numeric;
-        }
-        if ($value < 0 || $value > 2) {
-            return 'Invalid setting, valid range is 0-2 (0 = Event owner, 1 = Sighting reporters, 2 = Everyone.';
         }
         return true;
     }
@@ -2276,7 +2311,7 @@ class Server extends AppModel
             'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
             'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
             'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth',
-            'AadAuth', 'SimpleBackgroundJobs'
+            'AadAuth', 'SimpleBackgroundJobs', 'LinOTPAuth'
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
@@ -5066,7 +5101,12 @@ class Server extends AppModel
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
-                    'options' => array('0' => __('Your organisation only'), '1' => __('This community only'), '2' => __('Connected communities'), '3' => __('All communities')),
+                    'options' => [
+                        '0' => __('Your organisation only'),
+                        '1' => __('This community only'),
+                        '2' => __('Connected communities'),
+                        '3' => __('All communities')
+                    ],
                 ),
                 'default_attribute_distribution' => array(
                     'level' => 0,
@@ -5658,6 +5698,14 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true,
                 ],
+                'enable_synchronisation_filtering_on_type' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Allows server synchronisation connections to be filtered on Attribute type or Object name. Warning: This feature can potentially cause your synchronisation partners to receive incomplete versions of the events you are propagating on behalf of others. This means that even if they would be receiving the unfiltered version through another instance, your filtered version might be the one they receive on a first-come-first-serve basis.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
             ),
             'GnuPG' => array(
                 'branch' => 1,
@@ -6008,7 +6056,7 @@ class Server extends AppModel
                 'require_password_confirmation' => array(
                     'level' => 1,
                     'description' => __('Enabling this setting will require users to submit their current password on any edits to their profile (including a triggered password change). For administrators, the confirmation will be required when changing the profile of any user. Could potentially mitigate an attacker trying to change a compromised user\'s password in order to establish persistance, however, enabling this feature will be highly annoying to users.'),
-                    'value' => true,
+                    'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
@@ -6097,7 +6145,7 @@ class Server extends AppModel
                 ],
                 'encryption_key' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Encryption key used to store sensitive data (like authkeys) in database encrypted. If empty, data are stored unecrypted. Required PHP 7.1 or newer.'),
+                    'description' => __('Encryption key used to store sensitive data (like authkeys) in database encrypted. If empty, data are stored unencrypted. Requires PHP 7.1 or newer.'),
                     'value' => '',
                     'test' => function ($value) {
                         if (strlen($value) < 32) {
@@ -6122,6 +6170,20 @@ class Server extends AppModel
                     'cli_only' => true,
                     'redacted' => true,
                 ],
+                'min_tls_version' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Minimal required TLS version when connecting to external resources.'),
+                    'value' => '',
+                    'type' => 'string',
+                    'null' => true,
+                    'options' => [
+                        '' => __('All versions'),
+                        'tlsv1_0' => 'TLSv1.0',
+                        'tlsv1_1' => 'TLSv1.1',
+                        'tlsv1_2' => 'TLSv1.2',
+                        'tlsv1_3' => 'TLSv1.3',
+                    ],
+                ],
             ),
             'SecureAuth' => array(
                 'branch' => 1,
@@ -6130,14 +6192,14 @@ class Server extends AppModel
                     'description' => __('The number of tries a user can try to login and fail before the bruteforce protection kicks in.'),
                     'value' => '',
                     'test' => 'testForNumeric',
-                    'type' => 'string',
+                    'type' => 'numeric',
                 ),
                 'expire' => array(
                     'level' => 0,
                     'description' => __('The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.'),
                     'value' => '',
                     'test' => 'testForNumeric',
-                    'type' => 'string',
+                    'type' => 'numeric',
                 ),
             ),
             'Session' => array(
@@ -6169,7 +6231,7 @@ class Server extends AppModel
                     'description' => __('The timeout duration of sessions (in MINUTES). 0 does not mean infinite for the PHP session handler, instead sessions will invalidate immediately.'),
                     'value' => '',
                     'test' => 'testForNumeric',
-                    'type' => 'string'
+                    'type' => 'numeric'
                 ),
                 'cookieTimeout' => array(
                     'level' => 0,
@@ -6689,7 +6751,6 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner organisation alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and any organisation that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
                     'value' => 0,
-                    'test' => 'testForSightingVisibility',
                     'type' => 'numeric',
                     'options' => array(
                         0 => __('Event Owner Organisation'),
@@ -7002,35 +7063,35 @@ class Server extends AppModel
             'SimpleBackgroundJobs' => [
                 'branch' => 1,
                 'enabled' => [
-                    'level' => 2,
-                    'description' => __('Enables or disables background jobs with Supervisor backend.'),
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Enables or disables background jobs with Supervisor backend. <span class="red bold">Please read %s before setting this to `true`.</span>', '<a href="https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md" target="_blank">' . __('this guide') . '</a>'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ],
                 'redis_host' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The host running the redis server to be used for background jobs.'),
                     'value' => '127.0.0.1',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ],
                 'redis_port' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The port used by the redis server to be used for background jobs.'),
                     'value' => 6379,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
                 'redis_database' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The database on the redis server to be used for background jobs. If you run more than one MISP instance, please make sure to use a different database or redis_namespace on each instance.'),
                     'value' => 1,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
                 'redis_password' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The password on the redis server (if any) to be used for background jobs.'),
                     'value' => '',
                     'test' => null,
@@ -7038,42 +7099,42 @@ class Server extends AppModel
                     'redacted' => true
                 ],
                 'redis_namespace' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The namespace to be used for the background jobs related keys.'),
                     'value' => 'background_jobs',
                     'test' => null,
                     'type' => 'string'
                 ],
                 'max_job_history_ttl' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The time in seconds the job statuses history will be kept.'),
                     'value' => 86400,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
                 'supervisor_host' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The host where the Supervisor XML-RPC API is running.'),
                     'value' => 'localhost',
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ],
                 'supervisor_port' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The port where the Supervisor XML-RPC API is running.'),
                     'value' => 9001,
                     'test' => 'testForNumeric',
                     'type' => 'numeric'
                 ],
                 'supervisor_user' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The user of the Supervisor XML-RPC API.'),
                     'value' => '',
                     'test' => null,
                     'type' => 'string'
                 ],
                 'supervisor_password' => [
-                    'level' => 2,
+                    'level' => self::SETTING_CRITICAL,
                     'description' => __('The password of the Supervisor XML-RPC API.'),
                     'value' => '',
                     'test' => null,
@@ -7097,6 +7158,37 @@ class Server extends AppModel
                 'type' => 'boolean',
                 'null' => true
             ),
+            'LinOTPAuth' => array(
+                'branch' => 1,
+                'baseUrl' => array(
+                    'level' => 2,
+                    'description' => __('The default LinOTP URL.'),
+                    'value' => 'https://<your-linotp-baseUrl>',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'realm' => array(
+                    'level' => 2,
+                    'description' => __('The LinOTP realm to authenticate against.'),
+                    'value' => 'lino',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'verifyssl' => array(
+                    'level' => 2,
+                    'description' => __('Set to false to skip SSL/TLS verify'),
+                    'value' => true,
+                    'test' => 'testBoolTrue',
+                    'type' => 'boolean',
+                ),
+                'mixedauth' => array(
+                    'level' => 2,
+                    'description' => __('Set to true to enforce OTP usage'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                ),
+            ),
         );
     }
 
@@ -7109,8 +7201,8 @@ class Server extends AppModel
                     'Set setting' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
                     'Get authkey' => 'MISP/app/Console/cake Admin getAuthkey [user_email]',
                     'Change authkey' => 'MISP/app/Console/cake Admin change_authkey [user_email] [authkey]',
-                    'Set baseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
-                    'Change password' => 'MISP/app/Console/cake Password [email] [new_password] [--override_password_change]',
+                    'Set baseurl' => 'MISP/app/Console/cake Admin setSetting MISP.baseurl [baseurl]',
+                    'Change password' => 'MISP/app/Console/cake User change_pw [email] [new_password] [--no_password_change]',
                     'Clear Bruteforce entries' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
                     'Clean caches' => 'MISP/app/Console/cake Admin cleanCaches',
                     'Set database version' => 'MISP/app/Console/cake Admin setDatabaseVersion [version]',

@@ -7,7 +7,6 @@ App::uses('AppController', 'Controller');
 class ThreadsController extends AppController
 {
     public $components = array(
-        'Security',
         'RequestHandler',
         'Session',
     );

@@ -6,7 +6,7 @@ App::uses('AppController', 'Controller');
  */
 class JobsController extends AppController
 {
-    public $components = array('Security', 'RequestHandler', 'Session');
+    public $components = array('RequestHandler', 'Session');
 
     public $paginate = array(
         'limit' => 20,
@@ -167,7 +167,7 @@ class JobsController extends AppController
         }
     }
 
-    private function __getJobStatus(?string $id): string
+    private function __getJobStatus($id): string
     {
         if (!Configure::read('SimpleBackgroundJobs.enabled')) {
             return $this->__jobStatusConverter(CakeResque::getJobStatus($id));
