@@ -467,7 +467,7 @@ class SecurityAudit
         }
         $buildTime = strtotime(substr($version, 7));
         if ($buildTime) {
-            return new DateTime($buildTime);
+            return new DateTime('@' . $buildTime);
         } else {
             return false;
         }

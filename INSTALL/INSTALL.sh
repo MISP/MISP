@@ -1521,7 +1521,7 @@ configMISP () {
 }
 
 # Core cake commands to tweak MISP and aleviate some of the configuration pains
-# The ${RUN_PHP} is ONLY set on RHEL/CentOS installs and can thus be ignored
+# The ${RUN_PHP} is ONLY set on RHEL installs and can thus be ignored
 # This file is NOT an excuse to NOT read the settings and familiarize ourselves with them ;)
 
 coreCAKE () {
@@ -2235,7 +2235,7 @@ enableEPEL_REMI_8 () {
   sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
   sudo dnf install dnf-utils -y
   sudo dnf module enable php:remi-7.4 -y
-  ([[ ${DISTRI} == "centos8stream" ]] || [[ ${DISTRI} == "centos8" ]] || [[ ${DISTRI} == "rocky8.4" ]]) && sudo dnf config-manager --set-enabled powertools
+  ([[ ${DISTRI} == "centos8stream" ]] || [[ ${DISTRI} == "centos8" ]] || [[ ${DISTRI} == "rocky8.4" ]] || [[ ${DISTRI} == "rocky8.5" ]]) && sudo dnf config-manager --set-enabled powertools
 }
 
 enableREMI_fedora () {
@@ -2289,7 +2289,8 @@ yumInstallCoreDeps8 () {
   # Install the dependencies:
   PHP_BASE="/etc/"
   PHP_INI="/etc/php.ini"
-  sudo dnf install @httpd -y
+  # If the install group @httpd is not existent, fallback to httpd
+  sudo dnf install @httpd -y || sudo dnf install httpd -y
   sudo dnf install gcc git zip unzip \
                    httpd \
                    mod_ssl \
@@ -2442,7 +2443,8 @@ compileLiefRHEL8 () {
 
   # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
   echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
-  [[ "${DISTRI}" == "fedora33" ]] && (echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.9/site-packages/lief.pth)
+  ([[ "${DISTRI}" == "fedora33" ]] || [[ ${DISTRI} == 'fedora34' ]]) && (echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.9/site-packages/lief.pth)
+  [[ "${DISTRI}" == "fedora35" ]] && (echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.10/site-packages/lief.pth)
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic plyara
 }
 
@@ -2464,13 +2466,14 @@ installCoreRHEL8 () {
   # Create a python3 virtualenv
   [[ -e $(which virtualenv-3 2>/dev/null) ]] && $SUDO_WWW virtualenv-3 -p python3 $PATH_TO_MISP/venv
   [[ -e $(which virtualenv 2>/dev/null) ]] && $SUDO_WWW virtualenv -p python3 $PATH_TO_MISP/venv
+  [[ ! -e ${PATH_TO_MISP}/venv ]] && ${SUDO_WWW} python -m venv ${PATH_TO_MISP}/venv
   sudo mkdir /usr/share/httpd/.cache
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
 
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
-  ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'fedora34' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
-  ([[ ${DISTRI} == 'centos8stream' ]] || [[ ${DISTRI} == 'centos8' ]] || [[ ${DISTRI} == 'rocky8.4' ]]) && sudo dnf install cmake -y && CMAKE_BIN='cmake'
+  ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'fedora34' ]] || [[ ${DISTRI} == 'fedora35' ]] || [[ ${DISTRI} == 'rhel8.3' ]] || [[ ${DISTRI} == 'rhel8.4' ]] || [[ ${DISTRI} == 'rhel8.5' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
+  ([[ ${DISTRI} == 'centos8stream' ]] || [[ ${DISTRI} == 'centos8' ]] || [[ ${DISTRI} == 'rocky8.4' ]] || [[ ${DISTRI} == 'rocky8.5' ]]) && sudo dnf install cmake -y && CMAKE_BIN='cmake'
 
   UMASK=$(umask)
   umask 0022
@@ -2494,7 +2497,7 @@ installCoreRHEL8 () {
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
 
   # FIXME: Remove libfaup etc once the egg has the library baked-in
-  # BROKEN: This needs to be tested on RHEL/CentOS
+  # BROKEN: This needs to be tested on RHEL/Rocky
   sudo dnf install libcaca-devel -y
   cd /tmp
   [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
@@ -2890,7 +2893,7 @@ mispmodulesRHEL () {
   # some misp-modules dependencies for RHEL<8
   ([[ "${DISTRI}" == "fedora33" ]] || [[ "${DIST_VER}" =~ ^[7].* ]]) && sudo dnf install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
   # some misp-modules dependencies for RHEL8
-  [[ "${DIST_VER}" =~ ^[8].* ]] && sudo dnf install https://packages.endpointdev.com/rhel/8/os/x86_64/endpoint-repo.x86_64.rpm -y && sudo dnf install zbar-devel opencv-devel -y
+  [[ "${DIST_VER}" =~ ^[8].* ]] && sudo dnf install https://packages.endpointdev.com/rhel/8/main/x86_64/endpoint-repo.noarch.rpm -y && sudo dnf install zbar-devel opencv-devel -y
 
   echo "[Unit]
   Description=MISP modules
@@ -2959,7 +2962,7 @@ generateInstaller () {
   done
 
   # Pull out code snippets from generic Install Documents
-  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-dashboard-centos.md misp-dashboard-cake.md misp-modules-debian.md misp-modules-centos.md misp-modules-cake.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
+  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-dashboard-rhel.md misp-dashboard-cake.md misp-modules-debian.md misp-modules-rhel.md misp-modules-cake.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
     xsnippet . ../../docs/generic/${f}
   done
 
@@ -3643,6 +3646,8 @@ x86_64-rhel-7
 x86_64-centos-8
 x86_64-rhel-8
 x86_64-fedora-33
+x86_64-fedora-34
+x86_64-fedora-35
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic

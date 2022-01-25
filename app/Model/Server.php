@@ -1388,6 +1388,7 @@ class Server extends AppModel
             'misc' => 'Security',
             'Security' => 'Security',
             'Session' => 'Security',
+            'LinOTPAuth' => 'Security',
             'SimpleBackgroundJobs' => 'SimpleBackgroundJobs'
         );
 
@@ -5690,7 +5691,7 @@ class Server extends AppModel
                 ],
                 'enable_synchronisation_filtering_on_type' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Allows server synchronisation connections to be filtered on Attribute type or Object name. Warning: This feature has can potentially cause your synchronisation partners to receive incomplete versions of the events you are propagating on behalf of others. This means that even if they would be receiving the unfiltered version through another instance, your filtered version might be the one they receive on a first-come-first-serve basis.'),
+                    'description' => __('Allows server synchronisation connections to be filtered on Attribute type or Object name. Warning: This feature can potentially cause your synchronisation partners to receive incomplete versions of the events you are propagating on behalf of others. This means that even if they would be receiving the unfiltered version through another instance, your filtered version might be the one they receive on a first-come-first-serve basis.'),
                     'value' => false,
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
@@ -7134,6 +7135,37 @@ class Server extends AppModel
                 'test' => 'testDebugAdmin',
                 'type' => 'boolean',
                 'null' => true
+            ),
+            'LinOTPAuth' => array(
+                'branch' => 1,
+                'baseUrl' => array(
+                    'level' => 2,
+                    'description' => __('The default LinOTP URL.'),
+                    'value' => 'https://<your-linotp-baseUrl>',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'realm' => array(
+                    'level' => 2,
+                    'description' => __('The LinOTP realm to authenticate against.'),
+                    'value' => 'lino',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'verifyssl' => array(
+                    'level' => 2,
+                    'description' => __('Set to false to skip SSL/TLS verify'),
+                    'value' => true,
+                    'test' => 'testBoolTrue',
+                    'type' => 'boolean',
+                ),
+                'mixedauth' => array(
+                    'level' => 2,
+                    'description' => __('Set to true to enforce OTP usage'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                ),
             ),
         );
     }

@@ -69,11 +69,13 @@ jobs:
               sudo apt-get -y update
               # Repo is missing for unknown reason
               LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
-              sudo apt-get -y install curl python3 python3-zmq python3-requests python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version libfuzzy-dev
+              if [[ $php_version == "7.2" ]]; then
+                # hotfix due to: https://bugs.php.net/bug.php?id=81640 TODO: remove after libpcre2-8-0:10.36 gets to stable channel
+                sudo apt --fix-broken install
+              fi
+              sudo apt-get -y install curl python3 python3-zmq python3-requests python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version
               sudo pip3 install virtualenv # virtualenv must be instaled from pip and not from ubuntu packages
-              # hotfix due to: https://bugs.php.net/bug.php?id=81640 TODO: remove after libpcre2-8-0:10.36 gets to stable channel
-              sudo apt install --only-upgrade libpcre2-8-0
-              curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | python -
+              curl -sSL https://install.python-poetry.org | python -
               sudo chown $USER:www-data $HOME/.composer
               pushd app
               sudo -H -u $USER php composer.phar install --no-progress
@@ -172,6 +174,7 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1'
 
       - name: Update Galaxies
         run: sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'
@@ -233,7 +236,6 @@ jobs:
       - name: Build test
         run: |
               . ./venv/bin/activate
-              pip install git+https://github.com/kbandla/pydeep.git
               pushd tests
               ./build-test.sh
 
@@ -271,3 +273,4 @@ jobs:
         run: |
               tail -n +1 `pwd`/app/tmp/logs/*
               tail -n +1 /var/log/apache2/*.log
+

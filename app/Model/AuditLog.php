@@ -180,7 +180,7 @@ class AuditLog extends AppModel
         if (!isset($auditLog['ip']) && $this->logClientIp) {
             $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
             if (isset($_SERVER[$ipHeader])) {
-                $auditLog['ip'] = inet_pton($_SERVER[$ipHeader]); // convert to binary form
+                $auditLog['ip'] = utf8_encode(inet_pton($_SERVER[$ipHeader])); // convert to binary form
             }
         }
 

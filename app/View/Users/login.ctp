@@ -41,6 +41,13 @@
             echo $this->Form->input('password', array('autocomplete' => 'off'));
             if (!empty(Configure::read('LinOTPAuth'))) {
                 echo $this->Form->input('otp', array('autocomplete' => 'off', 'type' => 'password', 'label' => 'OTP'));
+                echo "<div class=\"clear\">";
+                echo sprintf(
+                    '%s <a href="%s/selfservice" title="LinOTP Selfservice">LinOTP Selfservice</a> %s',
+                    __('Visit'),
+                    Configure::read('LinOTPAuth.baseUrl'),
+                    __('for the One-Time-Password selfservice.')
+                );
             }
         ?>
             <div class="clear">
