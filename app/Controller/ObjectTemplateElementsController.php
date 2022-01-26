@@ -4,7 +4,7 @@ App::uses('AppController', 'Controller');
 
 class ObjectTemplateElementsController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler', 'Session');
+    public $components = array('RequestHandler', 'Session');
 
     public $paginate = array(
             'limit' => 60,

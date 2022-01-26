@@ -5,7 +5,6 @@ App::uses('AppController', 'Controller');
 class LogsController extends AppController
 {
     public $components = array(
-        'Security',
         'RequestHandler',
         'AdminCrud' => array(
             'crud' => array('index')

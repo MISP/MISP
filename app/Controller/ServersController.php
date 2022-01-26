@@ -9,7 +9,7 @@ App::uses('SecurityAudit', 'Tools');
  */
 class ServersController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');   // XXX ACL component
+    public $components = array('RequestHandler');   // XXX ACL component
 
     public $paginate = array(
         'limit' => 60,

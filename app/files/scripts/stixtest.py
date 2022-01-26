@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
-
-import json
 import sys
+import json
+from pathlib import Path
+
+_current_path = Path(__file__).resolve().parent
+sys.path.insert(0, str(_current_path / 'cti-python-stix2'))
+sys.path.insert(1, str(_current_path / 'python-stix'))
+sys.path.insert(2, str(_current_path / 'python-cybox'))
+sys.path.insert(3, str(_current_path / 'mixbox'))
+sys.path.insert(4, str(_current_path / 'python-maec'))
+sys.path.insert(5, str(_current_path / 'misp-stix'))
+
 results = {
     'success': 1,
     'stix': 0,
@@ -11,6 +20,7 @@ results = {
     'stix2': 0,
     'pymisp': 0
 }
+
 try:
     import pymisp
     results['pymisp'] = pymisp.__version__
