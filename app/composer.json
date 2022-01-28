@@ -33,7 +33,7 @@
         "ext-apcu": "To cache data in memory instead of file system",
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
         "aws/aws-sdk-php": "To upload samples to S3",
-        "jumbojett/openid-connect-php": "For OIDC authentication",
+        "jakub-onderka/openid-connect-php": "For OIDC authentication",
         "supervisorphp/supervisor": "For managing background jobs",
         "lstrojny/fxmlrpc": "Required for supervisorphp/supervisor XML-RPC requests",
         "guzzlehttp/guzzle": "Required for supervisorphp/supervisor XML-RPC requests",
