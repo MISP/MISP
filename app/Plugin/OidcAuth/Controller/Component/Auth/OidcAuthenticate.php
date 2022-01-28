@@ -6,6 +6,7 @@ App::uses('BaseAuthenticate', 'Controller/Component/Auth');
  *  - OidcAuth.provider_url
  *  - OidcAuth.client_id
  *  - OidcAuth.client_secret
+ *  - OidcAuth.authentication_method
  *  - OidcAuth.role_mapper
  *  - OidcAuth.organisation_property (default: `organization`)
  *  - OidcAuth.roles_property (default: `roles`)
@@ -138,6 +139,7 @@ class OidcAuthenticate extends BaseAuthenticate
 
     /**
      * @return \JakubOnderka\OpenIDConnectClient|\Jumbojett\OpenIDConnectClient
+     * @throws Exception
      */
     private function prepareClient()
     {
@@ -155,11 +157,18 @@ class OidcAuthenticate extends BaseAuthenticate
 
         $clientId = $this->getConfig('client_id');
         $clientSecret = $this->getConfig('client_secret');
+        $authenticationMethod = $this->getConfig('authentication_method', false);
 
         if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
             $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
+            if ($authenticationMethod !== false && $authenticationMethod !== null) {
+                $oidc->setTokenAuthenticationMethod($authenticationMethod);
+            }
         } else if (class_exists("\Jumbojett\OpenIDConnectClient")) {
             $oidc = new \Jumbojett\OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
+            if ($authenticationMethod !== false && $authenticationMethod !== null) {
+                throw new Exception("Jumbojett OIDC implementation do not support changing authentication method, please use JakubOnderka's client");
+            }
         } else {
             throw new Exception("OpenID connect client is not installed.");
         }
