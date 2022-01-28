@@ -286,7 +286,14 @@ class SecurityAudit
         $urls = [
             'TLSv1.0' => ['url' => 'https://tls-v1-0.badssl.com:1010/'],
             'TLSv1.1' => ['url' => 'https://tls-v1-1.badssl.com:1011/'],
-            'TLSv1.2' => ['url' => 'https://tls-v1-2.badssl.com:1012/'],
+            'TLSv1.2' => ['url' => 'https://tls-v1-2.badssl.com:1012/', 'expected' => true],
+            'TLSv1.3' => [
+                'url' => 'https://check-tls.akamai.io/v1/tlsinfo.json',
+                'expected' => true,
+                'process' => function (HttpSocketResponseExtended $response) {
+                    return $response->json()['tls_version'] === 'tls1.3';
+                }
+            ],
             'DH480' => ['url' => 'https://dh480.badssl.com/', 'expected' => false],
             'DH512' => ['url' => 'https://dh512.badssl.com/', 'expected' => false],
             'DH1024' => ['url' => 'https://dh1024.badssl.com/', 'expected' => false],
@@ -308,14 +315,18 @@ class SecurityAudit
             'Bad DNSSEC' => ['url' => 'http://rhybar.cz', 'expected' => false],
         ];
         $syncTool = new SyncTool();
-        foreach ($urls as $type => $details) {
+        foreach ($urls as &$details) {
             $httpSocket = $syncTool->createHttpSocket();
             try {
-                $httpSocket->get($details['url']);
-                $urls[$type]['success'] = true;
+                $response = $httpSocket->get($details['url']);
+                if (isset($details['process'])) {
+                    $details['success'] = $details['process']($response);
+                } else {
+                    $details['success'] = true;
+                }
             } catch (Exception $e) {
-                $urls[$type]['success'] = false;
-                $urls[$type]['exception'] = $e;
+                $details['success'] = false;
+                $details['exception'] = $e;
             }
         }
         return $urls;

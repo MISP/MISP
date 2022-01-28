@@ -2436,6 +2436,14 @@ class Server extends AppModel
                 'client_certificate' => $clientCertificate,
             ];
 
+            $connectionMeta = $serverSync->connectionMetaData();
+            if (isset($connectionMeta['crypto']['protocol'])) {
+                $response['tls_version'] = $connectionMeta['crypto']['protocol'];
+            }
+            if (isset($connectionMeta['crypto']['cipher_name'])) {
+                $response['tls_cipher'] = $connectionMeta['crypto']['cipher_name'];
+            }
+
             if ($withPostTest) {
                 $response['post'] = $serverSync->isSupported(ServerSyncTool::FEATURE_POST_TEST) ? $this->runPOSTtest($serverSync) : null;
             }
