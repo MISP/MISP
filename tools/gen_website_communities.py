@@ -8,25 +8,24 @@ Takes the MISP communities metadata [1] and generates the website page [2]
 import json
 
 code_communities_filename = '../app/files/community-metadata/defaults.json'
-website_communities_filename = '../../misp-website/_pages/communities.md'
+website_communities_filename = '../../misp-website/content/communities.md'
 
 
 communities_header = '''
 ---
-layout: page
+type: page
 title: MISP Communities and MISP Feeds
 permalink: /communities/
 toc: true
 ---
 
-## MISP Communities
-
 MISP is an open source software and it is also a large community of MISP users creating, maintaining and operating communities of users or organizations sharing information about threats or cyber security indicators worldwide. The MISP project doesn't maintain an exhaustive list of all communities relying on MISP especially that some communities use MISP internally or privately.
 
-# Known Existing and Public MISP Communities
+## Known Existing and Public MISP Communities
 
 Each community might have specific rules to join them. Below is a brief overview of existing communities, feel free to contact the respective communities that fit your organization. Some of existing public communities might be interconnected and some might be in an island mode. By running MISP, these communities usually allow their members to connect using the MISP API, MISP user-interface or even to synchronize your MISP instance with their communities. If you want to add your MISP community to the list, don't hesitate to [contact us](mailto:info@misp-project.org).
-The <i class="icon far fa-check-circle" style="color:green;"></i> sign indicates the community is vetted by the MISP Project.
+
+The <i class="far fa-check-circle" style="color:green;"></i> sign indicates the community is vetted by the MISP Project.
 
 '''
 
@@ -54,7 +53,7 @@ MISP URL location is [http://www.botvrij.eu/data/feed-osint](http://www.botvrij.
 '''
 
 
-vetted_image = ' <i class="icon far fa-check-circle" style="color:green;"></i>\n'
+vetted_image = ' <i class="far fa-check-circle" style="color:green; "></i>\n'
 
 
 with open(code_communities_filename, 'r') as f_in:
@@ -67,7 +66,7 @@ with open(website_communities_filename, 'w') as f_out:
         f_out.write(f'### {entry["name"]}')
         f_out.write(vetted_image if entry.get('misp_project_vetted') else '\n')
         if entry.get('logo'):
-            f_out.write(f'![Logo]({entry["logo"]}){{: style="float: right; max-width: 300px; max-height: 150px;"}}\n')
+            f_out.write(f'![Logo]({entry["logo"]} "{{class=\'community_logo\'}}")\n')
         if entry.get('url'):
             f_out.write(f'- Website: {entry["url"]}\n')
         if entry.get('type'):
