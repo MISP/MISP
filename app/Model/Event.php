@@ -974,6 +974,7 @@ class Event extends AppModel
                     }
                 }
                 if (!$serverFound) {
+                    $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$server['Server']['id']}: server not found in sharing group.");
                     return 403;
                 }
             }
@@ -986,18 +987,21 @@ class Event extends AppModel
                 }
             }
             if (!$orgFound) {
+                $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$server['Server']['id']}: org not found in sharing group.");
                 return 403;
             }
         }
         $serverModel = ClassRegistry::init('Server');
         $server = $serverModel->eventFilterPushableServers($event, array($server));
         if (empty($server)) {
+            $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$server['Server']['id']}: event doesn't match sever push rules.");
             return 403;
         }
         $server = $server[0];
         if ($this->checkDistributionForPush($event, $server, 'Event')) {
             $event = $this->__updateEventForSync($event, $server);
         } else {
+            $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$server['Server']['id']}: event doesn't match distribution.");
             return 403;
         }
         return $event;
