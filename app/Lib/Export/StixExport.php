@@ -317,9 +317,9 @@ abstract class StixExport
         }
         foreach ($this->__filenames as $filename) {
             FileAccessTool::deleteFileIfExists($filename);
-        }
-        if ($removeOutput) {
-            FileAccessTool::deleteFileIfExists($filename . '.out');
+            if ($removeOutput) {
+                FileAccessTool::deleteFileIfExists($filename . '.out');
+            }
         }
     }
 
