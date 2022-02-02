@@ -2993,6 +2993,14 @@ class EventsController extends AppController
         $this->loadModel('Attribute');
         $this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
         $this->loadModel('Server');
+        if (empty(Configure::read('Security.advanced_authkeys'))) {
+            $authkey = $this->Event->User->find('first', [
+                'fields' => ['authkey'],
+                'conditions' => ['User.id' => $this->Auth->user()['id']],
+                'recursive' => -1
+            ])['User']['authkey'];
+            $this->set('authkey', $authkey);
+        }
         $rpzSettings = $this->Server->retrieveCurrentSettings('Plugin', 'RPZ_');
         $this->set('rpzSettings', $rpzSettings);
         $this->set('hashTypes', array_keys($this->Event->Attribute->hashTypes));
