@@ -1311,7 +1311,7 @@ class AppController extends Controller
     protected function __canModifyEvent(array $event)
     {
         if (!isset($event['Event'])) {
-            throw new InvalidArgumentException('Passed object does not contains Event.');
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
         }
 
         if ($this->userRole['perm_site_admin']) {
