@@ -42,7 +42,9 @@ $formCreate = $this->Form->create($modelForForm, $formOptions);
 $fieldsArray = [];
 if (!empty($data['fields'])) {
     foreach ($data['fields'] as $fieldData) {
-        $fieldsArray[] = $modelForForm . Inflector::camelize($fieldData['field']);
+        if (!empty($fieldData['field'])) {
+            $fieldsArray[] = $modelForForm . Inflector::camelize($fieldData['field']);
+        }
         if (isset($fieldData['requirements']) && !$fieldData['requirements']) {
             continue;
         }

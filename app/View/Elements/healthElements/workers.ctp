@@ -18,7 +18,7 @@
 <?php
         endif;
         foreach ($worker_array as $type => $data):
-        if ($type == 'proc_accessible' or $type == 'controls') continue;
+        if (!in_array($type, BackgroundJobsTool::VALID_QUEUES)) continue;
         $queueStatusMessage = __("Issues prevent jobs from being processed. Please resolve them below.");
         $queueStatus = false;
         if ($data['ok']) {

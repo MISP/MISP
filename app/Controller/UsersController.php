@@ -9,9 +9,7 @@ class UsersController extends AppController
     public $newkey;
 
     public $components = array(
-            'Security',
-            'Email',
-            'RequestHandler'
+        'RequestHandler'
     );
 
     public $paginate = array(
@@ -1822,6 +1820,7 @@ class UsersController extends AppController
     // shows some statistics about the instance
     public function statistics($page = 'data')
     {
+        $user = $this->Auth->user();
         @session_write_close(); // loading this page can take long time, so we can close session
 
         if (!$this->_isRest()) {
@@ -1843,7 +1842,7 @@ class UsersController extends AppController
         }
 
         if ($page === 'data') {
-            $result = $this->__statisticsData($this->params['named']);
+            $result = $this->__statisticsData($user, $this->params['named']);
         } elseif ($page === 'orgs') {
             if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
                 throw new MethodNotAllowedException('This feature is currently disabled.');
@@ -1860,9 +1859,9 @@ class UsersController extends AppController
                 $this->render('statistics_histogram');
             }
         } elseif ($page === 'sightings') {
-            $result = $this->__statisticsSightings($this->params['named']);
+            $result = $this->__statisticsSightings($user, $this->params['named']);
         } elseif ($page === 'galaxyMatrix') {
-            $result = $this->__statisticsGalaxyMatrix($this->params['named']);
+            $result = $this->__statisticsGalaxyMatrix($user, $this->params['named']);
         } else {
             throw new NotFoundException("Invalid page");
         }
@@ -1872,7 +1871,7 @@ class UsersController extends AppController
         }
     }
 
-    private function __statisticsData($params = array())
+    private function __statisticsData(array $user, $params = array())
     {
         // set all of the data up for the heatmaps
         $params = array(
@@ -1881,8 +1880,8 @@ class UsersController extends AppController
             'conditions' => array(),
             'order' => ['name'],
         );
-        if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
-            $params['conditions'] = array('Organisation.id' => $this->Auth->user('org_id'));
+        if (!$user['Role']['perm_site_admin'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+            $params['conditions'] = array('Organisation.id' => $user['org_id']);
         }
         $orgs = $this->User->Organisation->find('list', $params);
 
@@ -1907,9 +1906,7 @@ class UsersController extends AppController
         $stats['attribute_count_month'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => 0), 'recursive' => -1));
         $stats['attributes_per_event'] = round($stats['attribute_count'] / $stats['event_count']);
 
-        $this->loadModel('Correlation');
-        $this->Correlation->recursive = -1;
-        $stats['correlation_count'] = $this->Correlation->find('count', array('recursive' => -1));
+        $stats['correlation_count'] = $this->User->Event->Attribute->Correlation->find('count', array('recursive' => -1));
         $stats['correlation_count'] = $stats['correlation_count'] / 2;
 
         $stats['proposal_count'] = $this->User->Event->ShadowAttribute->find('count', array('recursive' => -1, 'conditions' => array('deleted' => 0)));
@@ -1946,10 +1943,10 @@ class UsersController extends AppController
         $this->render('statistics_data');
     }
 
-    private function __statisticsSightings($params = array())
+    private function __statisticsSightings(array $user, $params = array())
     {
         $this->loadModel('Sighting');
-        $conditions = ['Sighting.org_id' => $this->Auth->user('org_id')];
+        $conditions = ['Sighting.org_id' => $user['org_id']];
         if (isset($params['timestamp'])) {
             $conditions['Sighting.date_sighting >'] = $params['timestamp'];
         }
@@ -1999,7 +1996,6 @@ class UsersController extends AppController
 
     private function __statisticsOrgs($params = array())
     {
-        $this->loadModel('Organisation');
         $conditions = array();
         if (!isset($params['scope']) || $params['scope'] == 'local') {
             $params['scope'] = 'local';
@@ -2007,12 +2003,12 @@ class UsersController extends AppController
         } elseif ($params['scope'] == 'external') {
             $conditions['Organisation.local'] = 0;
         }
-        $orgs = $this->Organisation->find('all', array(
-                'recursive' => -1,
-                'conditions' => $conditions,
-                'fields' => array('id', 'name', 'description', 'local', 'contacts', 'type', 'sector', 'nationality'),
+        $orgs = $this->User->Organisation->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => array('id', 'name', 'description', 'local', 'contacts', 'type', 'sector', 'nationality'),
         ));
-        $orgs = Set::combine($orgs, '{n}.Organisation.id', '{n}.Organisation');
+        $orgs = array_column(array_column($orgs, 'Organisation'), null, 'id');
         $users = $this->User->find('all', array(
             'group' => 'User.org_id',
             'conditions' => array('User.org_id' => array_keys($orgs)),
@@ -2170,7 +2166,7 @@ class UsersController extends AppController
         }
     }
 
-    private function __statisticsGalaxyMatrix($params = array())
+    private function __statisticsGalaxyMatrix(array $user, $params = array())
     {
         $this->loadModel('Event');
         $this->loadModel('Galaxy');
@@ -2186,7 +2182,7 @@ class UsersController extends AppController
             'fields' => ['id', 'name'],
         ));
         foreach ($organisations as $id => $foo) {
-            if (!$this->User->Organisation->canSee($this->Auth->user(), $id)) {
+            if (!$this->User->Organisation->canSee($user, $id)) {
                 unset($organisations[$id]);
             }
         }
@@ -2225,7 +2221,7 @@ class UsersController extends AppController
             }
             $elementCounter = 0;
             $renderView = '';
-            $final = $this->Event->restSearch($this->Auth->user(), 'attack', $filters, false, false, $elementCounter, $renderView);
+            $final = $this->Event->restSearch($user, 'attack', $filters, false, false, $elementCounter, $renderView);
 
             $final = json_decode($final, true);
             if (!empty($final)) {

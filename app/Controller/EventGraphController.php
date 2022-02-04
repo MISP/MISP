@@ -7,7 +7,6 @@ App::uses('AppController', 'Controller');
 class EventGraphController extends AppController
 {
     public $components = array(
-            'Security',
             'RequestHandler'
     );
 

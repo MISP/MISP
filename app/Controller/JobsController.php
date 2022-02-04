@@ -6,7 +6,7 @@ App::uses('AppController', 'Controller');
  */
 class JobsController extends AppController
 {
-    public $components = array('Security', 'RequestHandler', 'Session');
+    public $components = array('RequestHandler', 'Session');
 
     public $paginate = array(
         'limit' => 20,

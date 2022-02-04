@@ -9,10 +9,8 @@ App::uses('Xml', 'Utility');
 class EventsController extends AppController
 {
     public $components = array(
-            'Security',
-            'Email',
-            'RequestHandler',
-            'IOCImport',
+        'RequestHandler',
+        'IOCImport',
     );
 
     public $paginate = array(
@@ -107,6 +105,10 @@ class EventsController extends AppController
                 $conditions['AND'][] = $this->Event->filterRulesToConditions($this->Auth->user('Server')['push_rules']);
             }
             $this->paginate = Set::merge($this->paginate, array('conditions' => $conditions));
+        }
+
+        if ($this->request->action === 'checkLocks') {
+            $this->Security->doNotGenerateToken = true;
         }
     }
 
@@ -4475,21 +4477,21 @@ class EventsController extends AppController
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
 
-    private function genDistributionGraph($id, $type = 'event', $extended = 0)
+    private function genDistributionGraph($id, $type = 'event', $extended = 0, $user = null)
     {
         $validTools = array('event');
         if (!in_array($type, $validTools)) {
             throw new MethodNotAllowedException(__('Invalid type.'));
         }
 
-        App::uses('DistributionGraphTool', 'Tools');
-        $grapher = new DistributionGraphTool();
-
         $this->loadModel('Server');
         $servers = $this->Server->find('column', array(
             'fields' => array('Server.name'),
         ));
-        $grapher->construct($this->Event, $servers, $this->Auth->user(), $extended);
+
+        App::uses('DistributionGraphTool', 'Tools');
+        $user = $user ?: $this->Auth->user();
+        $grapher = new DistributionGraphTool($this->Event, $servers, $user, $extended);
         $json = $grapher->get_distributions_graph($id);
 
         array_walk_recursive($json, function (&$item, $key) {
@@ -4531,8 +4533,12 @@ class EventsController extends AppController
 
     public function getDistributionGraph($id, $type = 'event')
     {
+        // Close session without writing changes to them.
+        $user = $this->Auth->user();
+        session_abort();
+
         $extended = isset($this->params['named']['extended']) ? 1 : 0;
-        $json = $this->genDistributionGraph($id, $type, $extended);
+        $json = $this->genDistributionGraph($id, $type, $extended, $user);
         return $this->RestResponse->viewData($json, 'json');
     }
 
@@ -5471,17 +5477,20 @@ class EventsController extends AppController
 
     public function checkLocks($id, $timestamp)
     {
+        // Close session without writing changes to them.
+        $user = $this->Auth->user();
+        session_abort();
+
         $event = $this->Event->find('first', array(
             'recursive' => -1,
             'conditions' => ['Event.id' => $id],
             'fields' => ['Event.orgc_id', 'Event.timestamp'],
         ));
         // Return empty response if event not found or user org is not owner
-        if (empty($event) || ($event['Event']['orgc_id'] != $this->Auth->user('org_id') && !$this->_isSiteAdmin())) {
+        if (empty($event) || ($event['Event']['orgc_id'] != $user['org_id'] && !$this->_isSiteAdmin())) {
             return new CakeResponse(['status' => 204]);
         }
 
-        $user = $this->Auth->user();
         $this->loadModel('EventLock');
         $locks = $this->EventLock->checkLock($user, $id);
 

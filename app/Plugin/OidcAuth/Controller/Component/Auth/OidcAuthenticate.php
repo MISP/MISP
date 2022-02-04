@@ -1,5 +1,4 @@
 <?php
-use Jumbojett\OpenIDConnectClient;
 App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 
 /**
@@ -7,6 +6,7 @@ App::uses('BaseAuthenticate', 'Controller/Component/Auth');
  *  - OidcAuth.provider_url
  *  - OidcAuth.client_id
  *  - OidcAuth.client_secret
+ *  - OidcAuth.authentication_method
  *  - OidcAuth.role_mapper
  *  - OidcAuth.organisation_property (default: `organization`)
  *  - OidcAuth.roles_property (default: `roles`)
@@ -32,10 +32,11 @@ class OidcAuthenticate extends BaseAuthenticate
             throw new Exception("OIDC authentication was not successful.");
         }
 
-        $mispUsername = $oidc->requestUserInfo('email');
+        $verifiedClaims = $oidc->getVerifiedClaims();
+
+        $mispUsername = isset($verifiedClaims->email) ? $verifiedClaims->email : $oidc->requestUserInfo('email');
         $this->log($mispUsername, "Trying login.");
 
-        $verifiedClaims = $oidc->getVerifiedClaims();
         $sub = $verifiedClaims->sub;
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
         if (property_exists($verifiedClaims, $organisationProperty)) {
@@ -138,7 +139,8 @@ class OidcAuthenticate extends BaseAuthenticate
     }
 
     /**
-     * @return OpenIDConnectClient
+     * @return \JakubOnderka\OpenIDConnectClient|\Jumbojett\OpenIDConnectClient
+     * @throws Exception
      */
     private function prepareClient()
     {
@@ -147,16 +149,30 @@ class OidcAuthenticate extends BaseAuthenticate
             throw new RuntimeException("Config option `OidcAuth.provider_url` must be valid URL.");
         }
 
-        // OpenIDConnectClient will append well-know path, so if well-know path is already part of the url, remove it
-        $wellKnownPosition = strpos($providerUrl, '/.well-known/');
-        if ($wellKnownPosition !== false) {
-            $providerUrl = substr($providerUrl, 0, $wellKnownPosition);
-        }
-
         $clientId = $this->getConfig('client_id');
         $clientSecret = $this->getConfig('client_secret');
+        $authenticationMethod = $this->getConfig('authentication_method', false);
 
-        $oidc = new OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
+        if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
+            $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
+            if ($authenticationMethod !== false && $authenticationMethod !== null) {
+                $oidc->setAuthenticationMethod($authenticationMethod);
+            }
+        } else if (class_exists("\Jumbojett\OpenIDConnectClient")) {
+            // OpenIDConnectClient will append well-know path, so if well-know path is already part of the url, remove it
+            // This is required just for Jumbojett, not for JakubOnderka
+            $wellKnownPosition = strpos($providerUrl, '/.well-known/');
+            if ($wellKnownPosition !== false) {
+                $providerUrl = substr($providerUrl, 0, $wellKnownPosition);
+            }
+
+            $oidc = new \Jumbojett\OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
+            if ($authenticationMethod !== false && $authenticationMethod !== null) {
+                throw new Exception("Jumbojett OIDC implementation do not support changing authentication method, please use JakubOnderka's client");
+            }
+        } else {
+            throw new Exception("OpenID connect client is not installed.");
+        }
         $oidc->setRedirectURL(Configure::read('MISP.baseurl') . '/users/login');
         return $oidc;
     }
@@ -259,10 +275,15 @@ class OidcAuthenticate extends BaseAuthenticate
      * @return array|bool|mixed|null
      * @throws Exception
      */
-    private function storeMetadata($userId, $verifiedClaims)
+    private function storeMetadata($userId, \stdClass $verifiedClaims)
     {
+        // OIDC session ID
+        if (isset($verifiedClaims->sid)) {
+            CakeSession::write('oidc_sid', $verifiedClaims->sid);
+        }
+
         $value = [];
-        foreach (['sub', 'preferred_username', 'given_name', 'family_name'] as $field) {
+        foreach (['preferred_username', 'given_name', 'family_name'] as $field) {
             if (property_exists($verifiedClaims, $field)) {
                 $value[$field] = $verifiedClaims->{$field};
             }

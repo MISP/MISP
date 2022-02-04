@@ -8,9 +8,10 @@ class SecurityAudit
 
     /**
      * @param Server $server
+     * @param bool $systemOnly Run only system checks
      * @return array
      */
-    public function run(Server $server)
+    public function run(Server $server, $systemOnly = false)
     {
         $output = [];
 
@@ -203,8 +204,10 @@ class SecurityAudit
         }
         */
 
-        $this->feeds($output);
-        $this->remoteServers($output);
+        if (!$systemOnly) {
+            $this->feeds($output);
+            $this->remoteServers($output);
+        }
 
         try {
             $cakeVersion = $this->getCakeVersion();
@@ -272,6 +275,61 @@ class SecurityAudit
         $this->system($output);
 
         return $output;
+    }
+
+    /**
+     * @return array|string[][]
+     * @throws Exception
+     */
+    public function tlsConnections()
+    {
+        $urls = [
+            'TLSv1.0' => ['url' => 'https://tls-v1-0.badssl.com:1010/'],
+            'TLSv1.1' => ['url' => 'https://tls-v1-1.badssl.com:1011/'],
+            'TLSv1.2' => ['url' => 'https://tls-v1-2.badssl.com:1012/', 'expected' => true],
+            'TLSv1.3' => [
+                'url' => 'https://check-tls.akamai.io/v1/tlsinfo.json',
+                'expected' => true,
+                'process' => function (HttpSocketResponseExtended $response) {
+                    return $response->json()['tls_version'] === 'tls1.3';
+                }
+            ],
+            'DH480' => ['url' => 'https://dh480.badssl.com/', 'expected' => false],
+            'DH512' => ['url' => 'https://dh512.badssl.com/', 'expected' => false],
+            'DH1024' => ['url' => 'https://dh1024.badssl.com/', 'expected' => false],
+            'DH2048' => ['url' => 'https://dh2048.badssl.com/'],
+            'RC4-MD5' => ['url' => 'https://rc4-md5.badssl.com/', 'expected' => false],
+            'RC4' => ['url' => 'https://rc4.badssl.com/', 'expected' => false],
+            '3DES' => ['url' => 'https://3des.badssl.com/', 'expected' => false],
+            'NULL' => ['url' => 'https://null.badssl.com/', 'expected' => false],
+            'SHA1 2016' => ['url' => 'https://sha1-2016.badssl.com/', 'expected' => false],
+            'SHA1 2017' => ['url' => 'https://sha1-2017.badssl.com/', 'expected' => false],
+            'SHA1 intermediate' => ['url' => 'https://sha1-intermediate.badssl.com/', 'expected' => false],
+            'Invalid expected sct' => ['url' => 'https://invalid-expected-sct.badssl.com/', 'expected' => false],
+            'Expired' => ['url' => 'https://expired.badssl.com/', 'expected' => false],
+            'Wrong host' => ['url' => 'https://wrong.host.badssl.com/', 'expect' => false],
+            'Self-signed' => ['url' => 'https://self-signed.badssl.com/', 'expected' => false],
+            'Untrusted-root' => ['url' => 'https://untrusted-root.badssl.com/', 'expected' => false],
+            'Revoked' => ['url' => 'https://revoked.badssl.com/'],
+            'Pinning test' => ['url' => 'https://pinning-test.badssl.com/'],
+            'Bad DNSSEC' => ['url' => 'http://rhybar.cz', 'expected' => false],
+        ];
+        $syncTool = new SyncTool();
+        foreach ($urls as &$details) {
+            $httpSocket = $syncTool->createHttpSocket();
+            try {
+                $response = $httpSocket->get($details['url']);
+                if (isset($details['process'])) {
+                    $details['success'] = $details['process']($response);
+                } else {
+                    $details['success'] = true;
+                }
+            } catch (Exception $e) {
+                $details['success'] = false;
+                $details['exception'] = $e;
+            }
+        }
+        return $urls;
     }
 
     private function feeds(array &$output)
@@ -439,23 +497,26 @@ class SecurityAudit
         if ($linuxVersion) {
             list($name, $version) = $linuxVersion;
             if ($name === 'Ubuntu') {
-                if (in_array($version, ['14.04', '19.10'], true)) {
+                if (in_array($version, ['14.04', '16.04', '19.10', '20.10', '21.04'], true)) {
                     $output['System'][] = [
                         'warning',
                         __('You are using Ubuntu %s. This version doesn\'t receive security support anymore.', $version),
                         'https://endoflife.date/ubuntu',
                     ];
-                } else if (in_array($version, ['16.04'], true)) {
-                    $output['System'][] = [
-                        'hint',
-                        __('You are using Ubuntu %s. This version will be not supported after 02 Apr 2021.', $version),
-                        'https://endoflife.date/ubuntu',
-                    ];
                 }
+            } else if ($name === 'CentOS Linux' && $version == 8) {
+                $output['System'][] = [
+                    'warning',
+                    __('You are using CentOS 8. This version doesn\'t receive security support anymore. Please migrate to CentOS 8 Stream.'),
+                    'https://endoflife.date/centos',
+                ];
             }
         }
     }
 
+    /**
+     * @return DateTime|false
+     */
     private function getKernelBuild()
     {
         if (PHP_OS !== 'Linux') {
@@ -465,14 +526,16 @@ class SecurityAudit
         if (substr($version, 0, 7) !== '#1 SMP ') {
             return false;
         }
-        $buildTime = strtotime(substr($version, 7));
-        if ($buildTime) {
-            return new DateTime('@' . $buildTime);
-        } else {
+        try {
+            return new DateTime('@' . substr($version, 7));
+        } catch (Exception $e) {
             return false;
         }
     }
 
+    /**
+     * @return array|false
+     */
     private function getLinuxVersion()
     {
         if (PHP_OS !== 'Linux') {

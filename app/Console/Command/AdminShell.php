@@ -68,6 +68,15 @@ class AdminShell extends AppShell
         $parser->addSubcommand('redisReady', [
             'help' => __('Check if it is possible connect to Redis.'),
         ]);
+        $parser->addSubcommand('securityAudit', [
+            'help' => __('Run security audit.'),
+        ]);
+        $parser->addSubcommand('securityAuditTls', [
+            'help' => __('Run security audit to test enabled/disabled ciphers and protocols in TLS connections.'),
+        ]);
+        $parser->addSubcommand('configLint', [
+            'help' => __('Check if settings has correct value.'),
+        ]);
         return $parser;
     }
 
@@ -1072,5 +1081,66 @@ class AdminShell extends AppShell
         $output['authkey_usage_size'] = $size;
 
         $this->out($this->json($output));
+    }
+
+    public function securityAudit()
+    {
+        // Start session to initialize ini setting for session cookies
+        CakeSession::start();
+        CakeSession::destroy();
+
+        $formatFindings = function (array $findings) {
+            $value = '';
+            foreach ($findings as $finding) {
+                if ($finding[0] === 'error') {
+                    $value .= '<error>Error:</error>';
+                } else if ($finding[0] === 'warning') {
+                    $value .= '<warning>Warning:</warning>';
+                } else if ($finding[0] === 'hint') {
+                    continue; // Ignore hints
+                }
+
+                $value .= ' ' . $finding[1] . PHP_EOL;
+            }
+            return $value;
+        };
+
+        App::uses('SecurityAudit', 'Tools');
+        $securityAudit = (new SecurityAudit())->run($this->Server, true);
+        foreach ($securityAudit as $field => $findings) {
+            $value = $formatFindings($findings);
+            if (!empty($value)) {
+                $this->out($field);
+                $this->out('==============================');
+                $this->out($value);
+            }
+        }
+    }
+
+    public function securityAuditTls()
+    {
+        App::uses('SecurityAudit', 'Tools');
+        $securityAudit = (new SecurityAudit())->tlsConnections();
+        foreach ($securityAudit as $type => $details) {
+            $result = $details['success'] ? 'True' : 'False';
+            if (isset($details['expected']) && $details['expected'] !== $details['success']) {
+                $result = "<error>$result</error>";
+            }
+            $this->out("$type: $result");
+        }
+    }
+
+    public function configLint()
+    {
+        $serverSettings = $this->Server->serverSettingsRead();
+        foreach ($serverSettings as $setting) {
+            if (!isset($setting['error'])) {
+                continue;
+            }
+            if ($setting['errorMessage'] === 'Value not set.') {
+                continue; // Skip not set values.
+            }
+            $this->out($setting['setting'] . ': ' . $setting['errorMessage']);
+        }
     }
 }

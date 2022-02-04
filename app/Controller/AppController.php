@@ -22,6 +22,7 @@ App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
  * @property CompressedRequestHandlerComponent $CompressedRequestHandler
  * @property DeprecationComponent $Deprecation
  * @property RestSearchComponent $RestSearch
+ * @property BetterSecurityComponent $Security
  */
 class AppController extends Controller
 {
@@ -33,7 +34,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '135';
+    private $__queryVersion = '136';
     public $pyMispVersion = '2.4.152';
     public $phpmin = '7.2';
     public $phprec = '7.4';
@@ -81,7 +82,9 @@ class AppController extends Controller
                 )
             )
         ),
-        'Security',
+        'Security' => [
+            'className' => 'BetterSecurity',
+        ],
         'ACL',
         'CompressedRequestHandler',
         'RestResponse',
@@ -217,6 +220,7 @@ class AppController extends Controller
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
             $this->Security->unlockedActions = array($this->request->action);
+            $this->Security->doNotGenerateToken = true;
         }
 
         if (
@@ -230,9 +234,7 @@ class AppController extends Controller
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
                 // disable CSRF for REST access
-                if (isset($this->components['Security'])) {
-                    $this->Security->csrfCheck = false;
-                }
+                $this->Security->csrfCheck = false;
                 if ($this->__loginByAuthKey() === false || $this->Auth->user() === null) {
                     if ($this->__loginByAuthKey() === null) {
                         $this->loadModel('Log');
@@ -395,8 +397,6 @@ class AppController extends Controller
     private function __loginByAuthKey()
     {
         if (Configure::read('Security.authkey_keep_session') && $this->Auth->user()) {
-            // Do not check authkey if session is establish and correct, just close session to allow multiple requests
-            session_write_close();
             return true;
         }
 
@@ -406,6 +406,9 @@ class AppController extends Controller
             $namedParamAuthkey = $this->request->params['named']['apikey'];
         }
         // Authenticate user with authkey in Authorization HTTP header
+        if (!empty($_SERVER['HTTP_AUTHORIZATION']) && strcasecmp(substr($_SERVER['HTTP_AUTHORIZATION'], 0, 5), "Basic") == 0) { // Skip Basic Authorizations
+            return null;
+        }
         if (!empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($namedParamAuthkey)) {
             $foundMispAuthKey = false;
             $authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
@@ -1308,7 +1311,7 @@ class AppController extends Controller
     protected function __canModifyEvent(array $event)
     {
         if (!isset($event['Event'])) {
-            throw new InvalidArgumentException('Passed object does not contains Event.');
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
         }
 
         if ($this->userRole['perm_site_admin']) {

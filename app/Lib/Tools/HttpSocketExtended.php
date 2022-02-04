@@ -128,6 +128,9 @@ class HttpSocketExtended extends HttpSocket
 {
     public $responseClass = 'HttpSocketResponseExtended';
 
+    /** @var callable */
+    private $onConnect;
+
     public function __construct($config = array())
     {
         parent::__construct($config);
@@ -137,6 +140,37 @@ class HttpSocketExtended extends HttpSocket
                 $this->config['request']['header']['Accept-Encoding'] = implode(', ', $this->acceptedEncodings());
             }
         }
+    }
+
+    public function connect()
+    {
+        $connected = parent::connect();
+        if ($this->onConnect) {
+            $handler = $this->onConnect;
+            $handler($this);
+        }
+        return $connected;
+    }
+
+    /**
+     * Set callback method, that will be called after connection to remote server is established.
+     * @param callable $callback
+     * @return void
+     */
+    public function onConnectHandler(callable $callback)
+    {
+        $this->onConnect = $callback;
+    }
+
+    /**
+     * @return array|null
+     */
+    public function getMetaData()
+    {
+        if ($this->connection) {
+            return stream_get_meta_data($this->connection);
+        }
+        return null;
     }
 
     /**

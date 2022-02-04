@@ -10,7 +10,7 @@ class ObjectsController extends AppController
 {
     public $uses = 'MispObject';
 
-    public $components = array('Security' ,'RequestHandler', 'Session');
+    public $components = array('RequestHandler', 'Session');
 
     public $paginate = array(
             'limit' => 20,

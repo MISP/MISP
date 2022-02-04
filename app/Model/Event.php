@@ -6190,21 +6190,30 @@ class Event extends AppModel
         $eventLock->insertLock($user, $id);
     }
 
-    private function __logUploadResult($server, $event, $newTextBody)
+    /**
+     * @param array $server
+     * @param array $event
+     * @param mixed $newTextBody
+     * @throws Exception
+     */
+    private function __logUploadResult(array $server, array $event, $newTextBody)
     {
+        if (!is_string($newTextBody)) {
+            $newTextBody = JsonTool::encode($newTextBody);
+        }
+
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->save(array(
-                'org' => 'SYSTEM',
-                'model' => 'Server',
-                'model_id' => $server['Server']['id'],
-                'email' => 'SYSTEM',
-                'action' => 'warning',
-                'user_id' => 0,
-                'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-                'change' => 'Returned message: ' . $newTextBody,
+            'org' => 'SYSTEM',
+            'model' => 'Server',
+            'model_id' => $server['Server']['id'],
+            'email' => 'SYSTEM',
+            'action' => 'warning',
+            'user_id' => 0,
+            'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
+            'change' => 'Returned message: ' . $newTextBody,
         ));
-        return false;
     }
 
     /**
@@ -6744,7 +6753,7 @@ class Event extends AppModel
             )
         );
         if (!empty($original_uuid)) {
-            return ['Attribute']['uuid'];
+            return $original_uuid['Attribute']['uuid'];
         }
         $original_uuid = $this->Object->find(
             'first',

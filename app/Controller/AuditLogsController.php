@@ -8,7 +8,6 @@ App::uses('AuditLog', 'Model');
 class AuditLogsController extends AppController
 {
     public $components = [
-        'Security',
         'RequestHandler',
     ];
 
