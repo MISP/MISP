@@ -6753,7 +6753,7 @@ class Event extends AppModel
             )
         );
         if (!empty($original_uuid)) {
-            return ['Attribute']['uuid'];
+            return $original_uuid['Attribute']['uuid'];
         }
         $original_uuid = $this->Object->find(
             'first',
