@@ -3904,7 +3904,7 @@ class EventsController extends AppController
                     unset($incomingEvents[$event['Event']['uuid']]);
                     continue;
                 }
-                if ($event['Event']['locked'] == 0) {
+                if (!$event['Event']['locked']) {
                     unset($incomingEvents[$event['Event']['uuid']]);
                 }
             }

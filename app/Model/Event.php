@@ -3623,7 +3623,7 @@ class Event extends AppModel
                 }
                 $event = array('Event' => $event);
                 $created_id = 0;
-                $event['Event']['locked'] = 1;
+                $event['Event']['locked'] = true;
                 $event['Event']['published'] = $publish;
                 $result['result'] = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
                 $result['id'] = $created_id;
@@ -3637,7 +3637,7 @@ class Event extends AppModel
                 unset($temp['Event']['Orgc']);
             }
             $created_id = 0;
-            $temp['Event']['locked'] = 1;
+            $temp['Event']['locked'] = true;
             $temp['Event']['published'] = $publish;
             $result = $this->_add($temp, true, $user, '', null, false, null, $created_id, $validationIssues);
             $results = array(array(
@@ -4451,7 +4451,7 @@ class Event extends AppModel
             return true;
         }
         $event = $event[0];
-        $event['Event']['locked'] = 1;
+        $event['Event']['locked'] = true;
         // get a list of the servers
         $this->Server = ClassRegistry::init('Server');
 
@@ -4501,7 +4501,7 @@ class Event extends AppModel
                 }
                 $event = $this->fetchEvent($elevatedUser, $params);
                 $event = $event[0];
-                $event['Event']['locked'] = 1;
+                $event['Event']['locked'] = true;
 
                 $fakeSyncUser = array(
                     'org_id' => $server['Server']['remote_org_id'],
@@ -4766,7 +4766,7 @@ class Event extends AppModel
                 'conditions' => $conditions
         ));
         $this->updateAll(
-                array('Event.locked' => 1),
+                array('Event.locked' => true),
                 $conditions
         );
         return $toBeUpdated;
