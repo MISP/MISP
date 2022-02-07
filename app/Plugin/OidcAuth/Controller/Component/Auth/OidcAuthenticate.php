@@ -7,6 +7,7 @@ App::uses('BaseAuthenticate', 'Controller/Component/Auth');
  *  - OidcAuth.client_id
  *  - OidcAuth.client_secret
  *  - OidcAuth.authentication_method
+ *  - OidcAuth.code_challenge_method
  *  - OidcAuth.role_mapper
  *  - OidcAuth.organisation_property (default: `organization`)
  *  - OidcAuth.roles_property (default: `roles`)
@@ -173,6 +174,12 @@ class OidcAuthenticate extends BaseAuthenticate
         } else {
             throw new Exception("OpenID connect client is not installed.");
         }
+
+        $ccm = $this->getConfig('code_challenge_method', false);
+        if ($ccm) {
+            $oidc->setCodeChallengeMethod($ccm);
+        }
+
         $oidc->setRedirectURL(Configure::read('MISP.baseurl') . '/users/login');
         return $oidc;
     }
