@@ -5538,7 +5538,7 @@ class Server extends AppModel
                 'tmpdir' => array(
                     'level' => 1,
                     'description' => __('Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to %s and will be used among others to store certain temporary files extracted from imports during the import process.', APP . 'tmp'),
-                    'value' => '/tmp',
+                    'value' => APP . 'tmp',
                     'test' => 'testForPath',
                     'type' => 'string',
                     'null' => true,
