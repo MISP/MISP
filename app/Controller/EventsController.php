@@ -2477,6 +2477,77 @@ class EventsController extends AppController
         }
     }
 
+    public function populate($id)
+    {
+        if ($this->request->is('get') && $this->_isRest()) {
+            return $this->RestResponse->describe('Events', 'populate', false, $this->response->type());
+        }
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['contain' => ['Orgc']]);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $id = $event['Event']['id']; // change possible event UUID with real ID
+        // check if private and user not authorised to edit
+        if (!$this->__canModifyEvent($event) && !($this->userRole['perm_sync'] && $this->_isRest())) {
+            $message = __('You are not authorised to do that.');
+            if ($this->_isRest()) {
+                throw new ForbiddenException($message);
+            } else {
+                $this->Flash->error($message);
+                $this->redirect(array('controller' => 'events', 'action' => 'index'));
+            }
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            if (isset($this->request->data['Event'])) {
+                $this->request->data = $this->request->data['Event'];
+            }
+            if (isset($this->request->data['json'])) {
+                $this->request->data = json_decode($this->request->data['json'], true);
+            }
+            $eventToSave = $event;
+            $capturedObjects = ['Attribute', 'Object', 'Tag', 'Galaxy', 'EventReport'];
+            foreach ($capturedObjects as $objectType) {
+                if (!empty($this->request->data[$objectType])) {
+                    $eventToSave['Event'][$objectType] = $this->request->data[$objectType];
+                }
+            }
+            $eventToSave['Event']['published'] = 0;
+            $date = new DateTime();
+            $eventToSave['Event']['timestamp'] = $date->getTimestamp();
+            $result = $this->Event->_edit($eventToSave, $this->Auth->user(), $id);
+            if ($this->_isRest()) {
+                if ($result === true) {
+                    // REST users want to see the newly created event
+                    $metadata = $this->request->param('named.metadata');
+                    $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $id, 'metadata' => $metadata]);
+                    $event = $results[0];
+                    return $this->__restResponse($event);
+                } else {
+                    $message = 'Error';
+                    if ($this->_isRest()) {
+                        if (isset($result['error'])) {
+                            $errors = $result['error'];
+                        } else {
+                            $errors = $result;
+                        }
+                        return $this->RestResponse->saveFailResponse('Events', 'populate', $id, $errors, $this->response->type());
+                    } else {
+                        $this->set(array('message' => $message,'_serialize' => array('message')));  // $this->Event->validationErrors
+                        $this->render('populate');
+                    }
+                    return false;
+                }
+            }
+            if ($result) {
+                $this->Flash->success(__('The event has been saved'));
+                $this->redirect(array('action' => 'view', $id));
+            } else {
+                $this->Flash->error(__('The event could not be saved. Please, try again.'));
+            }
+        }
+        $this->set('event', $event);
+    }
+
     public function edit($id = null)
     {
         if ($this->request->is('get') && $this->_isRest()) {
