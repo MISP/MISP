@@ -339,6 +339,11 @@ class GalaxiesController extends AppController
         $conditions[] = [
             'enabled' => true
         ];
+        if(!$local) {
+            $conditions[] = [
+                'local_only' => 0
+            ];
+        }
         $galaxies = $this->Galaxy->find('all', array(
             'recursive' => -1,
             'fields' => array('MAX(Galaxy.version) as latest_version', 'id', 'kill_chain_order', 'name', 'icon', 'description'),
@@ -528,8 +533,9 @@ class GalaxiesController extends AppController
 
     public function attachCluster($target_id, $target_type = 'event')
     {
+        $local = !empty($this->params['named']['local']);
         $cluster_id = $this->request->data['Galaxy']['target_id'];
-        $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
+        $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id, $local);
         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
     }
 

@@ -28,10 +28,6 @@
                 'type' => 'checkbox',
                 'label' => __('Only find IOCs flagged as to IDS')
             ));
-            echo $this->Form->input('alternate', array(
-                    'type' => 'checkbox',
-                    'label' => __('Alternate Search Result (Events)')
-            ));
             echo $this->Form->input('first_seen', array(
                 'type' => 'text',
                 'div' => 'input hidden',

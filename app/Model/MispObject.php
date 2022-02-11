@@ -1,6 +1,8 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
+App::uses('AttributeValidationTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -69,7 +71,6 @@ class MispObject extends AppModel
             'unique' => array(
                 'rule' => 'isUnique',
                 'message' => 'The UUID provided is not unique',
-                'required' => true,
                 'on' => 'create'
             ),
         ),
@@ -216,23 +217,19 @@ class MispObject extends AppModel
     }
 
      // check whether the variable is null or datetime
-     public function datetimeOrNull($fields)
-     {
-         $k = array_keys($fields)[0];
-         $seen = $fields[$k];
-         try {
-             new DateTime($seen);
-             $returnValue = true;
-         } catch (Exception $e) {
-             $returnValue = false;
-         }
-         return $returnValue || is_null($seen);
-     }
+    public function datetimeOrNull($fields)
+    {
+        $seen = array_values($fields)[0];
+        if ($seen === null) {
+            return true;
+        }
+        return strtotime($seen) !== false;
+    }
 
      public function validateLastSeenValue($fields)
      {
          $ls = $fields['last_seen'];
-         if (!isset($this->data['Object']['first_seen']) || is_null($ls)) {
+         if (!isset($this->data['Object']['first_seen']) || $ls === null) {
              return true;
          }
          $converted = $this->Attribute->ISODatetimeToUTC(['Object' => [
@@ -247,59 +244,63 @@ class MispObject extends AppModel
 
     public function afterFind($results, $primary = false)
     {
-        foreach ($results as $k => $v) {
-            $results[$k] = $this->Attribute->UTCToISODatetime($results[$k], $this->alias);
+        foreach ($results as &$v) {
+            $object = &$v['Object'];
+            if (!empty($object['first_seen'])) {
+                $object['first_seen'] = $this->microTimestampToIso($object['first_seen']);
+            }
+            if (!empty($object['last_seen'])) {
+                $object['last_seen'] = $this->microTimestampToIso($object['last_seen']);
+            }
         }
         return $results;
     }
 
-    public function beforeSave($options = array()) {
+    public function beforeSave($options = array())
+    {
+        // generate UUID if it doesn't exist
+        if (empty($this->data['Object']['uuid'])) {
+            $this->data['Object']['uuid'] = CakeText::uuid();
+        }
         $this->data = $this->Attribute->ISODatetimeToUTC($this->data, $this->alias);
     }
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
-        if (empty($this->data[$this->alias]['comment'])) {
-            $this->data[$this->alias]['comment'] = "";
-        }
-        // generate UUID if it doesn't exist
-        if (empty($this->data[$this->alias]['uuid'])) {
-            $this->data[$this->alias]['uuid'] = CakeText::uuid();
+        $object = &$this->data['Object'];
+        if (empty($object['comment'])) {
+            $object['comment'] = "";
         }
         // generate timestamp if it doesn't exist
-        if (empty($this->data[$this->alias]['timestamp'])) {
-            $date = new DateTime();
-            $this->data[$this->alias]['timestamp'] = $date->getTimestamp();
+        if (empty($object['timestamp'])) {
+            $object['timestamp'] = time();
         }
         // parse first_seen different formats
-        if (isset($this->data[$this->alias]['first_seen'])) {
-            $this->data[$this->alias]['first_seen'] = $this->data[$this->alias]['first_seen'] === '' ? null : $this->data[$this->alias]['first_seen'];
+        if (isset($object['first_seen'])) {
+            $object['first_seen'] = $object['first_seen'] === '' ? null : $object['first_seen'];
         }
         // parse last_seen different formats
-        if (isset($this->data[$this->alias]['last_seen'])) {
-            $this->data[$this->alias]['last_seen'] = $this->data[$this->alias]['last_seen'] === '' ? null : $this->data[$this->alias]['last_seen'];
+        if (isset($object['last_seen'])) {
+            $object['last_seen'] = $object['last_seen'] === '' ? null : $object['last_seen'];
         }
-        if (empty($this->data[$this->alias]['template_version'])) {
-            $this->data[$this->alias]['template_version'] = 1;
+        if (empty($object['template_version'])) {
+            $object['template_version'] = 1;
         }
-        if (isset($this->data[$this->alias]['deleted']) && empty($this->data[$this->alias]['deleted'])) {
-            $this->data[$this->alias]['deleted'] = 0;
+        if (isset($object['deleted']) && empty($object['deleted'])) {
+            $object['deleted'] = 0;
         }
-        if (!isset($this->data[$this->alias]['distribution']) || $this->data['Object']['distribution'] != 4) {
-            $this->data['Object']['sharing_group_id'] = 0;
+        if (!isset($object['distribution']) || $object['distribution'] != 4) {
+            $object['sharing_group_id'] = 0;
         }
-        if (!isset($this->data[$this->alias]['distribution'])) {
-            $this->data['Object']['distribution'] = 5;
+        if (!isset($object['distribution'])) {
+            $object['distribution'] = 5;
         }
         return true;
     }
 
     public function afterSave($created, $options = array())
     {
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') &&
-            Configure::read('Plugin.ZeroMQ_object_notifications_enable') &&
-            empty($this->data['Object']['skip_zmq']);
+        $pubToZmq = $this->pubToZmq('object') && empty($this->data['Object']['skip_zmq']);
         $kafkaTopic = $this->kafkaTopic('object');
         $pubToKafka = $kafkaTopic && empty($this->data['Object']['skip_kafka']);
         if ($pubToZmq || $pubToKafka) {
@@ -326,10 +327,9 @@ class MispObject extends AppModel
     public function beforeDelete($cascade = true)
     {
         if (!empty($this->data['Object']['id'])) {
-            $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_notifications_enable');
-            $kafkaTopic = Configure::read('Plugin.Kafka_object_notifications_topic');
-            $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_object_notifications_enable') && !empty($kafkaTopic);
-            if ($pubToZmq || $pubToKafka) {
+            $pubToZmq = $this->pubToZmq('object');
+            $kafkaTopic = $this->kafkaTopic('object');
+            if ($pubToZmq || $kafkaTopic) {
                 $object = $this->find('first', array(
                     'recursive' => -1,
                     'conditions' => array('Object.id' => $this->data['Object']['id'])
@@ -338,7 +338,7 @@ class MispObject extends AppModel
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->object_save($object, 'delete');
                 }
-                if ($pubToKafka) {
+                if ($kafkaTopic) {
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $object, 'delete');
                 }
@@ -359,7 +359,7 @@ class MispObject extends AppModel
         }
     }
 
-    public function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectID)
+    public function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectID, &$duplicateObjectUuid)
     {
         $newObjectAttributes = array();
         if (isset($object['Object']['Attribute'])) {
@@ -373,7 +373,7 @@ class MispObject extends AppModel
                     $attribute['value'] = $attribute['value'] . '|' . md5(base64_decode($attribute['data']));
                 }
             }
-            $attributeValueAfterModification = $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value']);
+            $attributeValueAfterModification = AttributeValidationTool::modifyBeforeValidation($attribute['type'], $attribute['value']);
             $attributeValueAfterModification = $this->Attribute->runRegexp($attribute['type'], $attributeValueAfterModification);
 
             $newObjectAttributes[] = sha1($attribute['object_relation'] . $attribute['category'] . $attribute['type'] .  $attributeValueAfterModification, true);
@@ -384,6 +384,7 @@ class MispObject extends AppModel
                 if ($newObjectAttributeCount === count($previousNewObject)) {
                     if (empty(array_diff($previousNewObject, $newObjectAttributes))) {
                         $duplicatedObjectID = $previousNewObject['Object']['id'];
+                        $duplicateObjectUuid = $previousNewObject['Object']['uuid'];
                         return true;
                     }
                 }
@@ -442,9 +443,10 @@ class MispObject extends AppModel
         $object['Object']['event_id'] = $eventId;
         if ($breakOnDuplicate) {
             $duplicatedObjectID = null;
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID);
+            $duplicateObjectUuid = null;
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID, $dupicateObjectUuid);
             if ($duplicate) {
-                return array('value' => array(__('Duplicate object found (id: %s). Since breakOnDuplicate is set the object will not be added.', $duplicatedObjectID)));
+                return array('value' => array(__('Duplicate object found (id: %s, uuid: %s). Since breakOnDuplicate is set the object will not be added.', $duplicatedObjectID, $dupicateObjectUuid)));
             }
         }
         $this->create();
@@ -729,8 +731,10 @@ class MispObject extends AppModel
      * Clean the attribute list up from artifacts introduced by the object form
      * @param array $attributes
      * @return string|array
+     * @throws InternalErrorException
+     * @throws Exception
      */
-    public function attributeCleanup($attributes)
+    public function attributeCleanup(array $attributes)
     {
         if (empty($attributes['Attribute'])) {
             return $attributes;
@@ -749,23 +753,19 @@ class MispObject extends AppModel
             if (isset($attribute['Attachment'])) {
                 // Check if there were problems with the file upload
                 // only keep the last part of the filename, this should prevent directory attacks
-                $filename = basename($attribute['Attachment']['name']);
-                $tmpfile = new File($attribute['Attachment']['tmp_name']);
                 if ((isset($attribute['Attachment']['error']) && $attribute['Attachment']['error'] == 0) ||
                     (!empty($attribute['Attachment']['tmp_name']) && $attribute['Attachment']['tmp_name'] != 'none')
                 ) {
-                    if (!is_uploaded_file($tmpfile->path)) {
+                    if (!is_uploaded_file($attribute['Attachment']['tmp_name'])) {
                         throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
                     }
                 } else {
-                    return 'Issues with the file attachment for the ' . $attribute['object_relation'] . ' attribute. The error code returned is ' . $attribute['Attachment']['error'];
+                    throw new InternalErrorException('Issues with the file attachment for the ' . $attribute['object_relation'] . ' attribute. The error code returned is ' . $attribute['Attachment']['error']);
                 }
                 $attributes['Attribute'][$k]['value'] = $attribute['Attachment']['name'];
                 unset($attributes['Attribute'][$k]['Attachment']);
-                $attributes['Attribute'][$k]['encrypt'] = $attribute['type'] == 'malware-sample' ? 1 : 0;
-                $attributes['Attribute'][$k]['data'] = base64_encode($tmpfile->read());
-                $tmpfile->delete();
-                $tmpfile->close();
+                $attributes['Attribute'][$k]['encrypt'] = $attribute['type'] === 'malware-sample' ? 1 : 0;
+                $attributes['Attribute'][$k]['data'] = base64_encode(FileAccessTool::readAndDelete($attribute['Attachment']['tmp_name']));
             }
             if (!isset($attributes['Attribute'][$k]['first_seen'])) {
                 $attributes['Attribute'][$k]['first_seen'] = null;
@@ -817,7 +817,7 @@ class MispObject extends AppModel
         return $object;
     }
 
-    public function deltaMerge($object, $objectToSave, $onlyAddNewAttribute=false, $user)
+    public function deltaMerge(array $object, array $objectToSave, $onlyAddNewAttribute=false, array $user)
     {
         if (!isset($objectToSave['Object'])) {
             $dataToBackup = array('ObjectReferences', 'Attribute', 'ShadowAttribute');
@@ -848,8 +848,8 @@ class MispObject extends AppModel
                 $object['Object']['sharing_group_id'] = $objectToSave['Object']['sharing_group_id'];
             }
         }
-        $date = new DateTime();
-        $object['Object']['timestamp'] = $date->getTimestamp();
+        $time = time();
+        $object['Object']['timestamp'] = $time;
         $forcedSeenOnElements = array();
         if (isset($objectToSave['Object']['first_seen'])) {
             $forcedSeenOnElements['first_seen'] = $objectToSave['Object']['first_seen'];
@@ -883,10 +883,12 @@ class MispObject extends AppModel
                                     $newAttribute['id'] = $originalAttribute['id'];
                                     $newAttribute['event_id'] = $object['Object']['event_id'];
                                     $newAttribute['object_id'] = $object['Object']['id'];
-                                    $newAttribute['timestamp'] = $date->getTimestamp();
+                                    $newAttribute['timestamp'] = $time;
                                     $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => Attribute::EDITABLE_FIELDS));
                                     if ($result) {
                                         $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
+                                    } else {
+                                        $this->Event->Attribute->logDropped($user, $newAttribute, 'edit');
                                     }
                                 }
                                 unset($object['Attribute'][$origKey]);
@@ -894,7 +896,6 @@ class MispObject extends AppModel
                             }
                         }
                     }
-                    $this->Event->Attribute->create();
                     $newAttribute['event_id'] = $object['Object']['event_id'];
                     $newAttribute['object_id'] = $object['Object']['id'];
                     // Set seen of object at attribute level
@@ -911,20 +912,19 @@ class MispObject extends AppModel
                         }
                     }
                     if (!isset($newAttribute['distribution'])) {
-                        $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-                        if ($newAttribute['distribution'] == 'event') {
-                            $newAttribute['distribution'] = 5;
-                        }
+                        $newAttribute['distribution'] = $this->Event->Attribute->defaultDistribution();
                     }
+                    $this->Event->Attribute->create();
                     $saveResult = $this->Event->Attribute->save($newAttribute);
                     if ($saveResult) {
                         $newAttribute['id'] = $this->Event->Attribute->id;
                         $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
+                    } else {
+                        $this->Event->Attribute->logDropped($user, $newAttribute, 'add');
                     }
-                    $attributeArrays['add'][] = $newAttribute;
                     unset($objectToSave['Attribute'][$newKey]);
                 }
-                foreach ($object['Attribute'] as $origKey => $originalAttribute) {
+                foreach ($object['Attribute'] as $originalAttribute) {
                     $originalAttribute['deleted'] = 1;
                     $this->Event->Attribute->save($originalAttribute, array('fieldList' => Attribute::EDITABLE_FIELDS));
                 }
@@ -947,12 +947,6 @@ class MispObject extends AppModel
             ) {
                 $newAttribute['last_seen'] = $object['Object']['last_seen'];
                 $different = true;
-            }
-            if (!isset($newAttribute['distribution'])) {
-                $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-                if ($newAttribute['distribution'] == 'event') {
-                    $newAttribute['distribution'] = 5;
-                }
             }
             $saveAttributeResult = $this->Attribute->saveAttributes(array($newAttribute), $user);
             return $saveAttributeResult ? $this->id : $this->validationErrors;
@@ -978,10 +972,11 @@ class MispObject extends AppModel
         }
         if (!empty($object['Object']['breakOnDuplicate']) || $breakOnDuplicate) {
             $duplicatedObjectID = null;
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID);
+            $duplicateObjectUuid = null;
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID, $duplicateObjectUuid);
             if ($duplicate) {
                 $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
-                    __('Object dropped due to it being a duplicate (ID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectID, $eventId),
+                    __('Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectID, $dupicateObjectUuid, $eventId),
                     'Duplicate object found.'
                 );
                 return true;
@@ -1157,15 +1152,15 @@ class MispObject extends AppModel
      */
     public function updateTimestamp($id, $timestamp = false)
     {
-        $object = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Object.id' => $id)
-        ));
-        $object['Object']['timestamp'] = $timestamp === false ? time() : $timestamp;
-        $object['Object']['skip_zmq'] = 1;
-        $object['Object']['skip_kafka'] = 1;
-        $result = $this->save($object);
-        return $result;
+        $object = [
+            'Object' => [
+                'id' => $id,
+                'timestamp' => $timestamp === false ? time() : $timestamp,
+                'skip_zmq' => 1,
+                'skip_kafka' => 1,
+            ],
+        ];
+        return $this->save($object, true, ['timestamp']);
     }
 
     // Hunt down all LEDA and CASTOR clones

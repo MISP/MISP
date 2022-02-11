@@ -4,7 +4,7 @@ App::uses('AppController', 'Controller');
 
 class RegexpController extends AppController
 {
-    public $components = array('Security', 'RequestHandler', 'AdminCrud');
+    public $components = array('RequestHandler', 'AdminCrud');
 
     public $paginate = array(
             'limit' => 60,

@@ -1,5 +1,4 @@
 <?php
-use Jumbojett\OpenIDConnectClient;
 App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 
 /**
@@ -7,6 +6,7 @@ App::uses('BaseAuthenticate', 'Controller/Component/Auth');
  *  - OidcAuth.provider_url
  *  - OidcAuth.client_id
  *  - OidcAuth.client_secret
+ *  - OidcAuth.authentication_method
  *  - OidcAuth.role_mapper
  *  - OidcAuth.organisation_property (default: `organization`)
  *  - OidcAuth.roles_property (default: `roles`)
@@ -32,10 +32,12 @@ class OidcAuthenticate extends BaseAuthenticate
             throw new Exception("OIDC authentication was not successful.");
         }
 
-        $mispUsername = $oidc->requestUserInfo('email');
+        $verifiedClaims = $oidc->getVerifiedClaims();
+
+        $mispUsername = isset($verifiedClaims->email) ? $verifiedClaims->email : $oidc->requestUserInfo('email');
         $this->log($mispUsername, "Trying login.");
 
-        $verifiedClaims = $oidc->getVerifiedClaims();
+        $sub = $verifiedClaims->sub;
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
         if (property_exists($verifiedClaims, $organisationProperty)) {
             $organisationName = $verifiedClaims->{$organisationProperty};
@@ -52,8 +54,18 @@ class OidcAuthenticate extends BaseAuthenticate
             $roles = $oidc->requestUserInfo($roleProperty);
         }
 
-        $this->settings['fields'] = ['username' => 'email'];
-        $user = $this->_findUser($mispUsername);
+        // Try to find user by `sub` field, that is unique
+        $this->settings['fields'] = ['username' => 'sub'];
+        $user = $this->_findUser($sub);
+
+        if (!$user) { // User by sub not found, try to find by email
+            $this->settings['fields'] = ['username' => 'email'];
+            $user = $this->_findUser($mispUsername);
+            if ($user && $user['sub'] !== null && $user['sub'] !== $sub) {
+                $this->log($mispUsername, "User sub doesn't match ({$user['sub']} != $sub), could not login.");
+                return false;
+            }
+        }
 
         $organisationId = $this->checkOrganization($organisationName, $user, $mispUsername);
         if (!$organisationId) {
@@ -69,10 +81,22 @@ class OidcAuthenticate extends BaseAuthenticate
         if ($user) {
             $this->log($mispUsername, "Found in database with ID {$user['id']}.");
 
+            if ($user['sub'] === null) {
+                $this->userModel()->updateField($user, 'sub', $sub);
+                $this->log($mispUsername, "User sub changed from NULL to $sub.");
+                $user['sub'] = $sub;
+            }
+
+            if ($user['email'] !== $mispUsername) {
+                $this->userModel()->updateField($user, 'email', $mispUsername);
+                $this->log($mispUsername, "User e-mail changed from {$user['email']} to $mispUsername.");
+                $user['email'] = $mispUsername;
+            }
+
             if ($user['org_id'] != $organisationId) {
-                $user['org_id'] = $organisationId;
                 $this->userModel()->updateField($user, 'org_id', $organisationId);
                 $this->log($mispUsername, "User organisation changed from {$user['org_id']} to $organisationId.");
+                $user['org_id'] = $organisationId;
             }
 
             if ($user['role_id'] != $roleId) {
@@ -86,7 +110,7 @@ class OidcAuthenticate extends BaseAuthenticate
                 $this->log($mispUsername, "Unblocking user.");
                 $user['disabled'] = false;
             }
-
+            $this->storeMetadata($user['id'], $verifiedClaims);
             $this->log($mispUsername, 'Logged in.');
             return $user;
         }
@@ -100,11 +124,14 @@ class OidcAuthenticate extends BaseAuthenticate
             'role_id' => $roleId,
             'change_pw' => 0,
             'date_created' => time(),
+            'sub' => $sub,
         ];
 
         if (!$this->userModel()->save($userData)) {
             throw new RuntimeException("Could not save user `$mispUsername` to database.");
         }
+
+        $this->storeMetadata($this->userModel()->id, $verifiedClaims);
 
         $this->log($mispUsername, "Saved in database with ID {$this->userModel()->id}");
         $this->log($mispUsername, 'Logged in.');
@@ -112,7 +139,8 @@ class OidcAuthenticate extends BaseAuthenticate
     }
 
     /**
-     * @return OpenIDConnectClient
+     * @return \JakubOnderka\OpenIDConnectClient|\Jumbojett\OpenIDConnectClient
+     * @throws Exception
      */
     private function prepareClient()
     {
@@ -121,16 +149,30 @@ class OidcAuthenticate extends BaseAuthenticate
             throw new RuntimeException("Config option `OidcAuth.provider_url` must be valid URL.");
         }
 
-        // OpenIDConnectClient will append well-know path, so if well-know path is already part of the url, remove it
-        $wellKnownPosition = strpos($providerUrl, '/.well-known/');
-        if ($wellKnownPosition !== false) {
-            $providerUrl = substr($providerUrl, 0, $wellKnownPosition);
-        }
-
         $clientId = $this->getConfig('client_id');
         $clientSecret = $this->getConfig('client_secret');
+        $authenticationMethod = $this->getConfig('authentication_method', false);
 
-        $oidc = new OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
+        if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
+            $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
+            if ($authenticationMethod !== false && $authenticationMethod !== null) {
+                $oidc->setAuthenticationMethod($authenticationMethod);
+            }
+        } else if (class_exists("\Jumbojett\OpenIDConnectClient")) {
+            // OpenIDConnectClient will append well-know path, so if well-know path is already part of the url, remove it
+            // This is required just for Jumbojett, not for JakubOnderka
+            $wellKnownPosition = strpos($providerUrl, '/.well-known/');
+            if ($wellKnownPosition !== false) {
+                $providerUrl = substr($providerUrl, 0, $wellKnownPosition);
+            }
+
+            $oidc = new \Jumbojett\OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
+            if ($authenticationMethod !== false && $authenticationMethod !== null) {
+                throw new Exception("Jumbojett OIDC implementation do not support changing authentication method, please use JakubOnderka's client");
+            }
+        } else {
+            throw new Exception("OpenID connect client is not installed.");
+        }
         $oidc->setRedirectURL(Configure::read('MISP.baseurl') . '/users/login');
         return $oidc;
     }
@@ -225,6 +267,29 @@ class OidcAuthenticate extends BaseAuthenticate
             return $default;
         }
         return $value;
+    }
+
+    /**
+     * @param int $userId
+     * @param stdClass $verifiedClaims
+     * @return array|bool|mixed|null
+     * @throws Exception
+     */
+    private function storeMetadata($userId, \stdClass $verifiedClaims)
+    {
+        // OIDC session ID
+        if (isset($verifiedClaims->sid)) {
+            CakeSession::write('oidc_sid', $verifiedClaims->sid);
+        }
+
+        $value = [];
+        foreach (['preferred_username', 'given_name', 'family_name'] as $field) {
+            if (property_exists($verifiedClaims, $field)) {
+                $value[$field] = $verifiedClaims->{$field};
+            }
+        }
+
+        return $this->userModel()->UserSetting->setSettingInternal($userId, 'oidc', $value);
     }
 
     /**

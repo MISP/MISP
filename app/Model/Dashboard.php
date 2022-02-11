@@ -41,7 +41,6 @@ class Dashboard extends AppModel
             $subDirectories = $customdir->read();
             $found = false;
             foreach ($subDirectories[0] as $subDir) {
-                $currentDir = new Folder(APP . 'Lib/Dashboard/' . $subDir);
                 if (file_exists(APP . 'Lib/Dashboard/Custom/' . $subDir . '/' . $name . '.php')) {
                     App::uses($name, 'Dashboard/Custom/' . $subDir);
                     $found = true;

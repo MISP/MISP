@@ -19,10 +19,4 @@ class WarninglistType extends AppModel
     public $belongsTo = array(
         'Warninglist'
     );
-
-    public function beforeValidate($options = array())
-    {
-        parent::beforeValidate();
-        return true;
-    }
 }

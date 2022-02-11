@@ -30,10 +30,7 @@ sys.path.insert(2, str(_current_path / 'python-cybox'))
 sys.path.insert(3, str(_current_path / 'mixbox'))
 sys.path.insert(4, str(_current_path / 'misp-stix'))
 from cybox.core.observable import Observables
-from stix.core import (
-    Campaigns, CoursesOfAction, ExploitTargets, Indicators, ThreatActors,
-    STIXHeader, STIXPackage
-)
+from stix.core import Campaigns, CoursesOfAction, ExploitTargets, Indicators, ThreatActors
 from stix.core.ttps import TTPs
 from misp_stix_converter import (
     MISPtoSTIX1AttributesParser, MISPtoSTIX1EventsParser, _get_events,
@@ -91,8 +88,8 @@ class StixAttributesExport(StixExport):
         super().__init__(format, debug)
         self._parser = MISPtoSTIX1AttributesParser(orgname, version)
         self.__features = (
-            'campaigns', 'courses_of_action', 'exploit_targets', 'indicators',
-            'observables', 'threat_actors', 'ttps'
+            'observables', 'indicators', 'ttps', 'exploit_targets',
+            'courses_of_action', 'campaigns', 'threat_actors'
         )
         self._output_files = {}
 

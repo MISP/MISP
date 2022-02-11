@@ -19,8 +19,6 @@ class User extends AppModel
 {
     public $displayField = 'email';
 
-    public $orgField = array('Organisation', 'name');
-
     public $validate = array(
         'role_id' => array(
             'numeric' => array(
@@ -231,9 +229,9 @@ class User extends AppModel
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $db_version = $this->AdminSetting->getSetting('db_version');
-        if ($db_version >= 62) {
+
+        // bind AuthKey just when authkey table already exists. This is important for updating from old versions
+        if (in_array('auth_keys', $this->getDataSource()->listSources(), true)) {
             $this->bindModel([
                 'hasMany' => ['AuthKey']
             ], false);
@@ -278,7 +276,7 @@ class User extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable');
+        $pubToZmq = $this->pubToZmq('user');
         $kafkaTopic = $this->kafkaTopic('user');
         if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->data)) {
@@ -1067,27 +1065,29 @@ class User extends AppModel
     public function resetAllSyncAuthKeysRouter($user, $jobId = false)
     {
         if (Configure::read('MISP.background_jobs')) {
+
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                'worker' => 'prio',
-                'job_type' => __('reset_all_sync_api_keys'),
-                'job_input' => __('Reseting all API keys'),
-                'status' => 0,
-                'retries' => 0,
-                'org_id' => $user['org_id'],
-                'org' => $user['Organisation']['name'],
-                'message' => 'Issuing new API keys to all sync users.',
+            $jobId = $job->createJob(
+                $user,
+                Job::WORKER_PRIO,
+                'reset_all_sync_api_keys',
+                __('Reseting all API keys'),
+                'Issuing new API keys to all sync users.'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'prio',
-                    'AdminShell',
-                    array('resetSyncAuthkeys', $user['id'], $jobId),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::PRIO_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'resetSyncAuthkeys',
+                    $user['id'],
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
+
             return true;
         } else {
             return $this->resetAllSyncAuthKeys($user);
@@ -1478,7 +1478,7 @@ class User extends AppModel
             if ($redis === false) {
                 $banStatus['error'] = true;
                 $banStatus['active'] = true;
-                $banStatus['message'] =  __('Reason: Could not reach redis to chech user email notification ban status.');
+                $banStatus['message'] =  __('Reason: Could not reach redis to check user email notification ban status.');
                 return $banStatus;
             }
 
@@ -1503,5 +1503,69 @@ class User extends AppModel
         }
         $banStatus['message'] = __('User email notification ban setting is not enabled');
         return $banStatus;
+    }
+
+    /**
+     * @param array $user
+     * @return bool
+     */
+    public function hasNotifications(array $user)
+    {
+        $hasProposal = $this->Event->ShadowAttribute->hasAny([
+            'ShadowAttribute.event_org_id' => $user['org_id'],
+            'ShadowAttribute.deleted' => 0,
+        ]);
+        if ($hasProposal) {
+            return true;
+        }
+
+        if (Configure::read('MISP.delegation') && $this->_getDelegationCount($user)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @param array $user
+     * @return array
+     */
+    public function populateNotifications(array $user)
+    {
+        $notifications = array();
+        list($notifications['proposalCount'], $notifications['proposalEventCount']) = $this->_getProposalCount($user);
+        $notifications['total'] = $notifications['proposalCount'];
+        if (Configure::read('MISP.delegation')) {
+            $notifications['delegationCount'] = $this->_getDelegationCount($user);
+            $notifications['total'] += $notifications['delegationCount'];
+        }
+        return $notifications;
+    }
+
+    // if not using $mode === 'full', simply check if an entry exists. We really don't care about the real count for the top menu.
+    private function _getProposalCount($user, $mode = 'full')
+    {
+        $results[0] = $this->Event->ShadowAttribute->find('count', [
+            'conditions' => array(
+                'ShadowAttribute.event_org_id' => $user['org_id'],
+                'ShadowAttribute.deleted' => 0,
+            )
+        ]);
+        $results[1] = $this->Event->ShadowAttribute->find('count', [
+            'conditions' => array(
+                'ShadowAttribute.event_org_id' => $user['org_id'],
+                'ShadowAttribute.deleted' => 0,
+            ),
+            'fields' => 'distinct event_id'
+        ]);
+        return $results;
+    }
+
+    private function _getDelegationCount($user)
+    {
+        $this->EventDelegation = ClassRegistry::init('EventDelegation');
+        return $this->EventDelegation->find('count', array(
+            'recursive' => -1,
+            'conditions' => array('EventDelegation.org_id' => $user['org_id'])
+        ));
     }
 }

@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('ProcessTool', 'Tools');
 
 /**
  * @property Attribute $Attribute
@@ -49,7 +50,7 @@ class Sighting extends AppModel
             ),
     );
 
-    public $type = array(
+    const TYPE = array(
         0 => 'sighting',
         1 => 'false-positive',
         2 => 'expiration'
@@ -63,7 +64,6 @@ class Sighting extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
         if (empty($this->data['Sighting']['id']) && empty($this->data['Sighting']['date_sighting'])) {
             $this->data['Sighting']['date_sighting'] = date('Y-m-d H:i:s');
         }
@@ -77,7 +77,7 @@ class Sighting extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable');
+        $pubToZmq = $this->pubToZmq('sighting');
         $kafkaTopic = $this->kafkaTopic('sighting');
         if ($pubToZmq || $kafkaTopic) {
             $user = array(
@@ -101,8 +101,7 @@ class Sighting extends AppModel
 
     public function beforeDelete($cascade = true)
     {
-        parent::beforeDelete();
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable');
+        $pubToZmq = $this->pubToZmq('sighting');
         $kafkaTopic = $this->kafkaTopic('sighting');
         if ($pubToZmq || $kafkaTopic) {
             $user = array(
@@ -441,7 +440,7 @@ class Sighting extends AppModel
         $sparklineData = [];
         $range = $this->getMaximumRange();
         foreach ($groupedSightings as $sighting) {
-            $type = $this->type[$sighting['type']];
+            $type = self::TYPE[$sighting['type']];
             $orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : __('Others');
             $count = (int)$sighting['sighting_count'];
             $inRange = strtotime($sighting['date']) >= $range;
@@ -746,7 +745,7 @@ class Sighting extends AppModel
         $tempFile->close();
         $scriptFile = APP . "files" . DS . "scripts" . DS . "stixsighting2misp.py";
         // Execute the python script and point it to the temporary filename
-        $result = shell_exec($this->getPythonVersion() . ' ' . $scriptFile . ' ' . $randomFileName);
+        $result = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile, $randomFileName]);
         // The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
         // If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
         $result = json_decode($result, true);

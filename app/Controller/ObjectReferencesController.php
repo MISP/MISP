@@ -6,7 +6,7 @@ App::uses('AppController', 'Controller');
  */
 class ObjectReferencesController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler', 'Session');
+    public $components = array('RequestHandler', 'Session');
 
     public $paginate = array(
             'limit' => 20,
@@ -70,7 +70,7 @@ class ObjectReferencesController extends AppController
             $this->ObjectReference->create();
             $result = $this->ObjectReference->save(array('ObjectReference' => $data));
             if ($result) {
-                $this->ObjectReference->updateTimestamps($this->id, $data);
+                $this->ObjectReference->updateTimestamps($data);
                 if ($this->_isRest()) {
                     $object = $this->ObjectReference->find("first", array(
                         'recursive' => -1,
@@ -203,10 +203,10 @@ class ObjectReferencesController extends AppController
             throw new NotFoundException(__('Invalid object reference.'));
         }
         // Check if user can view object that contains this reference
-        $object = $this->ObjectReference->Object->find($this->Auth->user(), [
-            'conditions' => $objectReference['ObjectReference']['object_id'],
+        $object = $this->ObjectReference->Object->fetchObjectSimple($this->Auth->user(), [
+            'conditions' => ['Object.id' => $objectReference['ObjectReference']['object_id']],
         ]);
-        if (!$object) {
+        if (empty($object)) {
             throw new NotFoundException(__('Invalid object reference.'));
         }
         return $this->RestResponse->viewData($objectReference, 'json');

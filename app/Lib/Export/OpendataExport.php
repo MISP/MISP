@@ -1,9 +1,9 @@
 <?php
+App::uses('ProcessTool', 'Tools');
 
 class OpendataExport
 {
     public $non_restrictive_export = true;
-    public $use_default_filters = true;
     public $mock_query_only = true;
     private $__default_filters = null;
 
@@ -68,12 +68,11 @@ class OpendataExport
 
     public function footer()
     {
-        $my_server = ClassRegistry::init('Server');
-        $cmd = $my_server->getPythonVersion() . ' ' . $this->__scripts_dir . $this->__script_name;
+        $cmd = [ProcessTool::pythonBin(), $this->__scripts_dir . $this->__script_name];
         if (!empty($this->__auth)) {
             $this->__request_object['auth'] = $this->__auth;
         }
-        if ($this->__search){
+        if ($this->__search) {
             return $this->__search_query($cmd);
         }
         return $this->__delete ? $this->__delete_query($cmd) : $this->__add_query($cmd);
@@ -84,7 +83,7 @@ class OpendataExport
         return '';
     }
 
-    private function __add_query($cmd)
+    private function __add_query(array $cmd)
     {
         unset($this->__default_filters['returnFormat']);
         $body = json_encode($this->__default_filters);
@@ -96,7 +95,9 @@ class OpendataExport
         $this->__request_object['setup'] = $setupFilename;
         $this->__request_object['misp_url'] = $this->__url;
         $commandFile = $this->__generateCommandFile();
-        $results = shell_exec($cmd . ' --query_data ' . $commandFile);
+        $cmd[] = '--query_data';
+        $cmd[] = $commandFile;
+        $results = ProcessTool::execute($cmd);
         unlink($commandFile);
         unlink($bodyFilename);
         unlink($setupFilename);
@@ -129,13 +130,15 @@ class OpendataExport
         return $this->__simple_query($cmd);
     }
 
-    private function __simple_query($cmd)
+    private function __simple_query(array $cmd)
     {
         if (!empty($this->__setup['resources'])) {
             $this->__request_object['search'] = $this->__setup['resources'];
         }
         $commandFile = $this->__generateCommandFile();
-        $results = shell_exec($cmd . ' --query_data ' . $commandFile);
+        $cmd[] = '--query_data';
+        $cmd[] = $commandFile;
+        $results = ProcessTool::execute($cmd);
         unlink($commandFile);
         return $results;
     }

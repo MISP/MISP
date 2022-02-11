@@ -50,7 +50,9 @@ class ServerSyncTool
     public function eventExists(array $event)
     {
         $url = $this->server['Server']['url'] . '/events/view/' . $event['Event']['uuid'];
+        $start = microtime(true);
         $exists = $this->socket->head($url, [], $this->request);
+        $this->log($start, 'HEAD', $url, $exists);
         if ($exists->code == '404') {
             return false;
         }
@@ -81,6 +83,17 @@ class ServerSyncTool
         $url = "/events/view/$eventId";
         $url .= $this->createParams($params);
         return $this->get($url);
+    }
+
+    /**
+     * @param array $rules
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function attributeSearch(array $rules)
+    {
+        return $this->post('/attributes/restSearch.json', $rules);
     }
 
     /**
@@ -171,6 +184,16 @@ class ServerSyncTool
     }
 
     /**
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function resetAuthKey()
+    {
+        return $this->post('/users/resetauthkey/me', []);
+    }
+
+    /**
      * @param string $testString
      * @return HttpSocketResponseExtended
      * @throws Exception
@@ -194,6 +217,22 @@ class ServerSyncTool
     public function serverId()
     {
         return $this->server['Server']['id'];
+    }
+
+    /**
+     * @return array
+     */
+    public function pullRules()
+    {
+        return $this->decodeRule('pull_rules');
+    }
+
+    /**
+     * @return array
+     */
+    public function pushRules()
+    {
+        return $this->decodeRule('push_rules');
     }
 
     /**
@@ -228,6 +267,14 @@ class ServerSyncTool
     }
 
     /**
+     * @return array|null
+     */
+    public function connectionMetaData()
+    {
+        return $this->socket->getMetaData();
+    }
+
+    /**
      * @params string $url Relative URL
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
@@ -235,7 +282,9 @@ class ServerSyncTool
     private function get($url)
     {
         $url = $this->server['Server']['url'] . $url;
+        $start = microtime(true);
         $response = $this->socket->get($url, [], $this->request);
+        $this->log($start, 'GET', $url, $response);
         if (!$response->isOk()) {
             throw new HttpSocketHttpException($response, $url);
         }
@@ -261,7 +310,7 @@ class ServerSyncTool
                 $logMessage,
                 $data
             );
-            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $this->server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
+            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $this->server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND | LOCK_EX);
         }
 
         $request = $this->request;
@@ -275,11 +324,23 @@ class ServerSyncTool
             }
         }
         $url = $this->server['Server']['url'] . $url;
+        $start = microtime(true);
         $response = $this->socket->post($url, $data, $request);
+        $this->log($start, 'POST', $url, $response);
         if (!$response->isOk()) {
             throw new HttpSocketHttpException($response, $url);
         }
         return $response;
+    }
+
+    /**
+     * @param string $key
+     * @return array
+     */
+    private function decodeRule($key)
+    {
+        $rules = $this->server['Server'][$key];
+        return json_decode($rules, true);
     }
 
     /**
@@ -299,5 +360,20 @@ class ServerSyncTool
             }
         }
         return $url;
+    }
+
+    /**
+     * @param float $start
+     * @param string $method HTTP method
+     * @param string $url
+     * @param HttpSocketResponse $response
+     */
+    private function log($start, $method, $url, HttpSocketResponse $response)
+    {
+        $duration = round(microtime(true) - $start, 3);
+        $responseSize = strlen($response->body);
+        $ce = $response->getHeader('Content-Encoding');
+        $logEntry = '[' . date("Y-m-d H:i:s") . "] \"$method $url\" {$response->code} $responseSize $duration $ce\n";
+        file_put_contents(APP . 'tmp/logs/server-sync.log', $logEntry, FILE_APPEND | LOCK_EX);
     }
 }

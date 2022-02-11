@@ -5,7 +5,6 @@ App::uses('AppController', 'Controller');
 class RestClientHistoryController extends AppController
 {
     public $components = array(
-        'Security',
         'AdminCrud',
         'RequestHandler'
     );

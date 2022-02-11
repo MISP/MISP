@@ -22,6 +22,7 @@ App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
  * @property CompressedRequestHandlerComponent $CompressedRequestHandler
  * @property DeprecationComponent $Deprecation
  * @property RestSearchComponent $RestSearch
+ * @property BetterSecurityComponent $Security
  */
 class AppController extends Controller
 {
@@ -31,10 +32,10 @@ class AppController extends Controller
      */
     public $defaultModel = '';
 
-    public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
+    public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '131';
-    public $pyMispVersion = '2.4.148';
+    private $__queryVersion = '136';
+    public $pyMispVersion = '2.4.152';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -69,34 +70,41 @@ class AppController extends Controller
     }
 
     public $components = array(
-            'Session',
-            'Auth' => array(
-                'authError' => 'Unauthorised access.',
-                'authenticate' => array(
-                    'Form' => array(
-                        'passwordHasher' => 'BlowfishConstant',
-                        'fields' => array(
-                            'username' => 'email'
-                        )
+        'Session',
+        'Auth' => array(
+            'authError' => 'Unauthorised access.',
+            'authenticate' => array(
+                'Form' => array(
+                    'passwordHasher' => 'BlowfishConstant',
+                    'fields' => array(
+                        'username' => 'email'
                     )
                 )
-            ),
-            'Security',
-            'ACL',
-            'CompressedRequestHandler',
-            'RestResponse',
-            'Flash',
-            'Toolbox',
-            'RateLimit',
-            'IndexFilter',
-            'Deprecation',
-            'RestSearch',
-            'CRUD'
-            //,'DebugKit.Toolbar'
+            )
+        ),
+        'Security' => [
+            'className' => 'BetterSecurity',
+        ],
+        'ACL',
+        'CompressedRequestHandler',
+        'RestResponse',
+        'Flash',
+        'Toolbox',
+        'RateLimit',
+        'IndexFilter',
+        'Deprecation',
+        'RestSearch',
+        'CRUD'
+        //,'DebugKit.Toolbar'
     );
 
     public function beforeFilter()
     {
+        if (Configure::read('MISP.system_setting_db')) {
+            App::uses('SystemSetting', 'Model');
+            SystemSetting::setGlobalSetting();
+        }
+
         $this->_setupBaseurl();
         $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
 
@@ -132,7 +140,8 @@ class AppController extends Controller
         $this->_setupDatabaseConnection();
 
         $this->set('debugMode', Configure::read('debug') >= 1 ? 'debugOn' : 'debugOff');
-        $this->set('ajax', $this->request->is('ajax'));
+        $isAjax = $this->request->is('ajax');
+        $this->set('ajax', $isAjax);
         $this->set('queryVersion', $this->__queryVersion);
         $this->User = ClassRegistry::init('User');
 
@@ -174,7 +183,7 @@ class AppController extends Controller
         Configure::write('CurrentController', $this->request->params['controller']);
         Configure::write('CurrentAction', $this->request->params['action']);
         $versionArray = $this->User->checkMISPVersion();
-        $this->mispVersion = implode('.', array_values($versionArray));
+        $this->mispVersion = implode('.', $versionArray);
         $this->Security->blackHoleCallback = 'blackHole';
 
         // send users away that are using ancient versions of IE
@@ -211,6 +220,7 @@ class AppController extends Controller
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
             $this->Security->unlockedActions = array($this->request->action);
+            $this->Security->doNotGenerateToken = true;
         }
 
         if (
@@ -224,9 +234,7 @@ class AppController extends Controller
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
                 // disable CSRF for REST access
-                if (isset($this->components['Security'])) {
-                    $this->Security->csrfCheck = false;
-                }
+                $this->Security->csrfCheck = false;
                 if ($this->__loginByAuthKey() === false || $this->Auth->user() === null) {
                     if ($this->__loginByAuthKey() === null) {
                         $this->loadModel('Log');
@@ -245,7 +253,7 @@ class AppController extends Controller
             $this->__logAccess($user);
 
             // Try to run updates
-            if ($user['Role']['perm_site_admin'] || (!$this->_isRest() && $this->_isLive())) {
+            if ($user['Role']['perm_site_admin'] || (!$this->_isRest() && !$isAjax && $this->_isLive())) {
                 $this->User->runUpdates();
             }
 
@@ -265,7 +273,7 @@ class AppController extends Controller
             $user = $this->Auth->user(); // user info in session could change (see __verifyUser) method, so reload user variable
 
             if (isset($user['logged_by_authkey']) && $user['logged_by_authkey'] && !($this->_isRest() || $this->_isAutomation())) {
-                throw new ForbiddenException("When user is authenticated by authkey, just REST request can be processed");
+                throw new ForbiddenException("When user is authenticated by authkey, just REST request can be processed.");
             }
 
             // Put token expiration time to response header that can be processed by automation tool
@@ -321,12 +329,15 @@ class AppController extends Controller
                 $preAuthActions[] = 'email_otp';
             }
             if (!$this->_isControllerAction(['users' => $preAuthActions, 'servers' => ['cspReport']])) {
-                if (!$this->request->is('ajax')) {
+                if ($isAjax) {
+                    $response = $this->RestResponse->throwException(401, "Unauthorized");
+                    $response->send();
+                    $this->_stop();
+                } else {
                     $this->Session->write('pre_login_requested_url', $this->request->here);
+                    $this->_redirectToLogin();
                 }
-                $this->_redirectToLogin();
             }
-
             $this->set('me', false);
         }
 
@@ -338,7 +349,7 @@ class AppController extends Controller
                     $this->User->Server->updateDatabase('cleanSessionTable');
                 }
             }
-            if (Configure::read('site_admin_debug') && (Configure::read('debug') < 2)) {
+            if (Configure::read('site_admin_debug') && Configure::read('debug') < 2) {
                 Configure::write('debug', 1);
             }
         }
@@ -359,21 +370,21 @@ class AppController extends Controller
                 }
             }
         }
+    }
 
+    public function beforeRender()
+    {
         // Notifications and homepage is not necessary for AJAX or REST requests
+        $user = $this->Auth->user();
         if ($user && !$this->_isRest() && !$this->request->is('ajax')) {
-            if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
-                $notifications = $this->User->populateNotifications($user);
-            } else {
-                $notifications = $this->User->populateNotifications($user, 'fast');
-            }
-            $this->set('notifications', $notifications);
+            $hasNotifications = $this->User->hasNotifications($user);
+            $this->set('hasNotifications', $hasNotifications);
 
             $homepage = $this->User->UserSetting->getValueForUser($user['id'], 'homepage');
             if (!empty($homepage)) {
                 $this->set('homepage', $homepage);
             }
-            if (version_compare(phpversion(), '8.0') >= 0) {
+            if (PHP_MAJOR_VERSION >= 8) {
                 $this->Flash->error(__('WARNING: MISP is currently running under PHP 8.0, which is unsupported. Background jobs will fail, so please contact your administrator to run a supported PHP version (such as 7.4)'));
             }
         }
@@ -386,8 +397,6 @@ class AppController extends Controller
     private function __loginByAuthKey()
     {
         if (Configure::read('Security.authkey_keep_session') && $this->Auth->user()) {
-            // Do not check authkey if session is establish and correct, just close session to allow multiple requests
-            session_write_close();
             return true;
         }
 
@@ -397,6 +406,9 @@ class AppController extends Controller
             $namedParamAuthkey = $this->request->params['named']['apikey'];
         }
         // Authenticate user with authkey in Authorization HTTP header
+        if (!empty($_SERVER['HTTP_AUTHORIZATION']) && strcasecmp(substr($_SERVER['HTTP_AUTHORIZATION'], 0, 5), "Basic") == 0) { // Skip Basic Authorizations
+            return null;
+        }
         if (!empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($namedParamAuthkey)) {
             $foundMispAuthKey = false;
             $authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
@@ -906,22 +918,29 @@ class AppController extends Controller
         return $user;
     }
 
-    // generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
-    protected function _harvestParameters($options, &$exception, $data = array())
+    /**
+     * generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
+     * @param array $options
+     * @param $exception
+     * @param array $data
+     * @return array|false|mixed
+     */
+    protected function _harvestParameters($options, &$exception = null, $data = array())
     {
-        if (!empty($options['request']->is('post'))) {
-            if (empty($options['request']->data)) {
+        $request = $options['request'] ?? $this->request;
+        if ($request->is('post')) {
+            if (empty($request->data)) {
                 $exception = $this->RestResponse->throwException(
                     400,
                     __('Either specify the search terms in the url, or POST a json with the filter parameters.'),
-                    '/' . $this->request->params['controller'] . '/' . $this->request->action
+                    '/' . $request->params['controller'] . '/' . $request->action
                 );
                 return false;
             } else {
-                if (isset($options['request']->data['request'])) {
-                    $data = array_merge($data, $options['request']->data['request']);
+                if (isset($request->data['request'])) {
+                    $data = array_merge($data, $request->data['request']);
                 } else {
-                    $data = array_merge($data, $options['request']->data);
+                    $data = array_merge($data, $request->data);
                 }
             }
         }
@@ -1224,6 +1243,9 @@ class AppController extends Controller
         if ($user === false) {
             return $exception;
         }
+
+        session_write_close(); // Rest search can be longer, so close session to allow concurrent requests
+
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
             if ($returnFormat === 'download') {
@@ -1289,7 +1311,7 @@ class AppController extends Controller
     protected function __canModifyEvent(array $event)
     {
         if (!isset($event['Event'])) {
-            throw new InvalidArgumentException('Passed object does not contains Event.');
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
         }
 
         if ($this->userRole['perm_site_admin']) {
@@ -1393,5 +1415,18 @@ class AppController extends Controller
         } catch (Exception $e) {
             return true;
         }
+    }
+
+    /**
+     * Override default View class
+     * @return View
+     */
+    protected function _getViewObject()
+    {
+        if ($this->viewClass === 'View') {
+            App::uses('AppView', 'View');
+            return new AppView($this);
+        }
+        return parent::_getViewObject();
     }
 }

@@ -5,20 +5,19 @@ foreach ($warninglists as $id => $name) {
 }
 $warninglistsValues = json_encode($warninglistsValues);
 ?>
-<div id="eventFilteringQBWrapper" style="padding: 5px; display: none; border: 1px solid #dddddd; border-bottom: 0px;">
+<div id="eventFilteringQBWrapper" style="padding: 5px; display: none; border: 1px solid #dddddd; border-bottom: 0;">
     <div id="eventFilteringQB" style="overflow-y: auto; padding-right: 5px; resize: vertical; max-height: 750px; height: 400px;"></div>
     <div style="display: flex; justify-content: flex-end; margin-top: 5px;">
-            <input id="eventFilteringQBLinkInput" class="form-control" style="width: 66%;">
-            <button id="eventFilteringQBLinkCopy" type="button" class="btn btn-inverse" style="margin-right: 5px; margin-left: 5px;" onclick="clickMessage(this);"> <i class="fa fa-clipboard"></i> <?php echo h('Copy to clipboard'); ?> </button>
-            <button id="eventFilteringQBSubmit" type="button" class="btn btn-success" style="margin-right: 5px;"> <i class="fa fa-filter"></i> <?php echo h('Filter'); ?> </button>
-            <button id="eventFilteringQBClear" type="button" class="btn btn-xs btn-danger" style="" title="<?php echo h('Clear filtering rules'); ?>"> <i class="fa fa-times"></i> <?php echo h('Clear'); ?> </button>
+        <input id="eventFilteringQBLinkInput" class="form-control" style="width: 66%;">
+        <button id="eventFilteringQBLinkCopy" type="button" class="btn btn-inverse" style="margin-right: 5px; margin-left: 5px;"> <i class="fa fa-clipboard"></i> Copy to clipboard</button>
+        <button id="eventFilteringQBSubmit" type="button" class="btn btn-success" style="margin-right: 5px;"> <i class="fa fa-filter"></i> Filter</button>
+        <button id="eventFilteringQBClear" type="button" class="btn btn-xs btn-danger" style="" title="Clear filtering rules"> <i class="fa fa-times"></i> Clear</button>
     </div>
 </div>
 <?php
 ?>
-
 <script>
-var defaultFilteringRules = <?php echo json_encode($defaultFilteringRules); ?>;
+var defaultFilteringRules = <?= json_encode($defaultFilteringRules); ?>;
 var querybuilderTool;
 function triggerEventFilteringTool(hide) {
     var qbOptions = {
@@ -119,9 +118,9 @@ function triggerEventFilteringTool(hide) {
                 "id": "deleted",
                 "label": "Deleted",
                 "values": {
-                    0: "Deleted only",
+                    0: "Exclude deleted",
                     1: "Both",
-                    2: "Exclude deleted"
+                    2: "Deleted only",
                 }
             },
             {
@@ -303,7 +302,7 @@ function triggerEventFilteringTool(hide) {
                     <?php if (isset($filters['attributeFilter'])): ?>
                         value: "<?php echo in_array($filters['attributeFilter'], array('all', 'network', 'financial', 'file')) ? h($filters['attributeFilter']) : 'all'; ?>"
                     <?php else: ?>
-                        value: "<?php echo 'all'; ?>"
+                        value: 'all'
                     <?php endif; ?>
                 },
                 <?php endif; ?>
@@ -339,7 +338,7 @@ function triggerEventFilteringTool(hide) {
                 {
                     field: 'deleted',
                     id: 'deleted',
-                    value: <?php echo isset($filters['deleted']) ? h($filters['deleted']) : 2; ?>
+                    value: <?php echo isset($filters['deleted']) ? h($filters['deleted']) : 0; ?>
                 },
                 <?php endif; ?>
                 <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['includeRelatedTags'])): ?>
@@ -425,7 +424,6 @@ function triggerEventFilteringTool(hide) {
         },
     };
 
-    var filters = <?php echo json_encode($filters); ?>;
     var $wrapper = $('#eventFilteringQBWrapper');
     var $ev = $('#eventFilteringQB');
     querybuilderTool = $ev.queryBuilder(qbOptions);
@@ -446,6 +444,7 @@ function triggerEventFilteringTool(hide) {
 
     $('#eventFilteringQBLinkCopy').off('click').on('click', function() {
         copyToClipboard($('#eventFilteringQBLinkInput'));
+        clickMessage(this);
     });
 
     $('#eventFilteringQBClear').off('click').on('click', function() {
@@ -525,27 +524,22 @@ function cleanRules(rules) {
 
 function performQuery(rules) {
     var res = cleanRules(rules);
-
-    var url = "<?php echo $baseurl; ?>/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>";
-    $.ajax({
+    var url = "/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>";
+    xhr({
         type: "post",
         url: url,
         data: res,
-        beforeSend: function () {
-            $(".loading").show();
-        },
-        success:function (data) {
+        success: function (data) {
             $("#attributes_div").html(data);
-            $(".loading").hide();
         },
-        error:function() {
+        error: function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
         }
     });
 }
 
 function clickMessage(clicked) {
-    $clicked = $(clicked);
+    var $clicked = $(clicked);
     $clicked.tooltip({
         title: 'Copied!',
         trigger: 'manual',

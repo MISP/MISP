@@ -107,7 +107,6 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'Feed.settings.common.excluderegex',
                 'label' => __('Exclusion Regex'),
-                'placeholder' => __('Leave blank unless you want to reuse an existing event.'),
                 'div' => ['id' => 'settingsCommonExcluderegexDiv', 'style' => 'display:none', 'class' => 'optionalField'],
                 'placeholder' => __('Regex pattern, for example: "/^https://myfeedurl/i'),
                 'class' => 'form-control span6'

@@ -1,5 +1,5 @@
 <?php
-    $api_key = empty(Configure::read('Security.advanced_authkeys')) ? $me['authkey'] : 'YOUR_API_KEY';
+    $api_key = empty(Configure::read('Security.advanced_authkeys')) ? $authkey : 'YOUR_API_KEY';
 ?>
 <div class="event index">
     <h2><?php echo __('Automation');?></h2>
@@ -15,7 +15,7 @@
             if (empty(Configure::read('Security.advanced_authkeys'))) {
                 echo __(
                     'Your current key is: <code>%s</code>. You can %s this key.',
-                    $me['authkey'],
+                    $api_key,
                     $this->Form->postLink(
                         __('reset'),
                         array('controller' => 'users', 'action' => 'resetauthkey', 'me'),
