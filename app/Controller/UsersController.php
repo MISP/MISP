@@ -1811,7 +1811,7 @@ class UsersController extends AppController
         $x_forwarded = explode(",", $x_forwarded);
         return $x_forwarded[0];
       } elseif(!empty($client_ip)){
-        return $_client_ip;
+        return $client_ip;
       } else {
         return filter_input(INPUT_SERVER, 'REMOTE_ADDR', FILTER_SANITIZE_STRING);
       }
