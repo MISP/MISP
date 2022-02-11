@@ -1101,6 +1101,8 @@ class StixFromMISPParser(StixParser):
         if tags:
             attribute['Tag'] = tags
         attribute.update(self.parse_timeline(stix_object))
+        if hasattr(stix_object, 'description') and stix_object.description:
+            attribute['comment'] = stix_object.description
         if hasattr(stix_object, 'object_marking_refs'):
             self.update_marking_refs(attribute_uuid, stix_object.object_marking_refs)
         return attribute
@@ -1111,6 +1113,8 @@ class StixFromMISPParser(StixParser):
         misp_object = MISPObject('file' if object_type == 'WindowsPEBinaryFile' else object_type,
                                  misp_objects_path_custom=_misp_objects_path)
         misp_object.uuid = stix_object.id.split('--')[1]
+        if hasattr(stix_object, 'description') and stix_object.description:
+            misp_object.comment = stix_object.description
         misp_object.update(self.parse_timeline(stix_object))
         return misp_object, object_type
 
@@ -1988,6 +1992,8 @@ class ExternalStixParser(StixParser):
         misp_object = MISPObject(name if name is not None else stix_object.type,
                                  misp_objects_path_custom=_misp_objects_path)
         misp_object.uuid = stix_object.id.split('--')[1]
+        if hasattr(stix_object, 'description') and stix_object.description:
+            misp_object.comment = stix_object.description
         misp_object.update(self.parse_timeline(stix_object))
         return misp_object
 
