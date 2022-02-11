@@ -232,6 +232,7 @@ class ACLComponent extends Component
                     'massDelete' => array(),
                     'merge' => array('perm_modify'),
                     'nids' => array('*'),
+                    'populate' => array('perm_add'),
                     'proposalEventIndex' => array('*'),
                     'publish' => array('perm_publish'),
                     'publishSightings' => array('perm_sighting'),
