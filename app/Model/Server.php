@@ -2308,10 +2308,9 @@ class Server extends AppModel
 
         $settingsToSave = array(
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
-            'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
-            'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
-            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth',
-            'AadAuth', 'SimpleBackgroundJobs', 'LinOTPAuth'
+            'Security', 'Session', 'site_admin_debug', 'Plugin', 'CertAuth',
+            'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth', 'AadAuth',
+            'SimpleBackgroundJobs', 'LinOTPAuth'
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
