@@ -272,7 +272,11 @@ class Server extends AppModel
             if (isset($event['Event']['Attribute'])) {
                 $originalCount = count($event['Event']['Attribute']);
                 foreach ($event['Event']['Attribute'] as $key => $attribute) {
-                    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
+                    if (
+                        !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                        !empty($pullRules['type_attributes']['NOT']) &&
+                        in_array($attribute['type'], $pullRules['type_attributes']['NOT'])
+                    ) {
                         unset($event['Event']['Attribute'][$key]);
                         continue;
                     }
@@ -300,7 +304,11 @@ class Server extends AppModel
             if (isset($event['Event']['Object'])) {
                 $originalObjectCount = count($event['Event']['Object']);
                 foreach ($event['Event']['Object'] as $i => $object) {
-                    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['template_uuid'], $pullRules['type_objects']['NOT'])) {
+                    if (
+                        !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                        !empty($pullRules['type_objects']['NOT']) &&
+                        in_array($object['template_uuid'], $pullRules['type_objects']['NOT'])
+                    ) {
                         unset($event['Event']['Object'][$i]);
                         continue;
                     }
@@ -315,7 +323,11 @@ class Server extends AppModel
                     if (isset($object['Attribute'])) {
                         $originalAttributeCount = count($object['Attribute']);
                         foreach ($object['Attribute'] as $j => $a) {
-                            if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&  in_array($a['type'], $pullRules['type_attributes']['NOT'])) {
+                            if (
+                                !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                                !empty($pullRules['type_attributes']['NOT']) &&
+                                in_array($a['type'], $pullRules['type_attributes']['NOT'])
+                            ) {
                                 unset($event['Event']['Object'][$i]['Attribute'][$j]);
                                 continue;
                             }
