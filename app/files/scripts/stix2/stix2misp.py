@@ -1101,6 +1101,8 @@ class StixFromMISPParser(StixParser):
         if tags:
             attribute['Tag'] = tags
         attribute.update(self.parse_timeline(stix_object))
+        if hasattr(stix_object, 'description') and stix_object.description:
+            attribute['comment'] = stix_object.description
         if hasattr(stix_object, 'object_marking_refs'):
             self.update_marking_refs(attribute_uuid, stix_object.object_marking_refs)
         return attribute
@@ -1111,6 +1113,8 @@ class StixFromMISPParser(StixParser):
         misp_object = MISPObject('file' if object_type == 'WindowsPEBinaryFile' else object_type,
                                  misp_objects_path_custom=_misp_objects_path)
         misp_object.uuid = stix_object.id.split('--')[1]
+        if hasattr(stix_object, 'description') and stix_object.description:
+            misp_object.comment = stix_object.description
         misp_object.update(self.parse_timeline(stix_object))
         return misp_object, object_type
 
@@ -1929,29 +1933,28 @@ class ExternalStixParser(StixParser):
 
     def add_attributes_from_indicator(self, indicator, attribute_type, separator):
         patterns = self._handle_pattern(indicator.pattern).split(separator)
+        attribute = {
+            'type': attribute_type,
+            'to_ids': True
+        }
+        attribute.update(self.parse_timeline(indicator))
+        if hasattr(indicator, 'description') and indicator.description:
+            attribute['comment'] = indicator.description
         if len(patterns) == 1:
             _, value = self.get_type_and_value_from_pattern(patterns[0])
-            attribute = MISPAttribute()
-            attribute.from_dict(**{
-                'uuid': indicator.id.split('--')[1],
-                'type': attribute_type,
-                'value': value,
-                'to_ids': True
-            })
-            attribute.update(self.parse_timeline(indicator))
+            attribute.update(
+                {
+                    'uuid': indicator.id.split('--')[1],
+                    'value': value,
+                }
+            )
             self.misp_event.add_attribute(**attribute)
         else:
-            tmp_attribute = self.parse_timeline(indicator)
             for pattern in patterns:
                 _, value = self.get_type_and_value_from_pattern(pattern)
-                attribute = MISPAttribute()
-                attribute.from_dict(**{
-                    'type': attribute_type,
-                    'value': value,
-                    'to_ids': True
-                })
-                attribute.update(tmp_attribute)
-                self.misp_event.add_attribute(**attribute)
+                misp_attribute = {'value': value}
+                misp_attribute.update(attribute)
+                self.misp_event.add_attribute(**misp_attribute)
 
     def add_attributes_from_observable(self, observable, attribute_type, feature):
         if len(observable.objects) == 1:
@@ -1988,6 +1991,8 @@ class ExternalStixParser(StixParser):
         misp_object = MISPObject(name if name is not None else stix_object.type,
                                  misp_objects_path_custom=_misp_objects_path)
         misp_object.uuid = stix_object.id.split('--')[1]
+        if hasattr(stix_object, 'description') and stix_object.description:
+            misp_object.comment = stix_object.description
         misp_object.update(self.parse_timeline(stix_object))
         return misp_object
 
@@ -2020,6 +2025,8 @@ class ExternalStixParser(StixParser):
                     attribute['to_ids'] = True
                 if hasattr(stix_object, 'object_marking_refs'):
                     self.update_marking_refs(attribute['uuid'], stix_object.object_marking_refs)
+                if hasattr(stix_object, 'description') and stix_object.description:
+                    attribute['comment'] = stix_object.description
                 self.misp_event.add_attribute(**attribute)
         except IndexError:
             object_type = 'indicator' if isinstance(stix_object, stix2.Indicator) else 'observable objects'
