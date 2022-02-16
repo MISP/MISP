@@ -46,6 +46,14 @@ class UserShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('check_validity', [
+            'help' => __('Check users validity from external identity provider and block not valid user.'),
+            'parser' => [
+                'options' => [
+                    'block_invalid' => ['help' => __('Block user that are considered invalid.'), 'boolean' => true],
+                ],
+            ]
+        ]);
         $parser->addSubcommand('change_pw', [
             'help' => __('Change user password.'),
             'parser' => [
@@ -235,6 +243,22 @@ class UserShell extends AppShell
         }
         $this->User->updateField($user, 'disabled', false);
         $this->out("User $userId unblocked.");
+    }
+
+    public function check_validity()
+    {
+        $users = $this->User->find('all', [
+            'recursive' => -1,
+            'contain' => ['UserSetting'],
+            'conditions' => ['disabled' => false], // fetch just not disabled users
+        ]);
+        $blockInvalid = $this->params['block_invalid'];
+
+        foreach ($users as $user) {
+            $user['User']['UserSetting'] = $user['UserSetting'];
+            $result = $this->User->checkIfUserIsValid($user['User'], $blockInvalid, true);
+            $this->out("{$user['User']['email']}: " . ($result ? 'valid' : 'INVALID'));
+        }
     }
 
     public function change_pw()

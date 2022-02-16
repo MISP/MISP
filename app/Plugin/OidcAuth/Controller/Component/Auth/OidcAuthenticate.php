@@ -12,12 +12,17 @@ App::uses('BaseAuthenticate', 'Controller/Component/Auth');
  *  - OidcAuth.organisation_property (default: `organization`)
  *  - OidcAuth.roles_property (default: `roles`)
  *  - OidcAuth.default_org
- *  - OidcAuth.unblock
+ *  - OidcAuth.unblock (boolean, default: false)
+ *  - OidcAuth.offline_access (boolean, default: false)
+ *  - OidcAuth.check_user_validity (integer, default `0`)
  */
 class OidcAuthenticate extends BaseAuthenticate
 {
     /** @var User|null */
     private $userModel;
+
+    /** @var \JakubOnderka\OpenIDConnectClient|\Jumbojett\OpenIDConnectClient */
+    private $oidc;
 
     /**
      * @param CakeRequest $request
@@ -70,12 +75,18 @@ class OidcAuthenticate extends BaseAuthenticate
 
         $organisationId = $this->checkOrganization($organisationName, $user, $mispUsername);
         if (!$organisationId) {
+            if ($user) {
+                $this->block($user);
+            }
             return false;
         }
 
         $roleId = $this->getUserRole($roles, $mispUsername);
         if ($roleId === null) {
             $this->log($mispUsername, 'No role was assigned.');
+            if ($user) {
+                $this->block($user);
+            }
             return false;
         }
 
@@ -111,7 +122,10 @@ class OidcAuthenticate extends BaseAuthenticate
                 $this->log($mispUsername, "Unblocking user.");
                 $user['disabled'] = false;
             }
-            $this->storeMetadata($user['id'], $verifiedClaims);
+
+            $refreshToken = $this->getConfig('offline_access', false) ? $oidc->getRefreshToken() : null;
+            $this->storeMetadata($user['id'], $verifiedClaims, $refreshToken);
+
             $this->log($mispUsername, 'Logged in.');
             return $user;
         }
@@ -132,11 +146,79 @@ class OidcAuthenticate extends BaseAuthenticate
             throw new RuntimeException("Could not save user `$mispUsername` to database.");
         }
 
-        $this->storeMetadata($this->userModel()->id, $verifiedClaims);
+        $refreshToken = $this->getConfig('offline_access', false) ? $oidc->getRefreshToken() : null;
+        $this->storeMetadata($this->userModel()->id, $verifiedClaims, $refreshToken);
 
         $this->log($mispUsername, "Saved in database with ID {$this->userModel()->id}");
         $this->log($mispUsername, 'Logged in.');
         return $this->_findUser($mispUsername);
+    }
+
+    /**
+     * @param array $user
+     * @param bool $blockInvalid Block invalid user
+     * @param bool $ignoreValidityTime Ignore `check_user_validity` setting and always check if user is valid
+     * @return bool
+     * @throws Exception
+     */
+    public function isUserValid(array $user, $blockInvalid = false, $ignoreValidityTime = false)
+    {
+        if (!$this->getConfig('offline_access', false)) {
+            return true; // offline access is not enabled, so it is not possible to verify user
+        }
+
+        if (!$ignoreValidityTime) {
+            $checkUserValidityEvery = $this->getConfig('check_user_validity', 0);
+            if ($checkUserValidityEvery === 0) {
+                return true; // validity checking is disabled
+            }
+        }
+
+        if (empty($user['sub'])) {
+            return true; // user is not OIDC managed user
+        }
+
+        $userInfo = $this->findUserInfo($user);
+        if (!isset($userInfo['refresh_token'])) {
+            if ($blockInvalid) {
+                $this->block($user);
+            }
+            $this->log($user['email'], "User don't have refresh token, considering user is not valid");
+            return false;
+        }
+
+        if (!$ignoreValidityTime && $userInfo['validity_check_timestamp'] > time() - $checkUserValidityEvery) {
+            return true; // user was checked in last `check_user_validity`, do not check again
+        }
+
+        $oidc = $this->prepareClient();
+
+        try {
+            $oidc->refreshToken($userInfo['refresh_token']);
+        } catch (JakubOnderka\ErrorResponse $e) {
+            if ($e->getError() === 'invalid_grant') {
+                if ($blockInvalid) {
+                    $this->block($user);
+                }
+                $this->log($user['email'], "Refreshing token is not possible because of `{$e->getMessage()}`, considering user is not valid");
+                return false;
+            } else {
+                $this->log($user['email'], "Refreshing token is not possible because of `{$e->getMessage()}`, considering user is still valid");
+                return true;
+            }
+        } catch (Exception $e) {
+            $this->log($user['email'], "Refreshing token is not possible because of `{$e->getMessage()}`, considering user is still valid");
+            return true;
+        }
+
+        // Update refresh token if new token provided
+        if ($oidc->getRefreshToken()) {
+            $userInfo['validity_check_timestamp'] = time();
+            $userInfo['refresh_token'] = $oidc->getRefreshToken();
+            $this->userModel()->UserSetting->setSettingInternal($user['id'], 'oidc', $userInfo);
+        }
+
+        return true;
     }
 
     /**
@@ -145,6 +227,10 @@ class OidcAuthenticate extends BaseAuthenticate
      */
     private function prepareClient()
     {
+        if ($this->oidc) {
+            return $this->oidc;
+        }
+
         $providerUrl = $this->getConfig('provider_url');
         if (!filter_var($providerUrl, FILTER_VALIDATE_URL)) {
             throw new RuntimeException("Config option `OidcAuth.provider_url` must be valid URL.");
@@ -180,7 +266,12 @@ class OidcAuthenticate extends BaseAuthenticate
             $oidc->setCodeChallengeMethod($ccm);
         }
 
+        if ($this->getConfig('offline_access', false)) {
+            $oidc->addScope('offline_access');
+        }
+
         $oidc->setRedirectURL(Configure::read('MISP.baseurl') . '/users/login');
+        $this->oidc = $oidc;
         return $oidc;
     }
 
@@ -277,12 +368,29 @@ class OidcAuthenticate extends BaseAuthenticate
     }
 
     /**
+     * @param array $user
+     * @return array
+     */
+    private function findUserInfo(array $user)
+    {
+        if (isset($user['UserSetting'])) {
+            foreach ($user['UserSetting'] as $userSetting) {
+                if ($userSetting['setting'] === 'oidc') {
+                    return $userSetting['value'];
+                }
+            }
+        }
+        return $this->userModel()->UserSetting->getValueForUser($user['id'], 'oidc');
+    }
+
+    /**
      * @param int $userId
      * @param stdClass $verifiedClaims
+     * @param string|null $refreshToken
      * @return array|bool|mixed|null
      * @throws Exception
      */
-    private function storeMetadata($userId, \stdClass $verifiedClaims)
+    private function storeMetadata($userId, \stdClass $verifiedClaims, $refreshToken = null)
     {
         // OIDC session ID
         if (isset($verifiedClaims->sid)) {
@@ -295,8 +403,23 @@ class OidcAuthenticate extends BaseAuthenticate
                 $value[$field] = $verifiedClaims->{$field};
             }
         }
+        if ($refreshToken) {
+            $value['validity_check_timestamp'] = time();
+            $value['refresh_token'] = $refreshToken;
+        }
 
         return $this->userModel()->UserSetting->setSettingInternal($userId, 'oidc', $value);
+    }
+
+    /**
+     * @param array $user
+     * @return void
+     * @throws Exception
+     */
+    private function block(array $user)
+    {
+        $this->userModel()->updateField($user, 'disabled', true);
+        $this->log($user['email'], "User blocked by OIDC");
     }
 
     /**
