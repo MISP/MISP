@@ -28,6 +28,7 @@ class Event extends AppModel
             'change' => 'full'),
         'Trim',
         'Containable',
+        'EventWarning'
     );
 
     public $displayField = 'id';

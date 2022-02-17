@@ -1602,6 +1602,7 @@ class EventsController extends AppController
         $this->set('title_for_layout', __('Event #%s', $event['Event']['id']));
         $this->set('attribute_count', $attributeCount);
         $this->set('object_count', $objectCount);
+        $this->set('warnings', $this->Event->generateWarnings($event));
         $this->__eventViewCommon($user);
     }
 
