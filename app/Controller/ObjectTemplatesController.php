@@ -6,7 +6,7 @@ App::uses('AppController', 'Controller');
  */
 class ObjectTemplatesController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler', 'Session');
+    public $components = array('RequestHandler', 'Session');
 
     public $paginate = array(
             'limit' => 60,
@@ -57,8 +57,7 @@ class ObjectTemplatesController extends AppController
         $templates_raw = $this->ObjectTemplate->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
-            'fields' => array('id', 'meta-category', 'name', 'description', 'org_id'),
-            'contain' => array('Organisation.name'),
+            'fields' => array('id', 'meta-category', 'name', 'description'),
             'order' => array('ObjectTemplate.name asc')
         ));
 
@@ -76,10 +75,9 @@ class ObjectTemplatesController extends AppController
             );
         }
 
-        $fun = 'redirectAddObject';
         $this->set('items', $items);
         $this->set('options', array(
-            'functionName' => $fun,
+            'functionName' => 'redirectAddObject',
             'multiple' => 0,
             'select_options' => array(
                 'additionalData' => array('event_id' => $event_id),

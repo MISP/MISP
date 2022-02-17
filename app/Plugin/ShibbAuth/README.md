@@ -69,6 +69,32 @@ Edit your MISP apache configuration by adding the below (location depends on you
   <Location /Shibboleth.sso>
     SetHandler shib
   </Location>
+
+  <Location />
+    AuthType shibboleth
+    Require shibboleth
+    # Optional: always directly redirect to the IdP upon access without
+    # an active session. If not enabled, a "Login with SAML" button
+    # will be shown on the login screen to start the login process..
+    # ShibRequestSetting requiresession On
+  </Location>
+
+```
+
+The above will always redirect to your IdP if MISP is accessed without
+an active session. An alternative is not to require Shibboleth before
+the application can be accessed but show the login screen if no
+Shibboleth session is present. This will then have a
+"Login with SAML" button to trigger the login.
+
+You may need to tell the rewriterules for MISP in its `.htaccess` file not to apply to Shibboleth, so add a line to exclude this from processing:
+
+```Apache
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/Shibboleth\.sso
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ index.php?/$1 [QSA,L]
 ```
 
 Enable the plugin at bootstrap.php:
@@ -98,7 +124,7 @@ If the line does not exist, add it to 'Security' array, for example like below. 
   )
 ```
 
-And configure it. MailTag, OrgTag and GroupTag are the keys for the values needed by the plugin.
+And configure it. MailTag, OrgTag and GroupTag are the keys for the values (Shibboleth environment variable names) needed by the plugin.
 For example if you are using ADFS you should replace IDP_FEDERATION_TAG by ADFS_FEDERATION, IDP_GROUP_TAG by ADFS_GROUP, etc.
 Replace MISP_DEFAULT_ORG by the organization you want users to be assigned to in case no organization value is given by the identity provider.
 The GroupRoleMatching is an array that allows the definition and correlation between groups and roles in MISP. These get updated
@@ -119,8 +145,12 @@ in the list given by apache. By default, you can leave it at ';'.
 	       'possible_group_attribute_value_1' => 1,
           ),
          'DefaultOrg' => 'MISP_DEFAULT_ORG',
+         'DefaultRole' => false,        // set to a specific value if you wish to hard-set users created via ApacheShibbAuth
+         'BlockRoleModifications' => false,        // set to true if you wish for the roles never to be updated during login. Especially useful if you manually change roles in MISP
+         'BlockOrgModifications' => false,         // set to true if you wish for the organizations never to be updated during login. Especially useful if you manually change orgs in MISP
     ),
 ```
+
 If used with Apache as webserver it might be useful to make a distinction to filter out API/Syncs from SSO login. It can be added to the vhost as follows (Added lines are the If/Else clauses):
 
 ```Apache
@@ -135,8 +165,6 @@ If used with Apache as webserver it might be useful to make a distinction to fil
         Require valid-user
         AuthType shibboleth
         ShibRequestSetting requiresession On
-        ShibRequestSetting shibexportassertion Off
-        ShibUseHeaders On
     </Else>
   </Directory>
 ```

@@ -1,7 +1,7 @@
 <?php
 class JSONConverterTool
 {
-    public function convertAttribute($attribute, $raw = false)
+    public static function convertAttribute($attribute, $raw = false)
     {
         $toRearrange = array('AttributeTag');
         foreach ($toRearrange as $object) {
@@ -12,14 +12,14 @@ class JSONConverterTool
         }
 
         // Submit as list to the attribute cleaner but obtain the only attribute
-        $attribute['Attribute'] = $this->__cleanAttributes(array($attribute['Attribute']))[0];
+        $attribute['Attribute'] = self::__cleanAttributes(array($attribute['Attribute']))[0];
         if ($raw) {
             return $attribute;
         }
         return json_encode($attribute, JSON_PRETTY_PRINT);
     }
 
-    public function convertObject($object, $isSiteAdmin = false, $raw = false)
+    public static function convertObject($object, $isSiteAdmin = false, $raw = false)
     {
         $toRearrange = array('SharingGroup', 'Attribute', 'ShadowAttribute', 'Event');
         foreach ($toRearrange as $element) {
@@ -38,7 +38,7 @@ class JSONConverterTool
         return json_encode($result, JSON_PRETTY_PRINT);
     }
 
-    public function convert($event, $isSiteAdmin=false, $raw = false)
+    public static function convert($event, $isSiteAdmin=false, $raw = false)
     {
         $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object', 'EventReport');
         foreach ($toRearrange as $object) {
@@ -79,10 +79,10 @@ class JSONConverterTool
         }
         unset($event['Event']['user_id']);
         if (isset($event['Event']['Attribute'])) {
-            $event['Event']['Attribute'] = $this->__cleanAttributes($event['Event']['Attribute'], $tempSightings);
+            $event['Event']['Attribute'] = self::__cleanAttributes($event['Event']['Attribute'], $tempSightings);
         }
         if (isset($event['Event']['Object'])) {
-            $event['Event']['Object'] = $this->__cleanObjects($event['Event']['Object'], $tempSightings);
+            $event['Event']['Object'] = self::__cleanObjects($event['Event']['Object'], $tempSightings);
         }
         unset($tempSightings);
         unset($event['Event']['RelatedAttribute']);
@@ -101,15 +101,15 @@ class JSONConverterTool
      * @param array $event
      * @return Generator<string>
      */
-    public function streamConvert(array $event)
+    public static function streamConvert(array $event)
     {
-        $event = $this->convert($event, false, true);
+        $event = self::convert($event, false, true);
 
         // Fast and inaccurate way how to check if event is too big for to convert in one call. This can be changed in future.
         $isBigEvent = (isset($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0) +
             (isset($event['Event']['Object']) ? count($event['Event']['Object']) : 0) > 100;
         if (!$isBigEvent) {
-            yield json_encode($event, JSON_UNESCAPED_UNICODE);
+            yield json_encode($event, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             return;
         }
 
@@ -120,11 +120,11 @@ class JSONConverterTool
                 yield ($firstKey === $key ? '' : ',') . json_encode($key) . ":[";
                 $firstInnerKey = key($value);
                 foreach ($value as $i => $attribute) {
-                    yield ($firstInnerKey === $i ? '' : ',')  . json_encode($attribute, JSON_UNESCAPED_UNICODE);
+                    yield ($firstInnerKey === $i ? '' : ',')  . json_encode($attribute, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                 }
                 yield "]";
             } else {
-                yield ($firstKey === $key ? '' : ',') . json_encode($key) . ":" . json_encode($value, JSON_UNESCAPED_UNICODE);
+                yield ($firstKey === $key ? '' : ',') . json_encode($key) . ":" . json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             }
         }
         if (isset($event['errors'])) {
@@ -134,7 +134,7 @@ class JSONConverterTool
         }
     }
 
-    private function __cleanAttributes($attributes, $tempSightings = array())
+    private static function __cleanAttributes($attributes, $tempSightings = array())
     {
         // remove value1 and value2 from the output and remove invalid utf8 characters for the xml parser
         foreach ($attributes as $key => $attribute) {
@@ -157,11 +157,11 @@ class JSONConverterTool
         return $attributes;
     }
 
-    private function __cleanObjects($objects, $tempSightings = array())
+    private static function __cleanObjects($objects, $tempSightings = array())
     {
         foreach ($objects as $k => $object) {
             if (!empty($object['Attribute'])) {
-                $objects[$k]['Attribute'] = $this->__cleanAttributes($object['Attribute'], $tempSightings);
+                $objects[$k]['Attribute'] = self::__cleanAttributes($object['Attribute'], $tempSightings);
             } else {
                 unset($objects[$k]);
             }
@@ -170,12 +170,12 @@ class JSONConverterTool
         return $objects;
     }
 
-    public function arrayPrinter($array, $root = true)
+    public static function arrayPrinter($array, $root = true)
     {
         if (is_array($array)) {
             $resultArray = array();
             foreach ($array as $k => $element) {
-                $temp = $this->arrayPrinter($element, false);
+                $temp = self::arrayPrinter($element, false);
                 if (!is_array($temp)) {
                     $resultArray[] = '[' . $k .']' . $temp;
                 } else {

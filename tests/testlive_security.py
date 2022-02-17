@@ -268,14 +268,14 @@ class TestSecurity(unittest.TestCase):
     def test_user_must_change_password(self):
         updated_user = self.admin_misp_connector.update_user({'change_pw': 1}, self.test_usr)
         check_response(updated_user)
-        self.assertEqual(updated_user.change_pw, "1")
+        self.assertTrue(updated_user.change_pw)
 
         # Try to login, should still work because key is still valid
         PyMISP(url, self.test_usr.authkey)
 
         updated_user = self.admin_misp_connector.update_user({'change_pw': 0}, self.test_usr)
         check_response(updated_user)
-        self.assertEqual(updated_user.change_pw, "0")
+        self.assertFalse(updated_user.change_pw)
 
         # Try to login, should also still works
         PyMISP(url, self.test_usr.authkey)
@@ -284,7 +284,7 @@ class TestSecurity(unittest.TestCase):
         # Admin set that user must change password
         updated_user = self.admin_misp_connector.update_user({'change_pw': 1}, self.test_usr)
         check_response(updated_user)
-        self.assertEqual(updated_user.change_pw, "1")
+        self.assertTrue(updated_user.change_pw)
 
         # User try to change back trough API
         logged_in = PyMISP(url, self.test_usr.authkey)
@@ -292,7 +292,7 @@ class TestSecurity(unittest.TestCase):
 
         updated_user = self.admin_misp_connector.get_user(self.test_usr)
         # Should not be possible
-        self.assertEqual(updated_user.change_pw, "1")
+        self.assertTrue(updated_user.change_pw)
 
     def test_disabled_user(self):
         # Disable user
@@ -1234,6 +1234,32 @@ class TestSecurity(unittest.TestCase):
         self.admin_misp_connector.delete_user(publisher_user)
         self.admin_misp_connector.delete_organisation(different_org)
 
+    def test_unpublished_private(self):
+        with self.__setting("MISP.unpublishedprivate", True):
+            created_event = self.admin_misp_connector.add_event(self.__generate_event())
+            self.assertIsInstance(created_event, MISPEvent, "Admin user should be able to create event")
+
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            # Event is not published, so normal user should not see that event
+            self.assertFalse(logged_in.event_exists(created_event.uuid))
+            fetched_event = logged_in.get_event(created_event.uuid)
+            self.assertEqual(fetched_event["errors"][0], 404)
+            attributes = logged_in.search(controller='attributes', uuid=created_event.uuid)
+            self.assertEqual(len(attributes["Attribute"]), 0, attributes)
+
+            # Publish
+            self.assertSuccessfulResponse(self.admin_misp_connector.publish(created_event))
+
+            # Event is published, so normal user should see that event
+            self.assertTrue(logged_in.event_exists(created_event.uuid))
+            fetched_event = logged_in.get_event(created_event.uuid)
+            self.assertSuccessfulResponse(fetched_event, "User should be able to see published event")
+            attributes = logged_in.search(controller='attributes', uuid=created_event.uuid)
+            self.assertEqual(len(attributes["Attribute"]), 1, attributes)
+
+            # Cleanup
+            self.admin_misp_connector.delete_event(created_event)
+
     def test_sg_index_user_cannot_see(self):
         org = self.__create_org()
         hidden_sg = self.__create_sharing_group()
@@ -1514,6 +1540,25 @@ class TestSecurity(unittest.TestCase):
         self.admin_misp_connector.delete_event(event)
         self.admin_misp_connector.delete_user(user)
         self.admin_misp_connector.delete_organisation(org)
+
+    def test_user_setting_delete(self):
+        # Admin user can set their own user setting
+        setting = self.admin_misp_connector.set_user_setting('publish_alert_filter', {'Tag.name': 'test_publish_filter'})
+        check_response(setting)
+
+        logged_in = PyMISP(url, self.test_usr.authkey)
+        logged_in.global_pythonify = True
+
+        # Normal user should not be able to delete setting for different user
+        deleted = logged_in.delete_user_setting('publish_alert_filter', self.admin_misp_connector._current_user)
+        self.assertEqual(deleted["errors"][0], 404, deleted)
+
+        setting = self.admin_misp_connector.get_user_setting('publish_alert_filter')
+        check_response(setting)
+        self.assertEqual({'Tag.name': 'test_publish_filter'}, setting.value)
+
+        # User should be able to delete self setting
+        check_response(self.admin_misp_connector.delete_user_setting('publish_alert_filter'))
 
     def __generate_event(self, distribution: int = 1) -> MISPEvent:
         mispevent = MISPEvent()

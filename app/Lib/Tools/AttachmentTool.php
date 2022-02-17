@@ -1,5 +1,7 @@
 <?php
 App::uses('AWSS3Client', 'Tools');
+App::uses('ProcessTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 class AttachmentTool
 {
@@ -154,7 +156,7 @@ class AttachmentTool
         } else {
             $filepath = $this->attachmentDir() . DS . $path;
             $file = new File($filepath);
-            if (!$file->exists()) {
+            if (!is_file($file->path)) {
                 throw new NotFoundException("File '$filepath' does not exists.");
             }
         }
@@ -279,6 +281,7 @@ class AttachmentTool
             $s3 = $this->loadS3Client();
             $s3->deleteDirectory($eventId);
         } else {
+            App::uses('Folder', 'Utility');
             $dirPath = $this->attachmentDir();
 
             foreach (array($dirPath, $dirPath . DS . 'shadow') as $dirPath) {
@@ -316,13 +319,13 @@ class AttachmentTool
             '-j', // junk (don't record) directory names
             '-P', // use standard encryption
             self::ZIP_PASSWORD,
-            escapeshellarg($zipFile),
-            escapeshellarg($tempDir . DS . $md5),
-            escapeshellarg($tempDir . DS . $md5 . '.filename.txt'),
+            $zipFile,
+            $tempDir . DS . $md5,
+            $tempDir . DS . $md5 . '.filename.txt',
         ];
 
         try {
-            $this->execute($exec);
+            ProcessTool::execute($exec);
             return FileAccessTool::readFromFile($zipFile);
 
         } catch (Exception $e) {
@@ -360,13 +363,13 @@ class AttachmentTool
      * @return array
      * @throws Exception
      */
-    public function advancedExtraction($pythonBin, $filePath)
+    public function advancedExtraction($filePath)
     {
         return $this->executeAndParseJsonOutput([
-            $pythonBin,
+            ProcessTool::pythonBin(),
             self::ADVANCED_EXTRACTION_SCRIPT_PATH,
             '-p',
-            escapeshellarg($filePath),
+            $filePath,
         ]);
     }
 
@@ -375,9 +378,9 @@ class AttachmentTool
      * @return array
      * @throws Exception
      */
-    public function checkAdvancedExtractionStatus($pythonBin)
+    public function checkAdvancedExtractionStatus()
     {
-        return $this->executeAndParseJsonOutput([$pythonBin, self::ADVANCED_EXTRACTION_SCRIPT_PATH, '-c']);
+        return $this->executeAndParseJsonOutput([ProcessTool::pythonBin(), self::ADVANCED_EXTRACTION_SCRIPT_PATH, '-c']);
     }
 
     /**
@@ -423,8 +426,7 @@ class AttachmentTool
         // Output image to string
         ob_start();
         imagepng($imageThumbnail, null, 9);
-        $imageData = ob_get_contents();
-        ob_end_clean();
+        $imageData = ob_get_clean();
         imagedestroy($imageThumbnail);
 
         return $imageData;
@@ -496,50 +498,11 @@ class AttachmentTool
      */
     private function executeAndParseJsonOutput(array $command)
     {
-        $output = $this->execute($command);
-
-        $json = json_decode($output, true);
-        if ($json === null) {
-            throw new Exception("Command output is not valid JSON: " . json_last_error_msg());
+        $output = ProcessTool::execute($command);
+        try {
+            return JsonTool::decode($output);
+        } catch (Exception $e) {
+            throw new Exception("Command output is not valid JSON.", 0, $e);
         }
-        return $json;
-    }
-
-    /**
-     * This method is much more complicated than just `exec`, but it also provide stderr output, so Exceptions
-     * can be much more specific.
-     *
-     * @param array $command
-     * @return string
-     * @throws Exception
-     */
-    private function execute(array $command)
-    {
-        $descriptorspec = [
-            1 => ["pipe", "w"], // stdout
-            2 => ["pipe", "w"], // stderr
-        ];
-
-        $command = implode(' ', $command);
-        $process = proc_open($command, $descriptorspec, $pipes);
-        if (!$process) {
-            throw new Exception("Command '$command' could be started.");
-        }
-
-        $stdout = stream_get_contents($pipes[1]);
-        if ($stdout === false) {
-            throw new Exception("Could not get STDOUT of command.");
-        }
-        fclose($pipes[1]);
-
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[2]);
-
-        $returnCode = proc_close($process);
-        if ($returnCode !== 0) {
-            throw new Exception("Command '$command' return error code $returnCode. STDERR: '$stderr', STDOUT: '$stdout'");
-        }
-
-        return $stdout;
     }
 }

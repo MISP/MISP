@@ -495,8 +495,8 @@
                 'html' => sprintf(
                     '<span class="fas fa-star %s" id="setHomePage" title="%s" role="img" aria-label="%s" data-current-page="%s"></span>',
                     (!empty($homepage['path']) && $homepage['path'] === $this->here) ? 'orange' : '',
-		    __('Set the current page as your home page in MISP'),
-		    __('Set the current page as your home page in MISP'),
+		            __('Set the current page as your home page in MISP'),
+		            __('Set the current page as your home page in MISP'),
                     h($this->here)
                 )
             ),
@@ -505,6 +505,12 @@
                 'url' => empty($homepage['path']) ? $baseurl : $baseurl . h($homepage['path']),
                 'html' => '<span class="logoBlueStatic bold" id="smallLogo">MISP</span>'
             ),
+            [
+                'type' => 'root',
+                'url' => Configure::read('MISP.menu_custom_right_link'),
+                'html' => Configure::read('MISP.menu_custom_right_link_html'),
+                'requirement' => !empty(Configure::read('MISP.menu_custom_right_link')),
+            ],
             array(
                 'type' => 'root',
                 'url' => $baseurl . '/dashboards',
@@ -513,10 +519,10 @@
                     h($me['email']),
                     $this->UserName->prepend($me['email']),
                     h($this->UserName->convertEmailToName($me['email'])),
-                    isset($notifications) ? sprintf(
+                    isset($hasNotifications) ? sprintf(
                         '<i class="fa fa-envelope %s" role="img" aria-label="%s"></i>',
-                        (($notifications['total'] == 0) ? 'white' : 'red'),
-                        __('Notifications') . ': ' . $notifications['total']
+                        $hasNotifications ? 'red' : 'white',
+                        __('Notifications')
                     ) : ''
                 )
             ),
@@ -528,7 +534,7 @@
         );
     }
 ?>
-<div id="topBar" class="navbar navbar-inverse <?php echo $debugMode;?>">
+<div id="topBar" class="navbar navbar-inverse <?= $debugMode ?>">
   <div class="navbar-inner">
     <ul class="nav">
         <?php

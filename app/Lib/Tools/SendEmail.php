@@ -974,6 +974,7 @@ class SendEmail
             $parts[] = 'prefer-encrypt=mutual';
         }
         $parts[] = 'keydata=' . base64_encode($keyData);
-        return implode('; ', $parts);
+        // Use the PHP wordwrap function to wrap the Autocrypt header to 74 (+ CRLF) to meet RFC 5322 - 2.1.1 line length limits 
+        return wordwrap(implode('; ', $parts), 74, "\r\n\t", true);
     }
 }

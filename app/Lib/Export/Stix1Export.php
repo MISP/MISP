@@ -9,17 +9,30 @@ class Stix1Export extends StixExport
 
     protected function __initiate_framing_params()
     {
-        $baseurl = escapeshellarg(Configure::read('MISP.baseurl'));
-        $org = escapeshellarg(Configure::read('MISP.org'));
-        return $this->pythonBin() . ' ' . $this->__framing_script . ' stix1 -v ' . $this->__version . ' -n ' . $baseurl . ' -o ' . $org . ' -f ' . $this->__return_format . ' ' . $this->__end_of_cmd;
+        return [
+            ProcessTool::pythonBin(),
+            $this->__framing_script,
+            'stix1',
+            '-s', $this->__scope,
+            '-v', $this->__version,
+            '-n', Configure::read('MISP.baseurl'),
+            '-o', Configure::read('MISP.org'),
+            '-f', $this->__return_format,
+        ];
     }
 
-    protected function __parse_misp_events(array $filenames)
+    protected function __parse_misp_data()
     {
-        $org = escapeshellarg(Configure::read('MISP.org'));
-        $filenames = implode(' ', $filenames);
-        $scriptFile = $this->__scripts_dir . 'misp2stix.py';
-        $command = $this->pythonBin() . ' ' . $scriptFile . ' -v ' . $this->__version . ' -f ' . $this->__return_format . ' -o ' . $org . ' -i ' . $filenames . $this->__end_of_cmd;
-        return shell_exec($command);
+        $command = [
+            ProcessTool::pythonBin(),
+            $this->__scripts_dir . 'misp2stix.py',
+            '-s', $this->__scope,
+            '-v', $this->__version,
+            '-f', $this->__return_format,
+            '-o', Configure::read('MISP.org'),
+            '-i',
+        ];
+        $command = array_merge($command, $this->__filenames);
+        return ProcessTool::execute($command, null, true);
     }
 }

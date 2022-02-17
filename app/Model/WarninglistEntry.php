@@ -23,10 +23,4 @@ class WarninglistEntry extends AppModel
                 'counterCache' => true
             )
     );
-
-    public function beforeValidate($options = array())
-    {
-        parent::beforeValidate();
-        return true;
-    }
 }

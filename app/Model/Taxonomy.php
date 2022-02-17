@@ -242,7 +242,7 @@ class Taxonomy extends AppModel
 
     // returns all tags associated to a taxonomy
     // returns all tags not associated to a taxonomy if $inverse is true
-    public function getAllTaxonomyTags($inverse = false, $user = false, $full = false, $hideUnselectable = true)
+    public function getAllTaxonomyTags($inverse = false, $user = false, $full = false, $hideUnselectable = true, $local_tag = false)
     {
         $this->Tag = ClassRegistry::init('Tag');
         $taxonomyIdList = $this->find('column', array('fields' => array('Taxonomy.id')));
@@ -259,6 +259,10 @@ class Taxonomy extends AppModel
         }
         if (Configure::read('MISP.incoming_tags_disabled_by_default') || $hideUnselectable) {
             $conditions['Tag.hide_tag'] = 0;
+        }
+        // If the tag is to be added as global, we filter out the local_only tags
+        if (!$local_tag) {
+            $conditions['Tag.local_only'] = 0;
         }
         if ($full) {
             $allTags = $this->Tag->find(
@@ -666,11 +670,15 @@ class Taxonomy extends AppModel
         return true;
     }
 
+    /**
+     * @param array $tagList
+     * @return array[]
+     */
     public function checkIfTagInconsistencies($tagList)
     {
         $eventTags = array();
         $localEventTags = array();
-        foreach($tagList as $tag) {
+        foreach ($tagList as $tag) {
             if ($tag['local'] == 0) {
                 $eventTags[] = $tag['Tag']['name'];
             } else {

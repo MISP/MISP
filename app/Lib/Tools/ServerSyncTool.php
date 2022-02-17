@@ -86,6 +86,17 @@ class ServerSyncTool
     }
 
     /**
+     * @param array $rules
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function attributeSearch(array $rules)
+    {
+        return $this->post('/attributes/restSearch.json', $rules);
+    }
+
+    /**
      * @param array $params
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
@@ -173,6 +184,16 @@ class ServerSyncTool
     }
 
     /**
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function resetAuthKey()
+    {
+        return $this->post('/users/resetauthkey/me', []);
+    }
+
+    /**
      * @param string $testString
      * @return HttpSocketResponseExtended
      * @throws Exception
@@ -196,6 +217,22 @@ class ServerSyncTool
     public function serverId()
     {
         return $this->server['Server']['id'];
+    }
+
+    /**
+     * @return array
+     */
+    public function pullRules()
+    {
+        return $this->decodeRule('pull_rules');
+    }
+
+    /**
+     * @return array
+     */
+    public function pushRules()
+    {
+        return $this->decodeRule('push_rules');
     }
 
     /**
@@ -227,6 +264,14 @@ class ServerSyncTool
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
+    }
+
+    /**
+     * @return array|null
+     */
+    public function connectionMetaData()
+    {
+        return $this->socket->getMetaData();
     }
 
     /**
@@ -286,6 +331,16 @@ class ServerSyncTool
             throw new HttpSocketHttpException($response, $url);
         }
         return $response;
+    }
+
+    /**
+     * @param string $key
+     * @return array
+     */
+    private function decodeRule($key)
+    {
+        $rules = $this->server['Server'][$key];
+        return json_decode($rules, true);
     }
 
     /**

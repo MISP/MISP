@@ -769,12 +769,12 @@
             },
             {
                 "column_name": "authkey",
-                "is_nullable": "YES",
-                "data_type": "varchar",
-                "character_maximum_length": "40",
+                "is_nullable": "NO",
+                "data_type": "varbinary",
+                "character_maximum_length": "255",
                 "numeric_precision": null,
-                "collation_name": "ascii_general_ci",
-                "column_type": "varchar(40)",
+                "collation_name": null,
+                "column_type": "varbinary(255)",
                 "column_default": null,
                 "extra": ""
             },
@@ -2461,6 +2461,28 @@
                 "extra": ""
             },
             {
+                "column_name": "local_only",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "local_only",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
                 "column_name": "kill_chain_order",
                 "is_nullable": "YES",
                 "data_type": "text",
@@ -3193,10 +3215,10 @@
                 "column_name": "process_id",
                 "is_nullable": "YES",
                 "data_type": "varchar",
-                "character_maximum_length": "32",
+                "character_maximum_length": "36",
                 "numeric_precision": null,
                 "collation_name": "utf8_bin",
-                "column_type": "varchar(32)",
+                "column_type": "varchar(36)",
                 "column_default": null,
                 "extra": ""
             },
@@ -5063,11 +5085,11 @@
             {
                 "column_name": "authkey",
                 "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "40",
+                "data_type": "varbinary",
+                "character_maximum_length": "255",
                 "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(40)",
+                "collation_name": null,
+                "column_type": "varbinary(255)",
                 "column_default": null,
                 "extra": ""
             },
@@ -6155,6 +6177,30 @@
                 "extra": ""
             }
         ],
+        "system_settings": [
+            {
+                "column_name": "setting",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "value",
+                "is_nullable": "NO",
+                "data_type": "blob",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": null,
+                "column_type": "blob",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
         "tags": [
             {
                 "column_name": "id",
@@ -6257,6 +6303,28 @@
             },
             {
                 "column_name": "is_custom_galaxy",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "local_only",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "local_only",
                 "is_nullable": "NO",
                 "data_type": "tinyint",
                 "character_maximum_length": null,
@@ -6430,10 +6498,10 @@
                 "column_name": "process_id",
                 "is_nullable": "YES",
                 "data_type": "varchar",
-                "character_maximum_length": "32",
+                "character_maximum_length": "36",
                 "numeric_precision": null,
                 "collation_name": "latin1_swedish_ci",
-                "column_type": "varchar(32)",
+                "column_type": "varchar(36)",
                 "column_default": null,
                 "extra": ""
             },
@@ -7425,7 +7493,7 @@
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
-                "column_type": "tinyint(4)",
+                "column_type": "tinyint(1)",
                 "column_default": "0",
                 "extra": ""
             },
@@ -7514,6 +7582,17 @@
                 "numeric_precision": "19",
                 "collation_name": null,
                 "column_type": "bigint(20)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "sub",
+                "is_nullable": "YES",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
                 "column_default": null,
                 "extra": ""
             }
@@ -7989,12 +8068,10 @@
         },
         "object_references": {
             "id": true,
-            "source_uuid": false,
-            "referenced_uuid": false,
-            "timestamp": false,
+            "uuid": true,
             "object_id": false,
             "referenced_id": false,
-            "relationship_type": false
+            "event_id": false
         },
         "object_relationships": {
             "id": true,
@@ -8073,6 +8150,7 @@
         "sharing_groups": {
             "id": true,
             "uuid": true,
+            "name": true,
             "org_id": false,
             "sync_user_id": false,
             "organisation_uuid": false
@@ -8107,6 +8185,9 @@
             "uuid": true,
             "source": false,
             "type": false
+        },
+        "system_settings": {
+            "setting": true
         },
         "tags": {
             "id": true,
@@ -8174,13 +8255,13 @@
             "id": true,
             "email": true,
             "org_id": false,
-            "server_id": false
+            "server_id": false,
+            "sub": true
         },
         "user_settings": {
             "id": true,
             "setting": false,
-            "user_id": false,
-            "timestamp": false
+            "user_id": false
         },
         "warninglists": {
             "id": true
@@ -8193,5 +8274,5 @@
             "id": true
         }
     },
-    "db_version": "73"
+    "db_version": "80"
 }

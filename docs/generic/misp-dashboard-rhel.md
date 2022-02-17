@@ -1,4 +1,4 @@
-#### MISP Dashboard on CentOS
+#### MISP Dashboard on Rocky Linux
 --------------
 
 !!! warning

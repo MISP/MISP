@@ -33,6 +33,11 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'hide_tag',
                 'type' => 'checkbox'
+            ],
+            [
+                'field' => 'local_only',
+                'label' => __('Enforce this tag to be used as local only'),
+                'type' => 'checkbox'
             ]
         ],
         'submit' => [

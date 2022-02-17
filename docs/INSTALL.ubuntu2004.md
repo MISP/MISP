@@ -97,7 +97,7 @@ installDepsPhp74 () {
   libapache2-mod-php7.4 \
   php7.4 php7.4-cli \
   php7.4-dev \
-  php7.4-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip \
+  php7.4-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip php7.4-curl \
   php7.4-redis php7.4-gnupg \
   php7.4-intl php7.4-bcmath \
   php7.4-gd
@@ -136,6 +136,11 @@ installCore () {
     # make pip happy
     sudo mkdir /var/www/.cache/
     sudo chown ${WWW_USER}:${WWW_USER} /var/www/.cache
+
+    # install python-stix dependencies
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ordered-set python-dateutil six weakrefmethod
+    debug "Install misp-stix"
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/app/files/scripts/misp-stix
 
     debug "Install PyMISP"
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/PyMISP

@@ -7,7 +7,6 @@ App::uses('AppController', 'Controller');
 class EventReportsController extends AppController
 {
     public $components = array(
-        'Security',
         'AdminCrud',
         'RequestHandler'
     );
@@ -46,7 +45,7 @@ class EventReportsController extends AppController
             $errors = $this->EventReport->addReport($this->Auth->user(), $report, $eventId);
             $redirectTarget = array('controller' => 'events', 'action' => 'view', $eventId);
             if (!empty($errors)) {
-                return $this->__getFailResponseBasedOnContext($errors, array(), 'add', $this->EventReport->id, $redirectTarget);
+                return $this->__getFailResponseBasedOnContext($errors, null, 'add', $this->EventReport->id, $redirectTarget);
             } else {
                 $successMessage = __('Report saved.');
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $this->EventReport->id);
@@ -441,10 +440,10 @@ class EventReportsController extends AppController
             $message = implode(', ', $message);
         }
         if ($this->_isRest()) {
-            if (!is_null($data)) {
+            if ($data !== null) {
                 return $this->RestResponse->viewData($data, $this->response->type());
             } else {
-                return $this->RestResponse->saveFailResponse('EventReport', $action, $id, $message, false);
+                return $this->RestResponse->saveFailResponse('EventReport', $action, $id, $message);
             }
         } elseif ($this->request->is('ajax')) {
             return $this->RestResponse->saveFailResponse('EventReport', $action, $id, $message, false, $data);
@@ -452,7 +451,6 @@ class EventReportsController extends AppController
             $this->Flash->error($message);
             $this->redirect($this->referer());
         }
-        return;
     }
 
     private function __injectIndexVariablesToViewContext($filters)
@@ -520,9 +518,8 @@ class EventReportsController extends AppController
         if (!isset($newReport['EventReport'])) {
             $newReport = array('EventReport' => $newReport);
         }
-        $fieldList = $this->EventReport->captureFields;
         $ignoreFieldList = ['id', 'uuid', 'event_id', 'deleted'];
-        foreach ($fieldList as $field) {
+        foreach (EventReport::CAPTURE_FIELDS as $field) {
             if (!in_array($field, $ignoreFieldList) && isset($newReport['EventReport'][$field])) {
                 $savedReport['EventReport'][$field] = $newReport['EventReport'][$field];
             }

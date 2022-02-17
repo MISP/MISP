@@ -885,6 +885,12 @@ a.proposal_link_red:hover {
     color:white;
 }
 
+.confirmation .inner {
+    padding-left:5px;
+    padding-right:5px;
+    padding-bottom:5px;
+}
+
 .popover-legend {
     border-radius: 5px 5px 0px 0px;
     margin-bottom:5px;
@@ -1186,6 +1192,11 @@ li .generic-picker-item-element-check {
 .chosen-container-single span it.fa, .chosen-single-with-deselect span it.fa {
     line-height: 24px;
     margin-right: 8px;
+}
+
+.generic_picker .apply_css_arrow {
+    padding-left: 5px;
+    font-size: smaller;
 }
 
 .apply_css_arrow:before {
@@ -2754,4 +2765,9 @@ Query builder
 .query-builder .rule-value-container input[type="text"] {
     padding: 4px !important;
     height: 30px;
+}
+
+.input-big-chungus {
+    width: 700px;
+    height: 800px;
 }

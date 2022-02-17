@@ -165,7 +165,7 @@ generateInstaller () {
   done
 
   # Pull out code snippets from generic Install Documents
-  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-dashboard-centos.md misp-dashboard-cake.md misp-modules-debian.md misp-modules-centos.md misp-modules-cake.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
+  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-dashboard-rhel.md misp-dashboard-cake.md misp-modules-debian.md misp-modules-rhel.md misp-modules-cake.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
     xsnippet . ../../docs/generic/${f}
   done
 
@@ -259,10 +259,6 @@ installSupported () {
   space
   echo "Proceeding with the installation of MISP core"
   space
-
-  # Set Base URL - functionLocation('generic/supportFunctions.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
-  progress 4
 
   # Check if sudo is installed and etckeeper - functionLocation('generic/sudo_etckeeper.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper
@@ -853,6 +849,8 @@ x86_64-rhel-7
 x86_64-centos-8
 x86_64-rhel-8
 x86_64-fedora-33
+x86_64-fedora-34
+x86_64-fedora-35
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic

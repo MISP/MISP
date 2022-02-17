@@ -53,13 +53,18 @@
                     'empty' => __('Choose organisation'),
             ));
         }
-        $roleOptions = array('label' => __('Role'));
+        $roleOptions = array(
+            'label' => __('Role'),
+            'div' => empty(Configure::read('Security.advanced_authkeys')) ? null : 'input clear'
+        );
         // We need to make sure that the default role is actually available to the admin (for an org admin it might not be)
         if (!empty($default_role_id) && isset($roles[intval($default_role_id)])) {
             $roleOptions['default'] = $default_role_id;
         }
         echo $this->Form->input('role_id', $roleOptions);
-        echo $this->Form->input('authkey', array('value' => $authkey, 'readonly' => 'readonly', 'div' => 'input clear'));
+        if (empty(Configure::read('Security.advanced_authkeys'))) {
+            echo $this->Form->input('authkey', array('value' => $authkey, 'readonly' => 'readonly', 'div' => 'input clear'));
+        }
         echo $this->Form->input('nids_sid', ['label' => __('NIDS SID')]);
     ?>
         <div id="syncServers" class="hidden">
