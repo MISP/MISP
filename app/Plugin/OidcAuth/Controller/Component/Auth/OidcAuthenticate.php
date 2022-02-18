@@ -44,8 +44,6 @@ class OidcAuthenticate extends BaseAuthenticate
         $this->log($mispUsername, "Trying login.");
 
         $sub = $claims->sub; // sub is required
-        $organisationProperty = $this->getConfig('organisation_property', 'organization');
-        $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
 
         // Try to find user by `sub` field, that is unique
         $this->settings['fields'] = ['username' => 'sub'];
@@ -60,6 +58,8 @@ class OidcAuthenticate extends BaseAuthenticate
             }
         }
 
+        $organisationProperty = $this->getConfig('organisation_property', 'organization');
+        $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
         $organisationId = $this->checkOrganization($organisationName, $user, $mispUsername);
         if (!$organisationId) {
             if ($user) {
@@ -68,13 +68,11 @@ class OidcAuthenticate extends BaseAuthenticate
             return false;
         }
 
-        $roles = [];
         $roleProperty = $this->getConfig('roles_property', 'roles');
-        if (property_exists($claims, $roleProperty)) {
-            $roles = $claims->{$roleProperty};
-        }
-        if (empty($roles)) {
-            $roles = $oidc->requestUserInfo($roleProperty);
+        $roles = $claims->{$roleProperty} ?? $oidc->requestUserInfo($roleProperty);
+        if ($roles === null) {
+            $this->log($user['email'], "Role property `$roleProperty` is missing in claims.");
+            return false;
         }
 
         $roleId = $this->getUserRole($roles, $mispUsername);
@@ -152,13 +150,12 @@ class OidcAuthenticate extends BaseAuthenticate
 
     /**
      * @param array $user
-     * @param bool $blockInvalid Block invalid user
      * @param bool $ignoreValidityTime Ignore `check_user_validity` setting and always check if user is valid
-     * @param bool $update
-     * @return bool
+     * @param bool $update Update user role or organisation from OIDC
+     * @return bool True if user is still valid, false if not
      * @throws Exception
      */
-    public function isUserValid(array $user, $blockInvalid = false, $ignoreValidityTime = false, $update = false)
+    public function isUserValid(array $user, $ignoreValidityTime = false, $update = false)
     {
         if (!$this->getConfig('offline_access', false)) {
             return true; // offline access is not enabled, so it is not possible to verify user
@@ -177,9 +174,6 @@ class OidcAuthenticate extends BaseAuthenticate
 
         $userInfo = $this->findUserInfo($user);
         if (!isset($userInfo['refresh_token'])) {
-            if ($blockInvalid) {
-                $this->block($user);
-            }
             $this->log($user['email'], "User don't have refresh token, considering user is not valid");
             return false;
         }
@@ -194,9 +188,6 @@ class OidcAuthenticate extends BaseAuthenticate
             $oidc->refreshToken($userInfo['refresh_token']);
         } catch (JakubOnderka\ErrorResponse $e) {
             if ($e->getError() === 'invalid_grant') {
-                if ($blockInvalid) {
-                    $this->block($user);
-                }
                 $this->log($user['email'], "Refreshing token is not possible because of `{$e->getMessage()}`, considering user is not valid");
                 return false;
             } else {
@@ -208,23 +199,22 @@ class OidcAuthenticate extends BaseAuthenticate
             return true;
         }
 
-        // Check user role
-        $roles = [];
         $claims = $oidc->getVerifiedClaims();
-        $roleProperty = $this->getConfig('roles_property', 'roles');
-        if (property_exists($claims, $roleProperty)) {
-            $roles = $claims->{$roleProperty};
+        if ($user['sub'] !== $claims->sub) {
+            throw new Exception("User {$user['email']} sub doesn't match ({$user['sub']} != $claims->sub)");
         }
-        if (empty($roles)) {
-            $roles = $oidc->requestUserInfo($roleProperty);
+
+        // Check user role
+        $roleProperty = $this->getConfig('roles_property', 'roles');
+        $roles = $claims->{$roleProperty} ?? $oidc->requestUserInfo($roleProperty);
+        if ($roles === null) {
+            $this->log($user['email'], "Role property `$roleProperty` is missing in claims.");
+            return false;
         }
 
         $roleId = $this->getUserRole($roles, $user['email']);
         if ($roleId === null) {
             $this->log($user['email'], 'No role was assigned.');
-            if ($blockInvalid) {
-                $this->block($user);
-            }
             return false;
         }
 
@@ -233,14 +223,41 @@ class OidcAuthenticate extends BaseAuthenticate
             $this->log($user['email'], "User role changed from {$user['role_id']} to $roleId.");
         }
 
+        // Check user org
+        $organisationProperty = $this->getConfig('organisation_property', 'organization');
+        $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
+        $organisationId = $this->checkOrganization($organisationName, $user, $user['email']);
+        if (!$organisationId) {
+            return false;
+        }
+
+        if ($update && $user['org_id'] != $organisationId) {
+            $this->userModel()->updateField($user, 'org_id', $organisationId);
+            $this->log($user['email'], "User organisation changed from {$user['org_id']} to $organisationId.");
+        }
+
         // Update refresh token if new token provided
         if ($oidc->getRefreshToken()) {
-            $userInfo['validity_check_timestamp'] = time();
-            $userInfo['refresh_token'] = $oidc->getRefreshToken();
-            $this->userModel()->UserSetting->setSettingInternal($user['id'], 'oidc', $userInfo);
+            $this->storeMetadata($user['id'], $claims, $oidc->getRefreshToken());
         }
 
         return true;
+    }
+
+    /**
+     * @param array $user
+     * @param bool $ignoreValidityTime
+     * @param bool $update Update user role or organisation
+     * @return bool True if user was blocked, false if not
+     * @throws Exception
+     */
+    public function blockInvalidUser(array $user, $ignoreValidityTime = false, $update = false)
+    {
+        $isValid = $this->isUserValid($user, $ignoreValidityTime, $update);
+        if (!$isValid) {
+            $this->block($user);
+        }
+        return $isValid;
     }
 
     /**
@@ -256,17 +273,18 @@ class OidcAuthenticate extends BaseAuthenticate
         $providerUrl = $this->getConfig('provider_url');
         $clientId = $this->getConfig('client_id');
         $clientSecret = $this->getConfig('client_secret');
-        $authenticationMethod = $this->getConfig('authentication_method', false);
 
         if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
             $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
-            if ($authenticationMethod !== false && $authenticationMethod !== null) {
-                $oidc->setAuthenticationMethod($authenticationMethod);
-            }
         } else if (class_exists("\Jumbojett\OpenIDConnectClient")) {
             throw new Exception("Jumbojett OIDC implementation is not supported anymore, please use JakubOnderka's client");
         } else {
-            throw new Exception("OpenID connect client is not installed.");
+            throw new Exception("OpenID Connect client is not installed.");
+        }
+
+        $authenticationMethod = $this->getConfig('authentication_method', false);
+        if ($authenticationMethod !== false && $authenticationMethod !== null) {
+            $oidc->setAuthenticationMethod($authenticationMethod);
         }
 
         $ccm = $this->getConfig('code_challenge_method', false);
@@ -301,7 +319,7 @@ class OidcAuthenticate extends BaseAuthenticate
 
         $orgAux = $this->userModel()->Organisation->find('first', [
             'fields' => ['Organisation.id'],
-            'conditions' => $orgIsUuid ? ['uuid' => mb_strtolower($org)] : ['name' => $org],
+            'conditions' => $orgIsUuid ? ['uuid' => strtolower($org)] : ['name' => $org],
         ]);
         if (empty($orgAux)) {
             if ($orgIsUuid) {

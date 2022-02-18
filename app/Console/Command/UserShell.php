@@ -51,6 +51,7 @@ class UserShell extends AppShell
             'parser' => [
                 'options' => [
                     'block_invalid' => ['help' => __('Block user that are considered invalid.'), 'boolean' => true],
+                    'update' => ['help' => __('Update user role or organisation.'), 'boolean' => true],
                 ],
             ]
         ]);
@@ -253,11 +254,12 @@ class UserShell extends AppShell
             'conditions' => ['disabled' => false], // fetch just not disabled users
         ]);
         $blockInvalid = $this->params['block_invalid'];
+        $update = $this->params['update'];
 
         foreach ($users as $user) {
             $user['User']['UserSetting'] = $user['UserSetting'];
-            $result = $this->User->checkIfUserIsValid($user['User'], $blockInvalid, true);
-            $this->out("{$user['User']['email']}: " . ($result ? 'valid' : 'INVALID'));
+            $result = $this->User->checkIfUserIsValid($user['User'], $blockInvalid, true, $update);
+            $this->out("{$user['User']['email']}: " . ($result ? '<success>valid</success>' : '<error>invalid</error>'));
         }
     }
 
