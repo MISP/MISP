@@ -38,27 +38,14 @@ class OidcAuthenticate extends BaseAuthenticate
             throw new Exception("OIDC authentication was not successful.");
         }
 
-        $verifiedClaims = $oidc->getVerifiedClaims();
+        $claims = $oidc->getVerifiedClaims();
 
-        $mispUsername = isset($verifiedClaims->email) ? $verifiedClaims->email : $oidc->requestUserInfo('email');
+        $mispUsername = $claims->email ?? $oidc->requestUserInfo('email');
         $this->log($mispUsername, "Trying login.");
 
-        $sub = $verifiedClaims->sub;
+        $sub = $claims->sub; // sub is required
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
-        if (property_exists($verifiedClaims, $organisationProperty)) {
-            $organisationName = $verifiedClaims->{$organisationProperty};
-        } else {
-            $organisationName = $this->getConfig('default_org');
-        }
-
-        $roles = [];
-        $roleProperty = $this->getConfig('roles_property', 'roles');
-        if (property_exists($verifiedClaims, $roleProperty)) {
-            $roles = $verifiedClaims->{$roleProperty};
-        }
-        if (empty($roles)) {
-            $roles = $oidc->requestUserInfo($roleProperty);
-        }
+        $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
 
         // Try to find user by `sub` field, that is unique
         $this->settings['fields'] = ['username' => 'sub'];
@@ -79,6 +66,15 @@ class OidcAuthenticate extends BaseAuthenticate
                 $this->block($user);
             }
             return false;
+        }
+
+        $roles = [];
+        $roleProperty = $this->getConfig('roles_property', 'roles');
+        if (property_exists($claims, $roleProperty)) {
+            $roles = $claims->{$roleProperty};
+        }
+        if (empty($roles)) {
+            $roles = $oidc->requestUserInfo($roleProperty);
         }
 
         $roleId = $this->getUserRole($roles, $mispUsername);
@@ -124,7 +120,7 @@ class OidcAuthenticate extends BaseAuthenticate
             }
 
             $refreshToken = $this->getConfig('offline_access', false) ? $oidc->getRefreshToken() : null;
-            $this->storeMetadata($user['id'], $verifiedClaims, $refreshToken);
+            $this->storeMetadata($user['id'], $claims, $refreshToken);
 
             $this->log($mispUsername, 'Logged in.');
             return $user;
@@ -147,7 +143,7 @@ class OidcAuthenticate extends BaseAuthenticate
         }
 
         $refreshToken = $this->getConfig('offline_access', false) ? $oidc->getRefreshToken() : null;
-        $this->storeMetadata($this->userModel()->id, $verifiedClaims, $refreshToken);
+        $this->storeMetadata($this->userModel()->id, $claims, $refreshToken);
 
         $this->log($mispUsername, "Saved in database with ID {$this->userModel()->id}");
         $this->log($mispUsername, 'Logged in.');
@@ -158,10 +154,11 @@ class OidcAuthenticate extends BaseAuthenticate
      * @param array $user
      * @param bool $blockInvalid Block invalid user
      * @param bool $ignoreValidityTime Ignore `check_user_validity` setting and always check if user is valid
+     * @param bool $update
      * @return bool
      * @throws Exception
      */
-    public function isUserValid(array $user, $blockInvalid = false, $ignoreValidityTime = false)
+    public function isUserValid(array $user, $blockInvalid = false, $ignoreValidityTime = false, $update = false)
     {
         if (!$this->getConfig('offline_access', false)) {
             return true; // offline access is not enabled, so it is not possible to verify user
@@ -209,6 +206,31 @@ class OidcAuthenticate extends BaseAuthenticate
         } catch (Exception $e) {
             $this->log($user['email'], "Refreshing token is not possible because of `{$e->getMessage()}`, considering user is still valid");
             return true;
+        }
+
+        // Check user role
+        $roles = [];
+        $claims = $oidc->getVerifiedClaims();
+        $roleProperty = $this->getConfig('roles_property', 'roles');
+        if (property_exists($claims, $roleProperty)) {
+            $roles = $claims->{$roleProperty};
+        }
+        if (empty($roles)) {
+            $roles = $oidc->requestUserInfo($roleProperty);
+        }
+
+        $roleId = $this->getUserRole($roles, $user['email']);
+        if ($roleId === null) {
+            $this->log($user['email'], 'No role was assigned.');
+            if ($blockInvalid) {
+                $this->block($user);
+            }
+            return false;
+        }
+
+        if ($update && $user['role_id'] != $roleId) {
+            $this->userModel()->updateField($user, 'role_id', $roleId);
+            $this->log($user['email'], "User role changed from {$user['role_id']} to $roleId.");
         }
 
         // Update refresh token if new token provided
