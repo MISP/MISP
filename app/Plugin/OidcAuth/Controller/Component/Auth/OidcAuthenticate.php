@@ -21,7 +21,7 @@ class OidcAuthenticate extends BaseAuthenticate
     /** @var User|null */
     private $userModel;
 
-    /** @var \JakubOnderka\OpenIDConnectClient|\Jumbojett\OpenIDConnectClient */
+    /** @var \JakubOnderka\OpenIDConnectClient */
     private $oidc;
 
     /**
@@ -244,7 +244,7 @@ class OidcAuthenticate extends BaseAuthenticate
     }
 
     /**
-     * @return \JakubOnderka\OpenIDConnectClient|\Jumbojett\OpenIDConnectClient
+     * @return \JakubOnderka\OpenIDConnectClient
      * @throws Exception
      */
     private function prepareClient()
@@ -254,10 +254,6 @@ class OidcAuthenticate extends BaseAuthenticate
         }
 
         $providerUrl = $this->getConfig('provider_url');
-        if (!filter_var($providerUrl, FILTER_VALIDATE_URL)) {
-            throw new RuntimeException("Config option `OidcAuth.provider_url` must be valid URL.");
-        }
-
         $clientId = $this->getConfig('client_id');
         $clientSecret = $this->getConfig('client_secret');
         $authenticationMethod = $this->getConfig('authentication_method', false);
@@ -268,17 +264,7 @@ class OidcAuthenticate extends BaseAuthenticate
                 $oidc->setAuthenticationMethod($authenticationMethod);
             }
         } else if (class_exists("\Jumbojett\OpenIDConnectClient")) {
-            // OpenIDConnectClient will append well-know path, so if well-know path is already part of the url, remove it
-            // This is required just for Jumbojett, not for JakubOnderka
-            $wellKnownPosition = strpos($providerUrl, '/.well-known/');
-            if ($wellKnownPosition !== false) {
-                $providerUrl = substr($providerUrl, 0, $wellKnownPosition);
-            }
-
-            $oidc = new \Jumbojett\OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
-            if ($authenticationMethod !== false && $authenticationMethod !== null) {
-                throw new Exception("Jumbojett OIDC implementation do not support changing authentication method, please use JakubOnderka's client");
-            }
+            throw new Exception("Jumbojett OIDC implementation is not supported anymore, please use JakubOnderka's client");
         } else {
             throw new Exception("OpenID connect client is not installed.");
         }
