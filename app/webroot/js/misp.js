@@ -4587,7 +4587,7 @@ function checkNoticeList(type) {
 
 }
 
-$(document).ready(function() {
+$(function() {
     // Show popover for disabled input that contains `data-disabled-reason`.
     $('input:disabled[data-disabled-reason]').popover("destroy").popover({
         placement: 'right',
@@ -4642,7 +4642,7 @@ $(document).ready(function() {
         var url = $(this).data('checkbox-url');
     });
 
-    $('#setHomePage').click(function(event) {
+    $('#setHomePage').parent().click(function(event) {
         event.preventDefault();
         setHomePage();
     });
@@ -5209,7 +5209,7 @@ function setHomePage() {
     $.ajax({
         type: 'GET',
         url: baseurl + '/userSettings/setHomePage',
-        success:function (data) {
+        success: function (data) {
             $('#ajax_hidden_container').html(data);
             var currentPage = $('#setHomePage').data('current-page');
             $('#UserSettingPath').val(currentPage);
