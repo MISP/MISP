@@ -217,12 +217,10 @@ class UserSettingsController extends AppController
             // load the valid settings from the model
             if ($this->_isSiteAdmin()) {
                 $users = $this->UserSetting->User->find('list', array(
-                    'recursive' => -1,
                     'fields' => array('User.id', 'User.email')
                 ));
             } else if ($this->_isAdmin()) {
                 $users = $this->UserSetting->User->find('list', array(
-                    'recursive' => -1,
                     'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
                     'fields' => array('User.id', 'User.email')
                 ));
@@ -234,7 +232,7 @@ class UserSettingsController extends AppController
             }
             $this->set('setting', $setting);
             $this->set('users', $users);
-            $this->set('validSettings', UserSetting::VALID_SETTINGS);
+            $this->set('validSettings', $this->UserSetting->settingPlaceholders($this->Auth->user()));
         }
     }
 

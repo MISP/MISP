@@ -68,7 +68,7 @@ class UserSetting extends AppModel
             )
         ),
         'homepage' => array(
-            'path' => '/events/index'
+            'placeholder' => ['path' => '/events/index'],
         ),
         'default_restsearch_parameters' => array(
             'placeholder' => array(
@@ -153,6 +153,21 @@ class UserSetting extends AppModel
             return false;
         }
         return self::VALID_SETTINGS[$setting]['internal'];
+    }
+
+    /**
+     * @param array $user
+     * @return array
+     */
+    public function settingPlaceholders(array $user)
+    {
+        $output = [];
+        foreach (self::VALID_SETTINGS as $setting => $config) {
+            if ($this->checkSettingAccess($user, $setting) === true) {
+                $output[$setting] = $config['placeholder'];
+            }
+        }
+        return $output;
     }
 
     public function getInternalSettingNames()
@@ -430,7 +445,7 @@ class UserSetting extends AppModel
         if (empty($userSetting['user_id'])) {
             $userSetting['user_id'] = $user['id'];
         }
-        if (empty($data['UserSetting']['setting']) || !isset($data['UserSetting']['setting'])) {
+        if (empty($data['UserSetting']['setting'])) {
             throw new MethodNotAllowedException(__('This endpoint expects both a setting and a value to be set.'));
         }
         if (!$this->checkSettingValidity($data['UserSetting']['setting'])) {
