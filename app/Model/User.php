@@ -1412,13 +1412,10 @@ class User extends AppModel
     /**
      * Check if user still valid at identity provider.
      * @param array $user
-     * @param bool $blockInvalid Block invalid user
-     * @param bool $ignoreValidityTime
-     * @param bool $update Update user role or organisation from identity provider
      * @return bool
      * @throws Exception
      */
-    public function checkIfUserIsValid(array $user, $blockInvalid = false, $ignoreValidityTime = false, $update = false)
+    public function checkIfUserIsValid(array $user)
     {
         $auth = Configure::read('Security.auth');
         if (!$auth) {
@@ -1430,14 +1427,9 @@ class User extends AppModel
         if (!in_array('OidcAuth.Oidc', $auth, true)) {
             return true; // this method currently makes sense just for OIDC auth provider
         }
-        App::uses('OidcAuthenticate', 'OidcAuth.Controller/Component/Auth');
-        App::uses('ComponentCollection', 'Controller');
-        $oidc = new OidcAuthenticate(new ComponentCollection(), []);
-        if ($blockInvalid) {
-            return $oidc->blockInvalidUser($user, $ignoreValidityTime, $update);
-        } else {
-            return $oidc->isUserValid($user, $ignoreValidityTime, $update);
-        }
+        App::uses('Oidc', 'OidcAuth.Lib');
+        $oidc = new Oidc($this);
+        return $oidc->isUserValid($user);
     }
 
     /**

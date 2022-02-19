@@ -248,6 +248,20 @@ class UserShell extends AppShell
 
     public function check_validity()
     {
+        $auth = Configure::read('Security.auth');
+        if (!$auth) {
+            $this->error('External authentication is not enabled');
+        }
+        if (!is_array($auth)) {
+            throw new Exception("`Security.auth` config value must be array.");
+        }
+        if (!in_array('OidcAuth.Oidc', $auth, true)) {
+            $this->error('This method is currently supported just by OIDC auth provider');
+        }
+
+        App::uses('Oidc', 'OidcAuth.Lib');
+        $oidc = new Oidc($this->User);
+
         $users = $this->User->find('all', [
             'recursive' => -1,
             'contain' => ['UserSetting'],
@@ -258,8 +272,15 @@ class UserShell extends AppShell
 
         foreach ($users as $user) {
             $user['User']['UserSetting'] = $user['UserSetting'];
-            $result = $this->User->checkIfUserIsValid($user['User'], $blockInvalid, true, $update);
-            $this->out("{$user['User']['email']}: " . ($result ? '<success>valid</success>' : '<error>invalid</error>'));
+            $user = $user['User'];
+
+            if ($blockInvalid) {
+                $result = $oidc->blockInvalidUser($user, true, $update);
+            } else {
+                $result = $oidc->isUserValid($user, true, $update);
+            }
+
+            $this->out("{$user['email']}: " . ($result ? '<success>valid</success>' : '<error>invalid</error>'));
         }
     }
 
