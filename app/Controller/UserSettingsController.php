@@ -127,9 +127,12 @@ class UserSettingsController extends AppController
 
     public function view($id)
     {
+        if (!$this->_isRest()) {
+            throw new BadRequestException("This endpoint is accessible just by REST requests.");
+        }
         // check if the ID is valid and whether a user setting with the given ID exists
         if (empty($id) || !is_numeric($id)) {
-            throw new InvalidArgumentException(__('Invalid ID passed.'));
+            throw new BadRequestException(__('Invalid ID passed.'));
         }
         $userSetting = $this->UserSetting->find('first', array(
             'recursive' => -1,
@@ -145,12 +148,8 @@ class UserSettingsController extends AppController
         if (!$checkAccess) {
             throw new NotFoundException(__('Invalid user setting.'));
         }
-        if ($this->_isRest()) {
-            unset($userSetting['User']);
-            return $this->RestResponse->viewData($userSetting, $this->response->type());
-        } else {
-            $this->set($data, $userSetting);
-        }
+        unset($userSetting['User']);
+        return $this->RestResponse->viewData($userSetting, $this->response->type());
     }
 
     public function setSetting($user_id = false, $setting = false)
