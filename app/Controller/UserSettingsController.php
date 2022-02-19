@@ -364,7 +364,7 @@ class UserSettingsController extends AppController
                 'UserSetting' => array(
                     'user_id' => $this->Auth->user('id'),
                     'setting' => 'homepage',
-                    'value' => json_encode(array('path' => $this->request->data['path']))
+                    'value' => ['path' => $this->request->data['path']],
                 )
             );
             $result = $this->UserSetting->setSetting($this->Auth->user(), $setting);
@@ -392,13 +392,13 @@ class UserSettingsController extends AppController
             $hideColumns[] = $columnName;
         }
 
-        $setting = array(
-            'UserSetting' => array(
+        $setting = [
+            'UserSetting' => [
                 'user_id' => $this->Auth->user()['id'],
                 'setting' => 'event_index_hide_columns',
-                'value' => json_encode($hideColumns)
-            )
-        );
+                'value' => $hideColumns,
+            ]
+        ];
         $this->UserSetting->setSetting($this->Auth->user(), $setting);
         return $this->RestResponse->saveSuccessResponse('UserSettings', 'eventIndexColumnToggle', false, 'json', 'Column visibility switched');
     }
