@@ -97,6 +97,11 @@ class UserSettingsController extends AppController
                 );
             }
         }
+        // Do not show internal settings
+        if (!$this->_isSiteAdmin()) {
+            $conditions['AND'][] = ['NOT' => ['UserSetting.setting' => $this->UserSetting->getInternalSettingNames()]];
+        }
+
         if ($this->_isRest()) {
             $params = array(
                 'conditions' => $conditions
@@ -155,7 +160,7 @@ class UserSettingsController extends AppController
     public function setSetting($user_id = false, $setting = false)
     {
         if (!empty($setting)) {
-            if (!$this->UserSetting->checkSettingValidity($setting)) {
+            if (!$this->UserSetting->checkSettingValidity($setting) || $this->UserSetting->isInternal($setting)) {
                 throw new MethodNotAllowedException(__('Invalid setting.'));
             }
             $settingPermCheck = $this->UserSetting->checkSettingAccess($this->Auth->user(), $setting);
@@ -176,10 +181,6 @@ class UserSettingsController extends AppController
             if (!empty($setting)) {
                 $this->request->data['UserSetting']['setting'] = $setting;
             }
-            // force our user's ID as the user ID in all cases
-            $userSetting = array(
-                'user_id' => $this->Auth->user('id')
-            );
             $result = $this->UserSetting->setSetting($this->Auth->user(), $this->request->data);
             if ($result) {
                 // if we've managed to save our setting
@@ -251,7 +252,7 @@ class UserSettingsController extends AppController
             }
         }
 
-        if (!$this->UserSetting->checkSettingValidity($setting)) {
+        if (!$this->UserSetting->checkSettingValidity($setting) || $this->UserSetting->isInternal($setting)) {
             throw new NotFoundException(__('Invalid setting.'));
         }
 
