@@ -46,6 +46,15 @@ class UserShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('check_validity', [
+            'help' => __('Check users validity from external identity provider and block not valid user.'),
+            'parser' => [
+                'options' => [
+                    'block_invalid' => ['help' => __('Block user that are considered invalid.'), 'boolean' => true],
+                    'update' => ['help' => __('Update user role or organisation.'), 'boolean' => true],
+                ],
+            ]
+        ]);
         $parser->addSubcommand('change_pw', [
             'help' => __('Change user password.'),
             'parser' => [
@@ -235,6 +244,44 @@ class UserShell extends AppShell
         }
         $this->User->updateField($user, 'disabled', false);
         $this->out("User $userId unblocked.");
+    }
+
+    public function check_validity()
+    {
+        $auth = Configure::read('Security.auth');
+        if (!$auth) {
+            $this->error('External authentication is not enabled');
+        }
+        if (!is_array($auth)) {
+            throw new Exception("`Security.auth` config value must be array.");
+        }
+        if (!in_array('OidcAuth.Oidc', $auth, true)) {
+            $this->error('This method is currently supported just by OIDC auth provider');
+        }
+
+        App::uses('Oidc', 'OidcAuth.Lib');
+        $oidc = new Oidc($this->User);
+
+        $users = $this->User->find('all', [
+            'recursive' => -1,
+            'contain' => ['UserSetting'],
+            'conditions' => ['disabled' => false], // fetch just not disabled users
+        ]);
+        $blockInvalid = $this->params['block_invalid'];
+        $update = $this->params['update'];
+
+        foreach ($users as $user) {
+            $user['User']['UserSetting'] = $user['UserSetting'];
+            $user = $user['User'];
+
+            if ($blockInvalid) {
+                $result = $oidc->blockInvalidUser($user, true, $update);
+            } else {
+                $result = $oidc->isUserValid($user, true, $update);
+            }
+
+            $this->out("{$user['email']}: " . ($result ? '<success>valid</success>' : '<error>invalid</error>'));
+        }
     }
 
     public function change_pw()

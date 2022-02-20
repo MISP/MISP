@@ -991,6 +991,10 @@ class EventsController extends AppController
 
     private function __attachInfoToEvents(array $columns, array $events)
     {
+        if (empty($events)) {
+            return [];
+        }
+
         $user = $this->Auth->user();
 
         if (in_array('tags', $columns, true) || in_array('clusters', $columns, true)) {

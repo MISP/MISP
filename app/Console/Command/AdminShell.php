@@ -936,7 +936,7 @@ class AdminShell extends AppShell
         $new = $this->params['new'] ?? null;
 
         if ($new !== null && strlen($new) < 32) {
-            $this->error('New key must be at least 32 char long.');
+            $this->error('New key must be at least 32 chars long.');
         }
 
         if ($old === null) {
@@ -945,8 +945,7 @@ class AdminShell extends AppShell
 
         if ($new === null) {
             // Generate random new key
-            $randomTool = new RandomTool();
-            $new = $randomTool->random_str();
+            $new = rtrim(base64_encode(random_bytes(32)), "=");
         }
 
         $this->Server->getDataSource()->begin();
