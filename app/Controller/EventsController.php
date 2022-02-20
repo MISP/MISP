@@ -4208,6 +4208,11 @@ class EventsController extends AppController
                 throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
             }
             $imports = array(
+                    'MISP JSON' => array(
+                            'url' => $this->baseurl . '/events/populate/'.$id,
+                            'text' => __('Populate using a JSON file containing MISP event content data'),
+                            'ajax' => false
+                    ),
                     'freetext' => array(
                             'url' => $this->baseurl . '/events/freeTextImport/' . $id,
                             'text' => __('Freetext Import'),
