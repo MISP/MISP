@@ -99,9 +99,8 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--api_root",
-        help="A URL to a TAXII 2.1 collection to push content to (we"
-             " need a collection URL at minimum, not an API root)",
+        "--collection",
+        help="A URL to a TAXII 2.1 collection to push content to",
         required=True
     )
 
@@ -407,7 +406,7 @@ def main():
 
     try:
 
-        push_content(args.dir, args.api_root)
+        push_content(args.dir, args.collection)
 
     except Exception:
         log.fatal(
