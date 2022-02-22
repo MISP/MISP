@@ -4,6 +4,7 @@ import json
 import uuid
 import subprocess
 import unittest
+import requests
 from xml.etree import ElementTree as ET
 from io import BytesIO
 import urllib3  # type: ignore
@@ -745,6 +746,22 @@ class TestComprehensive(unittest.TestCase):
         response = self.admin_misp_connector._prepare_request('GET', 'taxonomies/export/1')
         self.assertEqual(200, response.status_code, response)
         response.json()
+
+    def test_etag(self):
+        headers = {
+            'Authorization': self.admin_misp_connector.key,
+            'Accept': 'application/json',
+            'User-Agent': 'PyMISP',
+            'If-None-Match': '',
+        }
+        response = requests.get(self.admin_misp_connector.root_url + '/attributes/describeTypes.json', headers=headers)
+        self.assertEqual(200, response.status_code)
+        self.assertIn('Etag', response.headers)
+        self.assertTrue(len(response.headers['Etag']) > 0, response.headers['Etag'])
+
+        headers['If-None-Match'] = response.headers['Etag']
+        response = requests.get(self.admin_misp_connector.root_url + '/attributes/describeTypes.json', headers=headers)
+        self.assertEqual(304, response.status_code, response.headers)
 
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
