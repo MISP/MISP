@@ -78,7 +78,9 @@ class StartWorkerShell extends AppShell
 
         try {
             $job->setStatus(BackgroundJob::STATUS_RUNNING);
-            CakeLog::info("[JOB ID: {$job->id()}] - started.");
+
+            $command = implode(' ', array_merge([$job->command()], $job->args()));
+            CakeLog::info("[JOB ID: {$job->id()}] - started command `$command`.");
             $this->BackgroundJobsTool->update($job);
 
             $job->run();
