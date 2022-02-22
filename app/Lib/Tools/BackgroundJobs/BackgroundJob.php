@@ -89,7 +89,9 @@ class BackgroundJob implements JsonSerializable
         );
 
         $this->output = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
         $this->error = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
 
         $this->returnCode = proc_close($process);
 
