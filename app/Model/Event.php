@@ -3166,16 +3166,20 @@ class Event extends AppModel
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob($user, Job::WORKER_EMAIL, 'publish_alert_email', "Event: $id", 'Sending...');
 
+            $args = [
+                'alertemail',
+                $user['id'],
+                $jobId,
+                $id,
+            ];
+            if ($oldpublish !== null) {
+                $args[] = $oldpublish;
+            }
+
             $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::EMAIL_QUEUE,
                 BackgroundJobsTool::CMD_EVENT,
-                [
-                    'alertemail',
-                    $user['id'],
-                    $jobId,
-                    $id,
-                    $oldpublish
-                ],
+                $args,
                 true,
                 $jobId
             );

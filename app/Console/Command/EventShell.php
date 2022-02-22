@@ -281,7 +281,7 @@ class EventShell extends AppShell
         $userId = $this->args[0];
         $jobId = $this->args[1];
         $eventId = $this->args[2];
-        $oldpublish = $this->args[3];
+        $oldpublish = isset($this->args[3]) ? $this->args[3] : null;
         $user = $this->getUser($userId);
         $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $jobId);
     }
