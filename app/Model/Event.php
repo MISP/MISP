@@ -20,6 +20,13 @@ App::uses('ProcessTool', 'Tools');
  */
 class Event extends AppModel
 {
+    // Event distribution constants
+    const DISTRIBUTION_ORGANISATION = 0,
+        DISTRIBUTION_COMMUNITY = 1,
+        DISTRIBUTION_CONNECTED = 2,
+        DISTRIBUTION_ALL = 3,
+        DISTRIBUTION_SHARING_GROUP = 4;
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
@@ -49,21 +56,39 @@ class Event extends AppModel
         2 => array('desc' => '*Complete* means that the event\'s creation is complete', 'formdesc' => 'The event creator considers the analysis complete')
     );
 
-    public $distributionDescriptions = array(
-        0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
-        1 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Organisations that are part of this MISP community will be able to see the event."),
-        2 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Organisations that are either part of this MISP community or part of a directly connected MISP community will be able to see the event."),
-        3 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
-        4 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This distribution of this event will be handled by the selected sharing group."),
+    public $distributionDescriptions = [
+        self::DISTRIBUTION_ORGANISATION => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "This setting will only allow members of your organisation on this server to see it.",
+        ],
+        self::DISTRIBUTION_COMMUNITY => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "Organisations that are part of this MISP community will be able to see the event.",
+        ],
+        self::DISTRIBUTION_CONNECTED => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "Organisations that are either part of this MISP community or part of a directly connected MISP community will be able to see the event.",
+        ],
+        self::DISTRIBUTION_ALL => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next.",
+        ],
+        self::DISTRIBUTION_SHARING_GROUP => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "This distribution of this event will be handled by the selected sharing group.",
+        ],
+    ];
 
-    );
+    public $distributionLevels = [
+        self::DISTRIBUTION_ORGANISATION => 'Your organisation only',
+        self::DISTRIBUTION_COMMUNITY => 'This community only',
+        self::DISTRIBUTION_CONNECTED => 'Connected communities',
+        self::DISTRIBUTION_ALL => 'All communities',
+        self::DISTRIBUTION_SHARING_GROUP => 'Sharing group',
+    ];
 
     public $analysisLevels = array(
         0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'
-    );
-
-    public $distributionLevels = array(
-        0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities', 4 => 'Sharing group'
     );
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
