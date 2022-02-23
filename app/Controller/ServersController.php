@@ -2,6 +2,7 @@
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 App::uses('SecurityAudit', 'Tools');
 
 /**
@@ -2490,7 +2491,7 @@ misp.direct_call(relative_path, body)
             throw new MethodNotAllowedException('This action expects a POST request.');
         }
 
-        $report = $this->Server->jsonDecode($this->request->input());
+        $report = JsonTool::decode($this->request->input());
         if (!isset($report['csp-report'])) {
             throw new RuntimeException("Invalid report");
         }
@@ -2500,9 +2501,13 @@ misp.direct_call(relative_path, body)
         if ($remoteIp) {
             $message .= ' from IP ' . $remoteIp;
         }
-        $this->log("$message: " . json_encode($report['csp-report'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $report = JsonTool::encode($report['csp-report'], true);
+        if (strlen($report) > 1024 * 1024) { // limit report to 1 kB
+            $report = substr($report, 0, 1024 * 1024) . '...';
+        }
+        $this->log("$message: $report");
 
-        return new CakeResponse(['statusCodes' => 204]);
+        return new CakeResponse(['status' => 204]);
     }
 
     public function viewDeprecatedFunctionUse()
