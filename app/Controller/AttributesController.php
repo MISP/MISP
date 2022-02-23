@@ -1147,12 +1147,11 @@ class AttributesController extends AppController
         }
     }
 
-    public function deleteSelected($id = false, $hard = false)
+    public function deleteSelected($eventId = false, $hard = false)
     {
-        if (!$this->request->is('post')) {
-            if ($this->request->is('get')) {
-                return $this->RestResponse->describe('Attributes', 'deleteSelected', false, $this->response->type());
-            }
+        if ($this->request->is('get')) {
+            return $this->RestResponse->describe('Attributes', 'deleteSelected', false, $this->response->type());
+        } else if (!$this->request->is('post')) {
             throw new MethodNotAllowedException(__('This function is only accessible via POST requests.'));
         }
         // get a json object with a list of attribute IDs to be deleted
@@ -1166,21 +1165,21 @@ class AttributesController extends AppController
             } else {
                 $ids = $this->request->data['Attribute'];
             }
-            if (empty($id) && isset($this->request->data['Attribute']['event_id']) && is_numeric($this->request->data['Attribute']['event_id'])) {
-                $id = $this->request->data['Attribute']['event_id'];
+            if (empty($eventId) && isset($this->request->data['Attribute']['event_id']) && is_numeric($this->request->data['Attribute']['event_id'])) {
+                $eventId = $this->request->data['Attribute']['event_id'];
             }
         } else {
             $ids = json_decode($this->request->data['Attribute']['ids_delete']);
         }
-        if (empty($id)) {
+        if (empty($eventId)) {
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
         if (!$this->_isSiteAdmin()) {
-            $event = $this->Attribute->Event->find('first', array(
-                    'conditions' => array('id' => $id),
-                    'recursive' => -1,
-                    'fields' => array('id', 'orgc_id', 'user_id')
-            ));
+            $event = $this->Attribute->Event->find('first', [
+                'conditions' => ['id' => $eventId],
+                'recursive' => -1,
+                'fields' => ['id', 'orgc_id', 'user_id'],
+            ]);
             if (!$event) {
                 throw new NotFoundException(__('Invalid event'));
             }
@@ -1191,54 +1190,43 @@ class AttributesController extends AppController
         if (empty($ids)) {
             $ids = -1;
         }
-        $conditions = array('id' => $ids, 'event_id' => $id);
-        if ($ids == 'all') {
+        $conditions = ['id' => $ids, 'event_id' => $eventId];
+        if ($ids === 'all') {
             unset($conditions['id']);
         }
         if ($hard || ($this->_isRest() && empty($this->request->data['Attribute']['allow_hard_delete']))) {
             $conditions['deleted'] = 0;
         }
         // find all attributes from the ID list that also match the provided event ID.
-        $attributes = $this->Attribute->find('all', array(
-            'recursive' => -1,
+        $attributes = $this->Attribute->find('list', [
             'conditions' => $conditions,
-            'fields' => array('id', 'event_id', 'deleted')
-        ));
-        if ($ids == 'all') {
-            $ids = array();
-            foreach ($attributes as $attribute) {
-                $ids[] = $attribute['Attribute']['id'];
-            }
+            'fields' => ['id', 'deleted'],
+        ]);
+        if ($ids === 'all') {
+            $ids = array_keys($attributes);
         }
         if (empty($attributes)) {
             throw new NotFoundException(__('No matching attributes found.'));
         }
-        $successes = array();
-        foreach ($attributes as $a) {
-            if ($hard) {
-                if ($this->Attribute->deleteAttribute($a['Attribute']['id'], $this->Auth->user(), true)) {
-                    $successes[] = $a['Attribute']['id'];
-                }
-            } else {
-                if ($this->Attribute->deleteAttribute($a['Attribute']['id'], $this->Auth->user(), $a['Attribute']['deleted'] == 1 ? true : false)) {
-                    $successes[] = $a['Attribute']['id'];
-                }
+        $successes = [];
+        foreach ($attributes as $attributeId => $deleted) {
+            if ($this->Attribute->deleteAttribute($attributeId, $this->Auth->user(), $hard || $deleted == 1)) {
+                $successes[] = $attributeId;
             }
         }
         $fails = array_diff($ids, $successes);
-        $this->autoRender = false;
-        if (count($fails) == 0 && count($successes) > 0) {
-            $message = count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted.';
+        if (empty($fails) && count($successes) > 0) {
+            $message = __n('%s attribute deleted.', '%s attributes deleted', count($successes), count($successes));
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Attributes', 'deleteSelected', $id, false, $message);
+                return $this->RestResponse->saveSuccessResponse('Attributes', 'deleteSelected', $eventId, false, $message);
             }
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
+            return $this->RestResponse->viewData(['saved' => true, 'success' => $message], 'json');
         } else {
             $message = count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' attribute' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.';
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('Attributes', 'deleteSelected', false, $message);
             }
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
+            return $this->RestResponse->viewData(['saved' => false, 'errors' => $message], 'json');
         }
     }
 
