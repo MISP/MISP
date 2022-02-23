@@ -633,6 +633,14 @@ class TestComprehensive(unittest.TestCase):
             event = check_response(self.user_misp_connector.add_event(event))
             self.user_misp_connector.delete_event(event)
 
+    def test_csp_report(self):
+        response = self.admin_misp_connector._prepare_request('POST', 'servers/cspReport', data={
+            "csp-report": {
+                "test": "test",
+            }
+        })
+        self.assertEqual(204, response.status_code)
+
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
