@@ -610,7 +610,7 @@ class ACLComponent extends Component
                     'add' => array('perm_tag_editor'),
                     'attachTagToObject' => array('perm_tagger'),
                     'delete' => array(),
-                    'edit' => array(),
+                    'edit' => array('perm_tag_editor'),
                     'index' => array('*'),
                     'quickAdd' => array('perm_tag_editor'),
                     'removeTagFromObject' => array('perm_tagger'),

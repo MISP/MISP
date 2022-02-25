@@ -138,7 +138,7 @@
                     ],
                     'icon' => 'edit',
                     'title' => __('Edit'),
-                    'requirement' => $isSiteAdmin,
+                    'requirement' => $isAclTagEditor,
                 ],
                 [
                     'url' => $baseurl . '/tags/delete',
