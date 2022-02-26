@@ -799,7 +799,7 @@ class Warninglist extends AppModel
         try {
             $id = (int)$this->id;
             if (isset($data['WarninglistEntry'])) {
-                $this->WarninglistEntry->deleteAll(['warninglist_id' => $id]);
+                $this->WarninglistEntry->deleteAll(['warninglist_id' => $id], false);
                 $entriesToInsert = [];
                 foreach ($data['WarninglistEntry'] as $entry) {
                     $entriesToInsert[] = [$entry['value'], isset($entry['comment']) ? $entry['comment'] : null, $id];
@@ -812,7 +812,7 @@ class Warninglist extends AppModel
             }
 
             if (isset($data['WarninglistType'])) {
-                $this->WarninglistType->deleteAll(['warninglist_id' => $id]);
+                $this->WarninglistType->deleteAll(['warninglist_id' => $id], false);
                 foreach ($data['WarninglistType'] as &$entry) {
                     $entry['warninglist_id'] = $id;
                 }
@@ -834,18 +834,26 @@ class Warninglist extends AppModel
             throw $e;
         }
 
+        if ($success) {
+            $this->afterFullSave(!isset($data['Warninglist']['id']), $success);
+        }
+
         return $success;
     }
 
-    public function afterSave($created, $options = array())
+    /**
+     * @param bool $created
+     * @return void
+     */
+    private function afterFullSave($created, array $data)
     {
-        if (isset($this->data['Warninglist']['default']) && $this->data['Warninglist']['default'] == 0) {
-            $this->regenerateWarninglistCaches($this->data['Warninglist']['id']);
+        if (isset($data['Warninglist']['default']) && $data['Warninglist']['default'] == 0) {
+            $this->regenerateWarninglistCaches($data['Warninglist']['id']);
         }
 
         if ($this->pubToZmq('warninglist')) {
             $warninglist = $this->find('first', [
-                'conditions' => ['id' => $this->data['Warninglist']['id']],
+                'conditions' => ['id' => $data['Warninglist']['id']],
                 'contains' => ['WarninglistEntry', 'WarninglistType'],
             ]);
             $pubSubTool = $this->getPubSubTool();
