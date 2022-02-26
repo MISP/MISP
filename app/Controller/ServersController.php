@@ -1442,23 +1442,23 @@ class ServersController extends AppController
         $this->render('ajax/submoduleStatus');
     }
 
-    public function getSetting($setting_name)
+    public function getSetting($settingName)
     {
-        $setting = $this->Server->getSettingData($setting_name);
-        if (!empty($setting["redacted"])) {
-            throw new MethodNotAllowedException(__('This setting is redacted.'));
+        $setting = $this->Server->getSettingData($settingName);
+        if (!$setting) {
+            throw new NotFoundException(__('Setting %s is invalid.', $settingName));
         }
-        if (Configure::check($setting_name)) {
-            $setting['value'] = Configure::read($setting_name);
+        if (!empty($setting["redacted"])) {
+            throw new ForbiddenException(__('This setting is redacted.'));
+        }
+        if (Configure::check($settingName)) {
+            $setting['value'] = Configure::read($settingName);
         }
         return $this->RestResponse->viewData($setting);
     }
 
-    public function serverSettingsEdit($setting_name, $id = false, $forceSave = false)
+    public function serverSettingsEdit($settingName, $id = false, $forceSave = false)
     {
-        if (!isset($setting_name)) {
-            throw new MethodNotAllowedException();
-        }
         if (!$this->_isRest()) {
             if (!isset($id)) {
                 throw new MethodNotAllowedException();
@@ -1466,9 +1466,9 @@ class ServersController extends AppController
             $this->set('id', $id);
         }
 
-        $setting = $this->Server->getSettingData($setting_name);
+        $setting = $this->Server->getSettingData($settingName);
         if ($setting === false) {
-            throw new NotFoundException(__('Setting %s is invalid.', $setting_name));
+            throw new NotFoundException(__('Setting %s is invalid.', $settingName));
         }
         if (!empty($setting['cli_only'])) {
             throw new MethodNotAllowedException(__('This setting can only be edited via the CLI.'));
@@ -1489,7 +1489,10 @@ class ServersController extends AppController
                 $subGroup = 'general';
             }
             if ($this->_isRest()) {
-                return $this->RestResponse->viewData(array($setting['name'] => $setting['value']));
+                if (!empty($setting['redacted'])) {
+                    throw new ForbiddenException(__('This setting is redacted.'));
+                }
+                return $this->RestResponse->viewData([$setting['name'] => $setting['value']]);
             } else {
                 $this->set('subGroup', $subGroup);
                 $this->set('setting', $setting);
