@@ -670,6 +670,38 @@ class TestComprehensive(unittest.TestCase):
         response = self.admin_misp_connector._check_json_response(response)
         self.assertEqual(403, response["errors"][0])
 
+    def test_custom_warninglist(self):
+        warninglist = {
+            "Warninglist": {
+                "name": "Test",
+                "description": "Test",
+                "type": "cidr",
+                "category": "false_positive",
+                "matching_attributes": ["ip-src", "ip-dst"],
+                "entries": "1.2.3.4",
+            }
+        }
+        wl = self.admin_misp_connector._prepare_request('POST', 'warninglists/add', data=warninglist)
+        wl = self.admin_misp_connector._check_json_response(wl)
+        check_response(wl)
+
+        check_response(self.admin_misp_connector.enable_warninglist(wl["Warninglist"]["id"]))
+
+        response = self.admin_misp_connector.values_in_warninglist("1.2.3.4")
+        self.assertEqual(wl["Warninglist"]["id"], response["1.2.3.4"][0]["id"])
+
+        warninglist["Warninglist"]["entries"] = "1.2.3.4\n2.3.4.5"
+        response = self.admin_misp_connector._prepare_request('POST', f'warninglists/edit/{wl["Warninglist"]["id"]}', data=warninglist)
+        response = self.admin_misp_connector._check_json_response(response)
+        check_response(response)
+
+        response = self.admin_misp_connector.values_in_warninglist("2.3.4.5")
+        self.assertEqual(wl["Warninglist"]["id"], response["2.3.4.5"][0]["id"])
+
+        response = self.admin_misp_connector._prepare_request('POST', f'warninglists/delete/{wl["Warninglist"]["id"]}')
+        response = self.admin_misp_connector._check_json_response(response)
+        check_response(response)
+
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
