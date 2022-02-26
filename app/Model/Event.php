@@ -1363,7 +1363,11 @@ class Event extends AppModel
         if (empty($data)) {
             return null;
         }
-        return $data;
+        // Old format used by old MISP version
+        if (isset($data['id'])) {
+            return $data;
+        }
+        return $data[0];
     }
 
     public function quickDelete(array $event)
