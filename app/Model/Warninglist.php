@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('CidrTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
 
 /**
  * @property WarninglistType $WarninglistType
@@ -277,10 +278,7 @@ class Warninglist extends AppModel
         $directories = glob(APP . 'files' . DS . 'warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
         $updated = array('success' => [], 'fails' => []);
         foreach ($directories as $dir) {
-            $file = new File($dir . DS . 'list.json');
-            $list = $this->jsonDecode($file->read());
-            $file->close();
-
+            $list = FileAccessTool::readJsonFromFile($dir . DS . 'list.json');
             if (!isset($list['version'])) {
                 $list['version'] = 1;
             }
@@ -803,7 +801,7 @@ class Warninglist extends AppModel
             if (isset($data['WarninglistEntry'])) {
                 $this->WarninglistEntry->deleteAll(['warninglist_id' => $id]);
                 $entriesToInsert = [];
-                foreach ($data['WarninglistEntry'] as &$entry) {
+                foreach ($data['WarninglistEntry'] as $entry) {
                     $entriesToInsert[] = [$entry['value'], isset($entry['comment']) ? $entry['comment'] : null, $id];
                 }
                 $db->insertMulti(
@@ -845,8 +843,7 @@ class Warninglist extends AppModel
             $this->regenerateWarninglistCaches($this->data['Warninglist']['id']);
         }
 
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_warninglist_notifications_enable');
-        if ($pubToZmq) {
+        if ($this->pubToZmq('warninglist')) {
             $warninglist = $this->find('first', [
                 'conditions' => ['id' => $this->data['Warninglist']['id']],
                 'contains' => ['WarninglistEntry', 'WarninglistType'],
