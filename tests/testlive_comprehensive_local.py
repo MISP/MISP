@@ -258,6 +258,27 @@ class TestComprehensive(unittest.TestCase):
 
         self.user_misp_connector.delete_event(event)
 
+    def test_search_index_by_eventid(self):
+        # Search by non exists uuid
+        index = self.admin_misp_connector.search_index(eventid=uuid.uuid4())
+        self.assertEqual(len(index), 0, index)
+
+        # Search by non exists id
+        index = self.admin_misp_connector.search_index(eventid=9999)
+        self.assertEqual(len(index), 0, index)
+
+        event = create_simple_event()
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        index = self.admin_misp_connector.search_index(eventid=event.id)
+        self.assertEqual(len(index), 1, index)
+
+        index = self.admin_misp_connector.search_index(eventid=event.uuid)
+        self.assertEqual(len(index), 1, index)
+
+        self.user_misp_connector.delete_event(event)
+
     def test_search_index_minimal(self):
         # pythonify is not supported for minimal results
         self.user_misp_connector.global_pythonify = False
