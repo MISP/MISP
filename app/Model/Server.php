@@ -1294,8 +1294,7 @@ class Server extends AppModel
     {
         $serverSettings = $this->serverSettings;
         $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
-        $serverSettings = $this->readModuleSettings($serverSettings, $moduleTypes);
-        return $serverSettings;
+        return $this->readModuleSettings($serverSettings, $moduleTypes);
     }
 
     /**
@@ -2156,33 +2155,32 @@ class Server extends AppModel
     }
 
     /**
-     * @param string $setting_name
+     * @param string $settingName
      * @return array|false False if setting doesn't exists
      */
-    public function getSettingData($setting_name, $withOptions = true)
+    public function getSettingData($settingName, $withOptions = true)
     {
         // This is just hack to reset opcache, so for next request cache will be reloaded.
         $this->opcacheResetConfig();
 
-        if (strpos($setting_name, 'Plugin.Enrichment') !== false || strpos($setting_name, 'Plugin.Import') !== false || strpos($setting_name, 'Plugin.Export') !== false || strpos($setting_name, 'Plugin.Cortex') !== false) {
+        if (strpos($settingName, 'Plugin.Enrichment') !== false || strpos($settingName, 'Plugin.Import') !== false || strpos($settingName, 'Plugin.Export') !== false || strpos($settingName, 'Plugin.Cortex') !== false) {
             $serverSettings = $this->getCurrentServerSettings();
         } else {
             $serverSettings = $this->serverSettings;
         }
 
         $setting = $serverSettings;
-        $parts = explode('.', $setting_name);
+        $parts = explode('.', $settingName);
         foreach ($parts as $part) {
             if (isset($setting[$part])) {
                 $setting = $setting[$part];
             } else {
-                $setting = false;
-                break;
+                return false;
             }
         }
 
         if (isset($setting['level'])) {
-            $setting['name'] = $setting_name;
+            $setting['name'] = $settingName;
             if ($withOptions && isset($setting['optionsSource'])) {
                 $setting['options'] = $setting['optionsSource']();
             }

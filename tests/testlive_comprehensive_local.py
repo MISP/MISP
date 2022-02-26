@@ -13,7 +13,7 @@ logging.disable(logging.CRITICAL)
 logger = logging.getLogger('pymisp')
 
 
-from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog, MISPSighting, Distribution, ThreatLevel, Analysis, MISPEventReport
+from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog, MISPSighting, Distribution, ThreatLevel, Analysis, MISPEventReport, MISPServerError
 
 # Load access information for env variables
 url = "http://" + os.environ["HOST"]
@@ -640,6 +640,14 @@ class TestComprehensive(unittest.TestCase):
             }
         })
         self.assertEqual(204, response.status_code)
+
+    def test_redacted_setting(self):
+        response = self.admin_misp_connector.get_server_setting('Security.salt')
+        self.assertEqual(403, response["errors"][0])
+
+        response = self.admin_misp_connector._prepare_request('GET', 'servers/serverSettingsEdit/Security.salt')
+        response = self.admin_misp_connector._check_json_response(response)
+        self.assertEqual(403, response["errors"][0])
 
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
