@@ -318,6 +318,9 @@ class AuditLog extends AppModel
         return $this->user;
     }
 
+    /**
+     * @throws Exception
+     */
     public function insert(array $data)
     {
         try {
@@ -325,7 +328,7 @@ class AuditLog extends AppModel
         } catch (Exception $e) {
             return; // Table is missing when updating, so this is intentional
         }
-        if ($this->save($data) === false) {
+        if ($this->save(['AuditLog' => $data], ['atomic' => false]) === false) {
             throw new Exception($this->validationErrors);
         }
     }
