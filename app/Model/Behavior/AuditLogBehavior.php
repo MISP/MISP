@@ -84,6 +84,10 @@ class AuditLogBehavior extends ModelBehavior
             return true;
         }
 
+        if (isset($options['skipAuditLog']) && $options['skipAuditLog']) {
+            return true;
+        }
+
         // Do not fetch old version when just few fields will be fetched
         $fieldToFetch = [];
         if (!empty($options['fieldList'])) {
@@ -125,6 +129,10 @@ class AuditLogBehavior extends ModelBehavior
     public function afterSave(Model $model, $created, $options = [])
     {
         if (!$this->enabled) {
+            return;
+        }
+
+        if (isset($options['skipAuditLog']) && $options['skipAuditLog']) {
             return;
         }
 
@@ -198,14 +206,14 @@ class AuditLogBehavior extends ModelBehavior
             $id = 0;
         }
 
-        $this->auditLog()->insert(['AuditLog' => [
+        $this->auditLog()->insert([
             'action' => $action,
             'model' => $modelName,
             'model_id' => $id,
             'model_title' => $modelTitle,
             'event_id' => $eventId,
             'change' => $changedFields,
-        ]]);
+        ]);
 
         $this->beforeSave = null; // cleanup
     }
@@ -270,14 +278,14 @@ class AuditLogBehavior extends ModelBehavior
             $id = 0;
         }
 
-        $this->auditLog()->insert(['AuditLog' => [
+        $this->auditLog()->insert([
             'action' => $action,
             'model' => $modelName,
             'model_id' => $id,
             'model_title' => $modelTitle,
             'event_id' => $eventId,
             'change' => $this->changedFields($model, null),
-        ]]);
+        ]);
     }
 
     /**

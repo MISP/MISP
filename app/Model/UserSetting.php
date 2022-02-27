@@ -481,22 +481,22 @@ class UserSetting extends AppModel
             'value' => $value,
         ];
 
-        $existingSetting = $this->find('first', array(
+        $existingSetting = $this->find('first', [
             'recursive' => -1,
-            'conditions' => array(
+            'conditions' => [
                 'UserSetting.user_id' => $userId,
                 'UserSetting.setting' => $setting,
-            ),
+            ],
             'fields' =>  ['UserSetting.id'],
             'callbacks' => false,
-        ));
+        ]);
         if (empty($existingSetting)) {
             $this->create();
         } else {
             $userSetting['id'] = $existingSetting['UserSetting']['id'];
         }
 
-        return $this->save($userSetting);
+        return $this->save($userSetting, ['skipAuditLog' => $this->isInternal($setting)]);
     }
 
     /**
