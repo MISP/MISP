@@ -4403,12 +4403,12 @@ class Event extends AppModel
     }
 
     /**
-     * @param int $id
-     * @param int|null $passAlong
+     * @param int $id Event ID
+     * @param int|null $passAlong ID of server that event will be not pushed
      * @return array|bool
      * @throws Exception
      */
-    public function uploadEventToServersRouter($id, $passAlong = null)
+    private function uploadEventToServersRouter($id, $passAlong = null)
     {
         $eventOrgcId = $this->find('first', array(
             'conditions' => array('Event.id' => $id),
@@ -4426,7 +4426,7 @@ class Event extends AppModel
             ),
             'org_id' => $eventOrgcId['Event']['orgc_id']
         );
-        $event = $this->fetchEvent($elevatedUser, array('eventid' => $id, 'metadata' => 1));
+        $event = $this->fetchEvent($elevatedUser, ['eventid' => $id, 'metadata' => 1]);
         if (empty($event)) {
             return true;
         }
@@ -4434,21 +4434,21 @@ class Event extends AppModel
         $event['Event']['locked'] = 1;
         // get a list of the servers
         $this->Server = ClassRegistry::init('Server');
-
-        $conditions = array('push' => 1);
+        $conditions = ['push' => 1];
         if ($passAlong) {
-            $conditions[] = array('Server.id !=' => $passAlong);
+            $conditions[] = ['Server.id !=' => $passAlong];
         }
-        $servers = $this->Server->find('all', array(
+        $servers = $this->Server->find('all', [
             'conditions' => $conditions,
-            'order' => array('Server.priority ASC', 'Server.id ASC')
-        ));
+            'recursive' => -1,
+            'order' => ['Server.priority ASC', 'Server.id ASC'],
+        ]);
         // iterate over the servers and upload the event
         if (empty($servers)) {
             return true;
         }
         $uploaded = true;
-        $failedServers = array();
+        $failedServers = [];
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
 
@@ -4458,24 +4458,23 @@ class Event extends AppModel
             ) {
                 continue;
             }
-            $HttpSocket = $syncTool->setupHttpSocket($server);
             // Skip servers where the event has come from.
-            if (($passAlong != $server['Server']['id'])) {
-                $params = array();
-                if (!empty($server['Server']['push_rules'])) {
-                    $push_rules = json_decode($server['Server']['push_rules'], true);
-                    if (!empty($push_rules['tags']['NOT'])) {
-                        $params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
-                    }
-                }
-                $params = array_merge($params, array(
+            if ($passAlong != $server['Server']['id']) {
+                $HttpSocket = $syncTool->setupHttpSocket($server);
+                $params = [
                     'eventid' => $id,
                     'includeAttachments' => true,
                     'includeAllTags' => true,
-                    'deleted' => array(0,1),
+                    'deleted' => [0, 1],
                     'excludeGalaxy' => 1,
                     'noSightings' => true, // sightings are pushed separately
-                ));
+                ];
+                if (!empty($server['Server']['push_rules'])) {
+                    $pushRules = json_decode($server['Server']['push_rules'], true);
+                    if (!empty($pushRules['tags']['NOT'])) {
+                        $params['blockedAttributeTags'] = $pushRules['tags']['NOT'];
+                    }
+                }
                 if (!empty($server['Server']['internal'])) {
                     $params['excludeLocalTags'] = 0;
                 }
@@ -4512,9 +4511,8 @@ class Event extends AppModel
                 return true;
             }
             return $failedServers;
-        } else {
-            return true;
         }
+        return true;
     }
 
     /**
@@ -4642,10 +4640,9 @@ class Event extends AppModel
             }
             if (empty($hostOrg)) {
                 $hostOrg = $this->Org->find('first', [
-                        'recursive' => -1,
-                        'order' => ['id ASC']
-                    ]
-                );
+                    'recursive' => -1,
+                    'order' => ['id ASC']
+                ]);
                 $hostOrgId = $hostOrg['Org']['id'];
             }
             $user = array('org_id' => $hostOrgId, 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
@@ -4672,10 +4669,8 @@ class Event extends AppModel
                 }
             }
         }
-        $uploaded = $this->uploadEventToServersRouter($id, $passAlong);
-        return $uploaded;
+        return $this->uploadEventToServersRouter($id, $passAlong);
     }
-
 
     // Sends out an email to all people within the same org with the request to be contacted about a specific event.
     public function sendContactEmailRouter($id, $message, $creator_only, $user)
