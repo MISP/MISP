@@ -763,6 +763,24 @@ class TestComprehensive(unittest.TestCase):
         response = requests.get(self.admin_misp_connector.root_url + '/attributes/describeTypes.json', headers=headers)
         self.assertEqual(304, response.status_code, response.headers)
 
+    def test_event_alert_default_enabled(self):
+        user = MISPUser()
+        user.email = 'testusr_alert_disabled@user.local'
+        user.org_id = self.test_org.id
+
+        created_user = check_response(self.admin_misp_connector.add_user(user))
+        self.assertFalse(created_user.autoalert, created_user)
+        self.admin_misp_connector.delete_user(created_user)
+
+        with MISPSetting(self.admin_misp_connector, {"MISP.default_publish_alert": True}):
+            user = MISPUser()
+            user.email = 'testusr_alert_enabled@user.local'
+            user.org_id = self.test_org.id
+
+            created_user = check_response(self.admin_misp_connector.add_user(user))
+            self.assertTrue(created_user.autoalert, created_user)
+            self.admin_misp_connector.delete_user(created_user)
+
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
