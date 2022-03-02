@@ -1223,7 +1223,7 @@ installDepsPhp74 () {
   libapache2-mod-php7.4 \
   php7.4 php7.4-cli \
   php7.4-dev \
-  php7.4-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip \
+  php7.4-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip php7.4-curl \
   php7.4-redis php7.4-gnupg \
   php7.4-intl php7.4-bcmath \
   php7.4-gd
@@ -3653,11 +3653,14 @@ x86_64-debian-buster
 x86_64-ubuntu-bionic
 x86_64-ubuntu-focal
 x86_64-ubuntu-hirsute
-x86_64-kali-2020.4
 x86_64-kali-2021.1
 x86_64-kali-2021.2
 x86_64-kali-2021.3
 x86_64-kali-2021.4
+x86_64-kali-2022.1
+x86_64-kali-2022.2
+x86_64-kali-2022.3
+x86_64-kali-2022.4
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-raspbian-buster
