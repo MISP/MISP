@@ -221,6 +221,16 @@
                         'requirement' => $isAclSharingGroup
                     ),
                     array(
+                        'text' => __('List Sharing Groups Blueprints'),
+                        'url' => $baseurl . '/sharing_group_blueprints/index',
+                        'requirement' => $isAclSharingGroup
+                    ),
+                    array(
+                        'text' => __('Add Sharing Group Blueprint'),
+                        'url' => $baseurl . '/sharing_group_blueprints/add',
+                        'requirement' => $isAclSharingGroup
+                    ),
+                    array(
                         'type' => 'separator'
                     ),
                     array(

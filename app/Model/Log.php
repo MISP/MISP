@@ -38,6 +38,7 @@ class Log extends AppModel
                     'enable',
                     'enrichment',
                     'error',
+                    'execute_blueprint',
                     'export',
                     'fetchEvent',
                     'file_upload',
