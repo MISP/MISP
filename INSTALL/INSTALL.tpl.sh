@@ -856,11 +856,14 @@ x86_64-debian-buster
 x86_64-ubuntu-bionic
 x86_64-ubuntu-focal
 x86_64-ubuntu-hirsute
-x86_64-kali-2020.4
 x86_64-kali-2021.1
 x86_64-kali-2021.2
 x86_64-kali-2021.3
 x86_64-kali-2021.4
+x86_64-kali-2022.1
+x86_64-kali-2022.2
+x86_64-kali-2022.3
+x86_64-kali-2022.4
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-raspbian-buster
