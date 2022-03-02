@@ -3170,16 +3170,20 @@ class Event extends AppModel
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob($user, Job::WORKER_EMAIL, 'publish_alert_email', "Event: $id", 'Sending...');
 
+            $args = [
+                'alertemail',
+                $user['id'],
+                $jobId,
+                $id,
+            ];
+            if ($oldpublish !== null) {
+                $args[] = $oldpublish;
+            }
+
             $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::EMAIL_QUEUE,
                 BackgroundJobsTool::CMD_EVENT,
-                [
-                    'alertemail',
-                    $user['id'],
-                    $jobId,
-                    $id,
-                    $oldpublish
-                ],
+                $args,
                 true,
                 $jobId
             );
@@ -3707,20 +3711,9 @@ class Event extends AppModel
             return 'Blocked by event block rules';
         }
         $breakOnDuplicate = !empty($data['Event']['breakOnDuplicate']);
-        $this->Log = ClassRegistry::init('Log');
         if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published']) && empty($data['Event']['EventReport'])) {
-            $this->Log->create();
             $validationErrors['Event'] = 'Received a published event that was empty. Event add process blocked.';
-            $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Event',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'add',
-                    'user_id' => $user['id'],
-                    'title' => $validationErrors['Event'],
-                    'change' => ''
-            ));
+            $this->loadLog()->createLogEntry($user, 'add', 'Event', 0, $validationErrors['Event']);
             return json_encode($validationErrors);
         }
         $this->create();
@@ -3848,17 +3841,8 @@ class Event extends AppModel
                 } else {
                     $st = "disabled";
                 }
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Event',
-                        'model_id' => $saveResult['Event']['id'],
-                        'email' => $user['email'],
-                        'action' => 'add',
-                        'user_id' => $user['id'],
-                        'title' => 'Event pulled from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st,
-                        'change' => ''
-                ));
+                $logTitle = 'Event pulled from Server (' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st;
+                $this->loadLog()->createLogEntry($user, 'add', 'Event', $saveResult['Event']['id'], $logTitle);
             }
             if (!empty($data['Event']['EventTag'])) {
                 $toSave = [];
@@ -3955,7 +3939,7 @@ class Event extends AppModel
                             if (empty($found)) {
                                 $this->EventTag->create();
                                 if ($this->EventTag->save(array('event_id' => $this->id, 'tag_id' => $tag_id))) {
-                                    $this->Log->createLogEntry($user, 'tag', 'Event', $this->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $this->id . ')', 'Event (' . $this->id . ') tagged as Tag (' . $tag_id . ')');
+                                    $this->loadLog()->createLogEntry($user, 'tag', 'Event', $this->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $this->id . ')', 'Event (' . $this->id . ') tagged as Tag (' . $tag_id . ')');
                                 }
                             }
                         }
@@ -4086,7 +4070,6 @@ class Event extends AppModel
             'extends_uuid'
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
-        $this->Log = ClassRegistry::init('Log');
         if ($saveResult) {
             if ($jobId) {
                 /** @var EventLock $eventLock */
@@ -4163,17 +4146,7 @@ class Event extends AppModel
                         // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
                         // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
                         if ($user['Role']['perm_tag_editor']) {
-                            $this->Log->create();
-                            $this->Log->save(array(
-                                'org' => $user['Organisation']['name'],
-                                'model' => 'Event',
-                                'model_id' => $this->id,
-                                'email' => $user['email'],
-                                'action' => 'edit',
-                                'user_id' => $user['id'],
-                                'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the event.',
-                                'change' => ''
-                            ));
+                            $this->loadLog()->createLogEntry($user, 'edit', 'Event', $this->id, "Failed create or attach Tag {$tag['name']} to the event.");
                         }
                     }
                 }
@@ -4186,35 +4159,12 @@ class Event extends AppModel
             if ($changed && (!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
                 // The edited event is from a remote server ?
                 if ($passAlong) {
-                    if ($server['Server']['publish_without_email'] == 0) {
-                        $st = "enabled";
-                    } else {
-                        $st = "disabled";
-                    }
-                    $this->Log->create();
-                    $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Event',
-                        'model_id' => $saveResult['Event']['id'],
-                        'email' => $user['email'],
-                        'action' => 'add',
-                        'user_id' => $user['id'],
-                        'title' => 'Event edited from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st,
-                        'change' => ''
-                    ));
+                    $st = $server['Server']['publish_without_email'] == 0 ? 'enabled' : 'disabled';
+                    $logTitle = 'Event edited from Server (' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st;
                 } else {
-                    $this->Log->create();
-                    $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Event',
-                        'model_id' => $saveResult['Event']['id'],
-                        'email' => $user['email'],
-                        'action' => 'add',
-                        'user_id' => $user['id'],
-                        'title' => 'Event edited (locally)',
-                        'change' => ''
-                    ));
+                    $logTitle = 'Event edited (locally)';
                 }
+                $this->loadLog()->createLogEntry($user, 'add', 'Event', $saveResult['Event']['id'], $logTitle);
                 // do the necessary actions to publish the event (email, upload,...)
                 if ((true != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($id, $user, $existingEvent['Event']['publish_timestamp']);
