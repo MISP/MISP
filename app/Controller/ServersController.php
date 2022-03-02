@@ -908,7 +908,7 @@ class ServersController extends AppController
             );
 
             $message = sprintf(__('Push queued for background execution. Job ID: %s'), $jobId);
-            
+
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->type());
             }
@@ -2344,11 +2344,23 @@ misp.direct_call(relative_path, body)
         if (empty($host_org)) {
             throw new MethodNotAllowedException(__('Configured host org not found. Please make sure that the setting is current on the instance.'));
         }
+        if (Configure::read('Security.advanced_authkeys')) {
+            $this->loadModel('AuthKey');
+            $authkey = $this->AuthKey->createnewkey($this->Auth->user('id'), __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
+        } else {
+            $this->loadModel('User');
+            $authkey = $this->User->find('column', [
+                'conditions' => ['User.id' => $this->Auth->user('id')],
+                'recursive' => -1,
+                'fields' => ['User.authkey']
+            ]);
+            $authkey = $authkey[0];
+        }
         $server = array(
             'Server' => array(
                 'url' => $baseurl,
                 'uuid' => Configure::read('MISP.uuid'),
-                'authkey' => __('YOUR_API_KEY'),
+                'authkey' => h($authkey),
                 'Organisation' => array(
                     'name' => $host_org['Organisation']['name'],
                     'uuid' => $host_org['Organisation']['uuid'],
