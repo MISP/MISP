@@ -576,6 +576,9 @@ class BackgroundJobsTool
         $redis->connect($this->settings['redis_host'], $this->settings['redis_port']);
         $redis->setOption(Redis::OPT_SERIALIZER, Redis::SERIALIZER_JSON);
         $redis->setOption(Redis::OPT_PREFIX, $this->settings['redis_namespace'] . ':');
+        if (isset($this->settings['redis_read_timeout'])) {
+            $redis->setOption(Redis::OPT_READ_TIMEOUT, $this->settings['redis_read_timeout']);
+        }
         $redisPassword = $this->settings['redis_password'];
 
         if (!empty($redisPassword)) {

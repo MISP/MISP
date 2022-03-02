@@ -733,6 +733,9 @@ class User extends AppModel
         $user['User']['Role'] = $user['Role'];
         $user['User']['Organisation'] = $user['Organisation'];
         $user['User']['Server'] = $user['Server'];
+        if (isset($user['UserSetting'])) {
+            $user['User']['UserSetting'] = $user['UserSetting'];
+        }
         return $user['User'];
     }
 
@@ -820,7 +823,7 @@ class User extends AppModel
      */
     public function sendEmail(array $user, $body, $bodyNoEnc = false, $subject, $replyToUser = false)
     {
-        if ($user['User']['disabled']) {
+        if ($user['User']['disabled'] || !$this->checkIfUserIsValid($user['User'])) {
             return true;
         }
 
@@ -1404,6 +1407,29 @@ class User extends AppModel
         if (!$success) {
             throw new RuntimeException("Could not save setting $name for user {$user['id']}.");
         }
+    }
+
+    /**
+     * Check if user still valid at identity provider.
+     * @param array $user
+     * @return bool
+     * @throws Exception
+     */
+    public function checkIfUserIsValid(array $user)
+    {
+        $auth = Configure::read('Security.auth');
+        if (!$auth) {
+            return true;
+        }
+        if (!is_array($auth)) {
+            throw new Exception("`Security.auth` config value must be array.");
+        }
+        if (!in_array('OidcAuth.Oidc', $auth, true)) {
+            return true; // this method currently makes sense just for OIDC auth provider
+        }
+        App::uses('Oidc', 'OidcAuth.Lib');
+        $oidc = new Oidc($this);
+        return $oidc->isUserValid($user);
     }
 
     /**

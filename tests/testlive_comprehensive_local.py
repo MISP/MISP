@@ -38,6 +38,11 @@ def check_response(response):
     return response
 
 
+def request(pymisp: PyMISP, request_type: str, url: str, data: dict = {}) -> dict:
+    response = pymisp._prepare_request(request_type, url, data)
+    return pymisp._check_json_response(response)
+
+
 class MISPSetting:
     def __init__(self, admin_connector: PyMISP, new_setting: dict):
         self.admin_connector = admin_connector
@@ -254,6 +259,27 @@ class TestComprehensive(unittest.TestCase):
 
         # Search by partial match
         index = self.admin_misp_connector.search_index(email="testusr@user")
+        self.assertEqual(len(index), 1, index)
+
+        self.user_misp_connector.delete_event(event)
+
+    def test_search_index_by_eventid(self):
+        # Search by non exists uuid
+        index = self.admin_misp_connector.search_index(eventid=uuid.uuid4())
+        self.assertEqual(len(index), 0, index)
+
+        # Search by non exists id
+        index = self.admin_misp_connector.search_index(eventid=9999)
+        self.assertEqual(len(index), 0, index)
+
+        event = create_simple_event()
+        event = self.user_misp_connector.add_event(event)
+        check_response(event)
+
+        index = self.admin_misp_connector.search_index(eventid=event.id)
+        self.assertEqual(len(index), 1, index)
+
+        index = self.admin_misp_connector.search_index(eventid=event.uuid)
         self.assertEqual(len(index), 1, index)
 
         self.user_misp_connector.delete_event(event)
@@ -648,6 +674,50 @@ class TestComprehensive(unittest.TestCase):
         response = self.admin_misp_connector._prepare_request('GET', 'servers/serverSettingsEdit/Security.salt')
         response = self.admin_misp_connector._check_json_response(response)
         self.assertEqual(403, response["errors"][0])
+
+    def test_custom_warninglist(self):
+        warninglist = {
+            "Warninglist": {
+                "name": "Test",
+                "description": "Test",
+                "type": "cidr",
+                "category": "false_positive",
+                "matching_attributes": ["ip-src", "ip-dst"],
+                "entries": "1.2.3.4",
+            }
+        }
+        wl = request(self.admin_misp_connector, 'POST', 'warninglists/add', data=warninglist)
+        check_response(wl)
+
+        check_response(self.admin_misp_connector.enable_warninglist(wl["Warninglist"]["id"]))
+
+        response = self.admin_misp_connector.values_in_warninglist("1.2.3.4")
+        self.assertEqual(wl["Warninglist"]["id"], response["1.2.3.4"][0]["id"])
+
+        warninglist["Warninglist"]["entries"] = "1.2.3.4\n2.3.4.5"
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/edit/{wl["Warninglist"]["id"]}', data=warninglist)
+        check_response(response)
+
+        response = self.admin_misp_connector.values_in_warninglist("2.3.4.5")
+        self.assertEqual(wl["Warninglist"]["id"], response["2.3.4.5"][0]["id"])
+
+        warninglist["Warninglist"]["entries"] = "2.3.4.5"
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/edit/{wl["Warninglist"]["id"]}', data=warninglist)
+        check_response(response)
+
+        response = self.admin_misp_connector.values_in_warninglist("1.2.3.4")
+        self.assertEqual(0, len(response))
+
+        response = self.admin_misp_connector.values_in_warninglist("2.3.4.5")
+        self.assertEqual(wl["Warninglist"]["id"], response["2.3.4.5"][0]["id"])
+
+        check_response(self.admin_misp_connector.disable_warninglist(wl["Warninglist"]["id"]))
+
+        response = self.admin_misp_connector.values_in_warninglist("2.3.4.5")
+        self.assertEqual(0, len(response))
+
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/delete/{wl["Warninglist"]["id"]}')
+        check_response(response)
 
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)

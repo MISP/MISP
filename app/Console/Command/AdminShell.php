@@ -8,7 +8,7 @@ App::uses('ProcessTool', 'Tools');
  */
 class AdminShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed', 'SharingGroupBlueprint');
 
     public function getOptionParser()
     {
@@ -936,7 +936,7 @@ class AdminShell extends AppShell
         $new = $this->params['new'] ?? null;
 
         if ($new !== null && strlen($new) < 32) {
-            $this->error('New key must be at least 32 char long.');
+            $this->error('New key must be at least 32 chars long.');
         }
 
         if ($old === null) {
@@ -945,8 +945,7 @@ class AdminShell extends AppShell
 
         if ($new === null) {
             // Generate random new key
-            $randomTool = new RandomTool();
-            $new = $randomTool->random_str();
+            $new = rtrim(base64_encode(random_bytes(32)), "=");
         }
 
         $this->Server->getDataSource()->begin();
@@ -1142,5 +1141,38 @@ class AdminShell extends AppShell
             }
             $this->out($setting['setting'] . ': ' . $setting['errorMessage']);
         }
+    }
+
+    public function executeSGBlueprint()
+    {
+        $id = false;
+        $target = 'all';
+        if (!empty($this->args[0])) {
+            $target = trim($this->args[0]);
+        }
+        if (!is_numeric($target) && !in_array($target, ['all', 'attached', 'deteached'])) {
+            $this->error(__('Invalid target. Either pass a blueprint ID or one of the following filters: all, attached, detached.'));
+        }
+        $conditions = [];
+        if (is_numeric($target)) {
+            $conditions['SharingGroupBlueprint']['id'] = $target;
+        } else if ($target === 'attached') {
+            $conditions['SharingGroupBlueprint']['sharing_group_id >'] = 0;
+        } else if ($target === 'detached') {
+            $conditions['SharingGroupBlueprint']['sharing_group_id'] = 0;
+        }
+        $sharingGroupBlueprints = $this->SharingGroupBlueprint->find('all', ['conditions' => $conditions, 'recursive' => 0]);
+        if (empty($sharingGroupBlueprints)) {
+            $this->error(__('No valid blueprints found.'));
+        }
+        $stats = $this->SharingGroupBlueprint->execute($sharingGroupBlueprints);
+        $message = __(
+            'Done, %s sharing group blueprint(s) matched. Sharing group changes: Created: %s. Updated: %s. Failed to create: %s.',
+            count($sharingGroupBlueprints),
+            $stats['created'],
+            $stats['changed'],
+            $stats['failed']
+        );
+        $this->out($message);
     }
 }

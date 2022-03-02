@@ -451,7 +451,13 @@ class SharingGroup extends AppModel
         if (!isset($user['id'])) {
             throw new MethodNotAllowedException('Invalid user.');
         }
+        $sg_org_id = $this->find('first', [
+            'recursive' => -1,
+            'fields' => ['SharingGroup.org_id'],
+            'conditions' => ['SharingGroup.id' => $id]
+        ]);
         $authorized = ($adminCheck && $user['Role']['perm_site_admin']) ||
+            $user['org_id'] === $sg_org_id['SharingGroup']['org_id'] ||
             $this->SharingGroupServer->checkIfAuthorised($id) ||
             $this->SharingGroupOrg->checkIfAuthorised($id, $user['org_id']);
         $this->__sgAuthorisationCache['access'][$adminCheck][$id] = $authorized;

@@ -178,6 +178,27 @@
                 )
             )
         );
+        if (!empty($warnings) && ($me['org_id'] === $event['Event']['orgc_id'] || !empty($me['Role']['perm_site_admin']))) {
+            $warningsHtml = '';
+            $class = 'published';
+            $tempWarnings = [];
+            foreach ($warnings as $key => $values) {
+                $values = is_array($values) ? $values : [$values];
+                foreach ($values as $value) {
+                    $warningsHtml .= sprintf(
+                        '<span class="bold">%s</span>: <p style="margin-left:10px;">%s</p>',
+                        h($key),
+                        h($value)
+                    );
+                }
+            }
+            $table_data[] = array(
+                'key' => __('Warnings'),
+                'class' => !empty($warnings) ? 'background-red bold' : '',
+                'class_value' => ($event['Event']['published'] == 0) ? '' : 'green',
+                'html' => $warningsHtml
+            );
+        }
         $table_data[] = array(
             'key' => __('Info'),
             'value' => $event['Event']['info']
