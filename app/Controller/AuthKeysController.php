@@ -114,6 +114,9 @@ class AuthKeysController extends AppController
                 return $authKey;
             }
         ];
+        if ($user_id === 'me' || $user_id === false) {
+            $user_id = $this->Auth->user('id');
+        }
         $selectConditions = [];
         if (!$this->_isSiteAdmin()) {
             $selectConditions['AND'][] = ['User.id' => $this->Auth->user('id')];
