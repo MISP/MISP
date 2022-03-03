@@ -14,6 +14,9 @@ class UserShell extends AppShell
         $parser->addSubcommand('list', [
             'help' => __('Get list of user accounts.'),
             'parser' => [
+                'arguments' => [
+                    'userId' => ['help' => __('User ID or e-mail address.'), 'required' => true],
+                ],
                 'options' => [
                     'json' => ['help' => __('Output as JSON.'), 'boolean' => true],
                 ],
@@ -49,6 +52,9 @@ class UserShell extends AppShell
         $parser->addSubcommand('check_validity', [
             'help' => __('Check users validity from external identity provider and block not valid user.'),
             'parser' => [
+                'arguments' => [
+                    'userId' => ['help' => __('User ID or e-mail address.'), 'required' => true],
+                ],
                 'options' => [
                     'block_invalid' => ['help' => __('Block user that are considered invalid.'), 'boolean' => true],
                     'update' => ['help' => __('Update user role or organisation.'), 'boolean' => true],
@@ -102,6 +108,17 @@ class UserShell extends AppShell
 
     public function list()
     {
+        $userId = isset($this->args[0]) ? $this->args[0] : null;
+        if ($userId) {
+            $conditions = ['OR' => [
+                'User.id' => $userId,
+                'User.email LIKE' => "%$userId%",
+                'User.sub LIKE' => "%$userId%",
+            ]];
+        } else {
+            $conditions = [];
+        }
+
         if ($this->params['json']) {
             // do not fetch sensitive or big values
             $schema = $this->User->schema();
@@ -117,6 +134,7 @@ class UserShell extends AppShell
             $users = $this->User->find('all', [
                 'recursive' => -1,
                 'fields' => $fields,
+                'conditions' => $conditions,
                 'contain' => ['Organisation', 'Role', 'UserSetting'],
             ]);
 
@@ -124,6 +142,7 @@ class UserShell extends AppShell
         } else {
             $users = $this->User->find('column', [
                 'fields' => ['email'],
+                'conditions' => $conditions,
             ]);
             foreach ($users as $user) {
                 $this->out($user);
@@ -262,10 +281,21 @@ class UserShell extends AppShell
         App::uses('Oidc', 'OidcAuth.Lib');
         $oidc = new Oidc($this->User);
 
+        $conditions = ['disabled' => false]; // fetch just not disabled users
+
+        $userId = isset($this->args[0]) ? $this->args[0] : null;
+        if ($userId) {
+            $conditions['OR'] = [
+                'User.id' => $userId,
+                'User.email LIKE' => "%$userId%",
+                'User.sub LIKE' => "%$userId%",
+            ];
+        }
+
         $users = $this->User->find('all', [
             'recursive' => -1,
             'contain' => ['UserSetting'],
-            'conditions' => ['disabled' => false], // fetch just not disabled users
+            'conditions' => $conditions,
         ]);
         $blockInvalid = $this->params['block_invalid'];
         $update = $this->params['update'];

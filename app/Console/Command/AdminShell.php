@@ -1,10 +1,13 @@
 <?php
 App::uses('AppShell', 'Console/Command');
 App::uses('ProcessTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 /**
  * @property Server $Server
  * @property Feed $Feed
+ * @property AdminSetting $AdminSetting
  */
 class AdminShell extends AppShell
 {
@@ -55,6 +58,9 @@ class AdminShell extends AppShell
                     'new' => ['help' => __('New key. If not provided, new key will be generated.')],
                 ],
             ],
+        ]);
+        $parser->addSubcommand('dumpCurrentDatabaseSchema', [
+            'help' => __('Dump current database schema to JSON file.'),
         ]);
         $parser->addSubcommand('removeOrphanedCorrelations', [
             'help' => __('Remove orphaned correlations.'),
@@ -707,21 +713,18 @@ class AdminShell extends AppShell
 
     public function dumpCurrentDatabaseSchema()
     {
-        $this->ConfigLoad->execute();
         $dbActualSchema = $this->Server->getActualDBSchema();
         $dbVersion = $this->AdminSetting->getSetting('db_version');
         if (!empty($dbVersion) && !empty($dbActualSchema['schema'])) {
-            $data = array(
+            $data = [
                 'schema' => $dbActualSchema['schema'],
                 'indexes' => $dbActualSchema['indexes'],
-                'db_version' => $dbVersion
-            );
-            $file = new File(ROOT . DS . 'db_schema.json', true);
-            $file->write(json_encode($data, JSON_PRETTY_PRINT) . "\n");
-            $file->close();
-            echo __("> Database schema dumped on disk") . PHP_EOL;
+                'db_version' => $dbVersion,
+            ];
+            FileAccessTool::writeToFile(ROOT . DS . 'db_schema.json', JsonTool::encode($data, true));
+            $this->out(__("> Database schema dumped on disk"));
         } else {
-            echo __("Something went wrong. Could not find the existing db version or fetch the current database schema.") . PHP_EOL;
+            $this->error(__('Something went wrong.'), __('Could not find the existing db version or fetch the current database schema.'));
         }
     }
 
