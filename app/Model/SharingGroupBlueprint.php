@@ -109,7 +109,8 @@ class SharingGroupBlueprint extends AppModel
                 'organisation_uuid' => $org_uuid,
                 'releasability' => __('Generated based on Sharing Group Blueprint rules'),
                 'local' => 1,
-                'roaming' => 1
+                'roaming' => 1,
+                'active' => 1
             ];
             if ($this->SharingGroup->save($sg)) {
                 $id = $this->SharingGroup->id;
