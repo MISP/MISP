@@ -618,6 +618,16 @@ kaliUpgrade () {
   sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
 }
 
+# Kali 2022.x has only php81
+installDepsKaliPhp74 () {
+    sudo apt -y install lsb-release apt-transport-https ca-certificates 
+    sudo wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+    echo "deb https://packages.sury.org/php/ bullseye main" | sudo tee /etc/apt/sources.list.d/php.list
+    sudo apt update
+    wget http://ftp.us.debian.org/debian/pool/main/libf/libffi/libffi7_3.3-6_amd64.deb
+    sudo dpkg -i libffi7_3.3-6_amd64.deb
+}
+
 # Disables sleep
 disableSleep () {
   debug "Disabling sleep etc if run from a Laptop as the install might take some time…" > /dev/tty
