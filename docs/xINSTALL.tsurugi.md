@@ -31,7 +31,7 @@ sudo dpkg-reconfigure locales
 
 To install MISP on Tsurugi copy paste this in your r00t shell:
 ```bash
-wget -O /tmp/misp-tsurugi.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/xINSTALL.tsurugi.txt && bash /tmp/misp-tsurugi.sh
+wget --no-cache -O /tmp/misp-tsurugi.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/xINSTALL.tsurugi.txt && bash /tmp/misp-tsurugi.sh
 ```
 
 !!! warning
