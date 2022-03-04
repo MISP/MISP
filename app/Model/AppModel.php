@@ -86,7 +86,7 @@ class AppModel extends Model
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
-        81 => false
+        81 => false, 82 => false
     );
 
     public $advanced_updates_description = array(
@@ -1633,11 +1633,14 @@ class AppModel extends Model
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 81:
-                $fields = ['nationality', 'sector', 'type', 'name', 'description'];
+                $fields = ['nationality', 'sector', 'type', 'name'];
                 foreach ($fields as $field) {
                     $sqlArray[] = sprintf("UPDATE organisations SET %s = '' WHERE %s IS NULL;", $field, $field);
                     $sqlArray[] = sprintf("ALTER table organisations MODIFY %s varchar(255) NOT NULL DEFAULT '';", $field);
                 }
+                break;
+            case 82:
+                $sqlArray[] = sprintf("ALTER table organisations MODIFY description text;");
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
