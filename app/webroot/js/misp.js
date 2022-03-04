@@ -3204,15 +3204,16 @@ function cancelPicklistValues() {
 
 function sgSubmitForm(action) {
     var ajax = {
-            'organisations': organisations,
-            'servers': servers,
-            'sharingGroup': {
-                'name': $('#SharingGroupName').val(),
-                'releasability': $('#SharingGroupReleasability').val(),
-                'description': $('#SharingGroupDescription').val(),
-                'active': $('#SharingGroupActive').is(":checked"),
-                'roaming': $('#SharingGroupRoaming').is(":checked"),
-            }
+        'organisations': organisations,
+        'servers': servers,
+        'sharingGroup': {
+            'uuid': $('#SharingGroupUuid').val(),
+            'name': $('#SharingGroupName').val(),
+            'releasability': $('#SharingGroupReleasability').val(),
+            'description': $('#SharingGroupDescription').val(),
+            'active': $('#SharingGroupActive').is(":checked"),
+            'roaming': $('#SharingGroupRoaming').is(":checked"),
+        }
     };
     $('#SharingGroupJson').val(JSON.stringify(ajax));
     var formName = "#SharingGroup" + action + "Form";
@@ -3274,6 +3275,7 @@ function sharingGroupPopulateFromJson() {
     }
     $('#SharingGroupName').attr('value', jsonparsed.sharingGroup.name);
     $('#SharingGroupReleasability').attr('value', jsonparsed.sharingGroup.releasability);
+    $('#SharingGroupUuid').attr('value', jsonparsed.sharingGroup.uuid);
     $('#SharingGroupDescription').text(jsonparsed.sharingGroup.description);
 }
 
