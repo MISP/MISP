@@ -21,7 +21,7 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'user_id',
                 'label' => __('Restrict tagging to user'),
-                'options' => $users,
+                'options' => $isSiteAdmin ? $users : null,
                 'type' => 'dropdown',
                 'requirements' => $isSiteAdmin,
             ],
