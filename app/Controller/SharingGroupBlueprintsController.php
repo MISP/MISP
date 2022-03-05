@@ -51,7 +51,7 @@ class SharingGroupBlueprintsController extends AppController
         $this->set('menuData', array('menuList' => 'globalActions', 'menuItem' => 'editMG'));
         $this->set('id', $id);
         $params = [
-            'fields' => ['rules']
+            'fields' => ['rules', 'name']
         ];
         $this->CRUD->edit($id, $params);
         if ($this->IndexFilter->isRest()) {
