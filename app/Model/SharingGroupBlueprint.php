@@ -137,7 +137,7 @@ class SharingGroupBlueprint extends AppModel
         }
         return [
             'id' => $id,
-            'changed' => !$created && $this->__handleSharingGroupOrgs($existingOrgs, $data['orgs'], $id),
+            'changed' => $this->__handleSharingGroupOrgs($existingOrgs, $data['orgs'], $id) || $created,
             'created' => $created,
             'failed' => $failed
         ];
