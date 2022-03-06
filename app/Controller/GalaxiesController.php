@@ -221,7 +221,9 @@ class GalaxiesController extends AppController
                 }
                 if ($data['submittedjson']['size'] > 0) {
                     $filename = basename($data['submittedjson']['name']);
-                    $file_content = file_get_contents($data['submittedjson']['tmp_name']);
+                    $file = new File($data['submittedjson']['tmp_name']);
+                    $file_content = $file->read();
+                    $file->close();
                     if ((isset($data['submittedjson']['error']) && $data['submittedjson']['error'] == 0) ||
                         (!empty($data['submittedjson']['tmp_name']) && $data['submittedjson']['tmp_name'] != '')
                     ) {

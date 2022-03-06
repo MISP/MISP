@@ -9,7 +9,7 @@ class DecayingModelController extends AppController
     public $paginate = array(
             'limit' => 50,
             'order' => array(
-                    'DecayingModel.ID' => 'desc'
+                'DecayingModel.ID' => 'desc'
             )
     );
 
@@ -48,7 +48,9 @@ class DecayingModelController extends AppController
             }
             if ($data['submittedjson']['size'] > 0) {
                 $filename = basename($data['submittedjson']['name']);
-                $file_content = file_get_contents($data['submittedjson']['tmp_name']);
+                $file = new File($data['submittedjson']['tmp_name']);
+                $file_content = $file->read();
+                $file->close();
                 if ((isset($data['submittedjson']['error']) && $data['submittedjson']['error'] == 0) ||
                     (!empty($data['submittedjson']['tmp_name']) && $data['submittedjson']['tmp_name'] != '')
                 ) {
@@ -64,7 +66,7 @@ class DecayingModelController extends AppController
             if ($json === null) {
                 throw new MethodNotAllowedException(__('Error while decoding JSON'));
             }
-            
+
             unset($json['id']);
             unset($json['uuid']);
             $json['default'] = 0;

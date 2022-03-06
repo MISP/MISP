@@ -1607,6 +1607,7 @@ class EventsController extends AppController
         $this->set('attribute_count', $attributeCount);
         $this->set('object_count', $objectCount);
         $this->set('warnings', $this->Event->generateWarnings($event));
+        $this->set('menuData', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
         $this->__eventViewCommon($user);
     }
 
@@ -3298,26 +3299,6 @@ class EventsController extends AppController
                 throw new Exception(__('Filename not allowed.'));
             }
 
-            App::uses('FileAccessTool', 'Tools');
-            $iocData = FileAccessTool::readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
-
-        // write
-        $attachments_dir = Configure::read('MISP.attachments_dir') ?: (APP . 'files');
-        $rootDir = $attachments_dir . DS . $id . DS;
-            App::uses('Folder', 'Utility');
-            $dir = new Folder($rootDir . 'ioc', true);
-            $destPath = $rootDir . 'ioc';
-            App::uses('File', 'Utility');
-            $iocFile = new File($destPath . DS . $this->data['Event']['submittedioc']['name']);
-            $result = $iocFile->write($iocData);
-            if (!$result) {
-                $this->Flash->error(__('Problem with writing the IoC file. Please report to site admin.'));
-            }
-
-            // open the xml
-            $xmlFilePath = $destPath . DS . $this->data['Event']['submittedioc']['name'];
-            $xmlFileData = FileAccessTool::readFromFile($xmlFilePath, $this->data['Event']['submittedioc']['size']);
-
             // Load event and populate the event data
             $this->Event->id = $id;
             $this->Event->recursive = -1;
@@ -3337,6 +3318,8 @@ class EventsController extends AppController
                 }
             }
             // read XML
+            App::uses('FileAccessTool', 'Tools');
+            $xmlFileData = FileAccessTool::readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
             $event = $this->IOCImport->readXML($xmlFileData, $id, $dist, $this->data['Event']['submittedioc']['name']);
 
             // make some changes to have $saveEvent in the format that is needed to save the event together with its attributes
