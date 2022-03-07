@@ -71,7 +71,7 @@ Once the system is installed you can perform the following steps.
 installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
-  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 moreutils -qy
+  sudo apt-get install curl gcc git gpg-agent make python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 moreutils -qy
 
   # Install MariaDB (a MySQL fork/alternative)
   sudo apt-get install mariadb-client mariadb-server -qy
