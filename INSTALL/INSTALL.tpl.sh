@@ -495,7 +495,7 @@ installMISPonKali () {
   cd ${PATH_TO_MISP}/app/files/scripts/python-stix
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  debug "Instaling maec"
+  debug "Installing maec"
   cd ${PATH_TO_MISP}/app/files/scripts/python-maec
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
@@ -529,7 +529,7 @@ installMISPonKali () {
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install zmq
 
   debug "Installing cake"
-  composer
+  composer74
 
   ${SUDO_WWW} cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 
