@@ -455,9 +455,6 @@ installMISPonKali () {
   debug "Restarting mysql.service"
   sudo systemctl restart mysql.service
 
-  debug "Fixing redis rc script on Kali"
-  fixRedis
-
   debug "git clone, submodule update everything"
   sudo mkdir ${PATH_TO_MISP}
   sudo chown ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
