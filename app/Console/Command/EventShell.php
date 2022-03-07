@@ -439,7 +439,7 @@ class EventShell extends AppShell
         }
 
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
-        $result = $this->Event->publish_sightings($id, $passAlong, $sightingsUuidsToPush);
+        $result = $this->Event->publishSightings($id, $passAlong, $sightingsUuidsToPush);
 
         $count = count($sightingsUuidsToPush);
         $message = $count === 0 ? "All sightings published" : "$count sightings published";
