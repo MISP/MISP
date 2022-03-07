@@ -353,20 +353,20 @@ cd /var/www/htdocs/MISP/app/files/scripts/python-maec
 $SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install mixbox to accommodate the new STIX dependencies:
+# Install mixbox to accommodate the new STIX dependencies:
 cd /var/www/htdocs/MISP/app/files/scripts/mixbox
 $SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install PyMISP
+# Install PyMISP
 cd /var/www/htdocs/MISP/PyMISP
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install support for STIX 2.0
-cd /var/www/htdocs/MISP/cti-python-stix2
+# Install misp-stix
+cd /var/www/htdocs/MISP/app/files/scripts/misp-stix
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install python-magic and pydeep
+# Install python-magic and pydeep
 doas /usr/local/virtualenvs/MISP/bin/pip install python-magic
 doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/kbandla/pydeep.git
 ```
