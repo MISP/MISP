@@ -272,7 +272,11 @@ class Server extends AppModel
             if (isset($event['Event']['Attribute'])) {
                 $originalCount = count($event['Event']['Attribute']);
                 foreach ($event['Event']['Attribute'] as $key => $attribute) {
-                    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
+                    if (
+                        !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                        !empty($pullRules['type_attributes']['NOT']) &&
+                        in_array($attribute['type'], $pullRules['type_attributes']['NOT'])
+                    ) {
                         unset($event['Event']['Attribute'][$key]);
                         continue;
                     }
@@ -300,7 +304,11 @@ class Server extends AppModel
             if (isset($event['Event']['Object'])) {
                 $originalObjectCount = count($event['Event']['Object']);
                 foreach ($event['Event']['Object'] as $i => $object) {
-                    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['template_uuid'], $pullRules['type_objects']['NOT'])) {
+                    if (
+                        !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                        !empty($pullRules['type_objects']['NOT']) &&
+                        in_array($object['template_uuid'], $pullRules['type_objects']['NOT'])
+                    ) {
                         unset($event['Event']['Object'][$i]);
                         continue;
                     }
@@ -315,7 +323,11 @@ class Server extends AppModel
                     if (isset($object['Attribute'])) {
                         $originalAttributeCount = count($object['Attribute']);
                         foreach ($object['Attribute'] as $j => $a) {
-                            if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&  in_array($a['type'], $pullRules['type_attributes']['NOT'])) {
+                            if (
+                                !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                                !empty($pullRules['type_attributes']['NOT']) &&
+                                in_array($a['type'], $pullRules['type_attributes']['NOT'])
+                            ) {
                                 unset($event['Event']['Object'][$i]['Attribute'][$j]);
                                 continue;
                             }
@@ -1282,8 +1294,7 @@ class Server extends AppModel
     {
         $serverSettings = $this->serverSettings;
         $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
-        $serverSettings = $this->readModuleSettings($serverSettings, $moduleTypes);
-        return $serverSettings;
+        return $this->readModuleSettings($serverSettings, $moduleTypes);
     }
 
     /**
@@ -2144,33 +2155,32 @@ class Server extends AppModel
     }
 
     /**
-     * @param string $setting_name
+     * @param string $settingName
      * @return array|false False if setting doesn't exists
      */
-    public function getSettingData($setting_name, $withOptions = true)
+    public function getSettingData($settingName, $withOptions = true)
     {
         // This is just hack to reset opcache, so for next request cache will be reloaded.
         $this->opcacheResetConfig();
 
-        if (strpos($setting_name, 'Plugin.Enrichment') !== false || strpos($setting_name, 'Plugin.Import') !== false || strpos($setting_name, 'Plugin.Export') !== false || strpos($setting_name, 'Plugin.Cortex') !== false) {
+        if (strpos($settingName, 'Plugin.Enrichment') !== false || strpos($settingName, 'Plugin.Import') !== false || strpos($settingName, 'Plugin.Export') !== false || strpos($settingName, 'Plugin.Cortex') !== false) {
             $serverSettings = $this->getCurrentServerSettings();
         } else {
             $serverSettings = $this->serverSettings;
         }
 
         $setting = $serverSettings;
-        $parts = explode('.', $setting_name);
+        $parts = explode('.', $settingName);
         foreach ($parts as $part) {
             if (isset($setting[$part])) {
                 $setting = $setting[$part];
             } else {
-                $setting = false;
-                break;
+                return false;
             }
         }
 
         if (isset($setting['level'])) {
-            $setting['name'] = $setting_name;
+            $setting['name'] = $settingName;
             if ($withOptions && isset($setting['optionsSource'])) {
                 $setting['options'] = $setting['optionsSource']();
             }
@@ -2308,10 +2318,9 @@ class Server extends AppModel
 
         $settingsToSave = array(
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
-            'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
-            'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
-            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth',
-            'AadAuth', 'SimpleBackgroundJobs', 'LinOTPAuth'
+            'Security', 'Session', 'site_admin_debug', 'Plugin', 'CertAuth',
+            'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth', 'AadAuth',
+            'SimpleBackgroundJobs', 'LinOTPAuth'
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
@@ -5537,8 +5546,8 @@ class Server extends AppModel
                 ),
                 'tmpdir' => array(
                     'level' => 1,
-                    'description' => __('Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to /tmp and will be used among others to store certain temporary files extracted from imports during the import process.'),
-                    'value' => '/tmp',
+                    'description' => __('Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to %s and will be used among others to store certain temporary files extracted from imports during the import process.', APP . 'tmp'),
+                    'value' => APP . 'tmp',
                     'test' => 'testForPath',
                     'type' => 'string',
                     'null' => true,
@@ -7259,6 +7268,7 @@ class Server extends AppModel
                     'Enqueue push' => 'MISP/app/Console/cake Server enqueuePush [timestamp] [task_id] [user_id]',
                     'Enqueue feed fetch' => 'MISP/app/Console/cake Server enqueueFeedFetch [timestamp] [user_id] [task_id]',
                     'Enqueue feed cache' => 'MISP/app/Console/cake Server enqueueFeedCache [timestamp] [user_id] [task_id]',
+                    'Update sharing groups based on blueprints' => 'MISP/app/Console/cake Server executeSGBlueprint [blueprint_id|all|attached|detached]'
                 ),
                 'description' => __('If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.'),
                 'header' => __('Automating certain console tasks')

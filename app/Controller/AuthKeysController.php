@@ -105,6 +105,10 @@ class AuthKeysController extends AppController
 
     public function add($user_id = false)
     {
+        $options = $this->IndexFilter->harvestParameters(['user_id']);
+        if (!empty($params['user_id'])) {
+            $user_id = $options['user_id'];
+        }
         $params = [
             'displayOnSuccess' => 'authkey_display',
             'saveModelVariable' => ['authkey_raw'],
@@ -114,6 +118,9 @@ class AuthKeysController extends AppController
                 return $authKey;
             }
         ];
+        if ($user_id === 'me' || $user_id === false) {
+            $user_id = $this->Auth->user('id');
+        }
         $selectConditions = [];
         if (!$this->_isSiteAdmin()) {
             $selectConditions['AND'][] = ['User.id' => $this->Auth->user('id')];

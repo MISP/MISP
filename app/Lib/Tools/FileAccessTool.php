@@ -28,7 +28,7 @@ class FileAccessTool
     public static function createTempFile($dir = null, $prefix = 'MISP')
     {
         if ($dir === null) {
-            $dir = Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
+            $dir = Configure::read('MISP.tmpdir') ?: APP . 'tmp';
         }
         $tempFile = tempnam($dir, $prefix);
         if ($tempFile === false) {

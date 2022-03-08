@@ -306,14 +306,19 @@ class SharingGroup extends AppModel
         return $sharingGroups;
     }
 
-    // Who can create a new sharing group with the elements pre-defined (via REST for example)?
-    // 1. site admins
-    // 2. Sharing group enabled users
-    //    a. as long as they are creator or extender of the SG object
-    // 3. Sync users
-    //    a. as long as they are at least users of the SG (they can circumvent the extend rule to
-    //       avoid situations where no one can create / edit an SG on an instance after a push)
-    public function checkIfAuthorisedToSave($user, $sg)
+    /**
+     * Who can create a new sharing group with the elements pre-defined (via REST for example)?
+     * 1. site admins
+     * 2. Sharing group enabled users
+     *   a. as long as they are creator or extender of the SG object
+     * 3. Sync users
+     *  a. as long as they are at least users of the SG (they can circumvent the extend rule to
+     *     avoid situations where no one can create / edit an SG on an instance after a push)
+     * @param array $user
+     * @param array $sg
+     * @return bool
+     */
+    private function checkIfAuthorisedToSave(array $user, array $sg)
     {
         if (isset($sg[0])) {
             $sg = $sg[0];
@@ -379,7 +384,7 @@ class SharingGroup extends AppModel
     //    a. Belong to the organisation that created the SG
     //    b. Have an organisation entry in the SG with the extend flag set
     // 3. Sync users that have synced the SG to the local instance
-    public function checkIfAuthorisedExtend($user, $id)
+    public function checkIfAuthorisedExtend(array $user, $id)
     {
         if ($user['Role']['perm_site_admin']) {
             return true;
@@ -451,7 +456,13 @@ class SharingGroup extends AppModel
         if (!isset($user['id'])) {
             throw new MethodNotAllowedException('Invalid user.');
         }
+        $sg_org_id = $this->find('first', [
+            'recursive' => -1,
+            'fields' => ['SharingGroup.org_id'],
+            'conditions' => ['SharingGroup.id' => $id]
+        ]);
         $authorized = ($adminCheck && $user['Role']['perm_site_admin']) ||
+            $user['org_id'] === $sg_org_id['SharingGroup']['org_id'] ||
             $this->SharingGroupServer->checkIfAuthorised($id) ||
             $this->SharingGroupOrg->checkIfAuthorised($id, $user['org_id']);
         $this->__sgAuthorisationCache['access'][$adminCheck][$id] = $authorized;
@@ -638,15 +649,16 @@ class SharingGroup extends AppModel
         }
     }
 
-    /*
+    /**
      * Capture a new sharing group, rather than update an existing one
      *
      * @param array $user
      * @param array $sg
-     * @param boolean syncLocal
-     * @return int || false
+     * @param boolean $syncLocal
+     * @return int|false
+     * @throws Exception
      */
-    private function captureSGNew($user, $sg, $syncLocal)
+    private function captureSGNew(array $user, array $sg, $syncLocal)
     {
         // check if current user is contained in the SG and we are in a local sync setup
         if (!empty($sg['uuid'])) {
@@ -660,7 +672,7 @@ class SharingGroup extends AppModel
             $authorisedToSave = $this->checkIfAuthorisedToSave($user, $sg);
         }
         if (!$user['Role']['perm_site_admin'] &&
-            !($user['Role']['perm_sync'] && $syncLocal ) &&
+            !($user['Role']['perm_sync'] && $syncLocal) &&
             !$authorisedToSave
         ) {
             $this->loadLog()->createLogEntry($user, 'error', 'SharingGroup', 0, "Tried to save a sharing group with UUID '{$sg['uuid']}' but the user does not belong to it.");

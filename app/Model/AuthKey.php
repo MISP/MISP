@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
 App::uses('CidrTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 
 /**
@@ -47,19 +48,20 @@ class AuthKey extends AppModel
         }
 
         if (!empty($this->data['AuthKey']['allowed_ips'])) {
-            if (is_string($this->data['AuthKey']['allowed_ips'])) {
-                $this->data['AuthKey']['allowed_ips'] = trim($this->data['AuthKey']['allowed_ips']);
-                if (empty($this->data['AuthKey']['allowed_ips'])) {
-                    $this->data['AuthKey']['allowed_ips'] = [];
+            $allowedIps = &$this->data['AuthKey']['allowed_ips'];
+            if (is_string($allowedIps)) {
+                $allowedIps = trim($allowedIps);
+                if (empty($allowedIps)) {
+                    $allowedIps = [];
                 } else {
-                    $this->data['AuthKey']['allowed_ips'] = explode("\n", $this->data['AuthKey']['allowed_ips']);
-                    $this->data['AuthKey']['allowed_ips'] = array_map('trim', $this->data['AuthKey']['allowed_ips']);
+                    $allowedIps = preg_split('/([\n,])/', $allowedIps);
+                    $allowedIps = array_map('trim', $allowedIps);
                 }
             }
-            if (!is_array($this->data['AuthKey']['allowed_ips'])) {
+            if (!is_array($allowedIps)) {
                 $this->invalidate('allowed_ips', 'Allowed IPs must be array');
             }
-            foreach ($this->data['AuthKey']['allowed_ips'] as $cidr) {
+            foreach ($allowedIps as $cidr) {
                 if (!CidrTool::validate($cidr)) {
                     $this->invalidate('allowed_ips', "$cidr is not valid IP range");
                 }
@@ -91,7 +93,7 @@ class AuthKey extends AppModel
     {
         foreach ($results as $key => $val) {
             if (isset($val['AuthKey']['allowed_ips'])) {
-                $results[$key]['AuthKey']['allowed_ips'] = $this->jsonDecode($val['AuthKey']['allowed_ips']);
+                $results[$key]['AuthKey']['allowed_ips'] = JsonTool::decode($val['AuthKey']['allowed_ips']);
             }
         }
         return $results;
@@ -103,7 +105,7 @@ class AuthKey extends AppModel
             if (empty($this->data['AuthKey']['allowed_ips'])) {
                 $this->data['AuthKey']['allowed_ips'] = null;
             } else {
-                $this->data['AuthKey']['allowed_ips'] = json_encode($this->data['AuthKey']['allowed_ips']);
+                $this->data['AuthKey']['allowed_ips'] = JsonTool::encode($this->data['AuthKey']['allowed_ips']);
             }
         }
         return true;

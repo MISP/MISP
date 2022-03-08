@@ -561,7 +561,7 @@ class ShadowAttribute extends AppModel
         $body = "Hello, \n\n";
         $body .= "A user of another organisation has proposed a change to an event created by you or your organisation. \n\n";
         $body .= 'To view the event in question, follow this link: ' . Configure::read('MISP.baseurl') . '/events/view/' . $id . "\n";
-        $subject =  "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id;
+        $subject =  "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id . ' (uuid: ' . $event['Event']['uuid'] . ')';
         $result = false;
         foreach ($orgMembers as $user) {
             $result = $this->User->sendEmail($user, $body, $body, $subject) or $result;

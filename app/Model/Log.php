@@ -38,6 +38,7 @@ class Log extends AppModel
                     'enable',
                     'enrichment',
                     'error',
+                    'execute_blueprint',
                     'export',
                     'fetchEvent',
                     'file_upload',
@@ -205,13 +206,13 @@ class Log extends AppModel
             return; // Do not store tag changes when new audit is enabled
         }
         if ($user === 'SYSTEM') {
-            $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
+            $user = ['Organisation' => ['name' => 'SYSTEM'], 'email' => 'SYSTEM', 'id' => 0];
         } else if (!is_array($user)) {
             throw new InvalidArgumentException("User must be array or 'SYSTEM' string.");
         }
 
         if (is_array($change)) {
-            $output = array();
+            $output = [];
             foreach ($change as $field => $values) {
                 $isSecret = strpos($field, 'password') !== false || ($field === 'authkey' && Configure::read('Security.do_not_log_authkeys'));
                 if ($isSecret) {
@@ -225,7 +226,7 @@ class Log extends AppModel
         }
 
         $this->create();
-        $result = $this->save(array(
+        $result = $this->save(['Log' => [
             'org' => $user['Organisation']['name'],
             'email' => $user['email'],
             'user_id' => $user['id'],
@@ -234,7 +235,7 @@ class Log extends AppModel
             'change' => $change,
             'model' => $model,
             'model_id' => $modelId,
-        ));
+        ]]);
 
         if (!$result) {
             if ($action === 'request' && !empty(Configure::read('MISP.log_paranoid_skip_db'))) {

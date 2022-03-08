@@ -20,6 +20,13 @@ App::uses('ProcessTool', 'Tools');
  */
 class Event extends AppModel
 {
+    // Event distribution constants
+    const DISTRIBUTION_ORGANISATION = 0,
+        DISTRIBUTION_COMMUNITY = 1,
+        DISTRIBUTION_CONNECTED = 2,
+        DISTRIBUTION_ALL = 3,
+        DISTRIBUTION_SHARING_GROUP = 4;
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
@@ -28,6 +35,7 @@ class Event extends AppModel
             'change' => 'full'),
         'Trim',
         'Containable',
+        'EventWarning'
     );
 
     public $displayField = 'id';
@@ -48,21 +56,39 @@ class Event extends AppModel
         2 => array('desc' => '*Complete* means that the event\'s creation is complete', 'formdesc' => 'The event creator considers the analysis complete')
     );
 
-    public $distributionDescriptions = array(
-        0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
-        1 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Organisations that are part of this MISP community will be able to see the event."),
-        2 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Organisations that are either part of this MISP community or part of a directly connected MISP community will be able to see the event."),
-        3 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
-        4 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This distribution of this event will be handled by the selected sharing group."),
+    public $distributionDescriptions = [
+        self::DISTRIBUTION_ORGANISATION => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "This setting will only allow members of your organisation on this server to see it.",
+        ],
+        self::DISTRIBUTION_COMMUNITY => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "Organisations that are part of this MISP community will be able to see the event.",
+        ],
+        self::DISTRIBUTION_CONNECTED => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "Organisations that are either part of this MISP community or part of a directly connected MISP community will be able to see the event.",
+        ],
+        self::DISTRIBUTION_ALL => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next.",
+        ],
+        self::DISTRIBUTION_SHARING_GROUP => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "This distribution of this event will be handled by the selected sharing group.",
+        ],
+    ];
 
-    );
+    public $distributionLevels = [
+        self::DISTRIBUTION_ORGANISATION => 'Your organisation only',
+        self::DISTRIBUTION_COMMUNITY => 'This community only',
+        self::DISTRIBUTION_CONNECTED => 'Connected communities',
+        self::DISTRIBUTION_ALL => 'All communities',
+        self::DISTRIBUTION_SHARING_GROUP => 'Sharing group',
+    ];
 
     public $analysisLevels = array(
         0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'
-    );
-
-    public $distributionLevels = array(
-        0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities', 4 => 'Sharing group'
     );
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
@@ -1363,7 +1389,11 @@ class Event extends AppModel
         if (empty($data)) {
             return null;
         }
-        return $data;
+        // Old format used by old MISP version
+        if (isset($data['id'])) {
+            return $data;
+        }
+        return $data[0];
     }
 
     public function quickDelete(array $event)
@@ -3141,16 +3171,20 @@ class Event extends AppModel
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob($user, Job::WORKER_EMAIL, 'publish_alert_email', "Event: $id", 'Sending...');
 
+            $args = [
+                'alertemail',
+                $user['id'],
+                $jobId,
+                $id,
+            ];
+            if ($oldpublish !== null) {
+                $args[] = $oldpublish;
+            }
+
             $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::EMAIL_QUEUE,
                 BackgroundJobsTool::CMD_EVENT,
-                [
-                    'alertemail',
-                    $user['id'],
-                    $jobId,
-                    $id,
-                    $oldpublish
-                ],
+                $args,
                 true,
                 $jobId
             );
@@ -3678,20 +3712,9 @@ class Event extends AppModel
             return 'Blocked by event block rules';
         }
         $breakOnDuplicate = !empty($data['Event']['breakOnDuplicate']);
-        $this->Log = ClassRegistry::init('Log');
         if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published']) && empty($data['Event']['EventReport'])) {
-            $this->Log->create();
             $validationErrors['Event'] = 'Received a published event that was empty. Event add process blocked.';
-            $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Event',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'add',
-                    'user_id' => $user['id'],
-                    'title' => $validationErrors['Event'],
-                    'change' => ''
-            ));
+            $this->loadLog()->createLogEntry($user, 'add', 'Event', 0, $validationErrors['Event']);
             return json_encode($validationErrors);
         }
         $this->create();
@@ -3819,17 +3842,8 @@ class Event extends AppModel
                 } else {
                     $st = "disabled";
                 }
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Event',
-                        'model_id' => $saveResult['Event']['id'],
-                        'email' => $user['email'],
-                        'action' => 'add',
-                        'user_id' => $user['id'],
-                        'title' => 'Event pulled from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st,
-                        'change' => ''
-                ));
+                $logTitle = 'Event pulled from Server (' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st;
+                $this->loadLog()->createLogEntry($user, 'add', 'Event', $saveResult['Event']['id'], $logTitle);
             }
             if (!empty($data['Event']['EventTag'])) {
                 $toSave = [];
@@ -3926,7 +3940,7 @@ class Event extends AppModel
                             if (empty($found)) {
                                 $this->EventTag->create();
                                 if ($this->EventTag->save(array('event_id' => $this->id, 'tag_id' => $tag_id))) {
-                                    $this->Log->createLogEntry($user, 'tag', 'Event', $this->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $this->id . ')', 'Event (' . $this->id . ') tagged as Tag (' . $tag_id . ')');
+                                    $this->loadLog()->createLogEntry($user, 'tag', 'Event', $this->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $this->id . ')', 'Event (' . $this->id . ') tagged as Tag (' . $tag_id . ')');
                                 }
                             }
                         }
@@ -4057,7 +4071,6 @@ class Event extends AppModel
             'extends_uuid'
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
-        $this->Log = ClassRegistry::init('Log');
         if ($saveResult) {
             if ($jobId) {
                 /** @var EventLock $eventLock */
@@ -4134,17 +4147,7 @@ class Event extends AppModel
                         // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
                         // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
                         if ($user['Role']['perm_tag_editor']) {
-                            $this->Log->create();
-                            $this->Log->save(array(
-                                'org' => $user['Organisation']['name'],
-                                'model' => 'Event',
-                                'model_id' => $this->id,
-                                'email' => $user['email'],
-                                'action' => 'edit',
-                                'user_id' => $user['id'],
-                                'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the event.',
-                                'change' => ''
-                            ));
+                            $this->loadLog()->createLogEntry($user, 'edit', 'Event', $this->id, "Failed create or attach Tag {$tag['name']} to the event.");
                         }
                     }
                 }
@@ -4157,35 +4160,12 @@ class Event extends AppModel
             if ($changed && (!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
                 // The edited event is from a remote server ?
                 if ($passAlong) {
-                    if ($server['Server']['publish_without_email'] == 0) {
-                        $st = "enabled";
-                    } else {
-                        $st = "disabled";
-                    }
-                    $this->Log->create();
-                    $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Event',
-                        'model_id' => $saveResult['Event']['id'],
-                        'email' => $user['email'],
-                        'action' => 'add',
-                        'user_id' => $user['id'],
-                        'title' => 'Event edited from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st,
-                        'change' => ''
-                    ));
+                    $st = $server['Server']['publish_without_email'] == 0 ? 'enabled' : 'disabled';
+                    $logTitle = 'Event edited from Server (' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st;
                 } else {
-                    $this->Log->create();
-                    $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Event',
-                        'model_id' => $saveResult['Event']['id'],
-                        'email' => $user['email'],
-                        'action' => 'add',
-                        'user_id' => $user['id'],
-                        'title' => 'Event edited (locally)',
-                        'change' => ''
-                    ));
+                    $logTitle = 'Event edited (locally)';
                 }
+                $this->loadLog()->createLogEntry($user, 'add', 'Event', $saveResult['Event']['id'], $logTitle);
                 // do the necessary actions to publish the event (email, upload,...)
                 if ((true != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($id, $user, $existingEvent['Event']['publish_timestamp']);
