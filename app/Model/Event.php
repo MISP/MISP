@@ -100,6 +100,7 @@ class Event extends AppModel
         'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
         'cache' => array('txt', 'CacheExport', 'cache'),
         'context' => array('html', 'ContextExport', 'html'),
+        'context-markdown' => array('txt', 'ContextMarkdownExport', 'md'),
         'count' => array('txt', 'CountExport', 'txt'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'hashes' => array('txt', 'HashesExport', 'txt'),
