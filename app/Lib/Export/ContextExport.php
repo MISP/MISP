@@ -45,7 +45,7 @@ class ContextExport
         App::uses('AttackExport', 'Export');
         $this->__attack_export_tool = new AttackExport();
         $this->__attack_export_tool->handler($options);
-        
+
         return '';
     }
 
