@@ -246,6 +246,7 @@ class ACLComponent extends Component
                     'reportValidationIssuesEvents' => array(),
                     'restoreDeletedEvents' => array(),
                     'restSearch' => array('*'),
+                    'restSearchExport' => array('*'),
                     'runTaxonomyExclusivityCheck' => array('*'),
                     'saveFreeText' => array('perm_add'),
                     'stix' => array('*'),

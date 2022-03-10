@@ -3210,6 +3210,56 @@ class EventsController extends AppController
         return $difference . " " . $periods[$j] . " ago";
     }
 
+    public function restSearchExport($id=null)
+    {
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $returnFormat = empty($this->request->data['Event']['returnFormat']) ? 'json' : $this->request->data['Event']['returnFormat'];
+            $idList = !isset($this->request->data['Event']['id']) ? $id : $this->request->data['Event']['id'];
+            if (!is_array($idList)) {
+                if (is_numeric($idList) || Validation::uuid($idList)) {
+                    $idList = array($idList);
+                } else {
+                    $idList = $this->Event->jsonDecode($idList);
+                }
+            }
+            if (empty($idList)) {
+                throw new NotFoundException(__('Invalid input.'));
+            }
+            $filters = [
+                'eventid' => $idList
+            ];
+
+            $elementCounter = 0;
+            $renderView = false;
+            $validFormat = $this->Event->validFormats[$returnFormat];
+            $responseType = empty($validFormat[0]) ? 'json' : $validFormat[0];
+            $final = $this->Event->restSearch($this->Auth->user(), $returnFormat, $filters, false, false, $elementCounter, $renderView);
+            if (!empty($renderView) && !empty($final)) {
+                $final = json_decode($final->intoString(), true);
+                foreach ($final as $key => $data) {
+                    $this->set($key, $data);
+                }
+                $this->set('renderView', $renderView);
+                $this->render('/Events/eventRestSearchExportResult');
+            } else {
+                $filename = $this->RestSearch->getFilename($filters, 'Event', $responseType);
+                return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+            }
+        } else {
+            if (is_numeric($id)) {
+                $idList = [$id];
+            } else {
+                $idList = json_decode($id, true);
+            }
+            if (empty($idList)) {
+                throw new NotFoundException(__('Invalid input.'));
+            }
+            $this->request->data['Event']['id'] = json_encode($idList);
+            $this->set('exportFormats', array_keys($this->Event->validFormats));
+            $this->render('ajax/eventRestSearchExportConfirmationForm');
+        }
+    }
+
     public function xml($key, $eventid = false, $withAttachment = false, $tags = false, $from = false, $to = false, $last = false)
     {
         $this->_legacyAPIRemap(array(

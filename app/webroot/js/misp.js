@@ -905,6 +905,19 @@ function multiSelectDeleteEvents() {
     }).fail(xhrFailCallback);
 }
 
+function multiSelectExportEvents() {
+    var selected = [];
+    $(".select").each(function() {
+        if ($(this).is(":checked")) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    });
+    openGenericModal(baseurl + "/events/restSearchExport/" + JSON.stringify(selected))
+}
+
 function multiSelectToggleFeeds(on, cache) {
     var selected = [];
     $(".select").each(function() {
