@@ -3,13 +3,9 @@ $modelForForm = 'Event';
 echo $this->element('genericElements/Form/genericForm', [
     'form' => $this->Form,
     'data' => [
-        'title' => __('Export the %s selected events into the selected format', count($idArray)),
+        'title' => __('Export the selected events into the selected format'),
         'model' => $modelForForm,
         'fields' => [
-            [
-                'field' => 'id',
-                'type' => 'hidden',
-            ],
             [
                 'field' => 'returnFormat',
                 'label' => __('RestSearch Export Format'),
@@ -21,6 +17,16 @@ echo $this->element('genericElements/Form/genericForm', [
         ],
         'submit' => [
             'action' => $this->request->params['action'],
+            'ajaxSubmit' => 'redirectToExportResult()'
         ],
     ],
 ]);
+?>
+
+<script>
+    function redirectToExportResult() {
+        var idListStr = '<?= json_encode($idList) ?>'
+        var returnFormat = $('#EventReturnFormat').val()
+        window.location = '<?= $baseurl ?>/events/restSearchExport/' + idListStr + '/' + returnFormat
+    }
+</script>
