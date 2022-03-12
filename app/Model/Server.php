@@ -781,12 +781,34 @@ class Server extends AppModel
     }
 
     /**
+     * @param array $events
+     * @return void
+     */
+    private function removeOlderEvents(array &$events)
+    {
+        $conditions = (count($events) > 10000) ? [] : ['Event.uuid' => array_column($events, 'uuid')];
+        $this->Event = ClassRegistry::init('Event');
+        $localEvents = $this->Event->find('all', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => ['Event.uuid', 'Event.timestamp', 'Event.locked'],
+        ]);
+        $localEvents = array_column(array_column($localEvents, 'Event'), null, 'uuid');
+        foreach ($events as $k => $event) {
+            $uuid = $event['uuid'];
+            if (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) {
+                unset($events[$k]);
+            }
+        }
+    }
+
+    /**
      * Get an array of event UUIDs that are present on the remote server.
      *
      * @param ServerSyncTool $serverSync
      * @param bool $all
-     * @param bool $ignoreFilterRules
-     * @param bool $force
+     * @param bool $ignoreFilterRules Ignore defined server pull rules
+     * @param bool $force If true, returns all events regardless their update timestamp
      * @return array Array of event UUIDs.
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
@@ -816,8 +838,7 @@ class Server extends AppModel
             }
         }
         if (!$force) {
-            $this->Event = ClassRegistry::init('Event');
-            $this->Event->removeOlder($eventArray);
+            $this->removeOlderEvents($eventArray);
         }
         return array_column($eventArray, 'uuid');
     }
@@ -1045,7 +1066,7 @@ class Server extends AppModel
 
         if ($push['canPush'] || $push['canSight']) {
             $this->Sighting = ClassRegistry::init('Sighting');
-            $sightingSuccesses =$this->Sighting->pushSightings($user, $serverSync);
+            $sightingSuccesses = $this->Sighting->pushSightings($user, $serverSync);
         } else {
             $sightingSuccesses = array();
         }

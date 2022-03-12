@@ -4753,30 +4753,6 @@ class Event extends AppModel
         return $xmlArray;
     }
 
-    public function removeOlder(array &$events, $scope = 'events')
-    {
-        $field = $scope === 'sightings' ? 'sighting_timestamp' : 'timestamp';
-        $localEvents = $this->find('all', [
-            'recursive' => -1,
-            'fields' => ['Event.uuid', 'Event.' . $field, 'Event.locked'],
-        ]);
-        $localEvents = array_column(array_column($localEvents, 'Event'), null, 'uuid');
-        foreach ($events as $k => $event) {
-            // remove all events for the sighting sync if the remote is not aware of the new field yet
-            if (!isset($event[$field])) {
-                unset($events[$k]);
-            } else {
-                $uuid = $event['uuid'];
-                if (isset($localEvents[$uuid])
-                      && ($localEvents[$uuid][$field] >= $event[$field]
-                      || ($scope === 'events' && !$localEvents[$uuid]['locked'])))
-                {
-                    unset($events[$k]);
-                }
-            }
-        }
-    }
-
     public function sharingGroupRequired($field)
     {
         if ($this->data[$this->alias]['distribution'] == 4) {
