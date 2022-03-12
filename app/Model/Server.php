@@ -708,7 +708,7 @@ class Server extends AppModel
     /**
      * Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed.
      * @param array $server
-     * @param HttpSocket|null $HttpSocket
+     * @param ServerSyncTool $serverSync
      * @param array $localClusters
      * @param array $conditions
      * @return array
@@ -716,9 +716,8 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPush(array $server, $HttpSocket=null, $localClusters=array(), $conditions=array())
+    private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
     {
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
         $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
         if (!empty($localClusters)) {
@@ -939,7 +938,7 @@ class Server extends AppModel
 
             // sync custom galaxy clusters if user is capable
             if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" == $technique) {
-                $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user, $technique='full');
+                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique='full');
             } else {
                 $clustersSuccesses = array();
             }
@@ -1017,7 +1016,7 @@ class Server extends AppModel
                     $event = $event[0];
                     $event['Event']['locked'] = 1;
                     if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" != $technique) {
-                        $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
+                        $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
                     } else {
                         $clustersSuccesses = array();
                     }
@@ -1123,7 +1122,7 @@ class Server extends AppModel
      * @param  array|bool  $event
      * @return array List of successfully pushed clusters
      */
-    public function syncGalaxyClusters($HttpSocket, array $server, array $user, $technique='full', $event=false)
+    public function syncGalaxyClusters(ServerSyncTool $serverSync, array $server, array $user, $technique='full', $event=false)
     {
         $successes = array();
         if (!$server['Server']['push_galaxy_clusters']) {
@@ -1131,7 +1130,7 @@ class Server extends AppModel
         }
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $this->Event = ClassRegistry::init('Event');
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $HttpSocket = $this->setupHttpSocket($server);
         $clusters = array();
         if ($technique == 'full') {
             $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
@@ -1146,7 +1145,7 @@ class Server extends AppModel
         }
         $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
         try {
-            $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($server, $HttpSocket = $HttpSocket, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
+            $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($serverSync, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
         } catch (Exception $e) {
             $this->logException("Could not get eligible cluster IDs from server #{$server['Server']['id']} for push.", $e);
             return [];
@@ -1164,10 +1163,10 @@ class Server extends AppModel
     {
         $saModel = ClassRegistry::init('ShadowAttribute');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         if ($sa_id == null) {
             if ($event_id == null) {
                 // event_id is null when we are doing a push
+                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
                 try {
                     $ids = $this->getEventIdsFromServer($serverSync, true, true);
                 } catch (Exception $e) {

@@ -840,12 +840,13 @@ class Event extends AppModel
     /**
      * @param array $event
      * @param array $server
+     * @param ServerSyncTool $serverSync
      * @return false|string
      * @throws HttpSocketJsonException
      * @throws JsonException
      * @throws Exception
      */
-    public function uploadEventToServer(array $event, array $server, ServerSyncTool $serverSync = null)
+    public function uploadEventToServer(array $event, array $server, ServerSyncTool $serverSync)
     {
         $this->Server = ClassRegistry::init('Server');
 
@@ -854,10 +855,6 @@ class Event extends AppModel
         }
         if (!$this->checkDistributionForPush($event, $server, 'Event')) {
             return 'The distribution level of this event blocks it from being pushed.';
-        }
-
-        if (!$serverSync) {
-            $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         }
 
         $push = $this->Server->checkVersionCompatibility($server, false, $serverSync);
@@ -4325,8 +4322,6 @@ class Event extends AppModel
         }
         $uploaded = true;
         $failedServers = [];
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
 
         foreach ($servers as $server) {
             if (
@@ -4336,7 +4331,7 @@ class Event extends AppModel
             }
             // Skip servers where the event has come from.
             if ($passAlong != $server['Server']['id']) {
-                $HttpSocket = $syncTool->setupHttpSocket($server);
+                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
                 $params = [
                     'eventid' => $id,
                     'includeAttachments' => true,
@@ -4364,8 +4359,8 @@ class Event extends AppModel
                         'perm_site_admin' => 0
                     )
                 );
-                $this->Server->syncGalaxyClusters($HttpSocket, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
-                $thisUploaded = $this->uploadEventToServer($event, $server);
+                $this->Server->syncGalaxyClusters($serverSync, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
+                $thisUploaded = $this->uploadEventToServer($event, $server, $serverSync);
                 if ($thisUploaded === 'Success') {
                     try {
                         $this->pushSightingsToServer($server, $event); // push sighting by method that check for duplicates
@@ -4374,7 +4369,7 @@ class Event extends AppModel
                     }
                 }
                 if (isset($this->data['ShadowAttribute'])) {
-                    $this->Server->syncProposals($HttpSocket, $server, null, $id, $this);
+                    $this->Server->syncProposals(null, $server, null, $id, $this);
                 }
                 if (!$thisUploaded) {
                     $uploaded = !$uploaded ? $uploaded : $thisUploaded;
