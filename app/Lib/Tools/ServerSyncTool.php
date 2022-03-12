@@ -8,8 +8,9 @@ class ServerSyncTool
         FEATURE_ORG_RULE = 'org_rule',
         FEATURE_FILTER_SIGHTINGS = 'filter_sightings',
         FEATURE_PROPOSALS = 'proposals',
+        FEATURE_PROTECTED_EVENT = 'protected_event',
         FEATURE_POST_TEST = 'post_test',
-        FEATURE_PROTECTED_EVENT = 'protected_event';
+        FEATURE_EDIT_OF_GALAXY_CLUSTER = 'edit_of_galaxy_cluster';
 
     /** @var array */
     private $server;
@@ -162,6 +163,27 @@ class ServerSyncTool
     public function attributeSearch(array $rules)
     {
         return $this->post('/attributes/restSearch.json', $rules);
+    }
+
+    /**
+     * @param array $rules
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function galaxyClusterSearch(array $rules)
+    {
+        return $this->post('/galaxy_clusters/restSearch', $rules);
+    }
+
+    /**
+     * @param int|string $galaxyClusterId Galaxy Cluster ID or UUID
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function fetchGalaxyCluster($galaxyClusterId)
+    {
+        return $this->get('/galaxy_clusters/view/' . $galaxyClusterId);
     }
 
     /**
@@ -332,6 +354,8 @@ class ServerSyncTool
             case self::FEATURE_PROTECTED_EVENT:
                 $version = explode('.', $info['version']);
                 return $version[0] == 2 && $version[1] == 4 && $version[2] > 155;
+            case self::FEATURE_EDIT_OF_GALAXY_CLUSTER:
+                return isset($info['perm_galaxy_editor']);
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }

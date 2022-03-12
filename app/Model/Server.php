@@ -538,7 +538,7 @@ class Server extends AppModel
             if ($jobId) {
                 $job->saveProgress($jobId, $technique === 'pull_relevant_clusters' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
             }
-            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
+            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $serverSync, $technique);
             if ($technique === 'pull_relevant_clusters') {
                 if ($jobId) {
                     $job->saveStatus($jobId, true, 'Pulling complete.');
@@ -649,30 +649,20 @@ class Server extends AppModel
     /**
      * fetchCustomClusterIdsFromServer Fetch custom-published remote clusters' UUIDs and versions
      *
-     * @param array $server
-     * @param HttpSocketExtended|null $HttpSocket
+     * @param ServerSyncTool $serverSync
      * @param array $conditions
      * @return array The list of clusters
      * @throws JsonException|HttpSocketHttpException|HttpSocketJsonException
      */
-    private function fetchCustomClusterIdsFromServer(array $server, HttpSocketExtended $HttpSocket=null, array $conditions=array())
+    private function fetchCustomClusterIdsFromServer(ServerSyncTool $serverSync, array $conditions = [])
     {
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $uri = $url . '/galaxy_clusters/restSearch';
         $filterRules = [
             'published' => 1,
             'minimal' => 1,
             'custom' => 1,
         ];
         $filterRules = array_merge($filterRules, $conditions);
-        $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
-        if (!$response->isOk()) {
-            throw new HttpSocketHttpException($response);
-        }
-
-        $clusterArray = $response->json();
+        $clusterArray = $serverSync->galaxyClusterSearch($filterRules)->json();
         if (isset($clusterArray['response'])) {
             $clusterArray = $clusterArray['response'];
         }
@@ -692,9 +682,9 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPull(array $server, $HttpSocket=null, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
+    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSyncTool, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket, $conditions=$conditions);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSyncTool, $conditions=$conditions);
         if (!empty($clusterArray)) {
             foreach ($clusterArray as $cluster) {
                 if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
@@ -728,7 +718,8 @@ class Server extends AppModel
      */
     public function getElligibleClusterIdsFromServerForPush(array $server, $HttpSocket=null, $localClusters=array(), $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket, $conditions=$conditions);
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
         $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
         if (!empty($localClusters)) {
             foreach ($localClusters as $k => $localCluster) {
@@ -2511,7 +2502,6 @@ class Server extends AppModel
 
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
-        $supportEditOfGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']);
         $canEditGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']) ? $remoteVersion['perm_galaxy_editor'] : false;
         $remoteVersionString = $remoteVersion['version'];
         $remoteVersion = explode('.', $remoteVersion['version']);
@@ -2563,7 +2553,6 @@ class Server extends AppModel
             'canPush' => $canPush,
             'canSight' => $canSight,
             'canEditGalaxyCluster' => $canEditGalaxyCluster,
-            'supportEditOfGalaxyCluster' => $supportEditOfGalaxyCluster,
             'version' => $remoteVersion,
             'protectedMode' => $protectedMode,
         ];
