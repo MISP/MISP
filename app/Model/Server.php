@@ -707,7 +707,6 @@ class Server extends AppModel
 
     /**
      * Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed.
-     * @param array $server
      * @param ServerSyncTool $serverSync
      * @param array $localClusters
      * @param array $conditions

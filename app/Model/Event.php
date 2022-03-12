@@ -4221,8 +4221,15 @@ class Event extends AppModel
 
         $failedServers = [];
         foreach ($servers as $server) {
+            $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
             try {
-                $this->pushSightingsToServer($server, $event, $sightingsUuidsToPush);
+                try {
+                    if ($serverSync->eventExists($event) === false) {
+                        continue; // skip if event not exists on remote server
+                    }
+                } catch (Exception $e) {}
+
+                $this->pushSightingsToServer($serverSync, $event, $sightingsUuidsToPush);
             } catch (Exception $e) {
                 $this->logException("Uploading sightings to server {$server['Server']['id']} failed.", $e);
                 $failedServers[] = $server['Server']['url'];
@@ -4235,25 +4242,16 @@ class Event extends AppModel
     }
 
     /**
-     * @param array $server
+     * @param ServerSyncTool $serverSync
      * @param array $event
      * @param array $sightingsUuidsToPush
      * @throws HttpSocketJsonException
-     * @throws JsonException
      * @throws Exception
      */
-    private function pushSightingsToServer(array $server, array $event, array $sightingsUuidsToPush = [])
+    private function pushSightingsToServer(ServerSyncTool $serverSync, array $event, array $sightingsUuidsToPush = [])
     {
-        App::uses('ServerSyncTool', 'Tools');
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-        try {
-            if ($serverSync->eventExists($event) === false) {
-                return; // skip if event not exists on remote server
-            }
-        } catch (Exception $e) {}
-
         $fakeSyncUser = [
-            'org_id' => $server['Server']['remote_org_id'],
+            'org_id' => $serverSync->server()['Server']['remote_org_id'],
             'Role' => [
                 'perm_site_admin' => 0,
             ],
@@ -4363,7 +4361,7 @@ class Event extends AppModel
                 $thisUploaded = $this->uploadEventToServer($event, $server, $serverSync);
                 if ($thisUploaded === 'Success') {
                     try {
-                        $this->pushSightingsToServer($server, $event); // push sighting by method that check for duplicates
+                        $this->pushSightingsToServer($serverSync, $event); // push sighting by method that check for duplicates
                     } catch (Exception $e) {
                         $this->logException("Uploading sightings to server {$server['Server']['id']} failed.", $e);
                     }
