@@ -239,8 +239,10 @@ class Server extends AppModel
      * @param array $event
      * @param array $server
      * @param array $user
+     * @param array $pullRules
+     * @param bool $pullRulesEmptiedEvent
      */
-    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules, bool &$pullRulesEmptiedEvent=false)
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules, bool &$pullRulesEmptiedEvent = false)
     {
         // we have an Event array
         // The event came from a pull, so it should be locked.
@@ -269,14 +271,12 @@ class Server extends AppModel
                 }
             }
 
+            $typeFilteringEnabled = !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                !empty($pullRules['type_attributes']['NOT']);
             if (isset($event['Event']['Attribute'])) {
                 $originalCount = count($event['Event']['Attribute']);
                 foreach ($event['Event']['Attribute'] as $key => $attribute) {
-                    if (
-                        !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
-                        !empty($pullRules['type_attributes']['NOT']) &&
-                        in_array($attribute['type'], $pullRules['type_attributes']['NOT'])
-                    ) {
+                    if ($typeFilteringEnabled && in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
                         unset($event['Event']['Attribute'][$key]);
                         continue;
                     }
@@ -297,7 +297,7 @@ class Server extends AppModel
                         }
                     }
                 }
-                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalCount > 0 && count($event['Event']['Attribute']) == 0) {
+                if ($typeFilteringEnabled && $originalCount > 0 && empty($event['Event']['Attribute'])) {
                     $pullRulesEmptiedEvent = true;
                 }
             }
@@ -323,11 +323,7 @@ class Server extends AppModel
                     if (isset($object['Attribute'])) {
                         $originalAttributeCount = count($object['Attribute']);
                         foreach ($object['Attribute'] as $j => $a) {
-                            if (
-                                !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
-                                !empty($pullRules['type_attributes']['NOT']) &&
-                                in_array($a['type'], $pullRules['type_attributes']['NOT'])
-                            ) {
+                            if ($typeFilteringEnabled && in_array($a['type'], $pullRules['type_attributes']['NOT'])) {
                                 unset($event['Event']['Object'][$i]['Attribute'][$j]);
                                 continue;
                             }
@@ -348,13 +344,13 @@ class Server extends AppModel
                                 }
                             }
                         }
-                        if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
+                        if ($typeFilteringEnabled && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
                             unset($event['Event']['Object'][$i]); // Object is empty, get rid of it
                             $pullRulesEmptiedEvent = true;
                         }
                     }
                 }
-                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalObjectCount > 0 && count($event['Event']['Object']) == 0) {
+                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalObjectCount > 0 && empty($event['Event']['Object'])) {
                     $pullRulesEmptiedEvent = true;
                 }
             }
