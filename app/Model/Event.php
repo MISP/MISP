@@ -301,6 +301,9 @@ class Event extends AppModel
 
     private $assetCache = [];
 
+    /** @var array|null */
+    private $eventBlockRule;
+
     public function beforeDelete($cascade = true)
     {
         // blocklist the event UUID if the feature is enabled
@@ -3433,17 +3436,18 @@ class Event extends AppModel
         return $attributes;
     }
 
-    public function checkEventBlockRules($event)
+    /**
+     * @param array $event
+     * @return bool
+     */
+    private function checkEventBlockRules(array $event)
     {
-        if (!isset($this->AdminSetting)) {
+        if (!isset($this->eventBlockRule)) {
             $this->AdminSetting = ClassRegistry::init('AdminSetting');
+            $setting = $this->AdminSetting->getSetting('eventBlockRule');
+            $this->eventBlockRule = $setting ? json_decode($setting, true) : false;
         }
-        $setting = $this->AdminSetting->getSetting('eventBlockRule');
-        if (empty($setting)) {
-            return true;
-        }
-        $rules = json_decode($setting, true);
-        if (empty($rules)) {
+        if (empty($this->eventBlockRule)) {
             return true;
         }
         if (!empty($rules['tags'])) {
@@ -3544,7 +3548,9 @@ class Event extends AppModel
     public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false && isset($data['Event']['uuid'])) {
-            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            if (!isset($this->EventBlocklist)) {
+                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            }
             if ($this->EventBlocklist->isBlocked($data['Event']['uuid'])) {
                 return 'Blocked by blocklist';
             }
