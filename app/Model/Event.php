@@ -4550,7 +4550,7 @@ class Event extends AppModel
             );
         }
 
-        return $this->publish_sightings($id, $passAlong, $sightingUuids);
+        return $this->publishSightings($id, $passAlong, $sightingUuids);
     }
 
     public function publishRouter($id, $passAlong = null, $user)
@@ -4579,7 +4579,14 @@ class Event extends AppModel
         return $this->publish($id, $passAlong);
     }
 
-    public function publish_sightings($id, $passAlong = null, array $sightingsUuidsToPush = [])
+    /**
+     * @param int|string $id Event ID or UUID
+     * @param $passAlong
+     * @param array $sightingsUuidsToPush
+     * @return array|bool
+     * @throws Exception
+     */
+    public function publishSightings($id, $passAlong = null, array $sightingsUuidsToPush = [])
     {
         if (is_numeric($id)) {
             $condition = array('Event.id' => $id);
