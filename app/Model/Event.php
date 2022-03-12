@@ -17,6 +17,7 @@ App::uses('ProcessTool', 'Tools');
  * @property ThreatLevel $ThreatLevel
  * @property Sighting $Sighting
  * @property Organisation $Org
+ * @property Organisation $Orgc
  * @property CryptographicKey $CryptographicKey
  */
 class Event extends AppModel

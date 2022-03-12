@@ -222,19 +222,6 @@ class Server extends AppModel
         throw new InvalidArgumentException("Invalid pull technique `$technique`.");
     }
 
-    private function __checkIfEventIsBlockedBeforePull($event)
-    {
-        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-            if (!isset($this->EventBlocklist)) {
-                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-            }
-            if ($this->EventBlocklist->isBlocked($event['Event']['uuid'])) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * @param array $event
      * @param array $server
@@ -462,7 +449,18 @@ class Server extends AppModel
         }
     }
 
-    private function __pullEvent($eventId, &$successes, &$fails, Event $eventModel, ServerSyncTool $serverSync, $user, $jobId, $force = false)
+    /**
+     * @param int|string $eventId Event ID or UUID
+     * @param array $successes
+     * @param array $fails
+     * @param Event $eventModel
+     * @param ServerSyncTool $serverSync
+     * @param array $user
+     * @param int $jobId
+     * @param bool $force
+     * @return bool
+     */
+    private function __pullEvent($eventId, array &$successes, array &$fails, Event $eventModel, ServerSyncTool $serverSync, $user, $jobId, $force = false)
     {
         $params = [
             'deleted' => [0, 1],
@@ -485,23 +483,16 @@ class Server extends AppModel
             return false;
         }
 
-        if (!empty($event)) {
-            if ($this->__checkIfEventIsBlockedBeforePull($event)) {
-                return false;
+        $pullRulesEmptiedEvent = false;
+        $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules(), $pullRulesEmptiedEvent);
+
+        if (!$this->__checkIfEventSaveAble($event)) {
+            if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
+                $fails[$eventId] = __('Empty event detected.');
             }
-            $pullRulesEmptiedEvent = false;
-            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules(), $pullRulesEmptiedEvent);
-            if (!$this->__checkIfEventSaveAble($event)) {
-                if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
-                    $fails[$eventId] = __('Empty event detected.');
-                }
-            } else {
-                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $headers, $body);
-            }
-        } else {
-            // error
-            $fails[$eventId] = __('failed downloading the event');
+            return false;
         }
+        $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $headers, $body);
         return true;
     }
 
@@ -575,8 +566,8 @@ class Server extends AppModel
 
         /** @var Event $eventModel */
         $eventModel = ClassRegistry::init('Event');
-        $successes = array();
-        $fails = array();
+        $successes = [];
+        $fails = [];
         // now process the $eventIds to pull each of the events sequentially
         if (!empty($eventIds)) {
             // download each event
@@ -618,7 +609,7 @@ class Server extends AppModel
             count($fails)
         );
         $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email, $change);
-        return array($successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters);
+        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters];
     }
 
     public function filterRuleToParameter($filter_rules)
