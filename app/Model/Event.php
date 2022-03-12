@@ -944,10 +944,12 @@ class Event extends AppModel
     /**
      * @param array $event
      * @param array $server
-     * @param HttpSocket $HttpSocket
      * @return false|string
+     * @throws HttpSocketJsonException
+     * @throws JsonException
+     * @throws Exception
      */
-    public function uploadEventToServer(array $event, array $server, HttpSocket $HttpSocket)
+    public function uploadEventToServer(array $event, array $server)
     {
         $this->Server = ClassRegistry::init('Server');
 
@@ -958,7 +960,9 @@ class Event extends AppModel
             return 'The distribution level of this event blocks it from being pushed.';
         }
 
-        $push = $this->Server->checkVersionCompatibility($server, false);
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
+        $push = $this->Server->checkVersionCompatibility($server, false, $serverSync);
         if (empty($push['canPush'])) {
             return 'The remote user is not a sync user - the upload of the event has been blocked.';
         }
@@ -968,12 +972,18 @@ class Event extends AppModel
         }
 
         try {
-            $this->restfulEventToServer($event, $server, $HttpSocket);
+            // TODO: Replace by __updateEventForSync method in future
+            $event = $this->__prepareForPushToServer($event, $server);
+            if (is_numeric($event)) {
+                throw new Exception("This should never happen.");
+            }
+
+            $serverSync->pushEvent($event)->json();
         } catch (Exception $e) {
             $errorMessage = $e->getMessage();
-            if ($e instanceof HttpException && $e->getCode() == 403) {
+            if ($e instanceof HttpSocketHttpException && $e->getCode() === 403) {
                 // Do not log errors that are expected
-                $errorJson = json_decode($errorMessage, true);
+                $errorJson = $e->getResponse()->json();
                 if (isset($errorJson['errors'])) {
                     $errorMessage = $errorJson['errors'];
                     if ($errorMessage === 'Event could not be saved: Event in the request not newer than the local copy.') {
@@ -1033,84 +1043,6 @@ class Event extends AppModel
             return 403;
         }
         return $event;
-    }
-
-    private function __getLastUrlPathComponent($urlPath)
-    {
-        if (!empty($urlPath)) {
-            $pieces = explode('/', $urlPath);
-            return '/' . end($pieces);
-        }
-        return '';
-    }
-
-    /**
-     * Uploads the event and the associated Attributes to another Server.
-     * @param array $event
-     * @param array $server
-     * @param HttpSocket $HttpSocket
-     * @return array
-     * @throws JsonException
-     */
-    private function restfulEventToServer(array $event, array $server, HttpSocket $HttpSocket)
-    {
-        // TODO: Replace by __updateEventForSync method in future
-        $event = $this->__prepareForPushToServer($event, $server);
-        if (is_numeric($event)) {
-            throw new Exception("This should never happen.");
-        }
-        $request = $this->setupSyncRequest($server);
-        $serverUrl = $server['Server']['url'];
-
-        $exists = false;
-        try {
-            // Check if event exists on remote server to use proper endpoint
-            $response = $HttpSocket->head("$serverUrl/events/view/{$event['Event']['uuid']}", [], $request);
-            if ($response->code == '200') {
-                $exists = true;
-            }
-        } catch (Exception $e) {
-            $this->logException("Could not check if event {$event['Event']['uuid']} exists on remote server {$server['Server']['id']}", $e, LOG_NOTICE);
-        }
-
-        $data = json_encode($event);
-        if (!empty(Configure::read('Security.sync_audit'))) {
-            $pushLogEntry = sprintf(
-                "==============================================================\n\n[%s] Pushing Event #%d to Server #%d:\n\n%s\n\n",
-                date("Y-m-d H:i:s"),
-                $event['Event']['id'],
-                $server['Server']['id'],
-                $data
-            );
-            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
-        }
-
-        if ($exists) {
-            $url = "$serverUrl/events/edit/{$event['Event']['uuid']}/metadata:1";
-        } else {
-            $url = "$serverUrl/events/add/metadata:1";
-        }
-
-        $response = $HttpSocket->post($url, $data, $request);
-
-        // Maybe the check if event exists was not correct, try to create a new event
-        if ($exists && $response->code == '404') {
-            $url = "$serverUrl/events/add/metadata:1";
-            $response = $HttpSocket->post($url, $data, $request);
-        }
-
-        // There is bug in MISP API, that returns response code 404 with Location if event already exists
-        else if (!$exists && $response->code == '404' && $response->getHeader('Location')) {
-            $lastPart = $this->__getLastUrlPathComponent($response->getHeader('Location'));
-            $url = "$serverUrl/events/edit/$lastPart/metadata:1";
-            $response = $HttpSocket->post($url, $data, $request);
-        }
-
-        if (!$response->isOk()) {
-            throw new HttpException($response->body, $response->code);
-        }
-
-        return $this->jsonDecode($response->body);
     }
 
     private function __rearrangeEventStructureForSync($event)
@@ -4491,7 +4423,7 @@ class Event extends AppModel
                     )
                 );
                 $this->Server->syncGalaxyClusters($HttpSocket, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
-                $thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket);
+                $thisUploaded = $this->uploadEventToServer($event, $server);
                 if ($thisUploaded === 'Success') {
                     try {
                         $this->pushSightingsToServer($server, $event); // push sighting by method that check for duplicates

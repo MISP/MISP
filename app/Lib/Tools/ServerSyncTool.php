@@ -42,7 +42,7 @@ class ServerSyncTool
     }
 
     /**
-     * Check if event exists on remote server.
+     * Check if event exists on remote server by event UUID.
      * @param array $event
      * @return bool
      * @throws Exception
@@ -83,6 +83,70 @@ class ServerSyncTool
         $url = "/events/view/$eventId";
         $url .= $this->createParams($params);
         return $this->get($url);
+    }
+
+    /**
+     * @param array $event
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function pushEvent(array $event)
+    {
+        try {
+            // Check if event exists on remote server to use proper endpoint
+            $exists = $this->eventExists($event);
+        } catch (Exception $e) {
+            // In case of failure consider that event doesn't exists
+            $exists = false;
+        }
+
+        try {
+            return $exists ? $this->updateEvent($event) : $this->createEvent($event);
+        } catch (HttpSocketHttpException $e) {
+            if ($e->getCode() === 404) {
+                // Maybe the check if event exists was not correct, try to create a new event
+                if ($exists) {
+                    return $this->createEvent($event);
+
+                // There is bug in MISP API, that returns response code 404 with Location if event already exists
+                } else if ($e->getResponse()->getHeader('Location')) {
+                    $urlPath = $e->getResponse()->getHeader('Location');
+                    $pieces = explode('/', $urlPath);
+                    $lastPart = end($pieces);
+                    return $this->updateEvent($event, $lastPart);
+                }
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * @param array $event
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function createEvent(array $event)
+    {
+        $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
+        return $this->post("/events/add/metadata:1", $event, $logMessage);
+    }
+
+    /**
+     * @param array $event
+     * @param int|string|null Event ID or UUID that should be updated. If not provieded, UUID from $event will be used
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function updateEvent(array $event, $eventId = null)
+    {
+        if ($eventId === null) {
+            $eventId = $event['Event']['uuid'];
+        }
+        $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
+        return $this->post("/events/edit/$eventId/metadata:1", $event, $logMessage);
     }
 
     /**
@@ -140,7 +204,7 @@ class ServerSyncTool
             }
         }
 
-        $logMessage = "Pushing Sightings for Event #{$eventUuid} to Server #{$this->server['Server']['id']}";
+        $logMessage = "Pushing Sightings for Event #{$eventUuid} to Server #{$this->serverId()}";
         $this->post('/sightings/bulkSaveSightings/' . $eventUuid, $sightings, $logMessage);
     }
 
@@ -310,7 +374,7 @@ class ServerSyncTool
                 $logMessage,
                 $data
             );
-            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $this->server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND | LOCK_EX);
+            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $this->serverId() . '.log', $pushLogEntry, FILE_APPEND | LOCK_EX);
         }
 
         $request = $this->request;
