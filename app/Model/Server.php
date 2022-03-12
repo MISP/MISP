@@ -988,7 +988,7 @@ class Server extends AppModel
                     'fields' => array('Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
             );
             $eventIds = $this->Event->find('all', $findParams);
-            $eventUUIDsFiltered = $this->getEventIdsForPush($server, $HttpSocket, $eventIds);
+            $eventUUIDsFiltered = $this->getEventIdsForPush($server, $serverSync, $eventIds);
             if (!empty($eventUUIDsFiltered)) {
                 $eventCount = count($eventUUIDsFiltered);
                 // now process the $eventIds to push each of the events sequentially
@@ -1021,7 +1021,7 @@ class Server extends AppModel
                     } else {
                         $clustersSuccesses = array();
                     }
-                    $result = $this->Event->uploadEventToServer($event, $server, $HttpSocket);
+                    $result = $this->Event->uploadEventToServer($event, $server, $serverSync);
                     if ('Success' === $result) {
                         $successes[] = $event['Event']['id'];
                     } else {
@@ -1082,23 +1082,35 @@ class Server extends AppModel
         return true;
     }
 
-    public function getEventIdsForPush(array $server, HttpSocket $HttpSocket, array $eventIds)
+    /**
+     * @param array $server
+     * @param ServerSyncTool $serverSync
+     * @param array $events
+     * @return array|false
+     */
+    private function getEventIdsForPush(array $server, ServerSyncTool $serverSync, array $events)
     {
-        foreach ($eventIds as $k => $event) {
-            if (empty($this->eventFilterPushableServers($event, array($server)))) {
-                unset($eventIds[$k]);
+        $request = [];
+        foreach ($events as $event) {
+            if (empty($this->eventFilterPushableServers($event, [$server]))) {
                 continue;
             }
-            unset($eventIds[$k]['Event']['id']);
+            $request[] = ['Event' => [
+                'uuid' => $event['Event']['uuid'],
+                'timestamp' => $event['Event']['timestamp'],
+            ]];
         }
-        $request = $this->setupSyncRequest($server);
-        $data = json_encode($eventIds);
-        $uri = $server['Server']['url'] . '/events/filterEventIdsForPush';
-        $response = $HttpSocket->post($uri, $data, $request);
-        if ($response->code == '200') {
-            return $this->jsonDecode($response->body());
+
+        if (empty($request)) {
+            return [];
         }
-        return false;
+
+        try {
+            return $serverSync->filterEventIdsForPush($request)->json();
+        } catch (Exception $e) {
+            $this->logException("Could not filter events for push when pushing to server {$serverSync->serverId()}", $e);
+            return false;
+        }
     }
 
     /**

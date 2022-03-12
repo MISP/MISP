@@ -91,6 +91,17 @@ class ServerSyncTool
     }
 
     /**
+     * @param array $events
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function filterEventIdsForPush(array $events)
+    {
+        return $this->post('/events/filterEventIdsForPush', $events);
+    }
+
+    /**
      * @param array $event
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException

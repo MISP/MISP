@@ -845,7 +845,7 @@ class Event extends AppModel
      * @throws JsonException
      * @throws Exception
      */
-    public function uploadEventToServer(array $event, array $server)
+    public function uploadEventToServer(array $event, array $server, ServerSyncTool $serverSync = null)
     {
         $this->Server = ClassRegistry::init('Server');
 
@@ -856,7 +856,9 @@ class Event extends AppModel
             return 'The distribution level of this event blocks it from being pushed.';
         }
 
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        if (!$serverSync) {
+            $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        }
 
         $push = $this->Server->checkVersionCompatibility($server, false, $serverSync);
         if (empty($push['canPush'])) {
