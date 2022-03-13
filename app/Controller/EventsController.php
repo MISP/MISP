@@ -2593,6 +2593,24 @@ class EventsController extends AppController
                 $this->redirect(array('controller' => 'events', 'action' => 'index'));
             }
         }
+        if (
+            !empty($event['Event']['protected']) &&
+            $this->Auth->user('Role')['perm_sync'] &&
+            !$this->Auth->user('Role')['perm_site_admin']
+        ) {
+            $pgp_signature = $this->request->header('x-pgp-signature');
+            $raw_data = $this->request->input();
+            if (
+                !$this->CryptographicKey->validateProtectedEvent(
+                    $raw_data,
+                    $this->Auth->user(),
+                    $pgp_signature,
+                    $this->request->data
+                )
+            ) {
+                throw new MethodNotAllowedException(__('Protected event failed signature validation.'));
+            }
+        }
         if (!$this->_isRest()) {
             $this->Event->insertLock($this->Auth->user(), $id);
         }
