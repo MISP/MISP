@@ -2573,6 +2573,7 @@ class Server extends AppModel
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
         $supportEditOfGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']);
         $canEditGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']) ? $remoteVersion['perm_galaxy_editor'] : false;
+        $remoteVersionString = $remoteVersion['version'];
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
             $message = __('Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.');
@@ -2580,13 +2581,7 @@ class Server extends AppModel
             return $message;
         }
         $localVersion = $this->checkMISPVersion();
-        $localVersionString = sprintf(
-            '%s.%s.%s',
-            $localVersion['major'],
-            $localVersion['minor'],
-            $localVersion['hotfix']
-        );
-        $protectedMode = version_compare($localVersionString, '2.4.156') >= 0;
+        $protectedMode = version_compare($remoteVersionString, '2.4.156') >= 0;
         $response = false;
         $success = false;
         $issueLevel = "warning";
