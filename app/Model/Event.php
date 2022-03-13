@@ -1086,7 +1086,6 @@ class Event extends AppModel
             }
             $request = $this->__signEvent($data, $server, $request, $HttpSocket);
         }
-        throw new Exception();
 
         if (!empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
@@ -1103,7 +1102,6 @@ class Event extends AppModel
         } else {
             $url = "$serverUrl/events/add/metadata:1";
         }
-
         $response = $HttpSocket->post($url, $data, $request);
 
         // Maybe the check if event exists was not correct, try to create a new event
@@ -3950,7 +3948,7 @@ class Event extends AppModel
 
             // capture new keys, update existing, remove those no longer in the pushed data
             if (!empty($data['Event']['CryptographicKey'])) {
-                $this->CryptoGraphicKey->captureCryptographicKeyUpdate($data['Event']['CryptographicKey'], $data['Event']['id'], 'Event');
+                $this->CryptographicKey->captureCryptographicKeyUpdate($data['Event']['CryptographicKey'], $data['Event']['id'], 'Event');
             }
 
             // zeroq: check if sightings are attached and add to event
