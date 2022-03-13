@@ -2580,6 +2580,13 @@ class Server extends AppModel
             return $message;
         }
         $localVersion = $this->checkMISPVersion();
+        $localVersionString = sprintf(
+            '%s.%s.%s',
+            $localVersion['major'],
+            $localVersion['minor'],
+            $localVersion['hotfix']
+        );
+        $protectedMode = version_compare($localVersionString, '2.4.156') >= 0;
         $response = false;
         $success = false;
         $issueLevel = "warning";
@@ -2623,6 +2630,7 @@ class Server extends AppModel
             'canEditGalaxyCluster' => $canEditGalaxyCluster,
             'supportEditOfGalaxyCluster' => $supportEditOfGalaxyCluster,
             'version' => $remoteVersion,
+            'protectedMode' => $protectedMode,
         ];
     }
 
