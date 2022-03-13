@@ -10,12 +10,21 @@
     echo $this->element(
         'genericElements/SingleViews/single_view',
         [
-            'title' => 'Cerebrate view',
+            'title' => ($extended ? '[' . __('Extended view') . '] ' : '') . h(nl2br($event['Event']['info'])),
             'data' => $event,
             'fields' => [
                 [
                     'key' => __('Event ID'),
-                    'path' => 'Event.id'
+                    'path' => 'Event.id',
+                    'action_buttons' => [
+                        [
+                            'url' => '#',
+                            'icon' => 'lock',
+                            'style' => 'color:red; font-size:15px;padding-left:2px',
+                            'title' => __('This is a protected event'),
+                            'requirement' => !empty($event['Event']['protected'])
+                        ]
+                    ]
                 ],
                 [
                     'key' => 'UUID',
@@ -91,6 +100,17 @@
                     'requirement' => isset($event['User']['email'])
                 ],
                 [
+                    'key' => __('Protected Event'),
+                    'path' => 'CryptographicKey',
+                    'event_path' => 'Event',
+                    'owner' => (
+                        (int)$me['org_id'] === (int)$event['Event']['orgc_id'] &&
+                        (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id') &&
+                        !$event['Event']['locked']
+                    ),
+                    'type' => 'protectedEvent'
+                ],
+                [
                     'key' => __('Tags'),
                     'type' => 'custom',
                     'function' => function($data) use($event, $isSiteAdmin, $mayModify, $me, $missingTaxonomies, $tagConflicts) {
@@ -136,12 +156,12 @@
                 ],
                 [
                     'key' => __('Warnings'),
-                    'key_class' => !empty($warnings) ? 'background-red bold' : '',
-                    'class' => !empty($warnings) ? 'background-red bold' : '',
+                    'key_class' => !empty($event['warnings']) ? 'background-red bold' : '',
+                    'class' => !empty($event['warnings']) ? 'background-red bold' : '',
                      'green',
                     'type' => 'warnings',
-                    'warnings' => $warnings,
-                    'requirement' => !empty($warnings) && ($me['org_id'] === $event['Event']['orgc_id'] || !empty($me['Role']['perm_site_admin']))
+                    'warnings' => $event['warnings'],
+                    'requirement' => !empty($event['warnings']) && ($me['org_id'] === $event['Event']['orgc_id'] || !empty($me['Role']['perm_site_admin']))
                 ],
                 [
                     'key' => __('Info'),
