@@ -3478,9 +3478,10 @@ class Event extends AppModel
         if (isset($event['distribution']) && $event['distribution'] == 4) {
             $event = $this->captureSGForElement($event, $user, $server);
         }
+
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $k => $a) {
-                unset($event['Attribute']['id']);
+                unset($event['Attribute'][$k]['id']);
                 if (isset($a['distribution']) && $a['distribution'] == 4) {
                     $event['Attribute'][$k] = $this->captureSGForElement($a, $user, $server);
                 }
@@ -3945,6 +3946,12 @@ class Event extends AppModel
                     $result = $this->EventReport->captureReport($user, $report, $this->id);
                 }
             }
+
+            // capture new keys, update existing, remove those no longer in the pushed data
+            if (!empty($data['Event']['CryptographicKey'])) {
+                $this->captureCryptographicKeyUpdate($data['Event']['CryptographicKey'], $data['Event']['id'], 'Event');
+            }
+
             // zeroq: check if sightings are attached and add to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
                 $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
