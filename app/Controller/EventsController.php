@@ -1807,6 +1807,7 @@ class EventsController extends AppController
         }
 
         if ($this->_isRest()) {
+            $this->RestResponse->signContents = true;
             return $this->__restResponse($event);
         }
 
@@ -2093,10 +2094,13 @@ class EventsController extends AppController
                 !$this->Auth->user('Role')['perm_site_admin']
             ) {
                 $pgp_signature = $this->request->header('x-pgp-signature');
+                if (empty($pgp_signature)) {
+                    throw new MethodNotAllowedException(__('Protected event failed signature validation as no key was provided.'));
+                }
                 $raw_data = $this->request->input();
                 if (
-                    !$this->CryptographicKey->validateProtectedEvent(
-                        $raw_data,
+                    !$this->Event->CryptographicKey->validateProtectedEvent(
+                        trim($raw_data),
                         $this->Auth->user(),
                         $pgp_signature,
                         $this->request->data
@@ -2599,9 +2603,12 @@ class EventsController extends AppController
             !$this->Auth->user('Role')['perm_site_admin']
         ) {
             $pgp_signature = $this->request->header('x-pgp-signature');
+            if (empty($pgp_signature)) {
+                throw new MethodNotAllowedException(__('Protected event failed signature validation as no key was provided.'));
+            }
             $raw_data = $this->request->input();
             if (
-                !$this->CryptographicKey->validateProtectedEvent(
+                !$this->Event->CryptographicKey->validateProtectedEvent(
                     $raw_data,
                     $this->Auth->user(),
                     $pgp_signature,
@@ -6031,7 +6038,7 @@ class EventsController extends AppController
 
         if ($this->request->is('json')) {
             App::uses('JSONConverterTool', 'Tools');
-            if ($this->RestResponse->isAutomaticTool()) {
+            if ($this->RestResponse->isAutomaticTool() && empty($event['Event']['protected'])) {
                 foreach (JSONConverterTool::streamConvert($event) as $part) {
                     $tmpFile->write($part);
                 }
