@@ -177,4 +177,55 @@ class CryptographicKey extends AppModel
         $this->Log->createLogEntry($user['email'], 'add', 'Event', $server['Server']['id'], $message);
         return false;
     }
+
+    public function captureCryptographicKeyUpdate($cryptographicKeys, $parent_id, $type)
+    {
+        $existingKeys = $this->find('first', [
+            'recursive' => -1,
+            'fields' => 1,
+            'conditions' => [
+                'parent_type' => $cryptographicKey['type'],
+                'parent_id' => $cryptographicKey['parent_id']
+            ],
+            'fields' => [
+                'id',
+                'type',
+                'parent_type',
+                'parent_id',
+                'revoked',
+                'fingerprint'
+            ]
+        ]);
+        $toAdd = [];
+        $toRemove = [];
+        foreach ($existingKeys as $k => $existingKey) {
+            foreach ($cryptographicKeys as $k2 => $cryptographicKey) {
+                if ($existingKey['CryptographicKey']['fingerprint'] === $cryptographicKey['fingerprint']) {
+                    $found = true;
+                    if ($cryptographicKey['revoked'] && !$existingKey['CryptographicKey']['revoked']) {
+                        $existingKey['CryptographicKey']['revoked'] = 1;
+                        $this->save($existingKey['CryptographicKey']);
+                    }
+                    unset($cryptographicKeys[$k2]);
+                    continue 2;
+                }
+            }
+            $toRemove[] = $existingKey['CryptographicKey']['id'];
+        }
+        foreach ($cryptographicKeys as $cryptographicKey) {
+            $this->create();
+            $this->save(
+                [
+                    'uuid' => $cryptoGraphicKey['uuid'],
+                    'key_data' => $cryptoGraphicKey['key_data'],
+                    'fingerprint' => $cryptoGraphicKey['fingerprint'],
+                    'revoked' => $cryptoGraphicKey['revoked'],
+                    'parent_type' => $cryptoGraphicKey['parent_type'],
+                    'parent_id' => $cryptoGraphicKey['parent_id'],
+                    'type' => $cryptoGraphicKey['type']
+                ]
+            );
+        }
+        $this->deleteaAll(['CryptoGraphicKey.id' => $toRemove]);
+    }
 }
