@@ -77,7 +77,7 @@ class CryptographicKey extends AppModel
         return true;
     }
 
-    public function signWithInstanceKey($data)
+    private function __ingestInstanceKey()
     {
         $file = new File(APP . '/webroot/gpg.asc');
         $instanceKey = $file->read();
@@ -88,7 +88,22 @@ class CryptographicKey extends AppModel
             throw new MethodNotAllowedException("Could not import the instance key..");
         }
         $this->gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-        $signature = $this->gpg->sign($data, Crypt_GPG::SIGN_MODE_DETACHED);
+    }
+
+    public function signWithInstanceKey($data)
+    {
+        $this->__ingestInstanceKey();
+        file_put_contents('/var/www/MISP2/app/tmp/foo', $data);
+        file_put_contents('/var/www/MISP2/app/tmp/foo2', trim($data));
+        $signature = $this->gpg->sign(trim($data), Crypt_GPG::SIGN_MODE_DETACHED);
+        file_put_contents('/var/www/MISP2/app/tmp/foo.sig', $signature);
+        return $signature;
+    }
+
+    public function signFileWithInstanceKey($path)
+    {
+        $this->__ingestInstanceKey();
+        $signature = $this->gpg->signFile($path, Crypt_GPG::SIGN_MODE_DETACHED);
         return $signature;
     }
 
@@ -96,19 +111,20 @@ class CryptographicKey extends AppModel
     {
         $this->error = false;
         $fingerprint = $this->__extractPGPKeyData($key);
-        $verifiedSignature = $this->gpg->verify($data, $signature);
+        $this->gpg = GpgTool::initializeGpg();
+        $verifiedSignature = $this->gpg->verify(trim($data), $signature);
         if (empty($verifiedSignature)) {
-            $this->error = ERROR_MALFORMED_SIGNATURE;
+            $this->error = $this::ERROR_MALFORMED_SIGNATURE;
             return false;
         }
         if (!$verifiedSignature[0]->isValid()) {
-            $this->error = ERROR_INVALID_SIGNATURE;
+            $this->error = $this::ERROR_INVALID_SIGNATURE;
             return false;
         }
         if ($verifiedSignature[0]->getKeyFingerprint() === $fingerprint) {
             return true;
         } else {
-            $this->error = ERROR_WRONG_KEY;
+            $this->error = $this::ERROR_WRONG_KEY;
             return false;
         }
     }
@@ -170,17 +186,19 @@ class CryptographicKey extends AppModel
     public function validateProtectedEvent($raw_data, $user, $pgp_signature, $event)
     {
         if (empty($event['Event']['CryptographicKey'])) {
+            $message = __('No valid signatures found for validating the signature.');
             $this->Log = ClassRegistry::init('Log');
-            $this->Log->createLogEntry($user['email'], 'add', 'Event', $server['Server']['id'], $message);
+            $this->Log->createLogEntry($user, 'validateSig', 'Event', $event['Event']['id'], $message);
             return false;
         }
         foreach ($event['Event']['CryptographicKey'] as $supplied_key) {
-            if ($this->verifySignature($raw_data, $pgp_signature, $supplied_key)) {
+            if ($this->verifySignature($raw_data, base64_decode($pgp_signature), $supplied_key['key_data'])) {
                 return true;
             }
         }
         $this->Log = ClassRegistry::init('Log');
-        $this->Log->createLogEntry($user['email'], 'add', 'Event', $server['Server']['id'], $message);
+        $message = __('Could not validate the signature.');
+        $this->Log->createLogEntry($user, 'validateSig', 'Event', $event['Event']['id'], $message);
         return false;
     }
 
@@ -223,16 +241,16 @@ class CryptographicKey extends AppModel
             $this->create();
             $this->save(
                 [
-                    'uuid' => $cryptoGraphicKey['uuid'],
-                    'key_data' => $cryptoGraphicKey['key_data'],
-                    'fingerprint' => $cryptoGraphicKey['fingerprint'],
-                    'revoked' => $cryptoGraphicKey['revoked'],
-                    'parent_type' => $cryptoGraphicKey['parent_type'],
-                    'parent_id' => $cryptoGraphicKey['parent_id'],
-                    'type' => $cryptoGraphicKey['type']
+                    'uuid' => $cryptographickey['uuid'],
+                    'key_data' => $cryptographickey['key_data'],
+                    'fingerprint' => $cryptographickey['fingerprint'],
+                    'revoked' => $cryptographickey['revoked'],
+                    'parent_type' => $cryptographickey['parent_type'],
+                    'parent_id' => $cryptographickey['parent_id'],
+                    'type' => $cryptographickey['type']
                 ]
             );
-            $results['add'][$cryptoGraphicKey['id']] = $cryptoGraphicKey['fingerprint'];
+            $results['add'][$cryptographickey['id']] = $cryptographickey['fingerprint'];
         }
         $message = __(
             'Added %s (%s) and removed %s (%s) keys for %s #%s.',
@@ -245,6 +263,6 @@ class CryptographicKey extends AppModel
         );
         $this->deleteaAll(['CryptoGraphicKey.id' => $toRemove]);
         $this->Log = ClassRegistry::init('Log');
-        $this->Log->createLogEntry($user['email'], 'updateCryptoKeys', $cryptoGraphicKey['parent_type'], $cryptoGraphicKey['parent_id'], $message);
+        $this->Log->createLogEntry($user, 'updateCryptoKeys', $cryptographickey['parent_type'], $cryptographickey['parent_id'], $message);
     }
 }
