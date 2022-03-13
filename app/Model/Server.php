@@ -1129,7 +1129,6 @@ class Server extends AppModel
         }
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $this->Event = ClassRegistry::init('Event');
-        $HttpSocket = $this->setupHttpSocket($server);
         $clusters = array();
         if ($technique == 'full') {
             $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
@@ -1150,7 +1149,7 @@ class Server extends AppModel
             return [];
         }
         foreach ($clustersToPush as $cluster) {
-            $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $HttpSocket, $user);
+            $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $serverSync, $user);
             if ($result === 'Success') {
                 $successes[] = __('GalaxyCluster %s', $cluster['GalaxyCluster']['uuid']);
             }
@@ -3740,8 +3739,7 @@ class Server extends AppModel
     public function extensionDiagnostics()
     {
         try {
-            $file = new File(APP . DS . 'composer.json');
-            $composer = $this->jsonDecode($file->read());
+            $composer = FileAccessTool::readJsonFromFile(APP . DS . 'composer.json');
             $extensions = [];
             foreach ($composer['require'] as $require => $foo) {
                 if (substr($require, 0, 4) === 'ext-') {

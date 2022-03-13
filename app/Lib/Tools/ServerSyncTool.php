@@ -1,5 +1,6 @@
 <?php
 App::uses('SyncTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 class ServerSyncTool
 {
@@ -10,7 +11,9 @@ class ServerSyncTool
         FEATURE_PROPOSALS = 'proposals',
         FEATURE_PROTECTED_EVENT = 'protected_event',
         FEATURE_POST_TEST = 'post_test',
-        FEATURE_EDIT_OF_GALAXY_CLUSTER = 'edit_of_galaxy_cluster';
+        FEATURE_EDIT_OF_GALAXY_CLUSTER = 'edit_of_galaxy_cluster',
+        PERM_SYNC = 'perm_sync',
+        PERM_GALAXY_EDITOR = 'perm_galaxy_editor';
 
     /** @var array */
     private $server;
@@ -198,6 +201,18 @@ class ServerSyncTool
     }
 
     /**
+     * @param array $cluster
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function pushGalaxyCluster(array $cluster)
+    {
+        $logMessage = "Pushing Galaxy Cluster #{$cluster['GalaxyCluster']['id']} to Server #{$this->serverId()}";
+        return $this->post('/galaxies/pushCluster', [$cluster], $logMessage);
+    }
+
+    /**
      * @param array $params
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
@@ -367,6 +382,10 @@ class ServerSyncTool
                 return $version[0] == 2 && $version[1] == 4 && $version[2] > 155;
             case self::FEATURE_EDIT_OF_GALAXY_CLUSTER:
                 return isset($info['perm_galaxy_editor']);
+            case self::PERM_SYNC:
+                return isset($info['perm_sync']) && $info['perm_sync'];
+            case self::PERM_GALAXY_EDITOR:
+                return isset($info['perm_galaxy_editor']) && $info['perm_galaxy_editor'];
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
@@ -408,7 +427,7 @@ class ServerSyncTool
     private function post($url, $data, $logMessage = null)
     {
         $protectedMode = !empty($data['Event']['protected']);
-        $data = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $data = JsonTool::encode($data);
 
         if ($logMessage && !empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
