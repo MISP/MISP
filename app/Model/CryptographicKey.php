@@ -169,11 +169,17 @@ class CryptographicKey extends AppModel
 
     public function validateProtectedEvent($raw_data, $user, $pgp_signature, $event)
     {
+        if (empty($event['Event']['CryptographicKey'])) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->createLogEntry($user['email'], 'add', 'Event', $server['Server']['id'], $message);
+            return false;
+        }
         foreach ($event['Event']['CryptographicKey'] as $supplied_key) {
             if ($this->verifySignature($raw_data, $pgp_signature, $supplied_key)) {
                 return true;
             }
         }
+        $this->Log = ClassRegistry::init('Log');
         $this->Log->createLogEntry($user['email'], 'add', 'Event', $server['Server']['id'], $message);
         return false;
     }
@@ -196,8 +202,8 @@ class CryptographicKey extends AppModel
                 'fingerprint'
             ]
         ]);
-        $toAdd = [];
         $toRemove = [];
+        $results = ['add' => [], 'remove' => []];
         foreach ($existingKeys as $k => $existingKey) {
             foreach ($cryptographicKeys as $k2 => $cryptographicKey) {
                 if ($existingKey['CryptographicKey']['fingerprint'] === $cryptographicKey['fingerprint']) {
@@ -211,6 +217,7 @@ class CryptographicKey extends AppModel
                 }
             }
             $toRemove[] = $existingKey['CryptographicKey']['id'];
+            $results['remove'][$existingKey['CryptographicKey']['id']] = $existingKey['CryptographicKey']['fingerprint'];
         }
         foreach ($cryptographicKeys as $cryptographicKey) {
             $this->create();
@@ -225,7 +232,19 @@ class CryptographicKey extends AppModel
                     'type' => $cryptoGraphicKey['type']
                 ]
             );
+            $results['add'][$cryptoGraphicKey['id']] = $cryptoGraphicKey['fingerprint'];
         }
+        $message = __(
+            'Added %s (%s) and removed %s (%s) keys for %s #%s.',
+            count($results['add']),
+            implode (',', $results['add']),
+            count($results['remove']),
+            implode (',', $results['remove']),
+            $cryptographicKey['parent_type'],
+            $cryptographicKey['parent_id']
+        );
         $this->deleteaAll(['CryptoGraphicKey.id' => $toRemove]);
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->createLogEntry($user['email'], 'updateCryptoKeys', $cryptoGraphicKey['parent_type'], $cryptoGraphicKey['parent_id'], $message);
     }
 }
