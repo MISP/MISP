@@ -86,7 +86,7 @@ class AppModel extends Model
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
-        81 => false, 82 => false
+        81 => false, 82 => false, 83 => false, 84 => false
     );
 
     public $advanced_updates_description = array(
@@ -1641,6 +1641,41 @@ class AppModel extends Model
                 break;
             case 82:
                 $sqlArray[] = sprintf("ALTER table organisations MODIFY description text;");
+                break;
+            case 83:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `sharing_group_blueprints` (
+                      `id` int(11) NOT NULL AUTO_INCREMENT,
+                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+                      `name` varchar(191) NOT NULL,
+                      `timestamp` int(11) NOT NULL DEFAULT 0,
+                      `user_id` int(11) NOT NULL,
+                      `org_id` int(11) NOT NULL,
+                      `sharing_group_id` int(11),
+                      `rules` text,
+                      PRIMARY KEY (`id`),
+                      INDEX `uuid` (`uuid`),
+                      INDEX `name` (`name`),
+                      INDEX `org_id` (`org_id`),
+                      INDEX `sharing_group_id` (`sharing_group_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 84:
+                $sqlArray[] = sprintf("ALTER table events add `protected` tinyint(1);");
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `cryptographic_keys` (
+                      `id` int(11) NOT NULL AUTO_INCREMENT,
+                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                      `type` varchar(40) COLLATE utf8_bin NOT NULL,
+                      `timestamp` int(11) NOT NULL DEFAULT 0,
+                      `parent_id` int(11) NOT NULL,
+                      `parent_type` varchar(40) COLLATE utf8_bin NOT NULL,
+                      `key_data` text,
+                      `revoked` tinyint(1) NOT NULL DEFAULT 0,
+                      `fingerprint` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+                      PRIMARY KEY (`id`),
+                      INDEX `uuid` (`uuid`),
+                      INDEX `type` (`type`),
+                      INDEX `parent_id` (`parent_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
