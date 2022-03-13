@@ -463,6 +463,7 @@ class Event extends AppModel
             $this->logException('Delete of event file directory failed.', $e);
             throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
         }
+        $this->CryptographicKey->deleteAll(['CryptographicKey.parent_type' => 'Event', 'CryptographicKey.parent_id' => $this->id]);
     }
 
     public function beforeValidate($options = array())
@@ -3949,7 +3950,7 @@ class Event extends AppModel
 
             // capture new keys, update existing, remove those no longer in the pushed data
             if (!empty($data['Event']['CryptographicKey'])) {
-                $this->captureCryptographicKeyUpdate($data['Event']['CryptographicKey'], $data['Event']['id'], 'Event');
+                $this->CryptoGraphicKey->captureCryptographicKeyUpdate($data['Event']['CryptographicKey'], $data['Event']['id'], 'Event');
             }
 
             // zeroq: check if sightings are attached and add to event
@@ -4129,6 +4130,12 @@ class Event extends AppModel
                 $eventLock->insertLockBackgroundJob($data['Event']['id'], $jobId);
             }
             $validationErrors = array();
+
+            // capture new keys, update existing, remove those no longer in the pushed data
+            if (!empty($data['Event']['CryptographicKey'])) {
+                $this->CryptoGraphicKey->captureCryptographicKeyUpdate($data['Event']['CryptographicKey'], $data['Event']['id'], 'Event');
+            }
+
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 foreach ($data['Event']['Attribute'] as $attribute) {
