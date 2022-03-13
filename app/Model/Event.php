@@ -288,7 +288,14 @@ class Event extends AppModel
         'EventReport' => array(
             'className' => 'EventReport',
             'dependent' => true,
-        )
+        ),
+        'CryptographicKey' => [
+            'foreignKey' => 'parent_id',
+            'conditions' => [
+                'parent_type' => 'Event'
+            ],
+            'dependent' => true
+        ]
     );
 
     public function __construct($id = false, $table = null, $ds = null)
@@ -960,13 +967,11 @@ class Event extends AppModel
         if (empty($push['canPush'])) {
             return 'The remote user is not a sync user - the upload of the event has been blocked.';
         }
-
         if (!empty($server['Server']['unpublish_event'])) {
             $event['Event']['published'] = 0;
         }
-
         try {
-            $this->restfulEventToServer($event, $server, $HttpSocket);
+            $this->restfulEventToServer($event, $server, $HttpSocket, $push);
         } catch (Exception $e) {
             $errorMessage = $e->getMessage();
             if ($e instanceof HttpException && $e->getCode() == 403) {
@@ -1050,7 +1055,7 @@ class Event extends AppModel
      * @return array
      * @throws JsonException
      */
-    private function restfulEventToServer(array $event, array $server, HttpSocket $HttpSocket)
+    private function restfulEventToServer(array $event, array $server, HttpSocket $HttpSocket, array $connectionStatus)
     {
         // TODO: Replace by __updateEventForSync method in future
         $event = $this->__prepareForPushToServer($event, $server);
@@ -1070,8 +1075,18 @@ class Event extends AppModel
         } catch (Exception $e) {
             $this->logException("Could not check if event {$event['Event']['uuid']} exists on remote server {$server['Server']['id']}", $e, LOG_NOTICE);
         }
-
         $data = json_encode($event);
+        if (!empty($event['Event']['protected'])) {
+            if (empty($connectionStatus['protectedMode'])) {
+                $message = "Attempted to synchronise a protected event, but the remote is not protected Mode aware. Aborted.";
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
+                throw new MethodNotAllowedException($message);
+            }
+            $request = $this->__signEvent($data, $server, $request, $HttpSocket);
+        }
+        throw new Exception();
+
         if (!empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
                 "==============================================================\n\n[%s] Pushing Event #%d to Server #%d:\n\n%s\n\n",
@@ -1082,7 +1097,6 @@ class Event extends AppModel
             );
             file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
         }
-
         if ($exists) {
             $url = "$serverUrl/events/edit/{$event['Event']['uuid']}/metadata:1";
         } else {
@@ -1109,6 +1123,32 @@ class Event extends AppModel
         }
 
         return $this->jsonDecode($response->body);
+    }
+
+    private function __signEvent($data, $server, $request, $HttpSocket)
+    {
+        $signature = $this->CryptographicKey->signWithInstanceKey($data);
+        $request['header']['x-pgp-signature'] = base64_encode($signature);
+        $this->Log = ClassRegistry::init('Log');
+        if (empty($signature)) {
+            $message = "Invalid signing key. This should never happen.";
+            $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
+            throw new Exception($message);
+        }
+        $response = $HttpSocket->get($server['Server']['url'] . '/servers/getVersion.json', null, $request);
+        if (!$response->isOk()) {
+            $message = "Could not fetch remote version to negotiate protected event synchronisation.";
+            $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
+            throw new HttpException($response->body, $response->code);
+        }
+        $version = json_decode($response->body(), true)['version'];
+        if (version_compare($version, '2.4.155') < 0) {
+            $message = __('Remote instance is not protected event aware yet (< 2.4.156), aborting.');
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
+            throw new MethodNotAllowedException($message);
+        }
+        return $request;
     }
 
     private function __rearrangeEventStructureForSync($event)
@@ -1863,7 +1903,8 @@ class Event extends AppModel
             'noShadowAttributes', // do not fetch proposals,
             'limit',
             'page',
-            'order'
+            'order',
+            'protected'
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -1997,6 +2038,9 @@ class Event extends AppModel
         if ($options['event_uuid']) {
             $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
         }
+        if ($options['protected']) {
+            $conditions['AND'][] = array('Event.protected' => $options['protected']);
+        }
         if (!empty($options['includeRelatedTags'])) {
             $options['includeGranularCorrelations'] = 1;
         }
@@ -2080,7 +2124,7 @@ class Event extends AppModel
         // $conditions['AND'][] = array('Event.published =' => 1);
 
         // do not expose all the data ...
-        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid');
+        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
         $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
@@ -2113,7 +2157,8 @@ class Event extends AppModel
                 'EventReport' => array(
                     'conditions' => $conditionsEventReport,
                     'order' => false
-                )
+                ),
+                'CryptographicKey'
             )
         );
         if (!empty($options['excludeLocalTags'])) {
