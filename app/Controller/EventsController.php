@@ -2100,7 +2100,7 @@ class EventsController extends AppController
                 $raw_data = $this->request->input();
                 if (
                     !$this->Event->CryptographicKey->validateProtectedEvent(
-                        trim($raw_data),
+                        $raw_data,
                         $this->Auth->user(),
                         $pgp_signature,
                         $this->request->data

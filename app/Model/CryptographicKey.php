@@ -93,10 +93,8 @@ class CryptographicKey extends AppModel
     public function signWithInstanceKey($data)
     {
         $this->__ingestInstanceKey();
-        file_put_contents('/var/www/MISP2/app/tmp/foo', $data);
-        file_put_contents('/var/www/MISP2/app/tmp/foo2', trim($data));
-        $signature = $this->gpg->sign(trim($data), Crypt_GPG::SIGN_MODE_DETACHED);
-        file_put_contents('/var/www/MISP2/app/tmp/foo.sig', $signature);
+        $data = preg_replace("/\s+/", "", $data);
+        $signature = $this->gpg->sign($data, Crypt_GPG::SIGN_MODE_DETACHED);
         return $signature;
     }
 
@@ -112,7 +110,8 @@ class CryptographicKey extends AppModel
         $this->error = false;
         $fingerprint = $this->__extractPGPKeyData($key);
         $this->gpg = GpgTool::initializeGpg();
-        $verifiedSignature = $this->gpg->verify(trim($data), $signature);
+        $data = preg_replace("/\s+/", "", $data);
+        $verifiedSignature = $this->gpg->verify($data, $signature);
         if (empty($verifiedSignature)) {
             $this->error = $this::ERROR_MALFORMED_SIGNATURE;
             return false;
