@@ -1153,7 +1153,19 @@ class Event extends AppModel
     private function __rearrangeEventStructureForSync($event)
     {
         // rearrange things to be compatible with the Xml::fromArray()
-        $objectsToRearrange = array('Attribute', 'Object', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute', 'EventReport');
+        $objectsToRearrange = array(
+            'Attribute',
+            'Object',
+            'Orgc',
+            'SharingGroup',
+            'EventTag',
+            'Org',
+            'ShadowAttribute',
+            'EventReport',
+            'CryptographicKey',
+            'ThreatLevel',
+            'Galaxy'
+        );
         foreach ($objectsToRearrange as $o) {
             if (isset($event[$o])) {
                 $event['Event'][$o] = $event[$o];
@@ -1161,10 +1173,10 @@ class Event extends AppModel
             }
         }
         // cleanup the array from things we do not want to expose
-        foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) {
+        foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc', 'locked') as $field) {
             unset($event['Event'][$field]);
         }
-        return $event;
+        return ['Event' => $event['Event']];
     }
 
     // since we fetch the event and filter on tags after / server, we need to cull all of the non exportable tags
