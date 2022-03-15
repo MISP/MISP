@@ -32,7 +32,7 @@ class EventWarningBehavior extends ModelBehavior
         $files = $dir->find('.*Warning\.php');
         foreach ($files as $file) {
             $className = substr($file, 0, -4);
-            $path = 'EventWarning/Custom';
+            $path = 'EventWarning' . $subDirPath;
             App::uses($className, $path);
             $this->__warningPackages[$className] = new $className();
         }
