@@ -26,6 +26,12 @@ class Oidc
         $claims = $oidc->getVerifiedClaims();
 
         $mispUsername = $claims->email ?? $oidc->requestUserInfo('email');
+
+        if (empty($mispUsername)) {
+            $sub = $claims->sub ?? 'UNKNOWN';
+            throw new Exception("OIDC user $sub doesn't have email address, that is required by MISP.");
+        }
+
         $this->log($mispUsername, "Trying login.");
 
         $sub = $claims->sub; // sub is required
