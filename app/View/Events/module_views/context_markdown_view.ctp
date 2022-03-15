@@ -51,7 +51,7 @@
                 h($cluster['GalaxyCluster']['value']),
                 $baseurl . '/galaxy_clusters/view/' . h($cluster['GalaxyCluster']['id']),
                 strlen(h($cluster['GalaxyCluster']['description'])) > 300 ?
-                    (substr(h($cluster['GalaxyCluster']['description']), 0, 300) . '...') : h($cluster['GalaxyCluster']['description']),
+                    (substr(h($cluster['GalaxyCluster']['description']), 0, 300) . '...') : h($cluster['GalaxyCluster']['description'])
             );
         }
     }

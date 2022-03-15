@@ -59,7 +59,7 @@
                     $baseurl . '/galaxy_clusters/view/' . h($cluster['GalaxyCluster']['id']),
                     h($cluster['GalaxyCluster']['value']),
                     strlen(h($cluster['GalaxyCluster']['description'])) > 300 ?
-                        (substr(h($cluster['GalaxyCluster']['description']), 0, 300) . '...') : h($cluster['GalaxyCluster']['description']),
+                        (substr(h($cluster['GalaxyCluster']['description']), 0, 300) . '...') : h($cluster['GalaxyCluster']['description'])
                 );
             }
             $htmlClusters .= '</ul>';
@@ -70,8 +70,6 @@
 
     <h2><?= __('Mitre ATT&CK Matrix') ?></h2>
     <div id="attackmatrix_div" style="position: relative; border: solid 1px;" class="statistics_attack_matrix">
-        <?php
-        echo $this->element('view_galaxy_matrix', $attackData);
-        ?>
+        <?= $this->element('view_galaxy_matrix', $attackData); ?>
     </div>
 </div>
