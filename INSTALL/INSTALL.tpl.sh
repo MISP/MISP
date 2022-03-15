@@ -455,9 +455,6 @@ installMISPonKali () {
   debug "Restarting mysql.service"
   sudo systemctl restart mysql.service
 
-  debug "Fixing redis rc script on Kali"
-  fixRedis
-
   debug "git clone, submodule update everything"
   sudo mkdir ${PATH_TO_MISP}
   sudo chown ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
@@ -498,14 +495,13 @@ installMISPonKali () {
   cd ${PATH_TO_MISP}/app/files/scripts/python-stix
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  debug "Install maec"
+  debug "Installing maec"
   cd ${PATH_TO_MISP}/app/files/scripts/python-maec
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  # install STIX2.0 library to support STIX 2.0 export
-  debug "Installing cti-python-stix2"
-  # install STIX2.0 library to support STIX 2.0 export:
-  cd ${PATH_TO_MISP}/cti-python-stix2
+  # Install misp-stix
+  debug "Installing misp-stix"
+  cd ${PATH_TO_MISP}/app/files/scripts/misp-stix
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   debug "Installing mixbox"
@@ -533,7 +529,7 @@ installMISPonKali () {
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install zmq
 
   debug "Installing cake"
-  composer
+  composer74
 
   ${SUDO_WWW} cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 

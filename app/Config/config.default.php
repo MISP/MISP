@@ -145,7 +145,7 @@ $config = array(
         'max_job_history_ttl' => 86400,
         'supervisor_host' => 'localhost',
         'supervisor_port' => 9001,
-        'supervisor_user' => '',
+        'supervisor_user' => 'supervisor',
         'supervisor_password' => '',
     ),
     // Uncomment the following to enable client SSL certificate authentication

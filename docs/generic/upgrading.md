@@ -46,8 +46,7 @@ sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -U .
 cd $PATH_TO_MISP/app/files/scripts/python-maec
 sudo -u www-data git pull
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -U .
-# install STIX2.0 library to support STIX 2.0 export:
-cd ${PATH_TO_MISP}/cti-python-stix2
+cd ${PATH_TO_MISP}/app/files/scripts/misp-stix
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -U .
 
 # install mixbox to accommodate the new STIX dependencies:
