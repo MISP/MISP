@@ -7155,7 +7155,7 @@ class Server extends AppModel
                 'supervisor_user' => [
                     'level' => self::SETTING_CRITICAL,
                     'description' => __('The user of the Supervisor XML-RPC API.'),
-                    'value' => '',
+                    'value' => 'supervisor',
                     'test' => null,
                     'type' => 'string'
                 ],
