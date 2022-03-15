@@ -1141,7 +1141,7 @@ class Event extends AppModel
             throw new HttpException($response->body, $response->code);
         }
         $version = json_decode($response->body(), true)['version'];
-        if (version_compare($version, '2.4.155') < 0) {
+        if (version_compare($version, '2.4.156') < 0) {
             $message = __('Remote instance is not protected event aware yet (< 2.4.156), aborting.');
             $this->Log = ClassRegistry::init('Log');
             $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
@@ -3868,7 +3868,8 @@ class Event extends AppModel
             'sharing_group_id',
             'locked',
             'disable_correlation',
-            'extends_uuid'
+            'extends_uuid',
+            'protected'
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
         if ($saveResult) {
@@ -3939,7 +3940,6 @@ class Event extends AppModel
                     }
                 }
             }
-
             if (!empty($data['Event']['EventReport'])) {
                 foreach ($data['Event']['EventReport'] as $report) {
                     $result = $this->EventReport->captureReport($user, $report, $this->id);
@@ -3948,7 +3948,12 @@ class Event extends AppModel
 
             // capture new keys, update existing, remove those no longer in the pushed data
             if (!empty($data['Event']['CryptographicKey'])) {
-                $this->CryptographicKey->captureCryptographicKeyUpdate($data['Event']['CryptographicKey'], $data['Event']['id'], 'Event');
+                $this->CryptographicKey->captureCryptographicKeyUpdate(
+                    $user,
+                    $data['Event']['CryptographicKey'],
+                    $this->id,
+                    'Event'
+                );
             }
 
             // zeroq: check if sightings are attached and add to event
@@ -4131,7 +4136,12 @@ class Event extends AppModel
 
             // capture new keys, update existing, remove those no longer in the pushed data
             if (!empty($data['Event']['CryptographicKey'])) {
-                $this->CryptoGraphicKey->captureCryptographicKeyUpdate($data['Event']['CryptographicKey'], $data['Event']['id'], 'Event');
+                $this->CryptographicKey->captureCryptographicKeyUpdate(
+                    $user,
+                    $data['Event']['CryptographicKey'],
+                    $existingEvent['Event']['id'],
+                    'Event'
+                );
             }
 
             if (isset($data['Event']['Attribute'])) {
