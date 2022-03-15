@@ -767,19 +767,26 @@ class EventsController extends AppController
      */
     private function __indexRestResponse(array $passedArgs)
     {
+        $isSync = $skipProtected = false;
+        if (!empty($this->request->header('misp-version'))) {
+            $isSync = true;
+            if (version_compare($this->request->header('misp-version'), '2.4.156') < 0) {
+                $skipProtected = true;
+            }
+        }
         $fieldNames = $this->Event->schema();
         $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);
         if ($minimal) {
             $rules = [
                 'recursive' => -1,
-                'fields' => array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid'),
-                'contain' => array('Orgc.uuid'),
+                'fields' => array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid', 'protected'),
+                'contain' => array('Orgc.uuid', 'CryptographicKey.fingerprint'),
             ];
         } else {
             // Remove user ID from fetched fields
             unset($fieldNames['user_id']);
             $rules = [
-                'contain' => ['EventTag'],
+                'contain' => ['EventTag', 'CryptographicKey.fingerprint'],
                 'fields' => array_keys($fieldNames),
             ];
         }
@@ -829,9 +836,8 @@ class EventsController extends AppController
 
             $events = $absolute_total === 0 ? [] : $this->Event->find('all', $rules);
         }
-
         $isCsvResponse = $this->response->type() === 'text/csv';
-
+        $instanceFingerprint = $this->Event->CryptographicKey->ingestInstanceKey();
         if (!$minimal) {
             // Collect all tag IDs that are events
             $tagIds = [];
@@ -874,11 +880,25 @@ class EventsController extends AppController
             // Fetch all org and sharing groups that are in events
             $orgIds = [];
             $sharingGroupIds = [];
-            foreach ($events as $event) {
+            foreach ($events as $k => $event) {
+                if ($event['Event']['protected']) {
+                    if ($skipProtected) {
+                        unset($events[$k]);
+                        continue;
+                    }
+                    foreach ($event['CryptographicKey'] as $cryptoKey) {
+                        if ($instanceFingerprint === $cryptoKey['fingerprint']) {
+                            continue 2;
+                        }
+                    }
+                    unset($events[$k]);
+                    continue;
+                }
                 $orgIds[$event['Event']['org_id']] = true;
                 $orgIds[$event['Event']['orgc_id']] = true;
                 $sharingGroupIds[$event['Event']['sharing_group_id']] = true;
             }
+            $events = array_values($events);
             if (!empty($orgIds)) {
                 $orgs = $this->Event->Org->find('all', [
                     'conditions' => ['Org.id' => array_keys($orgIds)],
@@ -901,7 +921,6 @@ class EventsController extends AppController
                 unset($sharingGroupIds);
                 $sharingGroups = array_column(array_column($sharingGroups, 'SharingGroup'), null, 'id');
             }
-
             foreach ($events as $key => $event) {
                 $temp = $event['Event'];
                 $temp['Org'] = $orgs[$temp['org_id']];
@@ -923,10 +942,30 @@ class EventsController extends AppController
                 $events = array('Event' => $events);
             }
         } else {
+            // We do not want to allow instances to pull our data that can't make sense of protected mode events
+            $skipProtected = (
+                !empty($this->request->header('misp-version')) &&
+                version_compare($this->request->header('misp-version'), '2.4.156') < 0
+            );
             foreach ($events as $key => $event) {
+                if ($event['Event']['protected']) {
+                    if ($skipProtected) {
+                        unset($events[$key]);
+                        continue;
+                    }
+                    foreach ($event['CryptographicKey'] as $cryptoKey) {
+                        if ($instanceFingerprint === $cryptoKey['fingerprint']) {
+                            continue 2;
+                        }
+                    }
+                    unset($events[$key]);
+                    continue;
+                }
                 $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
+                unset($event['Event']['protected']);
                 $events[$key] = $event['Event'];
             }
+            $events = array_values($events);
         }
 
         if ($isCsvResponse) {
@@ -1805,9 +1844,10 @@ class EventsController extends AppController
         if (isset($namedParams['galaxyAttachedAttributes']) && $namedParams['galaxyAttachedAttributes'] !== '') {
             $this->__applyQueryString($event, $namedParams['galaxyAttachedAttributes'], 'Tag.name');
         }
-
         if ($this->_isRest()) {
-            $this->RestResponse->signContents = true;
+            if ($this->RestResponse->isAutomaticTool()) {
+                $this->RestResponse->signContents = true;
+            }
             return $this->__restResponse($event);
         }
 
