@@ -413,15 +413,17 @@ class Server extends AppModel
         return false;
     }
 
-    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force = false)
+    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force = false, $headers = false, $body = false)
     {
         // check if the event already exist (using the uuid)
         $existingEvent = $eventModel->find('first', [
             'conditions' => ['Event.uuid' => $event['Event']['uuid']],
             'recursive' => -1,
-            'fields' => ['id', 'locked'],
+            'fields' => ['id', 'locked', 'protected'],
         ]);
         $passAlong = $server['Server']['id'];
+                        debug($body);
+                        throw new Exception();
         if (!$existingEvent) {
             // add data for newly imported events
             $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
@@ -438,6 +440,10 @@ class Server extends AppModel
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
                 $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
+                if ($existingEvent['Event']['protected']) {
+                    debug($headers);
+                    validateProtectedEvent($raw_data, $user, $headers['x-pgp-signature'], $event);
+                }
                 $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong, $force);
                 if ($result === true) {
                     $successes[] = $eventId;
@@ -466,9 +472,11 @@ class Server extends AppModel
         if (empty($serverSync->server()['Server']['internal'])) {
             $params['excludeLocalTags'] = 1;
         }
-
         try {
-            $event = $serverSync->fetchEvent($eventId, $params)->json();
+            $event = $serverSync->fetchEvent($eventId, $params);
+            $headers = $event->headers;
+            $body = $event->body;
+            $event = $event->json();
         } catch (Exception $e) {
             $this->logException("Failed downloading the event $eventId from remote server {$serverSync->serverId()}", $e);
             $fails[$eventId] = __('failed downloading the event');
@@ -481,13 +489,12 @@ class Server extends AppModel
             }
             $pullRulesEmptiedEvent = false;
             $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules(), $pullRulesEmptiedEvent);
-
             if (!$this->__checkIfEventSaveAble($event)) {
                 if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
                     $fails[$eventId] = __('Empty event detected.');
                 }
             } else {
-                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force);
+                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $headers, $body);
             }
         } else {
             // error
@@ -4500,7 +4507,6 @@ class Server extends AppModel
 
         $uri = $server['Server']['url'] . $relativeUri;
         $response = $HttpSocket->get($uri, array(), $request);
-
         if ($response->code == 404) { // intentional !=
             throw new NotFoundException(__("Fetching the '%s' failed with HTTP error 404: Not Found", $uri));
         } else if ($response->code == 405) { // intentional !=
