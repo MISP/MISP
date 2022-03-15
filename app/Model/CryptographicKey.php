@@ -77,7 +77,7 @@ class CryptographicKey extends AppModel
         return true;
     }
 
-    private function __ingestInstanceKey()
+    public function ingestInstanceKey()
     {
         $file = new File(APP . '/webroot/gpg.asc');
         $instanceKey = $file->read();
@@ -88,11 +88,12 @@ class CryptographicKey extends AppModel
             throw new MethodNotAllowedException("Could not import the instance key..");
         }
         $this->gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+        return $this->gpg->getFingerprint(Configure::read('GnuPG.email'));
     }
 
     public function signWithInstanceKey($data)
     {
-        $this->__ingestInstanceKey();
+        $this->ingestInstanceKey();
         $data = preg_replace("/\s+/", "", $data);
         $signature = $this->gpg->sign($data, Crypt_GPG::SIGN_MODE_DETACHED);
         return $signature;
@@ -100,7 +101,7 @@ class CryptographicKey extends AppModel
 
     public function signFileWithInstanceKey($path)
     {
-        $this->__ingestInstanceKey();
+        $this->ingestInstanceKey();
         $signature = $this->gpg->signFile($path, Crypt_GPG::SIGN_MODE_DETACHED);
         return $signature;
     }
@@ -201,14 +202,14 @@ class CryptographicKey extends AppModel
         return false;
     }
 
-    public function captureCryptographicKeyUpdate($cryptographicKeys, $parent_id, $type)
+    public function captureCryptographicKeyUpdate($user, $cryptographicKeys, $parent_id, $type)
     {
         $existingKeys = $this->find('first', [
             'recursive' => -1,
             'fields' => 1,
             'conditions' => [
-                'parent_type' => $cryptographicKey['type'],
-                'parent_id' => $cryptographicKey['parent_id']
+                'parent_type' => $type,
+                'parent_id' => $parent_id
             ],
             'fields' => [
                 'id',
@@ -240,16 +241,16 @@ class CryptographicKey extends AppModel
             $this->create();
             $this->save(
                 [
-                    'uuid' => $cryptographickey['uuid'],
-                    'key_data' => $cryptographickey['key_data'],
-                    'fingerprint' => $cryptographickey['fingerprint'],
-                    'revoked' => $cryptographickey['revoked'],
-                    'parent_type' => $cryptographickey['parent_type'],
-                    'parent_id' => $cryptographickey['parent_id'],
-                    'type' => $cryptographickey['type']
+                    'uuid' => $cryptographicKey['uuid'],
+                    'key_data' => $cryptographicKey['key_data'],
+                    'fingerprint' => $cryptographicKey['fingerprint'],
+                    'revoked' => $cryptographicKey['revoked'],
+                    'parent_type' => $cryptographicKey['parent_type'],
+                    'parent_id' => $parent_id,
+                    'type' => $cryptographicKey['type']
                 ]
             );
-            $results['add'][$cryptographickey['id']] = $cryptographickey['fingerprint'];
+            $results['add'][$cryptographicKey['id']] = $cryptographicKey['fingerprint'];
         }
         $message = __(
             'Added %s (%s) and removed %s (%s) keys for %s #%s.',
@@ -258,10 +259,10 @@ class CryptographicKey extends AppModel
             count($results['remove']),
             implode (',', $results['remove']),
             $cryptographicKey['parent_type'],
-            $cryptographicKey['parent_id']
+            $parent_id
         );
-        $this->deleteaAll(['CryptoGraphicKey.id' => $toRemove]);
+        $this->deleteAll(['CryptographicKey.id' => $toRemove]);
         $this->Log = ClassRegistry::init('Log');
-        $this->Log->createLogEntry($user, 'updateCryptoKeys', $cryptographickey['parent_type'], $cryptographickey['parent_id'], $message);
+        $this->Log->createLogEntry($user, 'updateCryptoKeys', $cryptographicKey['parent_type'], $cryptographicKey['parent_id'], $message);
     }
 }
