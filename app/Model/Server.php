@@ -422,10 +422,14 @@ class Server extends AppModel
             'fields' => ['id', 'locked', 'protected'],
         ]);
         $passAlong = $server['Server']['id'];
-                        debug($body);
-                        throw new Exception();
         if (!$existingEvent) {
             // add data for newly imported events
+            if ($event['Event']['protected']) {
+                if (!$eventModel->CryptographicKey->validateProtectedEvent($body, $user, $headers['x-pgp-signature'], $event)) {
+                    $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
+                    return false;
+                }
+            }
             $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
             if ($result) {
                 $successes[] = $eventId;
@@ -441,8 +445,9 @@ class Server extends AppModel
                 $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
                 if ($existingEvent['Event']['protected']) {
-                    debug($headers);
-                    validateProtectedEvent($raw_data, $user, $headers['x-pgp-signature'], $event);
+                    if (!$eventModel->CryptographicKey->validateProtectedEvent($body, $user, $headers['x-pgp-signature'], $event)) {
+                        $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
+                    }
                 }
                 $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong, $force);
                 if ($result === true) {
