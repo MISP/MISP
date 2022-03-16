@@ -1103,7 +1103,6 @@ class Event extends AppModel
             $url = "$serverUrl/events/add/metadata:1";
         }
         $response = $HttpSocket->post($url, $data, $request);
-
         // Maybe the check if event exists was not correct, try to create a new event
         if ($exists && $response->code == '404') {
             $url = "$serverUrl/events/add/metadata:1";
@@ -1173,7 +1172,7 @@ class Event extends AppModel
             }
         }
         // cleanup the array from things we do not want to expose
-        foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc', 'locked') as $field) {
+        foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) {
             unset($event['Event'][$field]);
         }
         return ['Event' => $event['Event']];
