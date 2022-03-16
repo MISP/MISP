@@ -916,7 +916,7 @@ installDeps () {
   [[ -n $KALI ]] || [[ -n $UNATTENDED ]] && sudo DEBIAN_FRONTEND=noninteractive apt install -qy postfix || sudo apt install -qy postfix
 
   sudo apt install -qy \
-  curl gcc git gnupg-agent make openssl redis-server neovim unzip zip libyara-dev python3-yara python3-redis python3-zmq sqlite3 \
+  curl gcc git gnupg-agent make openssl redis-server neovim unzip zip libyara-dev python3-yara python3-redis python3-zmq sqlite3 python3-virtualenv \
   mariadb-client \
   mariadb-server \
   apache2 apache2-doc apache2-utils \
@@ -924,74 +924,6 @@ installDeps () {
   libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools
 
   installRNG
-}
-
-# On Kali, the redis start-up script is broken. This tries to fix it.
-fixRedis () {
-  # As of 20190124 redis-server init.d scripts are broken and need to be replaced
-  sudo mv /etc/init.d/redis-server /etc/init.d/redis-server_`date +%Y%m%d`
-
-  echo '#! /bin/sh
-### BEGIN INIT INFO
-# Provides:		redis-server
-# Required-Start:	$syslog
-# Required-Stop:	$syslog
-# Should-Start:		$local_fs
-# Should-Stop:		$local_fs
-# Default-Start:	2 3 4 5
-# Default-Stop:		0 1 6
-# Short-Description:	redis-server - Persistent key-value db
-# Description:		redis-server - Persistent key-value db
-### END INIT INFO
-
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=/usr/bin/redis-server
-DAEMON_ARGS=/etc/redis/redis.conf
-NAME=redis-server
-DESC=redis-server
-PIDFILE=/var/run/redis.pid
-
-test -x $DAEMON || exit 0
-test -x $DAEMONBOOTSTRAP || exit 0
-
-set -e
-
-case "$1" in
-  start)
-	echo -n "Starting $DESC: "
-	touch $PIDFILE
-	chown redis:redis $PIDFILE
-	if start-stop-daemon --start --quiet --umask 007 --pidfile $PIDFILE --chuid redis:redis --exec $DAEMON -- $DAEMON_ARGS
-	then
-		echo "$NAME."
-	else
-		echo "failed"
-	fi
-	;;
-  stop)
-	echo -n "Stopping $DESC: "
-	if start-stop-daemon --stop --retry 10 --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON
-	then
-		echo "$NAME."
-	else
-		echo "failed"
-	fi
-	rm -f $PIDFILE
-	;;
-
-  restart|force-reload)
-	${0} stop
-	${0} start
-	;;
-  *)
-	echo "Usage: /etc/init.d/$NAME {start|stop|restart|force-reload}" >&2
-	exit 1
-	;;
-esac
-
-exit 0' | sudo tee /etc/init.d/redis-server
-  sudo chmod 755 /etc/init.d/redis-server
-  sudo /etc/init.d/redis-server start
 }
 
 # generate MISP apache conf
@@ -1051,6 +983,11 @@ composer () {
   ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install --no-dev"
 }
 
+# Legacy composer function
+composer74 () {
+  sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php7.4 composer.phar install --no-dev"
+}
 
 # TODO: FIX somehow the alias of the function does not work
 # Composer on php 7.0 does not need any special treatment the provided phar works well
@@ -1204,7 +1141,7 @@ checkSudoKeeper () {
 installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
-  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 moreutils -qy
+  sudo apt-get install curl gcc git gpg-agent make python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 moreutils -qy
 
   # Install MariaDB (a MySQL fork/alternative)
   sudo apt-get install mariadb-client mariadb-server -qy
@@ -3262,9 +3199,6 @@ installMISPonKali () {
   debug "Restarting mysql.service"
   sudo systemctl restart mysql.service
 
-  debug "Fixing redis rc script on Kali"
-  fixRedis
-
   debug "git clone, submodule update everything"
   sudo mkdir ${PATH_TO_MISP}
   sudo chown ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
@@ -3305,14 +3239,13 @@ installMISPonKali () {
   cd ${PATH_TO_MISP}/app/files/scripts/python-stix
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  debug "Install maec"
+  debug "Installing maec"
   cd ${PATH_TO_MISP}/app/files/scripts/python-maec
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
-  # install STIX2.0 library to support STIX 2.0 export
-  debug "Installing cti-python-stix2"
-  # install STIX2.0 library to support STIX 2.0 export:
-  cd ${PATH_TO_MISP}/cti-python-stix2
+  # Install misp-stix
+  debug "Installing misp-stix"
+  cd ${PATH_TO_MISP}/app/files/scripts/misp-stix
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   debug "Installing mixbox"
@@ -3340,7 +3273,7 @@ installMISPonKali () {
   ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install zmq
 
   debug "Installing cake"
-  composer
+  composer74
 
   ${SUDO_WWW} cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 

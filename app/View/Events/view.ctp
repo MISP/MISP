@@ -156,12 +156,12 @@
                 ],
                 [
                     'key' => __('Warnings'),
-                    'key_class' => !empty($event['warnings']) ? 'background-red bold' : '',
-                    'class' => !empty($event['warnings']) ? 'background-red bold' : '',
+                    'key_class' => !empty($warnings) ? 'background-red bold' : '',
+                    'class' => !empty($warnings) ? 'background-red bold' : '',
                      'green',
                     'type' => 'warnings',
-                    'warnings' => $event['warnings'],
-                    'requirement' => !empty($event['warnings']) && ($me['org_id'] === $event['Event']['orgc_id'] || !empty($me['Role']['perm_site_admin']))
+                    'warnings' => $warnings,
+                    'requirement' => !empty($warnings) && ($me['org_id'] === $event['Event']['orgc_id'] || !empty($me['Role']['perm_site_admin']))
                 ],
                 [
                     'key' => __('Info'),

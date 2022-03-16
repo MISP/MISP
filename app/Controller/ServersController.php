@@ -2726,4 +2726,40 @@ misp.direct_call(relative_path, body)
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         }
     }
+
+    public function ipUser($input = false)
+    {
+        $params = $this->IndexFilter->harvestParameters(['ip']);
+        if (!empty($params['ip'])) {
+            $input = $params['ip'];
+        }
+        $redis = $this->Server->setupRedis();
+        if (!is_array($input)) {
+            $input = [$input];
+        }
+        $users = [];
+        foreach ($input as $ip) {
+            if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+                continue;
+            }
+            $user_id = $redis->get('misp:ip_user:' . $ip);
+            if (empty($user_id)) {
+                continue;
+            }
+            $this->loadModel('User');
+            $user = $this->User->find('first', [
+                'recursive' => -1,
+                'conditions' => ['User.id' => $user_id],
+                'contain' => ['Organisation.name']
+            ]);
+            if (empty($user)) {
+                throw new NotFoundException(__('User not found (perhaps it has been removed?).'));
+            }
+            $users[$ip] = [
+                'id' => $user['User']['id'],
+                'email' => $user['User']['email'],
+            ];
+        }
+        return $this->RestResponse->viewData($users, $this->response->type());
+    }
 }

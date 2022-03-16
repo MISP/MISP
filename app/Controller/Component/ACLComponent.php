@@ -517,6 +517,7 @@ class ACLComponent extends Component
                 'idTranslator' => ['host_org_user'],
                 'import' => array(),
                 'index' => array(),
+                'ipUser' => ['perm_site_admin'],
                 'ondemandAction' => array(),
                 'postTest' => array('*'),
                 'previewEvent' => array(),
