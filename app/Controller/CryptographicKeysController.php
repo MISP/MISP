@@ -40,6 +40,20 @@ class CryptographicKeysController extends AppController
         if (empty($type) || empty($parent_id)) {
             throw new MethodNotAllowedException(__('No type and/or parent_id supplied.'));
         }
+        if ($type === 'Event') {
+            $existingEvent = $this->CryptographicKey->Event->fetchSimpleEvent(
+                $this->Auth->user(),
+                $parent_id,
+                [
+                    'conditions' => [
+                        'Event.orgc_id' => $this->Auth->user('org_id')
+                    ]
+                ]
+            );
+            if (empty($existingEvent)) {
+                throw new MethodNotAllowedException(__('Invalid Event.'));
+            }
+        }
         $params = [
             'beforeSave' => function ($data) use($type, $parent_id) {
                 $data['CryptographicKey']['parent_type'] = $type;
@@ -63,7 +77,25 @@ class CryptographicKeysController extends AppController
 
     public function delete($id)
     {
-        $this->CRUD->delete($id);
+        $user = $this->Auth->user();
+        $this->CRUD->delete($id, [
+            'beforeDelete' => function ($data) use($user) {
+                $parent_type = $data['CryptographicKey']['parent_type'];
+                $tempModel = ClassRegistry::init($parent_type);
+                $existingData = $tempModel->find('first', [
+                    'conditions' => [
+                        $parent_type . '.id' => $data['CryptographicKey']['parent_id']
+                    ],
+                    'recursive' => -1
+                ]);
+                if ($parent_type === 'Event') {
+                    if (!$user['Role']['perm_site_admin'] && $existingData['Event']['orgc_id'] !== $user['org_id']) {
+                        return false;
+                    }
+                }
+                return $data;
+           }
+        ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
