@@ -79,6 +79,18 @@ class CryptographicKey extends AppModel
 
     public function ingestInstanceKey()
     {
+        try {
+            $redis = $this->setupRedis();
+        } catch (Exception $e) {
+            $redis = false;
+        }
+        if ($redis) {
+            $redisKey = "misp:instance_fingerprint";
+            $instance_fingerprint = $redis->get($redisKey);
+            if (!empty($instance_fingerprint)) {
+                return $instance_fingerprint;
+            }
+        }
         $file = new File(APP . '/webroot/gpg.asc');
         $instanceKey = $file->read();
         try {
@@ -87,7 +99,11 @@ class CryptographicKey extends AppModel
             throw new MethodNotAllowedException("Could not import the instance key..");
         }
         $this->gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-        return $this->gpg->getFingerprint(Configure::read('GnuPG.email'));
+        $fingerprint = $this->gpg->getFingerprint(Configure::read('GnuPG.email'));
+        if ($redis) {
+            $redis->setEx($redisKey, 300, $fingerprint);
+        }
+        return $fingerprint;
     }
 
     public function signWithInstanceKey($data)
@@ -199,7 +215,6 @@ class CryptographicKey extends AppModel
                 return true;
             }
         }
-        throw new Exception();
         $this->Log = ClassRegistry::init('Log');
         $message = __('Could not validate the signature.');
         $this->Log->createLogEntry($user, 'validateSig', 'Event', $event['Event']['id'], $message);
