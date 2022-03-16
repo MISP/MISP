@@ -37,7 +37,7 @@ class CryptographicKey extends AppModel
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-
+        $this->gpg = GpgTool::initializeGpg();
         $this->validate = [
             'type' => [
                 'rule' => ['inList', $this->validTypes],
@@ -82,7 +82,6 @@ class CryptographicKey extends AppModel
         $file = new File(APP . '/webroot/gpg.asc');
         $instanceKey = $file->read();
         try {
-            $this->gpg = GpgTool::initializeGpg();
             $this->gpg->importKey($instanceKey);
         } catch (Crypt_GPG_NoDataException $e) {
             throw new MethodNotAllowedException("Could not import the instance key..");
@@ -110,9 +109,13 @@ class CryptographicKey extends AppModel
     {
         $this->error = false;
         $fingerprint = $this->__extractPGPKeyData($key);
-        $this->gpg = GpgTool::initializeGpg();
         $data = preg_replace("/\s+/", "", $data);
-        $verifiedSignature = $this->gpg->verify($data, $signature);
+        try {
+            $verifiedSignature = $this->gpg->verify($data, $signature);
+        } catch (Exception $e) {
+            $this->error = $this::ERROR_WRONG_KEY;
+            return false;
+        }
         if (empty($verifiedSignature)) {
             $this->error = $this::ERROR_MALFORMED_SIGNATURE;
             return false;
@@ -142,7 +145,7 @@ class CryptographicKey extends AppModel
     private function __extractPGPKeyData($data)
     {
         try {
-            $gpgTool = new GpgTool(GpgTool::initializeGpg());
+            $gpgTool = new GpgTool($this->gpg);
         } catch (Exception $e) {
             $this->logException("GPG couldn't be initialized, GPG encryption and signing will be not available.", $e, LOG_NOTICE);
             return '';
@@ -196,6 +199,7 @@ class CryptographicKey extends AppModel
                 return true;
             }
         }
+        throw new Exception();
         $this->Log = ClassRegistry::init('Log');
         $message = __('Could not validate the signature.');
         $this->Log->createLogEntry($user, 'validateSig', 'Event', $event['Event']['id'], $message);
@@ -224,7 +228,7 @@ class CryptographicKey extends AppModel
         $results = ['add' => [], 'remove' => []];
         foreach ($existingKeys as $k => $existingKey) {
             foreach ($cryptographicKeys as $k2 => $cryptographicKey) {
-                if ($existingKey['CryptographicKey']['fingerprint'] === $cryptographicKey['fingerprint']) {
+                if ($existingKey['fingerprint'] === $cryptographicKey['fingerprint']) {
                     $found = true;
                     if ($cryptographicKey['revoked'] && !$existingKey['CryptographicKey']['revoked']) {
                         $existingKey['CryptographicKey']['revoked'] = 1;
