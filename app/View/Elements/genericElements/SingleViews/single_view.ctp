@@ -47,10 +47,14 @@
                 }
             }
             $listElements .= sprintf(
-                '<tr><td class="meta_table_key %s" title="%s">%s</td><td class="meta_table_value %s" title="%s">%s %s</td></tr>',
+                '<tr><td class="meta_table_key %s" title="%s">%s%s</td><td class="meta_table_value %s" title="%s">%s %s</td></tr>',
                 empty($field['key_class']) ? '' : h($field['key_class']),
                 empty($field['key_title']) ? '' : h($field['key_title']),
                 h($field['key']),
+                empty($field['key_info']) ? '' : sprintf(
+                    ' <i class="fas fa-info-circle" title="%s"></i>',
+                    h($field['key_info'])
+                ),
                 empty($field['class']) ? '' : h($field['class']),
                 empty($field['title']) ? '' : h($field['title']),
                 $this->element(
