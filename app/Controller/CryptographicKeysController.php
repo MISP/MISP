@@ -15,26 +15,6 @@ class CryptographicKeysController extends AppController
             'maxLimit' => 9999
     );
 
-    public function index($type, $parent_id)
-    {
-        if (empty($type) || empty($parent_id)) {
-            throw new MethodNotAllowedException(__('No type and/or parent_id supplied.'));
-        }
-        $params = [
-            'filters' => ['name', 'url', 'uuid'],
-            'quickFilters' => ['name'],
-            'conditions' => [
-                'CryptographicKey.type' => $type,
-                'CryptographicKey.parent_id' => $id
-            ]
-        ];
-        $this->CRUD->index($params);
-        if ($this->IndexFilter->isRest()) {
-            return $this->restResponsePayload;
-        }
-        $this->set('menuData', array('menuList' => 'cryptographic_keys', 'menuItem' => 'list_cryptographic_keys'));
-    }
-
     public function add($type, $parent_id)
     {
         if (empty($type) || empty($parent_id)) {

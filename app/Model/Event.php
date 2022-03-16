@@ -973,6 +973,16 @@ class Event extends AppModel
         }
         try {
             $this->restfulEventToServer($event, $server, $HttpSocket, $push);
+        } catch (Crypt_GPG_KeyNotFoundException $e) {
+            $errorMessage = sprintf(
+                'Could not push event %s to remote server #%s. Reason: %s',
+                $event['Event']['uuid'],
+                $server['Server']['id'],
+                $e->getMessage()
+            );
+            $this->logException($errorMessage, $e);
+            $this->__logUploadResult($server, $event, $errorMessage);
+            return false;
         } catch (Exception $e) {
             $errorMessage = $e->getMessage();
             if ($e instanceof HttpException && $e->getCode() == 403) {
@@ -985,7 +995,6 @@ class Event extends AppModel
                     }
                 }
             }
-
             $this->logException("Could not push event '{$event['Event']['uuid']}' to remote server #{$server['Server']['id']}", $e);
             $this->__logUploadResult($server, $event, $errorMessage);
             return false;
@@ -1065,7 +1074,6 @@ class Event extends AppModel
         }
         $request = $this->setupSyncRequest($server);
         $serverUrl = $server['Server']['url'];
-
         $exists = false;
         try {
             // Check if event exists on remote server to use proper endpoint
@@ -1076,6 +1084,7 @@ class Event extends AppModel
         } catch (Exception $e) {
             $this->logException("Could not check if event {$event['Event']['uuid']} exists on remote server {$server['Server']['id']}", $e, LOG_NOTICE);
         }
+
         $data = json_encode($event);
         if (!empty($event['Event']['protected'])) {
             if (empty($connectionStatus['protectedMode'])) {
@@ -1086,7 +1095,6 @@ class Event extends AppModel
             }
             $request = $this->__signEvent($data, $server, $request, $HttpSocket);
         }
-
         if (!empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
                 "==============================================================\n\n[%s] Pushing Event #%d to Server #%d:\n\n%s\n\n",
