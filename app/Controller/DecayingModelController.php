@@ -43,25 +43,7 @@ class DecayingModelController extends AppController
     {
         if ($this->request->is('post') || $this->request->is('put')) {
             $data = $this->request->data['DecayingModel'];
-            if ($data['submittedjson']['name'] != '' && $data['json'] != '') {
-                throw new MethodNotAllowedException(__('Only one import field can be used'));
-            }
-            if ($data['submittedjson']['size'] > 0) {
-                $filename = basename($data['submittedjson']['name']);
-                $file = new File($data['submittedjson']['tmp_name']);
-                $file_content = $file->read();
-                $file->close();
-                if ((isset($data['submittedjson']['error']) && $data['submittedjson']['error'] == 0) ||
-                    (!empty($data['submittedjson']['tmp_name']) && $data['submittedjson']['tmp_name'] != '')
-                ) {
-                    if (!$file_content) {
-                        throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
-                    }
-                }
-                $text = $file_content;
-            } else {
-                $text = $data['json'];
-            }
+            $text = FileAccessTool::getTempUploadedFile($data['submittedjson'], $data['json']);
             $json = json_decode($text, true);
             if ($json === null) {
                 throw new MethodNotAllowedException(__('Error while decoding JSON'));

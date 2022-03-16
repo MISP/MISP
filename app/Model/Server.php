@@ -420,6 +420,7 @@ class Server extends AppModel
             'conditions' => ['Event.uuid' => $event['Event']['uuid']],
             'recursive' => -1,
             'fields' => ['id', 'locked', 'protected'],
+            'contain' => ['CryptographicKey']
         ]);
         $passAlong = $server['Server']['id'];
         if (!$existingEvent) {
@@ -445,7 +446,7 @@ class Server extends AppModel
                 $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
                 if ($existingEvent['Event']['protected']) {
-                    if (!$eventModel->CryptographicKey->validateProtectedEvent($body, $user, $headers['x-pgp-signature'], $event)) {
+                    if (!$eventModel->CryptographicKey->validateProtectedEvent($body, $user, $headers['x-pgp-signature'], $existingEvent)) {
                         $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                     }
                 }
