@@ -881,6 +881,9 @@ class EventsController extends AppController
             $orgIds = [];
             $sharingGroupIds = [];
             foreach ($events as $k => $event) {
+                $orgIds[$event['Event']['org_id']] = true;
+                $orgIds[$event['Event']['orgc_id']] = true;
+                $sharingGroupIds[$event['Event']['sharing_group_id']] = true;
                 if ($event['Event']['protected']) {
                     if ($skipProtected) {
                         unset($events[$k]);
@@ -888,15 +891,13 @@ class EventsController extends AppController
                     }
                     foreach ($event['CryptographicKey'] as $cryptoKey) {
                         if ($instanceFingerprint === $cryptoKey['fingerprint']) {
+
                             continue 2;
                         }
                     }
                     unset($events[$k]);
                     continue;
                 }
-                $orgIds[$event['Event']['org_id']] = true;
-                $orgIds[$event['Event']['orgc_id']] = true;
-                $sharingGroupIds[$event['Event']['sharing_group_id']] = true;
             }
             $events = array_values($events);
             if (!empty($orgIds)) {
@@ -910,7 +911,6 @@ class EventsController extends AppController
             } else {
                 $orgs = [];
             }
-
             unset($sharingGroupIds[0]);
             if (!empty($sharingGroupIds)) {
                 $sharingGroups = $this->Event->SharingGroup->find('all', [
@@ -1648,6 +1648,7 @@ class EventsController extends AppController
         $this->set('warnings', $this->Event->generateWarnings($event));
         $this->set('menuData', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
         $this->set('mayModify', $this->__canModifyEvent($event));
+        $this->set('instanceFingerprint', $this->Event->CryptographicKey->ingestInstanceKey());
         $this->__eventViewCommon($user);
     }
 
@@ -2622,7 +2623,7 @@ class EventsController extends AppController
         if ($this->request->is('get') && $this->_isRest()) {
             return $this->RestResponse->describe('Events', 'edit', false, $this->response->type());
         }
-        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['contain' => ['Orgc']]);
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['contain' => ['Orgc', 'CryptographicKey']]);
         if (!$event) {
             throw new NotFoundException(__('Invalid event'));
         }
@@ -2652,7 +2653,7 @@ class EventsController extends AppController
                     $raw_data,
                     $this->Auth->user(),
                     $pgp_signature,
-                    $this->request->data
+                    $event
                 )
             ) {
                 throw new MethodNotAllowedException(__('Protected event failed signature validation.'));
