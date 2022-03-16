@@ -1845,7 +1845,7 @@ class EventsController extends AppController
             $this->__applyQueryString($event, $namedParams['galaxyAttachedAttributes'], 'Tag.name');
         }
         if ($this->_isRest()) {
-            if ($this->RestResponse->isAutomaticTool()) {
+            if ($this->RestResponse->isAutomaticTool() && $event['Event']['protected']) {
                 $this->RestResponse->signContents = true;
             }
             return $this->__restResponse($event);
@@ -6113,10 +6113,11 @@ class EventsController extends AppController
     {
         $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['contain' => ['Orgc']]);
-        if (!$event) {
-            throw new NotFoundException(__('Invalid event'));
-        }
-        if (!$this->__canModifyEvent($event)) {
+        if (
+            (!$this->_isSiteAdmin && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) ||
+            !$event ||
+            !$this->__canModifyEvent($event)
+        ) {
             throw new NotFoundException(__('Invalid event'));
         }
         if ($this->request->is('post')) {
