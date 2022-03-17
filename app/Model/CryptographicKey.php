@@ -88,6 +88,9 @@ class CryptographicKey extends AppModel
             $redisKey = "misp:instance_fingerprint";
             $fingerprint = $redis->get($redisKey);
         }
+        if (!file_exists(APP . '/webroot/gpg.asc')) {
+            return false;
+        }
         if (empty($fingerprint)) {
             $file = new File(APP . '/webroot/gpg.asc');
             $instanceKey = $file->read();
@@ -107,7 +110,9 @@ class CryptographicKey extends AppModel
 
     public function signWithInstanceKey($data)
     {
-        $this->ingestInstanceKey();
+        if (!$this->ingestInstanceKey()) {
+            return false;
+        }
         $data = preg_replace("/\s+/", "", $data);
         $signature = $this->gpg->sign($data, Crypt_GPG::SIGN_MODE_DETACHED);
         return $signature;
@@ -115,7 +120,9 @@ class CryptographicKey extends AppModel
 
     public function signFileWithInstanceKey($path)
     {
-        $this->ingestInstanceKey();
+        if (!$this->ingestInstanceKey()) {
+            return false;
+        }
         $signature = $this->gpg->signFile($path, Crypt_GPG::SIGN_MODE_DETACHED);
         return $signature;
     }

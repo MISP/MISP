@@ -50,7 +50,7 @@ class CryptographicKeysController extends AppController
         if ($this->restResponsePayload) {
             return $this->restResponsePayload;
         }
-        $instanceKey = FileAccessTool::readFromFile(APP . 'webroot/gpg.asc');
+        $instanceKey = file_exists(APP . 'webroot/gpg.asc') ? FileAccessTool::readFromFile(APP . 'webroot/gpg.asc') : '';
         $this->set('instanceKey', $instanceKey);
         $this->set('menuData', array('menuList' => 'cryptographic_keys', 'menuItem' => 'add_cryptographic_key'));
     }
