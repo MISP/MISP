@@ -15,16 +15,7 @@
             'fields' => [
                 [
                     'key' => __('Event ID'),
-                    'path' => 'Event.id',
-                    'action_buttons' => [
-                        [
-                            'url' => '#',
-                            'icon' => 'lock',
-                            'style' => 'color:green;',
-                            'title' => __('This is a protected event'),
-                            'requirement' => !empty($event['Event']['protected'])
-                        ]
-                    ]
+                    'path' => 'Event.id'
                 ],
                 [
                     'key' => 'UUID',
