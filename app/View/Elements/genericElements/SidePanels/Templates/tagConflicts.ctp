@@ -6,7 +6,7 @@
             $baseurl,
             h($taxonomy['Taxonomy']['id']),
             h($taxonomy['Taxonomy']['description']),
-            h($taxonomy['Taxonomy']['namespace']),
+            h($taxonomy['Taxonomy']['namespace'])
         );
         $conflictHtmlInternal = [];
         if ($taxonomy['Taxonomy']['exclusive']) {

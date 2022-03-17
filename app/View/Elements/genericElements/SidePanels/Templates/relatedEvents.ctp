@@ -9,7 +9,7 @@
             $htmlElements[] = sprintf(
                 '<div class="%s">%s</div>',
                 'no-side-padding correlation-expand-button useCursorPointer linkButton blue',
-                __('Show (%s more)', $total - ($count-1)),
+                __('Show (%s more)', $total - ($count-1))
             );
         }
         $htmlElements[] = $this->element('/Events/View/related_event', array(

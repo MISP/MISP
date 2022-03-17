@@ -59,7 +59,7 @@
                 '<span class="red bold">%s: %s</span> <i class="fas fa-info-circle" title="%s"></i>',
                 __('Warning'),
                 __('Instance key not attached to the event. Further synchronisation not supported.'),
-                __("In protected mode, the current instance's signing key is used to sign and on the receiving side validate the event. If the current signing key is not attached to the event, MISP by default will not propagate the event further.\n\nIf you feel this is an error, contact the event's creator to add your instance's signing key to the event's signing key list.\n\nWarning: This restriction does NOT constitue a release control, merely a tamper protection for the recipients."),
+                __("In protected mode, the current instance's signing key is used to sign and on the receiving side validate the event. If the current signing key is not attached to the event, MISP by default will not propagate the event further.\n\nIf you feel this is an error, contact the event's creator to add your instance's signing key to the event's signing key list.\n\nWarning: This restriction does NOT constitue a release control, merely a tamper protection for the recipients.")
             );
         }
     } else {
