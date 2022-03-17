@@ -7112,6 +7112,12 @@ class Server extends AppModel
             ),
             'LinOTPAuth' => array(
                 'branch' => 1,
+                'enabled' => array(
+                    'level' => 2,
+                    'description' => __('Enable / Disable LinOTP'),
+                    'value' => true,
+                    'type' => 'boolean',
+                ),
                 'baseUrl' => array(
                     'level' => 2,
                     'description' => __('The default LinOTP URL.'),
