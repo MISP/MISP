@@ -3,7 +3,7 @@ $distribution = Hash::extract($data, $field['path'])[0];
 $event_id_path = Hash::extract($data, $field['event_id_path'])[0];
 if ($distribution == 4) {
     try{
-        $sg = Hash::extract($data, $field['path']);
+        $sg = Hash::extract($data, $field['sg_path']);
     } catch (Exception $e) {
         $sg = null;
     }
