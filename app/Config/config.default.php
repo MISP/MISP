@@ -17,6 +17,7 @@ $config = array(
         'user_monitoring_enabled'           => false,
         'authkey_keep_session'              => false,
         'disable_local_feed_access'         => false,
+        'enable_svg_logos'                  => false,
         //'auth'                            => array('CertAuth.Certificate'), // additional authentication methods
         //'auth'                            => array('ShibbAuth.ApacheShibb'),
         //'auth'                            => array('AadAuth.AadAuthenticate'),
