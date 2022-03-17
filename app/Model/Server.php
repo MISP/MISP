@@ -6136,6 +6136,14 @@ class Server extends AppModel
                         'tlsv1_3' => 'TLSv1.3',
                     ],
                 ],
+                'enable_svg_logos' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('When enabled, orgnisation logos in svg format are allowed.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ]
             ),
             'SecureAuth' => array(
                 'branch' => 1,
