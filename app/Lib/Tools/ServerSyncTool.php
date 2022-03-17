@@ -8,7 +8,8 @@ class ServerSyncTool
         FEATURE_ORG_RULE = 'org_rule',
         FEATURE_FILTER_SIGHTINGS = 'filter_sightings',
         FEATURE_PROPOSALS = 'proposals',
-        FEATURE_POST_TEST = 'post_test';
+        FEATURE_POST_TEST = 'post_test',
+        FEATURE_PROTECTED_EVENT = 'protected_event';
 
     /** @var array */
     private $server;
@@ -325,6 +326,9 @@ class ServerSyncTool
             case self::FEATURE_POST_TEST:
                 $version = explode('.', $info['version']);
                 return $version[0] == 2 && $version[1] == 4 && $version[2] > 68;
+            case self::FEATURE_PROTECTED_EVENT:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] > 155;
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
@@ -379,7 +383,12 @@ class ServerSyncTool
         }
 
         $request = $this->request;
-        if (strlen($data) > 1024 && !$protectedMode) { // do not compress small body
+
+        if ($protectedMode) {
+            $request['header']['x-pgp-signature'] = $this->signEvent($data);
+        }
+
+        if (strlen($data) > 1024) { // do not compress small body
             if ($this->isSupported(self::FEATURE_BR) && function_exists('brotli_compress')) {
                 $request['header']['Content-Encoding'] = 'br';
                 $data = brotli_compress($data, 1, BROTLI_TEXT);
@@ -390,9 +399,6 @@ class ServerSyncTool
         }
         $url = $this->server['Server']['url'] . $url;
         $start = microtime(true);
-        if ($protectedMode) {
-            $request = $this->signEvent($data, $this->server, $request, $this->socket);
-        }
         $response = $this->socket->post($url, $data, $request);
         $this->log($start, 'POST', $url, $response);
         if (!$response->isOk()) {
@@ -402,39 +408,22 @@ class ServerSyncTool
     }
 
     /**
-     * @param string $data
-     * @param array $server
-     * @param array $request
-     * @param HttpSocket $HttpSocket
-     * @return array
+     * @param string $data Data to sign
+     * @return string base64 encoded signature
      * @throws Exception
-     * @throws HttpException
-     * @throws MethodNotAllowedException
      */
-    private function signEvent($data, $server, $request, $socket)
+    private function signEvent($data)
     {
+        if (!$this->isSupported(self::FEATURE_PROTECTED_EVENT)) {
+            throw new Exception(__('Remote instance is not protected event aware yet (< 2.4.156), aborting.'));
+        }
+
         $this->CryptographicKey = ClassRegistry::init('CryptographicKey');
         $signature = $this->CryptographicKey->signWithInstanceKey($data);
-        $request['header']['x-pgp-signature'] = base64_encode($signature);
-        $this->Log = ClassRegistry::init('Log');
         if (empty($signature)) {
-            $message = __("Invalid signing key. This should never happen.");
-            $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
-            throw new Exception($message);
+            throw new Exception(__("Invalid signing key. This should never happen."));
         }
-        $response = $socket->get($server['Server']['url'] . '/servers/getVersion.json', null, $request);
-        if (!$response->isOk()) {
-            $message = __("Could not fetch remote version to negotiate protected event synchronisation.");
-            $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
-            throw new HttpException($response->body, $response->code);
-        }
-        $version = json_decode($response->body(), true)['version'];
-        if (version_compare($version, '2.4.156') < 0) {
-            $message = __('Remote instance is not protected event aware yet (< 2.4.156), aborting.');
-            $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
-            throw new MethodNotAllowedException($message);
-        }
-        return $request;
+        return base64_encode($signature);
     }
 
     /**

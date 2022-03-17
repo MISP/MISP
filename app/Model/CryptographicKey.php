@@ -231,7 +231,6 @@ class CryptographicKey extends AppModel
     {
         $existingKeys = $this->find('first', [
             'recursive' => -1,
-            'fields' => 1,
             'conditions' => [
                 'parent_type' => $type,
                 'parent_id' => $parent_id
