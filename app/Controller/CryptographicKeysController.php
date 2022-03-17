@@ -85,7 +85,8 @@ class CryptographicKeysController extends AppController
     {
         $key = $this->CryptographicKey->find('first', [
             'recursive' => -1,
-            'fields' => ['id', 'type', 'key_data', 'fingerprint']
+            'fields' => ['id', 'type', 'key_data', 'fingerprint'],
+            'conditions' => ['CryptographicKey.id' => $id]
         ]);
         $this->set('id', $id);
         $this->set('title', __('Viewing %s key #%s', h($key['CryptographicKey']['type']), h($key['CryptographicKey']['id'])));
