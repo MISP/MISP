@@ -287,6 +287,12 @@ class CRUDComponent extends Component
                 }
             }
         }
+        if (isset($params['beforeDelete'])) {
+            $data = $params['beforeDelete']($data);
+            if (empty($data)) {
+                throw new MethodNotAllowedException('Something went wrong, delete action failed.');
+            }
+        }
         if ($validationError === null && $this->Controller->request->is('post') || $this->Controller->request->is('delete')) {
             if (!empty($params['modelFunction'])) {
                 $result = $this->Controller->$modelName->{$params['modelFunction']}($id);

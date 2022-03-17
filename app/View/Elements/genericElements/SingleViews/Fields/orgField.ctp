@@ -1,3 +1,6 @@
 <?php
-
-echo isset($data['Organisation']['id']) ? $this->OrgImg->getNameWithImg($data) : __('Unknown');
+$org = Hash::extract($data, $field['path']);
+if (!isset($org['Organisation']) && !empty($org['id'])) {
+    $org = ['Organisation' => $org];
+}
+echo empty($org) ? __('Unknown') : $this->OrgImg->getNameWithImg($org);

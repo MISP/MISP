@@ -144,17 +144,20 @@ class TmpFileTool
     }
 
     /**
+     * @param boolean $close
      * @return string
      * @throws Exception
      */
-    public function intoString()
+    public function intoString($close = true)
     {
         $this->rewind();
         $string = stream_get_contents($this->tmpfile);
         if ($string === false) {
             throw new Exception('Could not read from temporary file.');
         }
-        $this->close();
+        if ($close) {
+            $this->close();
+        }
         return $string;
     }
 

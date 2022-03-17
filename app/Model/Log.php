@@ -69,8 +69,10 @@ class Log extends AppModel
                     'update',
                     'update_database',
                     'update_db_worker',
+                    'updateCryptoKeys',
                     'upgrade_24',
                     'upload_sample',
+                    'validateSig',
                     'version_warning',
                     'warning',
                     'wipe_default'

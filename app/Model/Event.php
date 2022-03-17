@@ -290,7 +290,14 @@ class Event extends AppModel
         'EventReport' => array(
             'className' => 'EventReport',
             'dependent' => true,
-        )
+        ),
+        'CryptographicKey' => [
+            'foreignKey' => 'parent_id',
+            'conditions' => [
+                'parent_type' => 'Event'
+            ],
+            'dependent' => true
+        ]
     );
 
     public function __construct($id = false, $table = null, $ds = null)
@@ -458,6 +465,7 @@ class Event extends AppModel
             $this->logException('Delete of event file directory failed.', $e);
             throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
         }
+        $this->CryptographicKey->deleteAll(['CryptographicKey.parent_type' => 'Event', 'CryptographicKey.parent_id' => $this->id]);
     }
 
     public function beforeValidate($options = array())
@@ -966,11 +974,9 @@ class Event extends AppModel
         if (empty($push['canPush'])) {
             return 'The remote user is not a sync user - the upload of the event has been blocked.';
         }
-
         if (!empty($server['Server']['unpublish_event'])) {
             $event['Event']['published'] = 0;
         }
-
         try {
             // TODO: Replace by __updateEventForSync method in future
             $event = $this->__prepareForPushToServer($event, $server);
@@ -979,6 +985,16 @@ class Event extends AppModel
             }
 
             $serverSync->pushEvent($event)->json();
+        } catch (Crypt_GPG_KeyNotFoundException $e) {
+            $errorMessage = sprintf(
+                'Could not push event %s to remote server #%s. Reason: %s',
+                $event['Event']['uuid'],
+                $server['Server']['id'],
+                $e->getMessage()
+            );
+            $this->logException($errorMessage, $e);
+            $this->__logUploadResult($server, $event, $errorMessage);
+            return false;
         } catch (Exception $e) {
             $errorMessage = $e->getMessage();
             if ($e instanceof HttpSocketHttpException && $e->getCode() === 403) {
@@ -991,7 +1007,6 @@ class Event extends AppModel
                     }
                 }
             }
-
             $this->logException("Could not push event '{$event['Event']['uuid']}' to remote server #{$server['Server']['id']}", $e);
             $this->__logUploadResult($server, $event, $errorMessage);
             return false;
@@ -1048,7 +1063,19 @@ class Event extends AppModel
     private function __rearrangeEventStructureForSync($event)
     {
         // rearrange things to be compatible with the Xml::fromArray()
-        $objectsToRearrange = array('Attribute', 'Object', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute', 'EventReport');
+        $objectsToRearrange = array(
+            'Attribute',
+            'Object',
+            'Orgc',
+            'SharingGroup',
+            'EventTag',
+            'Org',
+            'ShadowAttribute',
+            'EventReport',
+            'CryptographicKey',
+            'ThreatLevel',
+            'Galaxy'
+        );
         foreach ($objectsToRearrange as $o) {
             if (isset($event[$o])) {
                 $event['Event'][$o] = $event[$o];
@@ -1059,7 +1086,7 @@ class Event extends AppModel
         foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) {
             unset($event['Event'][$field]);
         }
-        return $event;
+        return ['Event' => $event['Event']];
     }
 
     // since we fetch the event and filter on tags after / server, we need to cull all of the non exportable tags
@@ -1797,7 +1824,8 @@ class Event extends AppModel
             'noShadowAttributes', // do not fetch proposals,
             'limit',
             'page',
-            'order'
+            'order',
+            'protected'
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -1931,6 +1959,9 @@ class Event extends AppModel
         if ($options['event_uuid']) {
             $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
         }
+        if ($options['protected']) {
+            $conditions['AND'][] = array('Event.protected' => $options['protected']);
+        }
         if (!empty($options['includeRelatedTags'])) {
             $options['includeGranularCorrelations'] = 1;
         }
@@ -2014,7 +2045,7 @@ class Event extends AppModel
         // $conditions['AND'][] = array('Event.published =' => 1);
 
         // do not expose all the data ...
-        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid');
+        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
         $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
@@ -2047,7 +2078,8 @@ class Event extends AppModel
                 'EventReport' => array(
                     'conditions' => $conditionsEventReport,
                     'order' => false
-                )
+                ),
+                'CryptographicKey'
             )
         );
         if (!empty($options['excludeLocalTags'])) {
@@ -3367,9 +3399,10 @@ class Event extends AppModel
         if (isset($event['distribution']) && $event['distribution'] == 4) {
             $event = $this->captureSGForElement($event, $user, $server);
         }
+
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $k => $a) {
-                unset($event['Attribute']['id']);
+                unset($event['Attribute'][$k]['id']);
                 if (isset($a['distribution']) && $a['distribution'] == 4) {
                     $event['Attribute'][$k] = $this->captureSGForElement($a, $user, $server);
                 }
@@ -3757,7 +3790,8 @@ class Event extends AppModel
             'sharing_group_id',
             'locked',
             'disable_correlation',
-            'extends_uuid'
+            'extends_uuid',
+            'protected'
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
         if ($saveResult) {
@@ -3828,12 +3862,22 @@ class Event extends AppModel
                     }
                 }
             }
-
             if (!empty($data['Event']['EventReport'])) {
                 foreach ($data['Event']['EventReport'] as $report) {
                     $result = $this->EventReport->captureReport($user, $report, $this->id);
                 }
             }
+
+            // capture new keys, update existing, remove those no longer in the pushed data
+            if (!empty($data['Event']['CryptographicKey'])) {
+                $this->CryptographicKey->captureCryptographicKeyUpdate(
+                    $user,
+                    $data['Event']['CryptographicKey'],
+                    $this->id,
+                    'Event'
+                );
+            }
+
             // zeroq: check if sightings are attached and add to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
                 $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
@@ -4011,6 +4055,17 @@ class Event extends AppModel
                 $eventLock->insertLockBackgroundJob($data['Event']['id'], $jobId);
             }
             $validationErrors = array();
+
+            // capture new keys, update existing, remove those no longer in the pushed data
+            if (!empty($data['Event']['CryptographicKey'])) {
+                $this->CryptographicKey->captureCryptographicKeyUpdate(
+                    $user,
+                    $data['Event']['CryptographicKey'],
+                    $existingEvent['Event']['id'],
+                    'Event'
+                );
+            }
+
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 foreach ($data['Event']['Attribute'] as $attribute) {

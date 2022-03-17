@@ -168,4 +168,36 @@ class FileAccessTool
             return true;
         }
     }
+
+    /**
+     * @param array $submittedFile
+     * @param string $alternate
+     * @return string
+     */
+    public static function getTempUploadedFile($submittedFile, $alternate = false)
+    {
+        if ($submittedFile['name'] != '' && $alternate != '') {
+            throw new MethodNotAllowedException(__('Only one import field can be used'));
+        }
+        if ($submittedFile['size'] > 0) {
+            $filename = basename($submittedFile['name']);
+            if (!is_uploaded_file($submittedFile['tmp_name'])) {
+                throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
+            }
+            $file = new File($submittedFile['tmp_name']);
+            $file_content = $file->read();
+            $file->close();
+            if ((isset($submittedFile['error']) && $submittedFile['error'] == 0) ||
+                (!empty($submittedFile['tmp_name']) && $submittedFile['tmp_name'] != '')
+            ) {
+                if (!$file_content) {
+                    throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
+                }
+            }
+            $text = $file_content;
+        } else {
+            $text = $alternate ? $alternate : '';
+        }
+        return $text;
+    }
 }

@@ -35,6 +35,8 @@ tools/mkdocs
 /app/tmp/cache/misp_feed*
 /app/files/*
 /app/tmp/cache/feeds/*.cache
+app/Lib/EventWarning/Custom/*
+!app/Lib/EventWarning/Custom/empty
 !/app/files/feed-metadata
 !/app/files/empty
 !/app/files/scripts/
