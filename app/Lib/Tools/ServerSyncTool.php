@@ -365,6 +365,7 @@ class ServerSyncTool
      */
     private function post($url, $data, $logMessage = null)
     {
+        $protectedMode = !empty($data['Event']['protected']);
         $data = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         if ($logMessage && !empty(Configure::read('Security.sync_audit'))) {
@@ -378,7 +379,7 @@ class ServerSyncTool
         }
 
         $request = $this->request;
-        if (strlen($data) > 1024) { // do not compress small body
+        if (strlen($data) > 1024 && !$protectedMode) { // do not compress small body
             if ($this->isSupported(self::FEATURE_BR) && function_exists('brotli_compress')) {
                 $request['header']['Content-Encoding'] = 'br';
                 $data = brotli_compress($data, 1, BROTLI_TEXT);
@@ -389,12 +390,51 @@ class ServerSyncTool
         }
         $url = $this->server['Server']['url'] . $url;
         $start = microtime(true);
+        if ($protectedMode) {
+            $request = $this->signEvent($data, $this->server, $request, $this->socket);
+        }
         $response = $this->socket->post($url, $data, $request);
         $this->log($start, 'POST', $url, $response);
         if (!$response->isOk()) {
             throw new HttpSocketHttpException($response, $url);
         }
         return $response;
+    }
+
+    /**
+     * @param string $data
+     * @param array $server
+     * @param array $request
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     * @throws HttpException
+     * @throws MethodNotAllowedException
+     */
+    private function signEvent($data, $server, $request, $socket)
+    {
+        $this->CryptographicKey = ClassRegistry::init('CryptographicKey');
+        $signature = $this->CryptographicKey->signWithInstanceKey($data);
+        $request['header']['x-pgp-signature'] = base64_encode($signature);
+        $this->Log = ClassRegistry::init('Log');
+        if (empty($signature)) {
+            $message = __("Invalid signing key. This should never happen.");
+            $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
+            throw new Exception($message);
+        }
+        $response = $socket->get($server['Server']['url'] . '/servers/getVersion.json', null, $request);
+        if (!$response->isOk()) {
+            $message = __("Could not fetch remote version to negotiate protected event synchronisation.");
+            $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
+            throw new HttpException($response->body, $response->code);
+        }
+        $version = json_decode($response->body(), true)['version'];
+        if (version_compare($version, '2.4.156') < 0) {
+            $message = __('Remote instance is not protected event aware yet (< 2.4.156), aborting.');
+            $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
+            throw new MethodNotAllowedException($message);
+        }
+        return $request;
     }
 
     /**
