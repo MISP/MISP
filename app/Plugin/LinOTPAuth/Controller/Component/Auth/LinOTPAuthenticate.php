@@ -123,6 +123,13 @@ class LinOTPAuthenticate extends BaseAuthenticate
 
         CakeLog::debug("getUser email: ${email}");
 
+        $linOTP_enabled = Configure::read("LinOTPAuth.enabled");
+        if (is_null($linOTP_enabled)) {
+            $linOTP_enabled = TRUE;
+        }
+        if (!$linOTP_enabled) {
+            return false;
+        }
         $linOTP_baseUrl = rtrim(Configure::read("LinOTPAuth.baseUrl"), "/");
         $linOTP_realm = Configure::read("LinOTPAuth.realm");
         $linOTP_verifyssl = Configure::read("LinOTPAuth.verifyssl");
