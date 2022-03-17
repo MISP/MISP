@@ -102,7 +102,7 @@
                 [
                     'key' => __('Protected Event (experimental)'),
                     'key_info' => __(
-                        "Protected events carry a list of cryptographic keys used to sign and validate the information in transit.\n\nWhat this means in practice, a protected event shared with another instance will only be able to receive updates via the synchronisation mechanism from instances that are able to provide a valid signature from the event\'s list of signatures.\n\nFor highly critical events in broader MISP networks, this can provide an additional layer of tamper proofing to ensure that the original source of the information maintains control over modifications. Whilst this feature has its uses, it is not required in most scenarios."
+                        "Protected events carry a list of cryptographic keys used to sign and validate the information in transit.\n\nWhat this means in practice, a protected event shared with another instance will only be able to receive updates via the synchronisation mechanism from instances that are able to provide a valid signature from the event's list of signatures.\n\nFor highly critical events in broader MISP networks, this can provide an additional layer of tamper proofing to ensure that the original source of the information maintains control over modifications. Whilst this feature has its uses, it is not required in most scenarios."
                     ),
                     'path' => 'CryptographicKey',
                     'event_path' => 'Event',
