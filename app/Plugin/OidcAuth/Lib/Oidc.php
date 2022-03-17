@@ -136,7 +136,7 @@ class Oidc
         $this->log($mispUsername, 'Logged in.');
         $user = $this->_findUser($settings, ['User.id' => $this->User->id]);
 
-        if ($user['User']['sub'] !== $sub) { // just to be sure that we have the correct user
+        if ($user['sub'] !== $sub) { // just to be sure that we have the correct user
             throw new Exception("User {$user['email']} sub doesn't match ({$user['sub']} != $sub)");
         }
         return $user;
