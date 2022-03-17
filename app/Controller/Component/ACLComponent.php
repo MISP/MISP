@@ -93,6 +93,12 @@ class ACLComponent extends Component
                 'generateTopCorrelations' => [],
                 'top' => []
             ],
+            'cryptographicKeys' => [
+                'add' => ['perm_add'],
+                'delete' => ['perm_add'],
+                'index' => ['*'],
+                'view' => ['*']
+            ],
             'dashboards' => array(
                 'getForm' => array('*'),
                 'index' => array('*'),
@@ -234,6 +240,7 @@ class ACLComponent extends Component
                     'nids' => array('*'),
                     'populate' => array('perm_add'),
                     'proposalEventIndex' => array('*'),
+                    'protect' => ['perm_add'],
                     'publish' => array('perm_publish'),
                     'publishSightings' => array('perm_sighting'),
                     'pushEventToZMQ' => array('perm_publish_zmq'),
@@ -246,12 +253,14 @@ class ACLComponent extends Component
                     'reportValidationIssuesEvents' => array(),
                     'restoreDeletedEvents' => array(),
                     'restSearch' => array('*'),
+                    'restSearchExport' => array('*'),
                     'runTaxonomyExclusivityCheck' => array('*'),
                     'saveFreeText' => array('perm_add'),
                     'stix' => array('*'),
                     'stix2' => array('*'),
                     'strposarray' => array(),
                     'toggleCorrelation' => array('perm_add'),
+                    'unprotect' => ['perm_add'],
                     'unpublish' => array('perm_modify'),
                     'updateGraph' => array('*'),
                     'upload_analysis_file' => array('perm_add'),

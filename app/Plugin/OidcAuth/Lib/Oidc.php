@@ -26,15 +26,21 @@ class Oidc
         $claims = $oidc->getVerifiedClaims();
 
         $mispUsername = $claims->email ?? $oidc->requestUserInfo('email');
+
+        if (empty($mispUsername)) {
+            $sub = $claims->sub ?? 'UNKNOWN';
+            throw new Exception("OIDC user $sub doesn't have email address, that is required by MISP.");
+        }
+
         $this->log($mispUsername, "Trying login.");
 
         $sub = $claims->sub; // sub is required
 
         // Try to find user by `sub` field, that is unique
-        $user = $this->_findUser($settings, ['sub' => $sub]);
+        $user = $this->_findUser($settings, ['User.sub' => $sub]);
 
         if (!$user) { // User by sub not found, try to find by email
-            $user = $this->_findUser($settings, ['email' => $mispUsername]);
+            $user = $this->_findUser($settings, ['User.email' => $mispUsername]);
             if ($user && $user['sub'] !== null && $user['sub'] !== $sub) {
                 $this->log($mispUsername, "User sub doesn't match ({$user['sub']} != $sub), could not login.");
                 return false;
@@ -128,9 +134,9 @@ class Oidc
 
         $this->log($mispUsername, "Saved in database with ID {$this->User->id}");
         $this->log($mispUsername, 'Logged in.');
-        $user = $this->_findUser($settings, ['id' => $this->User->id]);
+        $user = $this->_findUser($settings, ['User.id' => $this->User->id]);
 
-        if ($user['User']['sub'] !== $sub) { // just to be sure that we have the correct user
+        if ($user['sub'] !== $sub) { // just to be sure that we have the correct user
             throw new Exception("User {$user['email']} sub doesn't match ({$user['sub']} != $sub)");
         }
         return $user;

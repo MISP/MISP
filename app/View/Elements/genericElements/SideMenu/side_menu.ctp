@@ -285,6 +285,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
                 break;
 
+                case 'event_restsearch_export':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => $baseurl . '/events/index',
+                        'text' => __('List Events')
+                    ));
+                    break;
+
                 case 'tag-collections':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/tag_collections/index',

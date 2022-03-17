@@ -905,6 +905,19 @@ function multiSelectDeleteEvents() {
     }).fail(xhrFailCallback);
 }
 
+function multiSelectExportEvents() {
+    var selected = [];
+    $(".select").each(function() {
+        if ($(this).is(":checked")) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    });
+    openGenericModal(baseurl + "/events/restSearchExport/" + JSON.stringify(selected))
+}
+
 function multiSelectToggleFeeds(on, cache) {
     var selected = [];
     $(".select").each(function() {
@@ -3204,15 +3217,16 @@ function cancelPicklistValues() {
 
 function sgSubmitForm(action) {
     var ajax = {
-            'organisations': organisations,
-            'servers': servers,
-            'sharingGroup': {
-                'name': $('#SharingGroupName').val(),
-                'releasability': $('#SharingGroupReleasability').val(),
-                'description': $('#SharingGroupDescription').val(),
-                'active': $('#SharingGroupActive').is(":checked"),
-                'roaming': $('#SharingGroupRoaming').is(":checked"),
-            }
+        'organisations': organisations,
+        'servers': servers,
+        'sharingGroup': {
+            'uuid': $('#SharingGroupUuid').val(),
+            'name': $('#SharingGroupName').val(),
+            'releasability': $('#SharingGroupReleasability').val(),
+            'description': $('#SharingGroupDescription').val(),
+            'active': $('#SharingGroupActive').is(":checked"),
+            'roaming': $('#SharingGroupRoaming').is(":checked"),
+        }
     };
     $('#SharingGroupJson').val(JSON.stringify(ajax));
     var formName = "#SharingGroup" + action + "Form";
@@ -3274,6 +3288,7 @@ function sharingGroupPopulateFromJson() {
     }
     $('#SharingGroupName').attr('value', jsonparsed.sharingGroup.name);
     $('#SharingGroupReleasability').attr('value', jsonparsed.sharingGroup.releasability);
+    $('#SharingGroupUuid').attr('value', jsonparsed.sharingGroup.uuid);
     $('#SharingGroupDescription').text(jsonparsed.sharingGroup.description);
 }
 

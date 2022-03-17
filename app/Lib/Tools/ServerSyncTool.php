@@ -42,7 +42,7 @@ class ServerSyncTool
     }
 
     /**
-     * Check if event exists on remote server.
+     * Check if event exists on remote server by event UUID.
      * @param array $event
      * @return bool
      * @throws Exception
@@ -83,6 +83,70 @@ class ServerSyncTool
         $url = "/events/view/$eventId";
         $url .= $this->createParams($params);
         return $this->get($url);
+    }
+
+    /**
+     * @param array $event
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function pushEvent(array $event)
+    {
+        try {
+            // Check if event exists on remote server to use proper endpoint
+            $exists = $this->eventExists($event);
+        } catch (Exception $e) {
+            // In case of failure consider that event doesn't exists
+            $exists = false;
+        }
+
+        try {
+            return $exists ? $this->updateEvent($event) : $this->createEvent($event);
+        } catch (HttpSocketHttpException $e) {
+            if ($e->getCode() === 404) {
+                // Maybe the check if event exists was not correct, try to create a new event
+                if ($exists) {
+                    return $this->createEvent($event);
+
+                // There is bug in MISP API, that returns response code 404 with Location if event already exists
+                } else if ($e->getResponse()->getHeader('Location')) {
+                    $urlPath = $e->getResponse()->getHeader('Location');
+                    $pieces = explode('/', $urlPath);
+                    $lastPart = end($pieces);
+                    return $this->updateEvent($event, $lastPart);
+                }
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * @param array $event
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function createEvent(array $event)
+    {
+        $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
+        return $this->post("/events/add/metadata:1", $event, $logMessage);
+    }
+
+    /**
+     * @param array $event
+     * @param int|string|null Event ID or UUID that should be updated. If not provieded, UUID from $event will be used
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function updateEvent(array $event, $eventId = null)
+    {
+        if ($eventId === null) {
+            $eventId = $event['Event']['uuid'];
+        }
+        $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
+        return $this->post("/events/edit/$eventId/metadata:1", $event, $logMessage);
     }
 
     /**
@@ -140,7 +204,7 @@ class ServerSyncTool
             }
         }
 
-        $logMessage = "Pushing Sightings for Event #{$eventUuid} to Server #{$this->server['Server']['id']}";
+        $logMessage = "Pushing Sightings for Event #{$eventUuid} to Server #{$this->serverId()}";
         $this->post('/sightings/bulkSaveSightings/' . $eventUuid, $sightings, $logMessage);
     }
 
@@ -301,6 +365,7 @@ class ServerSyncTool
      */
     private function post($url, $data, $logMessage = null)
     {
+        $protectedMode = !empty($data['Event']['protected']);
         $data = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         if ($logMessage && !empty(Configure::read('Security.sync_audit'))) {
@@ -310,11 +375,11 @@ class ServerSyncTool
                 $logMessage,
                 $data
             );
-            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $this->server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND | LOCK_EX);
+            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $this->serverId() . '.log', $pushLogEntry, FILE_APPEND | LOCK_EX);
         }
 
         $request = $this->request;
-        if (strlen($data) > 1024) { // do not compress small body
+        if (strlen($data) > 1024 && !$protectedMode) { // do not compress small body
             if ($this->isSupported(self::FEATURE_BR) && function_exists('brotli_compress')) {
                 $request['header']['Content-Encoding'] = 'br';
                 $data = brotli_compress($data, 1, BROTLI_TEXT);
@@ -325,12 +390,51 @@ class ServerSyncTool
         }
         $url = $this->server['Server']['url'] . $url;
         $start = microtime(true);
+        if ($protectedMode) {
+            $request = $this->signEvent($data, $this->server, $request, $this->socket);
+        }
         $response = $this->socket->post($url, $data, $request);
         $this->log($start, 'POST', $url, $response);
         if (!$response->isOk()) {
             throw new HttpSocketHttpException($response, $url);
         }
         return $response;
+    }
+
+    /**
+     * @param string $data
+     * @param array $server
+     * @param array $request
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     * @throws HttpException
+     * @throws MethodNotAllowedException
+     */
+    private function signEvent($data, $server, $request, $socket)
+    {
+        $this->CryptographicKey = ClassRegistry::init('CryptographicKey');
+        $signature = $this->CryptographicKey->signWithInstanceKey($data);
+        $request['header']['x-pgp-signature'] = base64_encode($signature);
+        $this->Log = ClassRegistry::init('Log');
+        if (empty($signature)) {
+            $message = __("Invalid signing key. This should never happen.");
+            $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
+            throw new Exception($message);
+        }
+        $response = $socket->get($server['Server']['url'] . '/servers/getVersion.json', null, $request);
+        if (!$response->isOk()) {
+            $message = __("Could not fetch remote version to negotiate protected event synchronisation.");
+            $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
+            throw new HttpException($response->body, $response->code);
+        }
+        $version = json_decode($response->body(), true)['version'];
+        if (version_compare($version, '2.4.156') < 0) {
+            $message = __('Remote instance is not protected event aware yet (< 2.4.156), aborting.');
+            $this->Log->createLogEntry('SYSTEM', 'push', 'Server', $server['Server']['id'], $message);
+            throw new MethodNotAllowedException($message);
+        }
+        return $request;
     }
 
     /**

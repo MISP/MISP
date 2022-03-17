@@ -68,6 +68,13 @@
                             'fa-icon' => 'trash',
                             'class' => 'hidden mass-select',
                             'onClick' => 'multiSelectDeleteEvents'
+                        ),
+                        array(
+                            'id' => 'multi-export-button',
+                            'title' => __('Export selected events'),
+                            'fa-icon' => 'file-export',
+                            'class' => 'hidden mass-select',
+                            'onClick' => 'multiSelectExportEvents'
                         )
                     )
                 ),

@@ -69,8 +69,8 @@
             <?= $this->OrgImg->getOrgLogo($event['Org'], 24) ?>
         </td>
         <?php endif; ?>
-        <td style="width:30px;">
-            <a href="<?= $baseurl."/events/view/".$eventId ?>" class="dblclickActionElement threat-level-<?= strtolower(h($event['ThreatLevel']['name'])) ?>" title="<?= __('Threat level: %s', h($event['ThreatLevel']['name'])) ?>"><?= $eventId ?></a>
+        <td class="short">
+            <span><a href="<?= $baseurl."/events/view/".$eventId ?>" class="dblclickActionElement threat-level-<?= strtolower(h($event['ThreatLevel']['name'])) ?>" title="<?= __('Threat level: %s', h($event['ThreatLevel']['name'])) ?>"><?= $eventId ?></a> <?= !empty($event['Event']['protected']) ? sprintf('<i class="fas fa-lock" title="%s"></i>', __('Protected event')) : ''?></span>
         </td>
         <?php if (in_array('clusters', $columns, true)): ?>
         <td class="short">

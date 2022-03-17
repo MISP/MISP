@@ -99,6 +99,8 @@ class Event extends AppModel
         'attack' => array('html', 'AttackExport', 'html'),
         'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
         'cache' => array('txt', 'CacheExport', 'cache'),
+        'context' => array('html', 'ContextExport', 'html'),
+        'context-markdown' => array('txt', 'ContextMarkdownExport', 'md'),
         'count' => array('txt', 'CountExport', 'txt'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'hashes' => array('txt', 'HashesExport', 'txt'),
@@ -288,7 +290,14 @@ class Event extends AppModel
         'EventReport' => array(
             'className' => 'EventReport',
             'dependent' => true,
-        )
+        ),
+        'CryptographicKey' => [
+            'foreignKey' => 'parent_id',
+            'conditions' => [
+                'parent_type' => 'Event'
+            ],
+            'dependent' => true
+        ]
     );
 
     public function __construct($id = false, $table = null, $ds = null)
@@ -456,6 +465,7 @@ class Event extends AppModel
             $this->logException('Delete of event file directory failed.', $e);
             throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
         }
+        $this->CryptographicKey->deleteAll(['CryptographicKey.parent_type' => 'Event', 'CryptographicKey.parent_id' => $this->id]);
     }
 
     public function beforeValidate($options = array())
@@ -942,10 +952,12 @@ class Event extends AppModel
     /**
      * @param array $event
      * @param array $server
-     * @param HttpSocket $HttpSocket
      * @return false|string
+     * @throws HttpSocketJsonException
+     * @throws JsonException
+     * @throws Exception
      */
-    public function uploadEventToServer(array $event, array $server, HttpSocket $HttpSocket)
+    public function uploadEventToServer(array $event, array $server)
     {
         $this->Server = ClassRegistry::init('Server');
 
@@ -956,22 +968,38 @@ class Event extends AppModel
             return 'The distribution level of this event blocks it from being pushed.';
         }
 
-        $push = $this->Server->checkVersionCompatibility($server, false);
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
+        $push = $this->Server->checkVersionCompatibility($server, false, $serverSync);
         if (empty($push['canPush'])) {
             return 'The remote user is not a sync user - the upload of the event has been blocked.';
         }
-
         if (!empty($server['Server']['unpublish_event'])) {
             $event['Event']['published'] = 0;
         }
-
         try {
-            $this->restfulEventToServer($event, $server, $HttpSocket);
+            // TODO: Replace by __updateEventForSync method in future
+            $event = $this->__prepareForPushToServer($event, $server);
+            if (is_numeric($event)) {
+                throw new Exception("This should never happen.");
+            }
+
+            $serverSync->pushEvent($event)->json();
+        } catch (Crypt_GPG_KeyNotFoundException $e) {
+            $errorMessage = sprintf(
+                'Could not push event %s to remote server #%s. Reason: %s',
+                $event['Event']['uuid'],
+                $server['Server']['id'],
+                $e->getMessage()
+            );
+            $this->logException($errorMessage, $e);
+            $this->__logUploadResult($server, $event, $errorMessage);
+            return false;
         } catch (Exception $e) {
             $errorMessage = $e->getMessage();
-            if ($e instanceof HttpException && $e->getCode() == 403) {
+            if ($e instanceof HttpSocketHttpException && $e->getCode() === 403) {
                 // Do not log errors that are expected
-                $errorJson = json_decode($errorMessage, true);
+                $errorJson = $e->getResponse()->json();
                 if (isset($errorJson['errors'])) {
                     $errorMessage = $errorJson['errors'];
                     if ($errorMessage === 'Event could not be saved: Event in the request not newer than the local copy.') {
@@ -979,7 +1007,6 @@ class Event extends AppModel
                     }
                 }
             }
-
             $this->logException("Could not push event '{$event['Event']['uuid']}' to remote server #{$server['Server']['id']}", $e);
             $this->__logUploadResult($server, $event, $errorMessage);
             return false;
@@ -1033,88 +1060,22 @@ class Event extends AppModel
         return $event;
     }
 
-    private function __getLastUrlPathComponent($urlPath)
-    {
-        if (!empty($urlPath)) {
-            $pieces = explode('/', $urlPath);
-            return '/' . end($pieces);
-        }
-        return '';
-    }
-
-    /**
-     * Uploads the event and the associated Attributes to another Server.
-     * @param array $event
-     * @param array $server
-     * @param HttpSocket $HttpSocket
-     * @return array
-     * @throws JsonException
-     */
-    private function restfulEventToServer(array $event, array $server, HttpSocket $HttpSocket)
-    {
-        // TODO: Replace by __updateEventForSync method in future
-        $event = $this->__prepareForPushToServer($event, $server);
-        if (is_numeric($event)) {
-            throw new Exception("This should never happen.");
-        }
-        $request = $this->setupSyncRequest($server);
-        $serverUrl = $server['Server']['url'];
-
-        $exists = false;
-        try {
-            // Check if event exists on remote server to use proper endpoint
-            $response = $HttpSocket->head("$serverUrl/events/view/{$event['Event']['uuid']}", [], $request);
-            if ($response->code == '200') {
-                $exists = true;
-            }
-        } catch (Exception $e) {
-            $this->logException("Could not check if event {$event['Event']['uuid']} exists on remote server {$server['Server']['id']}", $e, LOG_NOTICE);
-        }
-
-        $data = json_encode($event);
-        if (!empty(Configure::read('Security.sync_audit'))) {
-            $pushLogEntry = sprintf(
-                "==============================================================\n\n[%s] Pushing Event #%d to Server #%d:\n\n%s\n\n",
-                date("Y-m-d H:i:s"),
-                $event['Event']['id'],
-                $server['Server']['id'],
-                $data
-            );
-            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
-        }
-
-        if ($exists) {
-            $url = "$serverUrl/events/edit/{$event['Event']['uuid']}/metadata:1";
-        } else {
-            $url = "$serverUrl/events/add/metadata:1";
-        }
-
-        $response = $HttpSocket->post($url, $data, $request);
-
-        // Maybe the check if event exists was not correct, try to create a new event
-        if ($exists && $response->code == '404') {
-            $url = "$serverUrl/events/add/metadata:1";
-            $response = $HttpSocket->post($url, $data, $request);
-        }
-
-        // There is bug in MISP API, that returns response code 404 with Location if event already exists
-        else if (!$exists && $response->code == '404' && $response->getHeader('Location')) {
-            $lastPart = $this->__getLastUrlPathComponent($response->getHeader('Location'));
-            $url = "$serverUrl/events/edit/$lastPart/metadata:1";
-            $response = $HttpSocket->post($url, $data, $request);
-        }
-
-        if (!$response->isOk()) {
-            throw new HttpException($response->body, $response->code);
-        }
-
-        return $this->jsonDecode($response->body);
-    }
-
     private function __rearrangeEventStructureForSync($event)
     {
         // rearrange things to be compatible with the Xml::fromArray()
-        $objectsToRearrange = array('Attribute', 'Object', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute', 'EventReport');
+        $objectsToRearrange = array(
+            'Attribute',
+            'Object',
+            'Orgc',
+            'SharingGroup',
+            'EventTag',
+            'Org',
+            'ShadowAttribute',
+            'EventReport',
+            'CryptographicKey',
+            'ThreatLevel',
+            'Galaxy'
+        );
         foreach ($objectsToRearrange as $o) {
             if (isset($event[$o])) {
                 $event['Event'][$o] = $event[$o];
@@ -1125,7 +1086,7 @@ class Event extends AppModel
         foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) {
             unset($event['Event'][$field]);
         }
-        return $event;
+        return ['Event' => $event['Event']];
     }
 
     // since we fetch the event and filter on tags after / server, we need to cull all of the non exportable tags
@@ -1863,7 +1824,8 @@ class Event extends AppModel
             'noShadowAttributes', // do not fetch proposals,
             'limit',
             'page',
-            'order'
+            'order',
+            'protected'
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -1997,6 +1959,9 @@ class Event extends AppModel
         if ($options['event_uuid']) {
             $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
         }
+        if ($options['protected']) {
+            $conditions['AND'][] = array('Event.protected' => $options['protected']);
+        }
         if (!empty($options['includeRelatedTags'])) {
             $options['includeGranularCorrelations'] = 1;
         }
@@ -2080,7 +2045,7 @@ class Event extends AppModel
         // $conditions['AND'][] = array('Event.published =' => 1);
 
         // do not expose all the data ...
-        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid');
+        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
         $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
@@ -2113,7 +2078,8 @@ class Event extends AppModel
                 'EventReport' => array(
                     'conditions' => $conditionsEventReport,
                     'order' => false
-                )
+                ),
+                'CryptographicKey'
             )
         );
         if (!empty($options['excludeLocalTags'])) {
@@ -3433,9 +3399,10 @@ class Event extends AppModel
         if (isset($event['distribution']) && $event['distribution'] == 4) {
             $event = $this->captureSGForElement($event, $user, $server);
         }
+
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $k => $a) {
-                unset($event['Attribute']['id']);
+                unset($event['Attribute'][$k]['id']);
                 if (isset($a['distribution']) && $a['distribution'] == 4) {
                     $event['Attribute'][$k] = $this->captureSGForElement($a, $user, $server);
                 }
@@ -3823,7 +3790,8 @@ class Event extends AppModel
             'sharing_group_id',
             'locked',
             'disable_correlation',
-            'extends_uuid'
+            'extends_uuid',
+            'protected'
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
         if ($saveResult) {
@@ -3894,12 +3862,22 @@ class Event extends AppModel
                     }
                 }
             }
-
             if (!empty($data['Event']['EventReport'])) {
                 foreach ($data['Event']['EventReport'] as $report) {
                     $result = $this->EventReport->captureReport($user, $report, $this->id);
                 }
             }
+
+            // capture new keys, update existing, remove those no longer in the pushed data
+            if (!empty($data['Event']['CryptographicKey'])) {
+                $this->CryptographicKey->captureCryptographicKeyUpdate(
+                    $user,
+                    $data['Event']['CryptographicKey'],
+                    $this->id,
+                    'Event'
+                );
+            }
+
             // zeroq: check if sightings are attached and add to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
                 $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
@@ -4077,6 +4055,17 @@ class Event extends AppModel
                 $eventLock->insertLockBackgroundJob($data['Event']['id'], $jobId);
             }
             $validationErrors = array();
+
+            // capture new keys, update existing, remove those no longer in the pushed data
+            if (!empty($data['Event']['CryptographicKey'])) {
+                $this->CryptographicKey->captureCryptographicKeyUpdate(
+                    $user,
+                    $data['Event']['CryptographicKey'],
+                    $existingEvent['Event']['id'],
+                    'Event'
+                );
+            }
+
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 foreach ($data['Event']['Attribute'] as $attribute) {
@@ -4403,12 +4392,12 @@ class Event extends AppModel
     }
 
     /**
-     * @param int $id
-     * @param int|null $passAlong
+     * @param int $id Event ID
+     * @param int|null $passAlong ID of server that event will be not pushed
      * @return array|bool
      * @throws Exception
      */
-    public function uploadEventToServersRouter($id, $passAlong = null)
+    private function uploadEventToServersRouter($id, $passAlong = null)
     {
         $eventOrgcId = $this->find('first', array(
             'conditions' => array('Event.id' => $id),
@@ -4426,7 +4415,7 @@ class Event extends AppModel
             ),
             'org_id' => $eventOrgcId['Event']['orgc_id']
         );
-        $event = $this->fetchEvent($elevatedUser, array('eventid' => $id, 'metadata' => 1));
+        $event = $this->fetchEvent($elevatedUser, ['eventid' => $id, 'metadata' => 1]);
         if (empty($event)) {
             return true;
         }
@@ -4434,21 +4423,21 @@ class Event extends AppModel
         $event['Event']['locked'] = 1;
         // get a list of the servers
         $this->Server = ClassRegistry::init('Server');
-
-        $conditions = array('push' => 1);
+        $conditions = ['push' => 1];
         if ($passAlong) {
-            $conditions[] = array('Server.id !=' => $passAlong);
+            $conditions[] = ['Server.id !=' => $passAlong];
         }
-        $servers = $this->Server->find('all', array(
+        $servers = $this->Server->find('all', [
             'conditions' => $conditions,
-            'order' => array('Server.priority ASC', 'Server.id ASC')
-        ));
+            'recursive' => -1,
+            'order' => ['Server.priority ASC', 'Server.id ASC'],
+        ]);
         // iterate over the servers and upload the event
         if (empty($servers)) {
             return true;
         }
         $uploaded = true;
-        $failedServers = array();
+        $failedServers = [];
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
 
@@ -4458,24 +4447,23 @@ class Event extends AppModel
             ) {
                 continue;
             }
-            $HttpSocket = $syncTool->setupHttpSocket($server);
             // Skip servers where the event has come from.
-            if (($passAlong != $server['Server']['id'])) {
-                $params = array();
-                if (!empty($server['Server']['push_rules'])) {
-                    $push_rules = json_decode($server['Server']['push_rules'], true);
-                    if (!empty($push_rules['tags']['NOT'])) {
-                        $params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
-                    }
-                }
-                $params = array_merge($params, array(
+            if ($passAlong != $server['Server']['id']) {
+                $HttpSocket = $syncTool->setupHttpSocket($server);
+                $params = [
                     'eventid' => $id,
                     'includeAttachments' => true,
                     'includeAllTags' => true,
-                    'deleted' => array(0,1),
+                    'deleted' => [0, 1],
                     'excludeGalaxy' => 1,
                     'noSightings' => true, // sightings are pushed separately
-                ));
+                ];
+                if (!empty($server['Server']['push_rules'])) {
+                    $pushRules = json_decode($server['Server']['push_rules'], true);
+                    if (!empty($pushRules['tags']['NOT'])) {
+                        $params['blockedAttributeTags'] = $pushRules['tags']['NOT'];
+                    }
+                }
                 if (!empty($server['Server']['internal'])) {
                     $params['excludeLocalTags'] = 0;
                 }
@@ -4490,7 +4478,7 @@ class Event extends AppModel
                     )
                 );
                 $this->Server->syncGalaxyClusters($HttpSocket, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
-                $thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket);
+                $thisUploaded = $this->uploadEventToServer($event, $server);
                 if ($thisUploaded === 'Success') {
                     try {
                         $this->pushSightingsToServer($server, $event); // push sighting by method that check for duplicates
@@ -4512,9 +4500,8 @@ class Event extends AppModel
                 return true;
             }
             return $failedServers;
-        } else {
-            return true;
         }
+        return true;
     }
 
     /**
@@ -4548,7 +4535,7 @@ class Event extends AppModel
             );
         }
 
-        return $this->publish_sightings($id, $passAlong, $sightingUuids);
+        return $this->publishSightings($id, $passAlong, $sightingUuids);
     }
 
     public function publishRouter($id, $passAlong = null, $user)
@@ -4577,7 +4564,14 @@ class Event extends AppModel
         return $this->publish($id, $passAlong);
     }
 
-    public function publish_sightings($id, $passAlong = null, array $sightingsUuidsToPush = [])
+    /**
+     * @param int|string $id Event ID or UUID
+     * @param $passAlong
+     * @param array $sightingsUuidsToPush
+     * @return array|bool
+     * @throws Exception
+     */
+    public function publishSightings($id, $passAlong = null, array $sightingsUuidsToPush = [])
     {
         if (is_numeric($id)) {
             $condition = array('Event.id' => $id);
@@ -4642,10 +4636,9 @@ class Event extends AppModel
             }
             if (empty($hostOrg)) {
                 $hostOrg = $this->Org->find('first', [
-                        'recursive' => -1,
-                        'order' => ['id ASC']
-                    ]
-                );
+                    'recursive' => -1,
+                    'order' => ['id ASC']
+                ]);
                 $hostOrgId = $hostOrg['Org']['id'];
             }
             $user = array('org_id' => $hostOrgId, 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
@@ -4672,10 +4665,8 @@ class Event extends AppModel
                 }
             }
         }
-        $uploaded = $this->uploadEventToServersRouter($id, $passAlong);
-        return $uploaded;
+        return $this->uploadEventToServersRouter($id, $passAlong);
     }
-
 
     // Sends out an email to all people within the same org with the request to be contacted about a specific event.
     public function sendContactEmailRouter($id, $message, $creator_only, $user)

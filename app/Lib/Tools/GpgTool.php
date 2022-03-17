@@ -102,6 +102,7 @@ class GpgTool
         if (empty($primaryKey)) {
             throw new Exception("No primary key found");
         }
+        $this->gpg->importKey($keyData);
         return $primaryKey->getFingerprint();
     }
 

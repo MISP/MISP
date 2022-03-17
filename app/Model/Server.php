@@ -204,11 +204,11 @@ class Server extends AppModel
     {
         if ("full" === $technique) {
             // get a list of the event_ids on the server
-            $eventIds = $this->getEventIdsFromServer($serverSync, false, false, 'events', $force);
+            $eventIds = $this->getEventIdsFromServer($serverSync, false, false, $force);
             // reverse array of events, to first get the old ones, and then the new ones
             return array_reverse($eventIds);
         } elseif ("update" === $technique) {
-            $eventIds = $this->getEventIdsFromServer($serverSync, false, true, 'events', $force);
+            $eventIds = $this->getEventIdsFromServer($serverSync, false, true,  $force);
             $eventModel = ClassRegistry::init('Event');
             $localEventUuids = $eventModel->find('column', array(
                 'fields' => array('Event.uuid'),
@@ -413,17 +413,24 @@ class Server extends AppModel
         return false;
     }
 
-    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force = false)
+    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force = false, $headers = false, $body = false)
     {
         // check if the event already exist (using the uuid)
         $existingEvent = $eventModel->find('first', [
             'conditions' => ['Event.uuid' => $event['Event']['uuid']],
             'recursive' => -1,
-            'fields' => ['id', 'locked'],
+            'fields' => ['id', 'locked', 'protected'],
+            'contain' => ['CryptographicKey']
         ]);
         $passAlong = $server['Server']['id'];
         if (!$existingEvent) {
             // add data for newly imported events
+            if ($event['Event']['protected']) {
+                if (!$eventModel->CryptographicKey->validateProtectedEvent($body, $user, $headers['x-pgp-signature'], $event)) {
+                    $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
+                    return false;
+                }
+            }
             $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
             if ($result) {
                 $successes[] = $eventId;
@@ -438,6 +445,11 @@ class Server extends AppModel
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
                 $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
+                if ($existingEvent['Event']['protected']) {
+                    if (!$eventModel->CryptographicKey->validateProtectedEvent($body, $user, $headers['x-pgp-signature'], $existingEvent)) {
+                        $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
+                    }
+                }
                 $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong, $force);
                 if ($result === true) {
                     $successes[] = $eventId;
@@ -466,9 +478,11 @@ class Server extends AppModel
         if (empty($serverSync->server()['Server']['internal'])) {
             $params['excludeLocalTags'] = 1;
         }
-
         try {
-            $event = $serverSync->fetchEvent($eventId, $params)->json();
+            $event = $serverSync->fetchEvent($eventId, $params);
+            $headers = $event->headers;
+            $body = $event->body;
+            $event = $event->json();
         } catch (Exception $e) {
             $this->logException("Failed downloading the event $eventId from remote server {$serverSync->serverId()}", $e);
             $fails[$eventId] = __('failed downloading the event');
@@ -481,13 +495,12 @@ class Server extends AppModel
             }
             $pullRulesEmptiedEvent = false;
             $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules(), $pullRulesEmptiedEvent);
-
             if (!$this->__checkIfEventSaveAble($event)) {
                 if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
                     $fails[$eventId] = __('Empty event detected.');
                 }
             } else {
-                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force);
+                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $headers, $body);
             }
         } else {
             // error
@@ -762,7 +775,13 @@ class Server extends AppModel
         }
         $filterRules['minimal'] = 1;
         $filterRules['published'] = 1;
-        return $serverSync->eventIndex($filterRules)->json();
+        $eventIndex = $serverSync->eventIndex($filterRules)->json();
+
+        // correct $eventArray if just one event, probably this response returns old MISP
+        if (isset($eventIndex['id'])) {
+            $eventIndex = [$eventIndex];
+        }
+        return $eventIndex;
     }
 
     /**
@@ -771,65 +790,40 @@ class Server extends AppModel
      * @param ServerSyncTool $serverSync
      * @param bool $all
      * @param bool $ignoreFilterRules
-     * @param string $scope 'events' or 'sightings'
      * @param bool $force
      * @return array Array of event UUIDs.
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws InvalidArgumentException
      */
-    private function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $scope = 'events', $force = false)
+    private function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $force = false)
     {
-        if (!in_array($scope, ['events', 'sightings'], true)) {
-            throw new InvalidArgumentException("Scope must be 'events' or 'sightings', '$scope' given.");
-        }
-
         $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules);
-        // correct $eventArray if just one event
-        if (isset($eventArray['id'])) {
-            $eventArray = array($eventArray);
-        }
+
         if ($all) {
-            if ($scope === 'sightings') {
-                // Used when pushing: return just eventUuids that has sightings newer than remote server
-                $this->Event = ClassRegistry::init('Event');
-                $localEvents = $this->Event->find('list', array(
-                    'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
-                    'conditions' => array('Event.uuid' => array_column($eventArray, 'uuid'))
-                ));
-
-                $eventUuids = [];
-                foreach ($eventArray as $event) {
-                    if (isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
-                        $eventUuids[] = $event['uuid'];
-                    }
-                }
-            } else {
-                $eventUuids = array_column($eventArray, 'uuid');
-            }
-        } else {
-            if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-                $this->EventBlocklist->removeBlockedEvents($eventArray);
-            }
-
-            if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
-                $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
-                $this->OrgBlocklist->removeBlockedEvents($eventArray);
-            }
-
-            foreach ($eventArray as $k => $event) {
-                if (1 != $event['published']) {
-                    unset($eventArray[$k]); // do not keep non-published events
-                }
-            }
-            if (!$force) {
-                $this->Event = ClassRegistry::init('Event');
-                $this->Event->removeOlder($eventArray, $scope);
-            }
-            $eventUuids = array_column($eventArray, 'uuid');
+            return array_column($eventArray, 'uuid');
         }
-        return $eventUuids;
+
+        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            $this->EventBlocklist->removeBlockedEvents($eventArray);
+        }
+
+        if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
+            $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
+            $this->OrgBlocklist->removeBlockedEvents($eventArray);
+        }
+
+        foreach ($eventArray as $k => $event) {
+            if (1 != $event['published']) {
+                unset($eventArray[$k]); // do not keep non-published events
+            }
+        }
+        if (!$force) {
+            $this->Event = ClassRegistry::init('Event');
+            $this->Event->removeOlder($eventArray);
+        }
+        return array_column($eventArray, 'uuid');
     }
 
     public function serverEventsOverlap()
@@ -900,9 +894,11 @@ class Server extends AppModel
         if (!$server) {
             throw new NotFoundException('Server not found');
         }
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
         $this->Event = ClassRegistry::init('Event');
         $url = $server['Server']['url'];
-        $push = $this->checkVersionCompatibility($server, $user);
+        $push = $this->checkVersionCompatibility($server, $user, $serverSync);
         if (is_array($push) && !$push['canPush'] && !$push['canSight']) {
             $push = 'Remote instance is outdated or no permission to push.';
         }
@@ -911,14 +907,14 @@ class Server extends AppModel
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => $user['email'],
-                    'action' => 'error',
-                    'user_id' => $user['id'],
-                    'title' => 'Failed: Push to ' . $url . ' initiated by ' . $user['email'],
-                    'change' => $message
+                'org' => $user['Organisation']['name'],
+                'model' => 'Server',
+                'model_id' => $id,
+                'email' => $user['email'],
+                'action' => 'error',
+                'user_id' => $user['id'],
+                'title' => 'Failed: Push to ' . $url . ' initiated by ' . $user['email'],
+                'change' => $message
             ));
             if ($jobId) {
                 $job->saveStatus($jobId, false, $message);
@@ -1052,7 +1048,8 @@ class Server extends AppModel
         }
 
         if ($push['canPush'] || $push['canSight']) {
-            $sightingSuccesses = $this->syncSightings($HttpSocket, $server, $user, $this->Event);
+            $this->Sighting = ClassRegistry::init('Sighting');
+            $sightingSuccesses =$this->Sighting->pushSightings($user, $serverSync);
         } else {
             $sightingSuccesses = array();
         }
@@ -1069,14 +1066,14 @@ class Server extends AppModel
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->save(array(
-                'org' => $user['Organisation']['name'],
-                'model' => 'Server',
-                'model_id' => $id,
-                'email' => $user['email'],
-                'action' => 'push',
-                'user_id' => $user['id'],
-                'title' => 'Push to ' . $url . ' initiated by ' . $user['email'],
-                'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
+            'org' => $user['Organisation']['name'],
+            'model' => 'Server',
+            'model_id' => $id,
+            'email' => $user['email'],
+            'action' => 'push',
+            'user_id' => $user['id'],
+            'title' => 'Push to ' . $url . ' initiated by ' . $user['email'],
+            'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
         ));
         if ($jobId) {
             $job->saveStatus($jobId, true, __('Push to server %s complete.', $id));
@@ -1147,70 +1144,6 @@ class Server extends AppModel
             $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $HttpSocket, $user);
             if ($result === 'Success') {
                 $successes[] = __('GalaxyCluster %s', $cluster['GalaxyCluster']['uuid']);
-            }
-        }
-        return $successes;
-    }
-
-    /**
-     * Push sightings to remote server.
-     * @param HttpSocket $HttpSocket
-     * @param array $server
-     * @param array $user
-     * @param Event $eventModel
-     * @return array
-     * @throws Exception
-     */
-    private function syncSightings($HttpSocket, array $server, array $user, Event $eventModel)
-    {
-        $successes = array();
-        if (!$server['Server']['push_sightings']) {
-            return $successes;
-        }
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-        $this->Sighting = ClassRegistry::init('Sighting');
-        try {
-            $eventUuids = $this->getEventIdsFromServer($serverSync, true, true, 'sightings');
-        } catch (Exception $e) {
-            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
-            return $successes;
-        }
-        // now process the $eventIds to push each of the events sequentially
-        // check each event and push sightings when needed
-        $fakeSyncUser = [
-            'org_id' => $server['Server']['remote_org_id'],
-            'Role' => [
-                'perm_site_admin' => 0,
-            ],
-        ];
-
-        foreach ($eventUuids as $eventUuid) {
-            $event = $eventModel->fetchEvent($user, ['event_uuid' => $eventUuid, 'metadata' => true]);
-            if (!empty($event)) {
-                $event = $event[0];
-
-                if (empty($this->eventFilterPushableServers($event, [$server]))) {
-                    continue;
-                }
-                if (!$eventModel->checkDistributionForPush($event, $server)) {
-                    continue;
-                }
-
-                // Process sightings in batch to keep memory requirements low
-                foreach ($this->Sighting->fetchUuidsForEventToPush($event, $fakeSyncUser) as $batch) {
-                    // Filter out sightings that already exists on remote server
-                    $existingSightings = $serverSync->filterSightingUuidsForPush($event, $batch);
-                    $newSightings = array_diff($batch, $existingSightings);
-                    if (empty($newSightings)) {
-                        continue;
-                    }
-
-                    $conditions = ['Sighting.uuid' => $newSightings];
-                    $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, $conditions, true);
-                    $serverSync->uploadSightings($sightings, $event['Event']['uuid']);
-                }
-
-                $successes[] = 'Sightings for event ' .  $event['Event']['id'];
             }
         }
         return $successes;
@@ -2573,6 +2506,7 @@ class Server extends AppModel
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
         $supportEditOfGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']);
         $canEditGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']) ? $remoteVersion['perm_galaxy_editor'] : false;
+        $remoteVersionString = $remoteVersion['version'];
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
             $message = __('Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.');
@@ -2580,6 +2514,7 @@ class Server extends AppModel
             return $message;
         }
         $localVersion = $this->checkMISPVersion();
+        $protectedMode = version_compare($remoteVersionString, '2.4.156') >= 0;
         $response = false;
         $success = false;
         $issueLevel = "warning";
@@ -2623,6 +2558,7 @@ class Server extends AppModel
             'canEditGalaxyCluster' => $canEditGalaxyCluster,
             'supportEditOfGalaxyCluster' => $supportEditOfGalaxyCluster,
             'version' => $remoteVersion,
+            'protectedMode' => $protectedMode,
         ];
     }
 
@@ -4497,7 +4433,6 @@ class Server extends AppModel
 
         $uri = $server['Server']['url'] . $relativeUri;
         $response = $HttpSocket->get($uri, array(), $request);
-
         if ($response->code == 404) { // intentional !=
             throw new NotFoundException(__("Fetching the '%s' failed with HTTP error 404: Not Found", $uri));
         } else if ($response->code == 405) { // intentional !=
@@ -5932,7 +5867,8 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
-                    'null' => true
+                    'null' => true,
+                    'cli_only' => 1
                 ),
                 'rest_client_baseurl' => array(
                     'level' => 1,
