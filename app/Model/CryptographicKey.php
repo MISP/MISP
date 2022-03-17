@@ -86,23 +86,22 @@ class CryptographicKey extends AppModel
         }
         if ($redis) {
             $redisKey = "misp:instance_fingerprint";
-            $instance_fingerprint = $redis->get($redisKey);
-            if (!empty($instance_fingerprint)) {
-                return $instance_fingerprint;
+            $fingerprint = $redis->get($redisKey);
+        }
+        if (empty($fingerprint)) {
+            $file = new File(APP . '/webroot/gpg.asc');
+            $instanceKey = $file->read();
+            try {
+                $this->gpg->importKey($instanceKey);
+            } catch (Crypt_GPG_NoDataException $e) {
+                throw new MethodNotAllowedException("Could not import the instance key..");
+            }
+            $fingerprint = $this->gpg->getFingerprint(Configure::read('GnuPG.email'));
+            if ($redis) {
+                $redis->setEx($redisKey, 300, $fingerprint);
             }
         }
-        $file = new File(APP . '/webroot/gpg.asc');
-        $instanceKey = $file->read();
-        try {
-            $this->gpg->importKey($instanceKey);
-        } catch (Crypt_GPG_NoDataException $e) {
-            throw new MethodNotAllowedException("Could not import the instance key..");
-        }
         $this->gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-        $fingerprint = $this->gpg->getFingerprint(Configure::read('GnuPG.email'));
-        if ($redis) {
-            $redis->setEx($redisKey, 300, $fingerprint);
-        }
         return $fingerprint;
     }
 
