@@ -3,8 +3,8 @@
     $event = Hash::extract($data, $field['event_path']);
     if ($event['protected']) {
         echo sprintf(
-            '<span class="fas fa-lock green"></span> %s %s %s <br />',
-            __('Event is in protected mode.'),
+            '<span class="fas fa-lock"></span> %s %s %s <br />',
+            __('Event is in protected mode. (Limited distribution)'),
             !$field['owner'] ? '' : sprintf(
                 '<br /><a href="#" onClick="%s" title="%s"><i class="fas fa-unlock"></i> %s</a>',
                 sprintf(
@@ -64,7 +64,7 @@
         }
     } else {
         echo sprintf(
-            '<span class="red fas fa-unlock"></span> <span class="red">%s</span> %s<br />',
+            '<span class="fas fa-unlock"></span> <span>%s</span> %s<br />',
             __('Event is in unprotected mode.'),
             !$field['owner'] ? '' : sprintf(
                 '<br /><a href="#" onClick="%s" title="%s"><i class="fas fa-lock"></i> %s</a>',
