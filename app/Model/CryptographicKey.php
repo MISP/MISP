@@ -37,7 +37,11 @@ class CryptographicKey extends AppModel
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-        $this->gpg = GpgTool::initializeGpg();
+        try {
+            $this->gpg = GpgTool::initializeGpg();
+        } catch (Exception $e) {
+            $this->gpg = null;
+        }
         $this->validate = [
             'type' => [
                 'rule' => ['inList', $this->validTypes],
