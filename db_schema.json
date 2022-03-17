@@ -1058,6 +1058,107 @@
                 "extra": ""
             }
         ],
+        "cryptographic_keys": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "type",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                 "column_default": null,
+                 "extra": ""
+            },
+            {
+                "column_name": "timestamp",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "parent_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "parent_type",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "key_data",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "text",
+                "column_default": "NULL",
+                "extra": ""
+            },
+            {
+                "column_name": "revoked",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "fingerprint",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
+                "column_default": "''",
+                "extra": ""
+            }
+        ],
         "dashboards": [
             {
                 "column_name": "id",
@@ -1591,6 +1692,17 @@
                 "collation_name": "utf8_bin",
                 "column_type": "varchar(40)",
                 "column_default": "",
+                "extra": ""
+            },
+            {
+                "column_name": "protected",
+                "is_nullable": "YES",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "NULL",
                 "extra": ""
             }
         ],
@@ -6256,6 +6368,30 @@
                 "extra": ""
             }
         ],
+        "system_settings": [
+            {
+                "column_name": "setting",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "value",
+                "is_nullable": "NO",
+                "data_type": "blob",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": null,
+                "column_type": "blob",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
         "tags": [
             {
                 "column_name": "id",
@@ -7937,6 +8073,14 @@
             "id": true,
             "value": true
         },
+        "cryptographic_keys": {
+            "id": true,
+            "uuid": false,
+            "type": false,
+            "parent_id": false,
+            "parent_type": false,
+            "fingerprint": false
+        },
         "dashboards": {
             "id": true,
             "name": false,
@@ -8237,6 +8381,9 @@
             "source": false,
             "type": false
         },
+        "system_settings": {
+            "setting": true
+        },
         "tags": {
             "id": true,
             "name": true,
@@ -8322,5 +8469,5 @@
             "id": true
         }
     },
-    "db_version": "82"
+    "db_version": "85"
 }
