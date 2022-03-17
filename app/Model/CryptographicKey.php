@@ -210,13 +210,19 @@ class CryptographicKey extends AppModel
 
     public function validateProtectedEvent($raw_data, $user, $pgp_signature, $event)
     {
-        if (empty($event['Event']['CryptographicKey'])) {
+        $eventCryptoGraphicKey = [];
+        if (!empty($event['Event']['CryptographicKey'])) { // Depending if $event comes from fetchEvent or from pushed data
+            $eventCryptoGraphicKey = $event['Event']['CryptographicKey'];
+        } else if (!empty($event['CryptographicKey'])) {
+            $eventCryptoGraphicKey = $event['CryptographicKey'];
+        }
+        if (empty($eventCryptoGraphicKey)) {
             $message = __('No valid signatures found for validating the signature.');
             $this->Log = ClassRegistry::init('Log');
             $this->Log->createLogEntry($user, 'validateSig', 'Event', $event['Event']['id'], $message);
             return false;
         }
-        foreach ($event['Event']['CryptographicKey'] as $supplied_key) {
+        foreach ($eventCryptoGraphicKey as $supplied_key) {
             if ($this->verifySignature($raw_data, base64_decode($pgp_signature), $supplied_key['key_data'])) {
                 return true;
             }
