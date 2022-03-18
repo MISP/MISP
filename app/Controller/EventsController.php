@@ -1655,7 +1655,12 @@ class EventsController extends AppController
         $this->set('warnings', $this->Event->generateWarnings($event));
         $this->set('menuData', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
         $this->set('mayModify', $this->__canModifyEvent($event));
-        $this->set('instanceFingerprint', $this->Event->CryptographicKey->ingestInstanceKey());
+        try {
+            $instanceKey = $this->Event->CryptographicKey->ingestInstanceKey();
+        } catch (Exception $e) {
+            $instanceKey = null;
+        }
+        $this->set('instanceFingerprint', $instanceKey);
         $this->__eventViewCommon($user);
     }
 
