@@ -837,7 +837,11 @@ class EventsController extends AppController
             $events = $absolute_total === 0 ? [] : $this->Event->find('all', $rules);
         }
         $isCsvResponse = $this->response->type() === 'text/csv';
-        $instanceFingerprint = $this->Event->CryptographicKey->ingestInstanceKey();
+        try {
+            $instanceFingerprint = $this->Event->CryptographicKey->ingestInstanceKey();
+        } catch (Exception $e) {
+            $instanceFingerprint = null;
+        }
         if (!$minimal) {
             // Collect all tag IDs that are events
             $tagIds = [];
