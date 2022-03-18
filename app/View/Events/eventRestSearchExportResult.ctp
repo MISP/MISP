@@ -1,10 +1,13 @@
+<?php
+    $showLinebreak = in_array($responseType, ['txt', 'xml']);
+?>
 <div class="index">
-    <div id="restSearchExportResult">
-        <?php
-        if (!empty($renderView)) {
-            echo $this->render('/Events/module_views/' . $renderView, false);
-        }
-        ?>
+    <div id="restSearchExportResult" style="<?= $showLinebreak ? 'white-space: pre;' : '' ?>">
+<?php
+if (!empty($renderView)) {
+    echo $this->render('/Events/module_views/' . $renderView, false);
+}
+?>
     </div>
 </div>
 <?php
