@@ -483,6 +483,12 @@ class OrganisationsController extends AppController
         if ($logo['size'] > 0 && $logo['error'] == 0) {
             $extension = pathinfo($logo['name'], PATHINFO_EXTENSION);
             $filename = $orgId . '.' . ($extension === 'svg' ? 'svg' : 'png');
+
+            if ($extension === 'svg' && !Configure::read('Security.enable_svg_logos')) {
+                $this->Flash->error(__('Invalid file extension, SVG images are not allowed.'));
+                return false;
+            }
+
             if (!empty($logo['tmp_name']) && is_uploaded_file($logo['tmp_name'])) {
                 return move_uploaded_file($logo['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
             }
