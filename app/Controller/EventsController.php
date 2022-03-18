@@ -3337,6 +3337,8 @@ class EventsController extends AppController
                 foreach ($final as $key => $data) {
                     $this->set($key, $data);
                 }
+                $this->set('responseType', $responseType);
+                $this->set('returnFormat', $returnFormat);
                 $this->set('renderView', $renderView);
                 $this->render('/Events/eventRestSearchExportResult');
             } else {
