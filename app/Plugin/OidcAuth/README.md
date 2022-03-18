@@ -10,7 +10,7 @@ to login with passwords stored in MISP.
 
 ```
 cd app
-php composer.phar require jumbojett/openid-connect-php
+php composer.phar require jakub-onderka/openid-connect-php:1.0.0-rc1
 ```
 
 2. Enable in `app/Config/config.php`

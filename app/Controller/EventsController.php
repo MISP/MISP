@@ -955,6 +955,9 @@ class EventsController extends AppController
                     }
                     foreach ($event['CryptographicKey'] as $cryptoKey) {
                         if ($instanceFingerprint === $cryptoKey['fingerprint']) {
+                            $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
+                            unset($event['Event']['protected']);
+                            $events[$key] = $event['Event'];
                             continue 2;
                         }
                     }
