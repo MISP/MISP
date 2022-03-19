@@ -35,6 +35,9 @@ class CryptographicKey extends AppModel
 
     public $validate = [];
 
+    /** @var CryptGpgExtended|null */
+    private $gpg;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -44,6 +47,12 @@ class CryptographicKey extends AppModel
             $this->gpg = null;
         }
         $this->validate = [
+            'uuid' => [
+                'uuid' => [
+                    'rule' => 'uuid',
+                    'message' => 'Please provide a valid RFC 4122 UUID',
+                ],
+            ],
             'type' => [
                 'rule' => ['inList', $this->validTypes],
                 'message' => __('Invalid key type'),
@@ -76,16 +85,18 @@ class CryptographicKey extends AppModel
             $this->data['CryptographicKey']['uuid'] = CakeText::uuid();
             $this->data['CryptographicKey']['fingerprint'] = $this->extractKeyData($this->data['CryptographicKey']['type'], $this->data['CryptographicKey']['key_data']);
         }
-        $existingKeyForObject = $this->find('first', [
-            'recursive'
-        ]);
         return true;
     }
 
+    /**
+     * @return string
+     * @throws Crypt_GPG_BadPassphraseException
+     * @throws Crypt_GPG_Exception
+     */
     public function ingestInstanceKey()
     {
         try {
-            $redis = $this->setupRedis();
+            $redis = $this->setupRedisWithException();
         } catch (Exception $e) {
             $redis = false;
         }
@@ -123,6 +134,13 @@ class CryptographicKey extends AppModel
         return $fingerprint;
     }
 
+    /**
+     * @param string $data
+     * @return false|string
+     * @throws Crypt_GPG_BadPassphraseException
+     * @throws Crypt_GPG_Exception
+     * @throws Crypt_GPG_KeyNotFoundException
+     */
     public function signWithInstanceKey($data)
     {
         if (!$this->ingestInstanceKey()) {
@@ -142,6 +160,12 @@ class CryptographicKey extends AppModel
         return $signature;
     }
 
+    /**
+     * @param string $data
+     * @param string $signature
+     * @param string $key
+     * @return bool
+     */
     public function verifySignature($data, $signature, $key)
     {
         $this->error = false;
@@ -217,20 +241,15 @@ class CryptographicKey extends AppModel
 
     public function uniqueKeyForElement($data)
     {
-        $existingKey = $this->find('first', [
-            'recursive' => -1,
-            'conditions' => [
-                'parent_type' => $this->data['CryptographicKey']['parent_type'],
-                'parent_id' => $this->data['CryptographicKey']['parent_id'],
-                'key_data' => $this->data['CryptographicKey']['key_data'],
-                'type' => $this->data['CryptographicKey']['type']
-            ],
-            'fields' => ['id']
+        return !$this->hasAny([
+            'parent_type' => $this->data['CryptographicKey']['parent_type'],
+            'parent_id' => $this->data['CryptographicKey']['parent_id'],
+            'key_data' => $this->data['CryptographicKey']['key_data'],
+            'type' => $this->data['CryptographicKey']['type'],
         ]);
-        return empty($existingKey);
     }
 
-    public function validateProtectedEvent($raw_data, $user, $pgp_signature, $event)
+    public function validateProtectedEvent($raw_data, array $user, $pgp_signature, array $event)
     {
         $eventCryptoGraphicKey = [];
         if (!empty($event['Event']['CryptographicKey'])) { // Depending if $event comes from fetchEvent or from pushed data
@@ -240,8 +259,7 @@ class CryptographicKey extends AppModel
         }
         if (empty($eventCryptoGraphicKey)) {
             $message = __('No valid signatures found for validating the signature.');
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->createLogEntry($user, 'validateSig', 'Event', $event['Event']['id'], $message);
+            $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', $event['Event']['id'], $message);
             return false;
         }
         foreach ($eventCryptoGraphicKey as $supplied_key) {
@@ -249,19 +267,26 @@ class CryptographicKey extends AppModel
                 return true;
             }
         }
-        $this->Log = ClassRegistry::init('Log');
         $message = __('Could not validate the signature.');
-        $this->Log->createLogEntry($user, 'validateSig', 'Event', $event['Event']['id'], $message);
+        $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', $event['Event']['id'], $message);
         return false;
     }
 
-    public function captureCryptographicKeyUpdate($user, $cryptographicKeys, $parent_id, $type)
+    /**
+     * @param array $user
+     * @param array $cryptographicKeys
+     * @param int $parent_id
+     * @param string $type
+     * @return void
+     * @throws Exception
+     */
+    public function captureCryptographicKeyUpdate(array $user, array $cryptographicKeys, $parent_id, $type)
     {
         $existingKeys = $this->find('first', [
             'recursive' => -1,
             'conditions' => [
                 'parent_type' => $type,
-                'parent_id' => $parent_id
+                'parent_id' => $parent_id,
             ],
             'fields' => [
                 'id',
@@ -269,15 +294,14 @@ class CryptographicKey extends AppModel
                 'parent_type',
                 'parent_id',
                 'revoked',
-                'fingerprint'
+                'fingerprint',
             ]
         ]);
         $toRemove = [];
         $results = ['add' => [], 'remove' => []];
-        foreach ($existingKeys as $k => $existingKey) {
+        foreach ($existingKeys as $existingKey) {
             foreach ($cryptographicKeys as $k2 => $cryptographicKey) {
                 if ($existingKey['fingerprint'] === $cryptographicKey['fingerprint']) {
-                    $found = true;
                     if ($cryptographicKey['revoked'] && !$existingKey['CryptographicKey']['revoked']) {
                         $existingKey['CryptographicKey']['revoked'] = 1;
                         $this->save($existingKey['CryptographicKey']);
@@ -314,7 +338,6 @@ class CryptographicKey extends AppModel
             $parent_id
         );
         $this->deleteAll(['CryptographicKey.id' => $toRemove]);
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->createLogEntry($user, 'updateCryptoKeys', $cryptographicKey['parent_type'], $cryptographicKey['parent_id'], $message);
+        $this->loadLog()->createLogEntry($user, 'updateCryptoKeys', $cryptographicKey['parent_type'], $cryptographicKey['parent_id'], $message);
     }
 }
