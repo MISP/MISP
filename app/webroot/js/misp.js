@@ -4766,7 +4766,7 @@ $(document.body).on('click', '.quickSelect', function() {
     selection.addRange(range);
 });
 
-// Any link with data-paginator attribute will be treat as AJAX paginator
+// Any link with data-paginator attribute will be treated as AJAX paginator
 $(document.body).on('click', 'a[data-paginator]', function (e) {
     e.preventDefault();
     var paginatorTarget = $(this).attr('data-paginator');
@@ -4780,6 +4780,12 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
         },
         url: $(this).attr('href'),
     });
+});
+
+// Any link with modal-open class will be treated as generic modal
+$(document.body).on('click', 'a.modal-open', function (e) {
+    e.preventDefault();
+    openGenericModal($(this).attr('href'));
 });
 
 function queryEventLock(event_id, timestamp) {

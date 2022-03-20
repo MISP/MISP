@@ -116,14 +116,8 @@ echo $this->element('genericElements/IndexTable/scaffold', [
                                 'type' => 'simple',
                                 'text' => __('Add role'),
                                 'fa-icon' => 'plus',
-                                'class' => 'btn btn-primary',
-                                'onClick' => 'openGenericModal',
-                                'onClickParams' => [
-                                    sprintf(
-                                        '%s/admin/roles/add',
-                                        $baseurl
-                                    )
-                                ],
+                                'class' => 'btn-primary modal-open',
+                                'url' => "$baseurl/admin/roles/add",
                                 'requirement' => $isSiteAdmin,
                             ]
                         ]
