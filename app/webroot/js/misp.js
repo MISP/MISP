@@ -1220,13 +1220,12 @@ function openGenericModal(url, modalData, callback) {
             } else {
                 htmlData = data;
             }
-            $('body').append(htmlData);
+            $(document.body).append(htmlData);
             $('#genericModal').modal().on('shown', function() {
                 if (callback !== undefined) {
                     callback();
                 }
             });
-
         },
         error: function (data, textStatus, errorThrown) {
             showMessage('fail', textStatus + ": " + errorThrown);
@@ -3969,7 +3968,7 @@ function flashErrorPopover() {
     $("#gray_out").fadeIn();
 }
 
-$('body').on('click', function (e) {
+$(document.body).on('click', function (e) {
   $('[data-toggle=popover]').each(function () {
     // hide any open popovers when the anywhere else in the body is clicked
     if (typeof currentPopover !== 'undefined' && currentPopover !== '') {
@@ -5309,7 +5308,7 @@ function redirectIdSelection(scope, action) {
     }
 }
 
-$('body').on('click', '.hex-value-convert', function() {
+$(document.body).on('click', '.hex-value-convert', function() {
     var $hexValueSpan = $(this).parent().children(':first-child');
     var val = $hexValueSpan.text().trim();
     if (!$hexValueSpan.hasClass('binary-representation')) {
