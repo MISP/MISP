@@ -1220,13 +1220,12 @@ function openGenericModal(url, modalData, callback) {
             } else {
                 htmlData = data;
             }
-            $('body').append(htmlData);
+            $(document.body).append(htmlData);
             $('#genericModal').modal().on('shown', function() {
                 if (callback !== undefined) {
                     callback();
                 }
             });
-
         },
         error: function (data, textStatus, errorThrown) {
             showMessage('fail', textStatus + ": " + errorThrown);
@@ -3969,7 +3968,7 @@ function flashErrorPopover() {
     $("#gray_out").fadeIn();
 }
 
-$('body').on('click', function (e) {
+$(document.body).on('click', function (e) {
   $('[data-toggle=popover]').each(function () {
     // hide any open popovers when the anywhere else in the body is clicked
     if (typeof currentPopover !== 'undefined' && currentPopover !== '') {
@@ -4766,7 +4765,7 @@ $(document.body).on('click', '.quickSelect', function() {
     selection.addRange(range);
 });
 
-// Any link with data-paginator attribute will be treat as AJAX paginator
+// Any link with data-paginator attribute will be treated as AJAX paginator
 $(document.body).on('click', 'a[data-paginator]', function (e) {
     e.preventDefault();
     var paginatorTarget = $(this).attr('data-paginator');
@@ -4780,6 +4779,12 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
         },
         url: $(this).attr('href'),
     });
+});
+
+// Any link with modal-open class will be treated as generic modal
+$(document.body).on('click', 'a.modal-open', function (e) {
+    e.preventDefault();
+    openGenericModal($(this).attr('href'));
 });
 
 function queryEventLock(event_id, timestamp) {
@@ -5303,7 +5308,7 @@ function redirectIdSelection(scope, action) {
     }
 }
 
-$('body').on('click', '.hex-value-convert', function() {
+$(document.body).on('click', '.hex-value-convert', function() {
     var $hexValueSpan = $(this).parent().children(':first-child');
     var val = $hexValueSpan.text().trim();
     if (!$hexValueSpan.hasClass('binary-representation')) {

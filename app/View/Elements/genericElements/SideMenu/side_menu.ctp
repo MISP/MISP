@@ -27,26 +27,20 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'dashboardImport',
                         'text' => __('Import Config JSON'),
-                        'onClick' => array(
-                            'function' => 'openGenericModal',
-                            'params' => array($baseurl . '/dashboards/import')
-                        ),
+                        'url' => $baseurl . '/dashboards/import',
+                        'link_class' => 'modal-open',
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'dashboardExport',
                         'text' => __('Export Config JSON'),
-                        'onClick' => array(
-                            'function' => 'openGenericModal',
-                            'params' => array($baseurl . '/dashboards/export')
-                        ),
+                        'url' => $baseurl . '/dashboards/export',
+                        'link_class' => 'modal-open',
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'dashboardSave',
                         'text' => __('Save Dashboard Config'),
-                        'onClick' => array(
-                            'function' => 'openGenericModal',
-                            'params' => array($baseurl . '/dashboards/saveTemplate')
-                        ),
+                        'url' => $baseurl . '/dashboards/saveTemplate',
+                        'link_class' => 'modal-open',
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'dashboardTemplateIndex',
@@ -55,7 +49,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     ));
                     break;
                 case 'event':
-                    $eventId = intval($event['Event']['id']);
+                    $eventId = (int)$event['Event']['id'];
                     echo '<div id="hiddenSideMenuData" class="hidden" data-event-id="' . $eventId . '"></div>';
                     if (in_array($menuItem, array('editEvent', 'addAttribute', 'addObject', 'addAttachment', 'addIOC', 'addThreatConnect', 'populateFromTemplate', 'merge'))) {
                         // we can safely assume that mayModify is true if coming from these actions, as they require it in the controller and the user has already passed that check

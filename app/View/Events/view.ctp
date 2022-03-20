@@ -70,7 +70,7 @@
                 [
                     'key' => __('Contributors'),
                     'type' => 'custom',
-                    'function' => function ($data) use($contributors, $baseurl, $event) {
+                    'function' => function ($data) use ($contributors, $baseurl, $event) {
                         $contributorsContent = [];
                         foreach ($contributors as $organisationId => $name) {
                             $org = ['Organisation' => ['id' => $organisationId, 'name' => $name]];
