@@ -114,13 +114,22 @@
                     $action['onclick']
                 );
             }
+            $title = empty($action['title']) ? '' : h($action['title']);
+
+            $classes = [];
+            if (!empty($action['class'])) {
+                $classes[] = h($action['class']);
+            }
+            if (!empty($action['dbclickAction'])) {
+                $classes[] = 'dblclickActionElement';
+            }
             echo sprintf(
-                '<a href="%s" title="%s" aria-label="%s" %s %s><i class="black %s"></i></a> ',
+                '<a href="%s" title="%s" aria-label="%s"%s%s><i class="black %s"></i></a> ',
                 $url,
-                empty($action['title']) ? '' : h($action['title']),
-                empty($action['title']) ? '' : h($action['title']),
-                empty($action['dbclickAction']) ? '' : 'class="dblclickActionElement"',
-                empty($action['onclick']) ? '' : sprintf('onclick="event.preventDefault();%s"', $action['onclick']),
+                $title,
+                $title,
+                empty($classes) ? '' : ' class="' . implode(' ', $classes) . '"',
+                empty($action['onclick']) ? '' : sprintf(' onclick="event.preventDefault();%s"', $action['onclick']),
                 $this->FontAwesome->getClass($action['icon'])
             );
         }
