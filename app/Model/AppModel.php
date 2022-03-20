@@ -2539,7 +2539,7 @@ class AppModel extends Model
         }
 
         if (!class_exists('Redis')) {
-            throw new Exception("Class Redis doesn't exists.");
+            throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
         }
 
         $host = Configure::read('MISP.redis_host') ?: '127.0.0.1';
