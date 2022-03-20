@@ -30,10 +30,6 @@ jobs:
         with:
           submodules: 'recursive'
 
-      # Stop mysql
-      - name: Shutdown Ubuntu MySQL (SUDO)
-        run: sudo service mysql stop
-
       # Run mariadb
       - uses: getong/mariadb-action@v1.1
         with:
@@ -71,7 +67,7 @@ jobs:
               LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
               if [[ $php_version == "7.2" ]]; then
                 # hotfix due to: https://bugs.php.net/bug.php?id=81640 TODO: remove after libpcre2-8-0:10.36 gets to stable channel
-                sudo apt --fix-broken install
+                sudo apt-get --fix-broken install
               fi
               sudo apt-get -y install curl python3 python3-zmq python3-requests python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version
               sudo pip3 install virtualenv # virtualenv must be instaled from pip and not from ubuntu packages
@@ -209,16 +205,7 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
               export PYTHONPATH=$PYTHONPATH:./app/files/scripts
-              pushd ./app/files/scripts/cti-python-stix2
-              pip install .
-              popd
-              pushd ./app/files/scripts/python-stix
-              pip install .
-              popd
-              pushd PyMISP
-              pip install .[fileobjects,email]
-              popd
-              pip install zmq redis plyara
+              pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 zmq redis plyara
               deactivate
 
       - name: Test if apache is working
@@ -242,7 +229,7 @@ jobs:
       - name: Run PHP tests
         run: |
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
-              ./app/Vendor/bin/phpunit app/Test/
+              sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
 
       - name: Run tests
         run: |
