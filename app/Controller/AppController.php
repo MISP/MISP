@@ -1327,6 +1327,27 @@ class AppController extends Controller
     }
 
     /**
+     * Returns true if user can publish the given event.
+     *
+     * @param array $event
+     * @return bool
+     */
+    protected function __canPublishEvent(array $event)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+
+        if ($this->userRole['perm_site_admin']) {
+            return true;
+        }
+        if ($this->userRole['perm_publish'] && $event['Event']['orgc_id'] == $this->Auth->user()['org_id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Returns true if user can add or remove tags for given event.
      *
      * @param array $event
