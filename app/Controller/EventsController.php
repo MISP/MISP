@@ -1655,6 +1655,7 @@ class EventsController extends AppController
         $this->set('warnings', $this->Event->generateWarnings($event));
         $this->set('menuData', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
         $this->set('mayModify', $this->__canModifyEvent($event));
+        $this->set('mayPublish', $this->__canPublishEvent($event));
         try {
             $instanceKey = $this->Event->CryptographicKey->ingestInstanceKey();
         } catch (Exception $e) {
