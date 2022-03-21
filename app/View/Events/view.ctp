@@ -70,7 +70,7 @@
                 [
                     'key' => __('Contributors'),
                     'type' => 'custom',
-                    'function' => function ($data) use($contributors, $baseurl, $event) {
+                    'function' => function ($data) use ($contributors, $baseurl, $event) {
                         $contributorsContent = [];
                         foreach ($contributors as $organisationId => $name) {
                             $org = ['Organisation' => ['id' => $organisationId, 'name' => $name]];
@@ -243,7 +243,7 @@
                     'key' => __('Delegation request'),
                     'class' => 'background-red bold',
                     'type' => 'delegationRequest',
-                    'delegationRequest' => $delegationRequest,
+                    'delegationRequest' => isset($delegationRequest) ? $delegationRequest : null,
                     'requirement' => !empty($delegationRequest)
                 ],
                 [
@@ -254,7 +254,7 @@
                         return sprintf(
                             '%s%s',
                             $data['Event']['disable_correlation'] ? __('Disabled') : __('Enabled'),
-                            (!$mayModify && !$isSiteAdmin) ? '' : sprintf(
+                            (!$mayModify && !$isSiteAdmin) ? '' :
                                 sprintf(
                                     ' (<a onClick="getPopup(%s);" style="%scursor:pointer;font-weight:normal;">%s</a>)',
                                     sprintf(
@@ -264,7 +264,6 @@
                                     $data['Event']['disable_correlation'] ? 'color:white;' : '',
                                     $data['Event']['disable_correlation'] ? __('enable') : __('disable')
                                 )
-                            )
                         );
                     },
                     'requirement' => (!Configure::read('MISP.completely_disable_correlation') && Configure::read('MISP.allow_disabling_correlation'))
@@ -302,4 +301,3 @@
             ]
         ]
     );
-?>

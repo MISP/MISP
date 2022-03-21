@@ -94,7 +94,7 @@ class BackgroundJobsTool
 
     /**
      * Initialize
-     * 
+     *
      * Settings should have the following format:
      *      [
      *           'enabled' => true,
@@ -111,6 +111,7 @@ class BackgroundJobsTool
      *      ]
      *
      * @param array $settings
+     * @throws Exception
      */
     public function __construct(array $settings)
     {
@@ -233,8 +234,6 @@ class BackgroundJobsTool
      * Get the job status.
      *
      * @param string $jobId Background Job Id.
-     * 
-     * 
      */
     public function getJob(string $jobId)
     {
@@ -366,9 +365,10 @@ class BackgroundJobsTool
     /**
      * Start worker by queue
      *
-     * @param string $name
+     * @param string $queue Queue name
      * @param boolean $waitForRestart
      * @return boolean
+     * @throws Exception
      */
     public function startWorkerByQueue(string $queue, bool $waitForRestart = false): bool
     {
@@ -401,6 +401,7 @@ class BackgroundJobsTool
      * @param string|int $id
      * @param boolean $waitForRestart
      * @return boolean
+     * @throws Exception
      */
     public function stopWorker($id, bool $waitForRestart = false): bool
     {
@@ -428,6 +429,7 @@ class BackgroundJobsTool
      *
      * @param boolean $waitForRestart
      * @return void
+     * @throws Exception
      */
     public function restartWorkers(bool $waitForRestart = false)
     {
@@ -440,6 +442,7 @@ class BackgroundJobsTool
      *
      * @param boolean $waitForRestart
      * @return void
+     * @throws Exception
      */
     public function restartDeadWorkers(bool $waitForRestart = false)
     {
@@ -499,6 +502,7 @@ class BackgroundJobsTool
      * Return true if Supervisor process is running.
      *
      * @return boolean
+     * @throws Exception
      */
     public function getSupervisorStatus(): bool
     {
@@ -508,8 +512,8 @@ class BackgroundJobsTool
     /**
      * Validate queue
      *
+     * @param string $queue
      * @return boolean
-     * @throws InvalidArgumentException
      */
     private function validateQueue(string $queue): bool
     {
@@ -529,8 +533,8 @@ class BackgroundJobsTool
     /**
      * Validate command
      *
+     * @param string $command
      * @return boolean
-     * @throws InvalidArgumentException
      */
     private function validateCommand(string $command): bool
     {
@@ -569,9 +573,14 @@ class BackgroundJobsTool
 
     /**
      * @return Redis
+     * @throws Exception
      */
     private function createRedisConnection(): Redis
     {
+        if (!class_exists('Redis')) {
+            throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
+        }
+
         $redis = new Redis();
         $redis->connect($this->settings['redis_host'], $this->settings['redis_port']);
         $redis->setOption(Redis::OPT_SERIALIZER, Redis::SERIALIZER_JSON);
@@ -591,6 +600,7 @@ class BackgroundJobsTool
 
     /**
      * @return \Supervisor\Supervisor
+     * @throws Exception
      */
     private function getSupervisor()
     {
