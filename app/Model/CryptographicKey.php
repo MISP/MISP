@@ -98,6 +98,9 @@ class CryptographicKey extends AppModel
         if (empty($fingerprint)) {
             $file = new File(APP . '/webroot/gpg.asc');
             $instanceKey = $file->read();
+            if (!$this->gpg) {
+                throw new MethodNotAllowedException("Could not initiate GPG");
+            }
             try {
                 $this->gpg->importKey($instanceKey);
             } catch (Crypt_GPG_NoDataException $e) {
@@ -108,7 +111,14 @@ class CryptographicKey extends AppModel
                 $redis->setEx($redisKey, 300, $fingerprint);
             }
         }
-        $this->gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+        if (!$this->gpg) {
+            throw new MethodNotAllowedException("Could not initiate GPG");
+        }
+        try {
+            $this->gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+        } catch (Exception $e) {
+            throw new NotFoundException('Could not add signing key.');
+        }
         return $fingerprint;
     }
 
