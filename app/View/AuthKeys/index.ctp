@@ -24,7 +24,8 @@
                                         $baseurl,
                                         empty($user_id) ? '' : ('/' . $user_id)
                                     )
-                                ]
+                                ],
+                                'requirement' => $canCreateAuthkey
                             ]
                         ]
                     ],
