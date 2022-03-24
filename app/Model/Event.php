@@ -4429,7 +4429,7 @@ class Event extends AppModel
         }
         $servers = $this->Server->find('all', [
             'conditions' => $conditions,
-            'recursive' => -1,
+            'contain' => ['RemoteOrg', 'Organisation'],
             'order' => ['Server.priority ASC', 'Server.id ASC'],
         ]);
         // iterate over the servers and upload the event
