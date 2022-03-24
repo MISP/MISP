@@ -243,7 +243,7 @@
                     'key' => __('Delegation request'),
                     'class' => 'background-red bold',
                     'type' => 'delegationRequest',
-                    'delegationRequest' => $delegationRequest,
+                    'delegationRequest' => empty($delegationRequest) ? null : $delegationRequest,
                     'requirement' => !empty($delegationRequest)
                 ],
                 [
