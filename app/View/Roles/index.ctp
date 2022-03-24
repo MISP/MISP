@@ -84,18 +84,16 @@ if ($isSiteAdmin) {
     $actions = [
         [
             'url' => $baseurl . '/admin/roles/edit',
-            'url_params_data_paths' => array(
-                'Role.id'
-            ),
+            'url_params_data_paths' => ['Role.id'],
             'icon' => 'edit',
+            'title' => __('Edit role'),
         ],
         [
-            'onclick' => sprintf(
-                'openGenericModal(\'%s/admin/roles/delete/[onclick_params_data_path]\');',
-                $baseurl
-            ),
-            'onclick_params_data_path' => 'Role.id',
+            'class' => 'modal-open',
+            'url' => "$baseurl/admin/roles/delete",
+            'url_params_data_paths' => ['Role.id'],
             'icon' => 'trash',
+            'title' => __('Delete role'),
         ]
     ];
 } else {
@@ -116,14 +114,8 @@ echo $this->element('genericElements/IndexTable/scaffold', [
                                 'type' => 'simple',
                                 'text' => __('Add role'),
                                 'fa-icon' => 'plus',
-                                'class' => 'btn btn-primary',
-                                'onClick' => 'openGenericModal',
-                                'onClickParams' => [
-                                    sprintf(
-                                        '%s/admin/roles/add',
-                                        $baseurl
-                                    )
-                                ],
+                                'class' => 'btn-primary modal-open',
+                                'url' => "$baseurl/admin/roles/add",
                                 'requirement' => $isSiteAdmin,
                             ]
                         ]
