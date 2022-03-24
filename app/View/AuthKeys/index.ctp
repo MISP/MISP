@@ -18,6 +18,7 @@
                                 'text' => __('Add authentication key'),
                                 'class' => 'btn-primary modal-open',
                                 'url' => "$baseurl/auth_keys/add" . (empty($user_id) ? '' : ('/' . $user_id)),
+                                'requirement' => $canCreateAuthkey
                             ]
                         ]
                     ],
