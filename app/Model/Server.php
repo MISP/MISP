@@ -4683,6 +4683,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'disable_event_locks' => [
+                    'level' => 1,
+                    'description' => __('Disable the event locks that are executed periodically when a user browses an event view. It can be useful to leave event locks enabled to warn users that someone else is editing the same event, but generally it\'s extremely verbose and can cause issues in certain setups, so it\'s recommended to disable this.'),
+                    'value' => false,
+                    'test' => 'testBoolTrue',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'enable_advanced_correlations' => array(
                     'level' => 0,
                     'description' => __('Enable some performance heavy correlations (currently CIDR correlation)'),

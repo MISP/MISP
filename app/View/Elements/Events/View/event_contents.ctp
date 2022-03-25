@@ -68,7 +68,15 @@
 <script type="text/javascript">
 var showContext = false;
 $(function () {
-queryEventLock('<?= h($event['Event']['id']); ?>', <?= (int)$event['Event']['timestamp'] ?>);
+<?php
+    if (!Configure::check('MISP.disable_event_locks') || !Configure::read('MISP.disable_event_locks')) {
+        echo sprintf(
+            "queryEventLock('%s', %s);",
+            h($event['Event']['id']),
+            (int)$event['Event']['timestamp']
+        );
+    }
+?>
 popoverStartup();
 
 $(document.body).tooltip({
