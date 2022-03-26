@@ -161,7 +161,7 @@ class CryptographicKey extends AppModel
             return false;
         }
         $data = preg_replace("/\s+/", "", $data);
-        $signature = $this->gpg->sign($data, Crypt_GPG::SIGN_MODE_DETACHED);
+        $signature = $this->gpg->sign($data, Crypt_GPG::SIGN_MODE_DETACHED, Crypt_GPG::ARMOR_BINARY);
         return $signature;
     }
 
