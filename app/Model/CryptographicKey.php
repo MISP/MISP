@@ -165,15 +165,6 @@ class CryptographicKey extends AppModel
         return $signature;
     }
 
-    public function signFileWithInstanceKey($path)
-    {
-        if (!$this->ingestInstanceKey()) {
-            return false;
-        }
-        $signature = $this->gpg->signFile($path, Crypt_GPG::SIGN_MODE_DETACHED);
-        return $signature;
-    }
-
     /**
      * @param string $data
      * @param string $signature
