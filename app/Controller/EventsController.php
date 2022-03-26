@@ -6139,7 +6139,7 @@ class EventsController extends AppController
 
     /**
      * @param array $event
-     * @return CakeResponseTmp
+     * @return CakeResponseFile
      * @throws Exception
      */
     private function __restResponse(array $event)
@@ -6171,23 +6171,24 @@ class EventsController extends AppController
 
     public function protect($id)
     {
-        $this->__toggleProtect($id, true);
+        return $this->__toggleProtect($id, true);
     }
 
     public function unprotect($id)
     {
-        $this->__toggleProtect($id, false);
+        return $this->__toggleProtect($id, false);
     }
 
+    /**
+     * @param string|int $id Event ID or UUID
+     * @param bool $protect
+     * @return CakeResponse|void
+     * @throws Exception
+     */
     private function __toggleProtect($id, $protect)
     {
-        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
-        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['contain' => ['Orgc']]);
-        if (
-            (!$this->_isSiteAdmin && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) ||
-            !$event ||
-            !$this->__canModifyEvent($event)
-        ) {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (empty($event) || !$this->__canModifyEvent($event)) {
             throw new NotFoundException(__('Invalid event'));
         }
         if ($this->request->is('post')) {
@@ -6197,7 +6198,7 @@ class EventsController extends AppController
             if ($this->Event->save($event)) {
                 $message = __('Event switched to %s mode.', $protect ? __('protected') : __('unprotected'));
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('events', $protect ? 'protect' : 'unprotect', $id, false, $message);
+                    return $this->RestResponse->saveSuccessResponse('events', $protect ? 'protect' : 'unprotect', $event['Event']['id'], false, $message);
                 } else {
                     $this->Flash->success($message);
                     $this->redirect(['controller' => 'events', 'action' => 'view', $id]);
@@ -6205,14 +6206,14 @@ class EventsController extends AppController
             } else {
                 $message = __('Something went wrong - could not switch event to %s mode.', $protect ? __('protected') : __('unprotected'));
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Events', $protect ? 'protect' : 'unprotect', false, $message, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('Events', $protect ? 'protect' : 'unprotect', $event['Event']['id'], $message);
                 } else {
                     $this->Flash->error($message);
-                    $this->redirect(['controller' => 'events', 'action' => 'view', $id]);
+                    $this->redirect(['controller' => 'events', 'action' => 'view', $event['Event']['id']]);
                 }
             }
         } else {
-            $this->set('id', $id);
+            $this->set('id', $event['Event']['id']);
             $this->set('title', $protect ? __('Protect event') : __('Remove event protection'));
             $this->set(
                 'question',
