@@ -41,6 +41,12 @@ class JSONConverterToolTest extends TestCase
         foreach (JSONConverterTool::streamConvert($event) as $part) {
             $json .= $part;
         }
+
+        // This check is important for protected events
+        $jsonStreamWithoutSpaces = preg_replace("/\s+/", "", $json);
+        $jsonNormalWithoutSpaces = preg_replace("/\s+/", "", JSONConverterTool::convert($event));
+        $this->assertEquals($jsonNormalWithoutSpaces, $jsonStreamWithoutSpaces);
+
         if (defined('JSON_THROW_ON_ERROR')) {
             json_decode($json, true, 512, JSON_THROW_ON_ERROR);
             $this->assertTrue(true);
