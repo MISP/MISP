@@ -35,6 +35,16 @@ class JSONConverterToolTest extends TestCase
         $this->check($event);
     }
 
+    public function testCheckJsonIsValidUnicodeSlashes(): void
+    {
+        $attribute = ['id' => 1, 'event_id' => 2, 'type' => 'ip-src', 'value' => '1.1.1.1'];
+        $event = ['Event' => ['id' => 2, 'info' => 'Test event ěšřžýáí \/'], 'errors' => 'chyba ě+š'];
+        for ($i = 0; $i < 5; $i++) {
+            $event['Attribute'][] = $attribute;
+        }
+        $this->check($event);
+    }
+
     private function check(array $event): void
     {
         $json = '';
@@ -42,7 +52,7 @@ class JSONConverterToolTest extends TestCase
             $json .= $part;
         }
 
-        // This check is important for protected events
+        // Check if result is the same without spaces
         $jsonStreamWithoutSpaces = preg_replace("/\s+/", "", $json);
         $jsonNormalWithoutSpaces = preg_replace("/\s+/", "", JSONConverterTool::convert($event));
         $this->assertEquals($jsonNormalWithoutSpaces, $jsonStreamWithoutSpaces);
