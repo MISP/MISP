@@ -735,7 +735,6 @@ class TestComprehensive(unittest.TestCase):
         response = self.admin_misp_connector._prepare_request('GET', f'events/view/{event.id}')
         self.assertIn('x-pgp-signature', response.headers)
         self.assertTrue(len(response.headers['x-pgp-signature']) > 0, response.headers['x-pgp-signature'])
-        print(response.headers['x-pgp-signature'])
 
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
