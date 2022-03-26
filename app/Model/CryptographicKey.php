@@ -89,12 +89,26 @@ class CryptographicKey extends AppModel
     }
 
     /**
-     * @return string
+     * @return string Instance key fingerprint
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      */
     public function ingestInstanceKey()
     {
+        // If instance just key stored just in GPG homedir, use that key.
+        if (Configure::read('MISP.download_gpg_from_homedir')) {
+            if (!$this->gpg) {
+                throw new Exception("Could not initiate GPG");
+            }
+            /** @var Crypt_GPG_Key[] $keys */
+            $keys = $this->gpg->getKeys(Configure::read('GnuPG.email'));
+            if (empty($keys)) {
+                return false;
+            }
+            $this->gpg->addSignKey($keys[0], Configure::read('GnuPG.password'));
+            return $keys[0]->getPrimaryKey()->getFingerprint();
+        }
+
         try {
             $redis = $this->setupRedisWithException();
         } catch (Exception $e) {

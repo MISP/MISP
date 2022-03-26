@@ -5666,6 +5666,15 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                 ],
+                'download_gpg_from_homedir' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Fetch GPG instance key from GPG homedir.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => true,
+                ],
             ),
             'GnuPG' => array(
                 'branch' => 1,
