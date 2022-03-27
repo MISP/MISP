@@ -5,6 +5,7 @@ App::uses('TmpFileTool', 'Tools');
 /**
  * @property Tag $Tag
  * @property GalaxyClusterRelation $GalaxyClusterRelation
+ * @property GalaxyElement $GalaxyElement
  */
 class GalaxyCluster extends AppModel
 {
@@ -108,10 +109,10 @@ class GalaxyCluster extends AppModel
         if (!isset($cluster['published'])) {
             $cluster['published'] = false;
         }
-        if (!isset($cluster['authors']) || $cluster['authors'] === null) {
+        if (!isset($cluster['authors'])) {
             $cluster['authors'] = '';
         } elseif (is_array($cluster['authors'])) {
-            $cluster['authors'] = json_encode($cluster['authors']);
+            $cluster['authors'] = JsonTool::encode($cluster['authors']);
         }
         return true;
     }
@@ -120,24 +121,24 @@ class GalaxyCluster extends AppModel
     {
         foreach ($results as $k => $result) {
             if (isset($result[$this->alias]['authors'])) {
-                $results[$k][$this->alias]['authors'] = json_decode($results[$k][$this->alias]['authors'], true);
+                $results[$k][$this->alias]['authors'] = json_decode($result[$this->alias]['authors'], true);
             }
-            if (isset($result[$this->alias]['distribution']) && $results[$k][$this->alias]['distribution'] != 4) {
+            if (isset($result[$this->alias]['distribution']) && $result[$this->alias]['distribution'] != 4) {
                 unset($results[$k]['SharingGroup']);
             }
-            if (isset($result[$this->alias]['org_id']) && $results[$k][$this->alias]['org_id'] == 0) {
+            if (isset($result[$this->alias]['org_id']) && $result[$this->alias]['org_id'] == 0) {
                 if (isset($results[$k]['Org'])) {
                     $results[$k]['Org'] = Organisation::GENERIC_MISP_ORGANISATION;
                 }
             }
-            if (isset($result[$this->alias]['orgc_id']) && $results[$k][$this->alias]['orgc_id'] == 0) {
+            if (isset($result[$this->alias]['orgc_id']) && $result[$this->alias]['orgc_id'] == 0) {
                 if (isset($results[$k]['Orgc'])) {
                     $results[$k]['Orgc'] = Organisation::GENERIC_MISP_ORGANISATION;
                 }
             }
 
             if (!empty($result['GalaxyClusterRelation'])) {
-                foreach ($results[$k]['GalaxyClusterRelation'] as $i => $relation) {
+                foreach ($result['GalaxyClusterRelation'] as $i => $relation) {
                     if (isset($relation['distribution']) && $relation['distribution'] != 4) {
                         unset($results[$k]['GalaxyClusterRelation'][$i]['SharingGroup']);
                     }

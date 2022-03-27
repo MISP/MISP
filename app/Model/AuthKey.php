@@ -1,8 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
-App::uses('RandomTool', 'Tools');
 App::uses('CidrTool', 'Tools');
-App::uses('JsonTool', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 
 /**
@@ -15,9 +13,10 @@ class AuthKey extends AppModel
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
-                'userModel' => 'User',
-                'userKey' => 'user_id',
-                'change' => 'full'),
+            'userModel' => 'User',
+            'userKey' => 'user_id',
+            'change' => 'full'
+        ),
         'Containable',
     );
 
@@ -25,9 +24,20 @@ class AuthKey extends AppModel
         'User'
     );
 
-    public $authkey_raw = false;
+    public $validate = [
+        'uuid' => [
+            'rule' => 'uuid',
+            'message' => 'Please provide a valid RFC 4122 UUID',
+        ],
+        'user_id' => [
+            'rule' => 'userExists',
+            'message' => 'User doesn\'t exists',
+        ],
+        'read_only' => [
+            'rule' => 'boolean',
+        ],
+    ];
 
-    // massage the data before we send it off for validation before saving anything
     public function beforeValidate($options = array())
     {
         if (empty($this->data['AuthKey']['id'])) {
@@ -35,16 +45,14 @@ class AuthKey extends AppModel
                 $this->data['AuthKey']['uuid'] = CakeText::uuid();
             }
             if (empty($this->data['AuthKey']['authkey'])) {
-                $authkey = (new RandomTool())->random_str(true, 40);
+                $authkey = RandomTool::random_str(true, 40);
             } else {
                 $authkey = $this->data['AuthKey']['authkey'];
             }
-            $passwordHasher = $this->getHasher();
-            $this->data['AuthKey']['authkey'] = $passwordHasher->hash($authkey);
+            $this->data['AuthKey']['authkey'] = $this->getHasher()->hash($authkey);
             $this->data['AuthKey']['authkey_start'] = substr($authkey, 0, 4);
             $this->data['AuthKey']['authkey_end'] = substr($authkey, -4);
             $this->data['AuthKey']['authkey_raw'] = $authkey;
-            $this->authkey_raw = $authkey;
         }
 
         if (!empty($this->data['AuthKey']['allowed_ips'])) {
@@ -54,6 +62,7 @@ class AuthKey extends AppModel
                 if (empty($allowedIps)) {
                     $allowedIps = [];
                 } else {
+                    // Split by new line char or by comma
                     $allowedIps = preg_split('/([\n,])/', $allowedIps);
                     $allowedIps = array_map('trim', $allowedIps);
                 }
@@ -334,6 +343,16 @@ class AuthKey extends AppModel
         parent::afterDelete();
         $userId = $this->data['AuthKey']['user_id'];
         $this->User->updateAll(['date_modified' => time()], ['User.id' => $userId]);
+    }
+
+    /**
+     * Validation
+     * @param array $check
+     * @return bool
+     */
+    public function userExists(array $check)
+    {
+        return $this->User->hasAny(['id' => $check['user_id']]);
     }
 
     /**

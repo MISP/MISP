@@ -383,7 +383,7 @@ class Warninglist extends AppModel
 
         $keys = array_keys($list['list']);
         if ($keys === array_keys($keys)) {
-            foreach (array_chunk($list['list'], 500) as $chunk) {
+            foreach (array_chunk($list['list'], 1000) as $chunk) {
                 $valuesToInsert = [];
                 foreach ($chunk as $value) {
                     if (!empty($value)) {
@@ -393,7 +393,7 @@ class Warninglist extends AppModel
                 $result = $db->insertMulti('warninglist_entries', ['value', 'warninglist_id'], $valuesToInsert);
             }
         } else { // import warninglist with comments
-            foreach (array_chunk($list['list'], 500, true) as $chunk) {
+            foreach (array_chunk($list['list'], 1000, true) as $chunk) {
                 $valuesToInsert = [];
                 foreach ($chunk as $value => $comment) {
                     if (!empty($value)) {
