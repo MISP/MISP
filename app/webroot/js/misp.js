@@ -2168,14 +2168,14 @@ function quickFilter(passedArgs, url) {
 
 function runIndexFilter(element) {
     var dataFields = $(element).data();
-    for (var k in $(element).data()) {
+    for (var k in dataFields) {
         if (k in passedArgsArray) {
             delete(passedArgsArray[k]);
         } else {
             passedArgsArray[k] = dataFields[k];
         }
     }
-    url = here;
+    var url = here;
     for (var key in passedArgsArray) {
         url += "/" + key + ":" + passedArgsArray[key];
     }
@@ -4211,19 +4211,27 @@ function selectAllInbetween(last, current) {
 $('#eventToggleButtons button').click(function() {
     var element = $(this).data('toggle-type');
     var $button = $(this).children('span');
+    var $element = $('#' + element + '_div');
     if ($button.hasClass('fa-minus')) {
         $button.addClass('fa-plus');
         $button.removeClass('fa-minus');
-        $('#' + element + '_div').hide();
+        $element.hide();
     } else {
         $button.removeClass('fa-plus');
         $button.addClass('fa-minus');
-        $('#' + element + '_div').show();
+        $element.show();
+
+        // Special cases when another action must be made
+        if (element === 'eventtimeline') {
+            enable_timeline();
+        } else if (element === 'eventgraph') {
+            enable_interactive_graph();
+        }
 
         var loadUrl = $(this).data('load-url');
         if (loadUrl) {
             $.get(loadUrl, function(data) {
-                $('#' + element + '_div').html(data);
+                $element.html(data);
             }).fail(xhrFailCallback);
         }
     }
