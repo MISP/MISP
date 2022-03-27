@@ -71,7 +71,6 @@ jobs:
               fi
               sudo apt-get -y install curl python3 python3-zmq python3-requests python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version
               sudo pip3 install virtualenv # virtualenv must be instaled from pip and not from ubuntu packages
-              curl -sSL https://install.python-poetry.org | python -
               sudo chown $USER:www-data $HOME/.composer
               pushd app
               sudo -H -u $USER php composer.phar install --no-progress
@@ -206,7 +205,7 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
               export PYTHONPATH=$PYTHONPATH:./app/files/scripts
-              pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 zmq redis plyara
+              pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 pyzmq redis plyara
               deactivate
 
       - name: Test if apache is working
@@ -234,27 +233,28 @@ jobs:
 
       - name: Run tests
         run: |
-              export PATH=$HOME/.local/env:$PATH # enable poetry binary
-
               pushd tests
               ./curl_tests_GH.sh $AUTH $HOST
               popd
 
               sudo chmod -R g+ws `pwd`/app/tmp/logs
+          
+              . ./venv/bin/activate
               pushd PyMISP
-              poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport -E email
-              poetry run python tests/testlive_comprehensive.py
-              poetry add lxml
-              poetry run python ../tests/testlive_security.py -v
-              poetry run python ../tests/testlive_sync.py
-              poetry run python ../tests/testlive_comprehensive_local.py -v
-              poetry run python tests/test_mispevent.py
+              python tests/testlive_comprehensive.py
+              popd
+              python tests/testlive_security.py -v
+              python tests/testlive_sync.py
+              python tests/testlive_comprehensive_local.py -v
+              pushd PyMISP
+              python tests/test_mispevent.py
               popd
               cp PyMISP/tests/keys.py PyMISP/examples/events/
               pushd PyMISP/examples/events/
-              poetry run python ./create_massive_dummy_events.py -l 5 -a 30
+              python ./create_massive_dummy_events.py -l 5 -a 30
               popd
-              python3 tools/misp-feed/validate.py
+              python tools/misp-feed/validate.py
+              deactivate
 
       - name: Logs
         if: ${{ always() }}
