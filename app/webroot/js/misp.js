@@ -124,11 +124,7 @@ function publishPopup(id, type, scope) {
     if (type == "publish") action = "publish";
     if (type == "unpublish") action = "unpublish";
     if (type == "sighting") action = "publishSightings";
-    var destination = 'attributes';
-    $.get(baseurl + "/" + scope + "/" + action + "/" + id, function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback);
+    $.get(baseurl + "/" + scope + "/" + action + "/" + id, openConfirmation).fail(xhrFailCallback);
 }
 
 function delegatePopup(id) {
@@ -170,7 +166,7 @@ function screenshotPopup(url, title) {
     $("#gray_out").fadeIn();
 }
 
-function submitPublish(id, type) {
+function submitPublish() {
     $("#PromptForm").submit();
 }
 
@@ -1058,11 +1054,6 @@ function unhideSelectedTags(taxonomy) {
 
 function submitMassTaxonomyTag() {
     $('#PromptForm').submit();
-}
-
-function submitMassEventDelete() {
-    $('#PromptForm').trigger('submit');
-    event.preventDefault();
 }
 
 function getSelected() {
