@@ -5,6 +5,7 @@ App::uses('TmpFileTool', 'Tools');
 /**
  * @property Tag $Tag
  * @property GalaxyClusterRelation $GalaxyClusterRelation
+ * @property GalaxyElement $GalaxyElement
  */
 class GalaxyCluster extends AppModel
 {
