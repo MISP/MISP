@@ -899,10 +899,11 @@ function multiSelectDeleteEvents() {
             }
         }
     });
-    $.get(baseurl + "/events/delete/" + JSON.stringify(selected), function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback);
+    deleteEventPopup(JSON.stringify(selected));
+}
+
+function deleteEventPopup(eventId) {
+    $.get(baseurl + "/events/delete/" + eventId, openConfirmation).fail(xhrFailCallback);
 }
 
 function multiSelectExportEvents() {
@@ -1671,6 +1672,12 @@ function templateElementFileCategoryChange(category) {
             else $("#TemplateElementFileMalware")[0].checked = true;
         }
     }
+}
+
+function openConfirmation(data) {
+    var $box = $("#confirmation_box");
+    $box.html(data);
+    openPopup($box);
 }
 
 function openPopup(id, adjust_layout, callback) {
