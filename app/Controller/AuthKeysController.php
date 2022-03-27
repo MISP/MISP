@@ -141,10 +141,10 @@ class AuthKeysController extends AppController
         }
         $params = [
             'displayOnSuccess' => 'authkey_display',
-            'saveModelVariable' => ['authkey_raw'],
             'override' => ['authkey' => null], // do not allow to use own key, always generate random one
-            'afterFind' => function ($authKey) { // remove hashed key from response
+            'afterFind' => function (array $authKey, array $savedData) { // remove hashed key from response
                 unset($authKey['AuthKey']['authkey']);
+                $authKey['AuthKey']['authkey_raw'] = $savedData['AuthKey']['authkey_raw'];
                 return $authKey;
             }
         ];
@@ -195,11 +195,10 @@ class AuthKeysController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
-        $this->loadModel('User');
         $dropdownData = [
-            'user' => $this->User->find('list', [
+            'user' => $this->AuthKey->User->find('list', [
                 'sort' => ['username' => 'asc'],
-                'conditions' => $selectConditions
+                'conditions' => $selectConditions,
             ])
         ];
         $this->set(compact('dropdownData'));
