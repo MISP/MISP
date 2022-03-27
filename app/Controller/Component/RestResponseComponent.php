@@ -592,14 +592,14 @@ class RestResponseComponent extends Component
         }
 
         if ($response instanceof TmpFileTool) {
-            App::uses('CakeResponseFile', 'Tools');
-            $cakeResponse = new CakeResponseFile(['status' => $code, 'type' => $type]);
             if ($this->signContents) {
                 $this->CryptographicKey = ClassRegistry::init('CryptographicKey');
                 $data = $response->intoString();
                 $headers['x-pgp-signature'] = base64_encode($this->CryptographicKey->signWithInstanceKey($data));
-                $cakeResponse = new CakeResponse(array('body' => $data, 'status' => $code, 'type' => $type));
+                $cakeResponse = new CakeResponse(['body' => $data, 'status' => $code, 'type' => $type]);
             } else {
+                App::uses('CakeResponseFile', 'Tools');
+                $cakeResponse = new CakeResponseFile(['status' => $code, 'type' => $type]);
                 $cakeResponse->file($response);
             }
         } else {

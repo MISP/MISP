@@ -719,6 +719,23 @@ class TestComprehensive(unittest.TestCase):
         response = request(self.admin_misp_connector, 'POST', f'warninglists/delete/{wl["Warninglist"]["id"]}')
         check_response(response)
 
+    def test_protected_event(self):
+        event = create_simple_event()
+        event = check_response(self.admin_misp_connector.add_event(event))
+
+        response = request(self.admin_misp_connector, 'POST', f'events/protect/{event.id}')
+        check_response(response)
+
+        response = request(self.admin_misp_connector, 'POST', f'events/unprotect/{event.uuid}')
+        check_response(response)
+
+        response = request(self.admin_misp_connector, 'POST', f'events/protect/{event.uuid}')
+        check_response(response)
+
+        response = self.admin_misp_connector._prepare_request('GET', f'events/view/{event.id}')
+        self.assertIn('x-pgp-signature', response.headers)
+        self.assertTrue(len(response.headers['x-pgp-signature']) > 0, response.headers['x-pgp-signature'])
+
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)

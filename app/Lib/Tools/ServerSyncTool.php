@@ -20,6 +20,9 @@ class ServerSyncTool
     /** @var HttpSocketExtended */
     private $socket;
 
+    /** @var CryptographicKey */
+    private $cryptographicKey;
+
     /** @var array|null */
     private $info;
 
@@ -418,8 +421,10 @@ class ServerSyncTool
             throw new Exception(__('Remote instance is not protected event aware yet (< 2.4.156), aborting.'));
         }
 
-        $this->CryptographicKey = ClassRegistry::init('CryptographicKey');
-        $signature = $this->CryptographicKey->signWithInstanceKey($data);
+        if (!$this->cryptographicKey) {
+            $this->cryptographicKey = ClassRegistry::init('CryptographicKey');
+        }
+        $signature = $this->cryptographicKey->signWithInstanceKey($data);
         if (empty($signature)) {
             throw new Exception(__("Invalid signing key. This should never happen."));
         }
