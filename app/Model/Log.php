@@ -383,13 +383,13 @@ class Log extends AppModel
             }
         }
         if ($this->syslog) {
-            $action = 'info';
+            $action = LOG_INFO;
             if (isset($data['Log']['action'])) {
                 if (in_array($data['Log']['action'], self::ERROR_ACTIONS, true)) {
-                    $action = 'err';
+                    $action = LOG_ERR;
                 }
                 if (in_array($data['Log']['action'], self::WARNING_ACTIONS, true)) {
-                    $action = 'warning';
+                    $action = LOG_WARNING;
                 }
             }
 
