@@ -121,14 +121,10 @@ function flexibleAddSighting(clicked, type, attribute_id, event_id, placement) {
 function publishPopup(id, type, scope) {
     scope = scope === undefined ? 'events' : scope;
     var action = "alert";
-    if (type == "publish") action = "publish";
-    if (type == "unpublish") action = "unpublish";
-    if (type == "sighting") action = "publishSightings";
-    var destination = 'attributes';
-    $.get(baseurl + "/" + scope + "/" + action + "/" + id, function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback);
+    if (type === "publish") action = "publish";
+    if (type === "unpublish") action = "unpublish";
+    if (type === "sighting") action = "publishSightings";
+    $.get(baseurl + "/" + scope + "/" + action + "/" + id, openConfirmation).fail(xhrFailCallback);
 }
 
 function delegatePopup(id) {
@@ -168,10 +164,6 @@ function screenshotPopup(url, title) {
         top: (document.documentElement.scrollTop + 100) + 'px'
     });
     $("#gray_out").fadeIn();
-}
-
-function submitPublish(id, type) {
-    $("#PromptForm").submit();
 }
 
 function editTemplateElement(type, id) {
@@ -525,10 +517,6 @@ function activateField(type, id, field, event) {
         },
         url: "/" + objectType + "/fetchEditForm/" + id + "/" + field,
     });
-}
-
-function submitQuickTag(form) {
-    $('#' + form).submit();
 }
 
 //if someone clicks an inactive field, replace it with the hidden form field. Also, focus it and bind a focusout event, so that it gets saved if the user clicks away.
@@ -899,10 +887,11 @@ function multiSelectDeleteEvents() {
             }
         }
     });
-    $.get(baseurl + "/events/delete/" + JSON.stringify(selected), function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback);
+    deleteEventPopup(JSON.stringify(selected));
+}
+
+function deleteEventPopup(eventId) {
+    $.get(baseurl + "/events/delete/" + eventId, openConfirmation).fail(xhrFailCallback);
 }
 
 function multiSelectExportEvents() {
@@ -1053,15 +1042,6 @@ function unhideSelectedTags(taxonomy) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	}).fail(xhrFailCallback);
-}
-
-function submitMassTaxonomyTag() {
-    $('#PromptForm').submit();
-}
-
-function submitMassEventDelete() {
-    $('#PromptForm').trigger('submit');
-    event.preventDefault();
 }
 
 function getSelected() {
@@ -1673,6 +1653,12 @@ function templateElementFileCategoryChange(category) {
     }
 }
 
+function openConfirmation(data) {
+    var $box = $("#confirmation_box");
+    $box.html(data);
+    openPopup($box);
+}
+
 function openPopup(id, adjust_layout, callback) {
     var $id = $(id);
     adjust_layout = adjust_layout === undefined ? true : adjust_layout;
@@ -2168,14 +2154,14 @@ function quickFilter(passedArgs, url) {
 
 function runIndexFilter(element) {
     var dataFields = $(element).data();
-    for (var k in $(element).data()) {
+    for (var k in dataFields) {
         if (k in passedArgsArray) {
             delete(passedArgsArray[k]);
         } else {
             passedArgsArray[k] = dataFields[k];
         }
     }
-    url = here;
+    var url = here;
     for (var key in passedArgsArray) {
         url += "/" + key + ":" + passedArgsArray[key];
     }
@@ -4211,19 +4197,27 @@ function selectAllInbetween(last, current) {
 $('#eventToggleButtons button').click(function() {
     var element = $(this).data('toggle-type');
     var $button = $(this).children('span');
+    var $element = $('#' + element + '_div');
     if ($button.hasClass('fa-minus')) {
         $button.addClass('fa-plus');
         $button.removeClass('fa-minus');
-        $('#' + element + '_div').hide();
+        $element.hide();
     } else {
         $button.removeClass('fa-plus');
         $button.addClass('fa-minus');
-        $('#' + element + '_div').show();
+        $element.show();
+
+        // Special cases when another action must be made
+        if (element === 'eventtimeline') {
+            enable_timeline();
+        } else if (element === 'eventgraph') {
+            enable_interactive_graph();
+        }
 
         var loadUrl = $(this).data('load-url');
         if (loadUrl) {
             $.get(loadUrl, function(data) {
-                $('#' + element + '_div').html(data);
+                $element.html(data);
             }).fail(xhrFailCallback);
         }
     }

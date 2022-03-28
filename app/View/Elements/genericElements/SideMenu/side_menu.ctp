@@ -98,10 +98,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => $baseurl . '/events/edit/' . $eventId,
                             'text' => __('Edit Event')
                         ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/events/delete/' . $eventId,
                             'text' => __('Delete Event'),
-                            'message' => __('Are you sure you want to delete event #%s?', $eventId)
+                            'onClick' => array(
+                                'function' => 'deleteEventPopup',
+                                'params' => [$eventId]
+                            ),
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addAttribute',
