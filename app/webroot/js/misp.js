@@ -1048,10 +1048,6 @@ function unhideSelectedTags(taxonomy) {
 	}).fail(xhrFailCallback);
 }
 
-function submitMassTaxonomyTag() {
-    $('#PromptForm').submit();
-}
-
 function getSelected() {
     var selected = [];
     $(".select_attribute").each(function() {
