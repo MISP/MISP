@@ -121,9 +121,9 @@ function flexibleAddSighting(clicked, type, attribute_id, event_id, placement) {
 function publishPopup(id, type, scope) {
     scope = scope === undefined ? 'events' : scope;
     var action = "alert";
-    if (type == "publish") action = "publish";
-    if (type == "unpublish") action = "unpublish";
-    if (type == "sighting") action = "publishSightings";
+    if (type === "publish") action = "publish";
+    if (type === "unpublish") action = "unpublish";
+    if (type === "sighting") action = "publishSightings";
     $.get(baseurl + "/" + scope + "/" + action + "/" + id, openConfirmation).fail(xhrFailCallback);
 }
 

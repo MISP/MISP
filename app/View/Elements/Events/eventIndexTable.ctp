@@ -203,7 +203,7 @@
         <td class="short action-links">
             <?php
                 if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']))) {
-                    echo $this->Form->postLink('', array('action' => 'alert', $eventId), array('class' => 'black fa fa-upload', 'title' => __('Publish Event'), 'aria-label' => __('Publish Event')), __('Are you sure this event is complete and everyone should be informed?'));
+                    echo sprintf('<a class="useCursorPointer fa fa-upload" title="%s" aria-label="%s" onclick="event.preventDefault();publishPopup(%s)"></a>', __('Publish Event'), __('Publish Event'), $eventId);
                 }
 
                 if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])):
