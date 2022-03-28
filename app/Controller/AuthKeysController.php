@@ -182,7 +182,7 @@ class AuthKeysController extends AppController
                     }
                 }
                 $selectConditions['AND'][] = ['User.id' => $user_ids];
-                $params['override']['user_id'] = $user_ids;
+                $params['override']['user_id'] = $user_ids[0];
             } else {
                 $selectConditions['AND'][] = ['User.id' => $this->Auth->user('id')];
                 $params['override']['user_id'] = $this->Auth->user('id');
