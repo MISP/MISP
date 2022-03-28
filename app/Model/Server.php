@@ -6147,7 +6147,7 @@ class Server extends AppModel
                 ],
                 'enable_svg_logos' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('When enabled, orgnisation logos in svg format are allowed.'),
+                    'description' => __('When enabled, organisations logos in svg format are allowed.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
