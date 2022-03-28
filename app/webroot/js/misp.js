@@ -166,10 +166,6 @@ function screenshotPopup(url, title) {
     $("#gray_out").fadeIn();
 }
 
-function submitPublish() {
-    $("#PromptForm").submit();
-}
-
 function editTemplateElement(type, id) {
     simplePopup(baseurl + "/template_elements/edit/" + type + "/" + id);
 }
