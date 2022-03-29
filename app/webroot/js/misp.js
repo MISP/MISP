@@ -73,10 +73,7 @@ function xhr(options) {
 
 function deleteObject(type, action, id) {
     var url = baseurl + "/" + type + "/" + action + "/" + id;
-    $.get(url, function(data) {
-        openPopup("#confirmation_box");
-        $("#confirmation_box").html(data);
-    }).fail(xhrFailCallback)
+    $.get(url, openConfirmation).fail(xhrFailCallback)
 }
 
 function quickDeleteSighting(id, rawId, context) {
@@ -1903,12 +1900,13 @@ function simplePopup(url, requestType, data) {
     data = data === undefined ? [] : data
     $("#gray_out").fadeIn();
     xhr({
-        dataType:"html",
-        success:function (data) {
-            $("#popover_form").html(data);
-            openPopup("#popover_form");
+        dataType: "html",
+        success: function (data) {
+            var $popover = $("#popover_form");
+            $popover.html(data);
+            openPopup($popover);
         },
-        error:function(xhr) {
+        error: function(xhr) {
             $("#gray_out").fadeOut();
             xhrFailCallback(xhr);
         },
@@ -4775,7 +4773,7 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
     });
 });
 
-// Any link with modal-open class will be treated as generic modal
+// Any link with `modal-open` class will be treated as generic modal
 $(document.body).on('click', 'a.modal-open', function (e) {
     e.preventDefault();
     openGenericModal($(this).attr('href'));
