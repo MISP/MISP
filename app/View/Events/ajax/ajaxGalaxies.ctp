@@ -14,9 +14,4 @@ echo $this->element('galaxyQuickViewNew', [
 ?>
 <script type="text/javascript">
     var showContext = false;
-    $(function () {
-        $('.addGalaxy').click(function() {
-            addGalaxyListener(this);
-        });
-    });
 </script>

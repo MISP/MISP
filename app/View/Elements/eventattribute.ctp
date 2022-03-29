@@ -227,9 +227,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
     var deleted = <?php echo (!empty($deleted)) ? '1' : '0';?>;
     var includeRelatedTags = <?php echo (!empty($includeRelatedTags)) ? '1' : '0';?>;
     $(function() {
-        $('.addGalaxy').click(function() {
-            addGalaxyListener(this);
-        });
         <?php
             if (isset($focus)):
         ?>

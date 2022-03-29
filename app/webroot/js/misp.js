@@ -4221,18 +4221,6 @@ $('#eventToggleButtons button').click(function() {
     }
 });
 
-function addGalaxyListener(id) {
-    var target_type = $(id).data('target-type');
-    var target_id = $(id).data('target-id');
-    var local = $(id).data('local');
-    if (local) {
-        local = 1;
-    } else {
-        local = 0;
-    }
-    popoverPopup(id, target_id + '/' + target_type + '/local:' + local, 'galaxies', 'selectGalaxyNamespace');
-}
-
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     cluster_ids = cluster_ids === null ? [] : cluster_ids;
     var target_id = additionalData['target_id'];
