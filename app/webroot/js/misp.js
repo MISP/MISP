@@ -1802,6 +1802,7 @@ function getPopup(id, context, target, admin, popupType) {
 }
 
 // Same as getPopup function but create a popover to populate first
+// DEPRECATED
 function popoverPopup(clicked, id, context, target, admin) {
     var url = baseurl;
     if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
@@ -1810,20 +1811,24 @@ function popoverPopup(clicked, id, context, target, admin) {
     }
     if (target != '') url += "/" + target;
     if (id != '') url += "/" + id;
-    var popover = openPopover(clicked, undefined);
-    $clicked = $(clicked);
+    popoverPopupNew(clicked, url);
+}
+
+function popoverPopupNew(clicked, url) {
+    var $clicked = $(clicked);
+    var popover = openPopover($clicked, undefined);
 
     // actual request //
     $.ajax({
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data) {
+        success: function (data) {
             if (popover.options.content !== data) {
-                popover.options.content =  data;
+                popover.options.content = data;
                 $clicked.popover('show');
             }
         },
-        error:function(jqXHR ) {
+        error: function(jqXHR) {
             var errorJSON = '';
             try {
                 errorJSON = JSON.parse(jqXHR.responseText);
@@ -4770,7 +4775,7 @@ $(document.body).on('click', 'a.modal-open', function (e) {
 $(document.body).on('click', '[data-popover-popup]', function (e) {
     e.preventDefault();
     var url = $(this).data('popover-popup');
-    popoverPopup(this, url);
+    popoverPopupNew(this, url);
 });
 
 function queryEventLock(event_id, timestamp) {

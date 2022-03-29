@@ -107,24 +107,22 @@
     $buttonData = array();
     if ($full) {
         $buttonData[] = sprintf(
-            '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" style="%s" data-popover-popup="%s">%s</button>',
+            '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" data-popover-popup="%s">%s</button>',
             __('Add a tag'),
             __('Add a tag'),
-            'addTagButton btn btn-inverse noPrint',
-            'line-height:10px; padding: 2px;',
-            '/tags/selectTaxonomy/' . $id . ($scope === 'event') ? '' : ('/' . $scope),
-            '<i class="fas fa-globe-americas"></i> +'
+            'addTagButton addButton btn btn-inverse noPrint',
+            $baseurl . '/tags/selectTaxonomy/' . $id . ($scope === 'event' ? '' : ('/' . $scope)),
+            '<i class="fas fa-globe-americas"></i> <i class="fas fa-plus"></i>'
         );
     }
     if ($full || $fullLocal) {
         $buttonData[] = sprintf(
-            '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" style="%s" data-popover-popup="%s">%s</button>',
+            '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" data-popover-popup="%s">%s</button>',
             __('Add a local tag'),
             __('Add a local tag'),
-            'addLocalTagButton btn btn-inverse noPrint',
-            'line-height:10px; padding: 2px;',
-            '/tags/selectTaxonomy/local:1/' . $id . ($scope === 'event') ? '' : ('/' . $scope),
-            '<i class="fas fa-user"></i> +'
+            'addLocalTagButton addButton btn btn-inverse noPrint',
+            $baseurl . '/tags/selectTaxonomy/local:1/' . $id . ($scope === 'event' ? '' : ('/' . $scope)),
+            '<i class="fas fa-user"></i> <i class="fas fa-plus"></i>'
         );
     }
     if (!empty($buttonData)) {

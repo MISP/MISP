@@ -72,7 +72,7 @@
                         'class' => 'mass-select hidden',
                         'fa-icon' => 'tag',
                         'data' => [
-                            'popover-popup' => '/tags/selectTaxonomy/selected/attribute',
+                            'popover-popup' => $baseurl . '/tags/selectTaxonomy/selected/attribute',
                         ],
                     ),
                     array(
@@ -82,7 +82,7 @@
                         'fa-icon' => 'rebel',
                         'fa-source' => 'fab',
                         'data' => [
-                            'popover-popup' => '/galaxies/selectGalaxyNamespace/selected/attribute/eventid:' . $eventId,
+                            'popover-popup' => $baseurl . '/galaxies/selectGalaxyNamespace/selected/attribute/eventid:' . $eventId,
                         ],
                     ),
                     array(
