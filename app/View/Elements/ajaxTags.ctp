@@ -112,7 +112,7 @@
             __('Add a tag'),
             'addTagButton btn btn-inverse noPrint',
             'line-height:10px; padding: 2px;',
-            $baseurl . '/tags/selectTaxonomy/' . $id . ($scope === 'event') ? '' : ('/' . $scope),
+            '/tags/selectTaxonomy/' . $id . ($scope === 'event') ? '' : ('/' . $scope),
             '<i class="fas fa-globe-americas"></i> +'
         );
     }
@@ -123,7 +123,7 @@
             __('Add a local tag'),
             'addLocalTagButton btn btn-inverse noPrint',
             'line-height:10px; padding: 2px;',
-            $baseurl . '/tags/selectTaxonomy/local:1/' . $id . ($scope === 'event') ? '' : ('/' . $scope),
+            '/tags/selectTaxonomy/local:1/' . $id . ($scope === 'event') ? '' : ('/' . $scope),
             '<i class="fas fa-user"></i> +'
         );
     }
