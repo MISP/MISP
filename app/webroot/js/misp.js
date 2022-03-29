@@ -4779,6 +4779,12 @@ $(document.body).on('click', 'a.modal-open', function (e) {
     openGenericModal($(this).attr('href'));
 });
 
+$(document.body).on('click', '[data-popover-popup]', function (e) {
+    e.preventDefault();
+    var url = $(this).data('popover-popup');
+    popoverPopup(this, url);
+});
+
 function queryEventLock(event_id, timestamp) {
     if (!document.hidden) {
         $.ajax({
