@@ -2056,14 +2056,14 @@ a.discrete {
     font-size: 12px;
 }
 
-button.addGalaxy {
+button.addButton {
     line-height: 10px;
     padding: 2px;
     margin-right: 5px;
     margin-top: 1px;
 }
 
-button.addGalaxy .fa-plus {
+button.addButton .fa-plus {
     font-size: 11px;
     line-height: 13px;
 }

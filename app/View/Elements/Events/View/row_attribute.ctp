@@ -32,7 +32,7 @@ if (!empty($k)) {
     $tr_class .= ' row_' . h($k);
 }
 
-$objectId = h($object['id']);
+$objectId = (int) $object['id'];
 
 $quickEdit = function($fieldName) use ($editScope, $object, $event) {
     if ($object['deleted']) {
@@ -143,9 +143,8 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
     </td>
     <td class="short">
       <div class="attributeTagContainer">
-        <?php echo $this->element(
-          'ajaxTags',
-          array('attributeId' => $object['id'],
+        <?php echo $this->element('ajaxTags', array(
+            'attributeId' => $objectId,
             'tags' => $object['AttributeTag'],
             'tagAccess' => ($isSiteAdmin || $mayModify),
             'localTagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id')),
@@ -160,7 +159,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
         if (!empty($includeRelatedTags)) {
             $element = '';
             if (!empty($object['RelatedTags'])) {
-                $element = $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['RelatedTags'], 'tagAccess' => false));
+                $element = $this->element('ajaxAttributeTags', array('attributeId' => $objectId, 'attributeTags' => $object['RelatedTags'], 'tagAccess' => false));
             }
             echo sprintf(
                 '<td class="shortish"><div %s>%s</div></td>',
@@ -169,15 +168,14 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
             );
         }
     ?>
-    <?php $rowId = sprintf('attribute_%s_galaxy', h($objectId)); ?>
-    <td class="short" id="<?= $rowId ?>">
+    <td class="short" id="attribute_<?= $objectId ?>_galaxy">
       <?php
         echo $this->element('galaxyQuickViewNew', array(
           'mayModify' => $mayModify,
           'isAclTagger' => $isAclTagger,
           'data' => (!empty($object['Galaxy']) ? $object['Galaxy'] : array()),
           'event' => $event,
-          'target_id' => $object['id'],
+          'target_id' => $objectId,
           'target_type' => 'attribute',
         ));
       ?>
@@ -204,7 +202,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
     </td>
     <td class="shortish">
         <?php
-          if (!empty($event['RelatedAttribute'][$object['id']])) {
+          if (!empty($event['RelatedAttribute'][$objectId])) {
               echo '<ul class="inline" style="margin:0">';
               echo $this->element('Events/View/attribute_correlations', array(
                   'scope' => 'Attribute',
@@ -354,25 +352,25 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
         if ($object['deleted']):
           if ($isSiteAdmin || $mayModify):
       ?>
-          <span class="fas fa-redo useCursorPointer" title="<?php echo __('Restore attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Restore attribute');?>" onClick="deleteObject('attributes', 'restore', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-          <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="i<?php echo __('Permanently delete attribute');?>" onClick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+          <span class="fas fa-redo useCursorPointer" title="<?php echo __('Restore attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Restore attribute');?>" onclick="deleteObject('attributes', 'restore', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+          <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
       <?php
           endif;
         else:
           if ($isAclAdd && ($isSiteAdmin || !$mayModify)):
             if (isset($modules) && isset($modules['types'][$object['type']])):
       ?>
-        <span class="fas fa-asterisk useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query enrichment');?>" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/ShadowAttribute');" title="<?php echo __('Propose enrichment');?>">&nbsp;</span>
+        <span class="fas fa-asterisk useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query enrichment');?>" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/ShadowAttribute');" title="<?php echo __('Propose enrichment');?>">&nbsp;</span>
       <?php
             endif;
             if (isset($cortex_modules) && isset($cortex_modules['types'][$object['type']])):
       ?>
-        <span class="icon-eye-open useCursorPointer" title="<?php echo __('Query Cortex');?>" role="button" tabindex="0" aria-label="<?php echo __('Query Cortex');?>" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/ShadowAttribute/Cortex');" title="<?php echo __('Propose enrichment through Cortex');?>"></span>
+        <span class="icon-eye-open useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query Cortex');?>" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/ShadowAttribute/Cortex');" title="<?php echo __('Propose enrichment through Cortex');?>"></span>
       <?php
             endif;
       ?>
             <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?= $objectId ?>" title="<?php echo __('Propose Edit');?>" aria-label="<?php echo __('Propose Edit');?>" class="fa fa-comment useCursorPointer"></a>
-            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Propose Deletion');?>" role="button" tabindex="0" aria-label="Propose deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Propose Deletion');?>" role="button" tabindex="0" aria-label="Propose deletion" onclick="deleteObject('shadow_attributes', 'delete', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
       <?php
             if ($isSiteAdmin):
       ?>
@@ -382,12 +380,12 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
           if ($isSiteAdmin || $mayModify):
             if (isset($modules) && isset($modules['types'][$object['type']])):
       ?>
-        <span class="fas fa-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Attribute');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment');?>">&nbsp;</span>
+        <span class="fas fa-asterisk useCursorPointer" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Attribute');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment');?>">&nbsp;</span>
       <?php
             endif;
             if (isset($cortex_modules) && isset($cortex_modules['types'][$object['type']])):
       ?>
-        <span class="icon-eye-open useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Attribute/Cortex');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment via Cortex');?>"></span>
+        <span class="icon-eye-open useCursorPointer" onclick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Attribute/Cortex');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment via Cortex');?>"></span>
       <?php
             endif;
       ?>
@@ -395,11 +393,11 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
           <?php
             if (empty($event['Event']['publish_timestamp'])):
           ?>
-            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="i<?php echo __('Permanently delete attribute');?>" onClick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
           <?php
             else:
           ?>
-            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Soft-delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft-delete attribute');?>" onClick="deleteObject('attributes', 'delete', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Soft-delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft-delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
           <?php
             endif;
           endif;

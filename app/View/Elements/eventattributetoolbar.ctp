@@ -71,8 +71,9 @@
                         'title' => __('Tag selected Attributes'),
                         'class' => 'mass-select hidden',
                         'fa-icon' => 'tag',
-                        'onClick' => 'popoverPopup',
-                        'onClickParams' => array('this', 'selected/attribute', 'tags', 'selectTaxonomy')
+                        'data' => [
+                            'popover-popup' => $baseurl . '/tags/selectTaxonomy/selected/attribute',
+                        ],
                     ),
                     array(
                         'id' => 'multi-galaxy-button',
@@ -80,8 +81,9 @@
                         'class' => 'mass-select hidden',
                         'fa-icon' => 'rebel',
                         'fa-source' => 'fab',
-                        'onClick' => 'popoverPopup',
-                        'onClickParams' => array('this', 'selected/attribute/eventid:' . $eventId, 'galaxies', 'selectGalaxyNamespace')
+                        'data' => [
+                            'popover-popup' => $baseurl . '/galaxies/selectGalaxyNamespace/selected/attribute/eventid:' . $eventId,
+                        ],
                     ),
                     array(
                         'id' => 'group-into-object-button',

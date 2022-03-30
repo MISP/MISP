@@ -123,21 +123,21 @@ echo $this->Form->end();
 <?php endif; ?>
 <?php
 if ($editButtonsEnabled) {
+    $link = "$baseurl/galaxies/selectGalaxyNamespace/" . h($target_id) . "/" . h($target_type) . "/local:0";
     echo sprintf(
-        '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="false" role="button" tabindex="0" aria-label="' . __('Add new cluster') . '" title="' . __('Add new cluster') . '">%s</button>',
-        'useCursorPointer btn btn-inverse addGalaxy',
-        h($target_type),
-        h($target_id),
+        '<button class="%s" data-popover-popup="%s" role="button" tabindex="0" aria-label="' . __('Add new cluster') . '" title="' . __('Add new cluster') . '">%s</button>',
+        'useCursorPointer addButton btn btn-inverse',
+        $link,
         '<i class="fas fa-globe-americas"></i> <i class="fas fa-plus"></i>'
     );
 }
 
 if ($editButtonsLocalEnabled) {
+    $link = "$baseurl/galaxies/selectGalaxyNamespace/" . h($target_id) . "/" . h($target_type) . "/local:1";
     echo sprintf(
-        '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="true" role="button" tabindex="0" aria-label="' . __('Add new local cluster') . '" title="' . __('Add new local cluster') . '">%s</button>',
-        'useCursorPointer btn btn-inverse addGalaxy',
-        h($target_type),
-        h($target_id),
+        '<button class="%s" data-popover-popup="%s" role="button" tabindex="0" aria-label="' . __('Add new local cluster') . '" title="' . __('Add new local cluster') . '">%s</button>',
+        'useCursorPointer addButton btn btn-inverse',
+        $link,
         '<i class="fas fa-user"></i> <i class="fas fa-plus"></i>'
     );
 }
