@@ -88,7 +88,7 @@
         $span_delete = '';
         if ($full || ($fullLocal && $tag['Tag']['local'])) {
             $span_delete = sprintf(
-                '<span class="%s" title="%s" role="%s" tabindex="%s" aria-label="%s" onClick="%s">x</span>',
+                '<span class="%s" title="%s" role="%s" tabindex="%s" aria-label="%s" onclick="%s">x</span>',
                 'black-white tag useCursorPointer noPrint',
                 __('Remove tag'),
                 "button",
@@ -126,10 +126,7 @@
         );
     }
     if (!empty($buttonData)) {
-        $tagData .= sprintf(
-            '<span style="white-space:nowrap;">%s</span>',
-            implode(' ', $buttonData)
-        );
+        $tagData .= implode('', $buttonData);
     }
     echo sprintf(
         '<span class="tag-list-container">%s</span>',
@@ -142,11 +139,11 @@
         $tagConflictData .= '<div class="text-container">';
         foreach ($tagConflicts['global'] as $tagConflict) {
             $tagConflictData .= sprintf(
-                '<strong>%s</strong></br>',
+                '<strong>%s</strong><br>',
                 h($tagConflict['conflict'])
             );
             foreach ($tagConflict['tags'] as $tag) {
-                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span></br>', h($tag));
+                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span><br>', h($tag));
             }
         }
         $tagConflictData .= '</div></div></span>';
@@ -157,11 +154,11 @@
         $tagConflictData .= '<div class="text-container">';
         foreach ($tagConflicts['local'] as $tagConflict) {
             $tagConflictData .= sprintf(
-                '<strong>%s</strong></br>',
+                '<strong>%s</strong><br>',
                 h($tagConflict['conflict'])
             );
             foreach ($tagConflict['tags'] as $tag) {
-                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span></br>', h($tag));
+                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span><br>', h($tag));
             }
         }
         $tagConflictData .= '</div></div></span>';
