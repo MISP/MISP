@@ -11,7 +11,3 @@ echo $this->element('galaxyQuickViewNew', [
     'target_id' => $scope == 'event' ? $object['Event']['id'] : $object['Attribute']['id'],
     'target_type' => $scope
 ]);
-?>
-<script type="text/javascript">
-    var showContext = false;
-</script>

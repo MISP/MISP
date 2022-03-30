@@ -126,7 +126,7 @@
         );
     }
     if (!empty($buttonData)) {
-        $tagData .= implode('', $buttonData);
+        $tagData .= '<span style="white-space:nowrap">' . implode('', $buttonData) . '</span>';
     }
     echo sprintf(
         '<span class="tag-list-container">%s</span>',
