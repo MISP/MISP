@@ -4102,23 +4102,25 @@ function feedFormUpdate() {
 }
 
 function setContextFields() {
+    if (typeof showContext === "undefined") {
+        showContext = false;
+    }
+
+    var $button = $('#show_attribute_context');
     if (showContext) {
         $('.context').show();
-        $('#show_context').addClass("attribute_filter_text_active");
-        $('#show_context').removeClass("attribute_filter_text");
+        $button.removeClass("btn-inverse").addClass("btn-primary");
     } else {
         $('.context').hide();
-        $('#show_context').addClass("attribute_filter_text");
-        $('#show_context').removeClass("attribute_filter_text_active");
+        $button.removeClass("btn-primary").addClass("btn-inverse");
     }
 }
 
 function toggleContextFields() {
-    if (!showContext) {
-        showContext = true;
-    } else {
+    if (typeof showContext === "undefined") {
         showContext = false;
     }
+    showContext = !showContext;
     setContextFields();
 }
 

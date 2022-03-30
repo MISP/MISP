@@ -66,7 +66,6 @@
 </div>
 </div>
 <script type="text/javascript">
-var showContext = false;
 $(function () {
 <?php
     if (!Configure::check('MISP.disable_event_locks') || !Configure::read('MISP.disable_event_locks')) {
@@ -77,8 +76,6 @@ $(function () {
         );
     }
 ?>
-popoverStartup();
-
 $(document.body).tooltip({
     selector: 'span[title], td[title], time[title]',
     placement: 'top',
