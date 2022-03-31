@@ -895,7 +895,7 @@ function multiSelectExportEvents() {
     var selected = [];
     $(".select").each(function() {
         if ($(this).is(":checked")) {
-            var temp = $(this).data("id");
+            var temp = $(this).data("uuid");
             if (temp != null) {
                 selected.push(temp);
             }
