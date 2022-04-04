@@ -443,20 +443,7 @@ class ServersController extends AppController
                 $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
             }
 
-            $allTypes = [];
-            $this->loadModel('Attribute');
-            $this->loadModel('ObjectTemplate');
-            $objects = $this->ObjectTemplate->find('all', [
-                'recursive' => -1,
-                'fields' => ['uuid', 'name'],
-                'group' => ['uuid', 'name'],
-            ]);
-            $allTypes = [
-                'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
-                'object' => Hash::map($objects, '{n}.ObjectTemplate', function ($item) {
-                    return ['id' => $item['uuid'], 'name' => sprintf('%s (%s)', $item['name'], $item['uuid'])];
-                })
-            ];
+            $allTypes = $this->Server->getAllTypes();
 
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
             $this->set('organisationOptions', $organisationOptions);
@@ -641,20 +628,7 @@ class ServersController extends AppController
                 $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
             }
 
-            $allTypes = [];
-            $this->loadModel('Attribute');
-            $this->loadModel('ObjectTemplate');
-            $objects = $this->ObjectTemplate->find('all', [
-                'recursive' => -1,
-                'fields' => ['uuid', 'name'],
-                'group' => ['uuid', 'name'],
-            ]);
-            $allTypes = [
-                'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
-                'object' => Hash::map($objects, '{n}.ObjectTemplate', function ($item) {
-                    return ['id' => $item['uuid'], 'name' => sprintf('%s (%s)', $item['name'], $item['uuid'])];
-                })
-            ];
+            $allTypes = $this->Server->getAllTypes();
 
             $oldRemoteSetting = 0;
             if (!$this->Server->data['RemoteOrg']['local']) {

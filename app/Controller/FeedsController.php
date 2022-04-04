@@ -298,6 +298,9 @@ class FeedsController extends AppController
         $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
         $tags[0] = 'None';
 
+        $this->loadModel('Server');
+        $allTypes = $this->Server->getAllTypes();
+
         $dropdownData = [
             'orgs' => $this->Event->Orgc->find('list', array(
                 'fields' => array('id', 'name'),
@@ -309,6 +312,8 @@ class FeedsController extends AppController
             'distributionLevels' => $distributionLevels,
             'inputSources' => $inputSources
         ];
+        $this->set('allAttributeTypes', $allTypes['attribute']);
+        $this->set('allObjectTypes', $allTypes['object']);
         $this->set(compact('dropdownData'));
         $this->set('defaultPullRules', json_encode(Feed::DEFAULT_FEED_PULL_RULES));
         $this->set('menuData', array('menuList' => 'feeds', 'menuItem' => 'add'));
@@ -436,6 +441,11 @@ class FeedsController extends AppController
         }
         $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
         $tags[0] = 'None';
+
+        $this->loadModel('Server');
+        $allTypes = $this->Server->getAllTypes();
+        $this->set('allAttributeTypes', $allTypes['attribute']);
+        $this->set('allObjectTypes', $allTypes['object']);
 
         $dropdownData = [
             'orgs' => $this->Event->Orgc->find('list', array(

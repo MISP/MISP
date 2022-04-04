@@ -4615,6 +4615,28 @@ class Server extends AppModel
     }
 
     /**
+     * Return all Attribute and Object types
+     */
+    public function getAllTypes(): array
+    {
+        $allTypes = [];
+        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+        $objects = $this->ObjectTemplate->find('all', [
+            'recursive' => -1,
+            'fields' => ['uuid', 'name'],
+            'group' => ['uuid', 'name'],
+        ]);
+        $allTypes = [
+            'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
+            'object' => Hash::map($objects, '{n}.ObjectTemplate', function ($item) {
+                return ['id' => $item['uuid'], 'name' => sprintf('%s (%s)', $item['name'], $item['uuid'])];
+            })
+        ];
+        return $allTypes;
+    }
+
+    /**
      * Invalidate config.php from php opcode cache
      */
     private function opcacheResetConfig()
