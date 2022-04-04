@@ -74,6 +74,11 @@ class Feed extends AppModel
         'url_params' => ''
     ];
 
+    const SUPPORTED_URL_PARAM_FILTERS = [
+        'timestamp',
+        'publish_timestamp',
+    ];
+
     const CACHE_DIR = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS;
 
     /*

@@ -449,6 +449,7 @@ class FeedsController extends AppController
         $allTypes = $this->Server->getAllTypes();
         $this->set('allAttributeTypes', $allTypes['attribute']);
         $this->set('allObjectTypes', $allTypes['object']);
+        $this->set('supportedUrlparams', Feed::SUPPORTED_URL_PARAM_FILTERS);
 
         $dropdownData = [
             'orgs' => $this->Event->Orgc->find('list', array(
