@@ -776,6 +776,10 @@ class Feed extends AppModel
                 }
             }
         }
+        $url_params = !empty($filterRules['url_params']) ? $filterRules['url_params'] : [];
+        if (!$this->passesURLParamFilters($url_params, $event)) {
+            return false;
+        }
         return true;
     }
 
@@ -832,8 +836,42 @@ class Feed extends AppModel
                     }
                 }
             }
+            $url_params = !empty($filterRules['url_params']) ? $filterRules['url_params'] : [];
+            if (!$this->passesURLParamFilters($url_params, $event)) {
+                unset($events[$k]);
+            }
         }
         return $events;
+    }
+
+    private function passesURLParamFilters($url_params, $event): bool
+    {
+        $this->Attribute = ClassRegistry::init('Attribute');
+        if (!empty($url_params['timestamp'])) {
+            $timestamps = $this->Attribute->setTimestampConditions($url_params['timestamp'], [], '', true);
+            if (is_array($timestamps)) {
+                if ($event['timestamp'] < $timestamps[0] || $event['timestamp'] > $timestamps[1]) {
+                    return false;
+                }
+            } else {
+                if ($event['timestamp'] < $timestamps) {
+                    return false;
+                }
+            }
+        }
+        if (!empty($url_params['publish_timestamp'])) {
+            $timestamps = $this->Attribute->setTimestampConditions($url_params['publish_timestamp'], [], '', true);
+            if (is_array($timestamps)) {
+                if ($event['timestamp'] < $timestamps[0] || $event['timestamp'] > $timestamps[1]) {
+                    return false;
+                }
+            } else {
+                if ($event['timestamp'] < $timestamps) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
@@ -997,6 +1035,7 @@ class Feed extends AppModel
             if ($filterRules === null) {
                 throw new Exception('Could not parse feed filter rules JSON: ' . json_last_error_msg(), json_last_error());
             }
+            $filterRules['url_params'] = !empty($filterRules['url_params']) ? $this->jsonDecode($filterRules['url_params']) : [];
         }
         return $filterRules;
     }
