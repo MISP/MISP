@@ -355,6 +355,9 @@ class FeedsController extends AppController
             ],
             'afterFind' => function (array $feed) {
                 $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+                if ($feed['Feed']['source_format'] == 'misp' && empty($feed['Feed']['rules'])) {
+                    $feed['Feed']['rules'] = json_encode(Feed::DEFAULT_FEED_PULL_RULES);
+                }
 
                 return $feed;
             },
