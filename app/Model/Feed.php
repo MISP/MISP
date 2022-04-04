@@ -813,7 +813,7 @@ class Feed extends AppModel
                     }
                 }
                 if (!$found) {
-                    unset($k);
+                    unset($events[$k]);
                     continue;
                 }
             }
@@ -828,7 +828,7 @@ class Feed extends AppModel
                         }
                     }
                     if ($found) {
-                        unset($k);
+                        unset($events[$k]);
                     }
                 }
             }
