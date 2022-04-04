@@ -317,6 +317,7 @@ class FeedsController extends AppController
         $this->set(compact('dropdownData'));
         $this->set('defaultPullRules', json_encode(Feed::DEFAULT_FEED_PULL_RULES));
         $this->set('menuData', array('menuList' => 'feeds', 'menuItem' => 'add'));
+        $this->set('pull_scope', 'feed');
     }
 
     private function __checkRegex($pattern)
@@ -472,6 +473,7 @@ class FeedsController extends AppController
         if(!empty($this->request->data['Feed']['rules'])){
             $this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
         }
+        $this->set('pull_scope', 'feed');
         $this->render('add');
     }
 

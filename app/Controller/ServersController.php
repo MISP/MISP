@@ -455,6 +455,7 @@ class ServersController extends AppController
 
             $this->set('allTags', $this->__getTags());
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
+            $this->set('pull_scope', 'server');
             $this->render('edit');
         }
     }
@@ -649,6 +650,7 @@ class ServersController extends AppController
             $this->set('server', $s);
             $this->set('id', $id);
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
+            $this->set('pull_scope', 'server');
         }
     }
 

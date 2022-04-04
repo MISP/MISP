@@ -81,7 +81,7 @@
     </div>
 
     <?php
-    if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))) {
+    if ($pull_scope == 'server' && !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))) {
         echo $this->element('serverRuleElements/rules_filtering_type', [
             'technique' => 'pull',
             'allowEmptyOptions' => true,
@@ -115,7 +115,7 @@ echo $this->element('genericElements/assetLoader', array(
 
 <script>
     var pullRemoteRules404Error = '<?= __('Connection error or the remote version is not supporting remote filter lookups (v2.4.142+). Make sure that the remote instance is accessible and that it is up to date.') ?>'
-    var coreMirrorHints = <?= json_encode($coreMirrorHints) ?>;
+    var coreMirrorHints = <?= json_encode(!empty($coreMirrorHints) ? $coreMirrorHints : []) ?>;
     var cm;
     $(function() {
         var serverID = "<?= isset($id) ? $id : '' ?>"

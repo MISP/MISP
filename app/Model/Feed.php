@@ -782,7 +782,7 @@ class Feed extends AppModel
             }
         }
         $url_params = !empty($filterRules['url_params']) ? $filterRules['url_params'] : [];
-        if (!$this->passesURLParamFilters($url_params, $event)) {
+        if (!$this->passesURLParamFilters($url_params, $event['Event'])) {
             return false;
         }
         return true;
