@@ -353,8 +353,7 @@ class FeedsController extends AppController
                 'lookup_visible',
                 'headers',
                 'orgc_id',
-                'fixed_event',
-                'target_event'
+                'fixed_event'
             ],
             'afterFind' => function (array $feed) {
                 $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
