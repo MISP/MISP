@@ -1109,6 +1109,7 @@ class EventsController extends AppController
             'eventid' => array('OR' => array(), 'NOT' => array()),
             'date' => array('from' => "", 'until' => ""),
             'eventinfo' => array('OR' => array(), 'NOT' => array()),
+            'all' => array('OR' => array(), 'NOT' => array()),
             'threatlevel' => array('OR' => array(), 'NOT' => array()),
             'distribution' => array('OR' => array(), 'NOT' => array()),
             'sharinggroup' => array('OR' => array(), 'NOT' => array()),
@@ -1187,6 +1188,7 @@ class EventsController extends AppController
             'hasproposal' => __('Has proposal'),
             'timestamp' => __('Last change at'),
             'publishtimestamp' => __('Published at'),
+            'all' => __('Search in all fields'),
         ];
 
         if ($this->_isSiteAdmin()) {
