@@ -352,7 +352,9 @@ class FeedsController extends AppController
                 'delete_local_file',
                 'lookup_visible',
                 'headers',
-                'orgc_id'
+                'orgc_id',
+                'fixed_event',
+                'target_event'
             ],
             'afterFind' => function (array $feed) {
                 $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
