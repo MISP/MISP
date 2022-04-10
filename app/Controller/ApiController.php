@@ -103,7 +103,6 @@ class ApiController extends AppController
      */
     private function __doRestQuery(array $request, &$curl = false, &$python = false)
     {
-        App::uses('SyncTool', 'Tools');
         $params = array();
 
         $logHeaders = $request['header'];
@@ -157,8 +156,8 @@ class ApiController extends AppController
             $params['ssl_allow_self_signed'] = true;
         }
         $params['timeout'] = 300;
-        App::uses('HttpSocket', 'Network/Http');
-        $HttpSocket = new HttpSocket($params);
+        App::uses('HttpSocketExtended', 'Tools');
+        $HttpSocket = new HttpSocketExtended($params);
 
         $temp_headers = empty($request['header']) ? [] : explode("\n", $request['header']);
         $request['header'] = array(
