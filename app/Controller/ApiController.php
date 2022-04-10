@@ -120,8 +120,6 @@ class ApiController extends AppController
         }
 
         $rest_history_item = array(
-            'org_id' => $this->Auth->user('org_id'),
-            'user_id' => $this->Auth->user('id'),
             'headers' => $logHeaders,
             'body' => $historyBody,
             'url' => $request['url'],
@@ -223,9 +221,7 @@ class ApiController extends AppController
         $rest_history_item['outcome'] = $response->code;
 
         $this->loadModel('RestClientHistory');
-        $this->RestClientHistory->create();
-        $this->RestClientHistory->save($rest_history_item);
-        $this->RestClientHistory->cleanup($this->Auth->user('id'));
+        $this->RestClientHistory->insert($this->Auth->user(), $rest_history_item);
 
         return $viewData;
     }
