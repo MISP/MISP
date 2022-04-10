@@ -4,9 +4,9 @@
         <span id="showQB" class="btn btn-primary useCursorPointer" style="margin: 5px;"><span class="fa fa-wrench"> Query Builder</span></span>
         <?php
             $options = '<option value="">None</option>';
-              foreach($allValidApisFormated as $scope => $actions) {
+              foreach ($allValidApisFormated as $scope => $actions) {
                   $options .= sprintf('<optgroup label="%s">', $scope);
-                  foreach($actions as $action) {
+                  foreach ($actions as $action) {
                       $options .= sprintf('<option value="%s">%s</option>', $action['url'], $action['action']);
                   }
               }
@@ -220,18 +220,6 @@
         )
     ));
 ?>
-
-<script type="text/javascript">
-    var allValidApis = <?= json_encode($allValidApis); ?>;
-    var fieldsConstraint = <?= json_encode($allValidApisFieldsContraint); ?>;
-    $(function() {
-        populate_rest_history('history');
-        populate_rest_history('bookmark');
-        toggleRestClientBookmark();
-        setupCodeMirror();
-    });
-</script>
-
 <style>
 .CodeMirror-wrap {
     border: 1px solid #cccccc;

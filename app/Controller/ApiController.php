@@ -25,6 +25,17 @@ class ApiController extends AppController
         }
     }
 
+    public function getAllApis()
+    {
+        $allValidApis = $this->RestResponse->getAllApis($this->Auth->user());
+        $allValidApisFieldsConstraint = $this->RestResponse->getAllApisFieldsConstraint($this->Auth->user());
+        $output = [
+            'allValidApis' => $allValidApis,
+            'fieldsConstraint' => $allValidApisFieldsConstraint,
+        ];
+        return $this->RestResponse->viewData($output, 'json');
+    }
+
     public function getApiInfo()
     {
         $relative_path = $this->request->data['url'];
@@ -47,8 +58,6 @@ class ApiController extends AppController
 
     public function rest()
     {
-        $allValidApis = $this->RestResponse->getAllApis($this->Auth->user());
-        $allValidApisFieldsContraint = $this->RestResponse->getAllApisFieldsConstraint($this->Auth->user());
         if ($this->request->is('post')) {
             $request = $this->request->data;
             if (!empty($request['Server'])) {
@@ -74,14 +83,14 @@ class ApiController extends AppController
             __('YOUR_API_KEY')
         );
         $this->set('header', $header);
-        $this->set('allValidApis', $allValidApis);
+
         // formating for optgroup
+        $allValidApis = $this->RestResponse->getAllApis($this->Auth->user());
         $allValidApisFormated = array();
         foreach ($allValidApis as $endpoint_url => $endpoint_data) {
             $allValidApisFormated[$endpoint_data['controller']][] = array('url' => $endpoint_url, 'action' => $endpoint_data['action']);
         }
         $this->set('allValidApisFormated', $allValidApisFormated);
-        $this->set('allValidApisFieldsContraint', $allValidApisFieldsContraint);
     }
 
     /**

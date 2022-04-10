@@ -24,6 +24,7 @@ class ACLComponent extends Component
                 'viewDeprecatedFunctionUse' => [],
                 'openapi' => ['*'],
                 'getApiInfo' => ['*'],
+                'getAllApis' => ['*'],
             ],
             'attributes' => array(
                 'add' => array('perm_add'),

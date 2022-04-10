@@ -21,9 +21,9 @@ function setApiInfoBox(isTyping) {
                     type: "POST",
                     url: baseurl + '/api/getApiInfo',
                     data: payload,
-                    success:function (data) {
+                    success: function (data) {
                         $('#apiInfo').html(data);
-                            addHoverInfo($('#ServerUrl').data('urlWithoutParam'));
+                        addHoverInfo($('#ServerUrl').data('urlWithoutParam'));
                     }
                 });
             },
@@ -94,32 +94,39 @@ function removeRestClientHistoryItem(id) {
     });
 }
 
-
-
-
-    var allValidApis;
-    var fieldsConstraint;
-    var querybuilderTool;
-    var debounceTimerUpdate;
+var allValidApis;
+var fieldsConstraint;
+var querybuilderTool;
+var debounceTimerUpdate;
 
     $('form').submit(function(e) {
         $('#querybuilder').remove();
         return true;
     });
 
-    $(document).ready(function () {
+    $(function () {
+        $.ajax({
+            dataType: "json",
+            url: baseurl + '/api/getAllApis',
+            success: function (data) {
+                allValidApis = data['allValidApis'];
+                fieldsConstraint = data['fieldsConstraint'];
+            }
+        });
+
         insertRawRestResponse();
         $('.format-toggle-button').bind('click', function() {
-            if ($(this).data('toggle-type') == 'Raw') {
+            var type = $(this).data('toggle-type');
+            if (type === 'Raw') {
                 $('#rest-response-container').empty();
                 insertRawRestResponse();
-            } else if ($(this).data('toggle-type') == 'HTML') {
+            } else if (type === 'HTML') {
                 $('#rest-response-container').empty();
                 insertHTMLRestResponse();
-            } else if ($(this).data('toggle-type') == 'JSON') {
+            } else if (type === 'JSON') {
                 $('#rest-response-container').empty();
                 insertJSONRestResponse();
-            } else if ($(this).data('toggle-type') == 'Download') {
+            } else if (type === 'Download') {
                 var download_content = $('#rest-response-hidden-container').text();
                 var extension = 'json';
                 var export_type = 'json';
@@ -232,6 +239,11 @@ function removeRestClientHistoryItem(id) {
 
         /* Apply jquery chosen where applicable */
         $("#TemplateSelect").chosen();
+
+        populate_rest_history('history');
+        populate_rest_history('bookmark');
+        toggleRestClientBookmark();
+        setupCodeMirror();
     });
 
 
@@ -499,11 +511,10 @@ function getCompletions(token, isJSONKey) {
     }
     if (isJSONKey) {
         var apiJson = allValidApis[url];
-        var filtersJson = fieldsConstraint[url];
-        allHints = (apiJson.mandatory !== undefined ? apiJson.mandatory : []).concat((apiJson.optional !== undefined ? apiJson.optional : []))
+        var allHints = (apiJson.mandatory !== undefined ? apiJson.mandatory : []).concat((apiJson.optional !== undefined ? apiJson.optional : []))
         hints = findMatchingHints(token.string, allHints)
     } else {
-        jsonKey = findPropertyFromValue(token)
+        var jsonKey = findPropertyFromValue(token)
         var filtersJson = fieldsConstraint[url];
         if (filtersJson[jsonKey] !== undefined) {
             var values = filtersJson[jsonKey].values
