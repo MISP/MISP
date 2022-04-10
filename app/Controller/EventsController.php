@@ -3213,7 +3213,8 @@ class EventsController extends AppController
                 'order' => 'Event.timestamp DESC',
             ));
             $this->loadModel('Job');
-            foreach ($this->Event->export_types as $k => $type) {
+            $exportTypes = $this->Event->exportTypes();
+            foreach ($exportTypes as $k => $type) {
                 if ($type['requiresPublished']) {
                     $tempNewestEvent = $newestEventPublished;
                 } else {
@@ -3237,10 +3238,10 @@ class EventsController extends AppController
                 if (!$file->readable()) {
                     if (empty($tempNewestEvent)) {
                         $lastModified = 'No valid events';
-                        $this->Event->export_types[$k]['recommendation'] = 0;
+                        $exportTypes[$k]['recommendation'] = 0;
                     } else {
                         $lastModified = 'N/A';
-                        $this->Event->export_types[$k]['recommendation'] = 1;
+                        $exportTypes[$k]['recommendation'] = 1;
                     }
                 } else {
                     $filesize = $file->size();
@@ -3249,32 +3250,31 @@ class EventsController extends AppController
                         $filesize_unit_index++;
                         $filesize = $filesize / 1024;
                     }
-                    $this->Event->export_types[$k]['filesize'] = round($filesize, 1) . $filesize_units[$filesize_unit_index];
+                    $exportTypes[$k]['filesize'] = round($filesize, 1) . $filesize_units[$filesize_unit_index];
                     $fileChange = $file->lastChange();
                     $lastModified = $this->__timeDifference($now, $fileChange);
                     if (empty($tempNewestEvent) || $fileChange > $tempNewestEvent['Event']['timestamp']) {
                         if (empty($tempNewestEvent)) {
                             $lastModified = 'No valid events';
                         }
-                        $this->Event->export_types[$k]['recommendation'] = 0;
+                        $exportTypes[$k]['recommendation'] = 0;
                     } else {
-                        $this->Event->export_types[$k]['recommendation'] = 1;
+                        $exportTypes[$k]['recommendation'] = 1;
                     }
                 }
 
-                $this->Event->export_types[$k]['lastModified'] = $lastModified;
+                $exportTypes[$k]['lastModified'] = $lastModified;
                 if (!empty($job)) {
-                    $this->Event->export_types[$k]['job_id'] = $job['Job']['id'];
-                    $this->Event->export_types[$k]['progress'] = $job['Job']['progress'];
+                    $exportTypes[$k]['job_id'] = $job['Job']['id'];
+                    $exportTypes[$k]['progress'] = $job['Job']['progress'];
                 } else {
-                    $this->Event->export_types[$k]['job_id'] = -1;
-                    $this->Event->export_types[$k]['progress'] = 0;
+                    $exportTypes[$k]['job_id'] = -1;
+                    $exportTypes[$k]['progress'] = 0;
                 }
             }
         }
-        $this->loadModel('Attribute');
-        $this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
-        $this->set('export_types', $this->Event->export_types);
+        $this->set('sigTypes', array_keys($this->Event->Attribute->typeDefinitions));
+        $this->set('export_types', $exportTypes);
     }
 
     public function downloadExport($type, $extra = null)
@@ -3291,8 +3291,9 @@ class EventsController extends AppController
         if ($extra != null) {
             $extra = '_' . $extra;
         }
-        $this->response->type($this->Event->export_types[$type]['extension']);
-        $path = 'tmp/cached_exports/' . $type . DS . 'misp.' . strtolower($this->Event->export_types[$type]['type']) . $extra . '.' . $org . $this->Event->export_types[$type]['extension'];
+        $exportType = $this->Event->exportTypes()[$type];
+        $this->response->type($exportType['extension']);
+        $path = 'tmp/cached_exports/' . $type . DS . 'misp.' . strtolower($exportType['type']) . $extra . '.' . $org . $exportType['extension'];
         $this->response->file($path, array('download' => true));
     }
 
