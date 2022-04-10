@@ -363,7 +363,7 @@ class AppController extends Controller
     {
         // Notifications and homepage is not necessary for AJAX or REST requests
         $user = $this->Auth->user();
-        if ($user && !$this->_isRest() && !$this->request->is('ajax')) {
+        if ($user && !$this->_isRest() && isset($this->User) && !$this->request->is('ajax')) {
             $hasNotifications = $this->User->hasNotifications($user);
             $this->set('hasNotifications', $hasNotifications);
 

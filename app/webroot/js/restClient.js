@@ -1,3 +1,5 @@
+"use strict";
+
 /* Codacy comment to notify that baseurl is a read-only global variable. */
 /* global baseurl */
 
@@ -5,16 +7,12 @@
 var thread = null;
 function setApiInfoBox(isTyping) {
     clearTimeout(thread);
-    if (isTyping) {
-        var delay = 200;
-    } else {
-        var delay = 0;
-    }
-    var $this = $(this);
-    var payload = {
-        "url": extractPathFromUrl($('#ServerUrl').val())
-    };
-    if (payload) {
+    var url = $('#ServerUrl').val();
+    if (url) {
+        var delay = isTyping ? 200 : 0;
+        var payload = {
+            "url": extractPathFromUrl(url)
+        };
         thread = setTimeout(
             function() {
                 $.ajax({
@@ -35,16 +33,17 @@ function setApiInfoBox(isTyping) {
 }
 
 function loadRestClientHistory(k, data_container) {
-    $('#ServerMethod').val(data_container[k]['RestClientHistory']['http_method']);
-    $('#ServerUseFullPath').prop("checked", data_container[k]['RestClientHistory']['use_full_path']);
-    $('#ServerShowResult').prop("checked", data_container[k]['RestClientHistory']['show_result']);
-    $('#ServerSkipSslValidation').prop("checked", data_container[k]['RestClientHistory']['skip_ssl_validation']);
-    $('#ServerUrl').val(data_container[k]['RestClientHistory']['url']);
-    $('#ServerHeader').val(data_container[k]['RestClientHistory']['headers']);
+    var data = data_container[k];
+    $('#ServerMethod').val(data['http_method']);
+    $('#ServerUseFullPath').prop("checked", data['use_full_path']);
+    $('#ServerShowResult').prop("checked", data['show_result']);
+    $('#ServerSkipSslValidation').prop("checked", data['skip_ssl_validation']);
+    $('#ServerUrl').val(data['url']);
+    $('#ServerHeader').val(data['headers']);
     toggleRestClientBookmark();
-    cm.setValue(data_container[k]['RestClientHistory']['body'])
+    cm.setValue(data['body'])
 
-    var url = extractPathFromUrl(data_container[k]['RestClientHistory']['url'])
+    var url = extractPathFromUrl(data['url'])
     $('#TemplateSelect').val(url).trigger("chosen:updated");
     updateQueryTool(url, false);
     $('#querybuilder').find('select').trigger('chosen:updated');
@@ -168,10 +167,14 @@ var debounceTimerUpdate;
                 $('#template_description').show();
                 $('#ServerMethod').val('POST');
                 var server_url_changed = $('#ServerUrl').val() != allValidApis[selected_template].url;
-                $('#ServerUrl').val(allValidApis[selected_template].url);
-                $('#ServerUrl').data('urlWithoutParam', selected_template);
+                $('#ServerUrl')
+                    .val(allValidApis[selected_template].url)
+                    .data('urlWithoutParam', selected_template);
+
                 var body_value = cm.getValue();
-                var body_changed = allValidApis[previously_selected_template] !== undefined ? allValidApis[previously_selected_template].body != body_value : true;
+                var body_changed = allValidApis[previously_selected_template] !== undefined ?
+                    JSON.stringify(allValidApis[previously_selected_template].body, null, 4) !== body_value :
+                    true;
                 var refreshBody = (body_value === '' || (server_url_changed && !body_changed))
                 if (refreshBody) {
                     var body = JSON.stringify(allValidApis[selected_template].body, null, 4);
