@@ -19,11 +19,11 @@ function setApiInfoBox(isTyping) {
             function() {
                 $.ajax({
                     type: "POST",
-                    url: baseurl + '/servers/getApiInfo',
+                    url: baseurl + '/api/getApiInfo',
                     data: payload,
-                    success:function (data, textStatus) {
+                    success: function (data) {
                         $('#apiInfo').html(data);
-                            addHoverInfo($('#ServerUrl').data('urlWithoutParam'));
+                        addHoverInfo($('#ServerUrl').data('urlWithoutParam'));
                     }
                 });
             },
@@ -81,7 +81,7 @@ function toggleRestClientBookmark() {
 function removeRestClientHistoryItem(id) {
     $.ajax({
         data: '[]',
-        success:function (data, textStatus) {
+        success: function () {
             populate_rest_history('bookmark');
             populate_rest_history('history');
         },
@@ -94,32 +94,39 @@ function removeRestClientHistoryItem(id) {
     });
 }
 
-
-
-
-    var allValidApis;
-    var fieldsConstraint;
-    var querybuilderTool;
-    var debounceTimerUpdate;
+var allValidApis;
+var fieldsConstraint;
+var querybuilderTool;
+var debounceTimerUpdate;
 
     $('form').submit(function(e) {
         $('#querybuilder').remove();
         return true;
     });
 
-    $(document).ready(function () {
+    $(function () {
+        $.ajax({
+            dataType: "json",
+            url: baseurl + '/api/getAllApis',
+            success: function (data) {
+                allValidApis = data['allValidApis'];
+                fieldsConstraint = data['fieldsConstraint'];
+            }
+        });
+
         insertRawRestResponse();
         $('.format-toggle-button').bind('click', function() {
-            if ($(this).data('toggle-type') == 'Raw') {
+            var type = $(this).data('toggle-type');
+            if (type === 'Raw') {
                 $('#rest-response-container').empty();
                 insertRawRestResponse();
-            } else if ($(this).data('toggle-type') == 'HTML') {
+            } else if (type === 'HTML') {
                 $('#rest-response-container').empty();
                 insertHTMLRestResponse();
-            } else if ($(this).data('toggle-type') == 'JSON') {
+            } else if (type === 'JSON') {
                 $('#rest-response-container').empty();
                 insertJSONRestResponse();
-            } else if ($(this).data('toggle-type') == 'Download') {
+            } else if (type === 'Download') {
                 var download_content = $('#rest-response-hidden-container').text();
                 var extension = 'json';
                 var export_type = 'json';
@@ -154,7 +161,7 @@ function removeRestClientHistoryItem(id) {
             }
         });
 
-        $('#TemplateSelect').change(function(e) {
+        $('#TemplateSelect').change(function() {
             var selected_template = $('#TemplateSelect').val();
             var previously_selected_template = $('#ServerUrl').data('urlWithoutParam')
             if (selected_template !== '' && allValidApis[selected_template] !== undefined) {
@@ -167,8 +174,9 @@ function removeRestClientHistoryItem(id) {
                 var body_changed = allValidApis[previously_selected_template] !== undefined ? allValidApis[previously_selected_template].body != body_value : true;
                 var refreshBody = (body_value === '' || (server_url_changed && !body_changed))
                 if (refreshBody) {
-                    $('#ServerBody').val(allValidApis[selected_template].body);
-                    cm.setValue(allValidApis[selected_template].body)
+                    var body = JSON.stringify(allValidApis[selected_template].body, null, 4);
+                    $('#ServerBody').val(body);
+                    cm.setValue(body)
                 }
                 setApiInfoBox(false);
                 updateQueryTool(selected_template, refreshBody);
@@ -232,6 +240,11 @@ function removeRestClientHistoryItem(id) {
 
         /* Apply jquery chosen where applicable */
         $("#TemplateSelect").chosen();
+
+        populate_rest_history('history');
+        populate_rest_history('bookmark');
+        toggleRestClientBookmark();
+        setupCodeMirror();
     });
 
 
@@ -499,11 +512,10 @@ function getCompletions(token, isJSONKey) {
     }
     if (isJSONKey) {
         var apiJson = allValidApis[url];
-        var filtersJson = fieldsConstraint[url];
-        allHints = (apiJson.mandatory !== undefined ? apiJson.mandatory : []).concat((apiJson.optional !== undefined ? apiJson.optional : []))
+        var allHints = (apiJson.mandatory !== undefined ? apiJson.mandatory : []).concat((apiJson.optional !== undefined ? apiJson.optional : []))
         hints = findMatchingHints(token.string, allHints)
     } else {
-        jsonKey = findPropertyFromValue(token)
+        var jsonKey = findPropertyFromValue(token)
         var filtersJson = fieldsConstraint[url];
         if (filtersJson[jsonKey] !== undefined) {
             var values = filtersJson[jsonKey].values

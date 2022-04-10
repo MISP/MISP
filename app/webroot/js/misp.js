@@ -5057,12 +5057,12 @@ function checkRoleEnforceRateLimit() {
 
 function queryDeprecatedEndpointUsage() {
     $.ajax({
-        url: baseurl + '/servers/viewDeprecatedFunctionUse',
+        url: baseurl + '/api/viewDeprecatedFunctionUse',
         type: 'GET',
         success: function(data) {
             $('#deprecationResults').html(data);
         },
-        error: function(data) {
+        error: function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Could not query the deprecation statistics.']});
         }
     });

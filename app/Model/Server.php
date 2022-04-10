@@ -1980,7 +1980,7 @@ class Server extends AppModel
             App::uses('Folder', 'Utility');
             App::uses('File', 'Utility');
             // delete all cache files
-            foreach ($this->Event->export_types as $type => $settings) {
+            foreach ($this->Event->exportTypes() as $type => $settings) {
                 $dir = new Folder(APP . 'tmp/cached_exports/' . $type);
                 // No caches created for this type of export, move on
                 if ($dir == null) {
