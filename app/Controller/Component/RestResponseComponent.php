@@ -415,7 +415,7 @@ class RestResponseComponent extends Component
                             }
                         }
                     }
-                    $data['body'] = json_encode($body, JSON_PRETTY_PRINT);
+                    $data['body'] = $body;
                     $url = '/' . $admin_routing . $controller . '/' . $action;
                     $data['url'] = $url;
                     if (!empty($data['params'])) {

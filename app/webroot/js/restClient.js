@@ -81,7 +81,7 @@ function toggleRestClientBookmark() {
 function removeRestClientHistoryItem(id) {
     $.ajax({
         data: '[]',
-        success:function (data, textStatus) {
+        success: function () {
             populate_rest_history('bookmark');
             populate_rest_history('history');
         },
@@ -161,7 +161,7 @@ var debounceTimerUpdate;
             }
         });
 
-        $('#TemplateSelect').change(function(e) {
+        $('#TemplateSelect').change(function() {
             var selected_template = $('#TemplateSelect').val();
             var previously_selected_template = $('#ServerUrl').data('urlWithoutParam')
             if (selected_template !== '' && allValidApis[selected_template] !== undefined) {
@@ -174,8 +174,9 @@ var debounceTimerUpdate;
                 var body_changed = allValidApis[previously_selected_template] !== undefined ? allValidApis[previously_selected_template].body != body_value : true;
                 var refreshBody = (body_value === '' || (server_url_changed && !body_changed))
                 if (refreshBody) {
-                    $('#ServerBody').val(allValidApis[selected_template].body);
-                    cm.setValue(allValidApis[selected_template].body)
+                    var body = JSON.stringify(allValidApis[selected_template].body, null, 4);
+                    $('#ServerBody').val(body);
+                    cm.setValue(body)
                 }
                 setApiInfoBox(false);
                 updateQueryTool(selected_template, refreshBody);
