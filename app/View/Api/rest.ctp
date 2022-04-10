@@ -4,12 +4,12 @@
         <span id="showQB" class="btn btn-primary useCursorPointer" style="margin: 5px;"><span class="fa fa-wrench"> Query Builder</span></span>
         <?php
             $options = '<option value="">None</option>';
-              foreach ($allValidApisFormated as $scope => $actions) {
-                  $options .= sprintf('<optgroup label="%s">', $scope);
-                  foreach ($actions as $action) {
-                      $options .= sprintf('<option value="%s">%s</option>', $action['url'], $action['action']);
-                  }
+            foreach ($allAccessibleApis as $scope => $actions) {
+              $options .= sprintf('<optgroup label="%s">', $scope);
+              foreach ($actions as $action => $url) {
+                  $options .= sprintf('<option value="%s">%s</option>', $url, $action);
               }
+            }
             echo sprintf('<select id="TemplateSelect">%s</select>', $options);
         ?>
         <div id="apiInfo" style="margin-top: 15px;"></div>

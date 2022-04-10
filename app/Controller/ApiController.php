@@ -85,13 +85,8 @@ class ApiController extends AppController
         );
         $this->set('header', $header);
 
-        // formating for optgroup
-        $allValidApis = $this->RestResponse->getAllApis($this->Auth->user());
-        $allValidApisFormated = array();
-        foreach ($allValidApis as $endpoint_url => $endpoint_data) {
-            $allValidApisFormated[$endpoint_data['controller']][] = array('url' => $endpoint_url, 'action' => $endpoint_data['action']);
-        }
-        $this->set('allValidApisFormated', $allValidApisFormated);
+        $allAccessibleApis = $this->RestResponse->getAccessibleApis($this->Auth->user());
+        $this->set('allAccessibleApis', $allAccessibleApis);
         $this->set('title_for_layout', __('REST client'));
     }
 

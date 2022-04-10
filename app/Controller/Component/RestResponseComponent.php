@@ -367,17 +367,31 @@ class RestResponseComponent extends Component
             $controller = $controller === 'EventGraph' ? 'event_graph' : Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
                 if ($this->ACL->canUserAccess($user, $controller, $action)) {
-                    $admin_routing = '';
-                    if (substr($action, 0, 6) === 'admin_') {
-                        $action = substr($action, 6);
-                        $admin_routing = 'admin/';
-                    }
-                    $url = '/' . $admin_routing . $controller . '/' . $action;
+                    $url = $this->generateUrl($controller, $action);
                     $result[$url] = $data;
                 }
             }
         }
         return $result;
+    }
+
+    /**
+     * @param array $user
+     * @return array
+     */
+    public function getAccessibleApis(array $user)
+    {
+        $output = [];
+        foreach ($this->__descriptions as $controller => $actions) {
+            $controller = $controller === 'EventGraph' ? 'event_graph' : Inflector::tableize($controller);
+            foreach ($actions as $action => $data) {
+                if ($this->ACL->canUserAccess($user, $controller, $action)) {
+                    $url = $this->generateUrl($controller, $action);
+                    $output[$controller][$action] = $url;
+                }
+            }
+        }
+        return $output;
     }
 
     public function getAllApis($user)
@@ -389,11 +403,6 @@ class RestResponseComponent extends Component
             $controller = $controller === 'EventGraph' ? 'event_graph' : Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
                 if ($this->ACL->canUserAccess($user, $controller, $action)) {
-                    $admin_routing = '';
-                    if (substr($action, 0, 6) === 'admin_') {
-                        $action = substr($action, 6);
-                        $admin_routing = 'admin/';
-                    }
                     $data['api_name'] = '[' . $controller . '] ' . $action;
                     $data['controller'] = $controller;
                     $data['action'] = $action;
@@ -416,7 +425,7 @@ class RestResponseComponent extends Component
                         }
                     }
                     $data['body'] = $body;
-                    $url = '/' . $admin_routing . $controller . '/' . $action;
+                    $url = $this->generateUrl($controller, $action);;
                     $data['url'] = $url;
                     if (!empty($data['params'])) {
                         foreach ($data['params'] as $param) {
@@ -731,13 +740,8 @@ class RestResponseComponent extends Component
             $scopes = array('Event', 'Attribute', 'Sighting');
             foreach ($scopes as $scope) {
                 $this->{$scope} = ClassRegistry::init($scope);
-                $this->__descriptions[$scope]['restSearch'] = array(
-                    'description' => $this->__descriptions[$scope]['restSearch']['description'],
-                    'returnFormat' => array_keys($this->{$scope}->validFormats),
-                    'mandatory' => $this->__descriptions[$scope]['restSearch']['mandatory'],
-                    'optional' => $this->__descriptions[$scope]['restSearch']['optional'],
-                    'params' => $this->__descriptions[$scope]['restSearch']['params']
-                );
+                $returnFormat = array_keys($this->{$scope}->validFormats);
+                $this->__descriptions[$scope]['restSearch']['returnFormat'] = $returnFormat;
             }
             $this->__configureFieldConstraints();
             $this->__setupFieldsConstraint();
@@ -1938,7 +1942,8 @@ class RestResponseComponent extends Component
         if ($values === null) {
             $tagModel = ClassRegistry::init("Tag");
             $tags = $tagModel->find('column', array(
-                'fields' => array('Tag.name')
+                'fields' => array('Tag.name'),
+                'callbacks' => false,
             ));
             $values = [];
             foreach ($tags as $tag) {
@@ -1963,19 +1968,40 @@ class RestResponseComponent extends Component
     private function __overwriteAction($scope, $action, &$field) {
         $field['values'] = array_keys(ClassRegistry::init("Log")->actionDefinitions);
     }
-    private function __overwriteRoleId($scope, $action, &$field) {
-        $this->{$scope} = ClassRegistry::init("Role");
-        $roles = $this->{$scope}->find('list', array(
-            'fields' => array('id', 'name')
-        ));
-        $field['values'] = [];
-        foreach ($roles as $id => $name) {
-            $field['values'][] = ['label' => $name, 'value' => $id];
+
+    private function __overwriteRoleId($scope, $action, &$field)
+    {
+        static $values;
+        if ($values === null) {
+            $roleModel = ClassRegistry::init("Role");
+            $roles = $roleModel->find('list', array(
+                'fields' => array('id', 'name')
+            ));
+            $values = [];
+            foreach ($roles as $id => $name) {
+                $values[] = ['label' => $name, 'value' => $id];
+            }
         }
+        $field['values'] = $values;
     }
     private function __overwriteSeen($scope, $action, &$field) {
         if ($action == 'restSearch') {
             $field['help'] = __('Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)');
         }
+    }
+
+    /**
+     * @param string $controller
+     * @param string $action
+     * @return string
+     */
+    private function generateUrl($controller, $action)
+    {
+        $admin_routing = '';
+        if (substr($action, 0, 6) === 'admin_') {
+            $action = substr($action, 6);
+            $admin_routing = 'admin/';
+        }
+        return '/' . $admin_routing . $controller . '/' . $action;
     }
 }
