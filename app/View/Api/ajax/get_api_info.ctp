@@ -1,6 +1,6 @@
 <div class="dashboard_element">
+    <h4 class="blue bold">API info</h4>
     <?php
-        echo '<h4 class="blue bold">API info</h4>';
         foreach ($api_info as $key => $value) {
             if (!empty($value)) {
                 if (is_array($value)) {

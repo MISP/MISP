@@ -19,9 +19,9 @@ function setApiInfoBox(isTyping) {
             function() {
                 $.ajax({
                     type: "POST",
-                    url: baseurl + '/servers/getApiInfo',
+                    url: baseurl + '/api/getApiInfo',
                     data: payload,
-                    success:function (data, textStatus) {
+                    success:function (data) {
                         $('#apiInfo').html(data);
                             addHoverInfo($('#ServerUrl').data('urlWithoutParam'));
                     }
