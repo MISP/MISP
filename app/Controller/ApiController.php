@@ -11,6 +11,7 @@ class ApiController extends AppController
 
     public function openapi()
     {
+        $this->set('title_for_layout', __('OpenAPI'));
     }
 
     public function viewDeprecatedFunctionUse()
@@ -91,6 +92,7 @@ class ApiController extends AppController
             $allValidApisFormated[$endpoint_data['controller']][] = array('url' => $endpoint_url, 'action' => $endpoint_data['action']);
         }
         $this->set('allValidApisFormated', $allValidApisFormated);
+        $this->set('title_for_layout', __('REST client'));
     }
 
     /**
