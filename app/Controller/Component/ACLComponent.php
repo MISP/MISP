@@ -560,6 +560,7 @@ class ACLComponent extends Component
                 'upgrade2324' => array(),
                 'cleanModelCaches' => array(),
                 'updateDatabase' => array(),
+                'rest' => ['perm_auth'],
             ),
             'shadowAttributes' => array(
                 'accept' => array('perm_add'),
