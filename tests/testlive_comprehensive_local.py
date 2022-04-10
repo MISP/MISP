@@ -736,6 +736,11 @@ class TestComprehensive(unittest.TestCase):
         self.assertIn('x-pgp-signature', response.headers)
         self.assertTrue(len(response.headers['x-pgp-signature']) > 0, response.headers['x-pgp-signature'])
 
+    def test_get_all_apis(self):
+        response = self.admin_misp_connector._prepare_request('GET', 'api/getAllApis.json')
+        self.assertEqual(200, response.status_code, response)
+        response.json()
+
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
