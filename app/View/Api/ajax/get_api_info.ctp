@@ -30,11 +30,11 @@
                         }
                         $temp[] = $fieldName . $infoHtml;
                     }
-                    $value = implode('<br />', $temp);
+                    $value = implode('<br>', $temp);
                 } else {
                     $value = h($value);
                 }
-                echo sprintf('<span class=blue>%s</span>:<br /><div style="padding-left:10px;">%s</div>', ucfirst(h($key)), $value);
+                echo sprintf('<span class=blue>%s</span>:<br><div style="padding-left:10px;">%s</div>', ucfirst(h($key)), $value);
             }
         }
     ?>

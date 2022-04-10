@@ -63,7 +63,7 @@
                 'class' => 'input-xxlarge'
             ));
         ?>
-        <div class="input clear" style="width:100%;" />
+            <div class="input clear" style="width:100%;"></div>
         <?php
             if (!empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
                 echo $this->Form->input('use_full_path', array(
@@ -77,7 +77,7 @@
                 'onChange' => 'toggleRestClientBookmark();'
             ));
         ?>
-        <div class="input clear" style="width:100%;" />
+            <div class="input clear" style="width:100%;"></div>
             <div id="bookmark-name" style="display:none;">
                 <?php
                     echo $this->Form->input('name', array(
@@ -86,7 +86,7 @@
                     ));
                 ?>
             </div>
-        <div class="input clear" style="width:100%;" />
+            <div class="input clear" style="width:100%;"></div>
         <?php
             echo $this->Form->input('show_result', array(
                 'label' => __('Show result'),
