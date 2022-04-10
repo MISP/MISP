@@ -372,7 +372,7 @@ class RestResponseComponent extends Component
                         $action = substr($action, 6);
                         $admin_routing = 'admin/';
                     }
-                    $url = $this->baseurl . '/' . $admin_routing . $controller . '/' . $action;
+                    $url = '/' . $admin_routing . $controller . '/' . $action;
                     $result[$url] = $data;
                 }
             }
@@ -397,7 +397,7 @@ class RestResponseComponent extends Component
                     $data['api_name'] = '[' . $controller . '] ' . $action;
                     $data['controller'] = $controller;
                     $data['action'] = $action;
-                    $data['body'] = array();
+                    $body = [];
                     $filter_types = array('mandatory', 'optional');
                     foreach ($filter_types as $filter_type) {
                         if (!empty($data[$filter_type])) {
@@ -407,16 +407,16 @@ class RestResponseComponent extends Component
                                 }
                                 foreach ($filter_items as $filter) {
                                     if ($filter === lcfirst($filter)) {
-                                        $data['body'][$filter] = $filter_type;
+                                        $body[$filter] = $filter_type;
                                     } else {
-                                        $data['body'][$filter] = array($filter_type);
+                                        $body[$filter] = array($filter_type);
                                     }
                                 }
                             }
                         }
                     }
-                    $data['body'] = json_encode($data['body'], JSON_PRETTY_PRINT);
-                    $url = $this->baseurl . '/' . $admin_routing . $controller . '/' . $action;
+                    $data['body'] = json_encode($body, JSON_PRETTY_PRINT);
+                    $url = '/' . $admin_routing . $controller . '/' . $action;
                     $data['url'] = $url;
                     if (!empty($data['params'])) {
                         foreach ($data['params'] as $param) {
