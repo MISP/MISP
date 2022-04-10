@@ -157,7 +157,7 @@
             }
             echo '</div>';
         }
-        if (!empty($data['data'])): ?>
+        if (isset($data['data'])): ?>
             <h3><?= __('Response') ?></h3>
             <div><span class="bold"><?= __('Queried URL') ?></span>: <?= h($data['url']) ?></div>
             <div><span class="bold"><?= __('Response code') ?></span>: <?= h($data['code']) ?></div>
