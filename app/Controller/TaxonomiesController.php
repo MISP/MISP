@@ -183,9 +183,8 @@ class TaxonomiesController extends AppController
 
     public function enable($id)
     {
-        if (!$this->_isSiteAdmin() || !$this->request->is('Post')) {
-            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
-        }
+        $this->request->allowMethod(['post']);
+
         $taxonomy = $this->Taxonomy->find('first', array(
             'recursive' => -1,
             'conditions' => array('Taxonomy.id' => $id),
@@ -214,12 +213,11 @@ class TaxonomiesController extends AppController
 
     public function disable($id)
     {
-        if (!$this->_isSiteAdmin() || !$this->request->is('Post')) {
-            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
-        }
+        $this->request->allowMethod(['post']);
+
         $taxonomy = $this->Taxonomy->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Taxonomy.id' => $id),
+            'recursive' => -1,
+            'conditions' => array('Taxonomy.id' => $id),
         ));
         $this->Taxonomy->disableTags($id);
         $taxonomy['Taxonomy']['enabled'] = 0;
@@ -246,9 +244,8 @@ class TaxonomiesController extends AppController
 
     public function import()
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException('This endpoint requires a POST request.');
-        }
+        $this->request->allowMethod(['post']);
+
         try {
             $id = $this->Taxonomy->import($this->request->data);
             return $this->view($id);

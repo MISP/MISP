@@ -72,7 +72,8 @@
             ),
             'sort' => 'required',
             'class' => 'short',
-            'data_path' => 'Taxonomy.required'
+            'data_path' => 'Taxonomy.required',
+            'disabled' => !$isSiteAdmin,
         ),
         array(
             'name' => __('Active Tags'),
