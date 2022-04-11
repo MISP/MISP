@@ -741,6 +741,11 @@ class TestComprehensive(unittest.TestCase):
         self.assertEqual(200, response.status_code, response)
         response.json()
 
+    def test_taxonomy_export(self):
+        response = self.admin_misp_connector._prepare_request('GET', 'taxonomies/export/1')
+        self.assertEqual(200, response.status_code, response)
+        response.json()
+
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)
