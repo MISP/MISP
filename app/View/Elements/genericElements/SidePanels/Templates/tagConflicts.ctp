@@ -12,8 +12,8 @@
         if ($taxonomy['Taxonomy']['exclusive']) {
             $conflictHtmlInternal[] = sprintf(
                 '<li>%s</li>',
-                sprintf(
-                    ('%s is an exclusive taxonomy. Only one Tag of this taxonomy is allowed on an element.'),
+                __(
+                    '%s is an exclusive taxonomy. Only one Tag of this taxonomy is allowed on an element.',
                     sprintf('<strong>%s</strong>', h($taxonomy['Taxonomy']['namespace']))
                 )
             );
@@ -21,8 +21,8 @@
             foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
                 $conflictHtmlInternal[] = sprintf(
                     '<li>%s</li>',
-                    sprintf(
-                        ('%s is an exclusive taxonomy predicate. Only one Tag of this predicate is allowed on an element'),
+                    __(
+                        '%s is an exclusive taxonomy predicate. Only one Tag of this predicate is allowed on an element',
                         sprintf('<strong>%s</strong>', h($predicate['value']))
                     )
                 );
@@ -35,7 +35,7 @@
     }
 
     echo sprintf(
-        '<div class="warning_container"><h4 class="red">%s</h4>%s</div>',
+        '<div class="warning_container"><h4>%s</h4>%s</div>',
         __('Warning: Taxonomy inconsistencies'),
         $conflictHtml
     );
