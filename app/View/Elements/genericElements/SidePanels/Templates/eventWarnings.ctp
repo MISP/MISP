@@ -11,7 +11,7 @@ foreach ($event['warnings'] as $id => $name) {
 echo sprintf(
     '<div class="warning_container">%s%s</div>',
     sprintf(
-        '<h4 class="red">%s</h4>',
+        '<h4>%s</h4>',
         sprintf(
             '%s <a href="#attributeList" title="%s" onclick="toggleBoolFilter(\'%s/events/view/%s\', \'warning\');">(%s)</a>',
             __('Warning: Potential false positives'),
