@@ -2667,6 +2667,19 @@ class Event extends AppModel
         return $container;
     }
 
+    public function set_filter_sharing_group(&$params, $conditions, $options)
+    {
+        if (!empty($params['sharinggroup'])) {
+            $params['sharinggroup'] = $this->convert_filters($params['sharinggroup']);
+            if ($options['scope'] === 'Attribute') {
+                $conditions = $this->generic_add_filter($conditions, $params['sharinggroup'], ['Event.sharing_group_id', 'Attribute.sharing_group_id']);
+            } else {
+                $conditions = $this->generic_add_filter($conditions, $params['sharinggroup'], 'Event.sharing_group_id');
+            }
+        }
+        return $conditions;
+    }
+
     public function set_filter_org(&$params, $conditions, $options)
     {
         if (!empty($params['org'])) {
