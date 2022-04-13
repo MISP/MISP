@@ -720,6 +720,10 @@ class TestComprehensive(unittest.TestCase):
         response = self.admin_misp_connector.values_in_warninglist("2.3.4.5")
         self.assertEqual(0, len(response))
 
+        # Update by importing
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/import', exported)
+        check_response(response)
+
         response = request(self.admin_misp_connector, 'POST', f'warninglists/delete/{wl["Warninglist"]["id"]}')
         check_response(response)
 
