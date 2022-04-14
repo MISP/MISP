@@ -731,7 +731,9 @@ class TestComprehensive(unittest.TestCase):
         exported["name"] = "Test2"
         response = request(self.admin_misp_connector, 'POST', f'warninglists/import', exported)
         check_response(response)
-        print(response)
+
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/delete/{response["id"]}')
+        check_response(response)
 
     def test_protected_event(self):
         event = create_simple_event()
