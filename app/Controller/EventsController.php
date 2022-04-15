@@ -3949,15 +3949,15 @@ class EventsController extends AppController
                 $adhereToWarninglists = $this->request->data['Attribute']['adhereToWarninglists'];
             }
             $resultArray = $complexTypeTool->checkFreeText($this->request->data['Attribute']['value']);
-            foreach ($resultArray as $key => $r) {
-                $temp = array();
-                foreach ($r['types'] as $type) {
-                    $temp[$type] = $type;
-                }
-                $resultArray[$key]['types'] = $temp;
-            }
-
             if ($this->_isRest()) {
+                // Keep this 'types' format for rest response, but it is not necessary for UI
+                foreach ($resultArray as $key => $r) {
+                    $temp = array();
+                    foreach ($r['types'] as $type) {
+                        $temp[$type] = $type;
+                    }
+                    $resultArray[$key]['types'] = $temp;
+                }
                 if ($returnMetaAttributes || !empty($this->request->data['Attribute']['returnMetaAttributes'])) {
                     return $this->RestResponse->viewData($resultArray, $this->response->type());
                 } else {

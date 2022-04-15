@@ -2675,9 +2675,10 @@ function popoverStartup() {
 }
 
 function changeFreetextImportFrom() {
-    $('#changeTo').find('option').remove();
+    var $changeTo = $('#changeTo');
+    $changeTo.empty();
     options[$('#changeFrom').val()].forEach(function(element) {
-        $('#changeTo').append('<option value="' + element + '">' + element + '</option>');
+        $changeTo.append(new Option(element));
     });
 }
 
@@ -2689,8 +2690,10 @@ function changeFreetextImportExecute() {
     var from = $('#changeFrom').val();
     var to = $('#changeTo').val();
     $('.typeToggle').each(function() {
-        if ($( this ).val() == from) {
-            if (selectContainsOption("#" + $(this).attr('id'), to)) $( this ).val(to);
+        if ($(this).val() === from) {
+            if (selectContainsOption("#" + $(this).attr('id'), to)) {
+                $(this).val(to);
+            }
         }
     });
 }
@@ -2698,7 +2701,7 @@ function changeFreetextImportExecute() {
 function selectContainsOption(selectid, value) {
     var exists = false;
     $(selectid + ' option').each(function(){
-        if (this.value == value) {
+        if (this.value === value) {
             exists = true;
             return false;
         }
