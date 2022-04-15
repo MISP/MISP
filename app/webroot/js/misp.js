@@ -2729,12 +2729,11 @@ function importChoiceSelect(url, elementId, ajax) {
     }
 }
 
-function freetextImportResultsSubmit(id, count) {
+function freetextImportResultsSubmit(event_id, count) {
     var attributeArray = [];
-    var temp;
     for (var i = 0; i < count; i++) {
         if ($('#Attribute' + i + 'Save').val() == 1) {
-            temp = {
+            attributeArray.push({
                 value:$('#Attribute' + i + 'Value').val(),
                 category:$('#Attribute' + i + 'Category').val(),
                 type:$('#Attribute' + i + 'Type').val(),
@@ -2746,18 +2745,17 @@ function freetextImportResultsSubmit(id, count) {
                 data:$('#Attribute' + i + 'Data').val(),
                 data_is_handled:$('#Attribute' + i + 'DataIsHandled').val(),
                 tags:$('#Attribute' + i + 'Tags').val()
-            }
-            attributeArray[attributeArray.length] = temp;
+            })
         }
     }
     $("#AttributeJsonObject").val(JSON.stringify(attributeArray));
     var formData = $(".mainForm").serialize();
     xhr({
         type: "post",
-        url: "/events/saveFreeText/" + id,
+        url: "/events/saveFreeText/" + event_id,
         data: formData,
         success: function () {
-            window.location = baseurl + '/events/view/' + id;
+            window.location = baseurl + '/events/view/' + event_id;
         },
     });
 }
