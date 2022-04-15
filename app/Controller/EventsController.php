@@ -3923,17 +3923,18 @@ class EventsController extends AppController
      */
     public function freeTextImport($id, $adhereToWarninglists = false, $returnMetaAttributes = false)
     {
+        $this->request->allowMethod(['post', 'get']);
+
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
-            throw new MethodNotAllowedException(__('Invalid event.'));
+            throw new NotFoundException(__('Invalid event.'));
         }
         $this->set('event_id', $event['Event']['id']);
         if ($this->request->is('get')) {
             $this->layout = 'ajax';
             $this->request->data['Attribute']['event_id'] = $event['Event']['id'];
-        }
 
-        if ($this->request->is('post')) {
+        } else if ($this->request->is('post')) {
             App::uses('ComplexTypeTool', 'Tools');
             $complexTypeTool = new ComplexTypeTool();
             $this->loadModel('Warninglist');
@@ -3947,7 +3948,7 @@ class EventsController extends AppController
             if (isset($this->request->data['Attribute']['adhereToWarninglists'])) {
                 $adhereToWarninglists = $this->request->data['Attribute']['adhereToWarninglists'];
             }
-            $resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'freetext');
+            $resultArray = $complexTypeTool->checkFreeText($this->request->data['Attribute']['value']);
             foreach ($resultArray as $key => $r) {
                 $temp = array();
                 foreach ($r['types'] as $type) {
