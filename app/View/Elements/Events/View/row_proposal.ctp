@@ -74,19 +74,16 @@
   ?>
   </td>
   <td class="short">
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_category_placeholder'; ?>" class="inline-field-placeholder"></div>
     <div id="<?php echo $currentType . '_' . $object['id'] . '_category_solid'; ?>" class="inline-field-solid">
       <?php echo h($object['category']); ?>
     </div>
   </td>
   <td class="short">
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_type_placeholder'; ?>" class="inline-field-placeholder"></div>
     <div id="<?php echo $currentType . '_' . $object['id'] . '_type_solid'; ?>" class="inline-field-solid">
       <?php echo h($object['type']); ?>
     </div>
   </td>
   <td id="<?php echo h($currentType) . '_' . h($object['id']) . '_container'; ?>" class="showspaces limitedWidth shortish">
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class="inline-field-placeholder"></div>
     <div id="<?php echo $currentType; ?>_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid">
     <?php
         echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
@@ -96,7 +93,6 @@
   <td class="shortish">&nbsp;</td>
   <td class="shortish">&nbsp;</td>
   <td class="showspaces bitwider">
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class="inline-field-placeholder"></div>
     <div id="<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid">
       <?php echo nl2br(h($object['comment'])); ?>&nbsp;
     </div>
@@ -145,7 +141,6 @@
     </ul>
   </td>
   <td class="short">
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_to_ids_placeholder'; ?>" class="inline-field-placeholder"></div>
     <div id="<?php echo $currentType . '_' . $object['id'] . '_to_ids_solid'; ?>" class="inline-field-solid">
       <?php
         if ($object['to_ids']) echo 'Yes';

@@ -44,7 +44,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
     if ($fieldName === 'value' && ($object['type'] === 'attachment' || $object['type'] === 'malware-sample')) {
         return '';
     }
-    return " onmouseenter=\"quickEditHover(this, '$editScope', '{$object['id']}', '$fieldName', {$event['Event']['id']});\"";
+    return " onmouseenter=\"quickEditHover(this, '$editScope', {$object['id']}, '$fieldName', {$event['Event']['id']});\"";
 }
 
 ?>
@@ -103,26 +103,19 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       &nbsp;
     </td>
     <td class="short"<?= $quickEdit('category') ?>>
-      <div id="Attribute_<?= $objectId ?>_category_placeholder" class="inline-field-placeholder"></div>
       <div id="Attribute_<?= $objectId ?>_category_solid" class="inline-field-solid">
         <?php echo h($object['category']); ?>
       </div>
     </td>
     <td class="short"<?= $quickEdit('type') ?>>
-      <?php
-        if (!empty($object['object_relation'])):
-      ?>
+      <?php if (!empty($object['object_relation'])):?>
           <div class="bold"><?php echo h($object['object_relation']); ?>:</div>
-      <?php
-        endif;
-      ?>
-      <div id="Attribute_<?= $objectId ?>_type_placeholder" class="inline-field-placeholder"></div>
+      <?php endif; ?>
       <div id="Attribute_<?= $objectId ?>_type_solid" class="inline-field-solid">
         <?php echo h($object['type']); ?>
       </div>
     </td>
     <td id="Attribute_<?= $objectId ?>_container" class="showspaces limitedWidth shortish"<?= $quickEdit('value') ?>>
-      <div id="Attribute_<?= $objectId ?>_value_placeholder" class="inline-field-placeholder"></div>
       <div id="Attribute_<?= $objectId ?>_value_solid" class="inline-field-solid">
         <?php
             if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
@@ -181,9 +174,8 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       ?>
     </td>
     <td class="showspaces bitwider"<?= $quickEdit('comment') ?>>
-      <div id="Attribute_<?= $objectId ?>_comment_placeholder" class="inline-field-placeholder"></div>
       <div id="Attribute_<?= $objectId ?>_comment_solid" class="inline-field-solid">
-        <?php echo nl2br(h($object['comment'])); ?>&nbsp;
+        <?php echo nl2br(h($object['comment']), false); ?>
       </div>
     </td>
     <td class="short" style="padding-top:3px;">
@@ -304,7 +296,6 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       </ul>
     </td>
     <td class="short">
-        <div id="Attribute_<?= $objectId ?>_to_ids_placeholder" class="inline-field-placeholder"></div>
         <div id="Attribute_<?= $objectId ?>_to_ids_solid" class="inline-field-solid">
             <input type="checkbox" class="toids-toggle" id="toids_toggle_<?= $objectId ?>" data-attribute-id="<?= $objectId ?>" aria-label="<?= __('Toggle IDS flag') ?>" title="<?= __('Toggle IDS flag') ?>"<?= $object['to_ids'] ? ' checked' : ''; ?><?= $mayModify ? '' : ' disabled' ?>>
         </div>
@@ -316,7 +307,6 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
                 $turnRed = 'style="color:red"';
             }
         ?>
-        <div id="Attribute_<?= $objectId ?>_distribution_placeholder" class="inline-field-placeholder"></div>
         <div id="Attribute_<?= $objectId ?>_distribution_solid" <?php echo $turnRed; ?> class="inline-field-solid">
             <?php
                 if ($object['distribution'] == 4):

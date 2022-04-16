@@ -78,7 +78,6 @@
     ?>
   </td>
   <td class="showspaces bitwider" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
-    <div id="Object_<?php echo $object['id']; ?>_comment_placeholder" class="inline-field-placeholder"></div>
     <div id="Object_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
       <?php echo nl2br(h($object['comment'])); ?>&nbsp;
     </div>
@@ -90,7 +89,6 @@
       $turnRed = '';
       if ($object['distribution'] == 0) $turnRed = 'style="color:red"';
     ?>
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class="inline-field-placeholder"></div>
     <div id="<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid">
       <?php
           if ($object['distribution'] == 4):

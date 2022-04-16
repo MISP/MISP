@@ -442,7 +442,7 @@ function updateIndex(id, context, newPage) {
     });
 }
 
-function updateAttributeFieldOnSuccess(name, type, id, field, event) {
+function updateAttributeFieldOnSuccess(name, type, id, field) {
     $.ajax({
         beforeSend: function () {
             if (field !== 'timestamp') {
@@ -451,12 +451,12 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
         },
         dataType:"html",
         cache: false,
-        success:function (data, textStatus) {
+        success: function (data) {
             if (field !== 'timestamp') {
                 $(".loading").hide();
-                $(name + '_solid').html(data);
-                $(name + '_placeholder').empty();
-                $(name + '_solid').show();
+                var $solid = $(name + '_solid');
+                $solid.parent().find('.inline-field-placeholder').remove();
+                $solid.html(data).show();
             } else {
                 $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
             }
@@ -467,21 +467,21 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
     });
 }
 
-function updateObjectFieldOnSuccess(name, type, id, field, event) {
+function updateObjectFieldOnSuccess(name, type, id, field) {
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            if (field != 'timestamp') {
+        beforeSend: function () {
+            if (field !== 'timestamp') {
                 $(".loading").show();
             }
         },
         dataType:"html",
         cache: false,
-        success:function (data, textStatus) {
-            if (field != 'timestamp') {
+        success:function (data) {
+            if (field !== 'timestamp') {
                 $(".loading").hide();
-                $(name + '_solid').html(data);
-                $(name + '_placeholder').empty();
-                $(name + '_solid').show();
+                var $solid = $(name + '_solid');
+                $solid.parent().find('.inline-field-placeholder').remove();
+                $solid.html(data).show();
             } else {
                 $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
             }
@@ -491,26 +491,21 @@ function updateObjectFieldOnSuccess(name, type, id, field, event) {
     });
 }
 
-function activateField(type, id, field, event) {
-    resetForms();
+function activateField($td, type, id, field, event_id) {
+    resetEditHoverForms();
     if (type === 'denyForm') {
         return;
     }
-    var objectType, containerName;
-    if (type === 'Object') {
-        objectType = 'objects';
-        containerName = 'Object';
-    } else {
-        objectType = 'attributes';
-        containerName = 'Attribute';
-    }
+    var objectType = type === 'Object' ? 'objects' : 'attributes';
     var name = '#' + type + '_' + id + '_' + field;
-    var container_name = '#' + containerName + '_' + id + '_' + field;
+
     xhr({
         dataType: "html",
         success: function (data) {
-            $(container_name + '_placeholder').html(data);
-            postActivationScripts(name, type, id, field, event);
+            var $placeholder = $('<div class="inline-field-placeholder"></div>').html(data);
+            $td.find(".inline-field-solid").before($placeholder);
+            postActivationScripts(name, type, id, field, event_id);
+            $td.find(".inline-field-solid").hide();
         },
         url: "/" + objectType + "/fetchEditForm/" + id + "/" + field,
     });
@@ -519,36 +514,35 @@ function activateField(type, id, field, event) {
 //if someone clicks an inactive field, replace it with the hidden form field. Also, focus it and bind a focusout event, so that it gets saved if the user clicks away.
 //If a user presses enter, submit the form
 function postActivationScripts(name, type, id, field, event) {
-    $(name + '_field').focus();
-    inputFieldButtonActive(name + '_field');
-    if (field == 'value' || field == 'comment') {
-        autoresize($(name + '_field')[0]);
-        $(name + '_field').on('keyup', function () {
+    var $field = $(name + '_field');
+    $field.focus();
+    inputFieldButtonActive($field);
+    if (field === 'value' || field === 'comment') {
+        autoresize($field[0]);
+        $field.on('keyup', function () {
             autoresize(this);
         });
     }
+
     $(name + '_form').submit(function(e){
         e.preventDefault();
         submitForm(type, id, field, event);
         return false;
+    }).bind("focusout", function() {
+        inputFieldButtonPassive($field);
+    }).bind("focusin", function(){
+        inputFieldButtonActive($field);
     });
 
-    $(name + '_form').bind("focusout", function() {
-        inputFieldButtonPassive(name + '_field');
-    });
+    var $inlineInputContainer = $field.closest('.inline-input-container');
 
-    $(name + '_form').bind("focusin", function(){
-        inputFieldButtonActive(name + '_field');
-    });
-    $(name + '_field').closest('.inline-input-container').children('.inline-input-accept').bind('click', function() {
+    $inlineInputContainer.children('.inline-input-accept').bind('click', function() {
         submitForm(type, id, field, event);
     });
 
-    $(name + '_field').closest('.inline-input-container').children('.inline-input-decline').bind('click', function() {
-        resetForms();
+    $inlineInputContainer.children('.inline-input-decline').bind('click', function() {
+        resetEditHoverForms();
     });
-
-    $(name + '_solid').hide();
 }
 
 function quickEditHover(td, type, id, field, event) {
@@ -560,10 +554,10 @@ function quickEditHover(td, type, id, field, event) {
     $span.addClass('fa-as-icon fa fa-edit');
     $span.css('font-size', '12px');
     $div.append($span);
-    $td.find("[id*=_solid]").append($div);
+    $td.find(".inline-field-solid").append($div);
 
     $span.click(function() {
-        activateField(type, id, field, event);
+        activateField($td, type, id, field, event);
     });
 
     $td.off('mouseleave').on('mouseleave', function() {
@@ -598,9 +592,14 @@ function addSighting(type, attribute_id, event_id) {
     });
 }
 
+function resetEditHoverForms() {
+    $('.inline-field-solid').show();
+    $('.inline-field-placeholder').remove();
+}
+
 function resetForms() {
     $('.inline-field-solid').show();
-    $('.inline-field-placeholder').empty();
+    $('.inline-field-placeholder').hide();
 }
 
 function inputFieldButtonActive(selector) {
@@ -766,29 +765,29 @@ function refreshTagCollectionRow(tag_collection_id) {
 }
 
 function handleAjaxEditResponse(data, name, type, id, field, event) {
-    responseArray = data;
+    var responseArray = data;
     if (type === 'Attribute') {
         if (responseArray.saved) {
             var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
             showMessage('success', msg);
-            updateAttributeFieldOnSuccess(name, type, id, field, event);
-            updateAttributeFieldOnSuccess(name, type, id, 'timestamp', event);
+            updateAttributeFieldOnSuccess(name, type, id, field);
+            updateAttributeFieldOnSuccess(name, type, id, 'timestamp');
             eventUnpublish();
         } else {
             showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
-            updateAttributeFieldOnSuccess(name, type, id, field, event);
+            updateAttributeFieldOnSuccess(name, type, id, field);
         }
     } else if (type === 'ShadowAttribute') {
         updateIndex(event, 'event');
     } else if (type === 'Object') {
         if (responseArray.saved) {
             showMessage('success', responseArray.message);
-            updateObjectFieldOnSuccess(name, type, id, field, event);
-            updateObjectFieldOnSuccess(name, type, id, 'timestamp', event);
+            updateObjectFieldOnSuccess(name, type, id, field);
+            updateObjectFieldOnSuccess(name, type, id, 'timestamp');
             eventUnpublish();
         } else {
             showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
-            updateObjectFieldOnSuccess(name, type, id, field, event);
+            updateObjectFieldOnSuccess(name, type, id, field);
         }
     }
     if (responseArray.hasOwnProperty('check_publish')) {
@@ -4302,6 +4301,7 @@ $(function() {
         $("#popover_matrix").fadeOut();
         $(".loading").hide();
         resetForms();
+        resetEditHoverForms();
     })
 });
 
@@ -4311,6 +4311,7 @@ $(document).keyup(function(e){
         $("#popover_matrix").fadeOut();
         $(".loading").hide();
         resetForms();
+        resetEditHoverForms();
     }
 });
 

@@ -67,8 +67,7 @@
             'label' => false,
         ));
         echo $this->Form->end();
-    ?>
-        <?php
+
         echo $this->Form->create('ShadowAttribute', array('id' => 'accept_selected', 'url' => $baseurl . '/shadow_attributes/acceptSelected/' . $event['Event']['id']));
         echo $this->Form->input('ids_accept', array(
             'type' => 'text',
@@ -77,8 +76,7 @@
             'label' => false,
         ));
         echo $this->Form->end();
-    ?>
-        <?php
+
         echo $this->Form->create('ShadowAttribute', array('id' => 'discard_selected', 'url' => $baseurl . '/shadow_attributes/discardSelected/' . $event['Event']['id']));
         echo $this->Form->input('ids_discard', array(
             'type' => 'text',
