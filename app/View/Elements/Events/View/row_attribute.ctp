@@ -73,7 +73,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
     </td>
     <td class="short">
         <div id="Attribute_<?= $objectId ?>_timestamp_solid">
-            <?= date('Y-m-d', $object['timestamp']) ?>
+            <?= $this->Time->date($object['timestamp']) ?>
         </div>
     </td>
     <?php
@@ -102,7 +102,6 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
           endif;
         endif;
       ?>
-      &nbsp;
     </td>
     <td class="short"<?= $quickEdit('category') ?>>
       <div id="Attribute_<?= $objectId ?>_category_solid" class="inline-field-solid">

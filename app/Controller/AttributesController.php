@@ -1974,8 +1974,6 @@ class AttributesController extends AppController
             $result = $this->Attribute->shortDist[$result];
         } elseif ($field === 'to_ids') {
             $result = ($result == 0 ? 'No' : 'Yes');
-        } elseif ($field === 'timestamp') {
-            $result = date('Y-m-d', $result);
         } elseif ($field === 'value') {
             $this->loadModel('Warninglist');
             $attribute['Attribute'] = $this->Warninglist->checkForWarning($attribute['Attribute']);
