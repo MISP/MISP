@@ -72,7 +72,9 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
         <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
     </td>
     <td class="short">
-      <?php echo date('Y-m-d', $object['timestamp']); ?>
+        <div id="Attribute_<?= $objectId ?>_timestamp_solid">
+            <?= date('Y-m-d', $object['timestamp']) ?>
+        </div>
     </td>
     <?php
       if (!empty($extended)):

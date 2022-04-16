@@ -7,6 +7,6 @@ if ($field === 'value') {
     } else if ($value === 'Yes') {
         echo '<input type="checkbox" checked disabled>';
     } else {
-        echo nl2br(h($value)) . '&nbsp;';
+        echo nl2br(h($value), false);
     }
 }

@@ -1975,11 +1975,7 @@ class AttributesController extends AppController
         } elseif ($field === 'to_ids') {
             $result = ($result == 0 ? 'No' : 'Yes');
         } elseif ($field === 'timestamp') {
-            if (isset($result)) {
-                $result = date('Y-m-d', $result);
-            } else {
-                echo '&nbsp';
-            }
+            $result = date('Y-m-d', $result);
         } elseif ($field === 'value') {
             $this->loadModel('Warninglist');
             $attribute['Attribute'] = $this->Warninglist->checkForWarning($attribute['Attribute']);
