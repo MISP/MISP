@@ -6,8 +6,6 @@
     }
     $urlHere = implode('/', $urlHere);
     $urlHere = $baseurl . $urlHere;
-    $mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
-    $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
     $mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
     $possibleAction = $mayModify ? 'attribute' : 'shadow_attribute';
     $all = false;
@@ -19,7 +17,7 @@
     }
     $fieldCount = 11;
     $filtered = false;
-    if(isset($passedArgsArray)){
+    if (isset($passedArgsArray)){
         if (count($passedArgsArray) > 0) {
             $filtered = true;
         }
