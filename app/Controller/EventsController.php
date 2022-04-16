@@ -3971,7 +3971,6 @@ class EventsController extends AppController
                 }
             }
             $this->Event->Attribute->fetchRelated($this->Auth->user(), $resultArray);
-            $resultArray = array_values($resultArray);
             $typeCategoryMapping = array();
             foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
                 foreach ($cat['types'] as $type) {
