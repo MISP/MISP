@@ -4762,9 +4762,6 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
         success: function (data) {
             $(paginatorTarget).html(data);
         },
-        error: function () {
-            showMessage('fail', 'Could not fetch the requested data.');
-        },
         url: $(this).attr('href'),
     });
 });
