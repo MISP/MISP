@@ -92,8 +92,8 @@ function submitLoginForm() {
     var url = $form.attr('action')
     var email = $form.find('#UserEmail').val()
     var password = $form.find('#UserPassword').val()
-    var LinOTPAuth = <?= empty(Configure::read('LinOTPAuth')) ? 'False' : 'True' ?>;
-    var LinOTPAuthEnabled = <?= empty(Configure::read('LinOTPAuth.enabled')) ? 'False' : 'True' ?>;
+    var LinOTPAuth = <?= empty(Configure::read('LinOTPAuth')) ? 'false' : 'true' ?>;
+    var LinOTPAuthEnabled = <?= empty(Configure::read('LinOTPAuth.enabled')) ? 'false' : 'true' ?>;
 
     if (LinOTPAuth && LinOTPAuthEnabled) {
         var otp = $form.find('#UserOtp').val()
