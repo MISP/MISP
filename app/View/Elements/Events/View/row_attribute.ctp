@@ -3,7 +3,6 @@ $tr_class = '';
 if (empty($context)) {
     $context = 'event';
 }
-$linkClass = 'blue';
 if ($event['Event']['id'] != $object['event_id']) {
     if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
         $mayModify = false;
@@ -50,7 +49,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
 ?>
 <tr id="Attribute_<?= $objectId ?>_tr" data-primary-id="<?= $objectId ?>" class="<?php echo $tr_class; ?>" tabindex="0">
     <?php if (($mayModify || !empty($extended)) && empty($disable_multi_select)): ?>
-      <td style="width:10px;" data-position="<?php echo 'attribute_' . $objectId ?>">
+      <td style="width:10px;">
       <?php if ($mayModify):?>
           <input id="select_<?= $objectId ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?= $objectId ?>" aria-label="<?php echo __('Select attribute');?>">
       <?php endif; ?>
@@ -105,6 +104,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
     <td id="Attribute_<?= $objectId ?>_container" class="showspaces limitedWidth shortish"<?= $quickEdit('value') ?>>
       <div class="inline-field-solid">
         <?php
+            $value = $this->element('/Events/View/value_field', array('object' => $object));
             if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
                 $commonDataFields = sprintf('data-object-type="Attribute" data-object-id="%s"', $objectId);
                 $spanExtra = Configure::read('Plugin.Enrichment_hover_popover_only') ? '' : sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
@@ -112,11 +112,11 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
                 echo sprintf(
                     '<span%s>%s</span> %s',
                     $spanExtra,
-                    $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass)),
+                    $value,
                     $popupButton
                 );
             } else {
-                echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
+                echo $value;
             }
         ?>
       </div>
