@@ -36,7 +36,7 @@ if (isset($sightingsData['data'][$objectId])) {
 <td class="short">
   <?php
     if (!empty($sightingsData['csv'][$objectId])) {
-      echo $this->element('sparkline', array('scope' => 'object', 'id' => $objectId, 'csv' => $sightingsData['csv'][$objectId]));
+      echo $this->element('sparkline_new', array('scope' => 'object', 'id' => $objectId, 'csv' => $sightingsData['csv'][$objectId]));
     }
   ?>
 </td>

@@ -1,7 +1,7 @@
 <?php
     echo $this->element('genericElements/assetLoader', [
         'css' => ['query-builder.default', 'attack_matrix'],
-        'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph']
+        'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph', 'd3', 'd3.custom'],
     ]);
     echo $this->element(
         'genericElements/SingleViews/single_view',
@@ -191,7 +191,7 @@
                 [
                     'key' => __('Modification map'),
                     'type' => 'element',
-                    'element' => 'sparkline',
+                    'element' => 'sparkline_new',
                     'element_params' => [
                         'scope' => 'modification',
                         'id' => $event['Event']['id'],
@@ -227,7 +227,7 @@
                 [
                     'key' => __('Activity'),
                     'type' => 'element',
-                    'element' => 'sparkline',
+                    'element' => 'sparkline_new',
                     'element_params' => [
                         'scope' => 'event',
                         'id' => $event['Event']['id'],
