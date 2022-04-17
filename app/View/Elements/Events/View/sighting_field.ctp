@@ -27,9 +27,9 @@ if (isset($sightingsData['data'][$objectId])) {
   <?php
     if ($isAclSighting):
   ?>
-      <i class="far fa-thumbs-up useCursorPointer" title="<?php echo __('Add sighting');?>" role="button" tabindex="0" aria-label="<?php echo __('Add sighting');?>" onmouseover="flexibleAddSighting(this, '0', '<?= $objectId ?>', '<?php echo h($object['event_id']);?>', 'top');" onclick="addSighting('0', '<?= $objectId ?>', '<?php echo h($object['event_id']);?>');">&nbsp;</i>
-      <i class="far fa-thumbs-down useCursorPointer" title="<?php echo __('Mark as false-positive');?>" role="button" tabindex="0" aria-label="<?php echo __('Mark as false-positive');?>" onmouseover="flexibleAddSighting(this, '1', '<?= $objectId ?>', '<?php echo h($object['event_id']);?>', 'bottom');" onclick="addSighting('1', '<?= $objectId ?>', '<?php echo h($object['event_id']);?>');">&nbsp;</i>
-      <i class="fas fa-wrench useCursorPointer sightings_advanced_add" title="<?php echo __('Advanced sightings');?>" role="button" tabindex="0" aria-label="<?php echo __('Advanced sightings');?>" data-object-id="<?= $objectId ?>" data-object-context="attribute">&nbsp;</i>
+      <i class="far fa-thumbs-up useCursorPointer" title="<?php echo __('Add sighting');?>" role="button" tabindex="0" aria-label="<?php echo __('Add sighting');?>" onmouseover="flexibleAddSighting(this, '0', <?= $objectId ?>, <?= $object['event_id'] ?>, 'top');" onclick="addSighting(0, <?= $objectId ?>, <?= $object['event_id'] ?>);"></i>
+      <i class="far fa-thumbs-down useCursorPointer" title="<?php echo __('Mark as false-positive');?>" role="button" tabindex="0" aria-label="<?php echo __('Mark as false-positive');?>" onmouseover="flexibleAddSighting(this, 1, <?= $objectId ?>, <?= $object['event_id'] ?>, 'bottom');" onclick="addSighting(1, <?= $objectId ?>, <?= $object['event_id'] ?>);"></i>
+      <i class="fas fa-wrench useCursorPointer sightings_advanced_add" title="<?php echo __('Advanced sightings');?>" role="button" tabindex="0" aria-label="<?php echo __('Advanced sightings');?>" data-object-id="<?= $objectId ?>" data-object-context="attribute"></i>
   <?php
     endif;
   ?>
