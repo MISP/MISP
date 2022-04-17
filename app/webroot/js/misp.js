@@ -619,6 +619,20 @@ function submitForm($td, type, id, field, event_id) {
     return false;
 }
 
+// Event attributes and attributes index and search
+(function() {
+    $(document.body).on('click', '.correlation-toggle', function() {
+        var attribute_id = $(this).parents('tr').data('primary-id');
+        getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
+        return false;
+    });
+    $(document.body).on('click', '.toids-toggle', function() {
+        var attribute_id = $(this).parents('tr').data('primary-id');
+        getPopup(attribute_id, 'attributes', 'toggleToIDS', '', '#confirmation_box');
+        return false;
+    });
+})();
+
 function quickSubmitTagForm(selected_tag_ids, addData) {
     var event_id = addData.id;
     var localFlag = '';
@@ -1099,7 +1113,7 @@ function loadAttributeTags(id) {
         cache: false,
         success: function (data) {
             // different approach for event view and attribute view
-            $("#Attribute_" + id + "_tr .attributeTagContainer, [data-primary-id=" + id + "] .attributeTagContainer").html(data);
+            $("[data-primary-id=" + id + "] .attributeTagContainer").html(data);
         },
         error: xhrFailCallback,
         url: baseurl + "/tags/showAttributeTag/" + id

@@ -335,16 +335,6 @@ echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event
             url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
             genericPopup(url, '#popover_box');
         });
-        $('.correlation-toggle').click(function() {
-            var attribute_id = $(this).data('attribute-id');
-            getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
-            return false;
-        });
-        $('.toids-toggle').click(function() {
-            var attribute_id = $(this).data('attribute-id');
-            getPopup(attribute_id, 'attributes', 'toggleToIDS', '', '#confirmation_box');
-            return false;
-        });
         popoverStartup();
         $(document).on('click', function(e) {
             //did not click a popover toggle or popover

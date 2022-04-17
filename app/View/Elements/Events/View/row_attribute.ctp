@@ -48,7 +48,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
 }
 
 ?>
-<tr id="Attribute_<?= $objectId ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
+<tr id="Attribute_<?= $objectId ?>_tr" data-primary-id="<?= $objectId ?>" class="<?php echo $tr_class; ?>" tabindex="0">
     <?php if (($mayModify || !empty($extended)) && empty($disable_multi_select)): ?>
       <td style="width:10px;" data-position="<?php echo 'attribute_' . $objectId ?>">
       <?php if ($mayModify):?>
@@ -172,7 +172,6 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
         aria-label="<?php echo __('Toggle correlation');?>"
         title="<?php echo __('Toggle correlation');?>"
         type="checkbox"
-        data-attribute-id="<?= $objectId ?>"
         <?php
           echo $object['disable_correlation'] ? '' : ' checked';
           echo ($mayChangeCorrelation && empty($event['Event']['disable_correlation'])) ? '' : ' disabled';
@@ -283,7 +282,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       </ul>
     </td>
     <td class="short">
-        <input type="checkbox" class="toids-toggle" id="toids_toggle_<?= $objectId ?>" data-attribute-id="<?= $objectId ?>" aria-label="<?= __('Toggle IDS flag') ?>" title="<?= __('Toggle IDS flag') ?>"<?= $object['to_ids'] ? ' checked' : ''; ?><?= $mayModify ? '' : ' disabled' ?>>
+        <input type="checkbox" class="toids-toggle" id="toids_toggle_<?= $objectId ?>" aria-label="<?= __('Toggle IDS flag') ?>" title="<?= __('Toggle IDS flag') ?>"<?= $object['to_ids'] ? ' checked' : ''; ?><?= $mayModify ? '' : ' disabled' ?>>
     </td>
     <td class="short"<?= $quickEdit('distribution') ?>>
         <div class="inline-field-solid<?= $object['distribution'] == 0 ? ' red' : '' ?>">
@@ -338,7 +337,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       <?php
             endif;
       ?>
-            <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?= $objectId ?>" title="<?php echo __('Propose Edit');?>" aria-label="<?php echo __('Propose Edit');?>" class="fa fa-comment useCursorPointer"></a>
+            <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?= $objectId ?>" title="<?php echo __('Propose Edit');?>" aria-label="<?php echo __('Propose Edit');?>" class="fa fa-comment"></a>
             <span class="fa fa-trash useCursorPointer" title="<?php echo __('Propose Deletion');?>" role="button" tabindex="0" aria-label="Propose deletion" onclick="deleteObject('shadow_attributes', 'delete', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
       <?php
             if ($isSiteAdmin):
@@ -358,7 +357,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       <?php
             endif;
       ?>
-            <a href="<?php echo $baseurl;?>/attributes/edit/<?= $objectId ?>" title="<?php echo __('Edit');?>" aria-label="<?php echo __('Edit');?>" class="fa fa-edit useCursorPointer"></a>
+            <a href="<?php echo $baseurl;?>/attributes/edit/<?= $objectId ?>" title="<?php echo __('Edit');?>" aria-label="<?php echo __('Edit');?>" class="fa fa-edit"></a>
           <?php
             if (empty($event['Event']['publish_timestamp'])):
           ?>

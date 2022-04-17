@@ -254,16 +254,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
             attributeListAnyAttributeCheckBoxesChecked();
             attributeListAnyProposalCheckBoxesChecked();
         });
-        $('.correlation-toggle').click(function() {
-            var attribute_id = $(this).data('attribute-id');
-            getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
-            return false;
-        });
-        $('.toids-toggle').click(function() {
-            var attribute_id = $(this).data('attribute-id');
-            getPopup(attribute_id, 'attributes', 'toggleToIDS', '', '#confirmation_box');
-            return false;
-        });
         $('.screenshot').click(function() {
             screenshotPopup($(this).attr('src'), $(this).attr('title'));
         });
