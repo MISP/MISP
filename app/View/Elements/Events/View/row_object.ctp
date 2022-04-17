@@ -19,16 +19,12 @@
   <?php
     endif;
   ?>
-  <td class="short context hidden">
-    <?php echo h($object['id']); ?>
-  </td>
+  <td class="short context hidden"><?php echo h($object['id']); ?></td>
   <td class="short context hidden uuid quickSelect"><?php echo h($object['uuid']); ?></td>
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
-  <td class="short">
-    <?= $this->Time->date($object['timestamp']) ?>
-  </td>
+  <td class="short timestamp"><?= $this->Time->date($object['timestamp']) ?></td>
   <?php
     if ($extended):
   ?>
@@ -75,17 +71,13 @@
     ?>
   </td>
   <td class="showspaces bitwider" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
-    <div id="Object_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
+    <div class="inline-field-solid">
       <?= nl2br(h($object['comment']), false); ?>
     </div>
   </td>
   <td colspan="4"></td>
   <td class="shortish" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
-    <?php
-      $turnRed = '';
-      if ($object['distribution'] == 0) $turnRed = 'style="color:red"';
-    ?>
-    <div id="Object_<?php echo $object['id'] ?>_distribution_solid" <?php echo $turnRed; ?> class="inline-field-solid">
+    <div class="inline-field-solid<?= $object['distribution'] == 0 ? ' red' : '' ?>">
       <?php
           if ($object['distribution'] == 4):
       ?>

@@ -442,7 +442,8 @@ function updateIndex(id, context, newPage) {
     });
 }
 
-function updateAttributeFieldOnSuccess(name, type, id, field) {
+function updateFieldOnSuccess($td, type, id, field) {
+    var objectType = type === 'Object' ? 'objects' : 'attributes';
     $.ajax({
         beforeSend: function () {
             if (field !== 'timestamp') {
@@ -454,40 +455,15 @@ function updateAttributeFieldOnSuccess(name, type, id, field) {
         success: function (data) {
             if (field !== 'timestamp') {
                 $(".loading").hide();
-                var $solid = $(name + '_solid');
-                $solid.parent().find('.inline-field-placeholder').remove();
-                $solid.html(data).show();
+                $td.find('.inline-field-placeholder').remove();
+                $td.find('.inline-field-solid').html(data).show();
             } else {
-                $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
+                $td.parent().find('td.timestamp').html(data);
             }
             popoverStartup(); // reactive popovers
         },
         error: xhrFailCallback,
-        url: baseurl + "/attributes/fetchViewValue/" + id + "/" + field,
-    });
-}
-
-function updateObjectFieldOnSuccess(name, type, id, field) {
-    $.ajax({
-        beforeSend: function () {
-            if (field !== 'timestamp') {
-                $(".loading").show();
-            }
-        },
-        dataType:"html",
-        cache: false,
-        success:function (data) {
-            if (field !== 'timestamp') {
-                $(".loading").hide();
-                var $solid = $(name + '_solid');
-                $solid.parent().find('.inline-field-placeholder').remove();
-                $solid.html(data).show();
-            } else {
-                $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
-            }
-        },
-        error: xhrFailCallback,
-        url: baseurl + "/objects/fetchViewValue/" + id + "/" + field,
+        url: baseurl + "/" + objectType +"/fetchViewValue/" + id + "/" + field,
     });
 }
 
@@ -504,7 +480,7 @@ function activateField($td, type, id, field, event_id) {
         success: function (data) {
             var $placeholder = $('<div class="inline-field-placeholder"></div>').html(data);
             $td.find(".inline-field-solid").before($placeholder);
-            postActivationScripts(name, type, id, field, event_id);
+            postActivationScripts($td, name, type, id, field, event_id);
             $td.find(".inline-field-solid").hide();
         },
         url: "/" + objectType + "/fetchEditForm/" + id + "/" + field,
@@ -513,7 +489,7 @@ function activateField($td, type, id, field, event_id) {
 
 //if someone clicks an inactive field, replace it with the hidden form field. Also, focus it and bind a focusout event, so that it gets saved if the user clicks away.
 //If a user presses enter, submit the form
-function postActivationScripts(name, type, id, field, event) {
+function postActivationScripts($td, name, type, id, field, event_id) {
     var $field = $(name + '_field');
     $field.focus();
     inputFieldButtonActive($field);
@@ -526,7 +502,7 @@ function postActivationScripts(name, type, id, field, event) {
 
     $(name + '_form').submit(function(e){
         e.preventDefault();
-        submitForm(type, id, field, event);
+        submitForm($td, type, id, field, event_id);
         return false;
     }).bind("focusout", function() {
         inputFieldButtonPassive($field);
@@ -537,7 +513,7 @@ function postActivationScripts(name, type, id, field, event) {
     var $inlineInputContainer = $field.closest('.inline-input-container');
 
     $inlineInputContainer.children('.inline-input-accept').bind('click', function() {
-        submitForm(type, id, field, event);
+        submitForm($td, type, id, field, event_id);
     });
 
     $inlineInputContainer.children('.inline-input-decline').bind('click', function() {
@@ -619,25 +595,24 @@ function autoresize(textarea) {
 
 // submit the form - this can be triggered by unfocusing the activated form field or by submitting the form (hitting enter)
 // after the form is submitted, intercept the response and act on it
-function submitForm(type, id, field, context) {
+function submitForm($td, type, id, field, event_id) {
     var object_type = 'attributes';
-    var action = "editField";
     var name = '#' + type + '_' + id + '_' + field;
-    if (type == 'Object') {
+    if (type === 'Object') {
         object_type = 'objects';
     }
     $.ajax({
         data: $(name + '_field').closest("form").serialize(),
         cache: false,
-        success:function (data, textStatus) {
-            handleAjaxEditResponse(data, name, type, id, field, context);
+        success: function (data) {
+            handleAjaxEditResponse($td, data, type, id, field, event_id);
         },
-        error:function(xhr) {
+        error: function(xhr) {
             xhrFailCallback(xhr);
-            updateIndex(context, 'event');
+            updateIndex(event_id, 'event');
         },
-        type:"post",
-        url: baseurl + "/" + object_type + "/" + action + "/" + id
+        type: "post",
+        url: baseurl + "/" + object_type + "/editField/" + id
     });
     $(name + '_field').unbind("keyup");
     $(name + '_form').unbind("focusout");
@@ -764,30 +739,30 @@ function refreshTagCollectionRow(tag_collection_id) {
     });
 }
 
-function handleAjaxEditResponse(data, name, type, id, field, event) {
+function handleAjaxEditResponse($td, data, type, id, field, event_id) {
     var responseArray = data;
     if (type === 'Attribute') {
         if (responseArray.saved) {
             var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
             showMessage('success', msg);
-            updateAttributeFieldOnSuccess(name, type, id, field);
-            updateAttributeFieldOnSuccess(name, type, id, 'timestamp');
+            updateFieldOnSuccess($td, type, id, field);
+            updateFieldOnSuccess($td, type, id, 'timestamp');
             eventUnpublish();
         } else {
             showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
-            updateAttributeFieldOnSuccess(name, type, id, field);
+            updateFieldOnSuccess($td, type, id, field);
         }
     } else if (type === 'ShadowAttribute') {
-        updateIndex(event, 'event');
+        updateIndex(event_id, 'event');
     } else if (type === 'Object') {
         if (responseArray.saved) {
             showMessage('success', responseArray.message);
-            updateObjectFieldOnSuccess(name, type, id, field);
-            updateObjectFieldOnSuccess(name, type, id, 'timestamp');
+            updateFieldOnSuccess($td, type, id, field);
+            updateFieldOnSuccess($td, type, id, 'timestamp');
             eventUnpublish();
         } else {
             showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
-            updateObjectFieldOnSuccess(name, type, id, field);
+            updateFieldOnSuccess($td, type, id, field);
         }
     }
     if (responseArray.hasOwnProperty('check_publish')) {

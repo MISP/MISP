@@ -49,33 +49,19 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
 
 ?>
 <tr id="Attribute_<?= $objectId ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
-  <?php
-    if (($mayModify || !empty($extended)) && empty($disable_multi_select)):
-  ?>
+    <?php if (($mayModify || !empty($extended)) && empty($disable_multi_select)): ?>
       <td style="width:10px;" data-position="<?php echo 'attribute_' . $objectId ?>">
-      <?php
-        if ($mayModify):
-      ?>
-          <input id="select_<?= $objectId ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?= $objectId ?>" aria-label="<?php echo __('Select attribute');?>" />
-      <?php
-        endif;
-      ?>
+      <?php if ($mayModify):?>
+          <input id="select_<?= $objectId ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?= $objectId ?>" aria-label="<?php echo __('Select attribute');?>">
+      <?php endif; ?>
       </td>
-  <?php
-    endif;
-  ?>
-    <td class="short context hidden">
-      <?= $objectId ?>
-    </td>
+    <?php endif; ?>
+    <td class="short context hidden"><?= $objectId ?></td>
     <td class="short context hidden uuid quickSelect"><?php echo h($object['uuid']); ?></td>
     <td class="short context hidden">
         <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
     </td>
-    <td class="short">
-        <div id="Attribute_<?= $objectId ?>_timestamp_solid">
-            <?= $this->Time->date($object['timestamp']) ?>
-        </div>
-    </td>
+    <td class="short timestamp"><?= $this->Time->date($object['timestamp']) ?></td>
     <?php
       if (!empty($extended)):
     ?>
@@ -104,7 +90,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       ?>
     </td>
     <td class="short"<?= $quickEdit('category') ?>>
-      <div id="Attribute_<?= $objectId ?>_category_solid" class="inline-field-solid">
+      <div class="inline-field-solid">
         <?php echo h($object['category']); ?>
       </div>
     </td>
@@ -112,12 +98,12 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       <?php if (!empty($object['object_relation'])):?>
           <div class="bold"><?php echo h($object['object_relation']); ?>:</div>
       <?php endif; ?>
-      <div id="Attribute_<?= $objectId ?>_type_solid" class="inline-field-solid">
+      <div class="inline-field-solid">
         <?php echo h($object['type']); ?>
       </div>
     </td>
     <td id="Attribute_<?= $objectId ?>_container" class="showspaces limitedWidth shortish"<?= $quickEdit('value') ?>>
-      <div id="Attribute_<?= $objectId ?>_value_solid" class="inline-field-solid">
+      <div class="inline-field-solid">
         <?php
             if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
                 $commonDataFields = sprintf('data-object-type="Attribute" data-object-id="%s"', $objectId);
@@ -175,7 +161,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       ?>
     </td>
     <td class="showspaces bitwider"<?= $quickEdit('comment') ?>>
-      <div id="Attribute_<?= $objectId ?>_comment_solid" class="inline-field-solid">
+      <div class="inline-field-solid">
         <?php echo nl2br(h($object['comment']), false); ?>
       </div>
     </td>
@@ -300,13 +286,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
         <input type="checkbox" class="toids-toggle" id="toids_toggle_<?= $objectId ?>" data-attribute-id="<?= $objectId ?>" aria-label="<?= __('Toggle IDS flag') ?>" title="<?= __('Toggle IDS flag') ?>"<?= $object['to_ids'] ? ' checked' : ''; ?><?= $mayModify ? '' : ' disabled' ?>>
     </td>
     <td class="short"<?= $quickEdit('distribution') ?>>
-        <?php
-            $turnRed = '';
-            if ($object['distribution'] == 0) {
-                $turnRed = 'style="color:red"';
-            }
-        ?>
-        <div id="Attribute_<?= $objectId ?>_distribution_solid" <?php echo $turnRed; ?> class="inline-field-solid">
+        <div class="inline-field-solid<?= $object['distribution'] == 0 ? ' red' : '' ?>">
             <?php
                 if ($object['distribution'] == 4):
             ?>
@@ -329,7 +309,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
         }
         if (!empty($includeDecayScore)): ?>
             <td class="decayingScoreField">
-                  <div id="Attribute_<?= $objectId ?>_score_solid" class="inline-field-solid">
+                  <div class="inline-field-solid">
                     <?php echo $this->element('DecayingModels/View/attribute_decay_score', array('scope' => 'object', 'object' => $object, 'uselink' => true)); ?>
                   </div>
             </td>
