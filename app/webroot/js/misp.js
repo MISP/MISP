@@ -629,6 +629,14 @@ function submitForm($td, type, id, field) {
         getPopup(attribute_id, 'attributes', 'toggleToIDS', '', '#confirmation_box');
         return false;
     });
+    // Show quick edit hover icon for attributes and objects
+    $(document.body).on('mouseenter', '[data-edit-field]', function() {
+        var $tr = $(this).parents('tr');
+        var objectId = $tr.data('primary-id');
+        var type = $tr.attr('id').startsWith('Object') ? 'Object' : 'Attribute';
+        var field = $(this).data('edit-field');
+        quickEditHover(this, type, objectId, field);
+    });
 })();
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
@@ -1105,16 +1113,15 @@ function removeEventTag(event, tag) {
     return false;
 }
 
-function loadAttributeTags(id) {
+function loadAttributeTags(attribute_id) {
     $.ajax({
         dataType: "html",
         cache: false,
         success: function (data) {
-            // different approach for event view and attribute view
-            $("[data-primary-id=" + id + "] .attributeTagContainer").html(data);
+            $("[data-primary-id=" + attribute_id + "] .attributeTagContainer").html(data);
         },
         error: xhrFailCallback,
-        url: baseurl + "/tags/showAttributeTag/" + id
+        url: baseurl + "/tags/showAttributeTag/" + attribute_id
     });
 }
 

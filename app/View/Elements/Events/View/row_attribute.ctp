@@ -33,17 +33,17 @@ if (!empty($k)) {
 
 $objectId = (int) $object['id'];
 
-$quickEdit = function($fieldName) use ($editScope, $object, $event) {
+$quickEdit = function($fieldName) use ($mayModify, $object) {
+    if (!$mayModify) {
+        return ''; // currently it is not supported to create proposals trough quick edit
+    }
     if ($object['deleted']) {
         return ''; // deleted attributes are not editable
-    }
-    if ($editScope === 'ShadowAttribute') {
-        return ''; // currently it is not supported to create proposals trough quick edit
     }
     if ($fieldName === 'value' && ($object['type'] === 'attachment' || $object['type'] === 'malware-sample')) {
         return '';
     }
-    return " onmouseenter=\"quickEditHover(this, '$editScope', {$object['id']}, '$fieldName');\"";
+    return " data-edit-field=\"$fieldName\"";
 }
 
 ?>
