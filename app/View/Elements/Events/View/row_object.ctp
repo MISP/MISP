@@ -70,13 +70,13 @@
       }
     ?>
   </td>
-  <td class="showspaces bitwider" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+  <td class="showspaces bitwider" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'comment');">
     <div class="inline-field-solid">
       <?= nl2br(h($object['comment']), false); ?>
     </div>
   </td>
   <td colspan="4"></td>
-  <td class="shortish" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
+  <td class="shortish" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'distribution');">
     <div class="inline-field-solid<?= $object['distribution'] == 0 ? ' red' : '' ?>">
       <?php
           if ($object['distribution'] == 4):
@@ -103,7 +103,7 @@
       if ($mayModify) {
           if (empty($object['deleted'])) {
             echo sprintf(
-              '<a href="%s/objects/edit/%s" title="%s" aria-label="%s" class="fa fa-edit white useCursorPointer"></a> ',
+              '<a href="%s/objects/edit/%s" title="%s" aria-label="%s" class="fa fa-edit white"></a> ',
               $baseurl,
               h($object['id']),
               __('Edit'),

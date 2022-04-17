@@ -97,7 +97,7 @@ function fetchAddSightingForm(type, attribute_id, onvalue) {
     }).fail(xhrFailCallback);
 }
 
-function flexibleAddSighting(clicked, type, attribute_id, event_id, placement) {
+function flexibleAddSighting(clicked, type, attribute_id, placement) {
     var $clicked = $(clicked);
     var hoverbroken = false;
     $clicked.off('mouseleave.temp').on('mouseleave.temp', function() {
@@ -107,7 +107,7 @@ function flexibleAddSighting(clicked, type, attribute_id, event_id, placement) {
         $clicked.off('mouseleave.temp');
         if ($clicked.is(":hover") && !hoverbroken) {
             var html = '<div>'
-                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\')">This attribute</button>'
+                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\')">This attribute</button>'
                 + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', true)">Global value</button>'
                 + '</div>';
             openPopover(clicked, html, true, placement);
@@ -408,18 +408,16 @@ function eventUnpublish() {
     $('.notPublished').show();
 }
 
-function updateIndex(id, context, newPage) {
-    if (typeof newPage !== 'undefined') page = newPage;
+function updateIndex(id, context) {
     var url, div;
-    if (context == 'event') {
+    if (context === 'event') {
         if (typeof currentUri == 'undefined') {
             location.reload();
             return true;
         }
         url = currentUri;
         div = "#attributes_div";
-    }
-    if (context == 'template') {
+    } else if (context === 'template') {
         url = "/template_elements/index/" + id;
         div = "#templateElements";
     }
@@ -467,7 +465,7 @@ function updateFieldOnSuccess($td, type, id, field) {
     });
 }
 
-function activateField($td, type, id, field, event_id) {
+function activateField($td, type, id, field) {
     resetEditHoverForms();
     if (type === 'denyForm') {
         return;
@@ -480,7 +478,7 @@ function activateField($td, type, id, field, event_id) {
         success: function (data) {
             var $placeholder = $('<div class="inline-field-placeholder"></div>').html(data);
             $td.find(".inline-field-solid").before($placeholder);
-            postActivationScripts($td, name, type, id, field, event_id);
+            postActivationScripts($td, name, type, id, field);
             $td.find(".inline-field-solid").hide();
         },
         url: "/" + objectType + "/fetchEditForm/" + id + "/" + field,
@@ -489,7 +487,7 @@ function activateField($td, type, id, field, event_id) {
 
 //if someone clicks an inactive field, replace it with the hidden form field. Also, focus it and bind a focusout event, so that it gets saved if the user clicks away.
 //If a user presses enter, submit the form
-function postActivationScripts($td, name, type, id, field, event_id) {
+function postActivationScripts($td, name, type, id, field) {
     var $field = $(name + '_field');
     $field.focus();
     inputFieldButtonActive($field);
@@ -502,7 +500,7 @@ function postActivationScripts($td, name, type, id, field, event_id) {
 
     $(name + '_form').submit(function(e){
         e.preventDefault();
-        submitForm($td, type, id, field, event_id);
+        submitForm($td, type, id, field);
         return false;
     }).bind("focusout", function() {
         inputFieldButtonPassive($field);
@@ -513,7 +511,7 @@ function postActivationScripts($td, name, type, id, field, event_id) {
     var $inlineInputContainer = $field.closest('.inline-input-container');
 
     $inlineInputContainer.children('.inline-input-accept').bind('click', function() {
-        submitForm($td, type, id, field, event_id);
+        submitForm($td, type, id, field);
     });
 
     $inlineInputContainer.children('.inline-input-decline').bind('click', function() {
@@ -521,7 +519,7 @@ function postActivationScripts($td, name, type, id, field, event_id) {
     });
 }
 
-function quickEditHover(td, type, id, field, event) {
+function quickEditHover(td, type, id, field) {
     var $td = $(td);
     $td.find('#quickEditButton').remove(); // clean all similar if exist
     var $div = $('<div id="quickEditButton"></div>');
@@ -533,7 +531,7 @@ function quickEditHover(td, type, id, field, event) {
     $td.find(".inline-field-solid").append($div);
 
     $span.click(function() {
-        activateField($td, type, id, field, event);
+        activateField($td, type, id, field);
     });
 
     $td.off('mouseleave').on('mouseleave', function() {
@@ -541,7 +539,7 @@ function quickEditHover(td, type, id, field, event) {
     });
 }
 
-function addSighting(type, attribute_id, event_id) {
+function addSighting(type, attribute_id) {
     var $sightingForm = $('#SightingForm');
     $('input[name="data[Sighting][type]"]', $sightingForm).val(type);
     $('input[name="data[Sighting][id]"]', $sightingForm).val(attribute_id);
@@ -556,12 +554,12 @@ function addSighting(type, attribute_id, event_id) {
                 $('.sightingsCounter').each(function() {
                     $(this).html(parseInt($(this).html()) + 1);
                 });
-                updateIndex(event_id, 'event');
+                updateIndex(null, 'event');
             }
         },
         error: function(xhr) {
             xhrFailCallback(xhr);
-            updateIndex(event_id, 'event');
+            updateIndex(null, 'event');
         },
         type: "post",
         url: baseurl + "/sightings/add/",
@@ -595,7 +593,7 @@ function autoresize(textarea) {
 
 // submit the form - this can be triggered by unfocusing the activated form field or by submitting the form (hitting enter)
 // after the form is submitted, intercept the response and act on it
-function submitForm($td, type, id, field, event_id) {
+function submitForm($td, type, id, field) {
     var object_type = 'attributes';
     var name = '#' + type + '_' + id + '_' + field;
     if (type === 'Object') {
@@ -605,11 +603,11 @@ function submitForm($td, type, id, field, event_id) {
         data: $(name + '_field').closest("form").serialize(),
         cache: false,
         success: function (data) {
-            handleAjaxEditResponse($td, data, type, id, field, event_id);
+            handleAjaxEditResponse($td, data, type, id, field);
         },
         error: function(xhr) {
             xhrFailCallback(xhr);
-            updateIndex(event_id, 'event');
+            updateIndex(null, 'event');
         },
         type: "post",
         url: baseurl + "/" + object_type + "/editField/" + id
@@ -753,7 +751,7 @@ function refreshTagCollectionRow(tag_collection_id) {
     });
 }
 
-function handleAjaxEditResponse($td, data, type, id, field, event_id) {
+function handleAjaxEditResponse($td, data, type, id, field) {
     var responseArray = data;
     if (type === 'Attribute') {
         if (responseArray.saved) {
@@ -767,7 +765,7 @@ function handleAjaxEditResponse($td, data, type, id, field, event_id) {
             updateFieldOnSuccess($td, type, id, field);
         }
     } else if (type === 'ShadowAttribute') {
-        updateIndex(event_id, 'event');
+        updateIndex(null, 'event');
     } else if (type === 'Object') {
         if (responseArray.saved) {
             showMessage('success', responseArray.message);

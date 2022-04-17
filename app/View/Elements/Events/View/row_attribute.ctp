@@ -43,7 +43,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
     if ($fieldName === 'value' && ($object['type'] === 'attachment' || $object['type'] === 'malware-sample')) {
         return '';
     }
-    return " onmouseenter=\"quickEditHover(this, '$editScope', {$object['id']}, '$fieldName', {$event['Event']['id']});\"";
+    return " onmouseenter=\"quickEditHover(this, '$editScope', {$object['id']}, '$fieldName');\"";
 }
 
 ?>
