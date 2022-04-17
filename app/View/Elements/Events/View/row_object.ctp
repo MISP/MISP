@@ -117,22 +117,20 @@ $objectId = intval($object['id']);
               __('Edit')
             );
             echo sprintf(
-              '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
+              '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onclick="%2$s"></span>',
               (empty($event['Event']['publish_timestamp']) ? __('Permanently delete object') : __('Soft delete object')),
               sprintf(
-                'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',
-                empty($event['Event']['publish_timestamp']) ? $objectId . '/true' : $objectId,
-                h($event['Event']['id'])
+                'deleteObject(\'objects\', \'delete\', \'%s\');',
+                empty($event['Event']['publish_timestamp']) ? $objectId . '/true' : $objectId
               )
             );
         } else {
             echo sprintf(
-              '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
+              '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onclick="%2$s"></span>',
               __('Permanently delete object'),
               sprintf(
-                'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',
-                  $objectId . '/true',
-                h($event['Event']['id'])
+                'deleteObject(\'objects\', \'delete\', \'%s\');',
+                  $objectId . '/true'
               )
             );
         }

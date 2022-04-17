@@ -344,13 +344,13 @@ function submitGenericForm(url, form, target) {
     });
 }
 
-function acceptObject(type, id, event) {
+function acceptObject(type, id) {
     var name = '#ShadowAttribute_' + id + '_accept';
     var formData = $(name).serialize();
     $.ajax({
         data: formData,
-        success: function (data, textStatus) {
-            updateIndex(event, 'event');
+        success: function (data) {
+            updateIndex(null, 'event');
             eventUnpublish();
             handleGenericAjaxResponse(data);
         },

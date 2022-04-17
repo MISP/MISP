@@ -320,8 +320,8 @@ $quickEdit = function($fieldName) use ($mayModify, $object) {
         if ($object['deleted']):
           if ($isSiteAdmin || $mayModify):
       ?>
-          <span class="fas fa-redo useCursorPointer" title="<?php echo __('Restore attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Restore attribute');?>" onclick="deleteObject('attributes', 'restore', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-          <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+          <span class="fas fa-redo useCursorPointer" title="<?php echo __('Restore attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Restore attribute');?>" onclick="deleteObject('attributes', 'restore', '<?= $objectId ?>')"></span>
+          <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>')"></span>
       <?php
           endif;
         else:
@@ -338,7 +338,7 @@ $quickEdit = function($fieldName) use ($mayModify, $object) {
             endif;
       ?>
             <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?= $objectId ?>" title="<?php echo __('Propose Edit');?>" aria-label="<?php echo __('Propose Edit');?>" class="fa fa-comment"></a>
-            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Propose Deletion');?>" role="button" tabindex="0" aria-label="Propose deletion" onclick="deleteObject('shadow_attributes', 'delete', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Propose Deletion');?>" role="button" tabindex="0" aria-label="Propose deletion" onclick="deleteObject('shadow_attributes', 'delete', '<?= $objectId ?>')"></span>
       <?php
             if ($isSiteAdmin):
       ?>
@@ -361,11 +361,11 @@ $quickEdit = function($fieldName) use ($mayModify, $object) {
           <?php
             if (empty($event['Event']['publish_timestamp'])):
           ?>
-            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>')"></span>
           <?php
             else:
           ?>
-            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Soft-delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft-delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Soft-delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft-delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId ?>')"></span>
           <?php
             endif;
           endif;
