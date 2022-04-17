@@ -51,6 +51,9 @@ class AppModel extends Model
     {
         parent::__construct($id, $table, $ds);
         $this->findMethods['column'] = true;
+        if (in_array('phar', stream_get_wrappers())) {
+            stream_wrapper_unregister('phar');
+        }
     }
 
     // deprecated, use $db_changes
