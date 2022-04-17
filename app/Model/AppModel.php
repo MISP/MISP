@@ -2588,6 +2588,7 @@ class AppModel extends Model
             App::uses('KafkaPubTool', 'Tools');
             $kafkaPubTool = new KafkaPubTool();
             $rdkafkaIni = Configure::read('Plugin.Kafka_rdkafka_config');
+            $rdkafkaIni = mb_ereg_replace("/\:\/\//", '', $rdkafkaIni);
             $kafkaConf = array();
             if (!empty($rdkafkaIni)) {
                 $kafkaConf = parse_ini_file($rdkafkaIni);
