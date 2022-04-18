@@ -819,11 +819,9 @@ function handleGenericAjaxResponse(data, skip_reload) {
 
 function toggleAllAttributeCheckboxes() {
     if ($(".select_all").is(":checked")) {
-        $(".select_attribute").prop("checked", true);
-        $(".select_proposal").prop("checked", true);
+        $(".select_attribute, .select_proposal").prop("checked", true);
     } else {
-        $(".select_attribute").prop("checked", false);
-        $(".select_proposal").prop("checked", false);
+        $(".select_attribute, .select_proposal").prop("checked", false);
     }
 }
 
@@ -947,7 +945,7 @@ function multiSelectDeleteEventBlocklist(on, cache) {
     }).fail(xhrFailCallback);
 }
 
-function multiSelectAction(event, context) {
+function multiSelectAction(event_id, context) {
     var settings = {
         deleteAttributes: {
             confirmation: "Are you sure you want to delete all selected attributes?",
@@ -974,25 +972,22 @@ function multiSelectAction(event, context) {
     var answer = confirm("Are you sure you want to " + settings[context]["action"] + " all selected " + settings[context]["alias"] + "s?");
     if (answer) {
         var selected = [];
-        $(".select_" + settings[context]["alias"]).each(function() {
-            if ($(this).is(":checked")) {
-                var temp= $(this).data("id");
-                selected.push(temp);
-            }
+        $(".select_" + settings[context]["alias"] + ":checked").each(function() {
+            selected.push($(this).data("id"));
         });
         $('#' + settings[context]["camelCase"] + 'Ids' + settings[context]["action"].ucfirst()).attr('value', JSON.stringify(selected));
         var formData = $('#' + settings[context]["action"] + '_selected').serialize();
         if (context == 'deleteAttributes') {
             var url = $('#delete_selected').attr('action');
         } else {
-            var url = baseurl + "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event;
+            var url = baseurl + "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event_id;
         }
         xhr({
             data: formData,
             type:"POST",
             url: url,
             success: function (data) {
-                updateIndex(event, 'event');
+                updateIndex(null, 'event');
                 var result = handleGenericAjaxResponse(data);
                 if (settings[context]["action"] != "discard" && result == true) {
                     eventUnpublish();
@@ -1037,11 +1032,9 @@ function unhideSelectedTags(taxonomy) {
 
 function getSelected() {
     var selected = [];
-    $(".select_attribute").each(function() {
-        if ($(this).is(":checked")) {
-            var test = $(this).data("id");
-            selected.push(test);
-        }
+    $(".select_attribute:checked").each(function() {
+        var test = $(this).data("id");
+        selected.push(test);
     });
     return JSON.stringify(selected);
 }
@@ -1094,23 +1087,6 @@ function loadTagCollectionTags(id) {
         },
         url: baseurl + "/tags/showEventTag/" + id,
     });
-}
-
-function removeEventTag(event, tag) {
-    var answer = confirm("Are you sure you want to remove this tag from the event?");
-    if (answer) {
-        var formData = $('#removeTag_' + tag).serialize();
-        xhr({
-            data: formData,
-            type:"POST",
-            url: "/events/removeTag/" + event + '/' + tag,
-            success:function (data) {
-                loadEventTags(event);
-                handleGenericAjaxResponse(data);
-            },
-        });
-    }
-    return false;
 }
 
 function loadAttributeTags(attribute_id) {

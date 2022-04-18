@@ -107,7 +107,7 @@
                 if ($extended || ($mayModify && !empty($event['objects']))):
                     $fieldCount += 1;
             ?>
-                    <th><input class="select_all" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all attributes/proposals on current page');?>" onClick="toggleAllAttributeCheckboxes();" /></th>
+                    <th><input class="select_all" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all attributes/proposals on current page');?>" onclick="toggleAllAttributeCheckboxes()"></th>
             <?php
                 endif;
             ?>
@@ -261,15 +261,13 @@ attributes or the appropriate distribution level. If you think there is a mistak
             var selected = [];
             var object_context = $(this).data('object-context');
             var object_id = $(this).data('object-id');
-            if (object_id == 'selected') {
-                $(".select_attribute").each(function() {
-                    if ($(this).is(":checked")) {
-                        selected.push($(this).data("id"));
-                    }
+            if (object_id === 'selected') {
+                $(".select_attribute:checked").each(function() {
+                    selected.push($(this).data("id"));
                 });
                 object_id = selected.join('|');
             }
-            url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
+            var url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
             genericPopup(url, '#popover_box');
         });
     });
