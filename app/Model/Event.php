@@ -5480,7 +5480,7 @@ class Event extends AppModel
                         }
                         $this->Warninglist = ClassRegistry::init('Warninglist');
                         $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
-                        $freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
+                        $freetextResults = array_merge($freetextResults, $complexTypeTool->checkFreeText($value));
                         if (!empty($freetextResults)) {
                             foreach ($freetextResults as &$ft) {
                                 $temp = array();

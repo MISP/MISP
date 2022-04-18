@@ -88,7 +88,7 @@ class TmpFileTool
      * @param string $delimiter
      * @param string $enclosure
      * @param string $escape
-     * @return Generator
+     * @return Generator<array>
      * @throws Exception
      */
     public function intoParsedCsv($delimiter = ',', $enclosure = '"', $escape = "\\")

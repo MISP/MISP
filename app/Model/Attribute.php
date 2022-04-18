@@ -1023,7 +1023,7 @@ class Attribute extends AppModel
                 'order' => false,
                 'limit' => 11,
                 'flatten' => 1,
-                'contain' => ['AttributeTag' => false],
+                'contain' => ['AttributeTag' => false, 'Object' => false],
             );
             $resultArray[$key]['related'] = $this->fetchAttributes($user, $options);
         }

@@ -3,7 +3,6 @@ $tr_class = '';
 if (empty($context)) {
     $context = 'event';
 }
-$linkClass = 'blue';
 if ($event['Event']['id'] != $object['event_id']) {
     if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
         $mayModify = false;
@@ -34,46 +33,34 @@ if (!empty($k)) {
 
 $objectId = (int) $object['id'];
 
-$quickEdit = function($fieldName) use ($editScope, $object, $event) {
+$quickEdit = function($fieldName) use ($mayModify, $object) {
+    if (!$mayModify) {
+        return ''; // currently it is not supported to create proposals trough quick edit
+    }
     if ($object['deleted']) {
         return ''; // deleted attributes are not editable
-    }
-    if ($editScope === 'ShadowAttribute') {
-        return ''; // currently it is not supported to create proposals trough quick edit
     }
     if ($fieldName === 'value' && ($object['type'] === 'attachment' || $object['type'] === 'malware-sample')) {
         return '';
     }
-    return " onmouseenter=\"quickEditHover(this, '$editScope', '{$object['id']}', '$fieldName', {$event['Event']['id']});\"";
+    return " data-edit-field=\"$fieldName\"";
 }
 
 ?>
-<tr id="Attribute_<?= $objectId ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
-  <?php
-    if (($mayModify || !empty($extended)) && empty($disable_multi_select)):
-  ?>
-      <td style="width:10px;" data-position="<?php echo 'attribute_' . $objectId ?>">
-      <?php
-        if ($mayModify):
-      ?>
-          <input id="select_<?= $objectId ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?= $objectId ?>" aria-label="<?php echo __('Select attribute');?>" />
-      <?php
-        endif;
-      ?>
+<tr id="Attribute_<?= $objectId ?>_tr" data-primary-id="<?= $objectId ?>" class="<?php echo $tr_class; ?>" tabindex="0">
+    <?php if (($mayModify || !empty($extended)) && empty($disable_multi_select)): ?>
+      <td style="width:10px">
+      <?php if ($mayModify):?>
+          <input class="select_attribute" type="checkbox" data-id="<?= $objectId ?>" aria-label="<?php echo __('Select attribute');?>">
+      <?php endif; ?>
       </td>
-  <?php
-    endif;
-  ?>
-    <td class="short context hidden">
-      <?= $objectId ?>
-    </td>
+    <?php endif; ?>
+    <td class="short context hidden"><?= $objectId ?></td>
     <td class="short context hidden uuid quickSelect"><?php echo h($object['uuid']); ?></td>
     <td class="short context hidden">
         <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
     </td>
-    <td class="short">
-      <?php echo date('Y-m-d', $object['timestamp']); ?>
-    </td>
+    <td class="short timestamp"><?= $this->Time->date($object['timestamp']) ?></td>
     <?php
       if (!empty($extended)):
     ?>
@@ -100,31 +87,24 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
           endif;
         endif;
       ?>
-      &nbsp;
     </td>
     <td class="short"<?= $quickEdit('category') ?>>
-      <div id="Attribute_<?= $objectId ?>_category_placeholder" class="inline-field-placeholder"></div>
-      <div id="Attribute_<?= $objectId ?>_category_solid" class="inline-field-solid">
+      <div class="inline-field-solid">
         <?php echo h($object['category']); ?>
       </div>
     </td>
     <td class="short"<?= $quickEdit('type') ?>>
-      <?php
-        if (!empty($object['object_relation'])):
-      ?>
+      <?php if (!empty($object['object_relation'])):?>
           <div class="bold"><?php echo h($object['object_relation']); ?>:</div>
-      <?php
-        endif;
-      ?>
-      <div id="Attribute_<?= $objectId ?>_type_placeholder" class="inline-field-placeholder"></div>
-      <div id="Attribute_<?= $objectId ?>_type_solid" class="inline-field-solid">
+      <?php endif; ?>
+      <div class="inline-field-solid">
         <?php echo h($object['type']); ?>
       </div>
     </td>
     <td id="Attribute_<?= $objectId ?>_container" class="showspaces limitedWidth shortish"<?= $quickEdit('value') ?>>
-      <div id="Attribute_<?= $objectId ?>_value_placeholder" class="inline-field-placeholder"></div>
-      <div id="Attribute_<?= $objectId ?>_value_solid" class="inline-field-solid">
+      <div class="inline-field-solid">
         <?php
+            $value = $this->element('/Events/View/value_field', array('object' => $object));
             if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
                 $commonDataFields = sprintf('data-object-type="Attribute" data-object-id="%s"', $objectId);
                 $spanExtra = Configure::read('Plugin.Enrichment_hover_popover_only') ? '' : sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
@@ -132,11 +112,11 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
                 echo sprintf(
                     '<span%s>%s</span> %s',
                     $spanExtra,
-                    $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass)),
+                    $value,
                     $popupButton
                 );
             } else {
-                echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
+                echo $value;
             }
         ?>
       </div>
@@ -181,9 +161,8 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       ?>
     </td>
     <td class="showspaces bitwider"<?= $quickEdit('comment') ?>>
-      <div id="Attribute_<?= $objectId ?>_comment_placeholder" class="inline-field-placeholder"></div>
-      <div id="Attribute_<?= $objectId ?>_comment_solid" class="inline-field-solid">
-        <?php echo nl2br(h($object['comment'])); ?>&nbsp;
+      <div class="inline-field-solid">
+        <?php echo nl2br(h($object['comment']), false); ?>
       </div>
     </td>
     <td class="short" style="padding-top:3px;">
@@ -193,7 +172,6 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
         aria-label="<?php echo __('Toggle correlation');?>"
         title="<?php echo __('Toggle correlation');?>"
         type="checkbox"
-        data-attribute-id="<?= $objectId ?>"
         <?php
           echo $object['disable_correlation'] ? '' : ' checked';
           echo ($mayChangeCorrelation && empty($event['Event']['disable_correlation'])) ? '' : ' disabled';
@@ -304,20 +282,10 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       </ul>
     </td>
     <td class="short">
-        <div id="Attribute_<?= $objectId ?>_to_ids_placeholder" class="inline-field-placeholder"></div>
-        <div id="Attribute_<?= $objectId ?>_to_ids_solid" class="inline-field-solid">
-            <input type="checkbox" class="toids-toggle" id="toids_toggle_<?= $objectId ?>" data-attribute-id="<?= $objectId ?>" aria-label="<?= __('Toggle IDS flag') ?>" title="<?= __('Toggle IDS flag') ?>"<?= $object['to_ids'] ? ' checked' : ''; ?><?= $mayModify ? '' : ' disabled' ?>>
-        </div>
+        <input type="checkbox" class="toids-toggle" id="toids_toggle_<?= $objectId ?>" aria-label="<?= __('Toggle IDS flag') ?>" title="<?= __('Toggle IDS flag') ?>"<?= $object['to_ids'] ? ' checked' : ''; ?><?= $mayModify ? '' : ' disabled' ?>>
     </td>
     <td class="short"<?= $quickEdit('distribution') ?>>
-        <?php
-            $turnRed = '';
-            if ($object['distribution'] == 0) {
-                $turnRed = 'style="color:red"';
-            }
-        ?>
-        <div id="Attribute_<?= $objectId ?>_distribution_placeholder" class="inline-field-placeholder"></div>
-        <div id="Attribute_<?= $objectId ?>_distribution_solid" <?php echo $turnRed; ?> class="inline-field-solid">
+        <div class="inline-field-solid<?= $object['distribution'] == 0 ? ' red' : '' ?>">
             <?php
                 if ($object['distribution'] == 4):
             ?>
@@ -340,7 +308,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
         }
         if (!empty($includeDecayScore)): ?>
             <td class="decayingScoreField">
-                  <div id="Attribute_<?= $objectId ?>_score_solid" class="inline-field-solid">
+                  <div class="inline-field-solid">
                     <?php echo $this->element('DecayingModels/View/attribute_decay_score', array('scope' => 'object', 'object' => $object, 'uselink' => true)); ?>
                   </div>
             </td>
@@ -352,8 +320,8 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
         if ($object['deleted']):
           if ($isSiteAdmin || $mayModify):
       ?>
-          <span class="fas fa-redo useCursorPointer" title="<?php echo __('Restore attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Restore attribute');?>" onclick="deleteObject('attributes', 'restore', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-          <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+          <span class="fas fa-redo useCursorPointer" title="<?php echo __('Restore attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Restore attribute');?>" onclick="deleteObject('attributes', 'restore', '<?= $objectId ?>')"></span>
+          <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>')"></span>
       <?php
           endif;
         else:
@@ -369,8 +337,8 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       <?php
             endif;
       ?>
-            <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?= $objectId ?>" title="<?php echo __('Propose Edit');?>" aria-label="<?php echo __('Propose Edit');?>" class="fa fa-comment useCursorPointer"></a>
-            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Propose Deletion');?>" role="button" tabindex="0" aria-label="Propose deletion" onclick="deleteObject('shadow_attributes', 'delete', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+            <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?= $objectId ?>" title="<?php echo __('Propose Edit');?>" aria-label="<?php echo __('Propose Edit');?>" class="fa fa-comment"></a>
+            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Propose Deletion');?>" role="button" tabindex="0" aria-label="Propose deletion" onclick="deleteObject('shadow_attributes', 'delete', '<?= $objectId ?>')"></span>
       <?php
             if ($isSiteAdmin):
       ?>
@@ -389,15 +357,15 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       <?php
             endif;
       ?>
-            <a href="<?php echo $baseurl;?>/attributes/edit/<?= $objectId ?>" title="<?php echo __('Edit');?>" aria-label="<?php echo __('Edit');?>" class="fa fa-edit useCursorPointer"></a>
+            <a href="<?php echo $baseurl;?>/attributes/edit/<?= $objectId ?>" title="<?php echo __('Edit');?>" aria-label="<?php echo __('Edit');?>" class="fa fa-edit"></a>
           <?php
             if (empty($event['Event']['publish_timestamp'])):
           ?>
-            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>')"></span>
           <?php
             else:
           ?>
-            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Soft-delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft-delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Soft-delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft-delete attribute');?>" onclick="deleteObject('attributes', 'delete', '<?= $objectId ?>')"></span>
           <?php
             endif;
           endif;

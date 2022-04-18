@@ -14,7 +14,6 @@
             'bootstrap-datepicker',
             'bootstrap-colorpicker',
             'font-awesome',
-            'jquery-ui',
             'chosen.min',
             'main',
             'gridstack.min',
@@ -26,7 +25,6 @@
         $js_collection = array(
             'jquery',
             'misp-touch',
-            'jquery-ui',
             'chosen.jquery.min',
             'gridstack.all'
         );
@@ -76,6 +74,7 @@
             'bootstrap-datepicker',
             'bootstrap-colorpicker',
             'misp',
+            'keyboard-shortcuts-definition',
             'keyboard-shortcuts'
         )
     ));

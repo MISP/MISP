@@ -226,11 +226,10 @@
         }).click(function(e) {
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
-                    selectAllInbetween(lastSelected, this.id);
+                    selectAllInbetween(lastSelected, this);
                 }
-                lastSelected = this.id;
+                lastSelected = this;
             }
-            attributeListAnyAttributeCheckBoxesChecked();
         });
 
         $('.distributionNetworkToggle').each(function() {
