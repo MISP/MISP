@@ -1980,7 +1980,7 @@ class Server extends AppModel
             App::uses('Folder', 'Utility');
             App::uses('File', 'Utility');
             // delete all cache files
-            foreach ($this->Event->export_types as $type => $settings) {
+            foreach ($this->Event->exportTypes() as $type => $settings) {
                 $dir = new Folder(APP . 'tmp/cached_exports/' . $type);
                 // No caches created for this type of export, move on
                 if ($dir == null) {
@@ -4612,6 +4612,28 @@ class Server extends AppModel
             return true;
         }
         return $this->saveMany($toSave, ['validate' => false, 'fields' => ['authkey']]);
+    }
+
+    /**
+     * Return all Attribute and Object types
+     */
+    public function getAllTypes(): array
+    {
+        $allTypes = [];
+        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+        $objects = $this->ObjectTemplate->find('all', [
+            'recursive' => -1,
+            'fields' => ['uuid', 'name'],
+            'group' => ['uuid', 'name'],
+        ]);
+        $allTypes = [
+            'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
+            'object' => Hash::map($objects, '{n}.ObjectTemplate', function ($item) {
+                return ['id' => $item['uuid'], 'name' => sprintf('%s (%s)', $item['name'], $item['uuid'])];
+            })
+        ];
+        return $allTypes;
     }
 
     /**

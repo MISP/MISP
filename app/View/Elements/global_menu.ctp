@@ -488,12 +488,12 @@
                 'children' => array(
                     array(
                         'text' => __('OpenAPI'),
-                        'url' => $baseurl . '/servers/openapi'
+                        'url' => $baseurl . '/api/openapi'
                     ),
                     array(
                         'text' => __('REST client'),
-                        'url' => $baseurl . '/servers/rest',
-                        'requirement' => $canAccess('servers', 'rest')
+                        'url' => $baseurl . '/api/rest',
+                        'requirement' => $canAccess('api', 'rest')
                     )
                 )
             )

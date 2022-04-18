@@ -1,7 +1,9 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
+/**
+ * @property RestClientHistory $RestClientHistory
+ */
 class RestClientHistoryController extends AppController
 {
     public $components = array(
@@ -37,19 +39,16 @@ class RestClientHistoryController extends AppController
         }
         if ($this->_isRest()) {
             $list = $this->RestClientHistory->find('all', $params);
-        } else {
-            $this->paginate = array_merge($this->paginate, $params);
-            $list = $this->paginate();
-        }
-        if ($this->_isRest()) {
             return $this->RestResponse->viewData($list, $this->response->type());
-        } else {
-            $this->set('bookmarked', $bookmarked);
-            $this->set('list', $list);
-            $this->layout = false;
-            $this->autoRender = false;
-            $this->render('index');
         }
+
+        $this->paginate = array_merge($this->paginate, $params);
+        $list = $this->paginate();
+        $this->set('bookmarked', $bookmarked);
+        $this->set('list', array_column($list, 'RestClientHistory'));
+        $this->layout = false;
+        $this->autoRender = false;
+        $this->render('index');
     }
 
     public function delete($id)

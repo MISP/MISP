@@ -183,27 +183,17 @@ class TaxonomiesController extends AppController
 
     public function enable($id)
     {
-        if (!$this->_isSiteAdmin() || !$this->request->is('Post')) {
-            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
-        }
+        $this->request->allowMethod(['post']);
+
         $taxonomy = $this->Taxonomy->find('first', array(
             'recursive' => -1,
             'conditions' => array('Taxonomy.id' => $id),
         ));
         $taxonomy['Taxonomy']['enabled'] = true;
         $this->Taxonomy->save($taxonomy);
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
-        $this->Log->save(array(
-                'org' => $this->Auth->user('Organisation')['name'],
-                'model' => 'Taxonomy',
-                'model_id' => $id,
-                'email' => $this->Auth->user('email'),
-                'action' => 'enable',
-                'user_id' => $this->Auth->user('id'),
-                'title' => 'Taxonomy enabled',
-                'change' => $taxonomy['Taxonomy']['namespace'] . ' - enabled',
-        ));
+
+        $this->__log('enable', $id, 'Taxonomy enabled', $taxonomy['Taxonomy']['namespace'] . ' - enabled');
+
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Taxonomy', 'enable', $id, $this->response->type());
         } else {
@@ -214,28 +204,18 @@ class TaxonomiesController extends AppController
 
     public function disable($id)
     {
-        if (!$this->_isSiteAdmin() || !$this->request->is('Post')) {
-            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
-        }
+        $this->request->allowMethod(['post']);
+
         $taxonomy = $this->Taxonomy->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Taxonomy.id' => $id),
+            'recursive' => -1,
+            'conditions' => array('Taxonomy.id' => $id),
         ));
         $this->Taxonomy->disableTags($id);
         $taxonomy['Taxonomy']['enabled'] = 0;
         $this->Taxonomy->save($taxonomy);
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
-        $this->Log->save(array(
-                'org' => $this->Auth->user('Organisation')['name'],
-                'model' => 'Taxonomy',
-                'model_id' => $id,
-                'email' => $this->Auth->user('email'),
-                'action' => 'disable',
-                'user_id' => $this->Auth->user('id'),
-                'title' => 'Taxonomy disabled',
-                'change' => $taxonomy['Taxonomy']['namespace'] . ' - disabled',
-        ));
+
+        $this->__log('disable', $id, 'Taxonomy disabled', $taxonomy['Taxonomy']['namespace'] . ' - disabled');
+
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Taxonomy', 'disable', $id, $this->response->type());
         } else {
@@ -246,9 +226,8 @@ class TaxonomiesController extends AppController
 
     public function import()
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException('This endpoint requires a POST request.');
-        }
+        $this->request->allowMethod(['post']);
+
         try {
             $id = $this->Taxonomy->import($this->request->data);
             return $this->view($id);
@@ -260,7 +239,6 @@ class TaxonomiesController extends AppController
     public function update()
     {
         $result = $this->Taxonomy->update();
-        $this->Log = ClassRegistry::init('Log');
         $fails = 0;
         $successes = 0;
         if (!empty($result)) {
@@ -271,50 +249,19 @@ class TaxonomiesController extends AppController
                     } else {
                         $change = $success['namespace'] . ' v' . $success['new'] . ' installed';
                     }
-                    $this->Log->create();
-                    $this->Log->save(array(
-                            'org' => $this->Auth->user('Organisation')['name'],
-                            'model' => 'Taxonomy',
-                            'model_id' => $id,
-                            'email' => $this->Auth->user('email'),
-                            'action' => 'update',
-                            'user_id' => $this->Auth->user('id'),
-                            'title' => 'Taxonomy updated',
-                            'change' => $change,
-                    ));
+                    $this->__log('update', $id, 'Taxonomy updated', $change);
                     $successes++;
                 }
             }
             if (isset($result['fails'])) {
                 foreach ($result['fails'] as $id => $fail) {
-                    $this->Log->create();
-                    $this->Log->save(array(
-                            'org' => $this->Auth->user('Organisation')['name'],
-                            'model' => 'Taxonomy',
-                            'model_id' => $id,
-                            'email' => $this->Auth->user('email'),
-                            'action' => 'update',
-                            'user_id' => $this->Auth->user('id'),
-                            'title' => 'Taxonomy failed to update',
-                            'change' => $fail['namespace'] . ' could not be installed/updated. Error: ' . $fail['fail'],
-                    ));
+                    $this->__log('update', $id, 'Taxonomy failed to update', $fail['namespace'] . ' could not be installed/updated. Error: ' . $fail['fail']);
                     $fails++;
                 }
             }
         } else {
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'model' => 'Taxonomy',
-                    'model_id' => 0,
-                    'email' => $this->Auth->user('email'),
-                    'action' => 'update',
-                    'user_id' => $this->Auth->user('id'),
-                    'title' => 'Taxonomy update (nothing to update)',
-                    'change' => 'Executed an update of the taxonomy library, but there was nothing to update.',
-            ));
+            $this->__log('update', 0, 'Taxonomy update (nothing to update)', 'Executed an update of the taxonomy library, but there was nothing to update.');
         }
-        $message = '';
         if ($successes == 0 && $fails == 0) {
             $flashType = 'info';
             $message = __('All taxonomy libraries are up to date already.');
@@ -338,9 +285,6 @@ class TaxonomiesController extends AppController
 
     public function addTag($taxonomy_id = false)
     {
-        if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger'])) {
-            throw new NotFoundException(__('You don\'t have permission to do that.'));
-        }
         if ($this->request->is('get')) {
             if (empty($taxonomy_id) && !empty($this->request->params['named']['taxonomy_id'])) {
                 $taxonomy_id = $this->request->params['named']['taxonomy_id'];
@@ -391,9 +335,8 @@ class TaxonomiesController extends AppController
 
     public function hideTag($taxonomy_id = false)
     {
-        if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) {
-            throw new NotFoundException(__('You don\'t have permission to do that.'));
-        }
+        $this->request->allowMethod(['post']);
+
         if ($taxonomy_id) {
             $result = $this->Taxonomy->hideTags($taxonomy_id);
         } else {
@@ -421,9 +364,8 @@ class TaxonomiesController extends AppController
 
     public function unhideTag($taxonomy_id = false)
     {
-        if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) {
-            throw new NotFoundException(__('You don\'t have permission to do that.'));
-        }
+        $this->request->allowMethod(['post']);
+
         if ($taxonomy_id) {
             $result = $this->Taxonomy->unhideTags($taxonomy_id);
         } else {
@@ -451,9 +393,6 @@ class TaxonomiesController extends AppController
 
     public function disableTag($taxonomy_id = false)
     {
-        if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger'])) {
-            throw new NotFoundException(__('You don\'t have permission to do that.'));
-        }
         if ($this->request->is('get')) {
             if (empty($taxonomy_id) && !empty($this->request->params['named']['taxonomy_id'])) {
                 $taxonomy_id = $this->request->params['named']['taxonomy_id'];
@@ -557,6 +496,21 @@ class TaxonomiesController extends AppController
         $this->autoRender = false;
         $this->layout = 'ajax';
         $this->render('ajax/toggle_required');
+    }
+
+    /**
+     * @param string $action
+     * @param int $modelId
+     * @param string $title
+     * @param string $change
+     * @return void
+     * @throws Exception
+     */
+    private function __log($action, $modelId, $title, $change)
+    {
+        /** @var Log $log */
+        $log = ClassRegistry::init('Log');
+        $log->createLogEntry($this->Auth->user(), $action, 'Taxonomy', $modelId, $title, $change);
     }
 
     /**

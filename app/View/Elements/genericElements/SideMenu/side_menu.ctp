@@ -340,10 +340,10 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             ),
                             'text' => __('Import from…')
                         ));
-                        if ($canAccess('servers', 'rest')) {
+                        if ($canAccess('api', 'rest')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'rest',
-                                'url' => $baseurl . '/servers/rest',
+                                'url' => $baseurl . '/api/rest',
                                 'text' => __('REST client')
                             ));
                         }
@@ -1609,17 +1609,15 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     case 'api':
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'openapi',
-                            'url' => $baseurl . '/servers/openapi',
+                            'url' => $baseurl . '/api/openapi',
                             'text' => __('OpenAPI')
                         ));
-                        if ($isAclAdd) {
-                            if ($canAccess('servers', 'rest')) {
-                                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                    'element_id' => 'rest',
-                                    'url' => $baseurl . '/servers/rest',
-                                    'text' => __('REST client')
-                                ));
-                            }
+                        if ($canAccess('api', 'rest')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'rest',
+                                'url' => $baseurl . '/api/rest',
+                                'text' => __('REST client')
+                            ));
                         }
                     break;
             }

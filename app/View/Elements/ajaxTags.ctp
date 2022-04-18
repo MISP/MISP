@@ -88,7 +88,7 @@
         $span_delete = '';
         if ($full || ($fullLocal && $tag['Tag']['local'])) {
             $span_delete = sprintf(
-                '<span class="%s" title="%s" role="%s" tabindex="%s" aria-label="%s" onClick="%s">x</span>',
+                '<span class="%s" title="%s" role="%s" tabindex="%s" aria-label="%s" onclick="%s">x</span>',
                 'black-white tag useCursorPointer noPrint',
                 __('Remove tag'),
                 "button",
@@ -107,43 +107,26 @@
     $buttonData = array();
     if ($full) {
         $buttonData[] = sprintf(
-            '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" style="%s" onClick="%s">%s</button>',
+            '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" data-popover-popup="%s">%s</button>',
             __('Add a tag'),
             __('Add a tag'),
-            'addTagButton btn btn-inverse noPrint',
-            'line-height:10px; padding: 2px;',
-            sprintf(
-                "popoverPopup(this, '%s%s', '%s', '%s');",
-                $id,
-                ($scope === 'event') ? '' : ('/' . $scope),
-                'tags',
-                'selectTaxonomy'
-            ),
-            '<i class="fas fa-globe-americas"></i> +'
+            'addTagButton addButton btn btn-inverse noPrint',
+            $baseurl . '/tags/selectTaxonomy/' . $id . ($scope === 'event' ? '' : ('/' . $scope)),
+            '<i class="fas fa-globe-americas"></i> <i class="fas fa-plus"></i>'
         );
     }
     if ($full || $fullLocal) {
         $buttonData[] = sprintf(
-            '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" style="%s" onClick="%s">%s</button>',
+            '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" data-popover-popup="%s">%s</button>',
             __('Add a local tag'),
             __('Add a local tag'),
-            'addLocalTagButton btn btn-inverse noPrint',
-            'line-height:10px; padding: 2px;',
-            sprintf(
-                "popoverPopup(this, '%s%s', '%s', '%s')",
-                $id,
-                ($scope === 'event') ? '' : ('/' . $scope),
-                'tags',
-                'selectTaxonomy/local:1'
-            ),
-            '<i class="fas fa-user"></i> +'
+            'addLocalTagButton addButton btn btn-inverse noPrint',
+            $baseurl . '/tags/selectTaxonomy/local:1/' . $id . ($scope === 'event' ? '' : ('/' . $scope)),
+            '<i class="fas fa-user"></i> <i class="fas fa-plus"></i>'
         );
     }
     if (!empty($buttonData)) {
-        $tagData .= sprintf(
-            '<span style="white-space:nowrap;">%s</span>',
-            implode(' ', $buttonData)
-        );
+        $tagData .= '<span style="white-space:nowrap">' . implode('', $buttonData) . '</span>';
     }
     echo sprintf(
         '<span class="tag-list-container">%s</span>',
@@ -156,11 +139,11 @@
         $tagConflictData .= '<div class="text-container">';
         foreach ($tagConflicts['global'] as $tagConflict) {
             $tagConflictData .= sprintf(
-                '<strong>%s</strong></br>',
+                '<strong>%s</strong><br>',
                 h($tagConflict['conflict'])
             );
             foreach ($tagConflict['tags'] as $tag) {
-                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span></br>', h($tag));
+                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span><br>', h($tag));
             }
         }
         $tagConflictData .= '</div></div></span>';
@@ -171,14 +154,13 @@
         $tagConflictData .= '<div class="text-container">';
         foreach ($tagConflicts['local'] as $tagConflict) {
             $tagConflictData .= sprintf(
-                '<strong>%s</strong></br>',
+                '<strong>%s</strong><br>',
                 h($tagConflict['conflict'])
             );
             foreach ($tagConflict['tags'] as $tag) {
-                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span></br>', h($tag));
+                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span><br>', h($tag));
             }
         }
         $tagConflictData .= '</div></div></span>';
     }
     echo $tagConflictData;
-?>

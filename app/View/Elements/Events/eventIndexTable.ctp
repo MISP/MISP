@@ -49,7 +49,7 @@
     <tr id="event_<?= $eventId ?>">
         <?php if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):?>
         <td style="width:10px;">
-            <input class="select" type="checkbox" data-id="<?= $eventId ?>">
+            <input class="select" type="checkbox" data-id="<?= $eventId ?>" data-uuid="<?= h($event['Event']['uuid']) ?>" />
         </td>
         <?php else: ?>
         <td style="padding-left:0;padding-right:0;"></td>

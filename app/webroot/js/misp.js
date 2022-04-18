@@ -73,10 +73,7 @@ function xhr(options) {
 
 function deleteObject(type, action, id) {
     var url = baseurl + "/" + type + "/" + action + "/" + id;
-    $.get(url, function(data) {
-        openPopup("#confirmation_box");
-        $("#confirmation_box").html(data);
-    }).fail(xhrFailCallback)
+    $.get(url, openConfirmation).fail(xhrFailCallback)
 }
 
 function quickDeleteSighting(id, rawId, context) {
@@ -898,7 +895,7 @@ function multiSelectExportEvents() {
     var selected = [];
     $(".select").each(function() {
         if ($(this).is(":checked")) {
-            var temp = $(this).data("id");
+            var temp = $(this).data("uuid");
             if (temp != null) {
                 selected.push(temp);
             }
@@ -1805,6 +1802,7 @@ function getPopup(id, context, target, admin, popupType) {
 }
 
 // Same as getPopup function but create a popover to populate first
+// DEPRECATED
 function popoverPopup(clicked, id, context, target, admin) {
     var url = baseurl;
     if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
@@ -1813,20 +1811,24 @@ function popoverPopup(clicked, id, context, target, admin) {
     }
     if (target != '') url += "/" + target;
     if (id != '') url += "/" + id;
-    var popover = openPopover(clicked, undefined);
-    $clicked = $(clicked);
+    popoverPopupNew(clicked, url);
+}
+
+function popoverPopupNew(clicked, url) {
+    var $clicked = $(clicked);
+    var popover = openPopover($clicked, undefined);
 
     // actual request //
     $.ajax({
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data) {
+        success: function (data) {
             if (popover.options.content !== data) {
-                popover.options.content =  data;
+                popover.options.content = data;
                 $clicked.popover('show');
             }
         },
-        error:function(jqXHR ) {
+        error: function(jqXHR) {
             var errorJSON = '';
             try {
                 errorJSON = JSON.parse(jqXHR.responseText);
@@ -1903,12 +1905,13 @@ function simplePopup(url, requestType, data) {
     data = data === undefined ? [] : data
     $("#gray_out").fadeIn();
     xhr({
-        dataType:"html",
-        success:function (data) {
-            $("#popover_form").html(data);
-            openPopup("#popover_form");
+        dataType: "html",
+        success: function (data) {
+            var $popover = $("#popover_form");
+            $popover.html(data);
+            openPopup($popover);
         },
-        error:function(xhr) {
+        error: function(xhr) {
             $("#gray_out").fadeOut();
             xhrFailCallback(xhr);
         },
@@ -4099,23 +4102,25 @@ function feedFormUpdate() {
 }
 
 function setContextFields() {
+    if (typeof showContext === "undefined") {
+        showContext = false;
+    }
+
+    var $button = $('#show_attribute_context');
     if (showContext) {
         $('.context').show();
-        $('#show_context').addClass("attribute_filter_text_active");
-        $('#show_context').removeClass("attribute_filter_text");
+        $button.removeClass("btn-inverse").addClass("btn-primary");
     } else {
         $('.context').hide();
-        $('#show_context').addClass("attribute_filter_text");
-        $('#show_context').removeClass("attribute_filter_text_active");
+        $button.removeClass("btn-primary").addClass("btn-inverse");
     }
 }
 
 function toggleContextFields() {
-    if (!showContext) {
-        showContext = true;
-    } else {
+    if (typeof showContext === "undefined") {
         showContext = false;
     }
+    showContext = !showContext;
     setContextFields();
 }
 
@@ -4222,18 +4227,6 @@ $('#eventToggleButtons button').click(function() {
         }
     }
 });
-
-function addGalaxyListener(id) {
-    var target_type = $(id).data('target-type');
-    var target_id = $(id).data('target-id');
-    var local = $(id).data('local');
-    if (local) {
-        local = 1;
-    } else {
-        local = 0;
-    }
-    popoverPopup(id, target_id + '/' + target_type + '/local:' + local, 'galaxies', 'selectGalaxyNamespace');
-}
 
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     cluster_ids = cluster_ids === null ? [] : cluster_ids;
@@ -4775,10 +4768,16 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
     });
 });
 
-// Any link with modal-open class will be treated as generic modal
+// Any link with `modal-open` class will be treated as generic modal
 $(document.body).on('click', 'a.modal-open', function (e) {
     e.preventDefault();
     openGenericModal($(this).attr('href'));
+});
+
+$(document.body).on('click', '[data-popover-popup]', function (e) {
+    e.preventDefault();
+    var url = $(this).data('popover-popup');
+    popoverPopupNew(this, url);
 });
 
 function queryEventLock(event_id, timestamp) {
@@ -5058,12 +5057,12 @@ function checkRoleEnforceRateLimit() {
 
 function queryDeprecatedEndpointUsage() {
     $.ajax({
-        url: baseurl + '/servers/viewDeprecatedFunctionUse',
+        url: baseurl + '/api/viewDeprecatedFunctionUse',
         type: 'GET',
         success: function(data) {
             $('#deprecationResults').html(data);
         },
-        error: function(data) {
+        error: function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Could not query the deprecation statistics.']});
         }
     });
