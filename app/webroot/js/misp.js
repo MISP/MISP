@@ -4143,27 +4143,20 @@ function loadTagTreemap() {
     });
 }
 
-function quickEditEvent(id, field) {
-    xhr({
-        success:function (data) {
-            $("#" + field + "Field").html(data);
-        },
-        type:"get",
-        url: "/events/quickEdit/" + id + "/" + field,
-    });
-}
-
 function selectAllInbetween(last, current) {
-    if (last === false || last == current) return false;
-    var from = $('#' + last).parent().parent().index();
-    var to = $('#' + current).parent().parent().index();
+    if (last === false || last === current) {
+        return false;
+    }
+    var from = $(last).parent().parent().index();
+    var to = $(current).parent().parent().index();
     if (to < from) {
         var temp = from;
         from = to;
         to = temp;
     }
-    $('.select_proposal, .select_attribute, .select').each(function (e) {
-        if ($('#' + this.id).parent().parent().index() >= from && $('#' + this.id).parent().parent().index() <= to) {
+    $('.select_proposal, .select_attribute, .select').each(function () {
+        var index = $(this).parent().parent().index();
+        if (index >= from && index <= to) {
             $(this).prop('checked', true);
         }
     });

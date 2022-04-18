@@ -49,9 +49,9 @@ $quickEdit = function($fieldName) use ($mayModify, $object) {
 ?>
 <tr id="Attribute_<?= $objectId ?>_tr" data-primary-id="<?= $objectId ?>" class="<?php echo $tr_class; ?>" tabindex="0">
     <?php if (($mayModify || !empty($extended)) && empty($disable_multi_select)): ?>
-      <td style="width:10px;">
+      <td style="width:10px">
       <?php if ($mayModify):?>
-          <input id="select_<?= $objectId ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?= $objectId ?>" aria-label="<?php echo __('Select attribute');?>">
+          <input class="select_attribute" type="checkbox" data-id="<?= $objectId ?>" aria-label="<?php echo __('Select attribute');?>">
       <?php endif; ?>
       </td>
     <?php endif; ?>

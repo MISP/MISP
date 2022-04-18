@@ -34,8 +34,8 @@
   <?php
     if ($mayModify):
   ?>
-      <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
-          <input id="select_proposal_<?php echo $object['id']; ?>" class="select_proposal row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
+      <td style="width:10px;">
+          <input class="select_proposal" type="checkbox" data-id="<?php echo $object['id'];?>">
       </td>
   <?php
     endif;

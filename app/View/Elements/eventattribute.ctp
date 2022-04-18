@@ -235,18 +235,18 @@ attributes or the appropriate distribution level. If you think there is a mistak
         $('.select_attribute').prop('checked', false).click(function(e) {
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
-                    selectAllInbetween(lastSelected, this.id);
+                    selectAllInbetween(lastSelected, this);
                 }
-                lastSelected = this.id;
+                lastSelected = this;
             }
             attributeListAnyAttributeCheckBoxesChecked();
         });
         $('.select_proposal').prop('checked', false).click(function(e){
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
-                    selectAllInbetween(lastSelected, this.id);
+                    selectAllInbetween(lastSelected, this);
                 }
-                lastSelected = this.id;
+                lastSelected = this;
             }
             attributeListAnyProposalCheckBoxesChecked();
         });
