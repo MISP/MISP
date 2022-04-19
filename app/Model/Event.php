@@ -17,6 +17,7 @@ App::uses('ProcessTool', 'Tools');
  * @property ThreatLevel $ThreatLevel
  * @property Sighting $Sighting
  * @property Organisation $Org
+ * @property CryptographicKey $CryptographicKey
  */
 class Event extends AppModel
 {
@@ -4430,6 +4431,7 @@ class Event extends AppModel
         $servers = $this->Server->find('all', [
             'conditions' => $conditions,
             'recursive' => -1,
+            'contain' => ['RemoteOrg', 'Organisation'],
             'order' => ['Server.priority ASC', 'Server.id ASC'],
         ]);
         // iterate over the servers and upload the event
@@ -6173,18 +6175,10 @@ class Event extends AppModel
             $newTextBody = JsonTool::encode($newTextBody);
         }
 
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
-        $this->Log->save(array(
-            'org' => 'SYSTEM',
-            'model' => 'Server',
-            'model_id' => $server['Server']['id'],
-            'email' => 'SYSTEM',
-            'action' => 'warning',
-            'user_id' => 0,
-            'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-            'change' => 'Returned message: ' . $newTextBody,
-        ));
+        $title = 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')';
+        $change = 'Returned message: ' . $newTextBody;
+
+        $this->loadLog()->createLogEntry('SYSTEM', 'warning', 'Server', $server['Server']['id'], $title, $change);
     }
 
     /**

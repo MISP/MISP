@@ -51,6 +51,9 @@ class AppModel extends Model
     {
         parent::__construct($id, $table, $ds);
         $this->findMethods['column'] = true;
+        if (in_array('phar', stream_get_wrappers())) {
+            stream_wrapper_unregister('phar');
+        }
     }
 
     // deprecated, use $db_changes
@@ -2539,7 +2542,7 @@ class AppModel extends Model
         }
 
         if (!class_exists('Redis')) {
-            throw new Exception("Class Redis doesn't exists.");
+            throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
         }
 
         $host = Configure::read('MISP.redis_host') ?: '127.0.0.1';
@@ -2585,6 +2588,7 @@ class AppModel extends Model
             App::uses('KafkaPubTool', 'Tools');
             $kafkaPubTool = new KafkaPubTool();
             $rdkafkaIni = Configure::read('Plugin.Kafka_rdkafka_config');
+            $rdkafkaIni = mb_ereg_replace("/\:\/\//", '', $rdkafkaIni);
             $kafkaConf = array();
             if (!empty($rdkafkaIni)) {
                 $kafkaConf = parse_ini_file($rdkafkaIni);

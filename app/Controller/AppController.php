@@ -34,8 +34,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '136';
-    public $pyMispVersion = '2.4.155';
+    private $__queryVersion = '139';
+    public $pyMispVersion = '2.4.157';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -1321,6 +1321,27 @@ class AppController extends Controller
             return true;
         }
         if ($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user()['id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if user can publish the given event.
+     *
+     * @param array $event
+     * @return bool
+     */
+    protected function __canPublishEvent(array $event)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+
+        if ($this->userRole['perm_site_admin']) {
+            return true;
+        }
+        if ($this->userRole['perm_publish'] && $event['Event']['orgc_id'] == $this->Auth->user()['org_id']) {
             return true;
         }
         return false;

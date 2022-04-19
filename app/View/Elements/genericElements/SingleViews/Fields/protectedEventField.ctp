@@ -3,12 +3,12 @@
     $event = Hash::extract($data, $field['event_path']);
     if ($event['protected']) {
         echo sprintf(
-            '<span class="fas fa-lock"></span> %s %s %s <br />',
+            '<span class="fas fa-lock"></span> %s %s %s <br>',
             __('Event is in protected mode. (Limited distribution)'),
             !$field['owner'] ? '' : sprintf(
-                '<br /><a href="#" onClick="%s" title="%s"><i class="fas fa-unlock"></i> %s</a>',
+                '<br><a href="%s" class="modal-open" title="%s"><i class="fas fa-unlock"></i> %s</a>',
                 sprintf(
-                    "openGenericModal('%s/events/unprotect/%s');",
+                    '%s/events/unprotect/%s',
                     $baseurl,
                     h($event['id'])
                 ),
@@ -16,11 +16,10 @@
                 empty($field['text']) ? __('Switch to unprotected mode') : h($field['text'])
             ),
             !$field['owner'] ? '' : sprintf(
-                '<br /><a href="#" onClick="%s"><i class="fas fa-key"></i>%s</a>',
+                '<br><a href="%s" class="modal-open"><i class="fas fa-key"></i> %s</a>',
                 sprintf(
-                    "openGenericModal('%s/CryptographicKeys/add/%s/%s');",
+                    "%s/CryptographicKeys/add/Event/%s",
                     $baseurl,
-                    h('Event'),
                     h($event['id'])
                 ),
                 empty($field['text']) ? __('Add signing key') : h($field['text'])
@@ -33,7 +32,7 @@
                 $foundInstanceKey = true;
             }
             echo sprintf(
-                '%s<span class="bold">%s</span> (%s) <a href="#" onClick="%s" title="%s"><i class="fas fa-search"></i></a> %s<br />',
+                '%s<span class="bold">%s</span> (%s) <a href="%s" class="modal-open" title="%s"><i class="fas fa-search"></i></a> %s<br>',
                 !$isInstanceKey ? '' : sprintf(
                     '<i class="fas fa-home blue" title="%s"></i>&nbsp;',
                     __('This is the instance signing key. When synchronising the instance, this will be the key used to validate the event.')
@@ -41,13 +40,13 @@
                 h($key['type']),
                 empty($key['fingerprint']) ? '#' . h($key['id']) : h($key['fingerprint']),
                 sprintf(
-                    "openGenericModal('%s/cryptographicKeys/view/%s');",
+                    "%s/cryptographicKeys/view/%s",
                     $baseurl,
                     h($key['id'])
                 ),
                 __('Inspect key'),
                 !$field['owner'] ? '' : sprintf(
-                    '<a href="#" onClick="openGenericModal(\'%s/cryptographicKeys/delete/%s\')" title="%s"><i class="fas fa-trash"></i></a>',
+                    '<a href="%s/cryptographicKeys/delete/%s" class="modal-open" title="%s"><i class="fas fa-trash"></i></a>',
                     $baseurl,
                     h($key['id']),
                     __('Detach key from the event. This key will no longer be used to sign and validate this event.')
@@ -64,12 +63,12 @@
         }
     } else {
         echo sprintf(
-            '<span class="fas fa-unlock"></span> <span>%s</span> %s<br />',
+            '<span class="fas fa-unlock"></span> <span>%s</span> %s<br>',
             __('Event is in unprotected mode.'),
             !$field['owner'] ? '' : sprintf(
-                '<br /><a href="#" onClick="%s" title="%s"><i class="fas fa-lock"></i> %s</a>',
+                '<br><a href="%s" class="modal-open" title="%s"><i class="fas fa-lock"></i> %s</a>',
                 sprintf(
-                    "openGenericModal('%s/events/protect/%s');",
+                    "%s/events/protect/%s",
                     $baseurl,
                     h($event['id'])
                 ),
@@ -78,4 +77,3 @@
             )
         );
     }
-    //echo ;

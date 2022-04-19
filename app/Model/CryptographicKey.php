@@ -24,7 +24,8 @@ class CryptographicKey extends AppModel
 
     const ERROR_MALFORMED_SIGNATURE = 'Malformed signature',
         ERROR_INVALID_SIGNATURE = 'Invalid signature',
-        ERROR_WRONG_KEY = 'Wrong key';
+        ERROR_WRONG_KEY = 'Wrong key',
+        ERROR_INVALID_KEY = 'Invalid key';
 
     public $validTypes = [
         'pgp'
@@ -98,6 +99,9 @@ class CryptographicKey extends AppModel
         if (empty($fingerprint)) {
             $file = new File(APP . '/webroot/gpg.asc');
             $instanceKey = $file->read();
+            if (!$this->gpg) {
+                throw new MethodNotAllowedException("Could not initiate GPG");
+            }
             try {
                 $this->gpg->importKey($instanceKey);
             } catch (Crypt_GPG_NoDataException $e) {
@@ -108,7 +112,14 @@ class CryptographicKey extends AppModel
                 $redis->setEx($redisKey, 300, $fingerprint);
             }
         }
-        $this->gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+        if (!$this->gpg) {
+            throw new MethodNotAllowedException("Could not initiate GPG");
+        }
+        try {
+            $this->gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+        } catch (Exception $e) {
+            throw new NotFoundException('Could not add signing key.');
+        }
         return $fingerprint;
     }
 
@@ -135,25 +146,29 @@ class CryptographicKey extends AppModel
     {
         $this->error = false;
         $fingerprint = $this->__extractPGPKeyData($key);
+        if ($fingerprint === false) {
+            $this->error = self::ERROR_INVALID_KEY;
+            return false;
+        }
         $data = preg_replace("/\s+/", "", $data);
         try {
             $verifiedSignature = $this->gpg->verify($data, $signature);
         } catch (Exception $e) {
-            $this->error = $this::ERROR_WRONG_KEY;
+            $this->error = self::ERROR_WRONG_KEY;
             return false;
         }
         if (empty($verifiedSignature)) {
-            $this->error = $this::ERROR_MALFORMED_SIGNATURE;
+            $this->error = self::ERROR_MALFORMED_SIGNATURE;
             return false;
         }
         if (!$verifiedSignature[0]->isValid()) {
-            $this->error = $this::ERROR_INVALID_SIGNATURE;
+            $this->error = self::ERROR_INVALID_SIGNATURE;
             return false;
         }
         if ($verifiedSignature[0]->getKeyFingerprint() === $fingerprint) {
             return true;
         } else {
-            $this->error = $this::ERROR_WRONG_KEY;
+            $this->error = self::ERROR_WRONG_KEY;
             return false;
         }
     }
@@ -168,19 +183,22 @@ class CryptographicKey extends AppModel
 
     }
 
+    /**
+     * @param string $data
+     * @return string|false Primary key fingerprint or false of key is invalid
+     */
     private function __extractPGPKeyData($data)
     {
         try {
             $gpgTool = new GpgTool($this->gpg);
         } catch (Exception $e) {
             $this->logException("GPG couldn't be initialized, GPG encryption and signing will be not available.", $e, LOG_NOTICE);
-            return '';
+            return false;
         }
         try {
             return $gpgTool->validateGpgKey($data);
         } catch (Exception $e) {
-            $this->logException("Could not validate PGP key.", $e, LOG_NOTICE);
-            return '';
+            return false;
         }
     }
 
@@ -241,7 +259,6 @@ class CryptographicKey extends AppModel
     {
         $existingKeys = $this->find('first', [
             'recursive' => -1,
-            'fields' => 1,
             'conditions' => [
                 'parent_type' => $type,
                 'parent_id' => $parent_id

@@ -13,7 +13,7 @@
             }
             $onClickParams = implode(',', $onClickParams);
             $onClick = sprintf(
-                'onClick="%s%s"',
+                'onclick="%s%s"',
                 (empty($data['url'])) ? 'event.preventDefault();' : '',
                 (!empty($data['onClick']) ? sprintf(
                     '%s(%s)',
@@ -54,4 +54,3 @@
             empty($data['badge']) ? '' : sprintf('<span class="badge badge-%s">%s</span>', empty($data['badge']['type']) ? 'info' : $data['badge']['type'], h($data['badge']['text']))
         );
     }
-?>

@@ -837,7 +837,11 @@ class EventsController extends AppController
             $events = $absolute_total === 0 ? [] : $this->Event->find('all', $rules);
         }
         $isCsvResponse = $this->response->type() === 'text/csv';
-        $instanceFingerprint = $this->Event->CryptographicKey->ingestInstanceKey();
+        try {
+            $instanceFingerprint = $this->Event->CryptographicKey->ingestInstanceKey();
+        } catch (Exception $e) {
+            $instanceFingerprint = null;
+        }
         if (!$minimal) {
             // Collect all tag IDs that are events
             $tagIds = [];
@@ -955,6 +959,9 @@ class EventsController extends AppController
                     }
                     foreach ($event['CryptographicKey'] as $cryptoKey) {
                         if ($instanceFingerprint === $cryptoKey['fingerprint']) {
+                            $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
+                            unset($event['Event']['protected']);
+                            $events[$key] = $event['Event'];
                             continue 2;
                         }
                     }
@@ -1648,7 +1655,13 @@ class EventsController extends AppController
         $this->set('warnings', $this->Event->generateWarnings($event));
         $this->set('menuData', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
         $this->set('mayModify', $this->__canModifyEvent($event));
-        $this->set('instanceFingerprint', $this->Event->CryptographicKey->ingestInstanceKey());
+        $this->set('mayPublish', $this->__canPublishEvent($event));
+        try {
+            $instanceKey = $this->Event->CryptographicKey->ingestInstanceKey();
+        } catch (Exception $e) {
+            $instanceKey = null;
+        }
+        $this->set('instanceFingerprint', $instanceKey);
         $this->__eventViewCommon($user);
     }
 
@@ -3337,6 +3350,8 @@ class EventsController extends AppController
                 foreach ($final as $key => $data) {
                     $this->set($key, $data);
                 }
+                $this->set('responseType', $responseType);
+                $this->set('returnFormat', $returnFormat);
                 $this->set('renderView', $renderView);
                 $this->render('/Events/eventRestSearchExportResult');
             } else {

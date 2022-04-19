@@ -1,18 +1,16 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property CryptographicKey $CryptographicKey
+ */
 class CryptographicKeysController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
 
-    public function beforeFilter()
-    {
-        parent::beforeFilter();
-    }
-
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999
+        'limit' => 60,
+        'maxLimit' => 9999
     );
 
     public function add($type, $parent_id)
@@ -85,7 +83,8 @@ class CryptographicKeysController extends AppController
     {
         $key = $this->CryptographicKey->find('first', [
             'recursive' => -1,
-            'fields' => ['id', 'type', 'key_data', 'fingerprint']
+            'fields' => ['id', 'type', 'key_data', 'fingerprint'],
+            'conditions' => ['CryptographicKey.id' => $id]
         ]);
         $this->set('id', $id);
         $this->set('title', __('Viewing %s key #%s', h($key['CryptographicKey']['type']), h($key['CryptographicKey']['id'])));

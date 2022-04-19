@@ -580,7 +580,13 @@ class Attribute extends AppModel
             $this->validationErrors['type'] = ['No type set.'];
             return false;
         }
+
         $type = $attribute['type'];
+        if (!isset($this->typeDefinitions[$type])) {
+            $this->validationErrors['type'] = ['Invalid type.'];
+            return false;
+        }
+
         if (is_array($attribute['value'])) {
             $this->validationErrors['value'] = ['Value is an array.'];
             return false;

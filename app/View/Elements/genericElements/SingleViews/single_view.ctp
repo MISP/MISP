@@ -82,7 +82,7 @@
             );
         }
     }
-    $ajaxLists = '<br/>';
+    $ajaxLists = '<br>';
     if (!empty($children)) {
         foreach ($children as $child) {
             $ajaxLists .= $this->element(
@@ -131,4 +131,4 @@
         $appendHtml,
         $ajax ? '' : $this->element('/genericElements/SideMenu/side_menu', $menuData)
     );
-?>
+

@@ -29,6 +29,9 @@ if (empty($url)) {
 if (!empty($title)) {
     $a .= ' title="' . h($title) . '"';
 }
+if (!empty($link_class)) {
+    $a .= ' class="' . h($link_class) . '"';
+}
 if (!empty($onClick)) {
     $params = '';
     foreach ($onClick['params'] as $param) {

@@ -544,7 +544,7 @@
         );
     }
 ?>
-<div id="topBar" class="navbar navbar-inverse <?= $debugMode ?>">
+<div id="topBar" class="navbar navbar-inverse <?= isset($debugMode) ? $debugMode : 'debugOff' ?>">
   <div class="navbar-inner">
     <ul class="nav">
         <?php

@@ -126,12 +126,13 @@ class Feed extends AppModel
     public function urlOrExistingFilepath($fields)
     {
         if ($this->isFeedLocal($this->data)) {
+            $path = mb_ereg_replace("/\:\/\//", '', $this->data['Feed']['url']);
             if ($this->data['Feed']['source_format'] == 'misp') {
-                if (!is_dir($this->data['Feed']['url'])) {
+                if (!is_dir($path)) {
                     return 'For MISP type local feeds, please specify the containing directory.';
                 }
             } else {
-                if (!file_exists($this->data['Feed']['url'])) {
+                if (!file_exists($path)) {
                     return 'Invalid path or file not found. Make sure that the path points to an existing file that is readable and watch out for typos.';
                 }
             }
@@ -1929,6 +1930,7 @@ class Feed extends AppModel
     private function feedGetUri($feed, $uri, HttpSocket $HttpSocket = null)
     {
         if ($this->isFeedLocal($feed)) {
+            $uri = mb_ereg_replace("/\:\/\//", '', $uri);
             if (file_exists($uri)) {
                 return FileAccessTool::readFromFile($uri);
             } else {
