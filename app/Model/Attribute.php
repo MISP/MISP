@@ -1023,7 +1023,7 @@ class Attribute extends AppModel
                 'order' => false,
                 'limit' => 11,
                 'flatten' => 1,
-                'contain' => ['AttributeTag' => false],
+                'contain' => ['AttributeTag' => false, 'Object' => false],
             );
             $resultArray[$key]['related'] = $this->fetchAttributes($user, $options);
         }
@@ -3154,6 +3154,7 @@ class Attribute extends AppModel
             }
             $simple_params = array(
                 'Attribute' => array(
+                    'sharinggroup' => array('function' => 'set_filter_sharing_group'),
                     'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_type'),
@@ -3169,6 +3170,7 @@ class Attribute extends AppModel
                     'comment' => array('function' => 'set_filter_comment')
                 ),
                 'Event' => array(
+                    'sharinggroup' => array('function' => 'set_filter_sharing_group'),
                     'eventid' => array('function' => 'set_filter_eventid'),
                     'eventinfo' => array('function' => 'set_filter_eventinfo'),
                     'ignore' => array('function' => 'set_filter_ignore'),

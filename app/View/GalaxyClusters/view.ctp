@@ -56,7 +56,7 @@ $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['Galax
 $table_data[] = array(
     'key' => __('Source'),
     'html' => filter_var($cluster['GalaxyCluster']['source'], FILTER_VALIDATE_URL) ?
-        '<a href="' . $cluster['GalaxyCluster']['source'] . '" rel="noreferrer noopener">' . h($cluster['GalaxyCluster']['source']) :
+        '<a href="' . h($cluster['GalaxyCluster']['source']) . '" rel="noreferrer noopener">' . h($cluster['GalaxyCluster']['source']) :
         h($cluster['GalaxyCluster']['source']),
 );
 $table_data[] = array('key' => __('Authors'), 'value' => !empty($cluster['GalaxyCluster']['authors']) ? implode(', ', $cluster['GalaxyCluster']['authors']) : __('N/A'));

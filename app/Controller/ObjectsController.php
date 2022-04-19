@@ -573,21 +573,21 @@ class ObjectsController extends AppController
     public function fetchViewValue($id, $field = null)
     {
         $validFields = array('timestamp', 'comment', 'distribution', 'first_seen', 'last_seen');
-        if (!isset($field) || !in_array($field, $validFields)) {
+        if (!isset($field) || !in_array($field, $validFields, true)) {
             throw new MethodNotAllowedException('Invalid field requested.');
         }
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
         }
         $params = array(
-                'conditions' => array('Object.id' => $id),
-                'fields' => array('id', 'distribution', 'event_id', $field),
-                'contain' => array(
-                        'Event' => array(
-                                'fields' => array('distribution', 'id', 'org_id'),
-                        )
-                ),
-                'flatten' => 1
+            'conditions' => array('Object.id' => $id),
+            'fields' => array('id', 'distribution', 'event_id', $field),
+            'contain' => array(
+                'Event' => array(
+                    'fields' => array('distribution', 'id', 'org_id'),
+                )
+            ),
+            'flatten' => 1
         );
         $object = $this->MispObject->fetchObjectSimple($this->Auth->user(), $params);
         if (empty($object)) {
@@ -595,10 +595,11 @@ class ObjectsController extends AppController
         }
         $object = $object[0];
         $result = $object['Object'][$field];
-        if ($field == 'distribution') {
-            $result=$this->MispObject->shortDist[$result];
+        if ($field === 'distribution') {
+            $result = $this->MispObject->shortDist[$result];
         }
         $this->set('value', $result);
+        $this->set('field', $field);
         $this->layout = 'ajax';
         $this->render('ajax/objectViewFieldForm');
     }

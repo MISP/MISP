@@ -204,7 +204,7 @@ class Log extends AppModel
      */
     public function createLogEntry($user, $action, $model, $modelId = 0, $title = '', $change = '')
     {
-        if (in_array($action, ['tag', 'galaxy', 'publish', 'publish_sightings'], true) && Configure::read('MISP.log_new_audit')) {
+        if (in_array($action, ['tag', 'galaxy', 'publish', 'publish_sightings', 'enable'], true) && Configure::read('MISP.log_new_audit')) {
             return; // Do not store tag changes when new audit is enabled
         }
         if ($user === 'SYSTEM') {
@@ -383,13 +383,13 @@ class Log extends AppModel
             }
         }
         if ($this->syslog) {
-            $action = 'info';
+            $action = LOG_INFO;
             if (isset($data['Log']['action'])) {
                 if (in_array($data['Log']['action'], self::ERROR_ACTIONS, true)) {
-                    $action = 'err';
+                    $action = LOG_ERR;
                 }
                 if (in_array($data['Log']['action'], self::WARNING_ACTIONS, true)) {
-                    $action = 'warning';
+                    $action = LOG_WARNING;
                 }
             }
 

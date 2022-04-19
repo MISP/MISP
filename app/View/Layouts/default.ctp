@@ -12,7 +12,6 @@
             'bootstrap-datepicker',
             'bootstrap-colorpicker',
             'font-awesome',
-            'jquery-ui',
             'chosen.min',
             'main',
             array('print', array('media' => 'print'))
@@ -23,7 +22,6 @@
         $js_collection = array(
             'jquery',
             'misp-touch',
-            'jquery-ui',
             'chosen.jquery.min'
         );
         echo $this->element('genericElements/assetLoader', array(

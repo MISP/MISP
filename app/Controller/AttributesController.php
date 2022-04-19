@@ -940,22 +940,14 @@ class AttributesController extends AppController
         if (!$changed) {
             return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
         }
-        $date = new DateTime();
-        $attribute['Attribute']['timestamp'] = $date->getTimestamp();
+        $time = time();
+        $attribute['Attribute']['timestamp'] = $time;
 
-        $fieldsToSave = ['timestamp'];
-        if ($changedKey === 'value') {
-            $fieldsToSave[] = 'value1';
-            $fieldsToSave[] = 'value2';
-        } else {
-            $fieldsToSave[] = $changedKey;
-        }
-
-        if ($this->Attribute->save($attribute, true, $fieldsToSave)) {
-            $this->Attribute->Event->unpublishEvent($attribute['Attribute']['event_id'], false, $date->getTimestamp());
+        if ($this->Attribute->save($attribute)) {
+            $this->Attribute->Event->unpublishEvent($attribute['Attribute']['event_id'], false, $time);
 
             if ($attribute['Attribute']['object_id'] != 0) {
-                $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
+                $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $time);
             }
             return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
         } else {
@@ -1982,12 +1974,6 @@ class AttributesController extends AppController
             $result = $this->Attribute->shortDist[$result];
         } elseif ($field === 'to_ids') {
             $result = ($result == 0 ? 'No' : 'Yes');
-        } elseif ($field === 'timestamp') {
-            if (isset($result)) {
-                $result = date('Y-m-d', $result);
-            } else {
-                echo '&nbsp';
-            }
         } elseif ($field === 'value') {
             $this->loadModel('Warninglist');
             $attribute['Attribute'] = $this->Warninglist->checkForWarning($attribute['Attribute']);

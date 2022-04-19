@@ -23,13 +23,17 @@
             continue;
         }
         if (isset($action['complex_requirement'])) {
-            if (isset($action['complex_requirement']['options']['datapath'])) {
-                foreach ($action['complex_requirement']['options']['datapath'] as $name => $path) {
-                    $action['complex_requirement']['options']['datapath'][$name] = empty(Hash::extract($row, $path)[0]) ? null : Hash::extract($row, $path)[0];
+            if ($action['complex_requirement'] instanceof Closure) {
+                $requirementMet = $action['complex_requirement']($row);
+            } else {
+                if (isset($action['complex_requirement']['options']['datapath'])) {
+                    foreach ($action['complex_requirement']['options']['datapath'] as $name => $path) {
+                        $action['complex_requirement']['options']['datapath'][$name] = empty(Hash::extract($row, $path)[0]) ? null : Hash::extract($row, $path)[0];
+                    }
                 }
+                $options = isset($action['complex_requirement']['options']) ? $action['complex_requirement']['options'] : [];
+                $requirementMet = $action['complex_requirement']['function']($row, $options);
             }
-            $options = isset($action['complex_requirement']['options']) ? $action['complex_requirement']['options'] : array();
-            $requirementMet = $action['complex_requirement']['function']($row, $options);
             if (!$requirementMet) {
                 continue;
             }

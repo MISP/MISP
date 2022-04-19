@@ -1109,6 +1109,7 @@ class EventsController extends AppController
             'eventid' => array('OR' => array(), 'NOT' => array()),
             'date' => array('from' => "", 'until' => ""),
             'eventinfo' => array('OR' => array(), 'NOT' => array()),
+            'all' => array('OR' => array(), 'NOT' => array()),
             'threatlevel' => array('OR' => array(), 'NOT' => array()),
             'distribution' => array('OR' => array(), 'NOT' => array()),
             'sharinggroup' => array('OR' => array(), 'NOT' => array()),
@@ -1187,6 +1188,7 @@ class EventsController extends AppController
             'hasproposal' => __('Has proposal'),
             'timestamp' => __('Last change at'),
             'publishtimestamp' => __('Published at'),
+            'all' => __('Search in all fields'),
         ];
 
         if ($this->_isSiteAdmin()) {
@@ -1402,6 +1404,8 @@ class EventsController extends AppController
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
+        $this->set('mayModify', $this->__canModifyEvent($event));
+        $this->set('mayPublish', $this->__canPublishEvent($event));
         $this->response->disableCache();
 
         // Remove `focus` attribute from URI
@@ -3211,7 +3215,8 @@ class EventsController extends AppController
                 'order' => 'Event.timestamp DESC',
             ));
             $this->loadModel('Job');
-            foreach ($this->Event->export_types as $k => $type) {
+            $exportTypes = $this->Event->exportTypes();
+            foreach ($exportTypes as $k => $type) {
                 if ($type['requiresPublished']) {
                     $tempNewestEvent = $newestEventPublished;
                 } else {
@@ -3235,10 +3240,10 @@ class EventsController extends AppController
                 if (!$file->readable()) {
                     if (empty($tempNewestEvent)) {
                         $lastModified = 'No valid events';
-                        $this->Event->export_types[$k]['recommendation'] = 0;
+                        $exportTypes[$k]['recommendation'] = 0;
                     } else {
                         $lastModified = 'N/A';
-                        $this->Event->export_types[$k]['recommendation'] = 1;
+                        $exportTypes[$k]['recommendation'] = 1;
                     }
                 } else {
                     $filesize = $file->size();
@@ -3247,32 +3252,31 @@ class EventsController extends AppController
                         $filesize_unit_index++;
                         $filesize = $filesize / 1024;
                     }
-                    $this->Event->export_types[$k]['filesize'] = round($filesize, 1) . $filesize_units[$filesize_unit_index];
+                    $exportTypes[$k]['filesize'] = round($filesize, 1) . $filesize_units[$filesize_unit_index];
                     $fileChange = $file->lastChange();
                     $lastModified = $this->__timeDifference($now, $fileChange);
                     if (empty($tempNewestEvent) || $fileChange > $tempNewestEvent['Event']['timestamp']) {
                         if (empty($tempNewestEvent)) {
                             $lastModified = 'No valid events';
                         }
-                        $this->Event->export_types[$k]['recommendation'] = 0;
+                        $exportTypes[$k]['recommendation'] = 0;
                     } else {
-                        $this->Event->export_types[$k]['recommendation'] = 1;
+                        $exportTypes[$k]['recommendation'] = 1;
                     }
                 }
 
-                $this->Event->export_types[$k]['lastModified'] = $lastModified;
+                $exportTypes[$k]['lastModified'] = $lastModified;
                 if (!empty($job)) {
-                    $this->Event->export_types[$k]['job_id'] = $job['Job']['id'];
-                    $this->Event->export_types[$k]['progress'] = $job['Job']['progress'];
+                    $exportTypes[$k]['job_id'] = $job['Job']['id'];
+                    $exportTypes[$k]['progress'] = $job['Job']['progress'];
                 } else {
-                    $this->Event->export_types[$k]['job_id'] = -1;
-                    $this->Event->export_types[$k]['progress'] = 0;
+                    $exportTypes[$k]['job_id'] = -1;
+                    $exportTypes[$k]['progress'] = 0;
                 }
             }
         }
-        $this->loadModel('Attribute');
-        $this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
-        $this->set('export_types', $this->Event->export_types);
+        $this->set('sigTypes', array_keys($this->Event->Attribute->typeDefinitions));
+        $this->set('export_types', $exportTypes);
     }
 
     public function downloadExport($type, $extra = null)
@@ -3289,8 +3293,9 @@ class EventsController extends AppController
         if ($extra != null) {
             $extra = '_' . $extra;
         }
-        $this->response->type($this->Event->export_types[$type]['extension']);
-        $path = 'tmp/cached_exports/' . $type . DS . 'misp.' . strtolower($this->Event->export_types[$type]['type']) . $extra . '.' . $org . $this->Event->export_types[$type]['extension'];
+        $exportType = $this->Event->exportTypes()[$type];
+        $this->response->type($exportType['extension']);
+        $path = 'tmp/cached_exports/' . $type . DS . 'misp.' . strtolower($exportType['type']) . $extra . '.' . $org . $exportType['extension'];
         $this->response->file($path, array('download' => true));
     }
 
@@ -3920,17 +3925,18 @@ class EventsController extends AppController
      */
     public function freeTextImport($id, $adhereToWarninglists = false, $returnMetaAttributes = false)
     {
+        $this->request->allowMethod(['post', 'get']);
+
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
-            throw new MethodNotAllowedException(__('Invalid event.'));
+            throw new NotFoundException(__('Invalid event.'));
         }
         $this->set('event_id', $event['Event']['id']);
         if ($this->request->is('get')) {
             $this->layout = 'ajax';
             $this->request->data['Attribute']['event_id'] = $event['Event']['id'];
-        }
 
-        if ($this->request->is('post')) {
+        } else if ($this->request->is('post')) {
             App::uses('ComplexTypeTool', 'Tools');
             $complexTypeTool = new ComplexTypeTool();
             $this->loadModel('Warninglist');
@@ -3944,16 +3950,16 @@ class EventsController extends AppController
             if (isset($this->request->data['Attribute']['adhereToWarninglists'])) {
                 $adhereToWarninglists = $this->request->data['Attribute']['adhereToWarninglists'];
             }
-            $resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'freetext');
-            foreach ($resultArray as $key => $r) {
-                $temp = array();
-                foreach ($r['types'] as $type) {
-                    $temp[$type] = $type;
-                }
-                $resultArray[$key]['types'] = $temp;
-            }
-
+            $resultArray = $complexTypeTool->checkFreeText($this->request->data['Attribute']['value']);
             if ($this->_isRest()) {
+                // Keep this 'types' format for rest response, but it is not necessary for UI
+                foreach ($resultArray as $key => $r) {
+                    $temp = array();
+                    foreach ($r['types'] as $type) {
+                        $temp[$type] = $type;
+                    }
+                    $resultArray[$key]['types'] = $temp;
+                }
                 if ($returnMetaAttributes || !empty($this->request->data['Attribute']['returnMetaAttributes'])) {
                     return $this->RestResponse->viewData($resultArray, $this->response->type());
                 } else {
@@ -3967,7 +3973,6 @@ class EventsController extends AppController
                 }
             }
             $this->Event->Attribute->fetchRelated($this->Auth->user(), $resultArray);
-            $resultArray = array_values($resultArray);
             $typeCategoryMapping = array();
             foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
                 foreach ($cat['types'] as $type) {
@@ -3987,15 +3992,10 @@ class EventsController extends AppController
             $this->set('mayModify', $this->__canModifyEvent($event));
             $this->set('typeDefinitions', $this->Event->Attribute->typeDefinitions);
             $this->set('typeCategoryMapping', $typeCategoryMapping);
-            foreach ($typeCategoryMapping as $k => $v) {
-                $typeCategoryMapping[$k] = array_values($v);
-            }
-            $this->set('mapping', $typeCategoryMapping);
             $this->set('resultArray', $resultArray);
             $this->set('importComment', '');
             $this->set('title_for_layout', __('Freetext Import Results'));
             $this->set('title', __('Freetext Import Results'));
-            $this->loadModel('Warninglist');
             $this->set('missingTldLists', $this->Warninglist->missingTldLists());
             $this->render('resolved_attributes');
         }
@@ -4038,19 +4038,17 @@ class EventsController extends AppController
 
     public function saveFreeText($id)
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException('This endpoint requires a POST request.');
-        }
+        $this->request->allowMethod(['post']);
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (!$event) {
             throw new NotFoundException(__('Invalid event.'));
         }
 
         $this->Event->insertLock($this->Auth->user(), $id);
-        $attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
-        $default_comment = $this->request->data['Attribute']['default_comment'];
+        $attributes = $this->_jsonDecode($this->request->data['Attribute']['JsonObject']);
+        $defaultComment = $this->request->data['Attribute']['default_comment'];
         $proposals = !$this->__canModifyEvent($event) || (isset($this->request->data['Attribute']['force']) && $this->request->data['Attribute']['force']);
-        $flashMessage = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, $default_comment, $proposals);
+        $flashMessage = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, $defaultComment, $proposals);
         $this->Flash->info($flashMessage);
 
         if ($this->request->is('ajax')) {
@@ -6139,7 +6137,7 @@ class EventsController extends AppController
 
     /**
      * @param array $event
-     * @return CakeResponseTmp
+     * @return CakeResponseFile
      * @throws Exception
      */
     private function __restResponse(array $event)
@@ -6171,23 +6169,24 @@ class EventsController extends AppController
 
     public function protect($id)
     {
-        $this->__toggleProtect($id, true);
+        return $this->__toggleProtect($id, true);
     }
 
     public function unprotect($id)
     {
-        $this->__toggleProtect($id, false);
+        return $this->__toggleProtect($id, false);
     }
 
+    /**
+     * @param string|int $id Event ID or UUID
+     * @param bool $protect
+     * @return CakeResponse|void
+     * @throws Exception
+     */
     private function __toggleProtect($id, $protect)
     {
-        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
-        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['contain' => ['Orgc']]);
-        if (
-            (!$this->_isSiteAdmin && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) ||
-            !$event ||
-            !$this->__canModifyEvent($event)
-        ) {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (empty($event) || !$this->__canModifyEvent($event)) {
             throw new NotFoundException(__('Invalid event'));
         }
         if ($this->request->is('post')) {
@@ -6197,7 +6196,7 @@ class EventsController extends AppController
             if ($this->Event->save($event)) {
                 $message = __('Event switched to %s mode.', $protect ? __('protected') : __('unprotected'));
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('events', $protect ? 'protect' : 'unprotect', $id, false, $message);
+                    return $this->RestResponse->saveSuccessResponse('events', $protect ? 'protect' : 'unprotect', $event['Event']['id'], false, $message);
                 } else {
                     $this->Flash->success($message);
                     $this->redirect(['controller' => 'events', 'action' => 'view', $id]);
@@ -6205,14 +6204,14 @@ class EventsController extends AppController
             } else {
                 $message = __('Something went wrong - could not switch event to %s mode.', $protect ? __('protected') : __('unprotected'));
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Events', $protect ? 'protect' : 'unprotect', false, $message, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('Events', $protect ? 'protect' : 'unprotect', $event['Event']['id'], $message);
                 } else {
                     $this->Flash->error($message);
-                    $this->redirect(['controller' => 'events', 'action' => 'view', $id]);
+                    $this->redirect(['controller' => 'events', 'action' => 'view', $event['Event']['id']]);
                 }
             }
         } else {
-            $this->set('id', $id);
+            $this->set('id', $event['Event']['id']);
             $this->set('title', $protect ? __('Protect event') : __('Remove event protection'));
             $this->set(
                 'question',

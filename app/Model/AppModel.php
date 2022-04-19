@@ -51,6 +51,9 @@ class AppModel extends Model
     {
         parent::__construct($id, $table, $ds);
         $this->findMethods['column'] = true;
+        if (in_array('phar', stream_get_wrappers())) {
+            stream_wrapper_unregister('phar');
+        }
     }
 
     // deprecated, use $db_changes
@@ -2585,6 +2588,7 @@ class AppModel extends Model
             App::uses('KafkaPubTool', 'Tools');
             $kafkaPubTool = new KafkaPubTool();
             $rdkafkaIni = Configure::read('Plugin.Kafka_rdkafka_config');
+            $rdkafkaIni = mb_ereg_replace("/\:\/\//", '', $rdkafkaIni);
             $kafkaConf = array();
             if (!empty($rdkafkaIni)) {
                 $kafkaConf = parse_ini_file($rdkafkaIni);
@@ -2780,7 +2784,7 @@ class AppModel extends Model
      * @return array[]
      * @throws JsonException
      */
-    protected function setupSyncRequest(array $server, $model = 'Server')
+    public function setupSyncRequest(array $server, $model = 'Server')
     {
         $version = implode('.', $this->checkMISPVersion());
         $commit = $this->checkMIPSCommit();
@@ -3197,16 +3201,7 @@ class AppModel extends Model
      */
     public function jsonDecode($json)
     {
-        if (defined('JSON_THROW_ON_ERROR')) {
-            // JSON_THROW_ON_ERROR is supported since PHP 7.3
-            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-        } else {
-            $decoded = json_decode($json, true);
-            if ($decoded === null) {
-                throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
-            }
-        }
-
+        $decoded = JsonTool::decode($json);
         if (!is_array($decoded)) {
             throw new UnexpectedValueException('JSON must be array type, get ' . gettype($decoded));
         }

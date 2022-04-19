@@ -1,6 +1,9 @@
 <?php
 class GpgTool
 {
+    /** @var CryptGpgExtended */
+    private $gpg;
+
     /**
      * @return CryptGpgExtended
      * @throws Exception
@@ -22,19 +25,16 @@ class GpgTool
             throw new Exception("Configuration option 'GnuPG.homedir' is not set, Crypt_GPG cannot be initialized.");
         }
 
-        $options = array(
+        $options = [
             'homedir' => $homedir,
             'gpgconf' => Configure::read('GnuPG.gpgconf'),
             'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg',
-        );
+        ];
 
         return new CryptGpgExtended($options);
     }
 
-    /** @var CryptGpgExtended */
-    private $gpg;
-
-    public function __construct($gpg)
+    public function __construct(CryptGpgExtended $gpg = null)
     {
         $this->gpg = $gpg;
     }
@@ -47,11 +47,13 @@ class GpgTool
     public function searchGpgKey($search)
     {
         $uri = 'https://openpgp.circl.lu/pks/lookup?search=' . urlencode($search) . '&op=index&fingerprint=on&options=mr';
-        $response = $this->keyServerLookup($uri);
-        if ($response->code == 404) {
-            return array(); // no keys found
-        } else if ($response->code != 200) {
-            throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
+        try {
+            $response = $this->keyServerLookup($uri);
+        } catch (HttpSocketHttpException $e) {
+            if ($e->getCode() === 404) {
+                return [];
+            }
+            throw $e;
         }
         return $this->extractKeySearch($response->body);
     }
@@ -64,11 +66,13 @@ class GpgTool
     public function fetchGpgKey($fingerprint)
     {
         $uri = 'https://openpgp.circl.lu/pks/lookup?search=0x' . urlencode($fingerprint) . '&op=get&options=mr';
-        $response = $this->keyServerLookup($uri);
-        if ($response->code == 404) {
-            return null; // key with given fingerprint not found
-        } else if ($response->code != 200) {
-            throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
+        try {
+            $response = $this->keyServerLookup($uri);
+        } catch (HttpSocketHttpException $e) {
+            if ($e->getCode() === 404) {
+                return null;
+            }
+            throw $e;
         }
 
         $key = $response->body;
@@ -169,30 +173,20 @@ class GpgTool
         $advancedUrl = "https://openpgpkey.$domain/.well-known/openpgpkey/" . strtolower($domain) . "/hu/$localPartHash";
         try {
             $response = $this->keyServerLookup($advancedUrl);
-            return $this->processWkdResponse($response);
+            return $this->gpg->enarmor($response->body());
         } catch (Exception $e) {
             // pass, continue to direct method
         }
 
         $directUrl = "https://$domain/.well-known/openpgpkey/hu/$localPartHash";
-        $response = $this->keyServerLookup($directUrl);
-        return $this->processWkdResponse($response);
-    }
-
-    /**
-     * @param HttpSocketResponse $response
-     * @return string
-     * @throws Crypt_GPG_Exception
-     * @throws Crypt_GPG_InvalidOperationException
-     */
-    private function processWkdResponse(HttpSocketResponse $response)
-    {
-        if ($response->code == 404) {
-            throw new NotFoundException("Key not found");
-        } else if (!$response->isOk()) {
-            throw new Exception("Fetching the WKD failed with HTTP error {$response->code}: {$response->reasonPhrase}");
+        try {
+            $response = $this->keyServerLookup($directUrl);
+        } catch (HttpSocketHttpException $e) {
+            if ($e->getCode() === 404) {
+                throw new NotFoundException("Key not found");
+            }
+            throw $e;
         }
-
         return $this->gpg->enarmor($response->body());
     }
 
@@ -232,17 +226,18 @@ class GpgTool
 
     /**
      * @param string $uri
-     * @return HttpSocketResponse
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
      * @throws Exception
      */
     private function keyServerLookup($uri)
     {
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket();
+        $HttpSocket = $syncTool->createHttpSocket(['compress' => true]);
         $response = $HttpSocket->get($uri);
-        if ($response === false) {
-            throw new Exception("Could not fetch '$uri'.");
+        if (!$response->isOk()) {
+            throw new HttpSocketHttpException($response, $uri);
         }
         return $response;
     }

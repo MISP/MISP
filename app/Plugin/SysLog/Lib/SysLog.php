@@ -38,9 +38,9 @@ class SysLog
      * @param array $options Options for the SysLog, see above.
      * @return void
      */
-    public function __construct($options = array())
+    public function __construct($options = [])
     {
-        $options += array('ident' => LOGS, 'facility' => LOG_LOCAL0, 'to_stderr' => true);
+        $options += ['ident' => LOGS, 'facility' => LOG_LOCAL0, 'to_stderr' => true];
         $option = LOG_PID; // include PID with each message
         if ($options['to_stderr']) {
             $option |= LOG_PERROR; // print log message also to standard error
@@ -51,7 +51,7 @@ class SysLog
     /**
      * Implements writing to the specified syslog
      *
-     * @param string $type The type of log you are making.
+     * @param int $type The type of log you are making.
      * @param string $message The message you want to log.
      * @return boolean success of write.
      */
@@ -60,14 +60,9 @@ class SysLog
         if (!$this->_log) {
             return false;
         }
-        $debugTypes = array('notice', 'info', 'debug');
-        $priority = LOG_INFO;
-        if ($type == 'error' || $type == 'warning') {
-            $priority = LOG_ERR;
-        } else if (in_array($type, $debugTypes)) {
-            $priority = LOG_DEBUG;
+        if (!is_int($type)) {
+            throw new InvalidArgumentException("Invalid log type `$type`, must be one of LOG_* constant.");
         }
-        $output = date('Y-m-d H:i:s') . ' ' . ucfirst($type) . ': ' . $message;
-        return syslog($priority, $output);
+        return syslog($type, $message);
     }
 }

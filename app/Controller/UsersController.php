@@ -154,7 +154,7 @@ class UsersController extends AppController
                     }
                 }
             }
-            if (!$abortPost && !$this->_isRest()) {
+            if (!$abortPost && (!$this->_isRest() || empty($this->request->header('Authorization')))) {
                 if (Configure::read('Security.require_password_confirmation')) {
                     if (!empty($this->request->data['User']['current_password'])) {
                         $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
@@ -853,7 +853,7 @@ class UsersController extends AppController
                 $this->request->data['User'] = $this->request->data;
             }
             $abortPost = false;
-            if (!$this->_isRest()) {
+            if (!$this->_isRest() || empty($this->request->header('Authorization'))) {
                 if (Configure::read('Security.require_password_confirmation')) {
                     if (!empty($this->request->data['User']['current_password'])) {
                         $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);

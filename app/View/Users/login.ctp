@@ -45,7 +45,7 @@
                 echo sprintf(
                     '%s <a href="%s/selfservice" title="LinOTP Selfservice">LinOTP Selfservice</a> %s',
                     __('Visit'),
-                    Configure::read('LinOTPAuth.baseUrl'),
+                    h(Configure::read('LinOTPAuth.baseUrl')),
                     __('for the One-Time-Password selfservice.')
                 );
             }
@@ -92,7 +92,10 @@ function submitLoginForm() {
     var url = $form.attr('action')
     var email = $form.find('#UserEmail').val()
     var password = $form.find('#UserPassword').val()
-    if (!empty(Configure::read('LinOTPAuth')) && Configure::read('LinOTPAuth.enabled')) {
+    var LinOTPAuth = <?= empty(Configure::read('LinOTPAuth')) ? 'false' : 'true' ?>;
+    var LinOTPAuthEnabled = <?= empty(Configure::read('LinOTPAuth.enabled')) ? 'false' : 'true' ?>;
+
+    if (LinOTPAuth && LinOTPAuthEnabled) {
         var otp = $form.find('#UserOtp').val()
     }
     if (!$form[0].checkValidity()) {
@@ -107,7 +110,7 @@ function submitLoginForm() {
             var $tmpForm = $('#temp form#UserLoginForm')
             $tmpForm.find('#UserEmail').val(email)
             $tmpForm.find('#UserPassword').val(password)
-            if (!empty(Configure::read('LinOTPAuth')) && Configure::read('LinOTPAuth.enabled')) {
+            if (LinOTPAuth && LinOTPAuthEnabled) {
                 $tmpForm.find('#UserOtp').val(otp)
             }
             $tmpForm.submit()

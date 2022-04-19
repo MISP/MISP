@@ -272,7 +272,7 @@ class AuditLog extends AppModel
             if ($title) {
                 $entry .= " -- $title";
             }
-            $this->syslog->write('info', $entry);
+            $this->syslog->write(LOG_INFO, $entry);
         }
         return true;
     }

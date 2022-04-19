@@ -157,11 +157,6 @@ class GalaxyClusterRelation extends AppModel
         return array_unique(array_merge($existingRelationships, $objectRelationships));
     }
 
-    public function deleteRelations($conditions)
-    {
-        $this->deleteAll($conditions, false, false);
-    }
-
     /**
      * saveRelations
      *

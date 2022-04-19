@@ -34,7 +34,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '138';
+    private $__queryVersion = '139';
     public $pyMispVersion = '2.4.157';
     public $phpmin = '7.2';
     public $phprec = '7.4';
@@ -202,20 +202,7 @@ class AppController extends Controller
                 if (empty($dataToDecode)) {
                     return null;
                 }
-                try {
-                    if (defined('JSON_THROW_ON_ERROR')) {
-                        // JSON_THROW_ON_ERROR is supported since PHP 7.3
-                        return json_decode($dataToDecode, true, 512, JSON_THROW_ON_ERROR);
-                    } else {
-                        $decoded = json_decode($dataToDecode, true);
-                        if ($decoded === null) {
-                            throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
-                        }
-                        return $decoded;
-                    }
-                } catch (Exception $e) {
-                    throw new HttpException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.', 405, $e);
-                }
+                return $this->_jsonDecode($dataToDecode);
             };
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
@@ -376,7 +363,7 @@ class AppController extends Controller
     {
         // Notifications and homepage is not necessary for AJAX or REST requests
         $user = $this->Auth->user();
-        if ($user && !$this->_isRest() && !$this->request->is('ajax')) {
+        if ($user && !$this->_isRest() && isset($this->User) && !$this->request->is('ajax')) {
             $hasNotifications = $this->User->hasNotifications($user);
             $this->set('hasNotifications', $hasNotifications);
 
@@ -1449,5 +1436,28 @@ class AppController extends Controller
             return new AppView($this);
         }
         return parent::_getViewObject();
+    }
+
+    /**
+     * Decode JSON with proper error handling.
+     * @param string $dataToDecode
+     * @return mixed
+     */
+    protected function _jsonDecode($dataToDecode)
+    {
+        try {
+            if (defined('JSON_THROW_ON_ERROR')) {
+                // JSON_THROW_ON_ERROR is supported since PHP 7.3
+                return json_decode($dataToDecode, true, 512, JSON_THROW_ON_ERROR);
+            } else {
+                $decoded = json_decode($dataToDecode, true);
+                if ($decoded === null) {
+                    throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
+                }
+                return $decoded;
+            }
+        } catch (Exception $e) {
+            throw new HttpException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.', 405, $e);
+        }
     }
 }

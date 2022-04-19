@@ -73,10 +73,7 @@ function xhr(options) {
 
 function deleteObject(type, action, id) {
     var url = baseurl + "/" + type + "/" + action + "/" + id;
-    $.get(url, function(data) {
-        openPopup("#confirmation_box");
-        $("#confirmation_box").html(data);
-    }).fail(xhrFailCallback)
+    $.get(url, openConfirmation).fail(xhrFailCallback)
 }
 
 function quickDeleteSighting(id, rawId, context) {
@@ -100,7 +97,7 @@ function fetchAddSightingForm(type, attribute_id, onvalue) {
     }).fail(xhrFailCallback);
 }
 
-function flexibleAddSighting(clicked, type, attribute_id, event_id, placement) {
+function flexibleAddSighting(clicked, type, attribute_id, placement) {
     var $clicked = $(clicked);
     var hoverbroken = false;
     $clicked.off('mouseleave.temp').on('mouseleave.temp', function() {
@@ -110,7 +107,7 @@ function flexibleAddSighting(clicked, type, attribute_id, event_id, placement) {
         $clicked.off('mouseleave.temp');
         if ($clicked.is(":hover") && !hoverbroken) {
             var html = '<div>'
-                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\')">This attribute</button>'
+                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\')">This attribute</button>'
                 + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', true)">Global value</button>'
                 + '</div>';
             openPopover(clicked, html, true, placement);
@@ -121,14 +118,10 @@ function flexibleAddSighting(clicked, type, attribute_id, event_id, placement) {
 function publishPopup(id, type, scope) {
     scope = scope === undefined ? 'events' : scope;
     var action = "alert";
-    if (type == "publish") action = "publish";
-    if (type == "unpublish") action = "unpublish";
-    if (type == "sighting") action = "publishSightings";
-    var destination = 'attributes';
-    $.get(baseurl + "/" + scope + "/" + action + "/" + id, function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback);
+    if (type === "publish") action = "publish";
+    if (type === "unpublish") action = "unpublish";
+    if (type === "sighting") action = "publishSightings";
+    $.get(baseurl + "/" + scope + "/" + action + "/" + id, openConfirmation).fail(xhrFailCallback);
 }
 
 function delegatePopup(id) {
@@ -168,10 +161,6 @@ function screenshotPopup(url, title) {
         top: (document.documentElement.scrollTop + 100) + 'px'
     });
     $("#gray_out").fadeIn();
-}
-
-function submitPublish(id, type) {
-    $("#PromptForm").submit();
 }
 
 function editTemplateElement(type, id) {
@@ -355,13 +344,13 @@ function submitGenericForm(url, form, target) {
     });
 }
 
-function acceptObject(type, id, event) {
+function acceptObject(type, id) {
     var name = '#ShadowAttribute_' + id + '_accept';
     var formData = $(name).serialize();
     $.ajax({
         data: formData,
-        success: function (data, textStatus) {
-            updateIndex(event, 'event');
+        success: function (data) {
+            updateIndex(null, 'event');
             eventUnpublish();
             handleGenericAjaxResponse(data);
         },
@@ -419,18 +408,16 @@ function eventUnpublish() {
     $('.notPublished').show();
 }
 
-function updateIndex(id, context, newPage) {
-    if (typeof newPage !== 'undefined') page = newPage;
+function updateIndex(id, context) {
     var url, div;
-    if (context == 'event') {
+    if (context === 'event') {
         if (typeof currentUri == 'undefined') {
             location.reload();
             return true;
         }
         url = currentUri;
         div = "#attributes_div";
-    }
-    if (context == 'template') {
+    } else if (context === 'template') {
         url = "/template_elements/index/" + id;
         div = "#templateElements";
     }
@@ -453,7 +440,8 @@ function updateIndex(id, context, newPage) {
     });
 }
 
-function updateAttributeFieldOnSuccess(name, type, id, field, event) {
+function updateFieldOnSuccess($td, type, id, field) {
+    var objectType = type === 'Object' ? 'objects' : 'attributes';
     $.ajax({
         beforeSend: function () {
             if (field !== 'timestamp') {
@@ -462,111 +450,76 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
         },
         dataType:"html",
         cache: false,
-        success:function (data, textStatus) {
+        success: function (data) {
             if (field !== 'timestamp') {
                 $(".loading").hide();
-                $(name + '_solid').html(data);
-                $(name + '_placeholder').empty();
-                $(name + '_solid').show();
+                $td.find('.inline-field-placeholder').remove();
+                $td.find('.inline-field-solid').html(data).show();
             } else {
-                $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
+                $td.parent().find('td.timestamp').html(data);
             }
             popoverStartup(); // reactive popovers
         },
         error: xhrFailCallback,
-        url: baseurl + "/attributes/fetchViewValue/" + id + "/" + field,
+        url: baseurl + "/" + objectType +"/fetchViewValue/" + id + "/" + field,
     });
 }
 
-function updateObjectFieldOnSuccess(name, type, id, field, event) {
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            if (field != 'timestamp') {
-                $(".loading").show();
-            }
-        },
-        dataType:"html",
-        cache: false,
-        success:function (data, textStatus) {
-            if (field != 'timestamp') {
-                $(".loading").hide();
-                $(name + '_solid').html(data);
-                $(name + '_placeholder').empty();
-                $(name + '_solid').show();
-            } else {
-                $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
-            }
-        },
-        error: xhrFailCallback,
-        url: baseurl + "/objects/fetchViewValue/" + id + "/" + field,
-    });
-}
-
-function activateField(type, id, field, event) {
-    resetForms();
+function activateField($td, type, id, field) {
+    resetEditHoverForms();
     if (type === 'denyForm') {
         return;
     }
-    var objectType, containerName;
-    if (type === 'Object') {
-        objectType = 'objects';
-        containerName = 'Object';
-    } else {
-        objectType = 'attributes';
-        containerName = 'Attribute';
-    }
+    var objectType = type === 'Object' ? 'objects' : 'attributes';
     var name = '#' + type + '_' + id + '_' + field;
-    var container_name = '#' + containerName + '_' + id + '_' + field;
+
     xhr({
         dataType: "html",
         success: function (data) {
-            $(container_name + '_placeholder').html(data);
-            postActivationScripts(name, type, id, field, event);
+            var $placeholder = $('<div class="inline-field-placeholder"></div>').html(data);
+            $td.find(".inline-field-solid").before($placeholder);
+            postActivationScripts($td, name, type, id, field);
+            $td.find(".inline-field-solid").hide();
         },
         url: "/" + objectType + "/fetchEditForm/" + id + "/" + field,
     });
 }
 
-function submitQuickTag(form) {
-    $('#' + form).submit();
-}
-
 //if someone clicks an inactive field, replace it with the hidden form field. Also, focus it and bind a focusout event, so that it gets saved if the user clicks away.
 //If a user presses enter, submit the form
-function postActivationScripts(name, type, id, field, event) {
-    $(name + '_field').focus();
-    inputFieldButtonActive(name + '_field');
-    if (field == 'value' || field == 'comment') {
-        autoresize($(name + '_field')[0]);
-        $(name + '_field').on('keyup', function () {
+function postActivationScripts($td, name, type, id, field) {
+    var $field = $(name + '_field');
+    $field.focus();
+    inputFieldButtonActive($field);
+    if (field === 'value' || field === 'comment') {
+        autoresize($field[0]);
+        $field.on('keyup', function () {
             autoresize(this);
         });
     }
+
     $(name + '_form').submit(function(e){
         e.preventDefault();
-        submitForm(type, id, field, event);
+        submitForm($td, type, id, field);
         return false;
+    }).bind("focusout", function() {
+        inputFieldButtonPassive($field);
+    }).bind("focusin", function(){
+        inputFieldButtonActive($field);
     });
 
-    $(name + '_form').bind("focusout", function() {
-        inputFieldButtonPassive(name + '_field');
+    var $inlineInputContainer = $field.closest('.inline-input-container');
+
+    $inlineInputContainer.children('.inline-input-accept').bind('click', function() {
+        submitForm($td, type, id, field);
     });
 
-    $(name + '_form').bind("focusin", function(){
-        inputFieldButtonActive(name + '_field');
+    $inlineInputContainer.children('.inline-input-decline').bind('click', function() {
+        resetEditHoverForms();
     });
-    $(name + '_field').closest('.inline-input-container').children('.inline-input-accept').bind('click', function() {
-        submitForm(type, id, field, event);
-    });
-
-    $(name + '_field').closest('.inline-input-container').children('.inline-input-decline').bind('click', function() {
-        resetForms();
-    });
-
-    $(name + '_solid').hide();
 }
 
-function quickEditHover(td, type, id, field, event) {
+function quickEditHover(td, type, id, field) {
     var $td = $(td);
     $td.find('#quickEditButton').remove(); // clean all similar if exist
     var $div = $('<div id="quickEditButton"></div>');
@@ -575,10 +528,10 @@ function quickEditHover(td, type, id, field, event) {
     $span.addClass('fa-as-icon fa fa-edit');
     $span.css('font-size', '12px');
     $div.append($span);
-    $td.find("[id*=_solid]").append($div);
+    $td.find(".inline-field-solid").append($div);
 
     $span.click(function() {
-        activateField(type, id, field, event);
+        activateField($td, type, id, field);
     });
 
     $td.off('mouseleave').on('mouseleave', function() {
@@ -586,7 +539,7 @@ function quickEditHover(td, type, id, field, event) {
     });
 }
 
-function addSighting(type, attribute_id, event_id) {
+function addSighting(type, attribute_id) {
     var $sightingForm = $('#SightingForm');
     $('input[name="data[Sighting][type]"]', $sightingForm).val(type);
     $('input[name="data[Sighting][id]"]', $sightingForm).val(attribute_id);
@@ -601,21 +554,26 @@ function addSighting(type, attribute_id, event_id) {
                 $('.sightingsCounter').each(function() {
                     $(this).html(parseInt($(this).html()) + 1);
                 });
-                updateIndex(event_id, 'event');
+                updateIndex(null, 'event');
             }
         },
         error: function(xhr) {
             xhrFailCallback(xhr);
-            updateIndex(event_id, 'event');
+            updateIndex(null, 'event');
         },
         type: "post",
         url: baseurl + "/sightings/add/",
     });
 }
 
+function resetEditHoverForms() {
+    $('.inline-field-solid').show();
+    $('.inline-field-placeholder').remove();
+}
+
 function resetForms() {
     $('.inline-field-solid').show();
-    $('.inline-field-placeholder').empty();
+    $('.inline-field-placeholder').hide();
 }
 
 function inputFieldButtonActive(selector) {
@@ -635,30 +593,51 @@ function autoresize(textarea) {
 
 // submit the form - this can be triggered by unfocusing the activated form field or by submitting the form (hitting enter)
 // after the form is submitted, intercept the response and act on it
-function submitForm(type, id, field, context) {
+function submitForm($td, type, id, field) {
     var object_type = 'attributes';
-    var action = "editField";
     var name = '#' + type + '_' + id + '_' + field;
-    if (type == 'Object') {
+    if (type === 'Object') {
         object_type = 'objects';
     }
     $.ajax({
         data: $(name + '_field').closest("form").serialize(),
         cache: false,
-        success:function (data, textStatus) {
-            handleAjaxEditResponse(data, name, type, id, field, context);
+        success: function (data) {
+            handleAjaxEditResponse($td, data, type, id, field);
         },
-        error:function(xhr) {
+        error: function(xhr) {
             xhrFailCallback(xhr);
-            updateIndex(context, 'event');
+            updateIndex(null, 'event');
         },
-        type:"post",
-        url: baseurl + "/" + object_type + "/" + action + "/" + id
+        type: "post",
+        url: baseurl + "/" + object_type + "/editField/" + id
     });
     $(name + '_field').unbind("keyup");
     $(name + '_form').unbind("focusout");
     return false;
 }
+
+// Event attributes and attributes index and search
+(function() {
+    $(document.body).on('click', '.correlation-toggle', function() {
+        var attribute_id = $(this).parents('tr').data('primary-id');
+        getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
+        return false;
+    });
+    $(document.body).on('click', '.toids-toggle', function() {
+        var attribute_id = $(this).parents('tr').data('primary-id');
+        getPopup(attribute_id, 'attributes', 'toggleToIDS', '', '#confirmation_box');
+        return false;
+    });
+    // Show quick edit hover icon for attributes and objects
+    $(document.body).on('mouseenter', '[data-edit-field]', function() {
+        var $tr = $(this).parents('tr');
+        var objectId = $tr.data('primary-id');
+        var type = $tr.attr('id').startsWith('Object') ? 'Object' : 'Attribute';
+        var field = $(this).data('edit-field');
+        quickEditHover(this, type, objectId, field);
+    });
+})();
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
     var event_id = addData.id;
@@ -780,30 +759,30 @@ function refreshTagCollectionRow(tag_collection_id) {
     });
 }
 
-function handleAjaxEditResponse(data, name, type, id, field, event) {
-    responseArray = data;
+function handleAjaxEditResponse($td, data, type, id, field) {
+    var responseArray = data;
     if (type === 'Attribute') {
         if (responseArray.saved) {
             var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
             showMessage('success', msg);
-            updateAttributeFieldOnSuccess(name, type, id, field, event);
-            updateAttributeFieldOnSuccess(name, type, id, 'timestamp', event);
+            updateFieldOnSuccess($td, type, id, field);
+            updateFieldOnSuccess($td, type, id, 'timestamp');
             eventUnpublish();
         } else {
             showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
-            updateAttributeFieldOnSuccess(name, type, id, field, event);
+            updateFieldOnSuccess($td, type, id, field);
         }
     } else if (type === 'ShadowAttribute') {
-        updateIndex(event, 'event');
+        updateIndex(null, 'event');
     } else if (type === 'Object') {
         if (responseArray.saved) {
             showMessage('success', responseArray.message);
-            updateObjectFieldOnSuccess(name, type, id, field, event);
-            updateObjectFieldOnSuccess(name, type, id, 'timestamp', event);
+            updateFieldOnSuccess($td, type, id, field);
+            updateFieldOnSuccess($td, type, id, 'timestamp');
             eventUnpublish();
         } else {
             showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
-            updateObjectFieldOnSuccess(name, type, id, field, event);
+            updateFieldOnSuccess($td, type, id, field);
         }
     }
     if (responseArray.hasOwnProperty('check_publish')) {
@@ -840,11 +819,9 @@ function handleGenericAjaxResponse(data, skip_reload) {
 
 function toggleAllAttributeCheckboxes() {
     if ($(".select_all").is(":checked")) {
-        $(".select_attribute").prop("checked", true);
-        $(".select_proposal").prop("checked", true);
+        $(".select_attribute, .select_proposal").prop("checked", true);
     } else {
-        $(".select_attribute").prop("checked", false);
-        $(".select_proposal").prop("checked", false);
+        $(".select_attribute, .select_proposal").prop("checked", false);
     }
 }
 
@@ -899,10 +876,11 @@ function multiSelectDeleteEvents() {
             }
         }
     });
-    $.get(baseurl + "/events/delete/" + JSON.stringify(selected), function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback);
+    deleteEventPopup(JSON.stringify(selected));
+}
+
+function deleteEventPopup(eventId) {
+    $.get(baseurl + "/events/delete/" + eventId, openConfirmation).fail(xhrFailCallback);
 }
 
 function multiSelectExportEvents() {
@@ -967,7 +945,7 @@ function multiSelectDeleteEventBlocklist(on, cache) {
     }).fail(xhrFailCallback);
 }
 
-function multiSelectAction(event, context) {
+function multiSelectAction(event_id, context) {
     var settings = {
         deleteAttributes: {
             confirmation: "Are you sure you want to delete all selected attributes?",
@@ -994,25 +972,22 @@ function multiSelectAction(event, context) {
     var answer = confirm("Are you sure you want to " + settings[context]["action"] + " all selected " + settings[context]["alias"] + "s?");
     if (answer) {
         var selected = [];
-        $(".select_" + settings[context]["alias"]).each(function() {
-            if ($(this).is(":checked")) {
-                var temp= $(this).data("id");
-                selected.push(temp);
-            }
+        $(".select_" + settings[context]["alias"] + ":checked").each(function() {
+            selected.push($(this).data("id"));
         });
         $('#' + settings[context]["camelCase"] + 'Ids' + settings[context]["action"].ucfirst()).attr('value', JSON.stringify(selected));
         var formData = $('#' + settings[context]["action"] + '_selected').serialize();
         if (context == 'deleteAttributes') {
             var url = $('#delete_selected').attr('action');
         } else {
-            var url = baseurl + "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event;
+            var url = baseurl + "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event_id;
         }
         xhr({
             data: formData,
             type:"POST",
             url: url,
             success: function (data) {
-                updateIndex(event, 'event');
+                updateIndex(null, 'event');
                 var result = handleGenericAjaxResponse(data);
                 if (settings[context]["action"] != "discard" && result == true) {
                     eventUnpublish();
@@ -1055,22 +1030,11 @@ function unhideSelectedTags(taxonomy) {
 	}).fail(xhrFailCallback);
 }
 
-function submitMassTaxonomyTag() {
-    $('#PromptForm').submit();
-}
-
-function submitMassEventDelete() {
-    $('#PromptForm').trigger('submit');
-    event.preventDefault();
-}
-
 function getSelected() {
     var selected = [];
-    $(".select_attribute").each(function() {
-        if ($(this).is(":checked")) {
-            var test = $(this).data("id");
-            selected.push(test);
-        }
+    $(".select_attribute:checked").each(function() {
+        var test = $(this).data("id");
+        selected.push(test);
     });
     return JSON.stringify(selected);
 }
@@ -1125,33 +1089,15 @@ function loadTagCollectionTags(id) {
     });
 }
 
-function removeEventTag(event, tag) {
-    var answer = confirm("Are you sure you want to remove this tag from the event?");
-    if (answer) {
-        var formData = $('#removeTag_' + tag).serialize();
-        xhr({
-            data: formData,
-            type:"POST",
-            url: "/events/removeTag/" + event + '/' + tag,
-            success:function (data) {
-                loadEventTags(event);
-                handleGenericAjaxResponse(data);
-            },
-        });
-    }
-    return false;
-}
-
-function loadAttributeTags(id) {
+function loadAttributeTags(attribute_id) {
     $.ajax({
         dataType: "html",
         cache: false,
         success: function (data) {
-            // different approach for event view and attribute view
-            $("#Attribute_" + id + "_tr .attributeTagContainer, [data-primary-id=" + id + "] .attributeTagContainer").html(data);
+            $("[data-primary-id=" + attribute_id + "] .attributeTagContainer").html(data);
         },
         error: xhrFailCallback,
-        url: baseurl + "/tags/showAttributeTag/" + id
+        url: baseurl + "/tags/showAttributeTag/" + attribute_id
     });
 }
 
@@ -1673,6 +1619,12 @@ function templateElementFileCategoryChange(category) {
     }
 }
 
+function openConfirmation(data) {
+    var $box = $("#confirmation_box");
+    $box.html(data);
+    openPopup($box);
+}
+
 function openPopup(id, adjust_layout, callback) {
     var $id = $(id);
     adjust_layout = adjust_layout === undefined ? true : adjust_layout;
@@ -1819,6 +1771,7 @@ function getPopup(id, context, target, admin, popupType) {
 }
 
 // Same as getPopup function but create a popover to populate first
+// DEPRECATED
 function popoverPopup(clicked, id, context, target, admin) {
     var url = baseurl;
     if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
@@ -1827,20 +1780,24 @@ function popoverPopup(clicked, id, context, target, admin) {
     }
     if (target != '') url += "/" + target;
     if (id != '') url += "/" + id;
-    var popover = openPopover(clicked, undefined);
-    $clicked = $(clicked);
+    popoverPopupNew(clicked, url);
+}
+
+function popoverPopupNew(clicked, url) {
+    var $clicked = $(clicked);
+    var popover = openPopover($clicked, undefined);
 
     // actual request //
     $.ajax({
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data) {
+        success: function (data) {
             if (popover.options.content !== data) {
-                popover.options.content =  data;
+                popover.options.content = data;
                 $clicked.popover('show');
             }
         },
-        error:function(jqXHR ) {
+        error: function(jqXHR) {
             var errorJSON = '';
             try {
                 errorJSON = JSON.parse(jqXHR.responseText);
@@ -1917,12 +1874,13 @@ function simplePopup(url, requestType, data) {
     data = data === undefined ? [] : data
     $("#gray_out").fadeIn();
     xhr({
-        dataType:"html",
-        success:function (data) {
-            $("#popover_form").html(data);
-            openPopup("#popover_form");
+        dataType: "html",
+        success: function (data) {
+            var $popover = $("#popover_form");
+            $popover.html(data);
+            openPopup($popover);
         },
-        error:function(xhr) {
+        error: function(xhr) {
             $("#gray_out").fadeOut();
             xhrFailCallback(xhr);
         },
@@ -2168,14 +2126,14 @@ function quickFilter(passedArgs, url) {
 
 function runIndexFilter(element) {
     var dataFields = $(element).data();
-    for (var k in $(element).data()) {
+    for (var k in dataFields) {
         if (k in passedArgsArray) {
             delete(passedArgsArray[k]);
         } else {
             passedArgsArray[k] = dataFields[k];
         }
     }
-    url = here;
+    var url = here;
     for (var key in passedArgsArray) {
         url += "/" + key + ":" + passedArgsArray[key];
     }
@@ -2686,9 +2644,10 @@ function popoverStartup() {
 }
 
 function changeFreetextImportFrom() {
-    $('#changeTo').find('option').remove();
+    var $changeTo = $('#changeTo');
+    $changeTo.empty();
     options[$('#changeFrom').val()].forEach(function(element) {
-        $('#changeTo').append('<option value="' + element + '">' + element + '</option>');
+        $changeTo.append(new Option(element));
     });
 }
 
@@ -2700,8 +2659,10 @@ function changeFreetextImportExecute() {
     var from = $('#changeFrom').val();
     var to = $('#changeTo').val();
     $('.typeToggle').each(function() {
-        if ($( this ).val() == from) {
-            if (selectContainsOption("#" + $(this).attr('id'), to)) $( this ).val(to);
+        if ($(this).val() === from) {
+            if (selectContainsOption("#" + $(this).attr('id'), to)) {
+                $(this).val(to);
+            }
         }
     });
 }
@@ -2709,7 +2670,7 @@ function changeFreetextImportExecute() {
 function selectContainsOption(selectid, value) {
     var exists = false;
     $(selectid + ' option').each(function(){
-        if (this.value == value) {
+        if (this.value === value) {
             exists = true;
             return false;
         }
@@ -2740,12 +2701,11 @@ function importChoiceSelect(url, elementId, ajax) {
     }
 }
 
-function freetextImportResultsSubmit(id, count) {
+function freetextImportResultsSubmit(event_id, count) {
     var attributeArray = [];
-    var temp;
     for (var i = 0; i < count; i++) {
         if ($('#Attribute' + i + 'Save').val() == 1) {
-            temp = {
+            attributeArray.push({
                 value:$('#Attribute' + i + 'Value').val(),
                 category:$('#Attribute' + i + 'Category').val(),
                 type:$('#Attribute' + i + 'Type').val(),
@@ -2757,18 +2717,17 @@ function freetextImportResultsSubmit(id, count) {
                 data:$('#Attribute' + i + 'Data').val(),
                 data_is_handled:$('#Attribute' + i + 'DataIsHandled').val(),
                 tags:$('#Attribute' + i + 'Tags').val()
-            }
-            attributeArray[attributeArray.length] = temp;
+            })
         }
     }
     $("#AttributeJsonObject").val(JSON.stringify(attributeArray));
     var formData = $(".mainForm").serialize();
     xhr({
         type: "post",
-        url: "/events/saveFreeText/" + id,
+        url: "/events/saveFreeText/" + event_id,
         data: formData,
         success: function () {
-            window.location = baseurl + '/events/view/' + id;
+            window.location = baseurl + '/events/view/' + event_id;
         },
     });
 }
@@ -4113,23 +4072,25 @@ function feedFormUpdate() {
 }
 
 function setContextFields() {
+    if (typeof showContext === "undefined") {
+        showContext = false;
+    }
+
+    var $button = $('#show_attribute_context');
     if (showContext) {
         $('.context').show();
-        $('#show_context').addClass("attribute_filter_text_active");
-        $('#show_context').removeClass("attribute_filter_text");
+        $button.removeClass("btn-inverse").addClass("btn-primary");
     } else {
         $('.context').hide();
-        $('#show_context').addClass("attribute_filter_text");
-        $('#show_context').removeClass("attribute_filter_text_active");
+        $button.removeClass("btn-primary").addClass("btn-inverse");
     }
 }
 
 function toggleContextFields() {
-    if (!showContext) {
-        showContext = true;
-    } else {
+    if (typeof showContext === "undefined") {
         showContext = false;
     }
+    showContext = !showContext;
     setContextFields();
 }
 
@@ -4182,27 +4143,20 @@ function loadTagTreemap() {
     });
 }
 
-function quickEditEvent(id, field) {
-    xhr({
-        success:function (data) {
-            $("#" + field + "Field").html(data);
-        },
-        type:"get",
-        url: "/events/quickEdit/" + id + "/" + field,
-    });
-}
-
 function selectAllInbetween(last, current) {
-    if (last === false || last == current) return false;
-    var from = $('#' + last).parent().parent().index();
-    var to = $('#' + current).parent().parent().index();
+    if (last === false || last === current) {
+        return false;
+    }
+    var from = $(last).parent().parent().index();
+    var to = $(current).parent().parent().index();
     if (to < from) {
         var temp = from;
         from = to;
         to = temp;
     }
-    $('.select_proposal, .select_attribute, .select').each(function (e) {
-        if ($('#' + this.id).parent().parent().index() >= from && $('#' + this.id).parent().parent().index() <= to) {
+    $('.select_proposal, .select_attribute, .select').each(function () {
+        var index = $(this).parent().parent().index();
+        if (index >= from && index <= to) {
             $(this).prop('checked', true);
         }
     });
@@ -4211,35 +4165,31 @@ function selectAllInbetween(last, current) {
 $('#eventToggleButtons button').click(function() {
     var element = $(this).data('toggle-type');
     var $button = $(this).children('span');
+    var $element = $('#' + element + '_div');
     if ($button.hasClass('fa-minus')) {
         $button.addClass('fa-plus');
         $button.removeClass('fa-minus');
-        $('#' + element + '_div').hide();
+        $element.hide();
     } else {
         $button.removeClass('fa-plus');
         $button.addClass('fa-minus');
-        $('#' + element + '_div').show();
+        $element.show();
+
+        // Special cases when another action must be made
+        if (element === 'eventtimeline') {
+            enable_timeline();
+        } else if (element === 'eventgraph') {
+            enable_interactive_graph();
+        }
 
         var loadUrl = $(this).data('load-url');
         if (loadUrl) {
             $.get(loadUrl, function(data) {
-                $('#' + element + '_div').html(data);
+                $element.html(data);
             }).fail(xhrFailCallback);
         }
     }
 });
-
-function addGalaxyListener(id) {
-    var target_type = $(id).data('target-type');
-    var target_id = $(id).data('target-id');
-    var local = $(id).data('local');
-    if (local) {
-        local = 1;
-    } else {
-        local = 0;
-    }
-    popoverPopup(id, target_id + '/' + target_type + '/local:' + local, 'galaxies', 'selectGalaxyNamespace');
-}
 
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     cluster_ids = cluster_ids === null ? [] : cluster_ids;
@@ -4314,6 +4264,7 @@ $(function() {
         $("#popover_matrix").fadeOut();
         $(".loading").hide();
         resetForms();
+        resetEditHoverForms();
     })
 });
 
@@ -4323,6 +4274,7 @@ $(document).keyup(function(e){
         $("#popover_matrix").fadeOut();
         $(".loading").hide();
         resetForms();
+        resetEditHoverForms();
     }
 });
 
@@ -4774,17 +4726,20 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
         success: function (data) {
             $(paginatorTarget).html(data);
         },
-        error: function () {
-            showMessage('fail', 'Could not fetch the requested data.');
-        },
         url: $(this).attr('href'),
     });
 });
 
-// Any link with modal-open class will be treated as generic modal
+// Any link with `modal-open` class will be treated as generic modal
 $(document.body).on('click', 'a.modal-open', function (e) {
     e.preventDefault();
     openGenericModal($(this).attr('href'));
+});
+
+$(document.body).on('click', '[data-popover-popup]', function (e) {
+    e.preventDefault();
+    var url = $(this).data('popover-popup');
+    popoverPopupNew(this, url);
 });
 
 function queryEventLock(event_id, timestamp) {
@@ -5064,12 +5019,12 @@ function checkRoleEnforceRateLimit() {
 
 function queryDeprecatedEndpointUsage() {
     $.ajax({
-        url: baseurl + '/servers/viewDeprecatedFunctionUse',
+        url: baseurl + '/api/viewDeprecatedFunctionUse',
         type: 'GET',
         success: function(data) {
             $('#deprecationResults').html(data);
         },
-        error: function(data) {
+        error: function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Could not query the deprecation statistics.']});
         }
     });

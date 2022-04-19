@@ -4,6 +4,7 @@ App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
 App::uses('GpgTool', 'Tools');
 App::uses('SendEmail', 'Tools');
+App::uses('SendEmailTemplate', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 
 /**
@@ -832,6 +833,7 @@ class User extends AppModel
 
         $gpg = $this->initializeGpg();
         $sendEmail = new SendEmail($gpg);
+        $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
         try {
             $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
 
@@ -865,16 +867,6 @@ class User extends AppModel
             'change' => null,
         ));
         return true;
-    }
-
-    public function adminMessageResolve($message)
-    {
-        $resolveVars = array('$contact' => 'MISP.contact', '$org' => 'MISP.org', '$misp' => 'MISP.baseurl');
-        foreach ($resolveVars as $k => $v) {
-            $v = Configure::read($v);
-            $message = str_replace($k, $v, $message);
-        }
-        return $message;
     }
 
     /**
@@ -955,24 +947,15 @@ class User extends AppModel
     public function initiatePasswordReset($user, $firstTime = false, $simpleReturn = false, $fixedPassword = false)
     {
         $org = Configure::read('MISP.org');
-        $options = array('newUserText', 'passwordResetText');
         $subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
-        $textToFetch = $options[($firstTime ? 0 : 1)];
         $subject = $subjects[($firstTime ? 0 : 1)];
         $this->Server = ClassRegistry::init('Server');
-        $body = Configure::read('MISP.' . $textToFetch);
-        if (!$body) {
-            $body = $this->Server->serverSettings['MISP'][$textToFetch]['value'];
-        }
-        $body = $this->adminMessageResolve($body);
         if ($fixedPassword) {
             $password = $fixedPassword;
         } else {
             $password = $this->generateRandomPassword();
         }
-        $body = str_replace('$password', $password, $body);
-        $body = str_replace('$username', $user['User']['email'], $body);
-        $body = str_replace('\n', PHP_EOL, $body);
+        $body = $this->preparePasswordResetEmail($user, $password, $firstTime, $subject);
         $result = $this->sendEmail($user, $body, false, $subject);
         if ($result) {
             $this->id = $user['User']['id'];
@@ -989,6 +972,22 @@ class User extends AppModel
         } else {
             return array('body'=> json_encode(array('saved' => false, 'errors' => 'There was an error notifying the user. His/her credentials were not altered.')),'status'=>200);
         }
+    }
+
+    private function preparePasswordResetEmail($user, $password, $firstTime, $subject)
+    {
+        $textToFetch = $firstTime ? 'newUserText': 'passwordResetText';
+        $this->Server = ClassRegistry::init('Server');
+        $bodyTemplate = Configure::read('MISP.' . $textToFetch);
+        if (!$bodyTemplate) {
+            $bodyTemplate = $this->Server->serverSettings['MISP'][$textToFetch]['value'];
+        }
+        $template = new SendEmailTemplate('password_reset');
+        $template->set('body', $bodyTemplate);
+        $template->set('user', $user);
+        $template->set('password', $password);
+        $template->subject($subject);
+        return $template;
     }
 
     public function getOrgAdminsForOrg($org_id, $excludeUserId = false)
@@ -1223,13 +1222,12 @@ class User extends AppModel
         }
 
         // query
-        $this->Log = ClassRegistry::init('Log');
-        $result = $this->Log->createLogEntry($user, $action, $model, $modelId, $description, $fieldsResult);
+        $result = $this->loadLog()->createLogEntry($user, $action, $model, $modelId, $description, $fieldsResult);
 
         // write to syslogd as well
         App::import('Lib', 'SysLog.SysLog');
         $syslog = new SysLog();
-        $syslog->write('notice', "$description -- $action" . (empty($fieldsResult) ? '' : ' -- ' . $result['Log']['change']));
+        $syslog->write(LOG_NOTICE, "$description -- $action" . (empty($fieldsResult) ? '' : ' -- ' . $result['Log']['change']));
     }
 
     /**

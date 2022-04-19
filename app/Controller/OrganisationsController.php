@@ -392,7 +392,7 @@ class OrganisationsController extends AppController
     {
         $this->layout = false;
         $this->autoRender = false;
-        $this->set('id', $id);
+        $this->set('id', (int)$id);
         $this->set('removable', $removable);
         $this->set('extend', $extend);
         $this->render('ajax/sg_org_row_empty');

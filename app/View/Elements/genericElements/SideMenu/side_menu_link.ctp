@@ -44,7 +44,7 @@ if (!empty($onClick)) {
             $params .= "'" . h($param) . "'";
         }
     }
-    $a .= sprintf(' onclick="%s(%s)"', $onClick['function'], $params);
+    $a .= sprintf(' onclick="event.preventDefault();%s(%s)"', $onClick['function'], $params);
 }
 if (!empty($download)) {
     $a .= ' download="' . h($download) . '"';

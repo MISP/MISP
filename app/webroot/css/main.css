@@ -2001,12 +2001,15 @@ a.discrete {
 .warning_container {
     border: 1px solid red;
     border-radius: 7px;
-    box-shadow: 0 0 6px #B2B2B2;
     padding: 0 10px 10px 10px;
     width: 100%;
     height: 100%;
     box-sizing: border-box;
     margin-top: 15px;
+}
+
+.warning_container h4 {
+    color: red;
 }
 
 #galaxies_div {
@@ -2056,14 +2059,14 @@ a.discrete {
     font-size: 12px;
 }
 
-button.addGalaxy {
+button.addButton {
     line-height: 10px;
     padding: 2px;
     margin-right: 5px;
     margin-top: 1px;
 }
 
-button.addGalaxy .fa-plus {
+button.addButton .fa-plus {
     font-size: 11px;
     line-height: 13px;
 }
