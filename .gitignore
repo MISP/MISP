@@ -107,3 +107,8 @@ vagrant/.vagrant/
 vagrant/*.log
 /app/Lib/Dashboard/Custom/*
 !/app/Lib/Dashboard/Custom/empty
+/app/View/Emails/html/Custom/*
+!/app/View/Emails/html/Custom/empty
+/app/View/Emails/text/Custom/*
+!/app/View/Emails/text/Custom/empty
+
