@@ -98,10 +98,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => $baseurl . '/events/edit/' . $eventId,
                             'text' => __('Edit Event')
                         ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/events/delete/' . $eventId,
                             'text' => __('Delete Event'),
-                            'message' => __('Are you sure you want to delete event #%s?', $eventId)
+                            'onClick' => array(
+                                'function' => 'deleteEventPopup',
+                                'params' => [$eventId]
+                            ),
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addAttribute',
@@ -337,10 +340,10 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             ),
                             'text' => __('Import from…')
                         ));
-                        if ($canAccess('servers', 'rest')) {
+                        if ($canAccess('api', 'rest')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'rest',
-                                'url' => $baseurl . '/servers/rest',
+                                'url' => $baseurl . '/api/rest',
                                 'text' => __('REST client')
                             ));
                         }
@@ -1606,17 +1609,15 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     case 'api':
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'openapi',
-                            'url' => $baseurl . '/servers/openapi',
+                            'url' => $baseurl . '/api/openapi',
                             'text' => __('OpenAPI')
                         ));
-                        if ($isAclAdd) {
-                            if ($canAccess('servers', 'rest')) {
-                                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                    'element_id' => 'rest',
-                                    'url' => $baseurl . '/servers/rest',
-                                    'text' => __('REST client')
-                                ));
-                            }
+                        if ($canAccess('api', 'rest')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'rest',
+                                'url' => $baseurl . '/api/rest',
+                                'text' => __('REST client')
+                            ));
                         }
                     break;
             }

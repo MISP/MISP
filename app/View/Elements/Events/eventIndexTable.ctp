@@ -2,10 +2,10 @@
     <tr>
         <?php if ($isSiteAdmin): ?>
             <th>
-                <input class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onClick="toggleAllCheckboxes();" />&nbsp;
+                <input class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onClick="toggleAllCheckboxes();">
             </th>
         <?php else: ?>
-            <th style="padding-left:0px;padding-right:0px;">&nbsp;</th>
+            <th style="padding-left:0;padding-right:0;">&nbsp;</th>
         <?php endif;?>
         <th class="filter">
             <?php echo $this->Paginator->sort('published');?>
@@ -171,12 +171,12 @@
         </td>
         <?php if (in_array('timestamp', $columns, true)): ?>
         <td class="short dblclickElement">
-            <?=  $this->Time->time($event['Event']['timestamp']) ?>
+            <?= $this->Time->time($event['Event']['timestamp']) ?>
         </td>
         <?php endif; ?>
         <?php if (in_array('publish_timestamp', $columns, true)): ?>
         <td class="short dblclickElement">
-            <?=  $this->Time->time($event['Event']['publish_timestamp']) ?>
+            <?= $this->Time->time($event['Event']['publish_timestamp']) ?>
         </td>
         <?php endif; ?>
         <td class="dblclickElement">
@@ -203,14 +203,14 @@
         <td class="short action-links">
             <?php
                 if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']))) {
-                    echo $this->Form->postLink('', array('action' => 'alert', $eventId), array('class' => 'black fa fa-upload', 'title' => __('Publish Event'), 'aria-label' => __('Publish Event')), __('Are you sure this event is complete and everyone should be informed?'));
+                    echo sprintf('<a class="useCursorPointer fa fa-upload" title="%s" aria-label="%s" onclick="event.preventDefault();publishPopup(%s)"></a>', __('Publish Event'), __('Publish Event'), $eventId);
                 }
 
                 if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])):
             ?>
                     <a href="<?php echo $baseurl."/events/edit/".$eventId ?>" title="<?php echo __('Edit');?>" aria-label="<?php echo __('Edit');?>"><i class="black fa fa-edit"></i></a>
             <?php
-                    echo sprintf('<a class="useCursorPointer fa fa-trash" title="%s" aria-label="%s" onclick="deleteEvent(%s)"></a>', __('Delete'), __('Delete'), $eventId);
+                    echo sprintf('<a class="useCursorPointer fa fa-trash" title="%s" aria-label="%s" onclick="event.preventDefault();deleteEventPopup(%s)"></a>', __('Delete'), __('Delete'), $eventId);
                 endif;
             ?>
             <a href="<?php echo $baseurl."/events/view/".$eventId ?>" title="<?php echo __('View');?>" aria-label="<?php echo __('View');?>"><i class="fa black fa-eye"></i></a>
@@ -226,11 +226,10 @@
         }).click(function(e) {
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
-                    selectAllInbetween(lastSelected, this.id);
+                    selectAllInbetween(lastSelected, this);
                 }
-                lastSelected = this.id;
+                lastSelected = this;
             }
-            attributeListAnyAttributeCheckBoxesChecked();
         });
 
         $('.distributionNetworkToggle').each(function() {
@@ -239,15 +238,4 @@
             });
         });
     });
-
-    function deleteEvent(id) {
-        var message = "<?= __('Are you sure you want to delete #') ?>" + id + "?"
-        var url = '<?= $baseurl ?>/events/delete/' + id
-        if (confirm(message)) {
-            fetchFormDataAjax(url, function(formData) {
-                $('body').append($('<div id="temp" class="hidden"/>').html(formData));
-                $('#temp form').submit()
-            })
-        }
-    }
 </script>

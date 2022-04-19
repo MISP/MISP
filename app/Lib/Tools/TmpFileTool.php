@@ -1,14 +1,14 @@
 <?php
 class TmpFileTool
 {
-    /** @var resource */
+    /** @var resource|null */
     private $tmpfile;
 
     /** @var string */
     private $separator;
 
     /**
-     * @param int $maxInMemory How many bytes should keep in memory before creating file on disk. By default is is 2 MB.
+     * @param int $maxInMemory How many bytes should keep in memory before creating file on disk. By default is is 5 MB.
      * @throws Exception
      */
     public function __construct($maxInMemory = null)
@@ -88,7 +88,7 @@ class TmpFileTool
      * @param string $delimiter
      * @param string $enclosure
      * @param string $escape
-     * @return Generator
+     * @return Generator<array>
      * @throws Exception
      */
     public function intoParsedCsv($delimiter = ',', $enclosure = '"', $escape = "\\")
@@ -144,20 +144,17 @@ class TmpFileTool
     }
 
     /**
-     * @param boolean $close
      * @return string
      * @throws Exception
      */
-    public function intoString($close = true)
+    public function intoString()
     {
         $this->rewind();
         $string = stream_get_contents($this->tmpfile);
         if ($string === false) {
             throw new Exception('Could not read from temporary file.');
         }
-        if ($close) {
-            $this->close();
-        }
+        $this->close();
         return $string;
     }
 
@@ -173,6 +170,16 @@ class TmpFileTool
             throw new Exception('Could not pass temporary file to output.');
         }
         $this->close();
+    }
+
+    /**
+     * @return resource
+     * @throws Exception
+     */
+    public function resource()
+    {
+        $this->rewind();
+        return $this->tmpfile;
     }
 
     /**

@@ -320,9 +320,6 @@ echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event
         $('.screenshot').click(function() {
             screenshotPopup($(this).attr('src'), $(this).attr('title'));
         });
-        $('.addGalaxy').click(function() {
-            addGalaxyListener(this);
-        });
         $('.sightings_advanced_add').click(function() {
             var selected = [];
             var object_context = $(this).data('object-context');
@@ -337,16 +334,6 @@ echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event
             }
             url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
             genericPopup(url, '#popover_box');
-        });
-        $('.correlation-toggle').click(function() {
-            var attribute_id = $(this).data('attribute-id');
-            getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
-            return false;
-        });
-        $('.toids-toggle').click(function() {
-            var attribute_id = $(this).data('attribute-id');
-            getPopup(attribute_id, 'attributes', 'toggleToIDS', '', '#confirmation_box');
-            return false;
         });
         popoverStartup();
         $(document).on('click', function(e) {

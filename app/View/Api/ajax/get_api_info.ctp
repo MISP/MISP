@@ -1,6 +1,6 @@
 <div class="dashboard_element">
+    <h4 class="blue bold">API info</h4>
     <?php
-        echo '<h4 class="blue bold">API info</h4>';
         foreach ($api_info as $key => $value) {
             if (!empty($value)) {
                 if (is_array($value)) {
@@ -30,11 +30,11 @@
                         }
                         $temp[] = $fieldName . $infoHtml;
                     }
-                    $value = implode('<br />', $temp);
+                    $value = implode('<br>', $temp);
                 } else {
                     $value = h($value);
                 }
-                echo sprintf('<span class=blue>%s</span>:<br /><div style="padding-left:10px;">%s</div>', ucfirst(h($key)), $value);
+                echo sprintf('<span class=blue>%s</span>:<br><div style="padding-left:10px;">%s</div>', ucfirst(h($key)), $value);
             }
         }
     ?>

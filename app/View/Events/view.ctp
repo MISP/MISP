@@ -1,16 +1,12 @@
 <?php
-    $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
-    $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-    $menuData = array_merge($menuData, ['mayPublish' => $mayPublish, 'mayModify' => $mayModify]);
-    $scripts = ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph'];
-    echo $this->element('genericElements/assetLoader', array(
+    echo $this->element('genericElements/assetLoader', [
         'css' => ['query-builder.default', 'attack_matrix'],
-        'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph']
-    ));
+        'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph', 'd3', 'd3.custom'],
+    ]);
     echo $this->element(
         'genericElements/SingleViews/single_view',
         [
-            'title' => ($extended ? '[' . __('Extended view') . '] ' : '') . h(nl2br($event['Event']['info'])),
+            'title' => ($extended ? '[' . __('Extended view') . '] ' : '') . h(nl2br($event['Event']['info'], false)),
             'data' => $event,
             'fields' => [
                 [
@@ -182,7 +178,7 @@
                 ],
                 [
                     'key' => __('#Attributes'),
-                    'raw' => $attribute_count . __n(' (%s Object)', ' (%s Objects)', $object_count, h($object_count))
+                    'raw' => __n('%s (%s Object)', '%s (%s Objects)', $object_count, $attribute_count, h($object_count))
                 ],
                 [
                     'key' => __('First recorded change'),
@@ -195,7 +191,7 @@
                 [
                     'key' => __('Modification map'),
                     'type' => 'element',
-                    'element' => 'sparkline',
+                    'element' => 'sparkline_new',
                     'element_params' => [
                         'scope' => 'modification',
                         'id' => $event['Event']['id'],
@@ -231,7 +227,7 @@
                 [
                     'key' => __('Activity'),
                     'type' => 'element',
-                    'element' => 'sparkline',
+                    'element' => 'sparkline_new',
                     'element_params' => [
                         'scope' => 'event',
                         'id' => $event['Event']['id'],

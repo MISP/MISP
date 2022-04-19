@@ -40,9 +40,6 @@ class ComplexTypeTool
         128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
     );
 
-    // algorithms to run through in order, without Hashes that are checked separately
-    const CHECKS = array('Email', 'IP', 'DomainOrFilename', 'SimpleRegex', 'AS', 'BTC');
-
     private $__tlds = null;
 
     public static function refangValue($value, $type)
@@ -179,6 +176,9 @@ class ComplexTypeTool
                 continue;
             }
             foreach ($row as $elementPos => $element) {
+                if (empty($element)) {
+                    continue;
+                }
                 if (empty($values) || in_array(($elementPos + 1), $values)) {
                     $element = trim($element, " \t\n\r\0\x0B\"\'");
                     if (empty($element)) {
@@ -198,23 +198,28 @@ class ComplexTypeTool
         return $iocArray;
     }
 
-    public function checkFreeText($input, $settings = array())
+    /**
+     * @param string $input
+     * @param array $settings
+     * @return array
+     */
+    public function checkFreeText($input, array $settings = [])
     {
-        $charactersToTrim = '\'".,() ' . "\t\n\r\0\x0B"; // custom + default PHP trim
         $input = str_replace("\xc2\xa0", ' ', $input); // non breaking space to normal space
         $input = preg_replace('/\p{C}+/u', ' ', $input);
         $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
 
-         preg_match_all('/\"([^\"]*)\"/', $input, $matches);
-         foreach ($matches[1] as $match) {
-             if ($match !== '') {
-                 $iocArray[] = $match;
-             }
-         }
+        preg_match_all('/\"([^\"]*)\"/', $input, $matches);
+        foreach ($matches[1] as $match) {
+            if ($match !== '') {
+                $iocArray[] = $match;
+            }
+        }
+        unset($matches);
 
         $resultArray = [];
         foreach ($iocArray as $ioc) {
-            $ioc = trim($ioc, $charactersToTrim);
+            $ioc = trim($ioc, '\'".,() ' . "\t\n\r\0\x0B"); // custom + default PHP trim
             if (empty($ioc)) {
                 continue;
             }
@@ -251,23 +256,37 @@ class ComplexTypeTool
             ];
         }
 
-        $input = array('raw' => $raw_input);
+        $input = ['raw' => $raw_input];
 
         // Check hashes before refang and port extracting, it is not necessary for hashes. This speedups parsing
         // freetexts or CSVs with a lot of hashes.
-        $hashes = $this->__checkForHashes($input);
-        if ($hashes) {
-            return $hashes;
+        if ($result = $this->__checkForHashes($input)) {
+            return $result;
         }
 
         $input = $this->__refangInput($input);
-        $input = $this->__extractPort($input);
 
-        foreach (self::CHECKS as $check) {
-            $result = $this->{'__checkFor' . $check}($input);
-            if ($result) {
-                return $result;
-            }
+        // Check email before port extracting, it is not necessary for email. This speedups parsing
+        // freetexts or CSVs with a lot of emails.
+        if ($result = $this->__checkForEmail($input)) {
+            return $result;
+        }
+
+        $input = $this->__extractPort($input);
+        if ($result = $this->__checkForIP($input)) {
+            return $result;
+        }
+        if ($result = $this->__checkForDomainOrFilename($input)) {
+            return $result;
+        }
+        if ($result = $this->__checkForSimpleRegex($input)) {
+            return $result;
+        }
+        if ($result = $this->__checkForAS($input)) {
+            return $result;
+        }
+        if ($result = $this->__checkForBTC($input)) {
+            return $result;
         }
         return false;
     }
@@ -290,7 +309,12 @@ class ComplexTypeTool
         // quick filter for an @ to see if we should validate a potential e-mail address
         if (strpos($input['refanged'], '@') !== false) {
             if (filter_var($input['refanged'], FILTER_VALIDATE_EMAIL)) {
-                return array('types' => array('email', 'email-src', 'email-dst', 'target-email', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input['refanged']);
+                return [
+                    'types' => array('email', 'email-src', 'email-dst', 'target-email', 'whois-registrant-email'),
+                    'to_ids' => true,
+                    'default_type' => 'email-src',
+                    'value' => $input['refanged'],
+                ];
             }
         }
         return false;
@@ -356,17 +380,17 @@ class ComplexTypeTool
 
     private function __refangInput($input)
     {
-        $input['refanged'] = $input['raw'];
+        $refanged = $input['raw'];
         foreach (self::REFANG_REGEX_TABLE as $regex) {
-            $input['refanged'] = preg_replace($regex['from'], $regex['to'], $input['refanged']);
+            $refanged = preg_replace($regex['from'], $regex['to'], $refanged);
         }
-        $input['refanged'] = rtrim($input['refanged'], ".");
+        $refanged = rtrim($refanged, ".");
         $input['refanged'] = preg_replace_callback(
             '/\[.\]/',
             function ($matches) {
                 return trim($matches[0], '[]');
             },
-            $input['refanged']
+            $refanged
         );
         return $input;
     }

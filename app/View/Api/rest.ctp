@@ -4,12 +4,12 @@
         <span id="showQB" class="btn btn-primary useCursorPointer" style="margin: 5px;"><span class="fa fa-wrench"> Query Builder</span></span>
         <?php
             $options = '<option value="">None</option>';
-              foreach($allValidApisFormated as $scope => $actions) {
-                  $options .= sprintf('<optgroup label="%s">', $scope);
-                  foreach($actions as $action) {
-                      $options .= sprintf('<option value="%s">%s</option>', $action['url'], $action['action']);
-                  }
+            foreach ($allAccessibleApis as $scope => $actions) {
+              $options .= sprintf('<optgroup label="%s">', $scope);
+              foreach ($actions as $action => $url) {
+                  $options .= sprintf('<option value="%s">%s</option>', $url, $action);
               }
+            }
             echo sprintf('<select id="TemplateSelect">%s</select>', $options);
         ?>
         <div id="apiInfo" style="margin-top: 15px;"></div>
@@ -63,7 +63,7 @@
                 'class' => 'input-xxlarge'
             ));
         ?>
-        <div class="input clear" style="width:100%;" />
+            <div class="input clear" style="width:100%;"></div>
         <?php
             if (!empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
                 echo $this->Form->input('use_full_path', array(
@@ -77,7 +77,7 @@
                 'onChange' => 'toggleRestClientBookmark();'
             ));
         ?>
-        <div class="input clear" style="width:100%;" />
+            <div class="input clear" style="width:100%;"></div>
             <div id="bookmark-name" style="display:none;">
                 <?php
                     echo $this->Form->input('name', array(
@@ -86,7 +86,7 @@
                     ));
                 ?>
             </div>
-        <div class="input clear" style="width:100%;" />
+            <div class="input clear" style="width:100%;"></div>
         <?php
             echo $this->Form->input('show_result', array(
                 'label' => __('Show result'),
@@ -157,7 +157,7 @@
             }
             echo '</div>';
         }
-        if (!empty($data['data'])): ?>
+        if (isset($data['data'])): ?>
             <h3><?= __('Response') ?></h3>
             <div><span class="bold"><?= __('Queried URL') ?></span>: <?= h($data['url']) ?></div>
             <div><span class="bold"><?= __('Response code') ?></span>: <?= h($data['code']) ?></div>
@@ -220,18 +220,6 @@
         )
     ));
 ?>
-
-<script type="text/javascript">
-    var allValidApis = <?= json_encode($allValidApis); ?>;
-    var fieldsConstraint = <?= json_encode($allValidApisFieldsContraint); ?>;
-    $(function() {
-        populate_rest_history('history');
-        populate_rest_history('bookmark');
-        toggleRestClientBookmark();
-        setupCodeMirror();
-    });
-</script>
-
 <style>
 .CodeMirror-wrap {
     border: 1px solid #cccccc;

@@ -5,10 +5,10 @@
     <button class="btn btn-inverse toggle qet" id="galaxies_toggle" data-toggle-type="galaxies">
         <span class="fas fa-minus" title="<?php echo __('Toggle galaxies');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle galaxies');?>"></span><?php echo __('Galaxy');?>
     </button>
-    <button class="btn btn-inverse toggle qet" id="eventgraph_toggle" data-toggle-type="eventgraph" onclick="enable_interactive_graph();">
+    <button class="btn btn-inverse toggle qet" id="eventgraph_toggle" data-toggle-type="eventgraph">
         <span class="fas fa-plus" title="<?php echo __('Toggle Event graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event graph');?>"></span><?php echo __('Event graph');?>
     </button>
-    <button class="btn btn-inverse toggle qet" id="eventtimeline_toggle" data-toggle-type="eventtimeline" onclick="enable_timeline();">
+    <button class="btn btn-inverse toggle qet" id="eventtimeline_toggle" data-toggle-type="eventtimeline">
         <span class="fas fa-plus" title="<?php echo __('Toggle Event timeline');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event timeline');?>"></span><?php echo __('Event timeline');?>
     </button>
     <button class="btn btn-inverse toggle qet" id="correlationgraph_toggle" data-toggle-type="correlationgraph" data-load-url="<?= $baseurl ?>/events/viewGraph/<?= h($event['Event']['id']) ?>">
@@ -27,10 +27,10 @@
         <span class="fas fa-minus" title="<?php echo __('Toggle discussions');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle discussions');?>"></span><?php echo __('Discussion');?>
     </button>
 </div>
-<br />
-<br />
+<br>
+<br>
 <div id="pivots_div">
-    <?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
+    <?php if (count($allPivots) > 1) echo $this->element('pivot'); ?>
 </div>
 <div id="galaxies_div">
     <span class="title-section"><?= __('Galaxies') ?></span>
@@ -60,13 +60,12 @@
 <div id="clusterrelation_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
 </div>
 <div id="attributes_div">
-    <?php echo $this->element('eventattribute'); ?>
+    <?= $this->element('eventattribute'); ?>
 </div>
 <div id="discussions_div">
 </div>
 </div>
 <script type="text/javascript">
-var showContext = false;
 $(function () {
 <?php
     if (!Configure::check('MISP.disable_event_locks') || !Configure::read('MISP.disable_event_locks')) {
@@ -77,8 +76,6 @@ $(function () {
         );
     }
 ?>
-popoverStartup();
-
 $(document.body).tooltip({
     selector: 'span[title], td[title], time[title]',
     placement: 'top',

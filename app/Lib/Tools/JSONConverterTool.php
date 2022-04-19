@@ -93,7 +93,7 @@ class JSONConverterTool
         if ($raw) {
             return $result;
         }
-        return json_encode($result, JSON_PRETTY_PRINT);
+        return json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /**
@@ -127,7 +127,7 @@ class JSONConverterTool
             }
         }
         if (isset($event['errors'])) {
-            yield '},"errors":' . json_encode($event['errors']) . '}';
+            yield '},"errors":' . json_encode($event['errors'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '}';
         } else {
             yield "}}";
         }

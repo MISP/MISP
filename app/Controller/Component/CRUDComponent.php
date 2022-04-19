@@ -90,7 +90,8 @@ class CRUDComponent extends Component
             }
             /** @var Model $model */
             $model = $this->Controller->{$modelName};
-            if ($model->save($data)) {
+            $savedData = $model->save($data);
+            if ($savedData) {
                 if (isset($params['afterSave'])) {
                     $params['afterSave']($data);
                 }
@@ -100,15 +101,11 @@ class CRUDComponent extends Component
                         'id' => $model->id
                     ]
                 ]);
-                if (!empty($params['saveModelVariable'])) {
-                    foreach ($params['saveModelVariable'] as $var) {
-                        if (isset($model->$var)) {
-                            $data[$modelName][$var] = $model->$var;
-                        }
-                    }
+                if (empty($data)) {
+                    throw new Exception("Something went wrong, saved data not found in database.");
                 }
                 if (isset($params['afterFind'])) {
-                    $data = $params['afterFind']($data);
+                    $data = $params['afterFind']($data, $savedData);
                 }
                 $message = __('%s added.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {

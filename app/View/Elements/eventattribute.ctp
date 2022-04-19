@@ -6,8 +6,6 @@
     }
     $urlHere = implode('/', $urlHere);
     $urlHere = $baseurl . $urlHere;
-    $mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
-    $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
     $mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
     $possibleAction = $mayModify ? 'attribute' : 'shadow_attribute';
     $all = false;
@@ -19,7 +17,7 @@
     }
     $fieldCount = 11;
     $filtered = false;
-    if(isset($passedArgsArray)){
+    if (isset($passedArgsArray)){
         if (count($passedArgsArray) > 0) {
             $filtered = true;
         }
@@ -69,8 +67,7 @@
             'label' => false,
         ));
         echo $this->Form->end();
-    ?>
-        <?php
+
         echo $this->Form->create('ShadowAttribute', array('id' => 'accept_selected', 'url' => $baseurl . '/shadow_attributes/acceptSelected/' . $event['Event']['id']));
         echo $this->Form->input('ids_accept', array(
             'type' => 'text',
@@ -79,8 +76,7 @@
             'label' => false,
         ));
         echo $this->Form->end();
-    ?>
-        <?php
+
         echo $this->Form->create('ShadowAttribute', array('id' => 'discard_selected', 'url' => $baseurl . '/shadow_attributes/discardSelected/' . $event['Event']['id']));
         echo $this->Form->input('ids_discard', array(
             'type' => 'text',
@@ -111,7 +107,7 @@
                 if ($extended || ($mayModify && !empty($event['objects']))):
                     $fieldCount += 1;
             ?>
-                    <th><input class="select_all" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all attributes/proposals on current page');?>" onClick="toggleAllAttributeCheckboxes();" /></th>
+                    <th><input class="select_all" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all attributes/proposals on current page');?>" onclick="toggleAllAttributeCheckboxes()"></th>
             <?php
                 endif;
             ?>
@@ -227,9 +223,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
     var deleted = <?php echo (!empty($deleted)) ? '1' : '0';?>;
     var includeRelatedTags = <?php echo (!empty($includeRelatedTags)) ? '1' : '0';?>;
     $(function() {
-        $('.addGalaxy').click(function() {
-            addGalaxyListener(this);
-        });
         <?php
             if (isset($focus)):
         ?>
@@ -242,34 +235,24 @@ attributes or the appropriate distribution level. If you think there is a mistak
         $('.select_attribute').prop('checked', false).click(function(e) {
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
-                    selectAllInbetween(lastSelected, this.id);
+                    selectAllInbetween(lastSelected, this);
                 }
-                lastSelected = this.id;
+                lastSelected = this;
             }
             attributeListAnyAttributeCheckBoxesChecked();
         });
         $('.select_proposal').prop('checked', false).click(function(e){
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
-                    selectAllInbetween(lastSelected, this.id);
+                    selectAllInbetween(lastSelected, this);
                 }
-                lastSelected = this.id;
+                lastSelected = this;
             }
             attributeListAnyProposalCheckBoxesChecked();
         });
         $('.select_all').click(function() {
             attributeListAnyAttributeCheckBoxesChecked();
             attributeListAnyProposalCheckBoxesChecked();
-        });
-        $('.correlation-toggle').click(function() {
-            var attribute_id = $(this).data('attribute-id');
-            getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
-            return false;
-        });
-        $('.toids-toggle').click(function() {
-            var attribute_id = $(this).data('attribute-id');
-            getPopup(attribute_id, 'attributes', 'toggleToIDS', '', '#confirmation_box');
-            return false;
         });
         $('.screenshot').click(function() {
             screenshotPopup($(this).attr('src'), $(this).attr('title'));
@@ -278,15 +261,13 @@ attributes or the appropriate distribution level. If you think there is a mistak
             var selected = [];
             var object_context = $(this).data('object-context');
             var object_id = $(this).data('object-id');
-            if (object_id == 'selected') {
-                $(".select_attribute").each(function() {
-                    if ($(this).is(":checked")) {
-                        selected.push($(this).data("id"));
-                    }
+            if (object_id === 'selected') {
+                $(".select_attribute:checked").each(function() {
+                    selected.push($(this).data("id"));
                 });
                 object_id = selected.join('|');
             }
-            url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
+            var url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
             genericPopup(url, '#popover_box');
         });
     });
