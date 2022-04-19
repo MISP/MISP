@@ -13,7 +13,7 @@
         ],
         'css' => [
             'markdownEditor/event-report',
-            ]
+        ],
     ]);
     
 ?>

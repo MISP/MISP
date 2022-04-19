@@ -36,8 +36,10 @@
 *
 *
 */
-echo $this->Html->script('attack_matrix');
-echo $this->Html->css('attack_matrix');
+echo $this->element('genericElements/assetLoader', [
+    'css' => ['attack_matrix'],
+    'js' => ['attack_matrix'],
+]);
 ?>
 <?php
     $clusetersNamesMapping = array(); // used to map name with id for the chosen select

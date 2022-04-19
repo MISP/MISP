@@ -7,12 +7,16 @@
             <button id="qbClear" type="button" class="btn btn-xs btn-danger" title="<?= __('Clear filtering rules'); ?>"> <i class="fa fa-times"></i> <?= __('Clear'); ?></button>
         </div>
     </div>
-    <?php
-        echo $this->Html->script('moment.min');
-        echo $this->Html->script('doT');
-        echo $this->Html->script('extendext');
-        echo $this->Html->css('query-builder.default');
-        echo $this->Html->script('query-builder');
+    <?= $this->element('genericElements/assetLoader', [
+        'js' => [
+            'moment.min',
+            'extendext',
+            'query-builder',
+        ],
+        'css' => [
+            'query-builder.default',
+        ]
+    ]);
     ?>
     <script type="text/javascript">
         var qbOptions = {

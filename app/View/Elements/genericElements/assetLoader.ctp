@@ -54,5 +54,3 @@
             echo $this->Html->meta($type, $url, $options);
         }
     }
-
-?>
