@@ -36,8 +36,8 @@
 ?>
 <tr id="proposal_<?= $object['id'] ?>_tr" class="<?php echo $tr_class; ?>">
   <?php if ($mayModify): ?>
-    <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
-      <input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal row_checkbox" type="checkbox" aria-label="<?php __('Select proposal');?>" data-id="<?php echo $object['id'];?>" />
+    <td style="width:10px">
+      <input class="select_proposal" type="checkbox" aria-label="<?php __('Select proposal');?>" data-id="<?php echo $object['id'];?>">
     </td>
   <?php endif; ?>
   <td class="short context hidden">
@@ -50,12 +50,10 @@
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
   <td class="short">
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_timestamp_solid'; ?>">
       <?php
-        if (isset($object['timestamp'])) echo date('Y-m-d', $object['timestamp']);
+        if (isset($object['timestamp'])) echo $this->Time->date($object['timestamp']);
         else echo '&nbsp';
       ?>
-    </div>
   </td>
   <?php
     if ($extended):
@@ -74,32 +72,18 @@
   ?>
   </td>
   <td class="short">
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_category_placeholder'; ?>" class="inline-field-placeholder"></div>
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_category_solid'; ?>" class="inline-field-solid">
       <?php echo h($object['category']); ?>
-    </div>
   </td>
   <td class="short">
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_type_placeholder'; ?>" class="inline-field-placeholder"></div>
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_type_solid'; ?>" class="inline-field-solid">
       <?php echo h($object['type']); ?>
-    </div>
   </td>
   <td id="<?php echo h($currentType) . '_' . h($object['id']) . '_container'; ?>" class="showspaces limitedWidth shortish">
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class="inline-field-placeholder"></div>
-    <div id="<?php echo $currentType; ?>_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid">
-    <?php
-        echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
-    ?>
-    </div>
+    <?= $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass)); ?>
   </td>
   <td class="shortish">&nbsp;</td>
   <td class="shortish">&nbsp;</td>
   <td class="showspaces bitwider">
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class="inline-field-placeholder"></div>
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid">
-      <?php echo nl2br(h($object['comment'])); ?>&nbsp;
-    </div>
+      <?php echo nl2br(h($object['comment']), false); ?>
   </td>
   <td class="short" style="padding-top:3px;">&nbsp;</td>
   <td class="shortish">
@@ -145,13 +129,7 @@
     </ul>
   </td>
   <td class="short">
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_to_ids_placeholder'; ?>" class="inline-field-placeholder"></div>
-    <div id="<?php echo $currentType . '_' . $object['id'] . '_to_ids_solid'; ?>" class="inline-field-solid">
-      <?php
-        if ($object['to_ids']) echo 'Yes';
-        else echo 'No';
-      ?>
-    </div>
+      <?= $object['to_ids'] ? __('Yes') : __('No') ?>
   </td>
   <td class="shortish">&nbsp;</td>
   <td class="shortish">&nbsp;</td>
@@ -170,12 +148,12 @@
           echo $this->Form->create('Shadow_Attribute', array('id' => 'ShadowAttribute_' . $object['id'] . '_accept', 'url' => $baseurl . '/shadow_attributes/accept/' . $object['id'], 'style' => 'display:none;'));
           echo $this->Form->end();
         ?>
-          <span class="fas fa-check white useCursorPointer" title="<?php echo __('Accept Proposal');?>" role="button" tabindex="0" aria-label="<?php echo __('Accept proposal');?>" onClick="acceptObject('shadow_attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+          <span class="fas fa-check white useCursorPointer" title="<?php echo __('Accept Proposal');?>" role="button" tabindex="0" aria-label="<?php echo __('Accept proposal');?>" onclick="acceptObject('shadow_attributes', '<?php echo $object['id']; ?>');"></span>
         <?php
         }
         if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin || ($object['org_id'] == $me['org_id'])) {
         ?>
-          <span class="fa fa-trash white useCursorPointer" title="<?php echo __('Discard proposal');?>" role="button" tabindex="0" aria-label="<?php echo __('Discard proposal');?>" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+          <span class="fa fa-trash white useCursorPointer" title="<?php echo __('Discard proposal');?>" role="button" tabindex="0" aria-label="<?php echo __('Discard proposal');?>" onclick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>');"></span>
         <?php
         }
     ?>

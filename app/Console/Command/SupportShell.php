@@ -1,5 +1,3 @@
-http://download.geonames.org/export/dump/countryInfo.txt
-
 <?php
 class SupportShell extends AppShell {
 

@@ -187,8 +187,9 @@ class EventShell extends AppShell
         $this->Job->id = $id;
         $export_type = $this->args[2];
         file_put_contents('/tmp/test', $export_type);
-        $typeData = $this->Event->export_types[$export_type];
-        if (!in_array($export_type, array_keys($this->Event->export_types))) {
+        $exportTypes = $this->Event->exportTypes();
+        $typeData = $exportTypes[$export_type];
+        if (!in_array($export_type, array_keys($exportTypes))) {
             $this->Job->saveField('progress', 100);
             $timeDelta = (time()-$timeStart);
             $this->Job->saveField('message', 'Job Failed due to invalid export format. (in '.$timeDelta.'s)');
@@ -281,7 +282,7 @@ class EventShell extends AppShell
         $userId = $this->args[0];
         $jobId = $this->args[1];
         $eventId = $this->args[2];
-        $oldpublish = $this->args[3];
+        $oldpublish = isset($this->args[3]) ? $this->args[3] : null;
         $user = $this->getUser($userId);
         $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $jobId);
     }
@@ -385,7 +386,7 @@ class EventShell extends AppShell
         // the special cache files containing all events
         $i = 0;
         foreach ($users as $user) {
-            foreach ($this->Event->export_types as $k => $type) {
+            foreach ($this->Event->exportTypes() as $k => $type) {
                 if ($k == 'stix') continue;
                 $this->Job->cache($k, $user['User']);
                 $i++;
@@ -439,7 +440,7 @@ class EventShell extends AppShell
         }
 
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
-        $result = $this->Event->publish_sightings($id, $passAlong, $sightingsUuidsToPush);
+        $result = $this->Event->publishSightings($id, $passAlong, $sightingsUuidsToPush);
 
         $count = count($sightingsUuidsToPush);
         $message = $count === 0 ? "All sightings published" : "$count sightings published";

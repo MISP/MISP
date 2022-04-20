@@ -16,7 +16,7 @@
                 $password = false;
             } else {
                 $userType = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-                echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'label' => $userType . ' user'));
+                echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'label' => h($userType) . ' user'));
             }
             echo sprintf(
                 '<div class="clear"></div><div %s>%s</div>',

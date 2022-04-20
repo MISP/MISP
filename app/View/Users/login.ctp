@@ -19,7 +19,7 @@
         <?php if (Configure::read('MISP.main_logo') && file_exists(APP . '/webroot/img/custom/' . Configure::read('MISP.main_logo'))): ?>
             <img src="<?php echo $baseurl?>/img/custom/<?php echo h(Configure::read('MISP.main_logo'));?>" style=" display:block; margin-left: auto; margin-right: auto;" />
         <?php else: ?>
-            <img src="<?php echo $baseurl?>/img/misp-logo.png" style="display:block; margin-left: auto; margin-right: auto;"/>
+            <img src="<?php echo $baseurl?>/img/misp-logo-s-u.png" style="display:block; margin-left: auto; margin-right: auto;"/>
         <?php endif;?>
         </div>
         <?php
@@ -39,13 +39,13 @@
         <?php
             echo $this->Form->input('email', array('autocomplete' => 'off', 'autofocus'));
             echo $this->Form->input('password', array('autocomplete' => 'off'));
-            if (!empty(Configure::read('LinOTPAuth'))) {
+            if (!empty(Configure::read('LinOTPAuth')) && Configure::read('LinOTPAuth.enabled')!== FALSE) {
                 echo $this->Form->input('otp', array('autocomplete' => 'off', 'type' => 'password', 'label' => 'OTP'));
                 echo "<div class=\"clear\">";
                 echo sprintf(
                     '%s <a href="%s/selfservice" title="LinOTP Selfservice">LinOTP Selfservice</a> %s',
                     __('Visit'),
-                    Configure::read('LinOTPAuth.baseUrl'),
+                    h(Configure::read('LinOTPAuth.baseUrl')),
                     __('for the One-Time-Password selfservice.')
                 );
             }
@@ -92,7 +92,10 @@ function submitLoginForm() {
     var url = $form.attr('action')
     var email = $form.find('#UserEmail').val()
     var password = $form.find('#UserPassword').val()
-    if (!empty(Configure::read('LinOTPAuth'))) {
+    var LinOTPAuth = <?= empty(Configure::read('LinOTPAuth')) ? 'false' : 'true' ?>;
+    var LinOTPAuthEnabled = <?= empty(Configure::read('LinOTPAuth.enabled')) ? 'false' : 'true' ?>;
+
+    if (LinOTPAuth && LinOTPAuthEnabled) {
         var otp = $form.find('#UserOtp').val()
     }
     if (!$form[0].checkValidity()) {
@@ -107,7 +110,7 @@ function submitLoginForm() {
             var $tmpForm = $('#temp form#UserLoginForm')
             $tmpForm.find('#UserEmail').val(email)
             $tmpForm.find('#UserPassword').val(password)
-            if (!empty(Configure::read('LinOTPAuth'))) {
+            if (LinOTPAuth && LinOTPAuthEnabled) {
                 $tmpForm.find('#UserOtp').val(otp)
             }
             $tmpForm.submit()

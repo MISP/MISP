@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('CidrTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
 
 /**
  * @property WarninglistType $WarninglistType
@@ -277,10 +278,7 @@ class Warninglist extends AppModel
         $directories = glob(APP . 'files' . DS . 'warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
         $updated = array('success' => [], 'fails' => []);
         foreach ($directories as $dir) {
-            $file = new File($dir . DS . 'list.json');
-            $list = $this->jsonDecode($file->read());
-            $file->close();
-
+            $list = FileAccessTool::readJsonFromFile($dir . DS . 'list.json');
             if (!isset($list['version'])) {
                 $list['version'] = 1;
             }
@@ -385,7 +383,7 @@ class Warninglist extends AppModel
 
         $keys = array_keys($list['list']);
         if ($keys === array_keys($keys)) {
-            foreach (array_chunk($list['list'], 500) as $chunk) {
+            foreach (array_chunk($list['list'], 1000) as $chunk) {
                 $valuesToInsert = [];
                 foreach ($chunk as $value) {
                     if (!empty($value)) {
@@ -395,7 +393,7 @@ class Warninglist extends AppModel
                 $result = $db->insertMulti('warninglist_entries', ['value', 'warninglist_id'], $valuesToInsert);
             }
         } else { // import warninglist with comments
-            foreach (array_chunk($list['list'], 500, true) as $chunk) {
+            foreach (array_chunk($list['list'], 1000, true) as $chunk) {
                 $valuesToInsert = [];
                 foreach ($chunk as $value => $comment) {
                     if (!empty($value)) {
@@ -801,9 +799,9 @@ class Warninglist extends AppModel
         try {
             $id = (int)$this->id;
             if (isset($data['WarninglistEntry'])) {
-                $this->WarninglistEntry->deleteAll(['warninglist_id' => $id]);
+                $this->WarninglistEntry->deleteAll(['warninglist_id' => $id], false);
                 $entriesToInsert = [];
-                foreach ($data['WarninglistEntry'] as &$entry) {
+                foreach ($data['WarninglistEntry'] as $entry) {
                     $entriesToInsert[] = [$entry['value'], isset($entry['comment']) ? $entry['comment'] : null, $id];
                 }
                 $db->insertMulti(
@@ -814,7 +812,7 @@ class Warninglist extends AppModel
             }
 
             if (isset($data['WarninglistType'])) {
-                $this->WarninglistType->deleteAll(['warninglist_id' => $id]);
+                $this->WarninglistType->deleteAll(['warninglist_id' => $id], false);
                 foreach ($data['WarninglistType'] as &$entry) {
                     $entry['warninglist_id'] = $id;
                 }
@@ -836,19 +834,26 @@ class Warninglist extends AppModel
             throw $e;
         }
 
+        if ($success) {
+            $this->afterFullSave(!isset($data['Warninglist']['id']), $success);
+        }
+
         return $success;
     }
 
-    public function afterSave($created, $options = array())
+    /**
+     * @param bool $created
+     * @return void
+     */
+    private function afterFullSave($created, array $data)
     {
-        if (isset($this->data['Warninglist']['default']) && $this->data['Warninglist']['default'] == 0) {
-            $this->regenerateWarninglistCaches($this->data['Warninglist']['id']);
+        if (isset($data['Warninglist']['default']) && $data['Warninglist']['default'] == 0) {
+            $this->regenerateWarninglistCaches($data['Warninglist']['id']);
         }
 
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_warninglist_notifications_enable');
-        if ($pubToZmq) {
+        if ($this->pubToZmq('warninglist')) {
             $warninglist = $this->find('first', [
-                'conditions' => ['id' => $this->data['Warninglist']['id']],
+                'conditions' => ['id' => $data['Warninglist']['id']],
                 'contains' => ['WarninglistEntry', 'WarninglistType'],
             ]);
             $pubSubTool = $this->getPubSubTool();

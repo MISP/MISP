@@ -5,7 +5,8 @@
     if (!Configure::read('MISP.terms_file')) {
         $termsFile = APP ."View/Users/terms";
     } else {
-        $termsFile = APP . 'files' . DS . 'terms' . DS . Configure::read('MISP.terms_file');
+        $customTermsFile = basename(realpath(Configure::read('MISP.terms_file')));
+        $termsFile = APP . 'files' . DS . 'terms' . DS . $customTermsFile;
     }
     if (!(file_exists($termsFile))) {
         echo "<p>" . __("Terms and Conditions file not found.") . "</p>";

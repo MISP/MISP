@@ -38,6 +38,7 @@ class Log extends AppModel
                     'enable',
                     'enrichment',
                     'error',
+                    'execute_blueprint',
                     'export',
                     'fetchEvent',
                     'file_upload',
@@ -68,8 +69,10 @@ class Log extends AppModel
                     'update',
                     'update_database',
                     'update_db_worker',
+                    'updateCryptoKeys',
                     'upgrade_24',
                     'upload_sample',
+                    'validateSig',
                     'version_warning',
                     'warning',
                     'wipe_default'
@@ -201,17 +204,17 @@ class Log extends AppModel
      */
     public function createLogEntry($user, $action, $model, $modelId = 0, $title = '', $change = '')
     {
-        if (in_array($action, ['tag', 'galaxy', 'publish', 'publish_sightings'], true) && Configure::read('MISP.log_new_audit')) {
+        if (in_array($action, ['tag', 'galaxy', 'publish', 'publish_sightings', 'enable'], true) && Configure::read('MISP.log_new_audit')) {
             return; // Do not store tag changes when new audit is enabled
         }
         if ($user === 'SYSTEM') {
-            $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
+            $user = ['Organisation' => ['name' => 'SYSTEM'], 'email' => 'SYSTEM', 'id' => 0];
         } else if (!is_array($user)) {
             throw new InvalidArgumentException("User must be array or 'SYSTEM' string.");
         }
 
         if (is_array($change)) {
-            $output = array();
+            $output = [];
             foreach ($change as $field => $values) {
                 $isSecret = strpos($field, 'password') !== false || ($field === 'authkey' && Configure::read('Security.do_not_log_authkeys'));
                 if ($isSecret) {
@@ -225,7 +228,7 @@ class Log extends AppModel
         }
 
         $this->create();
-        $result = $this->save(array(
+        $result = $this->save(['Log' => [
             'org' => $user['Organisation']['name'],
             'email' => $user['email'],
             'user_id' => $user['id'],
@@ -234,7 +237,7 @@ class Log extends AppModel
             'change' => $change,
             'model' => $model,
             'model_id' => $modelId,
-        ));
+        ]]);
 
         if (!$result) {
             if ($action === 'request' && !empty(Configure::read('MISP.log_paranoid_skip_db'))) {
@@ -380,13 +383,13 @@ class Log extends AppModel
             }
         }
         if ($this->syslog) {
-            $action = 'info';
+            $action = LOG_INFO;
             if (isset($data['Log']['action'])) {
                 if (in_array($data['Log']['action'], self::ERROR_ACTIONS, true)) {
-                    $action = 'err';
+                    $action = LOG_ERR;
                 }
                 if (in_array($data['Log']['action'], self::WARNING_ACTIONS, true)) {
-                    $action = 'warning';
+                    $action = LOG_WARNING;
                 }
             }
 

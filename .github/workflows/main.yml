@@ -30,10 +30,6 @@ jobs:
         with:
           submodules: 'recursive'
 
-      # Stop mysql
-      - name: Shutdown Ubuntu MySQL (SUDO)
-        run: sudo service mysql stop
-
       # Run mariadb
       - uses: getong/mariadb-action@v1.1
         with:
@@ -61,21 +57,22 @@ jobs:
           echo "USER=`id -u -n`" >> $GITHUB_ENV
           echo "HOST=localhost" >> $GITHUB_ENV
 
-      # Runs a set of commands using the runners shell
-      - name: Install deps
+      - name: Install system deps
         env:
           php_version: ${{ matrix.php }}
         run: |
-              sudo apt-get -y update
-              # Repo is missing for unknown reason
-              LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
-              if [[ $php_version == "7.2" ]]; then
-                # hotfix due to: https://bugs.php.net/bug.php?id=81640 TODO: remove after libpcre2-8-0:10.36 gets to stable channel
-                sudo apt --fix-broken install
-              fi
-              sudo apt-get -y install curl python3 python3-zmq python3-requests python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version
-              sudo pip3 install virtualenv # virtualenv must be instaled from pip and not from ubuntu packages
-              curl -sSL https://install.python-poetry.org | python -
+          sudo apt-get -y update
+          # Repo is missing for unknown reason
+          LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
+          if [[ $php_version == "7.2" ]]; then
+            # hotfix due to: https://bugs.php.net/bug.php?id=81640 TODO: remove after libpcre2-8-0:10.36 gets to stable channel
+            sudo apt-get --fix-broken install
+          fi
+          sudo apt-get -y install curl python3 python3-pip python3-virtualenv apache2 libapache2-mod-php$php_version
+
+      # Runs a set of commands using the runners shell
+      - name: Install deps
+        run: |
               sudo chown $USER:www-data $HOME/.composer
               pushd app
               sudo -H -u $USER php composer.phar install --no-progress
@@ -149,32 +146,33 @@ jobs:
 
       - name: Configure MISP
         run: |
-              sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
+              sudo -u $USER app/Console/cake userInit -q | sudo tee ./key.txt
               echo "AUTH=`cat key.txt`" >> $GITHUB_ENV
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.timeout" 600'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.cookieTimeout" 3600'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.host_org_id" 1'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.email" "info@admin.test"'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.disable_emailing" false'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting --force "debug" true'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_port" 6379'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_database" 13'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_password" ""'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.email" "info@admin.test"'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.homedir" "`pwd`/.gnupg"'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.password" "travistest"'
+              sudo -u $USER app/Console/cake Admin setSetting "Session.autoRegenerate" 0
+              sudo -u $USER app/Console/cake Admin setSetting "Session.timeout" 600
+              sudo -u $USER app/Console/cake Admin setSetting "Session.cookieTimeout" 3600
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.host_org_id" 1
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.email" "info@admin.test"
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.disable_emailing" false
+              sudo -u $USER app/Console/cake Admin setSetting --force "debug" true
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.redis_port" 6379
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.redis_database" 13
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.redis_password" ""
+              sudo -u $USER app/Console/cake Admin setSetting "GnuPG.email" "info@admin.test"
+              sudo -u $USER app/Console/cake Admin setSetting "GnuPG.homedir" "`pwd`/.gnupg"
+              sudo -u $USER app/Console/cake Admin setSetting "GnuPG.password" "travistest"
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.download_gpg_from_homedir" 1
 
       - name: Configure ZMQ
         run: |
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "127.0.0.1"'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1'
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "127.0.0.1"
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1
 
       - name: Update Galaxies
         run: sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'
@@ -209,16 +207,7 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
               export PYTHONPATH=$PYTHONPATH:./app/files/scripts
-              pushd ./app/files/scripts/cti-python-stix2
-              pip install .
-              popd
-              pushd ./app/files/scripts/python-stix
-              pip install .
-              popd
-              pushd PyMISP
-              pip install .[fileobjects,email]
-              popd
-              pip install zmq redis plyara
+              pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 pyzmq redis plyara
               deactivate
 
       - name: Test if apache is working
@@ -242,31 +231,32 @@ jobs:
       - name: Run PHP tests
         run: |
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
-              ./app/Vendor/bin/phpunit app/Test/
+              sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
 
       - name: Run tests
         run: |
-              export PATH=$HOME/.local/env:$PATH # enable poetry binary
-
               pushd tests
               ./curl_tests_GH.sh $AUTH $HOST
               popd
 
               sudo chmod -R g+ws `pwd`/app/tmp/logs
+          
+              . ./venv/bin/activate
               pushd PyMISP
-              poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport -E email
-              poetry run python tests/testlive_comprehensive.py
-              poetry add lxml
-              poetry run python ../tests/testlive_security.py -v
-              poetry run python ../tests/testlive_sync.py
-              poetry run python ../tests/testlive_comprehensive_local.py -v
-              poetry run python tests/test_mispevent.py
+              python tests/testlive_comprehensive.py
+              popd
+              python tests/testlive_security.py -v
+              python tests/testlive_sync.py
+              python tests/testlive_comprehensive_local.py -v
+              pushd PyMISP
+              python tests/test_mispevent.py
               popd
               cp PyMISP/tests/keys.py PyMISP/examples/events/
               pushd PyMISP/examples/events/
-              poetry run python ./create_massive_dummy_events.py -l 5 -a 30
+              python ./create_massive_dummy_events.py -l 5 -a 30
               popd
-              python3 tools/misp-feed/validate.py
+              python tools/misp-feed/validate.py
+              deactivate
 
       - name: Logs
         if: ${{ always() }}

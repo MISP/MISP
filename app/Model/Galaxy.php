@@ -101,6 +101,11 @@ class Galaxy extends AppModel
         ];
     }
 
+    /**
+     * @param array $galaxies
+     * @param array $cluster_package
+     * @return array
+     */
     private function __getPreExistingClusters(array $galaxies, array $cluster_package)
     {
         $temp = $this->GalaxyCluster->find('all', array(
@@ -110,11 +115,7 @@ class Galaxy extends AppModel
             'recursive' => -1,
             'fields' => array('version', 'id', 'value', 'uuid')
         ));
-        $existingClusters = [];
-        foreach ($temp as $v) {
-            $existingClusters[$v['GalaxyCluster']['value']] = $v;
-        }
-        return $existingClusters;
+        return array_column(array_column($temp, 'GalaxyCluster'), null, 'value');
     }
 
     private function __deleteOutdated(bool $force, array $cluster_package, array $existingClusters)
@@ -132,19 +133,20 @@ class Galaxy extends AppModel
             } else {
                 $cluster_package['values'][$k]['version'] = 0;
             }
-            if (!empty($existingClusters[$cluster['value']])) {
-                if ($force || $existingClusters[$cluster['value']]['GalaxyCluster']['version'] < $cluster_package['values'][$k]['version']) {
-                    $cluster_ids_to_delete[] = $existingClusters[$cluster['value']]['GalaxyCluster']['id'];
-                    $cluster_uuids_to_delete[] = $existingClusters[$cluster['value']]['GalaxyCluster']['uuid'];
+            if (isset($existingClusters[$cluster['value']])) {
+                $existing = $existingClusters[$cluster['value']];
+                if ($force || $existing['version'] < $cluster_package['values'][$k]['version']) {
+                    $cluster_ids_to_delete[] = $existing['id'];
+                    $cluster_uuids_to_delete[] = $existing['uuid'];
                 } else {
                     unset($cluster_package['values'][$k]);
                 }
             }
         }
         if (!empty($cluster_ids_to_delete)) {
-            $this->GalaxyCluster->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $cluster_ids_to_delete), false, false);
-            $this->GalaxyCluster->GalaxyClusterRelation->deleteRelations(array('GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster_uuids_to_delete));
-            $this->GalaxyCluster->deleteAll(array('GalaxyCluster.id' => $cluster_ids_to_delete), false, false);
+            $this->GalaxyCluster->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $cluster_ids_to_delete), false);
+            $this->GalaxyCluster->GalaxyClusterRelation->deleteAll(array('GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster_uuids_to_delete));
+            $this->GalaxyCluster->deleteAll(array('GalaxyCluster.id' => $cluster_ids_to_delete), false);
         }
         return $cluster_package;
     }
