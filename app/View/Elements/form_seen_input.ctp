@@ -1,4 +1,3 @@
-<?= $this->Html->script('moment.min'); ?>
 <script>
 <?php
     $temp = explode('_', $this->params->controller);

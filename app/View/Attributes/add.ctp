@@ -96,8 +96,10 @@
     if (!$ajax) {
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
     }
+echo $this->element('genericElements/assetLoader', [
+    'js' => ['moment.min'],
+]);
 ?>
-
 <script type="text/javascript">
     var notice_list_triggers = <?php echo $notice_list_triggers; ?>;
     var category_type_mapping = <?= json_encode(array_map(function(array $value) {
@@ -149,7 +151,7 @@
                         }
                     }
                 } else {
-                    textStatus = '<?php echo __('Value is not a valid datetime. Expected format YYYY-MM-DDTHH:mm:ssZ') ?>'
+                    var textStatus = '<?php echo __('Value is not a valid datetime. Expected format YYYY-MM-DDTHH:mm:ssZ') ?>'
                     showMessage('fail', textStatus);
                     return false;
                 }
