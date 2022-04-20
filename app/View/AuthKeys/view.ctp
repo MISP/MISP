@@ -15,6 +15,9 @@ if (isset($keyUsage)) {
     $uniqueIps = null;
 }
 
+echo $this->element('genericElements/assetLoader', [
+    'js' => ['d3', 'd3.custom'],
+]);
 echo $this->element('genericElements/SingleViews/single_view', [
     'title' => 'Auth key view',
     'data' => $data,

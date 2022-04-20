@@ -191,7 +191,7 @@
                 [
                     'key' => __('Modification map'),
                     'type' => 'element',
-                    'element' => 'sparkline_new',
+                    'element' => 'sparkline',
                     'element_params' => [
                         'scope' => 'modification',
                         'id' => $event['Event']['id'],
@@ -227,7 +227,7 @@
                 [
                     'key' => __('Activity'),
                     'type' => 'element',
-                    'element' => 'sparkline_new',
+                    'element' => 'sparkline',
                     'element_params' => [
                         'scope' => 'event',
                         'id' => $event['Event']['id'],

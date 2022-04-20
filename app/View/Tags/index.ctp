@@ -1,4 +1,7 @@
 <?php
+echo $this->element('genericElements/assetLoader', [
+    'js' => ['d3', 'd3.custom'],
+]);
     echo '<div class="index">';
     echo $this->element('/genericElements/IndexTable/index_table', [
         'data' => [

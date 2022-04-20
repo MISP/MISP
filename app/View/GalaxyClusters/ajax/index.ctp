@@ -1,4 +1,7 @@
 <?php
+echo $this->element('genericElements/assetLoader', [
+    'js' => ['d3', 'd3.custom'],
+]);
     foreach ($list as $i => $cluster) {
         if ($cluster['GalaxyCluster']['default']) {
             $list[$i]['GalaxyCluster']['published'] = null;
