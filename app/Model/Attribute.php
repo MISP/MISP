@@ -3038,7 +3038,7 @@ class Attribute extends AppModel
                 A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
                 has a version below x
             */
-            if (isset($server) && $server['Server']['remove_missing_tags']) {
+            if (isset($server) && $server['Server']['remove_missing_tags'] ?? false) {
                 $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingAttribute['AttributeTag']);
             }
 
