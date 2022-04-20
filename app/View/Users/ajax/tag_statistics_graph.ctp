@@ -1,5 +1,7 @@
-<?php
-    echo $this->Html->script('d3');
+<?= $this->element('genericElements/assetLoader', [
+    'css' => ['treemap'],
+    'js' => ['d3', 'treemap'],
+]);
 ?>
 <div id="treemapSettings">
     <div class="row">
@@ -25,4 +27,3 @@
     var taxonomies = <?php echo json_encode($taxonomies); ?>;
     var hiddenTaxonomies = [];
 </script>
-<?php echo $this->Html->script('treemap'); ?>
