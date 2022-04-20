@@ -25,7 +25,8 @@ attributes_mapping = {
     'email-reply-to': '_parse_email_reply_to',
     'attachment': '_parse_attachment',
     'mac-address': '_parse_value',
-    'AS': '_parse_number'
+    'AS': '_parse_number',
+    'link': '_parse_value'
 }
 
 attributes_type_mapping = {
