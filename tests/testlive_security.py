@@ -130,7 +130,7 @@ class TestSecurity(unittest.TestCase):
     def setUpClass(cls):
         warnings.simplefilter("ignore", ResourceWarning)
 
-        # Connect as admin
+        # Connect as site admin
         cls.admin_misp_connector = PyMISP(url, key)
         # Set expected config values
         check_response(cls.admin_misp_connector.set_server_setting('debug', 1, force=True))
@@ -415,12 +415,16 @@ class TestSecurity(unittest.TestCase):
 
         time.sleep(1)
 
+    def test_advanced_authkeys_non_exists_user(self):
+        new_auth_key = send(self.admin_misp_connector, "POST", "authKeys/add/9999", check_errors=False)
+        self.assertErrorResponse(new_auth_key)
+        self.assertIn("user_id", new_auth_key["errors"][1]["errors"])
+
     def test_advanced_authkeys_own_key_not_possible(self):
-        with self.__setting("Security.advanced_authkeys", True):
-            authkey = ("a" * 40)
-            auth_key = self.__create_advanced_authkey(self.test_usr.id, {"authkey": authkey})
-            self.__delete_advanced_authkey(auth_key["id"])
-            self.assertNotEqual(authkey, auth_key["authkey_raw"])
+        authkey = ("a" * 40)
+        auth_key = self.__create_advanced_authkey(self.test_usr.id, {"authkey": authkey})
+        self.__delete_advanced_authkey(auth_key["id"])
+        self.assertNotEqual(authkey, auth_key["authkey_raw"])
 
     def test_advanced_authkeys_reset_own(self):
         with self.__setting("Security.advanced_authkeys", True):
@@ -1619,7 +1623,7 @@ class TestSecurity(unittest.TestCase):
     def __create_advanced_authkey(self, user_id: int, data: Optional[dict] = None) -> dict:
         auth_key = send(self.admin_misp_connector, "POST", f'authKeys/add/{user_id}', data=data)["AuthKey"]
         # it is not possible to call `assertEqual`, because we use this method in `setUpClass` method
-        assert user_id == auth_key["user_id"], "Key was created for different user"
+        assert int(user_id) == int(auth_key["user_id"]), f"Key was created for different user ({user_id} != {auth_key['user_id']})"
         return auth_key
 
     def __login(self, user: MISPUser) -> PyMISP:

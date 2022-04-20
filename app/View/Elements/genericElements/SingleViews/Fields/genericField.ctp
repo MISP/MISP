@@ -12,6 +12,11 @@ if (!empty($field['url'])) {
         }
         foreach ($field['url_vars'] as $k => $path) {
             $field['url'] = str_replace('{{' . $k . '}}', Hash::extract($data, $path)[0], $field['url']);
+            $temp = explode(':', $field['url']);
+            if (!in_array(strtolower($temp[0]), ['http', 'https'])) {
+                $field['url'] = '#';
+                $string = 'Malformed URL - invalid protocol (' . h($temp[0]) . ':)';
+            }
         }
     }
     $string = sprintf(

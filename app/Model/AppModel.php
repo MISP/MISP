@@ -51,6 +51,9 @@ class AppModel extends Model
     {
         parent::__construct($id, $table, $ds);
         $this->findMethods['column'] = true;
+        if (in_array('phar', stream_get_wrappers())) {
+            stream_wrapper_unregister('phar');
+        }
     }
 
     // deprecated, use $db_changes
@@ -85,7 +88,8 @@ class AppModel extends Model
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
-        75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false
+        75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
+        81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false
     );
 
     public $advanced_updates_description = array(
@@ -1615,6 +1619,72 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `users` ADD UNIQUE INDEX `sub` (`sub`);";
                 break;
             case 80:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `sharing_group_blueprints` (
+                      `id` int(11) NOT NULL AUTO_INCREMENT,
+                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+                      `name` varchar(191) NOT NULL,
+                      `timestamp` int(11) NOT NULL DEFAULT 0,
+                      `user_id` int(11) NOT NULL,
+                      `org_id` int(11) NOT NULL,
+                      `sharing_group_id` int(11),
+                      `rules` text,
+                      PRIMARY KEY (`id`),
+                      INDEX `uuid` (`uuid`),
+                      INDEX `name` (`name`),
+                      INDEX `org_id` (`org_id`),
+                      INDEX `sharing_group_id` (`sharing_group_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 81:
+                $fields = ['nationality', 'sector', 'type', 'name'];
+                foreach ($fields as $field) {
+                    $sqlArray[] = sprintf("UPDATE organisations SET %s = '' WHERE %s IS NULL;", $field, $field);
+                    $sqlArray[] = sprintf("ALTER table organisations MODIFY %s varchar(255) NOT NULL DEFAULT '';", $field);
+                }
+                break;
+            case 82:
+                $sqlArray[] = sprintf("ALTER table organisations MODIFY description text;");
+                break;
+            case 83:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `sharing_group_blueprints` (
+                      `id` int(11) NOT NULL AUTO_INCREMENT,
+                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+                      `name` varchar(191) NOT NULL,
+                      `timestamp` int(11) NOT NULL DEFAULT 0,
+                      `user_id` int(11) NOT NULL,
+                      `org_id` int(11) NOT NULL,
+                      `sharing_group_id` int(11),
+                      `rules` text,
+                      PRIMARY KEY (`id`),
+                      INDEX `uuid` (`uuid`),
+                      INDEX `name` (`name`),
+                      INDEX `org_id` (`org_id`),
+                      INDEX `sharing_group_id` (`sharing_group_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 84:
+                $sqlArray[] = sprintf("ALTER table events add `protected` tinyint(1);");
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `cryptographic_keys` (
+                      `id` int(11) NOT NULL AUTO_INCREMENT,
+                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                      `type` varchar(40) COLLATE utf8_bin NOT NULL,
+                      `timestamp` int(11) NOT NULL DEFAULT 0,
+                      `parent_id` int(11) NOT NULL,
+                      `parent_type` varchar(40) COLLATE utf8_bin NOT NULL,
+                      `key_data` text,
+                      `revoked` tinyint(1) NOT NULL DEFAULT 0,
+                      `fingerprint` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+                      PRIMARY KEY (`id`),
+                      INDEX `uuid` (`uuid`),
+                      INDEX `type` (`type`),
+                      INDEX `parent_id` (`parent_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 85:
+                $this->__addIndex('cryptographic_keys', 'parent_type');
+                $this->__addIndex('cryptographic_keys', 'fingerprint');
+                break;
+            case 86:
                 $sqlArray[] = "ALTER TABLE `servers` ADD `remove_missing_tags` tinyint(1) NOT NULL DEFAULT 0 AFTER `skip_proxy`;";
                 break;
             case 'fixNonEmptySharingGroupID':
@@ -2475,7 +2545,7 @@ class AppModel extends Model
         }
 
         if (!class_exists('Redis')) {
-            throw new Exception("Class Redis doesn't exists.");
+            throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
         }
 
         $host = Configure::read('MISP.redis_host') ?: '127.0.0.1';
@@ -2521,6 +2591,7 @@ class AppModel extends Model
             App::uses('KafkaPubTool', 'Tools');
             $kafkaPubTool = new KafkaPubTool();
             $rdkafkaIni = Configure::read('Plugin.Kafka_rdkafka_config');
+            $rdkafkaIni = mb_ereg_replace("/\:\/\//", '', $rdkafkaIni);
             $kafkaConf = array();
             if (!empty($rdkafkaIni)) {
                 $kafkaConf = parse_ini_file($rdkafkaIni);
@@ -2716,7 +2787,7 @@ class AppModel extends Model
      * @return array[]
      * @throws JsonException
      */
-    protected function setupSyncRequest(array $server, $model = 'Server')
+    public function setupSyncRequest(array $server, $model = 'Server')
     {
         $version = implode('.', $this->checkMISPVersion());
         $commit = $this->checkMIPSCommit();
@@ -3133,16 +3204,7 @@ class AppModel extends Model
      */
     public function jsonDecode($json)
     {
-        if (defined('JSON_THROW_ON_ERROR')) {
-            // JSON_THROW_ON_ERROR is supported since PHP 7.3
-            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-        } else {
-            $decoded = json_decode($json, true);
-            if ($decoded === null) {
-                throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
-            }
-        }
-
+        $decoded = JsonTool::decode($json);
         if (!is_array($decoded)) {
             throw new UnexpectedValueException('JSON must be array type, get ' . gettype($decoded));
         }

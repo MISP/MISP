@@ -34,8 +34,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '136';
-    public $pyMispVersion = '2.4.152';
+    private $__queryVersion = '139';
+    public $pyMispVersion = '2.4.157';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -202,20 +202,7 @@ class AppController extends Controller
                 if (empty($dataToDecode)) {
                     return null;
                 }
-                try {
-                    if (defined('JSON_THROW_ON_ERROR')) {
-                        // JSON_THROW_ON_ERROR is supported since PHP 7.3
-                        return json_decode($dataToDecode, true, 512, JSON_THROW_ON_ERROR);
-                    } else {
-                        $decoded = json_decode($dataToDecode, true);
-                        if ($decoded === null) {
-                            throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
-                        }
-                        return $decoded;
-                    }
-                } catch (Exception $e) {
-                    throw new HttpException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.', 405, $e);
-                }
+                return $this->_jsonDecode($dataToDecode);
             };
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
@@ -376,7 +363,7 @@ class AppController extends Controller
     {
         // Notifications and homepage is not necessary for AJAX or REST requests
         $user = $this->Auth->user();
-        if ($user && !$this->_isRest() && !$this->request->is('ajax')) {
+        if ($user && !$this->_isRest() && isset($this->User) && !$this->request->is('ajax')) {
             $hasNotifications = $this->User->hasNotifications($user);
             $this->set('hasNotifications', $hasNotifications);
 
@@ -541,7 +528,7 @@ class AppController extends Controller
             return false;
         }
 
-        if ($user['disabled']) {
+        if ($user['disabled'] || (isset($user['logged_by_authkey']) && $user['logged_by_authkey']) && !$this->User->checkIfUserIsValid($user)) {
             if ($this->_shouldLog('disabled:' . $user['id'])) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], 'Login attempt by disabled user.');
@@ -1327,6 +1314,27 @@ class AppController extends Controller
     }
 
     /**
+     * Returns true if user can publish the given event.
+     *
+     * @param array $event
+     * @return bool
+     */
+    protected function __canPublishEvent(array $event)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+
+        if ($this->userRole['perm_site_admin']) {
+            return true;
+        }
+        if ($this->userRole['perm_publish'] && $event['Event']['orgc_id'] == $this->Auth->user()['org_id']) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Returns true if user can add or remove tags for given event.
      *
      * @param array $event
@@ -1428,5 +1436,28 @@ class AppController extends Controller
             return new AppView($this);
         }
         return parent::_getViewObject();
+    }
+
+    /**
+     * Decode JSON with proper error handling.
+     * @param string $dataToDecode
+     * @return mixed
+     */
+    protected function _jsonDecode($dataToDecode)
+    {
+        try {
+            if (defined('JSON_THROW_ON_ERROR')) {
+                // JSON_THROW_ON_ERROR is supported since PHP 7.3
+                return json_decode($dataToDecode, true, 512, JSON_THROW_ON_ERROR);
+            } else {
+                $decoded = json_decode($dataToDecode, true);
+                if ($decoded === null) {
+                    throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
+                }
+                return $decoded;
+            }
+        } catch (Exception $e) {
+            throw new HttpException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.', 405, $e);
+        }
     }
 }

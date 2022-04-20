@@ -2,6 +2,7 @@
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 App::uses('SecurityAudit', 'Tools');
 
 /**
@@ -38,7 +39,6 @@ class ServersController extends AppController
         $this->Auth->allow(['cspReport']); // cspReport must work without authentication
 
         parent::beforeFilter();
-        $this->Security->unlockedActions[] = 'getApiInfo';
         $this->Security->unlockedActions[] = 'cspReport';
         // permit reuse of CSRF tokens on some pages.
         switch ($this->request->params['action']) {
@@ -443,20 +443,7 @@ class ServersController extends AppController
                 $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
             }
 
-            $allTypes = [];
-            $this->loadModel('Attribute');
-            $this->loadModel('ObjectTemplate');
-            $objects = $this->ObjectTemplate->find('all', [
-                'recursive' => -1,
-                'fields' => ['uuid', 'name'],
-                'group' => ['uuid', 'name'],
-            ]);
-            $allTypes = [
-                'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
-                'object' => Hash::map($objects, '{n}.ObjectTemplate', function ($item) {
-                    return ['id' => $item['uuid'], 'name' => sprintf('%s (%s)', $item['name'], $item['uuid'])];
-                })
-            ];
+            $allTypes = $this->Server->getAllTypes();
 
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
             $this->set('organisationOptions', $organisationOptions);
@@ -468,6 +455,7 @@ class ServersController extends AppController
 
             $this->set('allTags', $this->__getTags());
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
+            $this->set('pull_scope', 'server');
             $this->render('edit');
         }
     }
@@ -641,20 +629,7 @@ class ServersController extends AppController
                 $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
             }
 
-            $allTypes = [];
-            $this->loadModel('Attribute');
-            $this->loadModel('ObjectTemplate');
-            $objects = $this->ObjectTemplate->find('all', [
-                'recursive' => -1,
-                'fields' => ['uuid', 'name'],
-                'group' => ['uuid', 'name'],
-            ]);
-            $allTypes = [
-                'attribute' => array_unique(Hash::extract(Hash::extract($this->Attribute->categoryDefinitions, '{s}.types'), '{n}.{n}')),
-                'object' => Hash::map($objects, '{n}.ObjectTemplate', function ($item) {
-                    return ['id' => $item['uuid'], 'name' => sprintf('%s (%s)', $item['name'], $item['uuid'])];
-                })
-            ];
+            $allTypes = $this->Server->getAllTypes();
 
             $oldRemoteSetting = 0;
             if (!$this->Server->data['RemoteOrg']['local']) {
@@ -675,6 +650,7 @@ class ServersController extends AppController
             $this->set('server', $s);
             $this->set('id', $id);
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
+            $this->set('pull_scope', 'server');
         }
     }
 
@@ -908,7 +884,7 @@ class ServersController extends AppController
             );
 
             $message = sprintf(__('Push queued for background execution. Job ID: %s'), $jobId);
-            
+
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->type());
             }
@@ -1442,23 +1418,23 @@ class ServersController extends AppController
         $this->render('ajax/submoduleStatus');
     }
 
-    public function getSetting($setting_name)
+    public function getSetting($settingName)
     {
-        $setting = $this->Server->getSettingData($setting_name);
-        if (!empty($setting["redacted"])) {
-            throw new MethodNotAllowedException(__('This setting is redacted.'));
+        $setting = $this->Server->getSettingData($settingName);
+        if (!$setting) {
+            throw new NotFoundException(__('Setting %s is invalid.', $settingName));
         }
-        if (Configure::check($setting_name)) {
-            $setting['value'] = Configure::read($setting_name);
+        if (!empty($setting["redacted"])) {
+            throw new ForbiddenException(__('This setting is redacted.'));
+        }
+        if (Configure::check($settingName)) {
+            $setting['value'] = Configure::read($settingName);
         }
         return $this->RestResponse->viewData($setting);
     }
 
-    public function serverSettingsEdit($setting_name, $id = false, $forceSave = false)
+    public function serverSettingsEdit($settingName, $id = false, $forceSave = false)
     {
-        if (!isset($setting_name)) {
-            throw new MethodNotAllowedException();
-        }
         if (!$this->_isRest()) {
             if (!isset($id)) {
                 throw new MethodNotAllowedException();
@@ -1466,9 +1442,9 @@ class ServersController extends AppController
             $this->set('id', $id);
         }
 
-        $setting = $this->Server->getSettingData($setting_name);
+        $setting = $this->Server->getSettingData($settingName);
         if ($setting === false) {
-            throw new NotFoundException(__('Setting %s is invalid.', $setting_name));
+            throw new NotFoundException(__('Setting %s is invalid.', $settingName));
         }
         if (!empty($setting['cli_only'])) {
             throw new MethodNotAllowedException(__('This setting can only be edited via the CLI.'));
@@ -1489,7 +1465,10 @@ class ServersController extends AppController
                 $subGroup = 'general';
             }
             if ($this->_isRest()) {
-                return $this->RestResponse->viewData(array($setting['name'] => $setting['value']));
+                if (!empty($setting['redacted'])) {
+                    throw new ForbiddenException(__('This setting is redacted.'));
+                }
+                return $this->RestResponse->viewData([$setting['name'] => $setting['value']]);
             } else {
                 $this->set('subGroup', $subGroup);
                 $this->set('setting', $setting);
@@ -1993,280 +1972,6 @@ class ServersController extends AppController
         return $this->RestResponse->viewData(array('uuid' => Configure::read('MISP.uuid')), $this->response->type());
     }
 
-    public function rest()
-    {
-        $allValidApis = $this->RestResponse->getAllApis($this->Auth->user());
-        $allValidApisFieldsContraint = $this->RestResponse->getAllApisFieldsConstraint($this->Auth->user());
-        if ($this->request->is('post')) {
-            $request = $this->request->data;
-            if (!empty($request['Server'])) {
-                $request = $this->request->data['Server'];
-            }
-            $curl = '';
-            $python = '';
-            try {
-                $result = $this->__doRestQuery($request, $curl, $python);
-                $this->set('curl', $curl);
-                $this->set('python', $python);
-                if (!$result) {
-                    $this->Flash->error('Something went wrong. Make sure you set the http method, body (when sending POST requests) and URL correctly.');
-                } else {
-                    $this->set('data', $result);
-                }
-            } catch (Exception $e) {
-                $this->Flash->error(__('Something went wrong. %s', $e->getMessage()));
-            }
-        }
-        $header = sprintf(
-            "Authorization: %s \nAccept: application/json\nContent-type: application/json",
-            __('YOUR_API_KEY')
-        );
-        $this->set('header', $header);
-        $this->set('allValidApis', $allValidApis);
-        // formating for optgroup
-        $allValidApisFormated = array();
-        foreach ($allValidApis as $endpoint_url => $endpoint_data) {
-            $allValidApisFormated[$endpoint_data['controller']][] = array('url' => $endpoint_url, 'action' => $endpoint_data['action']);
-        }
-        $this->set('allValidApisFormated', $allValidApisFormated);
-        $this->set('allValidApisFieldsContraint', $allValidApisFieldsContraint);
-    }
-
-    /**
-     * @param array $request
-     * @param string $curl
-     * @param string $python
-     * @return array|false
-     */
-    private function __doRestQuery(array $request, &$curl = false, &$python = false)
-    {
-        App::uses('SyncTool', 'Tools');
-        $params = array();
-
-        $logHeaders = $request['header'];
-        if (!empty(Configure::read('Security.advanced_authkeys'))) {
-            $logHeaders = explode("\n", $request['header']);
-            foreach ($logHeaders as $k => $header) {
-                if (strpos($header, 'Authorization') !== false) {
-                    $logHeaders[$k] = 'Authorization: ' . __('YOUR_API_KEY');
-                }
-            }
-            $logHeaders = implode("\n", $logHeaders);
-        }
-
-        if (empty($request['body'])) {
-            $historyBody = '';
-        } else if (strlen($request['body']) > 65535) {
-            $historyBody = ''; // body is too long to save into history table
-        } else {
-            $historyBody = $request['body'];
-        }
-
-        $rest_history_item = array(
-            'org_id' => $this->Auth->user('org_id'),
-            'user_id' => $this->Auth->user('id'),
-            'headers' => $logHeaders,
-            'body' => $historyBody,
-            'url' => $request['url'],
-            'http_method' => $request['method'],
-            'use_full_path' => empty($request['use_full_path']) ? false : $request['use_full_path'],
-            'show_result' => $request['show_result'],
-            'skip_ssl' => $request['skip_ssl_validation'],
-            'bookmark' => $request['bookmark'],
-            'bookmark_name' => $request['name'],
-            'timestamp' => time(),
-        );
-        if (!empty($request['url'])) {
-            if (empty($request['use_full_path']) || empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
-                $path = preg_replace('#^(://|[^/?])+#', '', $request['url']);
-                $url = empty(Configure::read('Security.rest_client_baseurl')) ? (Configure::read('MISP.baseurl') . $path) : (Configure::read('Security.rest_client_baseurl') . $path);
-                unset($request['url']);
-            } else {
-                $url = $request['url'];
-            }
-        } else {
-            throw new InvalidArgumentException('URL not set.');
-        }
-        if (!empty($request['skip_ssl_validation'])) {
-            $params['ssl_verify_peer'] = false;
-            $params['ssl_verify_host'] = false;
-            $params['ssl_verify_peer_name'] = false;
-            $params['ssl_allow_self_signed'] = true;
-        }
-        $params['timeout'] = 300;
-        App::uses('HttpSocket', 'Network/Http');
-        $HttpSocket = new HttpSocket($params);
-
-        $temp_headers = empty($request['header']) ? [] : explode("\n", $request['header']);
-        $request['header'] = array(
-            'Accept' => 'application/json',
-            'Content-Type' => 'application/json',
-            'User-Agent' => 'MISP REST Client',
-        );
-        foreach ($temp_headers as $header) {
-            $header = explode(':', $header);
-            $header[0] = trim($header[0]);
-            $header[1] = trim($header[1]);
-            $request['header'][$header[0]] = $header[1];
-        }
-        $start = microtime(true);
-        if (
-            !empty($request['method']) &&
-            $request['method'] === 'GET'
-        ) {
-            if ($curl !== false) {
-                $curl = $this->__generateCurlQuery('get', $request, $url);
-            }
-            if ($python !== false) {
-                $python = $this->__generatePythonScript($request, $url);
-            }
-            $response = $HttpSocket->get($url, false, array('header' => $request['header']));
-        } elseif (
-            !empty($request['method']) &&
-            $request['method'] === 'POST' &&
-            !empty($request['body'])
-        ) {
-            if ($curl !== false) {
-                $curl = $this->__generateCurlQuery('post', $request, $url);
-            }
-            if ($python !== false) {
-                $python = $this->__generatePythonScript($request, $url);
-            }
-            $response = $HttpSocket->post($url, $request['body'], array('header' => $request['header']));
-        } elseif (
-            !empty($request['method']) &&
-            $request['method'] === 'DELETE'
-        ) {
-            if ($curl !== false) {
-                $curl = $this->__generateCurlQuery('delete', $request, $url);
-            }
-            if ($python !== false) {
-                $python = $this->__generatePythonScript($request, $url);
-            }
-            $response = $HttpSocket->delete($url, false, array('header' => $request['header']));
-        } else {
-            return false;
-        }
-        $viewData = [
-            'duration' => round((microtime(true) - $start) * 1000, 2) . ' ms',
-            'url' => $url,
-            'code' => $response->code,
-            'headers' => $response->headers,
-        ];
-
-        if (!empty($request['show_result'])) {
-            $viewData['data'] = $response->body;
-        } else {
-            if ($response->isOk()) {
-                $viewData['data'] = 'Success.';
-            } else {
-                $viewData['data'] = 'Something went wrong.';
-            }
-        }
-        $rest_history_item['outcome'] = $response->code;
-
-        $this->loadModel('RestClientHistory');
-        $this->RestClientHistory->create();
-        $this->RestClientHistory->save($rest_history_item);
-        $this->RestClientHistory->cleanup($this->Auth->user('id'));
-
-        return $viewData;
-    }
-
-    private function __generatePythonScript($request, $url)
-    {
-        $slashCounter = 0;
-        $baseurl = '';
-        $relative = '';
-        $verifyCert = ($url[4] === 's') ? 'True' : 'False';
-        for ($i = 0; $i < strlen($url); $i++) {
-            //foreach ($url as $url[$i]) {
-            if ($url[$i] === '/') {
-                $slashCounter += 1;
-                if ($slashCounter == 3) {
-                    continue;
-                }
-            }
-            if ($slashCounter < 3) {
-                $baseurl .= $url[$i];
-            } else {
-                $relative .= $url[$i];
-            }
-        }
-        $python_script =
-        sprintf(
-'misp_url = \'%s\'
-misp_key = \'%s\'
-misp_verifycert = %s
-relative_path = \'%s\'
-body = %s
-
-from pymisp import ExpandedPyMISP
-
-misp = ExpandedPyMISP(misp_url, misp_key, misp_verifycert)
-misp.direct_call(relative_path, body)
-',
-            $baseurl,
-            $request['header']['Authorization'],
-            $verifyCert,
-            $relative,
-            (empty($request['body']) ? 'None' : $request['body'])
-        );
-        return $python_script;
-    }
-
-    private function __generateCurlQuery($type, $request, $url)
-    {
-        if ($type === 'get') {
-            $curl = sprintf(
-                'curl \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s %s',
-                PHP_EOL,
-                $request['header']['Authorization'],
-                PHP_EOL,
-                $request['header']['Accept'],
-                PHP_EOL,
-                $request['header']['Content-Type'],
-                PHP_EOL,
-                $url
-            );
-        } else {
-            $curl = sprintf(
-                'curl \%s -d \'%s\' \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s -X POST %s',
-                PHP_EOL,
-                json_encode(json_decode($request['body'])),
-                PHP_EOL,
-                $request['header']['Authorization'],
-                PHP_EOL,
-                $request['header']['Accept'],
-                PHP_EOL,
-                $request['header']['Content-Type'],
-                PHP_EOL,
-                $url
-            );
-        }
-        return $curl;
-    }
-
-    public function getApiInfo()
-    {
-        $relative_path = $this->request->data['url'];
-        $result = $this->RestResponse->getApiInfo($relative_path);
-        if ($this->_isRest()) {
-            if (!empty($result)) {
-                $result['api_info'] = $result;
-            }
-            return $this->RestResponse->viewData($result, $this->response->type());
-        } else {
-            if (empty($result)) {
-                return $this->RestResponse->viewData('&nbsp;', $this->response->type());
-            }
-            $this->layout = false;
-            $this->autoRender = false;
-            $this->set('api_info', $result);
-            $this->render('ajax/get_api_info');
-        }
-    }
-
     public function cache($id = 'all')
     {
         if (Configure::read('MISP.background_jobs')) {
@@ -2341,11 +2046,23 @@ misp.direct_call(relative_path, body)
         if (empty($host_org)) {
             throw new MethodNotAllowedException(__('Configured host org not found. Please make sure that the setting is current on the instance.'));
         }
+        if (Configure::read('Security.advanced_authkeys')) {
+            $this->loadModel('AuthKey');
+            $authkey = $this->AuthKey->createnewkey($this->Auth->user('id'), __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
+        } else {
+            $this->loadModel('User');
+            $authkey = $this->User->find('column', [
+                'conditions' => ['User.id' => $this->Auth->user('id')],
+                'recursive' => -1,
+                'fields' => ['User.authkey']
+            ]);
+            $authkey = $authkey[0];
+        }
         $server = array(
             'Server' => array(
                 'url' => $baseurl,
                 'uuid' => Configure::read('MISP.uuid'),
-                'authkey' => __('YOUR_API_KEY'),
+                'authkey' => h($authkey),
                 'Organisation' => array(
                     'name' => $host_org['Organisation']['name'],
                     'uuid' => $host_org['Organisation']['uuid'],
@@ -2491,7 +2208,7 @@ misp.direct_call(relative_path, body)
             throw new MethodNotAllowedException('This action expects a POST request.');
         }
 
-        $report = $this->Server->jsonDecode($this->request->input());
+        $report = JsonTool::decode($this->request->input());
         if (!isset($report['csp-report'])) {
             throw new RuntimeException("Invalid report");
         }
@@ -2501,20 +2218,13 @@ misp.direct_call(relative_path, body)
         if ($remoteIp) {
             $message .= ' from IP ' . $remoteIp;
         }
-        $this->log("$message: " . json_encode($report['csp-report'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-
-        return new CakeResponse(['statusCodes' => 204]);
-    }
-
-    public function viewDeprecatedFunctionUse()
-    {
-        $data = $this->Deprecation->getDeprecatedAccessList($this->Server);
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($data, $this->response->type());
-        } else {
-            $this->layout = false;
-            $this->set('data', $data);
+        $report = JsonTool::encode($report['csp-report'], true);
+        if (strlen($report) > 1024 * 1024) { // limit report to 1 kB
+            $report = substr($report, 0, 1024 * 1024) . '...';
         }
+        $this->log("$message: $report");
+
+        return new CakeResponse(['status' => 204]);
     }
 
     /**
@@ -2570,9 +2280,6 @@ misp.direct_call(relative_path, body)
         $syncFilteringRules = $this->Server->getAvailableSyncFilteringRules($this->Auth->user());
         return $this->RestResponse->viewData($syncFilteringRules);
     }
-
-    public function openapi() {
-	}
 
     public function pruneDuplicateUUIDs()
     {
@@ -2706,5 +2413,50 @@ misp.direct_call(relative_path, body)
         } else {
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         }
+    }
+
+    public function ipUser($input = false)
+    {
+        $params = $this->IndexFilter->harvestParameters(['ip']);
+        if (!empty($params['ip'])) {
+            $input = $params['ip'];
+        }
+        $redis = $this->Server->setupRedis();
+        if (!is_array($input)) {
+            $input = [$input];
+        }
+        $users = [];
+        foreach ($input as $ip) {
+            if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+                continue;
+            }
+            $user_id = $redis->get('misp:ip_user:' . $ip);
+            if (empty($user_id)) {
+                continue;
+            }
+            $this->loadModel('User');
+            $user = $this->User->find('first', [
+                'recursive' => -1,
+                'conditions' => ['User.id' => $user_id],
+                'contain' => ['Organisation.name']
+            ]);
+            if (empty($user)) {
+                throw new NotFoundException(__('User not found (perhaps it has been removed?).'));
+            }
+            $users[$ip] = [
+                'id' => $user['User']['id'],
+                'email' => $user['User']['email'],
+            ];
+        }
+        return $this->RestResponse->viewData($users, $this->response->type());
+    }
+
+    /**
+     * @deprecated
+     * @return void
+     */
+    public function rest()
+    {
+        $this->redirect(['controller' => 'api', 'action' => 'rest']);
     }
 }

@@ -2868,6 +2868,8 @@ components:
         eventinfo:
           description: "Quick event description"
           type: string
+        sharinggroup:
+          $ref: "#/components/schemas/SharingGroupIDRestSearchFilter"
         decayingModel:
           description: "Specify the decaying model from which the decaying score should be calculated"
           type: string
@@ -5375,6 +5377,13 @@ components:
         type: string
         example: "tlp:amber"
 
+    SharingGroupIDRestSearchFilter:
+      description: "Sharing group ID(s), either as single string or list of IDs"
+      nullable: true
+      items:
+        type: string
+        example: "1"
+
     MetadataRestSearchFilter:
       description: "Will only return the metadata of the given query scope, contained data is omitted."
       nullable: true
@@ -6202,6 +6211,8 @@ components:
                 description: "Extends the response with the base64 representation of the attachment, if there is one"
                 type: boolean
                 default: false
+              sharinggroup:
+                $ref: "#/components/schemas/SharingGroupIDRestSearchFilter"
               metadata:
                 $ref: "#/components/schemas/MetadataRestSearchFilter"
               uuid:

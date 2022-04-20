@@ -16,15 +16,9 @@
                                 'type' => 'simple',
                                 'fa-icon' => 'plus',
                                 'text' => __('Add authentication key'),
-                                'class' => 'btn btn-primary',
-                                'onClick' => 'openGenericModal',
-                                'onClickParams' => [
-                                    sprintf(
-                                        '%s/auth_keys/add%s',
-                                        $baseurl,
-                                        empty($user_id) ? '' : ('/' . $user_id)
-                                    )
-                                ]
+                                'class' => 'btn-primary modal-open',
+                                'url' => "$baseurl/auth_keys/add" . (empty($user_id) ? '' : ('/' . $user_id)),
+                                'requirement' => $canCreateAuthkey
                             ]
                         ]
                     ],
@@ -101,11 +95,9 @@
                     'title' => 'Edit auth key',
                 ],
                 [
-                    'onclick' => sprintf(
-                        'openGenericModal(\'%s/authKeys/delete/[onclick_params_data_path]\');',
-                        $baseurl
-                    ),
-                    'onclick_params_data_path' => 'AuthKey.id',
+                    'class' => 'modal-open',
+                    'url' => "$baseurl/authKeys/delete",
+                    'url_params_data_paths' => ['AuthKey.id'],
                     'icon' => 'trash',
                     'title' => __('Delete auth key'),
                 ]

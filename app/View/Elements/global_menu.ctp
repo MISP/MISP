@@ -221,6 +221,16 @@
                         'requirement' => $isAclSharingGroup
                     ),
                     array(
+                        'text' => __('List Sharing Groups Blueprints'),
+                        'url' => $baseurl . '/sharing_group_blueprints/index',
+                        'requirement' => $isAclSharingGroup
+                    ),
+                    array(
+                        'text' => __('Add Sharing Group Blueprint'),
+                        'url' => $baseurl . '/sharing_group_blueprints/add',
+                        'requirement' => $isAclSharingGroup
+                    ),
+                    array(
                         'type' => 'separator'
                     ),
                     array(
@@ -478,12 +488,12 @@
                 'children' => array(
                     array(
                         'text' => __('OpenAPI'),
-                        'url' => $baseurl . '/servers/openapi'
+                        'url' => $baseurl . '/api/openapi'
                     ),
                     array(
                         'text' => __('REST client'),
-                        'url' => $baseurl . '/servers/rest',
-                        'requirement' => $canAccess('servers', 'rest')
+                        'url' => $baseurl . '/api/rest',
+                        'requirement' => $canAccess('api', 'rest')
                     )
                 )
             )
@@ -534,7 +544,7 @@
         );
     }
 ?>
-<div id="topBar" class="navbar navbar-inverse <?= $debugMode ?>">
+<div id="topBar" class="navbar navbar-inverse <?= isset($debugMode) ? $debugMode : 'debugOff' ?>">
   <div class="navbar-inner">
     <ul class="nav">
         <?php

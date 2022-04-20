@@ -1,14 +1,17 @@
 <?php
 App::uses('AppShell', 'Console/Command');
 App::uses('ProcessTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 /**
  * @property Server $Server
  * @property Feed $Feed
+ * @property AdminSetting $AdminSetting
  */
 class AdminShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed', 'SharingGroupBlueprint');
 
     public function getOptionParser()
     {
@@ -55,6 +58,9 @@ class AdminShell extends AppShell
                     'new' => ['help' => __('New key. If not provided, new key will be generated.')],
                 ],
             ],
+        ]);
+        $parser->addSubcommand('dumpCurrentDatabaseSchema', [
+            'help' => __('Dump current database schema to JSON file.'),
         ]);
         $parser->addSubcommand('removeOrphanedCorrelations', [
             'help' => __('Remove orphaned correlations.'),
@@ -707,21 +713,18 @@ class AdminShell extends AppShell
 
     public function dumpCurrentDatabaseSchema()
     {
-        $this->ConfigLoad->execute();
         $dbActualSchema = $this->Server->getActualDBSchema();
         $dbVersion = $this->AdminSetting->getSetting('db_version');
         if (!empty($dbVersion) && !empty($dbActualSchema['schema'])) {
-            $data = array(
+            $data = [
                 'schema' => $dbActualSchema['schema'],
                 'indexes' => $dbActualSchema['indexes'],
-                'db_version' => $dbVersion
-            );
-            $file = new File(ROOT . DS . 'db_schema.json', true);
-            $file->write(json_encode($data, JSON_PRETTY_PRINT) . "\n");
-            $file->close();
-            echo __("> Database schema dumped on disk") . PHP_EOL;
+                'db_version' => $dbVersion,
+            ];
+            FileAccessTool::writeToFile(ROOT . DS . 'db_schema.json', JsonTool::encode($data, true));
+            $this->out(__("> Database schema dumped on disk"));
         } else {
-            echo __("Something went wrong. Could not find the existing db version or fetch the current database schema.") . PHP_EOL;
+            $this->error(__('Something went wrong.'), __('Could not find the existing db version or fetch the current database schema.'));
         }
     }
 
@@ -936,7 +939,7 @@ class AdminShell extends AppShell
         $new = $this->params['new'] ?? null;
 
         if ($new !== null && strlen($new) < 32) {
-            $this->error('New key must be at least 32 char long.');
+            $this->error('New key must be at least 32 chars long.');
         }
 
         if ($old === null) {
@@ -945,8 +948,7 @@ class AdminShell extends AppShell
 
         if ($new === null) {
             // Generate random new key
-            $randomTool = new RandomTool();
-            $new = $randomTool->random_str();
+            $new = rtrim(base64_encode(random_bytes(32)), "=");
         }
 
         $this->Server->getDataSource()->begin();
@@ -1142,5 +1144,38 @@ class AdminShell extends AppShell
             }
             $this->out($setting['setting'] . ': ' . $setting['errorMessage']);
         }
+    }
+
+    public function executeSGBlueprint()
+    {
+        $id = false;
+        $target = 'all';
+        if (!empty($this->args[0])) {
+            $target = trim($this->args[0]);
+        }
+        if (!is_numeric($target) && !in_array($target, ['all', 'attached', 'deteached'])) {
+            $this->error(__('Invalid target. Either pass a blueprint ID or one of the following filters: all, attached, detached.'));
+        }
+        $conditions = [];
+        if (is_numeric($target)) {
+            $conditions['SharingGroupBlueprint']['id'] = $target;
+        } else if ($target === 'attached') {
+            $conditions['SharingGroupBlueprint']['sharing_group_id >'] = 0;
+        } else if ($target === 'detached') {
+            $conditions['SharingGroupBlueprint']['sharing_group_id'] = 0;
+        }
+        $sharingGroupBlueprints = $this->SharingGroupBlueprint->find('all', ['conditions' => $conditions, 'recursive' => 0]);
+        if (empty($sharingGroupBlueprints)) {
+            $this->error(__('No valid blueprints found.'));
+        }
+        $stats = $this->SharingGroupBlueprint->execute($sharingGroupBlueprints);
+        $message = __(
+            'Done, %s sharing group blueprint(s) matched. Sharing group changes: Created: %s. Updated: %s. Failed to create: %s.',
+            count($sharingGroupBlueprints),
+            $stats['created'],
+            $stats['changed'],
+            $stats['failed']
+        );
+        $this->out($message);
     }
 }

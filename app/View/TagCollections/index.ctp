@@ -19,11 +19,4 @@
     ));
 
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'tag-collections', 'menuItem' => 'index'));
-?>
-<script type="text/javascript">
-    $(document).ready(function() {
-        $('.addGalaxy').click(function() {
-            addGalaxyListener(this);
-        });
-    });
-</script>
+

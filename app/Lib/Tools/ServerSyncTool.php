@@ -8,7 +8,8 @@ class ServerSyncTool
         FEATURE_ORG_RULE = 'org_rule',
         FEATURE_FILTER_SIGHTINGS = 'filter_sightings',
         FEATURE_PROPOSALS = 'proposals',
-        FEATURE_POST_TEST = 'post_test';
+        FEATURE_POST_TEST = 'post_test',
+        FEATURE_PROTECTED_EVENT = 'protected_event';
 
     /** @var array */
     private $server;
@@ -18,6 +19,9 @@ class ServerSyncTool
 
     /** @var HttpSocketExtended */
     private $socket;
+
+    /** @var CryptographicKey */
+    private $cryptographicKey;
 
     /** @var array|null */
     private $info;
@@ -42,7 +46,7 @@ class ServerSyncTool
     }
 
     /**
-     * Check if event exists on remote server.
+     * Check if event exists on remote server by event UUID.
      * @param array $event
      * @return bool
      * @throws Exception
@@ -83,6 +87,70 @@ class ServerSyncTool
         $url = "/events/view/$eventId";
         $url .= $this->createParams($params);
         return $this->get($url);
+    }
+
+    /**
+     * @param array $event
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function pushEvent(array $event)
+    {
+        try {
+            // Check if event exists on remote server to use proper endpoint
+            $exists = $this->eventExists($event);
+        } catch (Exception $e) {
+            // In case of failure consider that event doesn't exists
+            $exists = false;
+        }
+
+        try {
+            return $exists ? $this->updateEvent($event) : $this->createEvent($event);
+        } catch (HttpSocketHttpException $e) {
+            if ($e->getCode() === 404) {
+                // Maybe the check if event exists was not correct, try to create a new event
+                if ($exists) {
+                    return $this->createEvent($event);
+
+                // There is bug in MISP API, that returns response code 404 with Location if event already exists
+                } else if ($e->getResponse()->getHeader('Location')) {
+                    $urlPath = $e->getResponse()->getHeader('Location');
+                    $pieces = explode('/', $urlPath);
+                    $lastPart = end($pieces);
+                    return $this->updateEvent($event, $lastPart);
+                }
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * @param array $event
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function createEvent(array $event)
+    {
+        $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
+        return $this->post("/events/add/metadata:1", $event, $logMessage);
+    }
+
+    /**
+     * @param array $event
+     * @param int|string|null Event ID or UUID that should be updated. If not provieded, UUID from $event will be used
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function updateEvent(array $event, $eventId = null)
+    {
+        if ($eventId === null) {
+            $eventId = $event['Event']['uuid'];
+        }
+        $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
+        return $this->post("/events/edit/$eventId/metadata:1", $event, $logMessage);
     }
 
     /**
@@ -140,7 +208,7 @@ class ServerSyncTool
             }
         }
 
-        $logMessage = "Pushing Sightings for Event #{$eventUuid} to Server #{$this->server['Server']['id']}";
+        $logMessage = "Pushing Sightings for Event #{$eventUuid} to Server #{$this->serverId()}";
         $this->post('/sightings/bulkSaveSightings/' . $eventUuid, $sightings, $logMessage);
     }
 
@@ -261,6 +329,9 @@ class ServerSyncTool
             case self::FEATURE_POST_TEST:
                 $version = explode('.', $info['version']);
                 return $version[0] == 2 && $version[1] == 4 && $version[2] > 68;
+            case self::FEATURE_PROTECTED_EVENT:
+                $version = explode('.', $info['version']);
+                return $version[0] == 2 && $version[1] == 4 && $version[2] > 155;
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
@@ -301,6 +372,7 @@ class ServerSyncTool
      */
     private function post($url, $data, $logMessage = null)
     {
+        $protectedMode = !empty($data['Event']['protected']);
         $data = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         if ($logMessage && !empty(Configure::read('Security.sync_audit'))) {
@@ -310,10 +382,15 @@ class ServerSyncTool
                 $logMessage,
                 $data
             );
-            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $this->server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND | LOCK_EX);
+            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $this->serverId() . '.log', $pushLogEntry, FILE_APPEND | LOCK_EX);
         }
 
         $request = $this->request;
+
+        if ($protectedMode) {
+            $request['header']['x-pgp-signature'] = $this->signEvent($data);
+        }
+
         if (strlen($data) > 1024) { // do not compress small body
             if ($this->isSupported(self::FEATURE_BR) && function_exists('brotli_compress')) {
                 $request['header']['Content-Encoding'] = 'br';
@@ -331,6 +408,27 @@ class ServerSyncTool
             throw new HttpSocketHttpException($response, $url);
         }
         return $response;
+    }
+
+    /**
+     * @param string $data Data to sign
+     * @return string base64 encoded signature
+     * @throws Exception
+     */
+    private function signEvent($data)
+    {
+        if (!$this->isSupported(self::FEATURE_PROTECTED_EVENT)) {
+            throw new Exception(__('Remote instance is not protected event aware yet (< 2.4.156), aborting.'));
+        }
+
+        if (!$this->cryptographicKey) {
+            $this->cryptographicKey = ClassRegistry::init('CryptographicKey');
+        }
+        $signature = $this->cryptographicKey->signWithInstanceKey($data);
+        if (empty($signature)) {
+            throw new Exception(__("Invalid signing key. This should never happen."));
+        }
+        return base64_encode($signature);
     }
 
     /**

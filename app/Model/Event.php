@@ -17,9 +17,17 @@ App::uses('ProcessTool', 'Tools');
  * @property ThreatLevel $ThreatLevel
  * @property Sighting $Sighting
  * @property Organisation $Org
+ * @property CryptographicKey $CryptographicKey
  */
 class Event extends AppModel
 {
+    // Event distribution constants
+    const DISTRIBUTION_ORGANISATION = 0,
+        DISTRIBUTION_COMMUNITY = 1,
+        DISTRIBUTION_CONNECTED = 2,
+        DISTRIBUTION_ALL = 3,
+        DISTRIBUTION_SHARING_GROUP = 4;
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
@@ -49,31 +57,49 @@ class Event extends AppModel
         2 => array('desc' => '*Complete* means that the event\'s creation is complete', 'formdesc' => 'The event creator considers the analysis complete')
     );
 
-    public $distributionDescriptions = array(
-        0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
-        1 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Organisations that are part of this MISP community will be able to see the event."),
-        2 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Organisations that are either part of this MISP community or part of a directly connected MISP community will be able to see the event."),
-        3 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
-        4 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This distribution of this event will be handled by the selected sharing group."),
+    public $distributionDescriptions = [
+        self::DISTRIBUTION_ORGANISATION => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "This setting will only allow members of your organisation on this server to see it.",
+        ],
+        self::DISTRIBUTION_COMMUNITY => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "Organisations that are part of this MISP community will be able to see the event.",
+        ],
+        self::DISTRIBUTION_CONNECTED => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "Organisations that are either part of this MISP community or part of a directly connected MISP community will be able to see the event.",
+        ],
+        self::DISTRIBUTION_ALL => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next.",
+        ],
+        self::DISTRIBUTION_SHARING_GROUP => [
+            'desc' => 'This field determines the current distribution of the event',
+            'formdesc' => "This distribution of this event will be handled by the selected sharing group.",
+        ],
+    ];
 
-    );
+    public $distributionLevels = [
+        self::DISTRIBUTION_ORGANISATION => 'Your organisation only',
+        self::DISTRIBUTION_COMMUNITY => 'This community only',
+        self::DISTRIBUTION_CONNECTED => 'Connected communities',
+        self::DISTRIBUTION_ALL => 'All communities',
+        self::DISTRIBUTION_SHARING_GROUP => 'Sharing group',
+    ];
 
     public $analysisLevels = array(
         0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed'
     );
 
-    public $distributionLevels = array(
-        0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities', 4 => 'Sharing group'
-    );
-
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
-
-    public $export_types = [];
 
     public $validFormats = array(
         'attack' => array('html', 'AttackExport', 'html'),
         'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
         'cache' => array('txt', 'CacheExport', 'cache'),
+        'context' => array('html', 'ContextExport', 'html'),
+        'context-markdown' => array('txt', 'ContextMarkdownExport', 'md'),
         'count' => array('txt', 'CountExport', 'txt'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'hashes' => array('txt', 'HashesExport', 'txt'),
@@ -263,120 +289,15 @@ class Event extends AppModel
         'EventReport' => array(
             'className' => 'EventReport',
             'dependent' => true,
-        )
+        ),
+        'CryptographicKey' => [
+            'foreignKey' => 'parent_id',
+            'conditions' => [
+                'parent_type' => 'Event'
+            ],
+            'dependent' => true
+        ]
     );
-
-    public function __construct($id = false, $table = null, $ds = null)
-    {
-        parent::__construct($id, $table, $ds);
-
-        $this->export_types = array(
-            'json' => array(
-                    'extension' => '.json',
-                    'type' => 'JSON',
-                    'scope' => 'Event',
-                    'requiresPublished' => 0,
-                    'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'json'),
-                    'description' => __('Click this to download all events and attributes that you have access to in MISP JSON format.'),
-            ),
-            'xml' => array(
-                    'extension' => '.xml',
-                    'type' => 'XML',
-                    'scope' => 'Event',
-                    'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'xml'),
-                    'requiresPublished' => 0,
-                    'description' => __('Click this to download all events and attributes that you have access to in MISP XML format.'),
-            ),
-            'csv_sig' => array(
-                    'extension' => '.csv',
-                    'type' => 'CSV_Sig',
-                    'scope' => 'Event',
-                    'requiresPublished' => 1,
-                    'params' => array('published' => 1, 'to_ids' => 1, 'returnFormat' => 'csv'),
-                    'description' => __('Click this to download all attributes that are indicators and that you have access to (except file attachments) in CSV format.'),
-            ),
-            'csv_all' => array(
-                    'extension' => '.csv',
-                    'type' => 'CSV_All',
-                    'scope' => 'Event',
-                    'requiresPublished' => 0,
-                    'params' => array('ignore' => 1, 'returnFormat' => 'csv'),
-                    'description' => __('Click this to download all attributes that you have access to (except file attachments) in CSV format.'),
-            ),
-            'suricata' => array(
-                    'extension' => '.rules',
-                    'type' => 'Suricata',
-                    'scope' => 'Attribute',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'suricata'),
-                    'description' => __('Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
-            ),
-            'snort' => array(
-                    'extension' => '.rules',
-                    'type' => 'Snort',
-                    'scope' => 'Attribute',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'snort'),
-                    'description' => __('Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
-            ),
-            'bro' => array(
-                    'extension' => '.intel',
-                    'type' => 'Bro',
-                    'scope' => 'Attribute',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'bro'),
-                    'description' => __('Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
-            ),
-            'stix' => array(
-                    'extension' => '.xml',
-                    'type' => 'STIX',
-                    'scope' => 'Event',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
-                    'description' => __('Click this to download a STIX document containing the STIX version of all events and attributes that you have access to.')
-            ),
-            'stix2' => array(
-                    'extension' => '.json',
-                    'type' => 'STIX2',
-                    'scope' => 'Event',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'stix2', 'includeAttachments' => 1),
-                    'description' => __('Click this to download a STIX2 document containing the STIX2 version of all events and attributes that you have access to.')
-            ),
-            'rpz' => array(
-                    'extension' => '.txt',
-                    'type' => 'RPZ',
-                    'scope' => 'Attribute',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'rpz'),
-                    'description' => __('Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.')
-            ),
-            'text' => array(
-                    'extension' => '.txt',
-                    'type' => 'TEXT',
-                    'scope' => 'Attribute',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
-                    'description' => __('Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.')
-            ),
-            'yara' => array(
-                    'extension' => '.yara',
-                    'type' => 'Yara',
-                    'scope' => 'Event',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'yara'),
-                    'description' => __('Click this to download Yara rules generated from all relevant attributes.')
-            ),
-            'yara-json' => array(
-                    'extension' => '.json',
-                    'type' => 'Yara',
-                    'scope' => 'Event',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'yara-json'),
-                    'description' => __('Click this to download Yara rules generated from all relevant attributes. Rules are returned in a JSON format with information about origin (generated or parsed) and validity.')
-            ),
-        );
-    }
 
     private $assetCache = [];
 
@@ -431,6 +352,7 @@ class Event extends AppModel
             $this->logException('Delete of event file directory failed.', $e);
             throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
         }
+        $this->CryptographicKey->deleteAll(['CryptographicKey.parent_type' => 'Event', 'CryptographicKey.parent_id' => $this->id]);
     }
 
     public function beforeValidate($options = array())
@@ -917,10 +839,12 @@ class Event extends AppModel
     /**
      * @param array $event
      * @param array $server
-     * @param HttpSocket $HttpSocket
      * @return false|string
+     * @throws HttpSocketJsonException
+     * @throws JsonException
+     * @throws Exception
      */
-    public function uploadEventToServer(array $event, array $server, HttpSocket $HttpSocket)
+    public function uploadEventToServer(array $event, array $server)
     {
         $this->Server = ClassRegistry::init('Server');
 
@@ -931,22 +855,38 @@ class Event extends AppModel
             return 'The distribution level of this event blocks it from being pushed.';
         }
 
-        $push = $this->Server->checkVersionCompatibility($server, false);
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
+        $push = $this->Server->checkVersionCompatibility($server, false, $serverSync);
         if (empty($push['canPush'])) {
             return 'The remote user is not a sync user - the upload of the event has been blocked.';
         }
-
         if (!empty($server['Server']['unpublish_event'])) {
             $event['Event']['published'] = 0;
         }
-
         try {
-            $this->restfulEventToServer($event, $server, $HttpSocket);
+            // TODO: Replace by __updateEventForSync method in future
+            $event = $this->__prepareForPushToServer($event, $server);
+            if (is_numeric($event)) {
+                throw new Exception("This should never happen.");
+            }
+
+            $serverSync->pushEvent($event)->json();
+        } catch (Crypt_GPG_KeyNotFoundException $e) {
+            $errorMessage = sprintf(
+                'Could not push event %s to remote server #%s. Reason: %s',
+                $event['Event']['uuid'],
+                $server['Server']['id'],
+                $e->getMessage()
+            );
+            $this->logException($errorMessage, $e);
+            $this->__logUploadResult($server, $event, $errorMessage);
+            return false;
         } catch (Exception $e) {
             $errorMessage = $e->getMessage();
-            if ($e instanceof HttpException && $e->getCode() == 403) {
+            if ($e instanceof HttpSocketHttpException && $e->getCode() === 403) {
                 // Do not log errors that are expected
-                $errorJson = json_decode($errorMessage, true);
+                $errorJson = $e->getResponse()->json();
                 if (isset($errorJson['errors'])) {
                     $errorMessage = $errorJson['errors'];
                     if ($errorMessage === 'Event could not be saved: Event in the request not newer than the local copy.') {
@@ -954,7 +894,6 @@ class Event extends AppModel
                     }
                 }
             }
-
             $this->logException("Could not push event '{$event['Event']['uuid']}' to remote server #{$server['Server']['id']}", $e);
             $this->__logUploadResult($server, $event, $errorMessage);
             return false;
@@ -1008,88 +947,22 @@ class Event extends AppModel
         return $event;
     }
 
-    private function __getLastUrlPathComponent($urlPath)
-    {
-        if (!empty($urlPath)) {
-            $pieces = explode('/', $urlPath);
-            return '/' . end($pieces);
-        }
-        return '';
-    }
-
-    /**
-     * Uploads the event and the associated Attributes to another Server.
-     * @param array $event
-     * @param array $server
-     * @param HttpSocket $HttpSocket
-     * @return array
-     * @throws JsonException
-     */
-    private function restfulEventToServer(array $event, array $server, HttpSocket $HttpSocket)
-    {
-        // TODO: Replace by __updateEventForSync method in future
-        $event = $this->__prepareForPushToServer($event, $server);
-        if (is_numeric($event)) {
-            throw new Exception("This should never happen.");
-        }
-        $request = $this->setupSyncRequest($server);
-        $serverUrl = $server['Server']['url'];
-
-        $exists = false;
-        try {
-            // Check if event exists on remote server to use proper endpoint
-            $response = $HttpSocket->head("$serverUrl/events/view/{$event['Event']['uuid']}", [], $request);
-            if ($response->code == '200') {
-                $exists = true;
-            }
-        } catch (Exception $e) {
-            $this->logException("Could not check if event {$event['Event']['uuid']} exists on remote server {$server['Server']['id']}", $e, LOG_NOTICE);
-        }
-
-        $data = json_encode($event);
-        if (!empty(Configure::read('Security.sync_audit'))) {
-            $pushLogEntry = sprintf(
-                "==============================================================\n\n[%s] Pushing Event #%d to Server #%d:\n\n%s\n\n",
-                date("Y-m-d H:i:s"),
-                $event['Event']['id'],
-                $server['Server']['id'],
-                $data
-            );
-            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
-        }
-
-        if ($exists) {
-            $url = "$serverUrl/events/edit/{$event['Event']['uuid']}/metadata:1";
-        } else {
-            $url = "$serverUrl/events/add/metadata:1";
-        }
-
-        $response = $HttpSocket->post($url, $data, $request);
-
-        // Maybe the check if event exists was not correct, try to create a new event
-        if ($exists && $response->code == '404') {
-            $url = "$serverUrl/events/add/metadata:1";
-            $response = $HttpSocket->post($url, $data, $request);
-        }
-
-        // There is bug in MISP API, that returns response code 404 with Location if event already exists
-        else if (!$exists && $response->code == '404' && $response->getHeader('Location')) {
-            $lastPart = $this->__getLastUrlPathComponent($response->getHeader('Location'));
-            $url = "$serverUrl/events/edit/$lastPart/metadata:1";
-            $response = $HttpSocket->post($url, $data, $request);
-        }
-
-        if (!$response->isOk()) {
-            throw new HttpException($response->body, $response->code);
-        }
-
-        return $this->jsonDecode($response->body);
-    }
-
     private function __rearrangeEventStructureForSync($event)
     {
         // rearrange things to be compatible with the Xml::fromArray()
-        $objectsToRearrange = array('Attribute', 'Object', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute', 'EventReport');
+        $objectsToRearrange = array(
+            'Attribute',
+            'Object',
+            'Orgc',
+            'SharingGroup',
+            'EventTag',
+            'Org',
+            'ShadowAttribute',
+            'EventReport',
+            'CryptographicKey',
+            'ThreatLevel',
+            'Galaxy'
+        );
         foreach ($objectsToRearrange as $o) {
             if (isset($event[$o])) {
                 $event['Event'][$o] = $event[$o];
@@ -1100,7 +973,7 @@ class Event extends AppModel
         foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) {
             unset($event['Event'][$field]);
         }
-        return $event;
+        return ['Event' => $event['Event']];
     }
 
     // since we fetch the event and filter on tags after / server, we need to cull all of the non exportable tags
@@ -1363,7 +1236,11 @@ class Event extends AppModel
         if (empty($data)) {
             return null;
         }
-        return $data;
+        // Old format used by old MISP version
+        if (isset($data['id'])) {
+            return $data;
+        }
+        return $data[0];
     }
 
     public function quickDelete(array $event)
@@ -1834,7 +1711,8 @@ class Event extends AppModel
             'noShadowAttributes', // do not fetch proposals,
             'limit',
             'page',
-            'order'
+            'order',
+            'protected'
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -1968,6 +1846,9 @@ class Event extends AppModel
         if ($options['event_uuid']) {
             $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
         }
+        if ($options['protected']) {
+            $conditions['AND'][] = array('Event.protected' => $options['protected']);
+        }
         if (!empty($options['includeRelatedTags'])) {
             $options['includeGranularCorrelations'] = 1;
         }
@@ -2051,7 +1932,7 @@ class Event extends AppModel
         // $conditions['AND'][] = array('Event.published =' => 1);
 
         // do not expose all the data ...
-        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid');
+        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
         $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
@@ -2084,7 +1965,8 @@ class Event extends AppModel
                 'EventReport' => array(
                     'conditions' => $conditionsEventReport,
                     'order' => false
-                )
+                ),
+                'CryptographicKey'
             )
         );
         if (!empty($options['excludeLocalTags'])) {
@@ -2671,6 +2553,19 @@ class Event extends AppModel
         return $container;
     }
 
+    public function set_filter_sharing_group(&$params, $conditions, $options)
+    {
+        if (!empty($params['sharinggroup'])) {
+            $params['sharinggroup'] = $this->convert_filters($params['sharinggroup']);
+            if ($options['scope'] === 'Attribute') {
+                $conditions = $this->generic_add_filter($conditions, $params['sharinggroup'], ['Event.sharing_group_id', 'Attribute.sharing_group_id']);
+            } else {
+                $conditions = $this->generic_add_filter($conditions, $params['sharinggroup'], 'Event.sharing_group_id');
+            }
+        }
+        return $conditions;
+    }
+
     public function set_filter_org(&$params, $conditions, $options)
     {
         if (!empty($params['org'])) {
@@ -3141,16 +3036,20 @@ class Event extends AppModel
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob($user, Job::WORKER_EMAIL, 'publish_alert_email', "Event: $id", 'Sending...');
 
+            $args = [
+                'alertemail',
+                $user['id'],
+                $jobId,
+                $id,
+            ];
+            if ($oldpublish !== null) {
+                $args[] = $oldpublish;
+            }
+
             $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::EMAIL_QUEUE,
                 BackgroundJobsTool::CMD_EVENT,
-                [
-                    'alertemail',
-                    $user['id'],
-                    $jobId,
-                    $id,
-                    $oldpublish
-                ],
+                $args,
                 true,
                 $jobId
             );
@@ -3400,9 +3299,10 @@ class Event extends AppModel
         if (isset($event['distribution']) && $event['distribution'] == 4) {
             $event = $this->captureSGForElement($event, $user, $server);
         }
+
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $k => $a) {
-                unset($event['Attribute']['id']);
+                unset($event['Attribute'][$k]['id']);
                 if (isset($a['distribution']) && $a['distribution'] == 4) {
                     $event['Attribute'][$k] = $this->captureSGForElement($a, $user, $server);
                 }
@@ -3678,20 +3578,9 @@ class Event extends AppModel
             return 'Blocked by event block rules';
         }
         $breakOnDuplicate = !empty($data['Event']['breakOnDuplicate']);
-        $this->Log = ClassRegistry::init('Log');
         if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published']) && empty($data['Event']['EventReport'])) {
-            $this->Log->create();
             $validationErrors['Event'] = 'Received a published event that was empty. Event add process blocked.';
-            $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'Event',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'add',
-                    'user_id' => $user['id'],
-                    'title' => $validationErrors['Event'],
-                    'change' => ''
-            ));
+            $this->loadLog()->createLogEntry($user, 'add', 'Event', 0, $validationErrors['Event']);
             return json_encode($validationErrors);
         }
         $this->create();
@@ -3801,7 +3690,8 @@ class Event extends AppModel
             'sharing_group_id',
             'locked',
             'disable_correlation',
-            'extends_uuid'
+            'extends_uuid',
+            'protected'
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
         if ($saveResult) {
@@ -3819,17 +3709,8 @@ class Event extends AppModel
                 } else {
                     $st = "disabled";
                 }
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Event',
-                        'model_id' => $saveResult['Event']['id'],
-                        'email' => $user['email'],
-                        'action' => 'add',
-                        'user_id' => $user['id'],
-                        'title' => 'Event pulled from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st,
-                        'change' => ''
-                ));
+                $logTitle = 'Event pulled from Server (' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st;
+                $this->loadLog()->createLogEntry($user, 'add', 'Event', $saveResult['Event']['id'], $logTitle);
             }
             if (!empty($data['Event']['EventTag'])) {
                 $toSave = [];
@@ -3881,12 +3762,22 @@ class Event extends AppModel
                     }
                 }
             }
-
             if (!empty($data['Event']['EventReport'])) {
                 foreach ($data['Event']['EventReport'] as $report) {
                     $result = $this->EventReport->captureReport($user, $report, $this->id);
                 }
             }
+
+            // capture new keys, update existing, remove those no longer in the pushed data
+            if (!empty($data['Event']['CryptographicKey'])) {
+                $this->CryptographicKey->captureCryptographicKeyUpdate(
+                    $user,
+                    $data['Event']['CryptographicKey'],
+                    $this->id,
+                    'Event'
+                );
+            }
+
             // zeroq: check if sightings are attached and add to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
                 $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
@@ -3926,7 +3817,7 @@ class Event extends AppModel
                             if (empty($found)) {
                                 $this->EventTag->create();
                                 if ($this->EventTag->save(array('event_id' => $this->id, 'tag_id' => $tag_id))) {
-                                    $this->Log->createLogEntry($user, 'tag', 'Event', $this->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $this->id . ')', 'Event (' . $this->id . ') tagged as Tag (' . $tag_id . ')');
+                                    $this->loadLog()->createLogEntry($user, 'tag', 'Event', $this->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $this->id . ')', 'Event (' . $this->id . ') tagged as Tag (' . $tag_id . ')');
                                 }
                             }
                         }
@@ -4058,7 +3949,6 @@ class Event extends AppModel
             'extends_uuid'
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
-        $this->Log = ClassRegistry::init('Log');
         if ($saveResult) {
             if ($jobId) {
                 /** @var EventLock $eventLock */
@@ -4066,6 +3956,17 @@ class Event extends AppModel
                 $eventLock->insertLockBackgroundJob($data['Event']['id'], $jobId);
             }
             $validationErrors = array();
+
+            // capture new keys, update existing, remove those no longer in the pushed data
+            if (!empty($data['Event']['CryptographicKey'])) {
+                $this->CryptographicKey->captureCryptographicKeyUpdate(
+                    $user,
+                    $data['Event']['CryptographicKey'],
+                    $existingEvent['Event']['id'],
+                    'Event'
+                );
+            }
+
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 foreach ($data['Event']['Attribute'] as $attribute) {
@@ -4135,17 +4036,7 @@ class Event extends AppModel
                         // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
                         // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
                         if ($user['Role']['perm_tag_editor']) {
-                            $this->Log->create();
-                            $this->Log->save(array(
-                                'org' => $user['Organisation']['name'],
-                                'model' => 'Event',
-                                'model_id' => $this->id,
-                                'email' => $user['email'],
-                                'action' => 'edit',
-                                'user_id' => $user['id'],
-                                'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the event.',
-                                'change' => ''
-                            ));
+                            $this->loadLog()->createLogEntry($user, 'edit', 'Event', $this->id, "Failed create or attach Tag {$tag['name']} to the event.");
                         }
                     }
                 }
@@ -4158,35 +4049,12 @@ class Event extends AppModel
             if ($changed && (!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
                 // The edited event is from a remote server ?
                 if ($passAlong) {
-                    if ($server['Server']['publish_without_email'] == 0) {
-                        $st = "enabled";
-                    } else {
-                        $st = "disabled";
-                    }
-                    $this->Log->create();
-                    $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Event',
-                        'model_id' => $saveResult['Event']['id'],
-                        'email' => $user['email'],
-                        'action' => 'add',
-                        'user_id' => $user['id'],
-                        'title' => 'Event edited from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st,
-                        'change' => ''
-                    ));
+                    $st = $server['Server']['publish_without_email'] == 0 ? 'enabled' : 'disabled';
+                    $logTitle = 'Event edited from Server (' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st;
                 } else {
-                    $this->Log->create();
-                    $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Event',
-                        'model_id' => $saveResult['Event']['id'],
-                        'email' => $user['email'],
-                        'action' => 'add',
-                        'user_id' => $user['id'],
-                        'title' => 'Event edited (locally)',
-                        'change' => ''
-                    ));
+                    $logTitle = 'Event edited (locally)';
                 }
+                $this->loadLog()->createLogEntry($user, 'add', 'Event', $saveResult['Event']['id'], $logTitle);
                 // do the necessary actions to publish the event (email, upload,...)
                 if ((true != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($id, $user, $existingEvent['Event']['publish_timestamp']);
@@ -4425,12 +4293,12 @@ class Event extends AppModel
     }
 
     /**
-     * @param int $id
-     * @param int|null $passAlong
+     * @param int $id Event ID
+     * @param int|null $passAlong ID of server that event will be not pushed
      * @return array|bool
      * @throws Exception
      */
-    public function uploadEventToServersRouter($id, $passAlong = null)
+    private function uploadEventToServersRouter($id, $passAlong = null)
     {
         $eventOrgcId = $this->find('first', array(
             'conditions' => array('Event.id' => $id),
@@ -4448,7 +4316,7 @@ class Event extends AppModel
             ),
             'org_id' => $eventOrgcId['Event']['orgc_id']
         );
-        $event = $this->fetchEvent($elevatedUser, array('eventid' => $id, 'metadata' => 1));
+        $event = $this->fetchEvent($elevatedUser, ['eventid' => $id, 'metadata' => 1]);
         if (empty($event)) {
             return true;
         }
@@ -4456,21 +4324,22 @@ class Event extends AppModel
         $event['Event']['locked'] = 1;
         // get a list of the servers
         $this->Server = ClassRegistry::init('Server');
-
-        $conditions = array('push' => 1);
+        $conditions = ['push' => 1];
         if ($passAlong) {
-            $conditions[] = array('Server.id !=' => $passAlong);
+            $conditions[] = ['Server.id !=' => $passAlong];
         }
-        $servers = $this->Server->find('all', array(
+        $servers = $this->Server->find('all', [
             'conditions' => $conditions,
-            'order' => array('Server.priority ASC', 'Server.id ASC')
-        ));
+            'recursive' => -1,
+            'contain' => ['RemoteOrg', 'Organisation'],
+            'order' => ['Server.priority ASC', 'Server.id ASC'],
+        ]);
         // iterate over the servers and upload the event
         if (empty($servers)) {
             return true;
         }
         $uploaded = true;
-        $failedServers = array();
+        $failedServers = [];
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
 
@@ -4480,24 +4349,23 @@ class Event extends AppModel
             ) {
                 continue;
             }
-            $HttpSocket = $syncTool->setupHttpSocket($server);
             // Skip servers where the event has come from.
-            if (($passAlong != $server['Server']['id'])) {
-                $params = array();
-                if (!empty($server['Server']['push_rules'])) {
-                    $push_rules = json_decode($server['Server']['push_rules'], true);
-                    if (!empty($push_rules['tags']['NOT'])) {
-                        $params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
-                    }
-                }
-                $params = array_merge($params, array(
+            if ($passAlong != $server['Server']['id']) {
+                $HttpSocket = $syncTool->setupHttpSocket($server);
+                $params = [
                     'eventid' => $id,
                     'includeAttachments' => true,
                     'includeAllTags' => true,
-                    'deleted' => array(0,1),
+                    'deleted' => [0, 1],
                     'excludeGalaxy' => 1,
                     'noSightings' => true, // sightings are pushed separately
-                ));
+                ];
+                if (!empty($server['Server']['push_rules'])) {
+                    $pushRules = json_decode($server['Server']['push_rules'], true);
+                    if (!empty($pushRules['tags']['NOT'])) {
+                        $params['blockedAttributeTags'] = $pushRules['tags']['NOT'];
+                    }
+                }
                 if (!empty($server['Server']['internal'])) {
                     $params['excludeLocalTags'] = 0;
                 }
@@ -4512,7 +4380,7 @@ class Event extends AppModel
                     )
                 );
                 $this->Server->syncGalaxyClusters($HttpSocket, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
-                $thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket);
+                $thisUploaded = $this->uploadEventToServer($event, $server);
                 if ($thisUploaded === 'Success') {
                     try {
                         $this->pushSightingsToServer($server, $event); // push sighting by method that check for duplicates
@@ -4534,9 +4402,8 @@ class Event extends AppModel
                 return true;
             }
             return $failedServers;
-        } else {
-            return true;
         }
+        return true;
     }
 
     /**
@@ -4570,7 +4437,7 @@ class Event extends AppModel
             );
         }
 
-        return $this->publish_sightings($id, $passAlong, $sightingUuids);
+        return $this->publishSightings($id, $passAlong, $sightingUuids);
     }
 
     public function publishRouter($id, $passAlong = null, $user)
@@ -4599,7 +4466,14 @@ class Event extends AppModel
         return $this->publish($id, $passAlong);
     }
 
-    public function publish_sightings($id, $passAlong = null, array $sightingsUuidsToPush = [])
+    /**
+     * @param int|string $id Event ID or UUID
+     * @param $passAlong
+     * @param array $sightingsUuidsToPush
+     * @return array|bool
+     * @throws Exception
+     */
+    public function publishSightings($id, $passAlong = null, array $sightingsUuidsToPush = [])
     {
         if (is_numeric($id)) {
             $condition = array('Event.id' => $id);
@@ -4664,10 +4538,9 @@ class Event extends AppModel
             }
             if (empty($hostOrg)) {
                 $hostOrg = $this->Org->find('first', [
-                        'recursive' => -1,
-                        'order' => ['id ASC']
-                    ]
-                );
+                    'recursive' => -1,
+                    'order' => ['id ASC']
+                ]);
                 $hostOrgId = $hostOrg['Org']['id'];
             }
             $user = array('org_id' => $hostOrgId, 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
@@ -4694,10 +4567,8 @@ class Event extends AppModel
                 }
             }
         }
-        $uploaded = $this->uploadEventToServersRouter($id, $passAlong);
-        return $uploaded;
+        return $this->uploadEventToServersRouter($id, $passAlong);
     }
-
 
     // Sends out an email to all people within the same org with the request to be contacted about a specific event.
     public function sendContactEmailRouter($id, $message, $creator_only, $user)
@@ -5610,7 +5481,7 @@ class Event extends AppModel
                         }
                         $this->Warninglist = ClassRegistry::init('Warninglist');
                         $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
-                        $freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
+                        $freetextResults = array_merge($freetextResults, $complexTypeTool->checkFreeText($value));
                         if (!empty($freetextResults)) {
                             foreach ($freetextResults as &$ft) {
                                 $temp = array();
@@ -6204,18 +6075,10 @@ class Event extends AppModel
             $newTextBody = JsonTool::encode($newTextBody);
         }
 
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
-        $this->Log->save(array(
-            'org' => 'SYSTEM',
-            'model' => 'Server',
-            'model_id' => $server['Server']['id'],
-            'email' => 'SYSTEM',
-            'action' => 'warning',
-            'user_id' => 0,
-            'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-            'change' => 'Returned message: ' . $newTextBody,
-        ));
+        $title = 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')';
+        $change = 'Returned message: ' . $newTextBody;
+
+        $this->loadLog()->createLogEntry('SYSTEM', 'warning', 'Server', $server['Server']['id'], $title, $change);
     }
 
     /**
@@ -6809,7 +6672,7 @@ class Event extends AppModel
         return $attribute_save;
     }
 
-    public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $proposals = false, $adhereToWarninglists = false, $returnRawResults = false)
+    public function processFreeTextDataRouter(array $user, array $attributes, $id, $default_comment = '', $proposals = false, $adhereToWarninglists = false, $returnRawResults = false)
     {
         if (Configure::read('MISP.background_jobs') && count($attributes) > 5) { // on background process just big attributes batch
             /** @var Job $job */
@@ -7624,5 +7487,119 @@ class Event extends AppModel
         }
         $banStatus['message'] = __('Emailing republishing ban setting is not enabled');
         return $banStatus;
+    }
+
+    /**
+     * @return array[]
+     * @deprecated
+     */
+    public function exportTypes()
+    {
+        return array(
+            'json' => array(
+                'extension' => '.json',
+                'type' => 'JSON',
+                'scope' => 'Event',
+                'requiresPublished' => 0,
+                'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'json'),
+                'description' => __('Click this to download all events and attributes that you have access to in MISP JSON format.'),
+            ),
+            'xml' => array(
+                'extension' => '.xml',
+                'type' => 'XML',
+                'scope' => 'Event',
+                'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'xml'),
+                'requiresPublished' => 0,
+                'description' => __('Click this to download all events and attributes that you have access to in MISP XML format.'),
+            ),
+            'csv_sig' => array(
+                'extension' => '.csv',
+                'type' => 'CSV_Sig',
+                'scope' => 'Event',
+                'requiresPublished' => 1,
+                'params' => array('published' => 1, 'to_ids' => 1, 'returnFormat' => 'csv'),
+                'description' => __('Click this to download all attributes that are indicators and that you have access to (except file attachments) in CSV format.'),
+            ),
+            'csv_all' => array(
+                'extension' => '.csv',
+                'type' => 'CSV_All',
+                'scope' => 'Event',
+                'requiresPublished' => 0,
+                'params' => array('ignore' => 1, 'returnFormat' => 'csv'),
+                'description' => __('Click this to download all attributes that you have access to (except file attachments) in CSV format.'),
+            ),
+            'suricata' => array(
+                'extension' => '.rules',
+                'type' => 'Suricata',
+                'scope' => 'Attribute',
+                'requiresPublished' => 1,
+                'params' => array('returnFormat' => 'suricata'),
+                'description' => __('Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
+            ),
+            'snort' => array(
+                'extension' => '.rules',
+                'type' => 'Snort',
+                'scope' => 'Attribute',
+                'requiresPublished' => 1,
+                'params' => array('returnFormat' => 'snort'),
+                'description' => __('Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
+            ),
+            'bro' => array(
+                'extension' => '.intel',
+                'type' => 'Bro',
+                'scope' => 'Attribute',
+                'requiresPublished' => 1,
+                'params' => array('returnFormat' => 'bro'),
+                'description' => __('Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
+            ),
+            'stix' => array(
+                'extension' => '.xml',
+                'type' => 'STIX',
+                'scope' => 'Event',
+                'requiresPublished' => 1,
+                'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
+                'description' => __('Click this to download a STIX document containing the STIX version of all events and attributes that you have access to.')
+            ),
+            'stix2' => array(
+                'extension' => '.json',
+                'type' => 'STIX2',
+                'scope' => 'Event',
+                'requiresPublished' => 1,
+                'params' => array('returnFormat' => 'stix2', 'includeAttachments' => 1),
+                'description' => __('Click this to download a STIX2 document containing the STIX2 version of all events and attributes that you have access to.')
+            ),
+            'rpz' => array(
+                'extension' => '.txt',
+                'type' => 'RPZ',
+                'scope' => 'Attribute',
+                'requiresPublished' => 1,
+                'params' => array('returnFormat' => 'rpz'),
+                'description' => __('Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.')
+            ),
+            'text' => array(
+                'extension' => '.txt',
+                'type' => 'TEXT',
+                'scope' => 'Attribute',
+                'requiresPublished' => 1,
+                'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
+                'description' => __('Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.')
+            ),
+            'yara' => array(
+                'extension' => '.yara',
+                'type' => 'Yara',
+                'scope' => 'Event',
+                'requiresPublished' => 1,
+                'params' => array('returnFormat' => 'yara'),
+                'description' => __('Click this to download Yara rules generated from all relevant attributes.')
+            ),
+            'yara-json' => array(
+                'extension' => '.json',
+                'type' => 'Yara',
+                'scope' => 'Event',
+                'requiresPublished' => 1,
+                'params' => array('returnFormat' => 'yara-json'),
+                'description' => __('Click this to download Yara rules generated from all relevant attributes. Rules are returned in a JSON format with information about origin (generated or parsed) and validity.')
+            ),
+        );
     }
 }

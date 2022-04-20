@@ -16,7 +16,7 @@
     <table>
         <tr>
             <td style="vertical-align:top">
-                <span id="PromptYesButton" role="button" tabindex="0" aria-label="<?php echo __('Unhide all selected tags');?>" title="<?php echo __('Unhide all selected tags');?>" class="btn btn-primary" onClick="submitMassTaxonomyTag();"><?php echo __('Yes');?></span>
+                <button id="PromptYesButton" role="button" tabindex="0" aria-label="<?php echo __('Unhide all selected tags');?>" title="<?php echo __('Unhide all selected tags');?>" class="btn btn-primary"><?php echo __('Yes');?></button>
             </td>
             <td style="width:540px;">
             </td>
@@ -27,12 +27,10 @@
     </table>
 </div>
 <script type="text/javascript">
-    $(document).ready(function(){
+    $(function(){
         getSelectedTaxonomyNames();
     });
 </script>
-<?php
-    echo $this->Form->end();
-?>
+<?= $this->Form->end(); ?>
 </div>
 

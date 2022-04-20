@@ -17,6 +17,7 @@ $config = array(
         'user_monitoring_enabled'           => false,
         'authkey_keep_session'              => false,
         'disable_local_feed_access'         => false,
+        'enable_svg_logos'                  => false,
         //'auth'                            => array('CertAuth.Certificate'), // additional authentication methods
         //'auth'                            => array('ShibbAuth.ApacheShibb'),
         //'auth'                            => array('AadAuth.AadAuthenticate'),
@@ -145,7 +146,7 @@ $config = array(
         'max_job_history_ttl' => 86400,
         'supervisor_host' => 'localhost',
         'supervisor_port' => 9001,
-        'supervisor_user' => '',
+        'supervisor_user' => 'supervisor',
         'supervisor_password' => '',
     ),
     // Uncomment the following to enable client SSL certificate authentication

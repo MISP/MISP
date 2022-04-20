@@ -37,13 +37,31 @@
             if (empty($field['type'])) {
                 $field['type'] = 'generic';
             }
+            $action_buttons = '';
+            if (!empty($field['action_buttons'])) {
+                foreach ($field['action_buttons'] as $action_button) {
+                    $action_buttons .= $this->element(
+                        '/genericElements/Common/action_button',
+                        ['data' => $data, 'params' => $action_button]
+                    );
+                }
+            }
             $listElements .= sprintf(
-                '<tr><td class="meta_table_key">%s</td><td class="meta_table_value">%s</td></tr>',
+                '<tr><td class="meta_table_key %s" title="%s">%s%s</td><td class="meta_table_value %s" title="%s">%s %s</td></tr>',
+                empty($field['key_class']) ? '' : h($field['key_class']),
+                empty($field['key_title']) ? '' : h($field['key_title']),
                 h($field['key']),
+                empty($field['key_info']) ? '' : sprintf(
+                    ' <i class="fas fa-info-circle" title="%s"></i>',
+                    h($field['key_info'])
+                ),
+                empty($field['class']) ? '' : h($field['class']),
+                empty($field['title']) ? '' : h($field['title']),
                 $this->element(
                     '/genericElements/SingleViews/Fields/' . $field['type'] . 'Field',
                     ['data' => $data, 'field' => $field]
-                )
+                ),
+                $action_buttons
             );
         }
     }
@@ -64,7 +82,7 @@
             );
         }
     }
-    $ajaxLists = '<br/>';
+    $ajaxLists = '<br>';
     if (!empty($children)) {
         foreach ($children as $child) {
             $ajaxLists .= $this->element(
@@ -87,11 +105,20 @@
     } else {
         $side_panels = '';
     }
+    $appendHtml = '';
+    if (!empty($append)) {
+        foreach ($append as $appendElement) {
+            $appendHtml .= $this->element(
+                $appendElement['element'],
+                empty($appendElement['element_params']) ? [] : $appendElement['element_params']
+            );
+        }
+    }
     $title = empty($title) ?
         __('%s view', Inflector::singularize(Inflector::humanize($this->request->params['controller']))) :
         $title;
     echo sprintf(
-        '<div class="view"><div class="row-fluid"><div class="span8">%s</div><div class="span4">%s</div></div><div id="accordion"></div>%s</div>%s',
+        '<div class="view"><div class="row-fluid"><div class="span8">%s</div><div class="span4">%s</div></div><div id="accordion"></div>%s%s</div>%s',
         sprintf(
             '<div><h2 class="ellipsis-overflow">%s</h2>%s%s<table class="meta_table table table-striped table-condensed">%s</table></div>',
             h($title),
@@ -101,6 +128,7 @@
         ),
         $side_panels,
         $ajaxLists,
+        $appendHtml,
         $ajax ? '' : $this->element('/genericElements/SideMenu/side_menu', $menuData)
     );
-?>
+
