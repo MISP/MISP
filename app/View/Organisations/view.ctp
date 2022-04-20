@@ -73,11 +73,10 @@
         <button id="button_sharing_groups_active" style="display:none;" class="btn btn-primary toggle-right qet orgViewButtonActive" onClick="organisationViewContent('sharing_groups', '<?= $id ?>');"><?= __('Sharing Groups') ?></button>
         <br><br>
     <?php endif;?>
-    <?php
-        echo $this->Html->script('vis');
-        echo $this->Html->css('vis');
-        echo $this->Html->css('distribution-graph');
-        echo $this->Html->script('network-distribution-graph');
+    <?= $this->element('genericElements/assetLoader', [
+        'css' => ['vis', 'distribution-graph'],
+        'js' => ['vis', 'network-distribution-graph'],
+    ]);
     ?>
     <div id="ajaxContent" style="width:100%;"></div>
 </div>
