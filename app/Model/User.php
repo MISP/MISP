@@ -833,7 +833,6 @@ class User extends AppModel
 
         $gpg = $this->initializeGpg();
         $sendEmail = new SendEmail($gpg);
-        $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
         try {
             $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
 
