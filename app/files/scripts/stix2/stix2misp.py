@@ -1133,7 +1133,9 @@ class StixFromMISPParser(StixParser):
 
     @staticmethod
     def get_misp_type(labels):
-        return labels[0].split('=')[1].strip('"')
+        for label in labels:
+            if label.startswith('misp:type=') or label.startswith('misp:name='):
+                return label.split('=')[1].strip('"')
 
     @staticmethod
     def parse_attribute_pattern(pattern):
@@ -1164,8 +1166,8 @@ class StixFromMISPParser(StixParser):
 
     @staticmethod
     def parse_custom_property(custom_property):
-        properties = custom_property.split('_')
-        return {'type': properties[2], 'object_relation': '-'.join(properties[3:])}
+        properties = custom_property.split('_')[2:]
+        return {'object_relation': '-'.join(properties)}
 
 
 class ExternalStixParser(StixParser):
