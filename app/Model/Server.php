@@ -3408,7 +3408,7 @@ class Server extends AppModel
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
             $entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
-            $correct_user = ($currentUser === $worker['user']);
+            $correct_user = ($currentUser === $worker['user'] || empty($worker['user']));
             if (!is_numeric($pid)) {
                 throw new MethodNotAllowedException('Non numeric PID found.');
             }

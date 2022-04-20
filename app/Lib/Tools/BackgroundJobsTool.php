@@ -708,16 +708,19 @@ class BackgroundJobsTool
     /**
      * Get effective user name
      * @param int $pid
-     * @return string
+     * @return string|null
      */
     private function processUser(int $pid)
     {
+        $user = null;
         if (function_exists('posix_getpwuid') && file_exists("/proc/$pid/status")) {
             $content = file_get_contents("/proc/$pid/status");
             preg_match("/Uid:\t([0-9]+)\t([0-9]+)/", $content, $matches);
-            return posix_getpwuid((int)$matches[2])['name'];
+            $user = posix_getpwuid((int)$matches[2])['name'];
         } else {
-            return trim(shell_exec(sprintf("ps -o uname='' -p %s", $pid)) ?? '');
+            $user = trim(shell_exec(sprintf("ps -o uname='' -p %s", $pid)) ?? '');
         }
+
+        return $user;
     }
 }
