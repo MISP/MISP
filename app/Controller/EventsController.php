@@ -4648,17 +4648,16 @@ class EventsController extends AppController
     public function viewGraph($id)
     {
         // Event data are fetched by 'updateGraph', here we need just metadata.
-        $event = $this->Event->fetchEvent($this->Auth->user(), array(
-            'eventid' => $id,
-            'metadata' => true,
-        ));
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event.'));
         }
 
-        $this->set('event', $event[0]);
+        $this->set('event', $event);
         $this->set('scope', 'event');
-        $this->set('id', $id);
+        $this->set('mayModify', $this->__canModifyEvent($event));
+        $this->set('mayPublish', $this->__canPublishEvent($event));
+        $this->set('id', $event['Event']['id']);
     }
 
     /*
