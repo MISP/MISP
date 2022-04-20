@@ -2138,7 +2138,6 @@ class UsersController extends AppController
             }
             $treemap['children'][] = $newElement;
         }
-        $taxonomyColourCodes = array();
         $taxonomies = array_merge(array('custom'), $taxonomies);
         if ($this->_isRest()) {
             $data = array(
@@ -2147,12 +2146,11 @@ class UsersController extends AppController
             );
             return $this->RestResponse->viewData($data, $this->response->type());
         } else {
-            $this->set('taxonomyColourCodes', $taxonomyColourCodes);
             $this->set('taxonomies', $taxonomies);
             $this->set('flatData', $flatData);
             $this->set('treemap', $treemap);
             $this->set('tags', $tags);
-            $this->layout = 'treemap';
+            $this->layout = false;
             $this->render('ajax/tag_statistics_graph');
         }
     }
