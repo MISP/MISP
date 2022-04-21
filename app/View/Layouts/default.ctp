@@ -37,7 +37,7 @@
     <div id="popover_form_x_large" class="ajax_popover_form ajax_popover_form_x_large"></div>
     <div id="popover_matrix" class="ajax_popover_form ajax_popover_matrix"></div>
     <div id="popover_box" class="popover_box"></div>
-    <div id="confirmation_box" class="confirmation_box"></div>
+    <div id="confirmation_box"></div>
     <div id="gray_out"></div>
     <div id="container">
         <?php

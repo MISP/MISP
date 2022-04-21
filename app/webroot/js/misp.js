@@ -78,10 +78,7 @@ function deleteObject(type, action, id) {
 
 function quickDeleteSighting(id, rawId, context) {
     url = baseurl + "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
-    $.get(url, function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback)
+    $.get(url, openConfirmation).fail(xhrFailCallback)
 }
 
 function fetchAddSightingForm(type, attribute_id, onvalue) {
@@ -91,10 +88,7 @@ function fetchAddSightingForm(type, attribute_id, onvalue) {
     } else {
         url = url + "/0";
     }
-    $.get(url, function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback);
+    $.get(url, openConfirmation).fail(xhrFailCallback);
 }
 
 function flexibleAddSighting(clicked, type, attribute_id, placement) {
@@ -318,10 +312,7 @@ function toggleSetting(e, setting, id) {
 }
 
 function initiatePasswordReset(id) {
-    $.get(baseurl + "/users/initiatePasswordReset/" + id, function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback)
+    $.get(baseurl + "/users/initiatePasswordReset/" + id, openConfirmation).fail(xhrFailCallback)
 }
 
 function submitPasswordReset(id) {
@@ -923,10 +914,7 @@ function multiSelectToggleFeeds(on, cache) {
             }
         }
     });
-    $.get(baseurl + "/feeds/toggleSelected/" + on + "/" + cache + "/" + JSON.stringify(selected), function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback);
+    $.get(baseurl + "/feeds/toggleSelected/" + on + "/" + cache + "/" + JSON.stringify(selected), openConfirmation).fail(xhrFailCallback);
 }
 
 function multiSelectToggleField(scope, action, fieldName, enabled) {
@@ -956,10 +944,7 @@ function multiSelectDeleteEventBlocklist(on, cache) {
             }
         }
     });
-    $.get(baseurl + "/eventBlocklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback);
+    $.get(baseurl + "/eventBlocklists/massDelete?ids=" + JSON.stringify(selected), openConfirmation).fail(xhrFailCallback);
 }
 
 function multiSelectAction(event_id, context) {
@@ -1022,10 +1007,7 @@ function editSelectedAttributes(event) {
 }
 
 function addSelectedTaxonomies(taxonomy) {
-    $.get(baseurl + "/taxonomies/taxonomyMassConfirmation/"+taxonomy, function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback);
+    $.get(baseurl + "/taxonomies/taxonomyMassConfirmation/"+taxonomy, openConfirmation).fail(xhrFailCallback);
 }
 
 function proposeObjectsFromSelectedAttributes(clicked, event_id) {
@@ -1034,17 +1016,11 @@ function proposeObjectsFromSelectedAttributes(clicked, event_id) {
 }
 
 function hideSelectedTags(taxonomy) {
-	$.get(baseurl + "/taxonomies/taxonomyMassHide/"+taxonomy, function(data) {
-		$("#confirmation_box").html(data);
-		openPopup("#confirmation_box");
-	}).fail(xhrFailCallback);
+	$.get(baseurl + "/taxonomies/taxonomyMassHide/"+taxonomy, openConfirmation).fail(xhrFailCallback);
 }
 
 function unhideSelectedTags(taxonomy) {
-	$.get(baseurl + "/taxonomies/taxonomyMassUnhide/"+taxonomy, function(data) {
-		$("#confirmation_box").html(data);
-		openPopup("#confirmation_box");
-	}).fail(xhrFailCallback);
+	$.get(baseurl + "/taxonomies/taxonomyMassUnhide/"+taxonomy, openConfirmation).fail(xhrFailCallback);
 }
 
 function getSelected() {
@@ -3538,8 +3514,7 @@ function zeroMQServerAction(action) {
             if (action !== 'status') {
                 window.location.reload();
             } else {
-                $("#confirmation_box").html(data);
-                openPopup("#confirmation_box");
+                openConfirmation(data);
             }
         }
     });
@@ -4319,10 +4294,7 @@ function checkRolePerms() {
 }
 
 function updateMISP() {
-    $.get(baseurl + "/servers/update", function(data) {
-        $("#confirmation_box").html(data);
-        openPopup("#confirmation_box");
-    }).fail(xhrFailCallback)
+    $.get(baseurl + "/servers/update", openConfirmation).fail(xhrFailCallback)
 }
 
 function submitMISPUpdate() {
