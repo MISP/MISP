@@ -149,14 +149,16 @@ function screenshotPopup(url, title) {
     var popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
     url = $('<div>').text(url).html();
     title = $('<div>').text(title).html();
-    popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" id="screenshot-image" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();"/>';
-    popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+    popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();">';
+    popupHtml += '<div class="close-icon useCursorPointer" onclick="closeScreenshot()"></div>';
     if (!url.startsWith('data:image/')) {
-        popupHtml += '<a class="close-icon useCursorPointer fa fa-expand" style="right: 20px; background: black; color: white; text-decoration: none;" target="_blank" href="' + url + '" ></a>';
+        popupHtml += '<a class="close-icon useCursorPointer fa fa-expand" style="right: 20px; background: black; color: white; text-decoration: none;" target="_blank" href="' + url + '"></a>';
     }
     popupHtml += '<div style="height: 20px;"></div>'; // see bottom of image for large one
-    $('#screenshot_box').html(popupHtml);
-    $('#screenshot_box').css({
+
+    var $screenshotBox = $("<div id=\"screenshot_box\"></div>").appendTo("body");
+    $screenshotBox.html(popupHtml);
+    $screenshotBox.css({
         display: 'block',
         top: (document.documentElement.scrollTop + 100) + 'px'
     });
@@ -628,6 +630,9 @@ function submitForm($td, type, id, field) {
         var attribute_id = $(this).parents('tr').data('primary-id');
         getPopup(attribute_id, 'attributes', 'toggleToIDS', '', '#confirmation_box');
         return false;
+    });
+    $(document.body).on('click', '.screenshot', function() {
+        screenshotPopup($(this).attr('src'), $(this).attr('title'));
     });
     // Show quick edit hover icon for attributes and objects
     $(document.body).on('mouseenter', '[data-edit-field]', function() {
@@ -1445,7 +1450,9 @@ function showMessage(success, message, context) {
 function cancelPopoverForm(id) {
     $("#gray_out").fadeOut();
     $("#popover_form_large").fadeOut();
-    $("#screenshot_box").fadeOut();
+    $("#screenshot_box").fadeOut(400, function() {
+        $(this).remove();
+    });
     $("#popover_box")
         .fadeOut()
         .removeAttr('style') // remove all inline styles
@@ -4271,7 +4278,9 @@ $(document).keyup(function(e){
 
 function closeScreenshot() {
     $("#popover_box").fadeOut();
-    $("#screenshot_box").fadeOut();
+    $("#screenshot_box").fadeOut(400, function() {
+        $(this).remove();
+    });
     $("#gray_out").fadeOut();
 }
 

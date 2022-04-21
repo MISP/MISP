@@ -254,9 +254,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
             attributeListAnyAttributeCheckBoxesChecked();
             attributeListAnyProposalCheckBoxesChecked();
         });
-        $('.screenshot').click(function() {
-            screenshotPopup($(this).attr('src'), $(this).attr('title'));
-        });
         $('.sightings_advanced_add').click(function() {
             var selected = [];
             var object_context = $(this).data('object-context');
