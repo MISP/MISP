@@ -18,7 +18,7 @@ class TemplatesController extends AppController
     public function beforeFilter()
     { // TODO REMOVE
         parent::beforeFilter();
-        $this->Security->unlockedActions = array('uploadFile', 'deleteTemporaryFile');
+        $this->Security->unlockedActions = array('uploadFile', 'deleteTemporaryFile', 'saveElementSorting');
     }
 
     public function index()

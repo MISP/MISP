@@ -75,7 +75,7 @@
     <?php endif;?>
     <?= $this->element('genericElements/assetLoader', [
         'css' => ['vis', 'distribution-graph'],
-        'js' => ['vis', 'network-distribution-graph'],
+        'js' => ['vis', 'jquery-ui.min', 'network-distribution-graph'],
     ]);
     ?>
     <div id="ajaxContent" style="width:100%;"></div>

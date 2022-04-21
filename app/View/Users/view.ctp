@@ -117,7 +117,7 @@
     }
     echo $this->element('genericElements/assetLoader', array(
         'css' => array('vis', 'distribution-graph'),
-        'js' => array('vis', 'network-distribution-graph')
+        'js' => array('vis', 'jquery-ui.min', 'network-distribution-graph')
     ));
     echo sprintf(
         '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s<div style="margin-top:20px;">%s%s</div></div>',

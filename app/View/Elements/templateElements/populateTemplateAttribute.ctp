@@ -65,7 +65,11 @@
         ?>
         </div>
         <div class="error-message populateTemplateErrorField" <?php if (!isset($errors[$element_id])) echo 'style="display:none;"';?>>
-            <?php echo __('Error: %s', $errors[$element_id]); ?>
+            <?php
+            if (isset($errors[$element_id])) {
+                echo __('Error: %s', $errors[$element_id]);
+            }
+            ?>
         </div>
     </div>
 </div>

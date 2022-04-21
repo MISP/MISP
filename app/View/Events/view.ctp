@@ -1,7 +1,7 @@
 <?php
     echo $this->element('genericElements/assetLoader', [
         'css' => ['query-builder.default', 'tree'],
-        'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph', 'd3', 'd3.custom'],
+        'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'jquery-ui.min', 'network-distribution-graph', 'd3', 'd3.custom'],
     ]);
     echo $this->element(
         'genericElements/SingleViews/single_view',

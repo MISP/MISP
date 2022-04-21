@@ -187,6 +187,6 @@
 <?php
 echo $this->element('genericElements/assetLoader', [
     'css' => ['vis', 'distribution-graph'],
-    'js' => ['vis', 'network-distribution-graph'],
+    'js' => ['vis', 'jquery-ui.min', 'network-distribution-graph'],
 ]);
 if (!$ajax) echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));

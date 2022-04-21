@@ -1,7 +1,5 @@
 <?php
-
 $this->set('menuData', ['menuList' => 'templates', 'menuItem' => 'view',  'mayModify' => $mayModify]);
-
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
@@ -37,5 +35,7 @@ echo $this->element(
         ]
     ]
 );
-
+echo $this->element('genericElements/assetLoader', [
+    'js' => ['jquery-ui.min'],
+]);
 echo $this->element('templateElements/templateElements', ['templateId' => $template['Template']['id']]);
