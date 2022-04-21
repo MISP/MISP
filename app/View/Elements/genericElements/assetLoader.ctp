@@ -43,7 +43,7 @@ if (!empty($css)) {
             $url .= '?v=' . $version;
         }
 
-        echo "<link rel=\"stylesheet\" type=\"text/css\" href=\"$baseurl$url\"";
+        echo "<link rel=\"stylesheet\" href=\"$baseurl$url\"";
         if (isset($options['media'])) {
             echo " media=\"{$options['media']}\"";
         }
@@ -64,7 +64,7 @@ if (!empty($js)) {
             }
             $url .= '?v=' . $version;
         }
-        echo "<script type=\"text/javascript\" src=\"$baseurl$url\"></script>\n";
+        echo "<script src=\"$baseurl$url\"></script>\n";
     }
 }
 
