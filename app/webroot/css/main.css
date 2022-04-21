@@ -864,7 +864,7 @@ a.proposal_link_red:hover {
     padding-top:100px;
 }
 
-.confirmation_box {
+#confirmation_box {
     display:none;
     width: 300px;
     top:calc(50% - 50px);
@@ -876,8 +876,8 @@ a.proposal_link_red:hover {
     z-index:5;
 }
 
-.confirmation_box legend, .confirmation .legend {
-    border-radius: 5px 5px 0px 0px;
+#confirmation_box legend, .confirmation .legend {
+    border-radius: 5px 5px 0 0;
     margin-bottom:5px;
     padding-left:5px;
     width:295px;
