@@ -706,7 +706,7 @@ class AttributesController extends AppController
         }
         $attribute = $this->__fetchAttribute($id);
         if (empty($attribute)) {
-            throw new MethodNotAllowedException('Invalid attribute');
+            throw new NotFoundException('Invalid attribute');
         }
         $this->Attribute->data = $attribute;
         if ($this->Attribute->data['Attribute']['deleted']) {
@@ -722,17 +722,11 @@ class AttributesController extends AppController
                 $this->redirect(array('controller' => 'events', 'action' => 'index'));
             }
         }
-        $date = new DateTime();
         if (!$this->_isRest()) {
             $this->Attribute->Event->insertLock($this->Auth->user(), $this->Attribute->data['Attribute']['event_id']);
         }
         $eventId = $this->Attribute->data['Attribute']['event_id'];
-        if ('attachment' == $this->Attribute->data['Attribute']['type'] ||
-            'malware-sample' == $this->Attribute->data['Attribute']['type']) {
-            $this->set('attachment', true);
-        } else {
-            $this->set('attachment', false);
-        }
+
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
@@ -742,13 +736,13 @@ class AttributesController extends AppController
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
             }
+            $dateObj = new DateTime();
             $existingAttribute = $this->Attribute->findByUuid($this->Attribute->data['Attribute']['uuid']);
             // check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
             // check which attribute is newer
             if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
                 $this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
                 $this->request->data['Attribute']['event_id'] = $existingAttribute['Attribute']['event_id'];
-                $dateObj = new DateTime();
                 $skipTimeCheck = false;
                 if (!isset($this->request->data['Attribute']['timestamp'])) {
                     $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp();
@@ -804,7 +798,7 @@ class AttributesController extends AppController
                         'conditions' => array('Object.id' => $this->Attribute->data['Attribute']['object_id'])
                     ));
                     if (!empty($object)) {
-                        $object['Object']['timestamp'] = $date->getTimestamp();
+                        $object['Object']['timestamp'] = $dateObj->getTimestamp();
                         $this->Attribute->Object->save($object);
                     }
                 }
@@ -851,17 +845,22 @@ class AttributesController extends AppController
         $this->set('event', $attribute); // Attribute contains 'Event' field
         // needed for RBAC
         // combobox for types
-        $types = array_keys($this->Attribute->typeDefinitions);
-        foreach ($types as $key => $value) {
-            if (in_array($value, array('malware-sample', 'attachment'))) {
-                unset($types[$key]);
+        $isAttachment = $attribute['Attribute']['type'] === 'attachment' || $attribute['Attribute']['type'] === 'malware-sample';
+        $this->set('attachment', $isAttachment);
+        if ($isAttachment) {
+            $types = [$attribute['Attribute']['type'] => $attribute['Attribute']['type']];
+        } else {
+            $types = array_keys($this->Attribute->typeDefinitions);
+            foreach ($types as $key => $value) {
+                if (in_array($value, array('malware-sample', 'attachment'))) {
+                    unset($types[$key]);
+                }
             }
+            $types = $this->_arrayToValuesIndexArray($types);
         }
-        $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
         // combobox for categories
-        $this->loadModel('SharingGroup');
-        $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+        $sgs = $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
 
         $distributionLevels = $this->Attribute->distributionLevels;
@@ -883,7 +882,7 @@ class AttributesController extends AppController
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $categoryDefinitions = $this->Attribute->categoryDefinitions;
-        $categories = array_keys($this->Attribute->categoryDefinitions);
+        $categories = array_keys($categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
         if (!empty($this->request->data['Attribute']['object_id'])) {
             foreach ($categoryDefinitions as $k => $v) {
@@ -902,7 +901,7 @@ class AttributesController extends AppController
         $this->set('action', $this->action);
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
-        $this->set('notice_list_triggers', json_encode($notice_list_triggers, true));
+        $this->set('notice_list_triggers', json_encode($notice_list_triggers));
         $this->render('add');
     }
 
