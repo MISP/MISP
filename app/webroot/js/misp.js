@@ -146,10 +146,24 @@ function screenshotPopup(url, title) {
     if (!url.startsWith('data:image/')) {
         url = url.slice(0, -1);
     }
-    var popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
     url = $('<div>').text(url).html();
-    title = $('<div>').text(title).html();
-    popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();">';
+
+    var img = document.createElement('img');
+    img.classList.add('hidden', 'screenshot_box-content');
+    img.src = url;
+    img.title = title;
+    img.alt = title;
+    img.onload = function() {
+        $(this).show();
+        $(this).parent().parent().find('.fa-spinner').remove();
+    }
+    img.onerror = function() {
+        showMessage('fail', 'Something went wrong - could not load attachment');
+        closeScreenshot();
+    }
+
+    var popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
+    popupHtml += '<div class="screenshot-img-box"></div>';
     popupHtml += '<div class="close-icon useCursorPointer" onclick="closeScreenshot()"></div>';
     if (!url.startsWith('data:image/')) {
         popupHtml += '<a class="close-icon useCursorPointer fa fa-expand" style="right: 20px; background: black; color: white; text-decoration: none;" target="_blank" href="' + url + '"></a>';
@@ -162,6 +176,7 @@ function screenshotPopup(url, title) {
         display: 'block',
         top: (document.documentElement.scrollTop + 100) + 'px'
     });
+    $screenshotBox.find(".screenshot-img-box").append(img);
     $("#gray_out").fadeIn();
 }
 
