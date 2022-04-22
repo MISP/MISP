@@ -1516,6 +1516,7 @@ function saveElementSorting(order) {
         success:function (data) {
             handleGenericAjaxResponse(data);
         },
+        error: xhrFailCallback,
         type:"post",
         cache: false,
         url: baseurl + "/templates/saveElementSorting/",
