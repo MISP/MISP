@@ -34,10 +34,8 @@ if (!empty($css)) {
 
         $url = $this->Html->assetUrl($path, ['pathPrefix' => $cssBaseUrl, 'ext' => '.css']);
         if (!empty($me)) {
-            if ($cachedTimestamp) {
-                $version = $assetTimestamp($url);
-            }
-            if (!isset($version)) {
+            $version = $cachedTimestamp ? $assetTimestamp($url) : null;
+            if (!$version) {
                 $version = $queryVersion;
             }
             $url .= '?v=' . $version;
@@ -56,10 +54,8 @@ if (!empty($js)) {
     foreach ($js as $path) {
         $url = $this->Html->assetUrl($path, ['pathPrefix' => $jsBaseUrl, 'ext' => '.js']);
         if (!empty($me)) {
-            if ($cachedTimestamp) {
-                $version = $assetTimestamp($url);
-            }
-            if (!isset($version)) {
+            $version = $cachedTimestamp ? $assetTimestamp($url) : null;
+            if (!$version) {
                 $version = $queryVersion;
             }
             $url .= '?v=' . $version;
