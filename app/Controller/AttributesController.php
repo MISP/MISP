@@ -1861,11 +1861,7 @@ class AttributesController extends AppController
 
     public function reportValidationIssuesAttributes($eventId = false)
     {
-        // TODO improve performance of this function by eliminating the additional SQL query per attribute
         // search for validation problems in the attributes
-        if (!self::_isSiteAdmin()) {
-            throw new NotFoundException();
-        }
         $this->set('result', $this->Attribute->reportValidationIssuesAttributes($eventId));
     }
 
