@@ -281,25 +281,15 @@ class AttributesController extends AppController
         $sgs = $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true);
         $this->set('sharingGroups', $sgs);
         $this->set('initialDistribution', $this->Attribute->defaultDistribution());
-        $fieldDesc = array();
         $distributionLevels = $this->Attribute->distributionLevels;
         if (empty($sgs)) {
             unset($distributionLevels[4]);
         }
         $this->set('distributionLevels', $distributionLevels);
-        foreach ($distributionLevels as $key => $value) {
-            $fieldDesc['distribution'][$key] = $this->Attribute->distributionDescriptions[$key]['formdesc'];
-        }
-        foreach ($this->Attribute->categoryDefinitions as $key => $value) {
-            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
-        }
-        foreach ($this->Attribute->typeDefinitions as $key => $value) {
-            $fieldDesc['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
-        }
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
         $this->set('notice_list_triggers', json_encode($notice_list_triggers));
-        $this->set('fieldDesc', $fieldDesc);
+        $this->set('fieldDesc', $this->__getInfo());
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
         $this->set('event', $event);
@@ -869,16 +859,7 @@ class AttributesController extends AppController
         }
         $this->set('distributionLevels', $distributionLevels);
 
-        foreach ($this->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($this->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($distributionLevels as $key => $value) {
-            $info['distribution'][$key] = array('key' => $value, 'desc' => $this->Attribute->distributionDescriptions[$key]['formdesc']);
-        }
-        $this->set('info', $info);
+        $this->set('fieldDesc', $this->__getInfo());
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $categoryDefinitions = $this->Attribute->categoryDefinitions;
@@ -2969,24 +2950,24 @@ class AttributesController extends AppController
 
     private function __getInfo()
     {
-        $info = array('category' => array(), 'type' => array(), 'distribution' => array());
+        $info = ['category' => [], 'type' => [], 'distribution' => []];
         foreach ($this->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array(
+            $info['category'][$key] = [
                 'key' => $key,
                 'desc' => isset($value['formdesc']) ? $value['formdesc'] : $value['desc']
-            );
+            ];
         }
         foreach ($this->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array(
+            $info['type'][$key] = [
                 'key' => $key,
                 'desc' => isset($value['formdesc']) ? $value['formdesc'] : $value['desc']
-            );
+            ];
         }
         foreach ($this->Attribute->distributionLevels as $key => $value) {
-            $info['distribution'][$key] = array(
+            $info['distribution'][$key] = [
                 'key' => $value,
                 'desc' => $this->Attribute->distributionDescriptions[$key]['formdesc']
-            );
+            ];
         }
         return $info;
     }
