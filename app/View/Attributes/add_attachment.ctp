@@ -80,19 +80,15 @@ echo $this->Form->button(__('Upload'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<?php
-    $event['Event']['id'] = $this->request->data['Attribute']['event_id'];
-    $event['Event']['published'] = $published;
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttachment', 'event' => $event));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttachment', 'event' => $event)); ?>
 <script type="text/javascript">
 <?php
     $formInfoTypes = array('distribution' => 'Distribution', 'category' => 'Category');
     echo 'var formInfoFields = ' . json_encode($formInfoTypes) . PHP_EOL;
     foreach ($formInfoTypes as $formInfoType => $humanisedName) {
         echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
-        foreach ($info[$formInfoType] as $key => $formInfoData) {
-            echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
+        foreach ($fieldDesc[$formInfoType] as $key => $formInfoData) {
+            echo '"' . $key . '": "<span class=\"blue bold\">' . h($key) . '</span>: ' . h($formInfoData) . '<br>",' . PHP_EOL;
         }
         echo '}' . PHP_EOL;
     }
@@ -127,5 +123,4 @@ $(function() {
         }
     }).change();
 });
-
 </script>

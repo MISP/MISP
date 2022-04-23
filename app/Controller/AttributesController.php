@@ -278,18 +278,11 @@ class AttributesController extends AppController
         $categories = $this->_arrayToValuesIndexArray($categories);
         $this->set('categories', $categories);
 
-        $sgs = $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true);
-        $this->set('sharingGroups', $sgs);
         $this->set('initialDistribution', $this->Attribute->defaultDistribution());
-        $distributionLevels = $this->Attribute->distributionLevels;
-        if (empty($sgs)) {
-            unset($distributionLevels[4]);
-        }
-        $this->set('distributionLevels', $distributionLevels);
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
         $this->set('notice_list_triggers', json_encode($notice_list_triggers));
-        $this->set('fieldDesc', $this->__getInfo());
+        $this->__common();
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
         $this->set('event', $event);
@@ -485,19 +478,22 @@ class AttributesController extends AppController
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
         $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
         $this->set('advancedExtractionAvailable', $this->Attribute->isAdvancedExtractionAvailable());
-
-        // combobox for distribution
-        $this->set('distributionLevels', $this->Attribute->distributionLevels);
-        $this->set('info', $this->__getInfo());
-
-        $this->loadModel('SharingGroup');
-        $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
-        $this->set('sharingGroups', $sgs);
-
-        $this->set('currentDist', $event['Event']['distribution']);
-        $this->set('published', $event['Event']['published']);
+        $this->__common();
+        $this->set('event', $event);
     }
 
+    private function __common()
+    {
+        $sgs = $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+
+        $distributionLevels = $this->Attribute->distributionLevels;
+        if (empty($sgs)) {
+            unset($distributionLevels[4]);
+        }
+        $this->set('sharingGroups', $sgs);
+        $this->set('distributionLevels', $distributionLevels);
+        $this->set('fieldDesc', $this->__getInfo());
+    }
 
     // Imports the CSV threatConnect file to multiple attributes
     public function add_threatconnect($eventId = null)
@@ -849,17 +845,7 @@ class AttributesController extends AppController
             $types = $this->_arrayToValuesIndexArray($types);
         }
         $this->set('types', $types);
-        // combobox for categories
-        $sgs = $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
-        $this->set('sharingGroups', $sgs);
-
-        $distributionLevels = $this->Attribute->distributionLevels;
-        if (empty($sgs)) {
-            unset($distributionLevels[4]);
-        }
-        $this->set('distributionLevels', $distributionLevels);
-
-        $this->set('fieldDesc', $this->__getInfo());
+        $this->__common();
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $categoryDefinitions = $this->Attribute->categoryDefinitions;
@@ -2952,22 +2938,13 @@ class AttributesController extends AppController
     {
         $info = ['category' => [], 'type' => [], 'distribution' => []];
         foreach ($this->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = [
-                'key' => $key,
-                'desc' => isset($value['formdesc']) ? $value['formdesc'] : $value['desc']
-            ];
+            $info['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
         }
         foreach ($this->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = [
-                'key' => $key,
-                'desc' => isset($value['formdesc']) ? $value['formdesc'] : $value['desc']
-            ];
+            $info['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
         }
         foreach ($this->Attribute->distributionLevels as $key => $value) {
-            $info['distribution'][$key] = [
-                'key' => $value,
-                'desc' => $this->Attribute->distributionDescriptions[$key]['formdesc']
-            ];
+            $info['distribution'][$key] = $this->Attribute->distributionDescriptions[$key]['formdesc'];
         }
         return $info;
     }
