@@ -3960,19 +3960,6 @@ function requestAPIAccess() {
     });
 }
 
-function initPopoverContent(context) {
-    for (var property in formInfoFields) {
-        if (formInfoFields.hasOwnProperty(property)) {
-            $('#' + property + 'InfoPopover').popover("destroy").popover({
-                placement: 'right',
-                html: 'true',
-                trigger: 'hover',
-                content: getFormInfoContent(property, '#' + context + formInfoFields[property])
-            });
-        }
-    }
-}
-
 function checkSharingGroup(context) {
     var $sharingGroupSelect = $('#' + context + 'SharingGroupId');
     if ($('#' + context + 'Distribution').val() == 4) {
@@ -3987,14 +3974,6 @@ function checkSharingGroup(context) {
         $sharingGroupSelect.hide();
         $sharingGroupSelect.closest("div").hide();
     }
-}
-
-function getFormInfoContent(property, field) {
-    var content = window[property + 'FormInfoValues'][$(field).val()];
-    if (content === undefined || content === null) {
-        return 'N/A';
-    }
-    return content;
 }
 
 function formCategoryChanged(id) {
