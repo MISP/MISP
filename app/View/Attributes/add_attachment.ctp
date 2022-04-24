@@ -3,27 +3,33 @@
     <fieldset>
         <legend><?php echo __('Add Attachment(s)'); ?></legend>
         <?php
+            $categoryFormInfo = $this->element('genericElements/Form/formInfo', [
+                'field' => [
+                    'field' => 'category'
+                ],
+                'modelForForm' => 'Attribute',
+                'fieldDesc' => $fieldDesc['category'],
+            ]);
             echo $this->Form->hidden('event_id');
             echo $this->Form->input('category', array(
                 'default' => 'Payload delivery',
-                'label' => __('Category ') . $this->element('formInfo', array('type' => 'category'))
+                'label' => __('Category ') . $categoryFormInfo
             ));
         ?>
-        <div class="input clear"></div>
+        <div class='input clear'></div>
         <?php
-                $initialDistribution = 5;
-                if (Configure::read('MISP.default_attribute_distribution') != null) {
-                    if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-                        $initialDistribution = 5;
-                    } else {
-                        $initialDistribution = Configure::read('MISP.default_attribute_distribution');
-                    }
-                }
-                echo $this->Form->input('distribution', array(
-                        'options' => $distributionLevels,
-                        'label' => __('Distribution ') . $this->element('formInfo', array('type' => 'distribution')),
-                        'selected' => $initialDistribution,
-                ));
+            $distributionFormInfo = $this->element('genericElements/Form/formInfo', [
+                'field' => [
+                    'field' => 'distribution'
+                ],
+                'modelForForm' => 'Attribute',
+                'fieldDesc' => $fieldDesc['distribution'],
+            ]);
+            echo $this->Form->input('distribution', array(
+                'options' => $distributionLevels,
+                'label' => __('Distribution ') . $distributionFormInfo,
+                'selected' => $initialDistribution,
+            ));
             ?>
         <div id="SGContainer" style="display:none;">
             <?php
@@ -81,23 +87,10 @@ echo $this->Form->end();
 ?>
 </div>
 <?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttachment', 'event' => $event)); ?>
-<script type="text/javascript">
-<?php
-    $formInfoTypes = array('distribution' => 'Distribution', 'category' => 'Category');
-    echo 'var formInfoFields = ' . json_encode($formInfoTypes) . PHP_EOL;
-    foreach ($formInfoTypes as $formInfoType => $humanisedName) {
-        echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
-        foreach ($fieldDesc[$formInfoType] as $key => $formInfoData) {
-            echo '"' . $key . '": "<span class=\"blue bold\">' . h($key) . '</span>: ' . h($formInfoData) . '<br>",' . PHP_EOL;
-        }
-        echo '}' . PHP_EOL;
-    }
-?>
-
+<script>
 var formZipTypeValues = <?= json_encode($isMalwareSampleCategory) ?>;
 
 $(function() {
-    initPopoverContent('Attribute');
     $('#AttributeCategory').change(function() {
         malwareCheckboxSetter("Attribute");
         $("#AttributeMalware").change();
@@ -110,10 +103,6 @@ $(function() {
             $('#SGContainer').hide();
         }
     }).change();
-
-    $("#AttributeCategory, #AttributeDistribution").change(function() {
-        initPopoverContent('Attribute');
-    });
 
     $("#AttributeMalware").change(function () {
         if (this.checked) {

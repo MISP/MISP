@@ -278,7 +278,6 @@ class AttributesController extends AppController
         $categories = $this->_arrayToValuesIndexArray($categories);
         $this->set('categories', $categories);
 
-        $this->set('initialDistribution', $this->Attribute->defaultDistribution());
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
         $this->set('notice_list_triggers', json_encode($notice_list_triggers));
@@ -484,14 +483,10 @@ class AttributesController extends AppController
 
     private function __common()
     {
-        $sgs = $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
-
-        $distributionLevels = $this->Attribute->distributionLevels;
-        if (empty($sgs)) {
-            unset($distributionLevels[4]);
-        }
-        $this->set('sharingGroups', $sgs);
-        $this->set('distributionLevels', $distributionLevels);
+        $distributionData = $this->Attribute->fetchDistributionData($this->Auth->user());
+        $this->set('sharingGroups', $distributionData['sgs']);
+        $this->set('distributionLevels', $distributionData['levels']);
+        $this->set('initialDistribution', $distributionData['initial']);
         $this->set('fieldDesc', $this->__getInfo());
     }
 
