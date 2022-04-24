@@ -489,7 +489,18 @@ class AttributesController extends AppController
         $this->set('sharingGroups', $distributionData['sgs']);
         $this->set('distributionLevels', $distributionData['levels']);
         $this->set('initialDistribution', $distributionData['initial']);
-        $this->set('fieldDesc', $this->__getInfo());
+
+        $fieldDesc = ['category' => [], 'type' => [], 'distribution' => []];
+        foreach ($this->Attribute->categoryDefinitions as $key => $value) {
+            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
+        }
+        foreach ($this->Attribute->typeDefinitions as $key => $value) {
+            $fieldDesc['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
+        }
+        foreach ($this->Attribute->distributionLevels as $key => $value) {
+            $fieldDesc['distribution'][$key] = $this->Attribute->distributionDescriptions[$key]['formdesc'];
+        }
+        $this->set('fieldDesc', $fieldDesc);
     }
 
     // Imports the CSV threatConnect file to multiple attributes
@@ -2924,21 +2935,6 @@ class AttributesController extends AppController
             $responseType = $this->Attribute->validFormats[$type][0];
             return $this->RestResponse->viewData($final, $responseType, false, true, 'search.' . $type . '.' . $responseType);
         }
-    }
-
-    private function __getInfo()
-    {
-        $info = ['category' => [], 'type' => [], 'distribution' => []];
-        foreach ($this->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
-        }
-        foreach ($this->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
-        }
-        foreach ($this->Attribute->distributionLevels as $key => $value) {
-            $info['distribution'][$key] = $this->Attribute->distributionDescriptions[$key]['formdesc'];
-        }
-        return $info;
     }
 
     /**
