@@ -589,29 +589,32 @@ class GalaxiesController extends AppController
 
     public function showGalaxies($id, $scope = 'event')
     {
-        $this->layout = 'ajax';
-        $this->set('scope', $scope);
-        if ($scope == 'event') {
+        if ($scope === 'event') {
             $this->loadModel('Event');
             $object = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id, 'metadata' => 1));
             if (empty($object)) {
-                throw new MethodNotAllowedException('Invalid event.');
+                throw new NotFoundException('Invalid event.');
             }
             $this->set('object', $object[0]);
-        } elseif ($scope == 'attribute') {
+        } elseif ($scope === 'attribute') {
             $this->loadModel('Attribute');
             $object = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
             if (empty($object)) {
-                throw new MethodNotAllowedException('Invalid attribute.');
+                throw new NotFoundException('Invalid attribute.');
             }
             $object[0] = $this->Attribute->Event->massageTags($this->Auth->user(), $object[0], 'Attribute');
-        } elseif ($scope == 'tag_collection') {
+        } elseif ($scope === 'tag_collection') {
             $this->loadModel('TagCollection');
             $object = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $id)));
             if (empty($object)) {
-                throw new MethodNotAllowedException('Invalid Tag Collection.');
+                throw new NotFoundException('Invalid Tag Collection.');
             }
+        } else {
+            throw new NotFoundException("Invalid scope.");
         }
+
+        $this->layout = false;
+        $this->set('scope', $scope);
         $this->set('object', $object[0]);
         $this->render('/Events/ajax/ajaxGalaxies');
     }
