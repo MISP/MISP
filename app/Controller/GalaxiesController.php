@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Galaxy $Galaxy
+ */
 class GalaxiesController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -535,8 +538,8 @@ class GalaxiesController extends AppController
             }
             $cluster_ids = $this->request->data['Galaxy']['target_ids'];
             if (strlen($cluster_ids) > 0) {
-                $cluster_ids = json_decode($cluster_ids, true);
-                if ($cluster_ids === null || empty($cluster_ids)) {
+                $cluster_ids = $this->_jsonDecode($cluster_ids);
+                if (empty($cluster_ids)) {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Failed to parse request or no clusters picked.'))), 'status'=>200, 'type' => 'json'));
                 }
             } else {

@@ -545,58 +545,6 @@ class GalaxyClustersController extends AppController
         }
     }
 
-    public function attachToEvent($event_id, $tag_name)
-    {
-        $this->loadModel('Event');
-        $this->Event->id = $event_id;
-        $this->Event->recursive = -1;
-        $event = $this->Event->read(array(), $event_id);
-        if (empty($event)) {
-            throw new MethodNotAllowedException('Invalid Event.');
-        }
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-            if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-                throw new MethodNotAllowedException('Invalid Event.');
-            }
-        }
-        $tag = $this->Event->EventTag->Tag->find('first', array('conditions' => array('Tag.name' => $tag_name), 'recursive' => -1));
-        if (empty($tag)) {
-            $this->Event->EventTag->Tag->create();
-            $this->Event->EventTag->Tag->save(array('name' => $tag_name, 'colour' => '#0088cc', 'exportable' => 1));
-            $tag_id = $this->Event->EventTag->Tag->id;
-        } else {
-            $tag_id = $tag['Tag']['id'];
-        }
-        $existingEventTag = $this->Event->EventTag->find('first', array('conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $event_id), 'recursive' => -1));
-        if (empty($existingEventTag)) {
-            $cluster = $this->GalaxyCluster->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('GalaxyCluster.tag_name' => $existingEventTag['Tag']['name'])
-            ));
-            $this->Event->EventTag->create();
-            $this->Event->EventTag->save(array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $event_id));
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                'org' => $this->Auth->user('Organisation')['name'],
-                'model' => 'Event',
-                'model_id' => $event_id,
-                'email' => $this->Auth->user('email'),
-                'action' => 'galaxy',
-                'title' => 'Attached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to event (' . $event_id . ')',
-                'change' => ''
-            ));
-            $event['Event']['published'] = 0;
-            $date = new DateTime();
-            $event['Event']['timestamp'] = $date->getTimestamp();
-            $this->Event->save($event);
-            $this->Flash->success('Galaxy attached.');
-        } else {
-            $this->Flash->error('Galaxy already attached.');
-        }
-        $this->redirect($this->referer());
-    }
-
     public function detach($target_id, $target_type, $tag_id)
     {
         $this->loadModel('Event');
@@ -687,16 +635,8 @@ class GalaxyClustersController extends AppController
                 $this->Event->save($event);
                 $this->Flash->success('Galaxy successfully detached.');
                 $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->save(array(
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'model' => ucfirst($target_type),
-                    'model_id' => $target_id,
-                    'email' => $this->Auth->user('email'),
-                    'action' => 'galaxy',
-                    'title' => 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') from ' . $target_type . ' (' . $target_id . ')',
-                    'change' => ''
-                ));
+                $logTitle = 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') from ' . $target_type . ' (' . $target_id . ')';
+                $this->Log->createLogEntry($this->Auth->user(), 'galaxy', ucfirst($target_type), $target_id, $logTitle);
             } else {
                 $this->Flash->error('Could not detach galaxy from event.');
             }

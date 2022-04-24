@@ -537,17 +537,9 @@ class Galaxy extends AppModel
                     $event['Event']['timestamp'] = $date->getTimestamp();
                     $this->Tag->EventTag->Event->save($event);
                 }
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => ucfirst($target_type),
-                    'model_id' => $target_id,
-                    'email' => $user['email'],
-                    'action' => 'galaxy',
-                    'title' => 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')',
-                    'change' => ''
-                ));
+
+                $logTitle = 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')',;
+                $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($target_type), $target_id, $logTitle);
                 return 'Cluster detached';
             } else {
                 return 'Could not detach cluster';
