@@ -459,7 +459,6 @@ class Galaxy extends AppModel
             }
             $target = $target[0];
             $event = $target;
-            $event_id = $target['Event']['id'];
             $org_id = $event['Event']['org_id'];
             $orgc_id = $event['Event']['orgc_id'];
         } elseif ($target_type === 'attribute') {
@@ -488,11 +487,11 @@ class Galaxy extends AppModel
 
         if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_sync']) {
             if (
-                ($scope === 'tag_collection' && !$user['Role']['perm_tag_editor']) ||
-                ($scope !== 'tag_collection' && !$user['Role']['perm_tagger']) ||
+                ($target_type === 'tag_collection' && !$user['Role']['perm_tag_editor']) ||
+                ($target_type !== 'tag_collection' && !$user['Role']['perm_tagger']) ||
                 ($user['org_id'] !== $org_id && $user['org_id'] !== $orgc_id)
             ) {
-                throw new MethodNotAllowedException('Invalid ' . Inflector::humanize($targe_type) . '.');
+                throw new MethodNotAllowedException('Invalid ' . Inflector::humanize($target_type) . '.');
             }
         }
 
@@ -538,7 +537,7 @@ class Galaxy extends AppModel
                     $this->Tag->EventTag->Event->save($event);
                 }
 
-                $logTitle = 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')',;
+                $logTitle = 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')';
                 $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($target_type), $target_id, $logTitle);
                 return 'Cluster detached';
             } else {
