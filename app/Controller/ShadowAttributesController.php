@@ -593,17 +593,18 @@ class ShadowAttributesController extends AppController
 
         $categories = $this->_arrayToValuesIndexArray($selectedCategories);
         $this->set('categories', $categories);
+
+        $fieldDesc = ['category' => []];
         foreach ($this->ShadowAttribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
         }
-        foreach ($this->ShadowAttribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        $this->set('info', $info);
+        $this->set('fieldDesc', $fieldDesc);
         $this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
         $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
+        $this->set('event', $event);
+        $this->set('title_for_layout', __('Propose attachment'));
     }
 
     // Propose an edit to an attribute

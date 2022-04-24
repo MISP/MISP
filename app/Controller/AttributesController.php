@@ -282,6 +282,7 @@ class AttributesController extends AppController
         $notice_list_triggers = $this->Noticelist->getTriggerData();
         $this->set('notice_list_triggers', json_encode($notice_list_triggers));
         $this->__common();
+        $this->set('title_for_layout', __('Add attribute'));
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
         $this->set('event', $event);
@@ -478,6 +479,7 @@ class AttributesController extends AppController
         $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
         $this->set('advancedExtractionAvailable', $this->Attribute->isAdvancedExtractionAvailable());
         $this->__common();
+        $this->set('title_for_layout', __('Add attachment'));
         $this->set('event', $event);
     }
 
@@ -841,6 +843,7 @@ class AttributesController extends AppController
         }
         $this->set('types', $types);
         $this->__common();
+        $this->set('title_for_layout', __('Edit attribute'));
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $categoryDefinitions = $this->Attribute->categoryDefinitions;
