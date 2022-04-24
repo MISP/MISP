@@ -529,7 +529,6 @@ class GalaxiesController extends AppController
     public function attachMultipleClusters($target_id, $target_type = 'event')
     {
         $local = !empty($this->params['named']['local']);
-        $this->set('local', $local);
         if ($this->request->is('post')) {
             if ($target_id === 'selected') {
                 $target_id_list = json_decode($this->request->data['Galaxy']['attribute_ids']);
@@ -561,6 +560,7 @@ class GalaxiesController extends AppController
                 $this->redirect($this->referer());
             }
         } else {
+            $this->set('local', $local);
             $this->set('target_id', $target_id);
             $this->set('target_type', $target_type);
             $this->layout = false;

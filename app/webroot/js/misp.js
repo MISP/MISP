@@ -647,25 +647,23 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
     }
     var url = baseurl + "/events/addTag/" + event_id + localFlag;
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #EventTag').val(JSON.stringify(selected_tag_ids));
+        var $formData = $(formData);
+        $formData.find('#EventTag').val(JSON.stringify(selected_tag_ids));
         xhr({
-            data: $('#EventAddTagForm').serialize(),
+            data: $formData.serialize(),
             success: function (data) {
-                loadEventTags(event_id);
-                loadGalaxies(event_id, 'event');
                 handleGenericAjaxResponse(data);
             },
             error: function() {
                 showMessage('fail', 'Could not add tag.');
-                loadEventTags(event_id);
-                loadGalaxies(event_id, 'event');
             },
             complete: function() {
+                loadEventTags(event_id);
+                loadGalaxies(event_id, 'event');
+
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
-                $('#temp').remove();
             },
             type: "post",
             url: url
@@ -681,13 +679,13 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
     }
     var url = baseurl + "/attributes/addTag/" + attribute_id + localFlag;
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #AttributeTag').val(JSON.stringify(selected_tag_ids));
-        if (attribute_id == 'selected') {
-            $('#AttributeAttributeIds').val(getSelected());
+        var $formData = $(formData);
+        $formData.find('#AttributeTag').val(JSON.stringify(selected_tag_ids));
+        if (attribute_id === 'selected') {
+            $formData.find('#AttributeAttributeIds').val(getSelected());
         }
         xhr({
-            data: $('#AttributeAddTagForm').serialize(),
+            data: $formData.serialize(),
             success:function (data) {
                 if (attribute_id == 'selected') {
                     updateIndex(0, 'event');
@@ -706,7 +704,6 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
-                $('#temp').remove();
             },
             type:"post",
             url: url
@@ -4177,37 +4174,34 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var local = additionalData['local'];
     var url = baseurl + "/galaxies/attachMultipleClusters/" + target_id + "/" + scope + "/local:" + local;
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
-        if (target_id == 'selected') {
-            $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
+        var $formData = $(formData);
+        $formData.find("#GalaxyTargetIds").val(JSON.stringify(cluster_ids));
+        if (target_id === 'selected') {
+            $formData.find('#GalaxyAttributeIds').val(getSelected());
         }
         $.ajax({
-            data: $('#GalaxyAttachMultipleClustersForm').serialize(),
-            beforeSend: function (XMLHttpRequest) {
+            data: $formData.serialize(),
+            beforeSend: function () {
                 $(".loading").show();
             },
-            success:function (data, textStatus) {
-                if (target_id === 'selected') {
+            success:function (data) {
+                if (target_id === 'selected' || scope === 'tag_collection') {
                     location.reload();
                 } else {
-                    if (scope == 'tag_collection') {
-                        location.reload();
-                    } else {
-                        loadGalaxies(target_id, scope);
-                        handleGenericAjaxResponse(data);
-                    }
+                    loadGalaxies(target_id, scope);
+                    handleGenericAjaxResponse(data);
                 }
             },
             error:function() {
                 showMessage('fail', 'Could not add cluster.');
-                loadGalaxies(target_id, scope);
+                if (target_id !== 'selected') {
+                    loadGalaxies(target_id, scope);
+                }
             },
             complete:function() {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
-                $('#temp').remove();
             },
             type:"post",
             url: url
@@ -4949,7 +4943,6 @@ function submit_feed_overlap_tool(feedId) {
 
 function fetchFormDataAjax(url, callback, errorCallback) {
     $.ajax({
-        data: '[]',
         success: function (data) {
             callback(data);
         },

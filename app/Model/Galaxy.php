@@ -353,14 +353,19 @@ class Galaxy extends AppModel
         return $results;
     }
 
-    public function attachCluster($user, $target_type, $target_id, $cluster_id, $local = false)
+    /**
+     * @param array $user
+     * @param string $target_type
+     * @param int $target_id
+     * @param int $cluster_id
+     * @param bool $local
+     * @return string
+     * @throws Exception
+     */
+    public function attachCluster(array $user, $target_type, $target_id, $cluster_id, $local = false)
     {
         $connectorModel = Inflector::camelize($target_type) . 'Tag';
-        if ($local == 1 || $local === true) {
-            $local = 1;
-        } else {
-            $local = 0;
-        }
+        $local = $local == 1 || $local === true ? 1 : 0;
         $cluster_alias = $this->GalaxyCluster->alias;
         $galaxy_alias = $this->alias;
         $cluster = $this->GalaxyCluster->fetchGalaxyClusters($user, array(
@@ -368,30 +373,32 @@ class Galaxy extends AppModel
             'conditions' => array("${cluster_alias}.id" => $cluster_id),
             'contain' => array('Galaxy'),
             'fields' => array('tag_name', 'id', 'value', "${galaxy_alias}.local_only"),
-        ), $full=false);
+        ));
 
         if (empty($cluster)) {
             throw new NotFoundException(__('Invalid Galaxy cluster'));
         }
+        $local_only = $cluster['GalaxyCluster']['Galaxy']['local_only'];
+        if ($local_only && !$local) {
+            throw new MethodNotAllowedException(__("This Cluster can only be attached in a local scope"));
+        }
         $this->Tag = ClassRegistry::init('Tag');
         if ($target_type === 'event') {
-            $target = $this->Tag->EventTag->Event->fetchEvent($user, array('eventid' => $target_id, 'metadata' => 1));
+            $target = $this->Tag->EventTag->Event->fetchSimpleEvent($user, $target_id);
         } elseif ($target_type === 'attribute') {
-            $target = $this->Tag->AttributeTag->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $target_id), 'flatten' => 1));
+            $target = $this->Tag->AttributeTag->Attribute->fetchAttributeSimple($user, array('conditions' => array('Attribute.id' => $target_id)));
         } elseif ($target_type === 'tag_collection') {
             $target = $this->Tag->TagCollectionTag->TagCollection->fetchTagCollection($user, array('conditions' => array('TagCollection.id' => $target_id)));
+            if (!empty($target)) {
+                $target = $target[0];
+            }
         }
         if (empty($target)) {
             throw new NotFoundException(__('Invalid %s.', $target_type));
         }
-        $target = $target[0];
-        $local_only = $cluster['GalaxyCluster']['Galaxy']['local_only'];
-        if ($local_only && !$local) {
-           throw new MethodNotAllowedException(__("This Cluster can only be attached in a local scope"));
-        }
         $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1, 'local_only' => $local_only), $user, true);
-        $existingTag = $this->Tag->$connectorModel->find('first', array('conditions' => array($target_type . '_id' => $target_id, 'tag_id' => $tag_id)));
-        if (!empty($existingTag)) {
+        $existingTag = $this->Tag->$connectorModel->hasAny(array($target_type . '_id' => $target_id, 'tag_id' => $tag_id));
+        if ($existingTag) {
             return 'Cluster already attached.';
         }
         $this->Tag->$connectorModel->create();
@@ -428,17 +435,8 @@ class Galaxy extends AppModel
                 $event['Event']['timestamp'] = $date->getTimestamp();
                 $this->Tag->EventTag->Event->save($event);
             }
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                'org' => $user['Organisation']['name'],
-                'model' => ucfirst($target_type),
-                'model_id' => $target_id,
-                'email' => $user['email'],
-                'action' => 'galaxy',
-                'title' => 'Attached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')',
-                'change' => ''
-            ));
+            $logTitle = 'Attached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')';
+            $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($target_type), $target_id, $logTitle);
             return 'Cluster attached.';
         }
         return 'Could not attach the cluster';
