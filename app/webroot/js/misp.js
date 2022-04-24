@@ -1064,10 +1064,10 @@ function loadGalaxies(id, scope) {
     $.ajax({
         dataType:"html",
         cache: false,
-        success:function (data) {
-            if (scope == 'event') {
+        success: function (data) {
+            if (scope === 'event') {
                 $("#galaxies_div").html(data);
-            } else if (scope == 'attribute') {
+            } else if (scope === 'attribute') {
                 $("#attribute_" + id + "_galaxy").html(data);
             }
         },
@@ -1816,54 +1816,63 @@ function popoverPopupNew(clicked, url) {
     });
 }
 
+function confirmClusterDetach(clicked, target_type, target_id) {
+    popoverConfirm(clicked, undefined, undefined, function (data) {
+        handleGenericAjaxResponse(data);
+        if (target_type === "event") {
+            loadGalaxies(target_id, 'event');
+        } else if (target_type === "attribute") {
+            loadGalaxies(target_id, 'attribute');
+        } else {
+            location.reload();
+        }
+    })
+}
+
 // create a confirm popover on the clicked html node.
-function popoverConfirm(clicked, message, placement) {
+function popoverConfirm(clicked, message, placement, callback) {
     event.preventDefault();
 
     var $clicked = $(clicked);
     var popoverContent = '<div>';
         popoverContent += message === undefined ? '' : '<p>' + message + '</p>';
-        popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" style="margin-right: 5px;" onclick=submitPopover(this)>Yes</button>';
-        popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</button>';
+        popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" style="margin-right: 5px;">Yes</button>';
+        popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick="cancelPrompt()">Cancel</button>';
     popoverContent += '</div>';
     openPopover($clicked, popoverContent, undefined, placement);
+
     $("#popoverConfirmOK")
     .focus()
     .bind("keydown", function(e) {
         if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
             $(this).click();
-        }
-        if(e.keyCode == 27) { // ESC
+        } else if (e.keyCode == 27) { // ESC
             $clicked.popover('destroy');
         }
+    }).click(function() {
+        var href = $clicked.attr("href");
+        // Load form to get new token
+        fetchFormDataAjax(href, function (form) {
+            var $form = $(form);
+            xhr({
+                data: $form.serialize(),
+                success: function (data) {
+                    if (callback !== undefined) {
+                        callback(data);
+                    } else {
+                        location.reload();
+                    }
+                },
+                complete: function() {
+                    $(".loading").hide();
+                    $("#popover_form").fadeOut();
+                    $("#gray_out").fadeOut();
+                },
+                type: "post",
+                url: $form.attr('action')
+            });
+        })
     });
-}
-
-function submitPopover(clicked) {
-    var $clicked = $(clicked);
-    var $form = $clicked.closest('form');
-    if ($form.length === 0) { // popover container is body, submit from original node
-        var dismissid = $clicked.closest('div.popover').attr('data-dismissid');
-        $form = $('[data-dismissid="' + dismissid + '"]').closest('form');
-    }
-    if ($form.data('ajax')) {
-        xhr({
-            data: $form.serialize(),
-            success:function () {
-                location.reload();
-            },
-            complete:function() {
-                $(".loading").hide();
-                $("#popover_form").fadeOut();
-                $("#gray_out").fadeOut();
-                $('#temp').remove();
-            },
-            type:"post",
-            url: $form.attr('action')
-        });
-    } else {
-        $form.submit();
-    }
 }
 
 function simplePopup(url, requestType, data) {

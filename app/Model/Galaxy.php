@@ -544,6 +544,111 @@ class Galaxy extends AppModel
         }
     }
 
+    /**
+     * @param array $user
+     * @param int $targetId
+     * @param string $targetType
+     * @param int $tagId
+     * @return void
+     * @throws Exception
+     */
+    public function detachClusterByTagId(array $user, $targetId, $targetType, $tagId)
+    {
+        if ($targetType === 'attribute') {
+            $attribute = $this->GalaxyCluster->Tag->EventTag->Event->Attribute->find('first', array(
+                'recursive' => -1,
+                'fields' => array('id', 'event_id'),
+                'conditions' => array('Attribute.id' => $targetId)
+            ));
+            if (empty($attribute)) {
+                throw new NotFoundException('Invalid Attribute.');
+            }
+            $event_id = $attribute['Attribute']['event_id'];
+        } elseif ($targetType === 'event') {
+            $event_id = $targetId;
+        } elseif ($targetType !== 'tag_collection') {
+            throw new NotFoundException('Invalid options');
+        }
+
+        if ($targetType === 'tag_collection') {
+            $tag_collection = $this->GalaxyCluster->Tag->TagCollectionTag->TagCollection->fetchTagCollection($user, array(
+                'conditions' => array('TagCollection.id' => $targetId),
+                'recusive' => -1,
+            ));
+            if (empty($tag_collection)) {
+                throw new NotFoundException('Invalid Tag Collection');
+            }
+            $tag_collection = $tag_collection[0];
+            if (!$user["Role"]["perm_site_admin"]) {
+                if (!$user["Role"]['perm_tag_editor'] || $user['org_id'] !== $tag_collection['TagCollection']['org_id']) {
+                    throw new NotFoundException('Invalid Tag Collection');
+                }
+            }
+        } else {
+            $event = $this->GalaxyCluster->Tag->EventTag->Event->fetchSimpleEvent($user, $event_id);
+            if (empty($event)) {
+                throw new NotFoundException('Invalid Event.');
+            }
+            if (!$user["Role"]["perm_site_admin"] && !$user["Role"]['perm_sync']) {
+                if (!$user["Role"]['perm_tagger'] || ($user['org_id'] !== $event['Event']['org_id'] && $user['org_id'] !== $event['Event']['orgc_id'])) {
+                    throw new NotFoundException('Invalid Event.');
+                }
+            }
+        }
+
+        if ($targetType === 'attribute') {
+            $existingTargetTag = $this->GalaxyCluster->Tag->AttributeTag->find('first', array(
+                'conditions' => array('AttributeTag.tag_id' => $tagId, 'AttributeTag.attribute_id' => $targetId),
+                'recursive' => -1,
+                'contain' => array('Tag')
+            ));
+        } elseif ($targetType === 'event') {
+            $existingTargetTag = $this->GalaxyCluster->Tag->EventTag->find('first', array(
+                'conditions' => array('EventTag.tag_id' => $tagId, 'EventTag.event_id' => $targetId),
+                'recursive' => -1,
+                'contain' => array('Tag')
+            ));
+        } elseif ($targetType === 'tag_collection') {
+            $existingTargetTag = $this->GalaxyCluster->Tag->TagCollectionTag->find('first', array(
+                'conditions' => array('TagCollectionTag.tag_id' => $tagId, 'TagCollectionTag.tag_collection_id' => $targetId),
+                'recursive' => -1,
+                'contain' => array('Tag')
+            ));
+        }
+
+        if (empty($existingTargetTag)) {
+            throw new NotFoundException('Galaxy not attached.');
+        }
+
+        $cluster = $this->GalaxyCluster->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('GalaxyCluster.tag_name' => $existingTargetTag['Tag']['name'])
+        ));
+        if (empty($cluster)) {
+            throw new NotFoundException("Tag is not cluster");
+        }
+
+        if ($targetType === 'event') {
+            $result = $this->GalaxyCluster->Tag->EventTag->delete($existingTargetTag['EventTag']['id']);
+        } elseif ($targetType === 'attribute') {
+            $result = $this->GalaxyCluster->Tag->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
+        } elseif ($targetType === 'tag_collection') {
+            $result = $this->GalaxyCluster->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
+        }
+        if (!$result) {
+            throw new RuntimeException('Could not detach galaxy from event.');
+        }
+
+        if ($targetType !== 'tag_collection') {
+            $event['Event']['published'] = 0;
+            $event['Event']['timestamp'] = time();
+            $this->GalaxyCluster->Tag->EventTag->Event->save($event);
+        }
+
+        $logTitle = 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') from ' . $targetType . ' (' . $targetId . ')';
+        $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($targetType), $targetId, $logTitle);
+    }
+
     public function getMitreAttackGalaxyId($type="mitre-attack-pattern", $namespace="mitre-attack")
     {
         $galaxy = $this->find('first', array(
