@@ -209,13 +209,21 @@ class Tag extends AppModel
         }
     }
 
-    public function fetchUsableTags(array $user)
+    /**
+     * @param array $user
+     * @param bool|null $isGalaxy
+     * @return array|int|null
+     */
+    public function fetchUsableTags(array $user, $isGalaxy = null)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $conditions['Tag.org_id'] = array(0, $user['org_id']);
             $conditions['Tag.user_id'] = array(0, $user['id']);
             $conditions['Tag.hide_tag'] = 0;
+        }
+        if ($isGalaxy !== null) {
+            $conditions['Tag.is_galaxy'] = $isGalaxy;
         }
         return $this->find('all', array('conditions' => $conditions, 'recursive' => -1));
     }
