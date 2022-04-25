@@ -293,6 +293,10 @@ echo $this->element('/genericElements/IndexTable/index_table', [
     ]
 ]);
 
+if ($isSearch) {
+    echo "<button class=\"btn\" onclick=\"getPopup(0, 'attributes', 'exportSearch')\">" . __("Export found attributes as&hellip;") . "</button>";
+}
+
 echo '</div>';
 
 // Generate form for adding sighting just once, generation for every attribute is surprisingly too slow
@@ -301,12 +305,12 @@ echo $this->Form->input('id', ['label' => false, 'type' => 'number']);
 echo $this->Form->input('type', ['label' => false]);
 echo $this->Form->end();
 
-$class = $isSearch == 1 ? 'searchAttributes2' : 'listAttributes';
+$class = $isSearch ? 'searchAttributes' : 'listAttributes';
 echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event-collection', 'menuItem' => $class]);
 
 ?>
 
-<script type="text/javascript">
+<script>
     // tooltips
     $(function() {
         $("td, div").tooltip({
