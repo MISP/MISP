@@ -2157,12 +2157,14 @@ function runIndexQuickFilter(preserveParams, url, target) {
         var passedArgsArray = [];
     }
     var searchKey = 'searchall';
-    if ($('#quickFilterField').length > 0) {
-        if ($('#quickFilterField').data('searchkey')) {
+    var $quickFilterField = $('#quickFilterField');
+    if ($quickFilterField.length > 0) {
+        if ($quickFilterField.data('searchkey')) {
             searchKey = $('#quickFilterField').data('searchkey');
         }
-        if ( $('#quickFilterField').val().trim().length > 0){
-            passedArgsArray[searchKey] = encodeURIComponent($('#quickFilterField').val().trim());
+        var value = $quickFilterField.val().trim();
+        if (value.length > 0){
+            passedArgsArray[searchKey] = encodeURIComponent(value);
         }
     }
     if (typeof url === "undefined") {
