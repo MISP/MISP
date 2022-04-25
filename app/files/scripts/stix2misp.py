@@ -745,10 +745,15 @@ class StixParser():
         for course_of_action in courses_of_action:
             self.parse_galaxy(course_of_action, 'title', 'mitre-course-of-action')
 
-    def _resolve_galaxy(self, name, default_value):
-        if name in self.synonyms_to_tag_names:
-            return self.synonyms_to_tag_names[name]
-        return [f'misp-galaxy:{default_value}="{name}"']
+    def _resolve_galaxy(self, galaxy_name, default_value):
+        if galaxy_name in self.synonyms_to_tag_names:
+            return self.synonyms_to_tag_names[galaxy_name]
+        for identifier in galaxy_name.split(' - '):
+            if identifier[0].isalpha() and any(character.isdecimal() for character in identifier[1:]):
+                for name, tag_names in self.synonyms_to_tag_names.items():
+                    if identifier in name:
+                        return tag_names
+        return [f'misp-galaxy:{default_value}="{galaxy_name}"']
 
     ################################################################################
     ##              UTILITY FUNCTIONS USED BY PARSING FUNCTION ABOVE              ##
