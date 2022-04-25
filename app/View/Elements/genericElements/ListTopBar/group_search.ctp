@@ -37,12 +37,15 @@
         );
         $select = '';
         if (!empty($data['searchScopes'])) {
+            $items = '';
+            foreach ($data['searchScopes'] as $key => $value) {
+                $selected = $searchKey === $key ? ' selected' : '';
+                $items .= sprintf('<option value="%s"%s>%s</option>', h($key), $selected, h($value));
+            }
             $select = sprintf(
                 '<select id="quickFilterScopeSelector" style="%s">%s</select>',
                 'max-width:100px; height: 26px; border-radius: 0px;',
-                implode('', array_map(function ($scopeKey, $scopeText) {
-                    return sprintf('<option value="%s">%s</option>', h($scopeKey), h($scopeText));
-                }, array_keys($data['searchScopes']), $data['searchScopes']))
+                $items
             );
         }
         echo sprintf(
