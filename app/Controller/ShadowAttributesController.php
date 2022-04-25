@@ -418,15 +418,7 @@ class ShadowAttributesController extends AppController
         $categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
         $this->set('categories', $categories);
-
-        $fieldDesc = ['category' => [], 'type' => []];
-        foreach ($this->ShadowAttribute->categoryDefinitions as $key => $value) {
-            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
-        }
-        foreach ($this->ShadowAttribute->typeDefinitions as $key => $value) {
-            $fieldDesc['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
-        }
-        $this->set('fieldDesc', $fieldDesc);
+        $this->__common();
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
     }
 
@@ -593,17 +585,13 @@ class ShadowAttributesController extends AppController
 
         $categories = $this->_arrayToValuesIndexArray($selectedCategories);
         $this->set('categories', $categories);
-        foreach ($this->ShadowAttribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($this->ShadowAttribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        $this->set('info', $info);
+        $this->__common();
         $this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
         $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
+        $this->set('event', $event);
+        $this->set('title_for_layout', __('Propose attachment'));
     }
 
     // Propose an edit to an attribute
@@ -734,12 +722,7 @@ class ShadowAttributesController extends AppController
         // combobox for categories
         $categories = $this->_arrayToValuesIndexArray(array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions));
         $categories = $this->_arrayToValuesIndexArray($categories);
-        foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
+
         $categoryDefinitions = $this->ShadowAttribute->Event->Attribute->categoryDefinitions;
         if ($existingAttribute['Attribute']['object_id']) {
             foreach ($categoryDefinitions as $k => $v) {
@@ -754,10 +737,22 @@ class ShadowAttributesController extends AppController
             }
         }
         $this->set('categories', $categories);
-        $this->set('info', $info);
+        $this->__common();
         $this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->ShadowAttribute->Event->Attribute->categoryDefinitions);
+    }
+
+    private function __common()
+    {
+        $fieldDesc = ['category' => [], 'type' => []];
+        foreach ($this->ShadowAttribute->categoryDefinitions as $key => $value) {
+            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
+        }
+        foreach ($this->ShadowAttribute->typeDefinitions as $key => $value) {
+            $fieldDesc['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
+        }
+        $this->set('fieldDesc', $fieldDesc);
     }
 
     public function delete($id)

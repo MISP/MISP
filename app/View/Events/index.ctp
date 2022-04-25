@@ -135,6 +135,12 @@
                     'button' => __('Filter'),
                     'placeholder' => __('Enter value to search'),
                     'data' => '',
+                    'searchScopes' => [
+                        'searcheventinfo' => __('Event info'),
+                        'searchall' => __('All fields'),
+                        'searcheventid' => __('ID / UUID'),
+                        'searchtags' => __('Tag'),
+                    ],
                     'searchKey' => 'searcheventinfo',
                 )
             )
@@ -162,6 +168,9 @@
     $(function() {
         $('.searchFilterButton').click(function() {
             runIndexFilter(this);
+        });
+        $('#quickFilterScopeSelector').change(function() {
+            $('#quickFilterField').data('searchkey', this.value)
         });
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();

@@ -58,7 +58,7 @@ $generatePopover = function (array $cluster) use ($normalizeKey) {
     }
     $popover = '<h4 class="blue" style="white-space: nowrap">' . h($cluster['value']) . '</h4>';
     foreach ($clusterFields as $clusterField) {
-        $key = '<span class="blue bold">' . h($normalizeKey($clusterField['key'])) . '</span>';
+        $key = '<b class="blue">' . h($normalizeKey($clusterField['key'])) . '</b>';
         if (is_array($clusterField['value'])) {
             if ($clusterField['key'] === 'country') {
                 $value = [];
@@ -102,18 +102,16 @@ $generatePopover = function (array $cluster) use ($normalizeKey) {
             <a href="<?= $baseurl ?>/events/index/searchtag:<?= h($cluster['tag_id']) ?>" class="black fa fa-list" title="<?= __('View all events containing this cluster') ?>" aria-label="<?= __('View all events containing this cluster') ?>"></a>
             <?php endif ;?>
             <?php if ($editButtonsEnabled || ($editButtonsLocalEnabled && $cluster['local'])) {
-echo $this->Form->create(false, [
-    'id' => false, // prevent duplicate ids
-    'url' => $baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'],
-    'style' => 'display: inline-block; margin: 0px;'
-]);
-echo sprintf(
-    '<a href="#" class="black fa fa-trash useCursorPointer" role="button" tabindex="0" aria-label="%s" title="%s" onclick="popoverConfirm(this);"></a>',
-    __('Detach'),
-    __('Are you sure you want to detach %s from this event?', h($cluster['value']))
-);
-echo $this->Form->end();
-}
+                $url = $baseurl . '/galaxy_clusters/detach/' . intval($target_id) . '/' . h($target_type) . '/' . $cluster['tag_id'];
+                echo sprintf(
+                    '<a href="%s" class="black fa fa-trash" role="button" tabindex="0" aria-label="%s" title="%s" onclick="confirmClusterDetach(this, \'%s\', %s);"></a>',
+                    $url,
+                    __('Detach'),
+                    __('Are you sure you want to detach %s from this event?', h($cluster['value'])),
+                    h($target_type),
+                    intval($target_id)
+                );
+            }
 ?>
         </li>
     <?php endforeach; ?>
