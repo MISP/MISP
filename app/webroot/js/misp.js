@@ -3997,18 +3997,19 @@ function formCategoryChanged(id) {
         optionsToPush = {};
         for (var category in category_type_mapping) {
             for (var type in category_type_mapping[category]) {
-                optionsToPush[type] = category_type_mapping[category][type];
+                optionsToPush[type] = type;
             }
         }
     } else {
         optionsToPush = category_type_mapping[selectedCategory];
     }
 
-    $.each(optionsToPush, function (val, text) {
-        options[options.length] = new Option(text, val);
+    $.each(optionsToPush, function (index, val) {
+        var option = new Option(val, val);
         if (val === alreadySelected) {
-            options[options.length - 1].selected = true;
+            option.selected = true;
         }
+        options.add(option);
     });
     // enable the form element
     $type.prop('disabled', false);
