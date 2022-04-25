@@ -547,17 +547,17 @@ class GalaxyClustersController extends AppController
 
     public function detach($target_id, $target_type, $tag_id)
     {
-        if ($this->request->is("ajax") && $this->request->is("get")) {
-            $this->set("url", $this->request->url);
-            return $this->render("/Elements/emtpyForm", false);
+        if ($this->request->is('ajax') && $this->request->is('get')) {
+            $this->set('url', Router::url());
+            return $this->render('/Elements/emptyForm', false);
         }
 
-        $this->request->allowMethod(["post"]);
+        $this->request->allowMethod(['post']);
 
         try {
             $this->GalaxyCluster->Galaxy->detachClusterByTagId($this->Auth->user(), $target_id, $target_type, $tag_id);
         } catch (NotFoundException $e) {
-            if (!$this->request->is("ajax")) {
+            if (!$this->request->is('ajax')) {
                 $this->Flash->error($e->getMessage());
             } else {
                 throw $e;
@@ -566,8 +566,8 @@ class GalaxyClustersController extends AppController
 
         $message = __('Galaxy successfully detached.');
 
-        if ($this->request->is("ajax")) {
-            return $this->RestResponse->viewData(["saved" => true, "check_publish" => true, "success" => $message], "json");
+        if ($this->request->is('ajax')) {
+            return $this->RestResponse->viewData(['saved' => true, 'check_publish' => true, 'success' => $message], 'json');
         }
 
         $this->Flash->success($message);
