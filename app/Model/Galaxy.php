@@ -547,7 +547,7 @@ class Galaxy extends AppModel
     /**
      * @param array $user
      * @param int $targetId
-     * @param string $targetType
+     * @param string $targetType Can be 'attribute', 'event' or 'tag_collection'
      * @param int $tagId
      * @return void
      * @throws Exception
@@ -567,20 +567,20 @@ class Galaxy extends AppModel
         } elseif ($targetType === 'event') {
             $event_id = $targetId;
         } elseif ($targetType !== 'tag_collection') {
-            throw new NotFoundException('Invalid options');
+            throw new InvalidArgumentException('Invalid target type');
         }
 
         if ($targetType === 'tag_collection') {
             $tag_collection = $this->GalaxyCluster->Tag->TagCollectionTag->TagCollection->fetchTagCollection($user, array(
                 'conditions' => array('TagCollection.id' => $targetId),
-                'recusive' => -1,
+                'recursive' => -1,
             ));
             if (empty($tag_collection)) {
                 throw new NotFoundException('Invalid Tag Collection');
             }
             $tag_collection = $tag_collection[0];
-            if (!$user["Role"]["perm_site_admin"]) {
-                if (!$user["Role"]['perm_tag_editor'] || $user['org_id'] !== $tag_collection['TagCollection']['org_id']) {
+            if (!$user['Role']['perm_site_admin']) {
+                if (!$user['Role']['perm_tag_editor'] || $user['org_id'] !== $tag_collection['TagCollection']['org_id']) {
                     throw new NotFoundException('Invalid Tag Collection');
                 }
             }
@@ -589,8 +589,8 @@ class Galaxy extends AppModel
             if (empty($event)) {
                 throw new NotFoundException('Invalid Event.');
             }
-            if (!$user["Role"]["perm_site_admin"] && !$user["Role"]['perm_sync']) {
-                if (!$user["Role"]['perm_tagger'] || ($user['org_id'] !== $event['Event']['org_id'] && $user['org_id'] !== $event['Event']['orgc_id'])) {
+            if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_sync']) {
+                if (!$user['Role']['perm_tagger'] || ($user['org_id'] !== $event['Event']['org_id'] && $user['org_id'] !== $event['Event']['orgc_id'])) {
                     throw new NotFoundException('Invalid Event.');
                 }
             }
@@ -625,7 +625,7 @@ class Galaxy extends AppModel
             'conditions' => array('GalaxyCluster.tag_name' => $existingTargetTag['Tag']['name'])
         ));
         if (empty($cluster)) {
-            throw new NotFoundException("Tag is not cluster");
+            throw new NotFoundException('Tag is not cluster');
         }
 
         if ($targetType === 'event') {
