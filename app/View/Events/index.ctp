@@ -11,12 +11,24 @@
         </ul>
     </div>
     <?php
+        $searchScopes = [
+            'searcheventinfo' => __('Event info'),
+            'searchall' => __('All fields'),
+            'searcheventid' => __('ID / UUID'),
+            'searchtags' => __('Tag'),
+        ];
+        $searchKey = 'searcheventinfo';
+
         $filterParamsString = array();
         foreach ($passedArgsArray as $k => $v) {
+            if (isset($searchScopes["search$k"])) {
+                $searchKey = "search$k";
+            }
+
             $filterParamsString[] = sprintf(
                 '%s: %s',
                 h(ucfirst($k)),
-                h(is_array($v) ? http_build_query($v) : h($v) )
+                h(is_array($v) ? http_build_query($v) : h($v))
             );
         }
 
@@ -135,13 +147,8 @@
                     'button' => __('Filter'),
                     'placeholder' => __('Enter value to search'),
                     'data' => '',
-                    'searchScopes' => [
-                        'searcheventinfo' => __('Event info'),
-                        'searchall' => __('All fields'),
-                        'searcheventid' => __('ID / UUID'),
-                        'searchtags' => __('Tag'),
-                    ],
-                    'searchKey' => 'searcheventinfo',
+                    'searchScopes' => $searchScopes,
+                    'searchKey' => $searchKey,
                 )
             )
         );
