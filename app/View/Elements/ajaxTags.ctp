@@ -23,7 +23,6 @@
     }
     $full = $isAclTagger && $tagAccess && empty($static_tags_only);
     $fullLocal = $isAclTagger && $localTagAccess && empty($static_tags_only);
-    $host_org_editor = (int)$me['org_id'] === Configure::read('MISP.host_org_id') && $isAclTagger && empty($static_tags_only);
     $tagData = "";
     foreach ($tags as $tag) {
         if (empty($tag['Tag'])) {
@@ -37,7 +36,7 @@
         $aText = trim($tag['Tag']['name']);
         $aTextModified = null;
         if (isset($tag_display_style)) {
-            if (!isset($tag_display_style) || $tag_display_style == 1) {
+            if ($tag_display_style == 1) {
                 // default behaviour, do nothing for now
             } else if ($tag_display_style == 2) {
                 $separator_pos = strpos($aText, ':');
