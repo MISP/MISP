@@ -647,25 +647,23 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
     }
     var url = baseurl + "/events/addTag/" + event_id + localFlag;
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #EventTag').val(JSON.stringify(selected_tag_ids));
+        var $formData = $(formData);
+        $formData.find('#EventTag').val(JSON.stringify(selected_tag_ids));
         xhr({
-            data: $('#EventAddTagForm').serialize(),
+            data: $formData.serialize(),
             success: function (data) {
-                loadEventTags(event_id);
-                loadGalaxies(event_id, 'event');
                 handleGenericAjaxResponse(data);
             },
             error: function() {
                 showMessage('fail', 'Could not add tag.');
-                loadEventTags(event_id);
-                loadGalaxies(event_id, 'event');
             },
             complete: function() {
+                loadEventTags(event_id);
+                loadGalaxies(event_id, 'event');
+
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
-                $('#temp').remove();
             },
             type: "post",
             url: url
@@ -681,13 +679,13 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
     }
     var url = baseurl + "/attributes/addTag/" + attribute_id + localFlag;
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #AttributeTag').val(JSON.stringify(selected_tag_ids));
-        if (attribute_id == 'selected') {
-            $('#AttributeAttributeIds').val(getSelected());
+        var $formData = $(formData);
+        $formData.find('#AttributeTag').val(JSON.stringify(selected_tag_ids));
+        if (attribute_id === 'selected') {
+            $formData.find('#AttributeAttributeIds').val(getSelected());
         }
         xhr({
-            data: $('#AttributeAddTagForm').serialize(),
+            data: $formData.serialize(),
             success:function (data) {
                 if (attribute_id == 'selected') {
                     updateIndex(0, 'event');
@@ -706,7 +704,6 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
-                $('#temp').remove();
             },
             type:"post",
             url: url
@@ -1067,10 +1064,10 @@ function loadGalaxies(id, scope) {
     $.ajax({
         dataType:"html",
         cache: false,
-        success:function (data) {
-            if (scope == 'event') {
+        success: function (data) {
+            if (scope === 'event') {
                 $("#galaxies_div").html(data);
-            } else if (scope == 'attribute') {
+            } else if (scope === 'attribute') {
                 $("#attribute_" + id + "_galaxy").html(data);
             }
         },
@@ -1819,54 +1816,63 @@ function popoverPopupNew(clicked, url) {
     });
 }
 
+function confirmClusterDetach(clicked, target_type, target_id) {
+    popoverConfirm(clicked, undefined, undefined, function (data) {
+        handleGenericAjaxResponse(data);
+        if (target_type === "event") {
+            loadGalaxies(target_id, 'event');
+        } else if (target_type === "attribute") {
+            loadGalaxies(target_id, 'attribute');
+        } else {
+            location.reload();
+        }
+    })
+}
+
 // create a confirm popover on the clicked html node.
-function popoverConfirm(clicked, message, placement) {
+function popoverConfirm(clicked, message, placement, callback) {
     event.preventDefault();
 
     var $clicked = $(clicked);
     var popoverContent = '<div>';
         popoverContent += message === undefined ? '' : '<p>' + message + '</p>';
-        popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" style="margin-right: 5px;" onclick=submitPopover(this)>Yes</button>';
-        popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</button>';
+        popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" style="margin-right: 5px;">Yes</button>';
+        popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick="cancelPrompt()">Cancel</button>';
     popoverContent += '</div>';
     openPopover($clicked, popoverContent, undefined, placement);
+
     $("#popoverConfirmOK")
     .focus()
     .bind("keydown", function(e) {
         if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
             $(this).click();
-        }
-        if(e.keyCode == 27) { // ESC
+        } else if (e.keyCode == 27) { // ESC
             $clicked.popover('destroy');
         }
+    }).click(function() {
+        var href = $clicked.attr("href");
+        // Load form to get new token
+        fetchFormDataAjax(href, function (form) {
+            var $form = $(form);
+            xhr({
+                data: $form.serialize(),
+                success: function (data) {
+                    if (callback !== undefined) {
+                        callback(data);
+                    } else {
+                        location.reload();
+                    }
+                },
+                complete: function() {
+                    $(".loading").hide();
+                    $("#popover_form").fadeOut();
+                    $("#gray_out").fadeOut();
+                },
+                type: "post",
+                url: $form.attr('action')
+            });
+        })
     });
-}
-
-function submitPopover(clicked) {
-    var $clicked = $(clicked);
-    var $form = $clicked.closest('form');
-    if ($form.length === 0) { // popover container is body, submit from original node
-        var dismissid = $clicked.closest('div.popover').attr('data-dismissid');
-        $form = $('[data-dismissid="' + dismissid + '"]').closest('form');
-    }
-    if ($form.data('ajax')) {
-        xhr({
-            data: $form.serialize(),
-            success:function () {
-                location.reload();
-            },
-            complete:function() {
-                $(".loading").hide();
-                $("#popover_form").fadeOut();
-                $("#gray_out").fadeOut();
-                $('#temp').remove();
-            },
-            type:"post",
-            url: $form.attr('action')
-        });
-    } else {
-        $form.submit();
-    }
 }
 
 function simplePopup(url, requestType, data) {
@@ -2151,12 +2157,14 @@ function runIndexQuickFilter(preserveParams, url, target) {
         var passedArgsArray = [];
     }
     var searchKey = 'searchall';
-    if ($('#quickFilterField').length > 0) {
-        if ($('#quickFilterField').data('searchkey')) {
+    var $quickFilterField = $('#quickFilterField');
+    if ($quickFilterField.length > 0) {
+        if ($quickFilterField.data('searchkey')) {
             searchKey = $('#quickFilterField').data('searchkey');
         }
-        if ( $('#quickFilterField').val().trim().length > 0){
-            passedArgsArray[searchKey] = encodeURIComponent($('#quickFilterField').val().trim());
+        var value = $quickFilterField.val().trim();
+        if (value.length > 0){
+            passedArgsArray[searchKey] = encodeURIComponent(value);
         }
     }
     if (typeof url === "undefined") {
@@ -3960,19 +3968,6 @@ function requestAPIAccess() {
     });
 }
 
-function initPopoverContent(context) {
-    for (var property in formInfoFields) {
-        if (formInfoFields.hasOwnProperty(property)) {
-            $('#' + property + 'InfoPopover').popover("destroy").popover({
-                placement: 'right',
-                html: 'true',
-                trigger: 'hover',
-                content: getFormInfoContent(property, '#' + context + formInfoFields[property])
-            });
-        }
-    }
-}
-
 function checkSharingGroup(context) {
     var $sharingGroupSelect = $('#' + context + 'SharingGroupId');
     if ($('#' + context + 'Distribution').val() == 4) {
@@ -3987,14 +3982,6 @@ function checkSharingGroup(context) {
         $sharingGroupSelect.hide();
         $sharingGroupSelect.closest("div").hide();
     }
-}
-
-function getFormInfoContent(property, field) {
-    var content = window[property + 'FormInfoValues'][$(field).val()];
-    if (content === undefined || content === null) {
-        return 'N/A';
-    }
-    return content;
 }
 
 function formCategoryChanged(id) {
@@ -4199,42 +4186,39 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var mirrorOnEvent = additionalData['mirrorOnEvent'];
     var url = baseurl + "/galaxies/attachMultipleClusters/" + target_id + "/" + scope + "/local:" + local;
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
-        $('#temp #GalaxyMirrorOnEvent').prop('checked', mirrorOnEvent);
-        if (target_id == 'selected') {
-            $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
+        var $formData = $(formData);
+        $formData.find("#GalaxyTargetIds").val(JSON.stringify(cluster_ids));
+        $formData.find("#GalaxyMirrorOnEvent").prop('checked', mirrorOnEvent);
+        if (target_id === 'selected') {
+            $formData.find('#GalaxyAttributeIds').val(getSelected());
         }
         $.ajax({
-            data: $('#GalaxyAttachMultipleClustersForm').serialize(),
-            beforeSend: function (XMLHttpRequest) {
+            data: $formData.serialize(),
+            beforeSend: function () {
                 $(".loading").show();
             },
-            success:function (data, textStatus) {
-                if (target_id === 'selected') {
+            success:function (data) {
+                if (target_id === 'selected' || scope === 'tag_collection') {
                     location.reload();
                 } else {
-                    if (scope == 'tag_collection') {
-                        location.reload();
-                    } else {
-                        loadGalaxies(target_id, scope);
-                        if (mirrorOnEvent) {
-                            var event_id = $('#eventgraph_network').data('event-id')
-                            loadGalaxies(event_id, 'event');
-                        }
-                        handleGenericAjaxResponse(data);
+                    loadGalaxies(target_id, scope);
+                    if (mirrorOnEvent) {
+                        var event_id = $('#eventgraph_network').data('event-id')
+                        loadGalaxies(event_id, 'event');
                     }
+                    handleGenericAjaxResponse(data);
                 }
             },
             error:function() {
                 showMessage('fail', 'Could not add cluster.');
-                loadGalaxies(target_id, scope);
+                if (target_id !== 'selected') {
+                    loadGalaxies(target_id, scope);
+                }
             },
             complete:function() {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
-                $('#temp').remove();
             },
             type:"post",
             url: url
@@ -4976,7 +4960,6 @@ function submit_feed_overlap_tool(feedId) {
 
 function fetchFormDataAjax(url, callback, errorCallback) {
     $.ajax({
-        data: '[]',
         success: function (data) {
             callback(data);
         },

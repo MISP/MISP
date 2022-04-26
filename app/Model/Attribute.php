@@ -1665,23 +1665,28 @@ class Attribute extends AppModel
             $conditions = array('event_id' => $eventId);
         }
 
-        // get all attributes..
-        $attributes = $this->find('all', array('recursive' => -1, 'fields' => array('id'), 'conditions' => $conditions));
-        // for all attributes..
+        $attributeIds = $this->find('column', array(
+            'fields' => array('id'),
+            'conditions' => $conditions
+        ));
+        $chunks = array_chunk($attributeIds, 500);
+
         $result = array();
-        $i = 0;
-        foreach ($attributes as $a) {
-            $attribute = $this->find('first', array('recursive' => -1, 'conditions' => array('id' => $a['Attribute']['id'])));
-            $this->set($attribute);
-            if (!$this->validates()) {
-                $errors = $this->validationErrors;
-                $result[$i]['id'] = $attribute['Attribute']['id'];
-                $result[$i]['error'] = array();
-                foreach ($errors as $field => $error) {
-                    $result[$i]['error'][$field] = array('value' => $attribute['Attribute'][$field], 'error' => $error[0]);
+        foreach ($chunks as $chunk) {
+            $attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('id' => $chunk)));
+            foreach ($attributes as $attribute) {
+                $this->set($attribute);
+                if (!$this->validates()) {
+                    $resultErrors = array();
+                    foreach ($this->validationErrors as $field => $error) {
+                        $resultErrors[$field] = array('value' => $attribute['Attribute'][$field], 'error' => $error[0]);
+                    }
+                    $result[] = [
+                        'id' => $attribute['Attribute']['id'],
+                        'error' => $resultErrors,
+                        'details' => 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']',
+                    ];
                 }
-                $result[$i]['details'] = 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']';
-                $i++;
             }
         }
         return $result;

@@ -40,7 +40,7 @@ $quickEdit = function($fieldName) use ($mayModify, $object) {
     if ($object['deleted']) {
         return ''; // deleted attributes are not editable
     }
-    if ($fieldName === 'value' && ($object['type'] === 'attachment' || $object['type'] === 'malware-sample')) {
+    if (($fieldName === 'value' || $fieldName === 'type') && ($object['type'] === 'attachment' || $object['type'] === 'malware-sample')) {
         return '';
     }
     return " data-edit-field=\"$fieldName\"";

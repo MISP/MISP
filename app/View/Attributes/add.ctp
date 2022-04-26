@@ -21,7 +21,8 @@
                     'empty' => __('(choose category first)'),
                     'options' => $types,
                     'type' => 'dropdown',
-                    'required' => false
+                    'required' => false,
+                    'disabled' => $action === 'edit' && $attachment,
                 ),
                 array(
                     'field' => 'distribution',

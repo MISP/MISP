@@ -4,14 +4,28 @@
         <legend><?php echo __('Add Proposal'); ?></legend>
     <?php
         echo $this->Form->input('id');
+        $categoryFormInfo = $this->element('genericElements/Form/formInfo', [
+            'field' => [
+                'field' => 'category'
+            ],
+            'modelForForm' => 'ShadowAttribute',
+            'fieldDesc' => $fieldDesc['category'],
+        ]);
         echo $this->Form->input('category', array(
             'empty' => __('(choose one)'),
             'div' => 'input',
-            'label' => __('Category ') . $this->element('formInfo', array('type' => 'category')),
+            'label' => __('Category ') . $categoryFormInfo,
         ));
+        $typeFormInfo = $this->element('genericElements/Form/formInfo', [
+            'field' => [
+                'field' => 'type'
+            ],
+            'modelForForm' => 'ShadowAttribute',
+            'fieldDesc' => $fieldDesc['type'],
+        ]);
         $typeInputData = array(
             'empty' => __('(first choose category)'),
-            'label' => __('Type ') . $this->element('formInfo', array('type' => 'type')),
+            'label' => __('Type ') . $typeFormInfo,
         );
         if ($objectAttribute) {
             $typeInputData[] = 'disabled';
@@ -84,18 +98,7 @@
     echo $this->element('form_seen_input');
 ?>
 
-<script type="text/javascript">
-<?php
-    $formInfoTypes = array('category' => 'Category', 'type' => 'Type');
-    echo 'var formInfoFields = ' . json_encode($formInfoTypes) . PHP_EOL;
-    foreach ($formInfoTypes as $formInfoType => $humanisedName) {
-        echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
-        foreach ($info[$formInfoType] as $key => $formInfoData) {
-            echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
-        }
-        echo '}' . PHP_EOL;
-    }
-?>
+<script>
 //
 //Generate Category / Type filtering array
 //
@@ -113,8 +116,7 @@ foreach ($categoryDefinitions as $category => $def) {
 }
 ?>
 
-$(document).ready(function() {
-    initPopoverContent('ShadowAttribute');
+$(function() {
     $("#ShadowAttributeCategory").on('change', function(e) {
         formCategoryChanged('ShadowAttribute');
         if ($(this).val() === 'Attribution' || $(this).val() === 'Targeting data') {
@@ -122,10 +124,6 @@ $(document).ready(function() {
         } else {
             $("#warning-message").hide();
         }
-    });
-
-    $("#ShadowAttributeCategory, #ShadowAttributeType").change(function() {
-        initPopoverContent('ShadowAttribute');
     });
 });
 </script>
