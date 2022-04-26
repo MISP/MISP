@@ -100,8 +100,8 @@
 
 <script type="text/javascript">
     var notice_list_triggers = <?php echo $notice_list_triggers; ?>;
-    var category_type_mapping = <?php echo json_encode(array_map(function($value) {
-        return array_combine($value['types'], $value['types']);
+    var category_type_mapping = <?= json_encode(array_map(function(array $value) {
+        return $value['types'];
     }, $categoryDefinitions)); ?>;
 
     $('#AttributeDistribution').change(function() {
@@ -168,4 +168,4 @@
     });
 </script>
 <?php echo $this->element('form_seen_input'); ?>
-<?php echo $this->Js->writeBuffer(); // Write cached scripts
+

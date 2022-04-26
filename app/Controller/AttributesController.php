@@ -489,7 +489,14 @@ class AttributesController extends AppController
         $this->set('sharingGroups', $distributionData['sgs']);
         $this->set('distributionLevels', $distributionData['levels']);
         $this->set('initialDistribution', $distributionData['initial']);
+        $this->set('fieldDesc', $this->__fieldDesc());
+    }
 
+    /**
+     * @return array|array[]
+     */
+    private function __fieldDesc()
+    {
         $fieldDesc = ['category' => [], 'type' => [], 'distribution' => []];
         foreach ($this->Attribute->categoryDefinitions as $key => $value) {
             $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
@@ -500,7 +507,7 @@ class AttributesController extends AppController
         foreach ($this->Attribute->distributionLevels as $key => $value) {
             $fieldDesc['distribution'][$key] = $this->Attribute->distributionDescriptions[$key]['formdesc'];
         }
-        $this->set('fieldDesc', $fieldDesc);
+        return $fieldDesc;
     }
 
     // Imports the CSV threatConnect file to multiple attributes
@@ -1517,11 +1524,7 @@ class AttributesController extends AppController
             $this->Session->write('search_attributes_filters', json_encode($filters));
         } elseif ($continue === 'results') {
             $filters = $this->Session->read('search_attributes_filters');
-            if (empty($filters)) {
-                $filters = array();
-            } else {
-                $filters = json_decode($filters, true);
-            }
+            $filters = empty($filters) ? [] : $this->_jsonDecode($filters);
         } else {
             $types = $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions));
             ksort($types);
@@ -1531,13 +1534,13 @@ class AttributesController extends AppController
             $this->set('categories', $categories);
 
             $categoryDefinition = $this->Attribute->categoryDefinitions;
-            $categoryDefinition['ALL'] = ['types' => array_keys($this->Attribute->typeDefinitions), 'formdesc' => ''];
+            $categoryDefinition = array_merge(["ALL" => ['types' => array_keys($this->Attribute->typeDefinitions), 'formdesc' => '']], $categoryDefinition);
             foreach ($categoryDefinition as &$def) {
                 $def['types'] = array_merge(['ALL'], $def['types']);
             }
             $this->set('categoryDefinitions', $categoryDefinition);
-
             $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+            $this->set('fieldDesc', $this->__fieldDesc());
 
             $this->Session->write('search_attributes_filters', null);
         }
@@ -1553,7 +1556,7 @@ class AttributesController extends AppController
             $orgTable = $this->Attribute->Event->Orgc->find('all', [
                 'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
             ]);
-            $orgTable = Hash::combine($orgTable, '{n}.Orgc.id', '{n}.Orgc');
+            $orgTable = array_column(array_column($orgTable, 'Orgc'), null, 'id');
             foreach ($attributes as &$attribute) {
                 if (isset($orgTable[$attribute['Event']['orgc_id']])) {
                     $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
@@ -1575,7 +1578,7 @@ class AttributesController extends AppController
                 if (!is_array($filters['tags'])) {
                     $filters['tags'] = array($filters['tags']);
                 }
-                foreach ($filters['tags'] as $k => &$v) {
+                foreach ($filters['tags'] as &$v) {
                     if (!is_numeric($v))
                         continue;
                     $tag = $this->Tag->find('first', [
@@ -2924,13 +2927,17 @@ class AttributesController extends AppController
 
     public function exportSearch($type = false)
     {
+        $filters = $this->Session->read('search_attributes_filters');
+        if ($filters === null) {
+            throw new NotFoundException('No search to export.');
+        }
+
         if (empty($type)) {
             $exports = array_keys($this->Attribute->validFormats);
             $this->set('exports', $exports);
             $this->render('ajax/exportSearch');
         } else {
-            $filters = $this->Session->read('search_attributes_filters');
-            $filters = json_decode($filters, true);
+            $filters = $this->_jsonDecode($filters);
             $final = $this->Attribute->restSearch($this->Auth->user(), $type, $filters);
             $responseType = $this->Attribute->validFormats[$type][0];
             return $this->RestResponse->viewData($final, $responseType, false, true, 'search.' . $type . '.' . $responseType);
