@@ -499,6 +499,9 @@ class GalaxiesController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($items, $this->response->type());
         } else {
+            $mirrorOnEventEnabled = Configure::read("MISP.enable_clusters_mirroring_from_attributes_to_event");
+            $mirrorOnEvent = $mirrorOnEventEnabled && $target_type == 'attribute';
+            $this->set('mirrorOnEvent', $mirrorOnEvent);
             $this->set('items', $items);
             $this->set('options', array( // set chosen (select picker) options
                 'functionName' => $onClickForm,
@@ -526,7 +529,10 @@ class GalaxiesController extends AppController
     public function attachMultipleClusters($target_id, $target_type = 'event')
     {
         $local = !empty($this->params['named']['local']);
+        $mirrorOnEventEnabled = Configure::read("MISP.enable_clusters_mirroring_from_attributes_to_event");
+        $mirrorOnEvent = $mirrorOnEventEnabled && $target_type == 'attribute';
         $this->set('local', $local);
+        $this->set('mirrorOnEvent', $mirrorOnEvent);
         if ($this->request->is('post')) {
             if ($target_id === 'selected') {
                 $target_id_list = json_decode($this->request->data['Galaxy']['attribute_ids']);
@@ -534,6 +540,7 @@ class GalaxiesController extends AppController
                 $target_id_list = array($target_id);
             }
             $cluster_ids = $this->request->data['Galaxy']['target_ids'];
+            $mirrorOnEventRequested = $mirrorOnEvent && !empty($this->request->data['Galaxy']['mirror_on_event']);
             if (strlen($cluster_ids) > 0) {
                 $cluster_ids = json_decode($cluster_ids, true);
                 if ($cluster_ids === null || empty($cluster_ids)) {
@@ -542,6 +549,16 @@ class GalaxiesController extends AppController
             } else {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Failed to parse request.'))), 'status'=>200, 'type' => 'json'));
             }
+            if ($mirrorOnEventRequested && !empty($target_id_list)) {
+                $first_attribute_id = $target_id_list[0]; // We consider that all attributes to be tagged are contained in the same event.
+                $this->loadModel('Attribute');
+                $attribute = $this->Attribute->fetchAttributeSimple($this->Auth->user(), array('conditions' => array('Attribute.id' => $first_attribute_id), 'flatten' => 1));
+                if (!empty($attribute['Attribute']['event_id'])) {
+                    $event_id = $attribute['Attribute']['event_id'];
+                } else {
+                    return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => __('Failed to parse request. Could not fetch attribute'))), 'status' => 200, 'type' => 'json'));
+                }
+            }
             $result = "";
             if (!is_array($cluster_ids)) { // in case we only want to attach 1
                 $cluster_ids = array($cluster_ids);
@@ -549,6 +566,9 @@ class GalaxiesController extends AppController
             foreach ($cluster_ids as $cluster_id) {
                 foreach ($target_id_list as $target_id) {
                     $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id, $local);
+                    if ($mirrorOnEventRequested) {
+                        $result = $result && $this->Galaxy->attachCluster($this->Auth->user(), 'event', $event_id, $cluster_id, $local);
+                    }
                 }
             }
             if ($this->request->is('ajax')) {

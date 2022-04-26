@@ -5697,6 +5697,14 @@ class Server extends AppModel
                     'null' => true,
                     'cli_only' => true,
                 ],
+                'enable_clusters_mirroring_from_attributes_to_event' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Add a checkbox when attaching a cluster to an Attribute which, when checked, will also create the same clusters on the attribute\'s event.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
             ),
             'GnuPG' => array(
                 'branch' => 1,

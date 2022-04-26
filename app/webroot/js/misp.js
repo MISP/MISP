@@ -4196,10 +4196,12 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var target_id = additionalData['target_id'];
     var scope = additionalData['target_type'];
     var local = additionalData['local'];
+    var mirrorOnEvent = additionalData['mirrorOnEvent'];
     var url = baseurl + "/galaxies/attachMultipleClusters/" + target_id + "/" + scope + "/local:" + local;
     fetchFormDataAjax(url, function(formData) {
         $('body').append($('<div id="temp"/>').html(formData));
         $('#temp #GalaxyTargetIds').val(JSON.stringify(cluster_ids));
+        $('#temp #GalaxyMirrorOnEvent').prop('checked', mirrorOnEvent);
         if (target_id == 'selected') {
             $('#AttributeAttributeIds, #GalaxyAttributeIds').val(getSelected());
         }
@@ -4216,6 +4218,10 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
                         location.reload();
                     } else {
                         loadGalaxies(target_id, scope);
+                        if (mirrorOnEvent) {
+                            var event_id = $('#eventgraph_network').data('event-id')
+                            loadGalaxies(event_id, 'event');
+                        }
                         handleGenericAjaxResponse(data);
                     }
                 }
