@@ -142,7 +142,7 @@ class AttributesController extends AppController
                 if (is_array($this->request->data['Attribute']['value'])) {
                     $values = $this->request->data['Attribute']['value'];
                 } else {
-                    $values = explode("\n", $this->request->data['Attribute']['value']);
+                    $values = explode("\n", rtrim($this->request->data['Attribute']['value'], "\n"));
                 }
                 $temp = $this->request->data['Attribute'];
                 foreach ($values as $value) {
