@@ -798,6 +798,21 @@ class Attribute extends AppModel
         return $compositeTypes;
     }
 
+    /**
+     * @return array
+     */
+    public function getNonAttachmentTypes()
+    {
+        $output = [];
+        foreach ($this->typeDefinitions as $type => $foo) {
+            if ($type === "attachment" || $type === "malware-sample") {
+                continue;
+            }
+            $output[] = $type;
+        }
+        return $output;
+    }
+
     public function getRelatedAttributes($user, $attribute, $fields=array(), $includeEventData = false)
     {
         // LATER getRelatedAttributes($attribute) this might become a performance bottleneck

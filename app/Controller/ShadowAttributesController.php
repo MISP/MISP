@@ -406,16 +406,11 @@ class ShadowAttributesController extends AppController
         }
         $this->set('event_id', $event['Event']['id']);
         // combobox for types
-        $types = array_keys($this->ShadowAttribute->typeDefinitions);
-        foreach ($types as $key => $value) {
-            if (in_array($value, array('malware-sample', 'attachment'))) {
-                unset($types[$key]);
-            }
-        }
+        $types = $this->ShadowAttribute->Attribute->getNonAttachmentTypes();
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
         // combobox for categories
-        $categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
+        $categories = array_keys($this->ShadowAttribute->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
         $this->set('categories', $categories);
         $this->__common();
@@ -611,7 +606,7 @@ class ShadowAttributesController extends AppController
         $existingAttribute = $existingAttribute[0];
 
         // Check if the attribute is an attachment, if yes, block the type and the value fields from being edited.
-        if ('attachment' == $existingAttribute['Attribute']['type'] || 'malware-sample' == $existingAttribute['Attribute']['type']) {
+        if ($this->ShadowAttribute->Attribute->typeIsAttachment($existingAttribute['Attribute']['type'])) {
             $this->set('attachment', true);
             $attachment = true;
         } else {
@@ -706,12 +701,7 @@ class ShadowAttributesController extends AppController
         }
 
         // combobox for types
-        $types = array_keys($this->ShadowAttribute->typeDefinitions);
-        foreach ($types as $key => $value) {
-            if (in_array($value, array('malware-sample', 'attachment'))) {
-                unset($types[$key]);
-            }
-        }
+        $types = $this->ShadowAttribute->Attribute->getNonAttachmentTypes();
         if ($existingAttribute['Attribute']['object_id']) {
             $this->set('objectAttribute', true);
         } else {
@@ -720,10 +710,10 @@ class ShadowAttributesController extends AppController
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
         // combobox for categories
-        $categories = $this->_arrayToValuesIndexArray(array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions));
+        $categories = $this->_arrayToValuesIndexArray(array_keys($this->ShadowAttribute->Attribute->categoryDefinitions));
         $categories = $this->_arrayToValuesIndexArray($categories);
 
-        $categoryDefinitions = $this->ShadowAttribute->Event->Attribute->categoryDefinitions;
+        $categoryDefinitions = $this->ShadowAttribute->Attribute->categoryDefinitions;
         if ($existingAttribute['Attribute']['object_id']) {
             foreach ($categoryDefinitions as $k => $v) {
                 if (!in_array($existingAttribute['Attribute']['type'], $v['types'])) {
@@ -740,7 +730,7 @@ class ShadowAttributesController extends AppController
         $this->__common();
         $this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
-        $this->set('categoryDefinitions', $this->ShadowAttribute->Event->Attribute->categoryDefinitions);
+        $this->set('categoryDefinitions', $this->ShadowAttribute->Attribute->categoryDefinitions);
     }
 
     private function __common()
