@@ -201,7 +201,7 @@ class AttributesController extends AppController
                     }
                     return $this->RestResponse->viewData($attributes, $this->response->type(), $fails);
                 } else {
-                    if ($attributeCount == 1) {
+                    if ($attributeCount === 1) {
                         return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $fails["attribute_0"], $this->response->type());
                     } else {
                         return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $fails, $this->response->type());
@@ -209,7 +209,7 @@ class AttributesController extends AppController
                 }
             } else {
                 if (empty($fails)) {
-                    $message = 'Attributes saved.';
+                    $message = __('Attributes saved.');
                 } else {
                     if ($attributeCount > 1) {
                         $failKeys = array_keys($fails);
@@ -217,11 +217,13 @@ class AttributesController extends AppController
                             $v = explode('_', $v);
                             $failKeys[$k] = intval($v[1]);
                         }
-                        $failed = 1;
-                        $message = sprintf('Attributes saved, however, %s attributes could not be saved. Click %s for more info', count($fails), '$flashErrorMessage');
+                        if ($successes === 0) {
+                            $message = __('Attributes could not be saved. Click $flashErrorMessage for more info', count($fails));
+                        } else {
+                            $message = __('Attributes saved, however, %s attributes could not be saved. Click $flashErrorMessage for more info', count($fails));
+                        }
                     } else {
-                        $failed = 1;
-                        $message = 'Attribute could not be saved.';
+                        $message = __('Attribute could not be saved.');
                     }
                 }
                 if (!empty($failKeys)) {
@@ -240,27 +242,28 @@ class AttributesController extends AppController
                             $flashErrorMessage[] = '<span class="green bold">' . h($original_value) . '</span>';
                         }
                     }
-                    $flashErrorMessage = implode('<br />', $flashErrorMessage);
+                    $flashErrorMessage = implode('<br>', $flashErrorMessage);
                     $this->Session->write('flashErrorMessage', $flashErrorMessage);
                 }
-                if (empty($failed)) {
+                if ($this->request->is('ajax')) {
+                    if (!empty($successes)) {
+                        $data = ['saved' => true, 'success' => $message];
+                    } else {
+                        $message = $attributeCount > 1 ? $message : $this->Attribute->validationErrors;
+                        $data = ['saved' => false, 'errors' => $message];
+                        if (!empty($flashErrorMessage)) {
+                            $data['full_errors'] = $flashErrorMessage;
+                        }
+                    }
+                    return $this->RestResponse->viewData($data, 'json');
+                }
+                if (empty($fails)) {
                     $this->Flash->success($message);
                 } else {
                     $this->Flash->error($message);
                 }
-                if ($this->request->is('ajax')) {
-                    $this->autoRender = false;
-                    $this->layout = false;
-                    $errors = ($attributeCount > 1) ? $message : $this->Attribute->validationErrors;
-                    if (!empty($successes)) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)),'status' => 200, 'type' => 'json'));
-                    } else {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errors)),'status' => 200, 'type' => 'json'));
-                    }
-                } else {
-                    if ($successes > 0) {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
-                    }
+                if ($successes > 0) {
+                    $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
                 }
             }
         }

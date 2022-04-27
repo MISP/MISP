@@ -1259,7 +1259,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             var result;
             if (closePopover) {
                 if (modal) {
-                    result = handleAjaxModalResponse(data, context_id, url, referer, context, contextNamingConvention);
+                    handleAjaxModalResponse(data, context_id, url, referer, context, contextNamingConvention);
                 } else {
                     result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
                 }
@@ -1301,47 +1301,36 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
 }
 
 function handleAjaxModalResponse(response, context_id, url, referer, context, contextNamingConvention) {
-    responseArray = response;
-    var message = null;
-    var result = "fail";
+    var responseArray = response;
     if (responseArray.saved) {
         updateIndex(context_id, context);
         if (responseArray.success) {
             showMessage("success", responseArray.success);
-            result = "success";
-        }
-        if (responseArray.errors) {
+        } else if (responseArray.errors) {
             showMessage("fail", responseArray.errors);
         }
     } else {
-        if (responseArray.errors) {
+        if (responseArray.errors && typeof responseArray.errors === 'string') {
             showMessage("fail", responseArray.errors);
+        } else {
+            var savedArray = saveValuesForPersistance();
+            $.ajax({
+                dataType: "html",
+                success: function (data) {
+                    $('#genericModal').remove();
+                    $('body').append(data);
+                    $('#genericModal').modal();
+                    handleValidationErrors(responseArray.errors, context, contextNamingConvention);
+                    recoverValuesFromPersistance(savedArray);
+                },
+                error: xhrFailCallback,
+                complete: function () {
+                    $(".loading").hide();
+                },
+                url: url
+            });
         }
-        var savedArray = saveValuesForPersistance();
-        $.ajax({
-            dataType:"html",
-            success:function (data, textStatus) {
-                $('#genericModal').remove();
-                $('body').append(data);
-                $('#genericModal').modal();
-                var error_context = context.charAt(0).toUpperCase() + context.slice(1);
-                handleValidationErrors(responseArray.errors, context, contextNamingConvention);
-                result = "success";
-                if (!$.isEmptyObject(responseArray)) {
-                    result = "fail";
-                }
-                recoverValuesFromPersistance(savedArray);
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                showMessage('fail', textStatus + ": " + errorThrown);
-            },
-            complete: function () {
-                $(".loading").hide();
-            },
-            url:url
-        });
     }
-    return result;
 }
 
 function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
@@ -1399,8 +1388,9 @@ function recoverValuesFromPersistance(formPersistanceArray) {
 function handleValidationErrors(responseArray, context, contextNamingConvention) {
     for (var k in responseArray) {
         var elementName = k.charAt(0).toUpperCase() + k.slice(1);
-        $("#" + contextNamingConvention + elementName).parent().addClass("error");
-        $("#" + contextNamingConvention + elementName).parent().append("<div class=\"error-message\">" + responseArray[k] + "</div>");
+        var $element = $("#" + contextNamingConvention + elementName);
+        $element.parent().addClass("error");
+        $element.parent().append("<div class=\"error-message\">" + responseArray[k] + "</div>");
     }
 }
 
@@ -1433,6 +1423,12 @@ function showMessage(success, message, context) {
         $("#ajax_" + success + "_container", window.parent.document).fadeIn("slow");
         $("#ajax_" + success + "_container", window.parent.document).delay(duration).fadeOut("slow");
     }
+
+    if (message.indexOf("$flashErrorMessage") >= 0) {
+        var flashMessageLink = '<a href="#" class="bold" onclick="flashErrorPopover();">here</a>';
+        message = message.replace("$flashErrorMessage", flashMessageLink);
+    }
+
     $("#ajax_" + success).html(message);
     var duration = 1000 + (message.length * 40);
     $("#ajax_" + success + "_container").fadeIn("slow").delay(duration).fadeOut("slow");
@@ -3977,12 +3973,9 @@ $(document).on("click", ".eventViewAttributePopup", function() {
 });
 
 function flashErrorPopover() {
-    $('#popover_form').css( "minWidth", "200px");
-    $('#popover_form').html($('#flashErrorMessage').html());
-    $('#popover_form').show();
-    var left = ($(window).width() / 2) - ($('#popover_form').width() / 2);
-    $('#popover_form').css({'left': left + 'px'});
-    $("#gray_out").fadeIn();
+    var $popover = $('#popover_form');
+    $popover.html($('#flashErrorMessage').html());
+    openPopup($popover);
 }
 
 $(document.body).on('click', function (e) {
@@ -4683,11 +4676,6 @@ $(function() {
     }).on('shown', function() {
         $('.tooltip').not(":last").remove();
     });
-
-    if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
-        var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
-        $('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
-    }
 });
 
 // Correlation box for events
