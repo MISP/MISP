@@ -371,7 +371,7 @@ class TagsController extends AppController
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
         $this->set('tagConflicts', $tagConflicts);
         $this->set('event', $event);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('/Events/ajax/ajaxTags');
     }
 
@@ -402,7 +402,7 @@ class TagsController extends AppController
         $this->set('attributeId', $id);
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attributeTags);
         $this->set('tagConflicts', $tagConflicts);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('/Attributes/ajax/ajaxAttributeTags');
     }
 
@@ -435,7 +435,7 @@ class TagsController extends AppController
                 'conditions' => array('Event.id' => $id)
         ));
         $this->set('event', $event);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('/Events/ajax/ajaxTags');
     }
 

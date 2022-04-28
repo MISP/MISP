@@ -541,7 +541,7 @@ class UsersController extends AppController
         $rules = $this->_arrayToValuesIndexArray($rules);
         $this->set('rules', $rules);
         $this->set('baseurl', Configure::read('MISP.baseurl'));
-        $this->layout = 'ajax';
+        $this->layout = false;
     }
 
     public function admin_view($id = null)
@@ -1481,7 +1481,7 @@ class UsersController extends AppController
 
         $this->set('typeDb', $typeDb);
         $this->set('sigTypes', $sigTypes);
-        $this->layout = 'ajax';
+        $this->layout = false;
     }
 
     public function terms()
@@ -1723,7 +1723,7 @@ class UsersController extends AppController
                 $error = 'No encryption key found for the user and the instance posture blocks non encrypted e-mails from being sent.';
             }
             $this->set('error', $error);
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->set('user', $user);
             $this->set('firstTime', $firstTime);
             $this->render('ajax/passwordResetConfirmationForm');

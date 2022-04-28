@@ -387,7 +387,7 @@ class TagCollectionsController extends AppController
             $this->set('tag_id', $tag_id);
             $this->set('model', 'tag_collection');
             $this->set('model_name', $tagCollection['TagCollection']['name']);
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('/Attributes/ajax/tagRemoveConfirmation');
         } else {
             $rearrangeRules = array(

@@ -139,7 +139,7 @@ class ThreadsController extends AppController
             }
         }
         if ($this->request->is('ajax')) {
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('/Elements/eventdiscussion');
         }
     }

@@ -1210,7 +1210,7 @@ class EventsController extends AppController
         $this->set('tags', $tagNames);
         $this->set('tagJSON', json_encode($tagJSON));
         $this->set('rules', $rules);
-        $this->layout = 'ajax';
+        $this->layout = false;
     }
 
     /**
@@ -3933,7 +3933,7 @@ class EventsController extends AppController
         }
         $this->set('event_id', $event['Event']['id']);
         if ($this->request->is('get')) {
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->request->data['Attribute']['event_id'] = $event['Event']['id'];
 
         } else if ($this->request->is('post')) {
@@ -5613,7 +5613,7 @@ class EventsController extends AppController
             return $this->RestResponse->viewData($event, $this->response->type());
         } else {
             if ($this->request->is('ajax')) {
-                $this->layout = 'ajax';
+                $this->layout = false;
             }
             $this->set('analysisLevels', $this->Event->analysisLevels);
             $this->set('validUuid', Validation::uuid($id));
@@ -5658,7 +5658,7 @@ class EventsController extends AppController
         } else {
             $this->loadModel('Module');
             $modules = $this->Module->getEnabledModules($this->Auth->user(), 'expansion');
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->set('modules', $modules);
             $this->render('ajax/enrich_event');
         }
@@ -6228,7 +6228,7 @@ class EventsController extends AppController
                 __('Are you sure you want to switch the event to unprotected mode? Unprotected mode is the default behaviour of MISP events, with creation and modification being purely limited by the distribution mechanism and eligible sync users.')
             );
             $this->set('actionName', $protect ? __('Switch to protected mode') : __('Remove protected mode'));
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('/genericTemplates/confirm');
         }
     }

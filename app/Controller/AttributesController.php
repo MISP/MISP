@@ -118,7 +118,7 @@ class AttributesController extends AppController
         }
         if ($this->request->is('ajax')) {
             $this->set('ajax', true);
-            $this->layout = 'ajax';
+            $this->layout = false;
         } else {
             $this->set('ajax', false);
         }
@@ -1954,7 +1954,7 @@ class AttributesController extends AppController
         $this->set('value', $result);
         $this->set('object', $attribute);
         $this->set('field', $field);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/attributeViewFieldForm');
     }
 
@@ -1992,7 +1992,7 @@ class AttributesController extends AppController
         if (!$this->__canModifyEvent($attribute)) {
             throw new ForbiddenException(__('You do not have permission to do that'));
         }
-        $this->layout = 'ajax';
+        $this->layout = false;
         if ($field === 'distribution') {
             $distributionLevels = $this->Attribute->shortDist;
             unset($distributionLevels[4]);
@@ -2029,7 +2029,7 @@ class AttributesController extends AppController
         }
         $this->set('event_id', $id);
         if ($this->request->is('get')) {
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->request->data['Attribute']['event_id'] = $id;
 
             // combobox for types
@@ -2138,7 +2138,7 @@ class AttributesController extends AppController
             $message .= $results['untouched'] . ' attributes left untouched. ';
 
             $this->autoRender = false;
-            $this->layout = 'ajax';
+            $this->layout = false;
             if ($success) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
             } else {
@@ -2483,7 +2483,7 @@ class AttributesController extends AppController
         }
         $this->set('persistent', $persistent);
         $this->set('results', $resultArray);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/hover_enrichment');
     }
 

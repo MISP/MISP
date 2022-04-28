@@ -321,7 +321,7 @@ class WarninglistsController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This action is available via AJAX only.'));
         }
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/getToggleField');
     }
 

@@ -494,7 +494,7 @@ class TaxonomiesController extends AppController
         $this->set('required', !$taxonomy['Taxonomy']['required']);
         $this->set('id', $id);
         $this->autoRender = false;
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/toggle_required');
     }
 

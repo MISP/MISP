@@ -600,7 +600,7 @@ class ObjectsController extends AppController
         }
         $this->set('value', $result);
         $this->set('field', $field);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/objectViewFieldForm');
     }
 
@@ -632,7 +632,7 @@ class ObjectsController extends AppController
         if (!$this->__canModifyEvent($object)) {
             throw new NotFoundException(__('Invalid object'));
         }
-        $this->layout = 'ajax';
+        $this->layout = false;
         if ($field == 'distribution') {
             $distributionLevels = $this->MispObject->shortDist;
             unset($distributionLevels[4]);
