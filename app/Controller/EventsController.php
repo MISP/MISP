@@ -4876,7 +4876,7 @@ class EventsController extends AppController
         return $this->RestResponse->viewData($json, 'json');
     }
 
-    public function viewGalaxyMatrix($scope_id, $galaxy_id, $scope='event', $disable_picking=false)
+    public function viewGalaxyMatrix($scope_id, $galaxy_id, $scope='event', $disable_picking=false, $extended=false)
     {
         $this->loadModel('Galaxy');
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
@@ -4921,9 +4921,17 @@ class EventsController extends AppController
         }
 
         if ($scope !== 'tag_collection') {
-            $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true));
+            $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true, 'extended' => $extended));
             if (empty($event)) {
                 throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
+            }
+            if ($extended) {
+                $eventIds = array();
+                $eventIds[] = $eventId;
+                foreach ($event[0]['Event']['extensionEvents'] as $extensionEvent) {
+                    $eventIds[] = $extensionEvent['id'];
+                }
+                $eventId = $eventIds;
             }
             $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($this->Auth->user(), $eventId, $matrixTags);
             $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $matrixTags);
