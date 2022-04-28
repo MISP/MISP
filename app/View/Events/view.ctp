@@ -6,7 +6,7 @@
     echo $this->element(
         'genericElements/SingleViews/single_view',
         [
-            'title' => ($extended ? '[' . __('Extended view') . '] ' : '') . h(nl2br($event['Event']['info'], false)),
+            'title' => ($extended ? '[' . __('Extended view') . '] ' : '') . $event['Event']['info'],
             'data' => $event,
             'fields' => [
                 [
