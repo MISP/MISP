@@ -114,9 +114,6 @@
         <?php
             endif;
         ?>
-        $('.screenshot').click(function() {
-            screenshotPopup($(this).attr('src'), $(this).attr('title'));
-        });
     });
 </script>
 <?php

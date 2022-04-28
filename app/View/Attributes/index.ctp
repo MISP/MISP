@@ -321,9 +321,6 @@ echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'event
                 hide: 100
             }
         });
-        $('.screenshot').click(function() {
-            screenshotPopup($(this).attr('src'), $(this).attr('title'));
-        });
         $('.sightings_advanced_add').click(function() {
             var selected = [];
             var object_context = $(this).data('object-context');
