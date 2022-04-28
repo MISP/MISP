@@ -384,9 +384,6 @@ class Feed extends AppModel
         if (isset($feed['Feed']['settings'][$type])) {
             $settings = $feed['Feed']['settings'][$type];
         }
-        if (isset($feed['Feed']['settings']['disable_correlation'])) {
-            $settings['disable_correlation'] = (bool) $feed['Feed']['settings']['disable_correlation'];
-        }
         if (isset($feed['Feed']['settings']['common'])) {
             $settings = array_merge($settings, $feed['Feed']['settings']['common']);
         }
