@@ -254,7 +254,7 @@ class ShadowAttributesController extends AppController
     {
         if ($this->request->is('ajax')) {
             $this->set('ajax', true);
-            $this->layout = 'ajax';
+            $this->layout = false;
         } else {
             $this->set('ajax', false);
         }

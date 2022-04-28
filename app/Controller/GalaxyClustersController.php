@@ -155,7 +155,7 @@ class GalaxyClustersController extends AppController
         $this->set('custom_cluster_count', $customClusterCount);
 
         if ($this->request->is('ajax')) {
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('ajax/index');
         }
     }

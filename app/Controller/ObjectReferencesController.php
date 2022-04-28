@@ -147,7 +147,7 @@ class ObjectReferencesController extends AppController
                 $this->set('relationships', $relationships);
                 $this->set('event', $event);
                 $this->set('objectId', $object['Object']['id']);
-                $this->layout = 'ajax';
+                $this->layout = false;
                 $this->render('ajax/add');
             }
         }

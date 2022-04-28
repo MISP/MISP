@@ -57,7 +57,7 @@ class TemplateElementsController extends AppController
             throw new MethodNotAllowedException('This action is for ajax requests only.');
         }
         $this->set('id', $id);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/template_element_add_choices');
     }
 
