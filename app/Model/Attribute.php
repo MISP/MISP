@@ -147,24 +147,6 @@ class Attribute extends AppModel
         'last_seen'
     );
 
-    public $searchResponseTypes = array(
-        'xml' => array(
-            'type' => 'xml',
-            'layout' => 'xml/default',
-            'header' => 'Content-Disposition: download; filename="misp.search.attribute.results.xml"'
-        ),
-        'json' => array(
-            'type' => 'json',
-            'layout' => 'json/default',
-            'header' => 'Content-Disposition: download; filename="misp.search.attribute.results.json"'
-        ),
-        'openioc' => array(
-            'type' => 'xml',
-            'layout' => 'xml/default',
-            'header' => 'Content-Disposition: download; filename="misp.search.attribute.results.openioc.xml"'
-        ),
-    );
-
     public $validFormats = array(
         'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
         'cache' => array('txt', 'CacheExport', 'cache'),
