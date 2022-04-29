@@ -4665,14 +4665,68 @@ $(function() {
     }
 });
 
-$(document.body).on("click", ".correlation-expand-button", function() {
-    $(this).parent().children(".correlation-expanded-area").show();
-    $(this).parent().children(".correlation-collapse-button").show();
-    $(this).hide();
-}).on("click", ".correlation-collapse-button", function() {
-    $(this).parent().children(".correlation-expanded-area").hide();
-    $(this).parent().children(".correlation-expand-button").show();
-    $(this).hide();
+// Correlation box
+$(function() {
+    var showAllCorrelations = false;
+    var $eventCorrelations = $("#event-correlations");
+    var $select = $eventCorrelations.find("select");
+
+    function changeCorrelations() {
+        var orderBy = $select.val();
+        var array = [];
+        $eventCorrelations.find(".event-correlation").each(function () {
+            $(this).removeClass("hidden");
+            array.push({
+                "html": $(this).prop("outerHTML"),
+                "count": $(this).data("count"),
+                "date": $(this).data("date"),
+            });
+        });
+        // sort by defined property
+        array.sort(function (a, b) {
+            var aProp = a[orderBy];
+            var bProp = b[orderBy];
+            if (aProp < bProp) {
+                return 1;
+            }
+            if (aProp > bProp) {
+                return -1;
+            }
+            return 0;
+        });
+
+        var newHtml = array.map(function (item) {
+            return item["html"];
+        }).join("");
+
+        if ($eventCorrelations.find(".correlation-expand-button").length) {
+            newHtml += $eventCorrelations.find(".correlation-expand-button").prop("outerHTML");
+            newHtml += $eventCorrelations.find(".correlation-collapse-button").prop("outerHTML");
+        }
+
+        $eventCorrelations.find(".correlation-container").html(newHtml);
+        if (!showAllCorrelations) {
+            $eventCorrelations.find(".event-correlation").slice(10).addClass("hidden");
+        }
+    }
+
+    $select.change(function() {
+        changeCorrelations();
+    });
+
+    $eventCorrelations.find(".correlation-expand-button").click(function() {
+        showAllCorrelations = true;
+        changeCorrelations();
+        $eventCorrelations.find(".correlation-collapse-button").show();
+        $(this).hide();
+    });
+
+    $eventCorrelations.find(".correlation-collapse-button").click(function() {
+        showAllCorrelations = false;
+        changeCorrelations();
+        $eventCorrelations.find(".correlation-expand-button").show();
+        $(this).hide();
+    });
 });
 
 // Show full attribute value when value is truncated
