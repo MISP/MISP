@@ -22,7 +22,7 @@
             <td style="padding-left: 2px;">
                 <time><?= h($related['date']); ?></time>
                 <?php if (isset($correlationCount)): ?>
-                    <b style="margin-left: 5px; float: right; cursor: help;" title="<?= __n('This related event contains %s unique correlation', 'This related event contains %s unique correlations', $correlationCount, $correlationCount); ?>"><?= $correlationCount ?></b>
+                    <b onclick="setAttributeFilter('correlationId', <?= intval($related['id']) ?>)" style="margin-left: 5px; float: right; cursor: help;" title="<?= __n('This related event contains %s unique correlation. Click to show them.', 'This related event contains %s unique correlations. Click to show them.', $correlationCount, $correlationCount); ?>"><?= $correlationCount ?></b>
                 <?php endif; ?>
             </td>
         </tr>

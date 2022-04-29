@@ -3738,7 +3738,25 @@ function toggleBoolFilter(url, param) {
     url += buildFilterURL(res);
     url = url.replace(/view\//i, 'viewEventAttributes/');
     fetchAttributes(url);
-    querybuilderTool = undefined;
+}
+
+function setAttributeFilter(field, value) {
+    if (querybuilderTool === undefined) {
+        triggerEventFilteringTool(true); // allows to fetch rules
+    }
+    var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
+
+    var found = false
+    $.each(rules.rules, function (index, rule) {
+        if (rule.field === field) {
+            rule.value = value;
+            found = true;
+        }
+    });
+    if (!found) {
+        rules.rules.push({"field": field, "value": value})
+    }
+    performQuery(rules);
 }
 
 function fetchAttributes(url, data) {

@@ -215,7 +215,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
         </li>
         </ul>
     </div>
-<script type="text/javascript">
+<script>
     var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : $baseurl . '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
     var currentPopover = "";
     var ajaxResults = {"hover": [], "persistent": []};
