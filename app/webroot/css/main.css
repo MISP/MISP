@@ -2775,3 +2775,11 @@ Query builder
     width: 700px;
     height: 800px;
 }
+
+#event-correlations select {
+    float: right;
+    width: 10em;
+    line-height: 25px;
+    height: 25px;
+    font-size: 12px;
+}
