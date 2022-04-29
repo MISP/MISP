@@ -3653,16 +3653,7 @@ function filterAttributes(filter, event_id) {
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     }
     if (deleted) url += '/deleted:true';
-    xhr({
-        type: "get",
-        url: url,
-        success: function(data) {
-            $("#attributes_div").html(data);
-        },
-        error: function() {
-            showMessage('fail', 'Something went wrong - could not fetch attributes.');
-        }
-    });
+    fetchAttributes(url);
 }
 
 function eventIndexColumnsToggle(columnName) {
@@ -3714,16 +3705,7 @@ function pivotObjectReferences(url, uuid) {
     }
 
     url += '/focus:' + uuid;
-    xhr({
-        type: "get",
-        url: url,
-        success: function (data) {
-            $("#attributes_div").html(data);
-        },
-        error: function() {
-            showMessage('fail', 'Something went wrong - could not fetch attributes.');
-        },
-    });
+    fetchAttributes(url);
 }
 
 function toggleBoolFilter(url, param) {
@@ -3755,17 +3737,26 @@ function toggleBoolFilter(url, param) {
 
     url += buildFilterURL(res);
     url = url.replace(/view\//i, 'viewEventAttributes/');
-    xhr({
+    fetchAttributes(url);
+    querybuilderTool = undefined;
+}
+
+function fetchAttributes(url, data) {
+    var options = {
         type: "get",
         url: url,
         success: function (data) {
             $("#attributes_div").html(data);
-            querybuilderTool = undefined;
         },
         error: function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
         }
-    });
+    };
+    if (data !== undefined) {
+        options["type"] = "post";
+        options["data"] = data;
+    }
+    xhr(options);
 }
 
 function mergeOrganisationUpdate() {

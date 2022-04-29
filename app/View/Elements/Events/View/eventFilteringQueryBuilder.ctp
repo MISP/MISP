@@ -25,7 +25,7 @@ $relatedEventsValues = json_encode($relatedEventsValues, JSON_UNESCAPED_UNICODE)
 ?>
 <script>
 var defaultFilteringRules = <?= json_encode($defaultFilteringRules); ?>;
-var querybuilderTool;
+var querybuilderTool = undefined;
 function triggerEventFilteringTool(hide) {
     var qbOptions = {
         plugins: {
@@ -549,18 +549,8 @@ function cleanRules(rules) {
 
 function performQuery(rules) {
     var res = cleanRules(rules);
-    var url = "/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>";
-    xhr({
-        type: "post",
-        url: url,
-        data: res,
-        success: function (data) {
-            $("#attributes_div").html(data);
-        },
-        error: function() {
-            showMessage('fail', 'Something went wrong - could not fetch attributes.');
-        }
-    });
+    var url = "/events/viewEventAttributes/<?= intval($event['Event']['id']); ?>";
+    fetchAttributes(url, res);
 }
 
 function clickMessage(clicked) {
