@@ -3703,41 +3703,30 @@ function pivotObjectReferences(url, uuid) {
     if (focusObjectByUuid(uuid)) {
         return; // object is on the same page, we don't need to reload page
     }
-
-    url += '/focus:' + uuid;
-    fetchAttributes(url);
+    fetchAttributes(currentUri, {"focus": uuid});
 }
 
-function toggleBoolFilter(url, param) {
+function toggleBoolFilter(param) {
     if (querybuilderTool === undefined) {
         triggerEventFilteringTool(true); // allows to fetch rules
     }
     var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
     var res = cleanRules(rules);
-    Object.keys(res).forEach(function(k) {
-        if (url.indexOf(k) > -1) { // delete url rule (will be replaced by query builder value later on)
-            var replace = '\/' + k + ".+/?";
-            var re = new RegExp(replace,"i");
-            url = url.replace(re, '');
-        }
-    });
+
     if (res[param] !== undefined) {
-        if (param == 'deleted') {
+        if (param === 'deleted') {
             res[param] = res[param] == 0 ? 1 : 0;
         } else {
             res[param] = res[param] == 0 ? 1 : 0;
         }
     } else {
-        if (param == 'deleted') {
+        if (param === 'deleted') {
             res[param] = 0;
         } else {
             res[param] = 1;
         }
     }
-
-    url += buildFilterURL(res);
-    url = url.replace(/view\//i, 'viewEventAttributes/');
-    fetchAttributes(url);
+    fetchAttributes(currentUri, res);
 }
 
 function setAttributeFilter(field, value) {
@@ -3771,9 +3760,26 @@ function fetchAttributes(url, data) {
         }
     };
     if (data !== undefined) {
-        options["type"] = "post";
-        options["data"] = data;
+        // Cleanup URL from rules that has default value or are part of POST request
+        for (var param in data) {
+            if (defaultFilteringRules[param] == data[param]) {
+                delete data[param];
+            }
+
+            if (url.indexOf(param) > -1) { // delete url rule (will be replaced by query builder value later on)
+                var replace = '\/' + param + ".+/?";
+                var re = new RegExp(replace,"i");
+                url = url.replace(re, '');
+            }
+        }
+
+        if (!$.isEmptyObject(data)) {
+            options["type"] = "post";
+            options["data"] = data;
+        }
+        options["url"] = url;
     }
+
     xhr(options);
 }
 

@@ -57,7 +57,7 @@ class EventsController extends AppController
 
     // private
     const DEFAULT_HIDDEN_INDEX_COLUMNS = [
-        'timestmap',
+        'timestamp',
         'publish_timestamp'
     ];
 
@@ -1259,7 +1259,10 @@ class EventsController extends AppController
             'paramArray' => self::ACCEPTED_FILTERING_NAMED_PARAMS,
             'named_params' => $this->request->params['named']
         );
-        $filters = $this->_harvestParameters($filterData);
+        $filters = $this->_harvestParameters($filterData, $exception);
+        if ($exception) {
+            return $exception;
+        }
 
         // Remove default filters
         foreach ($filters as $filterName => $filterValue) {

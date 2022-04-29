@@ -37,7 +37,7 @@
         'text' => __('Correlation'),
         'active' => $attributeFilter == 'correlation',
         'onClick' => 'toggleBoolFilter',
-        'onClickParams' => array($urlHere, 'correlation'),
+        'onClickParams' => array('correlation'),
     );
     $simple_filter_data[] = array(
         'id' => 'filter_warning',
@@ -171,7 +171,7 @@
                         'text' => __('Deleted'),
                         'active' => $deleted,
                         'onClick' => 'toggleBoolFilter',
-                        'onClickParams' => array($urlHere, 'deleted'),
+                        'onClickParams' => array('deleted'),
                         'requirement' => ($me['Role']['perm_sync'] || $event['Orgc']['id'] == $me['org_id'])
                     ),
                     array(
@@ -181,7 +181,7 @@
                         'text' => __('Decay score'),
                         'active' => $includeDecayScore,
                         'onClick' => 'toggleBoolFilter',
-                        'onClickParams' => array($urlHere, 'includeDecayScore')
+                        'onClickParams' => array('includeDecayScore')
                     ),
                     array(
                         'id' => 'show_attribute_sightingdb',
@@ -190,7 +190,7 @@
                         'text' => __('SightingDB'),
                         'active' => empty($includeSightingdb) ? false : true,
                         'onClick' => 'toggleBoolFilter',
-                        'onClickParams' => array($urlHere, 'includeSightingdb')
+                        'onClickParams' => array('includeSightingdb')
                     ),
                     array(
                         'id' => 'show_attribute_context',
@@ -206,7 +206,7 @@
                         'text' => __('Related Tags'),
                         'active' => $includeRelatedTags,
                         'onClick' => 'toggleBoolFilter',
-                        'onClickParams' => array($urlHere, 'includeRelatedTags')
+                        'onClickParams' => array('includeRelatedTags')
                     ),
                     array(
                         'id' => 'advanced_filtering',
