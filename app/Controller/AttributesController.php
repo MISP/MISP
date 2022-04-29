@@ -142,7 +142,7 @@ class AttributesController extends AppController
                 if (is_array($this->request->data['Attribute']['value'])) {
                     $values = $this->request->data['Attribute']['value'];
                 } else {
-                    $values = explode("\n", $this->request->data['Attribute']['value']);
+                    $values = explode("\n", rtrim($this->request->data['Attribute']['value'], "\n"));
                 }
                 $temp = $this->request->data['Attribute'];
                 foreach ($values as $value) {
@@ -265,12 +265,7 @@ class AttributesController extends AppController
             }
         }
         // combobox for types
-        $types = array_keys($this->Attribute->typeDefinitions);
-        foreach ($types as $key => $value) {
-            if (in_array($value, array('malware-sample', 'attachment'))) {
-                unset($types[$key]);
-            }
-        }
+        $types = $this->Attribute->getNonAttachmentTypes();
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
         // combobox for categories
@@ -846,17 +841,12 @@ class AttributesController extends AppController
         $this->set('event', $attribute); // Attribute contains 'Event' field
         // needed for RBAC
         // combobox for types
-        $isAttachment = $attribute['Attribute']['type'] === 'attachment' || $attribute['Attribute']['type'] === 'malware-sample';
+        $isAttachment = $this->Attribute->typeIsAttachment($attribute['Attribute']['type']);
         $this->set('attachment', $isAttachment);
         if ($isAttachment) {
             $types = [$attribute['Attribute']['type'] => $attribute['Attribute']['type']];
         } else {
-            $types = array_keys($this->Attribute->typeDefinitions);
-            foreach ($types as $key => $value) {
-                if (in_array($value, array('malware-sample', 'attachment'))) {
-                    unset($types[$key]);
-                }
-            }
+            $types = $this->Attribute->getNonAttachmentTypes();
             $types = $this->_arrayToValuesIndexArray($types);
         }
         $this->set('types', $types);
