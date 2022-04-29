@@ -4569,7 +4569,7 @@ components:
     FeedSettings:
       type: string
       nullable: true
-      example: '{"csv":{"value":"","delimiter":""},"common":{"excluderegex":""}}'
+      example: '{"csv":{"value":"","delimiter":""},"common":{"excluderegex":""},"disable_correlation":"1"}'
 
     FeedRules:
       description: "Stringified JSON filter rules."

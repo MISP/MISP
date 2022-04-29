@@ -22,6 +22,11 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'checkbox'
             ],
             [
+                'field' => 'Feed.settings.disable_correlation',
+                'label' => __('Disable correlation'),
+                'type' => 'checkbox'
+            ],
+            [
                 'field' => 'name',
                 'label' => __('Name'),
                 'placeholder' => __('Feed name'),
