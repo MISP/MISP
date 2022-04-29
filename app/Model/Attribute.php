@@ -318,22 +318,11 @@ class Attribute extends AppModel
         ]
     ];
 
-    public $hashTypes = array(
-        'md5' => array(
-            'length' => 32,
-            'pattern' => '#^[0-9a-f]{32}$#',
-            'lowerCase' => true,
-        ),
-        'sha1' => array(
-            'length' => 40,
-            'pattern' => '#^[0-9a-f]{40}$#',
-            'lowerCase' => true,
-        ),
-        'sha256' => array(
-            'length' => 64,
-            'pattern' => '#^[0-9a-f]{64}$#',
-            'lowerCase' => true,
-        )
+    const FILE_HASH_TYPES = array(
+        'md5' => 32,
+        'sha1' => 40,
+        'sha256' => 64,
+        'sha512' => 128,
     );
 
     public function afterFind($results, $primary = false)
@@ -2538,13 +2527,11 @@ class Attribute extends AppModel
 
     public function resolveHashType($hash)
     {
-        $hashTypes = $this->hashTypes;
-        $validTypes = array();
+        $validTypes = [];
         $length = strlen($hash);
-        foreach ($hashTypes as $k => $hashType) {
-            $temp = $hashType['lowerCase'] ? strtolower($hash) : $hash;
-            if ($hashType['length'] == $length && preg_match($hashType['pattern'], $temp)) {
-                $validTypes[] = $k;
+        foreach (self::FILE_HASH_TYPES as $type => $hashLength) {
+            if ($length === $hashLength && ctype_xdigit($hash)) {
+                $validTypes[] = $type;
             }
         }
         return $validTypes;
