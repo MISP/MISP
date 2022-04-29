@@ -1969,6 +1969,10 @@ tr.deleted-attribute td {
     display:none;
 }
 
+.hidden-important {
+    display:none !important;
+}
+
 a.discrete {
     color:black;
     text-decoration:none;
@@ -2791,6 +2795,24 @@ Query builder
     padding: 3px;
     background-color: white;
     line-height: 14px;
+}
+
+#event-correlations .event-correlation .org {
+    border-right: 1px solid #ddd;
+    padding-right: 2px;
+    min-width: 24px;
+    max-width: 24px;
+    overflow: hidden;
+    font-size: xx-small;
+    text-overflow: ellipsis;
+}
+
+#event-correlations .event-correlation .info {
+    padding-left: 2px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 410px;
 }
 
 #event-correlations .event-correlation time {

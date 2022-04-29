@@ -4675,7 +4675,7 @@ $(function() {
         var orderBy = $select.val();
         var array = [];
         $eventCorrelations.find(".event-correlation").each(function () {
-            $(this).removeClass("hidden");
+            $(this).removeClass("hidden-important");
             array.push({
                 "html": $(this).prop("outerHTML"),
                 "count": $(this).data("count"),
@@ -4699,9 +4699,9 @@ $(function() {
             return item["html"];
         }).join(" ");
 
-        if ($eventCorrelations.find(".correlation-expand-button").length) {
-            newHtml += $eventCorrelations.find(".correlation-expand-button").prop("outerHTML");
-            newHtml += $eventCorrelations.find(".correlation-collapse-button").prop("outerHTML");
+        if ($eventCorrelations.find(".expand-link").length) {
+            newHtml += $eventCorrelations.find(".expand-link").prop("outerHTML");
+            newHtml += $eventCorrelations.find(".collapse-link").prop("outerHTML");
         }
 
         $eventCorrelations.find(".correlation-container").html(newHtml);
@@ -4710,10 +4710,10 @@ $(function() {
 
     function changeEventVisibility() {
         if (showAllCorrelations) {
-            $eventCorrelations.find(".event-correlation.hidden").removeClass("hidden");
+            $eventCorrelations.find(".event-correlation.hidden-important").removeClass("hidden-important");
         } else {
             // Show just first ten
-            $eventCorrelations.find(".event-correlation").slice(10).addClass("hidden");
+            $eventCorrelations.find(".event-correlation").slice(10).addClass("hidden-important");
         }
     }
 
@@ -4721,19 +4721,30 @@ $(function() {
         changeEventOrder();
     });
 
-    $eventCorrelations.on("click", ".correlation-expand-button", function() {
+    $eventCorrelations.on("click", ".expand-link", function() {
         showAllCorrelations = true;
         changeEventVisibility();
-        $eventCorrelations.find(".correlation-collapse-button").show();
+        $eventCorrelations.find(".collapse-link").show();
         $(this).hide();
     });
 
-    $eventCorrelations.on("click", ".correlation-collapse-button", function() {
+    $eventCorrelations.on("click", ".collapse-link", function() {
         showAllCorrelations = false;
         changeEventVisibility();
-        $eventCorrelations.find(".correlation-expand-button").show();
+        $eventCorrelations.find(".expand-link").show();
         $(this).hide();
     });
+});
+
+// Handlers for showing/hiding attribute related events
+$(document.body).on("click", ".correlation-expand-button", function() {
+    $(this).parent().children(".correlation-expanded-area").show();
+    $(this).parent().children(".correlation-collapse-button").show();
+    $(this).hide();
+}).on("click", ".correlation-collapse-button", function() {
+    $(this).parent().children(".correlation-expanded-area").hide();
+    $(this).parent().children(".correlation-expand-button").show();
+    $(this).hide();
 });
 
 // Show full attribute value when value is truncated

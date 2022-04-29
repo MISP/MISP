@@ -1,18 +1,18 @@
 <?php
-    $href_url = isset($href_url) ? $href_url : $baseurl . '/events/view/' . h($related['id']);
+    $href_url = isset($href_url) ? $href_url : $baseurl . '/events/view/' . intval($related['id']);
     if (isset($fromEventId)) {
-        $href_url .= sprintf('/%s/%s', 1, $fromEventId);
+        $href_url .= "/1/$fromEventId";
     }
     $hide = isset($hide) ? $hide : false;
     $correlationCount = isset($relatedEventCorrelationCount[$related['id']]) ? (int)$relatedEventCorrelationCount[$related['id']] : null;
 ?>
-<span class="event-correlation<?= $hide ? ' hidden' : '' ?>" data-count="<?= $correlationCount ?>" data-date="<?= h($related['date']) ?>" data-own-org="<?= $ownOrg ? 1 : 0 ?>">
+<div class="event-correlation<?= $hide ? ' hidden-important' : '' ?>" data-count="<?= $correlationCount ?>" data-date="<?= h($related['date']) ?>" data-own-org="<?= $ownOrg ? 1 : 0 ?>">
     <table>
         <tr>
-            <td rowspan="2" style="border-right: 1px solid #ddd; padding-right: 2px; min-width: 24px; max-width: 24px; overflow: hidden; font-size: xx-small; text-overflow: ellipsis;" title="<?= h($related['Orgc']['name']); ?>">
+            <td rowspan="2" class="org" title="<?= h($related['Orgc']['name']); ?>">
                 <?= $this->OrgImg->getOrgLogo($related['Orgc'], 24) ?>
             </td>
-            <td style="padding-left: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; max-width: 410px;">
+            <td class="info">
                 <a title="<?= h($related['info']); ?>" href="<?= h($href_url)?>">
                     <?= h($related['info']) ?>
                 </a>
@@ -27,4 +27,4 @@
             </td>
         </tr>
     </table>
-</span>
+</div>
