@@ -16,12 +16,12 @@
     if ($total > $displayThreshold) {
         $htmlElements[] = sprintf(
             '<div class="%s">%s</div>',
-            'no-side-padding correlation-expand-button linkButton blue',
-            __('Show (%s more)', $total - ($count - 1))
+            'correlation-expand-button linkButton blue',
+            __('Show (%s more)', $total - $displayThreshold)
         );
         $htmlElements[] = sprintf(
             '<div class="%s">%s</div>',
-            'no-side-padding correlation-collapse-button linkButton blue hidden',
+            'correlation-collapse-button linkButton blue hidden',
             __('Collapse…')
         );
     }

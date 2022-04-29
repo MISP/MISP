@@ -4665,13 +4665,13 @@ $(function() {
     }
 });
 
-// Correlation box
+// Correlation box for events
 $(function() {
     var showAllCorrelations = false;
     var $eventCorrelations = $("#event-correlations");
     var $select = $eventCorrelations.find("select");
 
-    function changeCorrelations() {
+    function changeEventOrder() {
         var orderBy = $select.val();
         var array = [];
         $eventCorrelations.find(".event-correlation").each(function () {
@@ -4697,7 +4697,7 @@ $(function() {
 
         var newHtml = array.map(function (item) {
             return item["html"];
-        }).join("");
+        }).join(" ");
 
         if ($eventCorrelations.find(".correlation-expand-button").length) {
             newHtml += $eventCorrelations.find(".correlation-expand-button").prop("outerHTML");
@@ -4705,25 +4705,32 @@ $(function() {
         }
 
         $eventCorrelations.find(".correlation-container").html(newHtml);
-        if (!showAllCorrelations) {
+        changeEventVisibility();
+    }
+
+    function changeEventVisibility() {
+        if (showAllCorrelations) {
+            $eventCorrelations.find(".event-correlation.hidden").removeClass("hidden");
+        } else {
+            // Show just first ten
             $eventCorrelations.find(".event-correlation").slice(10).addClass("hidden");
         }
     }
 
     $select.change(function() {
-        changeCorrelations();
+        changeEventOrder();
     });
 
-    $eventCorrelations.find(".correlation-expand-button").click(function() {
+    $eventCorrelations.on("click", ".correlation-expand-button", function() {
         showAllCorrelations = true;
-        changeCorrelations();
+        changeEventVisibility();
         $eventCorrelations.find(".correlation-collapse-button").show();
         $(this).hide();
     });
 
-    $eventCorrelations.find(".correlation-collapse-button").click(function() {
+    $eventCorrelations.on("click", ".correlation-collapse-button", function() {
         showAllCorrelations = false;
-        changeCorrelations();
+        changeEventVisibility();
         $eventCorrelations.find(".correlation-expand-button").show();
         $(this).hide();
     });

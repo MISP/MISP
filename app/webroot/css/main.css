@@ -2783,3 +2783,16 @@ Query builder
     height: 25px;
     font-size: 12px;
 }
+
+#event-correlations .event-correlation {
+    display: inline-block;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 3px;
+    background-color: white;
+    line-height: 14px;
+}
+
+#event-correlations .event-correlation time {
+    font-style: italic;
+}
