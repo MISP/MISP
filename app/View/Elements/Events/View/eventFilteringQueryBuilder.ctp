@@ -4,6 +4,13 @@ foreach ($event['warnings'] as $id => $name) {
     $warninglistsValues[] = [(int)$id => h($name)];
 }
 $warninglistsValues = json_encode($warninglistsValues, JSON_UNESCAPED_UNICODE);
+
+$relatedEventsValues = [];
+foreach ($event['RelatedEvent'] as $relatedEvent) {
+    $relatedEventsValues[] = [(int)$relatedEvent["Event"]["id"] => "#{$relatedEvent["Event"]["id"]} " . h($relatedEvent["Event"]["info"])];
+}
+$relatedEventsValues = json_encode($relatedEventsValues, JSON_UNESCAPED_UNICODE);
+
 ?>
 <div id="eventFilteringQBWrapper" style="padding: 5px; display: none; border: 1px solid #dddddd; border-bottom: 0;">
     <div id="eventFilteringQB" style="overflow-y: auto; padding-right: 5px; resize: vertical; max-height: 750px; height: 400px;"></div>
@@ -81,6 +88,17 @@ function triggerEventFilteringTool(hide) {
                     1: "Correlation only",
                     2: "Exclude correlation"
                 }
+            },
+            {
+                "input": "select",
+                "type": "string",
+                "operators": [
+                    "equal",
+                ],
+                "unique": true,
+                "id": "correlationId",
+                "label": "Correlations with event",
+                "values": <?= $relatedEventsValues ?>
             },
             {
                 "input": "radio",
@@ -318,6 +336,13 @@ function triggerEventFilteringTool(hide) {
                     field: 'correlation',
                     id: 'correlation',
                     value: <?php echo isset($filters['correlation']) ? h($filters['correlation']) : 0; ?>
+                },
+                <?php endif; ?>
+                <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['correlationId'])): ?>
+                {
+                    field: 'correlationId',
+                    id: 'correlationId',
+                    value: <?= isset($filters['correlationId']) ? json_encode($filters['correlationId']) : "''"; ?>
                 },
                 <?php endif; ?>
                 <?php if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules['warning'])): ?>

@@ -31,7 +31,7 @@ class EventsController extends AppController
         'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'page',
         'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution',
         'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'feed', 'server', 'toIDS',
-        'sighting', 'includeSightingdb', 'warninglistId'
+        'sighting', 'includeSightingdb', 'warninglistId', 'correlationId',
     );
 
     // private
@@ -52,6 +52,7 @@ class EventsController extends AppController
         'taggedAttributes' => '',
         'galaxyAttachedAttributes' => '',
         'warninglistId' => '',
+        'correlationId' => '',
     );
 
     // private
@@ -1277,7 +1278,7 @@ class EventsController extends AppController
             'fetchFullClusters' => false,
             'includeAllTags' => true,
             'includeGranularCorrelations' => true,
-            'includeEventCorrelations' => false,
+            'includeEventCorrelations' => true, // event correlations are need for filtering
             'noEventReports' => true, // event reports for view are loaded dynamically
             'noSightings' => true,
             'includeServerCorrelations' => $filters['includeServerCorrelations'] ?? 1.
@@ -1672,7 +1673,7 @@ class EventsController extends AppController
     private function __eventViewCommon(array $user)
     {
         $this->set('defaultFilteringRules', self::DEFAULT_FILTERING_RULE);
-        $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
+        $this->set('typeGroups', array_keys(Attribute::TYPE_GROUPINGS));
 
         $orgTable = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
