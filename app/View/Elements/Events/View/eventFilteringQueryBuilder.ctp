@@ -1,9 +1,9 @@
 <?php
 $warninglistsValues = [];
-foreach ($warninglists as $id => $name) {
+foreach ($event['warnings'] as $id => $name) {
     $warninglistsValues[] = [(int)$id => h($name)];
 }
-$warninglistsValues = json_encode($warninglistsValues);
+$warninglistsValues = json_encode($warninglistsValues, JSON_UNESCAPED_UNICODE);
 ?>
 <div id="eventFilteringQBWrapper" style="padding: 5px; display: none; border: 1px solid #dddddd; border-bottom: 0;">
     <div id="eventFilteringQB" style="overflow-y: auto; padding-right: 5px; resize: vertical; max-height: 750px; height: 400px;"></div>

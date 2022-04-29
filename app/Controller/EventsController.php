@@ -1679,14 +1679,6 @@ class EventsController extends AppController
         ));
         $this->set('orgTable', $orgTable);
 
-        $this->loadModel('Warninglist');
-        $warninglists = $this->Warninglist->find('list', [
-            'fields' => ['Warninglist.id', 'Warninglist.name'],
-            'order' => ['Warninglist.name'],
-            'conditions' => ['Warninglist.enabled' => true],
-        ]);
-        $this->set('warninglists', $warninglists);
-
         $dataForView = array(
             'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels', 'shortDist' => 'shortDist'),
             'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisDescriptions' => 'analysisDescriptions', 'analysisLevels' => 'analysisLevels')
