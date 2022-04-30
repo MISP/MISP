@@ -1097,6 +1097,21 @@ a.proposal_link_red:hover {
     font-size: 125%;
 }
 
+#eventFilteringQBWrapper {
+    padding: 5px;
+    display: none;
+    border: 1px solid #dddddd;
+    border-bottom: 0;
+}
+
+#eventFilteringQB {
+    overflow-y: auto;
+    padding-right: 5px;
+    resize: vertical;
+    max-height: 750px;
+    height: 400px;
+}
+
 #eventFilteringQB .rules-group-container {
 	background-color: #00000077;
 	border-color: #222222;
