@@ -22,7 +22,7 @@
         $js_collection = array(
             'jquery',
             'misp-touch',
-            'chosen.jquery.min'
+            'chosen.jquery.min',
         );
         echo $this->element('genericElements/assetLoader', array(
             'css' => $css_collection,
