@@ -529,7 +529,7 @@ function recursiveInject(result, rules) {
     }
     else if (Array.isArray(rules.rules)) {
         rules.rules.forEach(function(subrules) {
-           recursiveInject(result, subrules) ;
+           recursiveInject(result, subrules);
         });
     }
 }

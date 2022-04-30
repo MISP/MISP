@@ -3640,20 +3640,22 @@ function syncUserSelected() {
     }
 }
 
-function filterAttributes(filter, event_id) {
-    var url = baseurl + "/events/viewEventAttributes/" + event_id;
-    if (filter === 'value'){
-        filter = encodeURIComponent($('#quickFilterField').val().trim());
-        url += filter.length > 0 ? "/searchFor:" + filter : "";
+function filterAttributes(filter) {
+    var data;
+    if (filter === 'value') {
+        filter = $('#quickFilterField').val().trim();
+        data = {"searchFor": filter}
     } else if (filter === 'all') {
         $('#quickFilterField').val(''); // clear input value
+        data = {}
     } else {
-        url += "/attributeFilter:" + filter
-        filter = encodeURIComponent($('#quickFilterField').val().trim());
-        url += filter.length > 0 ? "/searchFor:" + filter : "";
+        data = {"attributeFilter": filter}
+        filter = $('#quickFilterField').val().trim();
+        if (filter.length) {
+            data["searchFor"] = filter;
+        }
     }
-    if (deleted) url += '/deleted:true';
-    fetchAttributes(url);
+    fetchAttributes(currentUri, data);
 }
 
 function eventIndexColumnsToggle(columnName) {

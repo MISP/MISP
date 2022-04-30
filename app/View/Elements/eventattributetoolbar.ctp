@@ -10,7 +10,7 @@
             'text' => __('All'),
             'active' => $attributeFilter == 'all',
             'onClick' => 'filterAttributes',
-            'onClickParams' => array('all', $target)
+            'onClickParams' => array('all')
         )
     );
     foreach ($typeGroups as $group) {
@@ -20,7 +20,7 @@
             'text' => Inflector::humanize($group),
             'active' => $attributeFilter == $group,
             'onClick' => 'filterAttributes',
-            'onClickParams' => array($group, $target)
+            'onClickParams' => array($group)
         );
     }
     $simple_filter_data[] = array(
@@ -29,7 +29,7 @@
         'text' => __('Proposal'),
         'active' => $attributeFilter == 'proposal',
         'onClick' => 'filterAttributes',
-        'onClickParams' => array('proposal', $eventId)
+        'onClickParams' => array('proposal')
     );
     $simple_filter_data[] = array(
         'id' => 'filter_correlation',
@@ -45,7 +45,7 @@
         'text' => __('Warning'),
         'active' => $attributeFilter == 'warning',
         'onClick' => 'filterAttributes',
-        'onClickParams' => array('warning', $eventId)
+        'onClickParams' => array('warning')
     );
     $data = array(
         'children' => array(
@@ -238,7 +238,7 @@
                     'fa-icon' => 'times',
                     'title' => __('Remove filters'),
                     'onClick' => 'filterAttributes',
-                    'onClickParams' => array('all', $eventId)
+                    'onClickParams' => array('all')
                 )
             )
         )

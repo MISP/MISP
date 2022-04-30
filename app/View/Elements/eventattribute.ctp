@@ -269,6 +269,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
         });
     });
     $('.searchFilterButton, #quickFilterButton').click(function() {
-        filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');
+        filterAttributes('value');
     });
 </script>

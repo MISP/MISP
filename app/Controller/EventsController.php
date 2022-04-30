@@ -1284,7 +1284,7 @@ class EventsController extends AppController
             'includeEventCorrelations' => true, // event correlations are need for filtering
             'noEventReports' => true, // event reports for view are loaded dynamically
             'noSightings' => true,
-            'includeServerCorrelations' => $filters['includeServerCorrelations'] ?? 1.
+            'includeServerCorrelations' => $filters['includeServerCorrelations'] ?? 1,
         ];
         if (isset($filters['extended'])) {
             $conditions['extended'] = 1;
@@ -1298,7 +1298,7 @@ class EventsController extends AppController
         if (isset($filters['deleted'])) {
             if ($filters['deleted'] == 1) { // both
                 $conditions['deleted'] = [0, 1];
-            } elseif ($filters['deleted'] == 0) { // not-deleted only
+            } elseif ($filters['deleted'] == 0) { // not-deleted only (default)
                 $conditions['deleted'] = 0;
             } else { // only deleted
                 $conditions['deleted'] = 1;
