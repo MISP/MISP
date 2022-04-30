@@ -8,7 +8,7 @@
             'id' => 'filter_all',
             'title' => __('Show all attributes'),
             'text' => __('All'),
-            'active' => $attributeFilter == 'all',
+            'active' => $attributeFilter === 'all',
             'onClick' => 'filterAttributes',
             'onClickParams' => array('all')
         )
@@ -18,7 +18,7 @@
             'id' => 'filter_' . h($group),
             'title' => __('Only show %s related attributes', h($group)),
             'text' => Inflector::humanize($group),
-            'active' => $attributeFilter == $group,
+            'active' => $attributeFilter === $group,
             'onClick' => 'filterAttributes',
             'onClickParams' => array($group)
         );
@@ -27,23 +27,23 @@
         'id' => 'filter_proposal',
         'title' => __('Only show proposals'),
         'text' => __('Proposal'),
-        'active' => $attributeFilter == 'proposal',
-        'onClick' => 'filterAttributes',
+        'active' => $attributeFilter === 'proposal',
+        'onClick' => 'toggleBoolFilter',
         'onClickParams' => array('proposal')
     );
     $simple_filter_data[] = array(
         'id' => 'filter_correlation',
         'title' => __('Only show correlating attributes'),
         'text' => __('Correlation'),
-        'active' => $attributeFilter == 'correlation',
-        'onClick' => 'toggleBoolFilter',
+        'active' => $attributeFilter === 'correlation',
+        'onClick' => 'filterAttributes',
         'onClickParams' => array('correlation'),
     );
     $simple_filter_data[] = array(
         'id' => 'filter_warning',
         'title' => __('Only show potentially false positive attributes'),
         'text' => __('Warning'),
-        'active' => $attributeFilter == 'warning',
+        'active' => $attributeFilter === 'warning',
         'onClick' => 'filterAttributes',
         'onClickParams' => array('warning')
     );
@@ -172,7 +172,7 @@
                         'active' => $deleted,
                         'onClick' => 'toggleBoolFilter',
                         'onClickParams' => array('deleted'),
-                        'requirement' => ($me['Role']['perm_sync'] || $event['Orgc']['id'] == $me['org_id'])
+                        'requirement' => $me['Role']['perm_sync'] || $event['Orgc']['id'] == $me['org_id']
                     ),
                     array(
                         'id' => 'show_attribute_decaying_score',
@@ -233,7 +233,7 @@
                 'type' => 'search',
                 'fa-icon' => 'search',
                 'placeholder' => __('Enter value to search'),
-                'value' => isset($this->passedArgs['searchFor']) ? $this->passedArgs['searchFor'] : null,
+                'value' => isset($filters['searchFor']) ? $filters['searchFor'] : null,
                 'cancel' => array(
                     'fa-icon' => 'times',
                     'title' => __('Remove filters'),

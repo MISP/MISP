@@ -95,7 +95,6 @@
         echo $this->element('eventattributetoolbar', array(
             'target' => $target,
             'attributeFilter' => $attributeFilter,
-            'urlHere' => $urlHere,
             'filtered' => $filtered,
             'mayModify' => $mayModify,
             'possibleAction' => $possibleAction
