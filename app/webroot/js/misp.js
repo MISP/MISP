@@ -3716,17 +3716,9 @@ function toggleBoolFilter(param) {
     var res = cleanRules(rules);
 
     if (res[param] !== undefined) {
-        if (param === 'deleted') {
-            res[param] = res[param] == 0 ? 1 : 0;
-        } else {
-            res[param] = res[param] == 0 ? 1 : 0;
-        }
+        res[param] = res[param] == 0 ? 1 : 0;
     } else {
-        if (param === 'deleted') {
-            res[param] = 0;
-        } else {
-            res[param] = 1;
-        }
+        res[param] = 1;
     }
     fetchAttributes(currentUri, res);
 }
