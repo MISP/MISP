@@ -2815,6 +2815,12 @@ Query builder
     max-width: 410px;
 }
 
+#event-correlations .event-correlation b {
+    margin-left: 5px;
+    float: right;
+    cursor: pointer;
+}
+
 #event-correlations .event-correlation time {
     font-style: italic;
 }
