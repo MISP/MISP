@@ -65,13 +65,13 @@
 <div id="discussions_div">
 </div>
 </div>
-<script type="text/javascript">
+<script>
 $(function () {
 <?php
     if (!Configure::check('MISP.disable_event_locks') || !Configure::read('MISP.disable_event_locks')) {
         echo sprintf(
-            "queryEventLock('%s', %s);",
-            h($event['Event']['id']),
+            "queryEventLock(%s, %s);",
+            (int)$event['Event']['id'],
             (int)$event['Event']['timestamp']
         );
     }

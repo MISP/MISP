@@ -1,11 +1,4 @@
 <?php
-    $urlHere = Router::url(null);
-    $urlHere = explode('/', $urlHere);
-    foreach ($urlHere as $k => $v) {
-        $urlHere[$k] = urlencode($v);
-    }
-    $urlHere = implode('/', $urlHere);
-    $urlHere = $baseurl . $urlHere;
     $mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
     $possibleAction = $mayModify ? 'attribute' : 'shadow_attribute';
     $all = false;
@@ -90,15 +83,12 @@
 </div>
 <div id="attributeList" class="attributeListContainer">
     <?php
-        $target = h($event['Event']['id']);
-        if ($extended) $target .= '/extended:1';
-        echo $this->element('eventattributetoolbar', array(
-            'target' => $target,
+        echo $this->element('eventattributetoolbar', [
             'attributeFilter' => $attributeFilter,
             'filtered' => $filtered,
             'mayModify' => $mayModify,
             'possibleAction' => $possibleAction
-        ));
+        ]);
     ?>
     <table class="table table-striped table-condensed">
         <tr>
