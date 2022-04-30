@@ -513,45 +513,6 @@ function buildFilterURL(res) {
     return url;
 }
 
-function recursiveInject(result, rules) {
-    if (rules.rules === undefined) { // add to result
-        var field = rules.field;
-        var value = rules.value;
-        if (result.hasOwnProperty(field)) {
-            if (Array.isArray(result[field])) {
-                result[field].push(value);
-            } else {
-                result[field] = [result[field], value];
-            }
-        } else {
-            result[field] = value;
-        }
-    }
-    else if (Array.isArray(rules.rules)) {
-        rules.rules.forEach(function(subrules) {
-           recursiveInject(result, subrules);
-        });
-    }
-}
-
-function cleanRules(rules) {
-    var res = {};
-    recursiveInject(res, rules);
-    // clean up invalid and unset
-    Object.keys(res).forEach(function(k) {
-        var v = res[k];
-        if (v === undefined || v === '') {
-            delete res[k];
-        }
-    });
-    return res;
-}
-
-function performQuery(rules) {
-    var res = cleanRules(rules);
-    fetchAttributes(currentUri, res);
-}
-
 function clickMessage(clicked) {
     var $clicked = $(clicked);
     $clicked.tooltip({

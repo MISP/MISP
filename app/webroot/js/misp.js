@@ -3640,24 +3640,6 @@ function syncUserSelected() {
     }
 }
 
-function filterAttributes(filter) {
-    var data;
-    if (filter === 'value') {
-        filter = $('#quickFilterField').val().trim();
-        data = {"searchFor": filter}
-    } else if (filter === 'all') {
-        $('#quickFilterField').val(''); // clear input value
-        data = {}
-    } else {
-        data = {"attributeFilter": filter}
-        filter = $('#quickFilterField').val().trim();
-        if (filter.length) {
-            data["searchFor"] = filter;
-        }
-    }
-    fetchAttributes(currentUri, data);
-}
-
 function eventIndexColumnsToggle(columnName) {
     xhr({
         url: "/userSettings/eventIndexColumnToggle/" + columnName,
@@ -3708,6 +3690,25 @@ function pivotObjectReferences(url, uuid) {
     fetchAttributes(currentUri, {"focus": uuid});
 }
 
+// Attribute filtering
+function filterAttributes(filter) {
+    var data;
+    if (filter === 'value') {
+        filter = $('#quickFilterField').val().trim();
+        data = {"searchFor": filter}
+    } else if (filter === 'all') {
+        $('#quickFilterField').val(''); // clear input value
+        data = {}
+    } else {
+        data = {"attributeFilter": filter}
+        filter = $('#quickFilterField').val().trim();
+        if (filter.length) {
+            data["searchFor"] = filter;
+        }
+    }
+    fetchAttributes(currentUri, data);
+}
+
 function toggleBoolFilter(param) {
     if (querybuilderTool === undefined) {
         triggerEventFilteringTool(true); // allows to fetch rules
@@ -3720,6 +3721,45 @@ function toggleBoolFilter(param) {
     } else {
         res[param] = 1;
     }
+    fetchAttributes(currentUri, res);
+}
+
+function recursiveInject(result, rules) {
+    if (rules.rules === undefined) { // add to result
+        var field = rules.field;
+        var value = rules.value;
+        if (result.hasOwnProperty(field)) {
+            if (Array.isArray(result[field])) {
+                result[field].push(value);
+            } else {
+                result[field] = [result[field], value];
+            }
+        } else {
+            result[field] = value;
+        }
+    }
+    else if (Array.isArray(rules.rules)) {
+        rules.rules.forEach(function(subrules) {
+            recursiveInject(result, subrules);
+        });
+    }
+}
+
+function cleanRules(rules) {
+    var res = {};
+    recursiveInject(res, rules);
+    // clean up invalid and unset
+    Object.keys(res).forEach(function(k) {
+        var v = res[k];
+        if (v === undefined || v === '') {
+            delete res[k];
+        }
+    });
+    return res;
+}
+
+function performQuery(rules) {
+    var res = cleanRules(rules);
     fetchAttributes(currentUri, res);
 }
 
