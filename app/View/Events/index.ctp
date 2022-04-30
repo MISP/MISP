@@ -189,6 +189,7 @@
     echo $this->Html->css('vis');
     echo $this->Html->css('distribution-graph');
     echo $this->Html->script('network-distribution-graph');
+    echo $this->Html->script('jquery-ui.min');
 ?>
 <?php
     if (!$ajax) echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));

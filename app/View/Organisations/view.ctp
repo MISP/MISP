@@ -76,6 +76,7 @@
     <?php
         echo $this->Html->script('vis');
         echo $this->Html->css('vis');
+        echo $this->Html->script('jquery-ui.min');
         echo $this->Html->css('distribution-graph');
         echo $this->Html->script('network-distribution-graph');
     ?>
