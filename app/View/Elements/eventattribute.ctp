@@ -55,7 +55,7 @@
         echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'url' => $deleteSelectedUrl));
         echo $this->Form->input('ids_delete', array(
             'type' => 'text',
-            'value' => 'test',
+            'value' => '',
             'style' => 'display:none;',
             'label' => false,
         ));
@@ -81,7 +81,7 @@
         if (!isset($attributeFilter)) $attributeFilter = 'all';
     ?>
 </div>
-<div id="attributeList" class="attributeListContainer">
+<div id="attributeList">
     <?php
         echo $this->element('eventattributetoolbar', [
             'attributeFilter' => $attributeFilter,
@@ -154,9 +154,6 @@
                     'mayModify' => $mayModify,
                     'mayChangeCorrelation' => $mayChangeCorrelation,
                     'fieldCount' => $fieldCount,
-                    'includeRelatedTags' => !empty($includeRelatedTags) ? 1 : 0,
-                    'includeDecayingScore' => !empty($includeDecayingScore) ? 1 : 0,
-                    'includeSightingdb' => !empty($includeSightingdb) ? 1 : 0
                 ));
                 if (
                     ($object['objectType'] === 'attribute' && !empty($object['ShadowAttribute'])) ||

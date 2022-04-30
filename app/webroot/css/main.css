@@ -1598,9 +1598,9 @@ span.success {
 
 .attributehistogram-legend .col{float: left;margin: 0 0.4em 0 0;}
 
-.attributeListContainer{
-    position:relative;
-    margin-top:10px;
+#attributeListContainer {
+    position: relative;
+    margin-top: 10px;
 }
 
 .useCursorPointer {
