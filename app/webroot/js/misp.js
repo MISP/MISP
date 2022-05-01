@@ -3799,13 +3799,16 @@ function fetchAttributes(url, data) {
             if (defaultFilteringRules[param] == data[param]) {
                 delete data[param];
             }
+        }
 
-            if (url.indexOf(param) > -1) { // delete url rule (will be replaced by query builder value later on)
+        // delete url rules thats are part of default rules
+        Object.keys(defaultFilteringRules).forEach(function (param) {
+            if (url.indexOf(param) > -1) {
                 var replace = '\/' + param + ".+/?";
                 var re = new RegExp(replace,"i");
                 url = url.replace(re, '');
             }
-        }
+        });
 
         if (!$.isEmptyObject(data)) {
             options["type"] = "post";
