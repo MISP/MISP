@@ -1,20 +1,8 @@
 <?php
     $mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
     $possibleAction = $mayModify ? 'attribute' : 'shadow_attribute';
-    $all = false;
-    if (isset($this->params->params['paging']['Event']['page'])) {
-        if ($this->params->params['paging']['Event']['page'] == 0) $all = true;
-        $page = $this->params->params['paging']['Event']['page']; // $page is probably unused
-    } else {
-        $page = 0; // $page is probably unused
-    }
+    $all = isset($this->params->params['paging']['Event']['page']) && $this->params->params['paging']['Event']['page'] == 0;
     $fieldCount = 11;
-    $filtered = false;
-    if (isset($passedArgsArray)){
-        if (count($passedArgsArray) > 0) {
-            $filtered = true;
-        }
-    }
 ?>
     <div class="pagination">
         <ul>
@@ -35,7 +23,7 @@
             $paginatorLinks .= $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
             echo $paginatorLinks;
         ?>
-        <li class="all <?php if ($all) echo 'disabled'; ?>">
+        <li class="all<?php if ($all) echo ' disabled'; ?>">
             <?php
                 if ($all):
                     echo '<span class="red">' . __('view all') . '</span>';
@@ -85,7 +73,6 @@
     <?php
         echo $this->element('eventattributetoolbar', [
             'attributeFilter' => $attributeFilter,
-            'filtered' => $filtered,
             'mayModify' => $mayModify,
             'possibleAction' => $possibleAction
         ]);
@@ -168,13 +155,13 @@
     </table>
     <?php
     // Generate form for adding sighting just once, generation for every attribute is surprisingly too slow
-    echo $this->Form->create('Sighting', ['id' => 'SightingForm', 'url' => $baseurl . '/sightings/add/', 'style' => 'display:none;']);
+    echo $this->Form->create('Sighting', ['id' => 'SightingForm', 'url' => $baseurl . '/sightings/add/', 'style' => 'display:none']);
     echo $this->Form->input('id', ['label' => false, 'type' => 'number']);
     echo $this->Form->input('type', ['label' => false]);
     echo $this->Form->end();
     ?>
 </div>
-    <?php if ($emptyEvent && (empty($attributeFilter) || $attributeFilter === 'all') && !$filtered): ?>
+    <?php if ($emptyEvent && (empty($attributeFilter) || $attributeFilter === 'all') && empty($passedArgsArray)): ?>
         <div class="background-red bold" style="padding: 2px 5px">
             <?php
                 if ($me['org_id'] != $event['Event']['orgc_id']) {
@@ -190,7 +177,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
     <div class="pagination">
         <ul>
         <?= $paginatorLinks ?>
-        <li class="all <?php if ($all) echo 'disabled'; ?>">
+        <li class="all<?php if ($all) echo ' disabled'; ?>">
             <?php
                 if ($all):
                     echo '<span class="red">' . __('view all') . '</span>';
