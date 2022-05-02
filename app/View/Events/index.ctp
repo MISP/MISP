@@ -170,7 +170,7 @@
         </ul>
     </div>
 </div>
-<script type="text/javascript">
+<script>
     var passedArgsArray = <?php echo $passedArgs; ?>;
     $(function() {
         $('.searchFilterButton').click(function() {
@@ -185,11 +185,10 @@
     });
 </script>
 <?php
-    echo $this->Html->script('vis');
-    echo $this->Html->css('vis');
-    echo $this->Html->css('distribution-graph');
-    echo $this->Html->script('network-distribution-graph');
-    echo $this->Html->script('jquery-ui.min');
-?>
-<?php
-    if (!$ajax) echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));
+echo $this->element('genericElements/assetLoader', [
+    'css' => ['vis', 'distribution-graph'],
+    'js' => ['vis', 'jquery-ui.min', 'network-distribution-graph'],
+]);
+if (!$ajax) {
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));
+}
