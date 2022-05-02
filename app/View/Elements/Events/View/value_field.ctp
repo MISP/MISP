@@ -18,6 +18,12 @@ $truncateLongText = function ($text, $maxLength = 500, $maxLines = 10) {
     return null;
 };
 
+$humanReadableFilesize = function ($bytes, $dec = 2) {
+    $size = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    $factor = floor((strlen($bytes) - 1) / 3);
+    return sprintf("%.{$dec}f&nbsp;%s", ($bytes / (1024 ** $factor)), $size[$factor]);
+};
+
 if (!isset($linkClass)) {
     $linkClass = null;
 }
@@ -69,6 +75,7 @@ switch ($object['type']) {
             }
         }
         break;
+
     case 'datetime':
         echo $this->Time->time($object['value']);
         break;
@@ -103,9 +110,9 @@ switch ($object['type']) {
         break;
 
     case 'text':
-        if (in_array($object['category'], array('External analysis', 'Internal reference')) && Validation::uuid($object['value'])) {
-            $url = array('controller' => 'events', 'action' => 'view', $object['value']);
-            echo $this->Html->link($object['value'], $url, array('class' => $linkClass));
+        if (in_array($object['category'], ['External analysis', 'Internal reference'], true) && Validation::uuid($object['value'])) {
+            $url = ['controller' => 'events', 'action' => 'view', $object['value']];
+            echo $this->Html->link($object['value'], $url, ['class' => $linkClass]);
         } else {
             $value = str_replace("\r", '', $object['value']);
             $truncated = $truncateLongText($value);
@@ -122,6 +129,14 @@ switch ($object['type']) {
     case 'hex':
         echo '<span class="hex-value" title="' . __('Hexadecimal representation') . '">' . h($object['value']) . '</span>&nbsp;';
         echo '<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="fas fa-redo hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
+        break;
+
+    case 'size-in-bytes':
+        $value = intval($object['value']);
+        echo $value;
+        if ($value > 1024) {
+            echo '<br>' . $humanReadableFilesize($value);
+        }
         break;
 
     case 'ip-dst|port':
@@ -154,11 +169,11 @@ switch ($object['type']) {
             $truncated = $truncateLongText($value);
             if ($truncated) {
                 $rawTypes = ['email-header', 'yara', 'pgp-private-key', 'pgp-public-key', 'url'];
-                $dataFullType = in_array($object['type'], $rawTypes) ? 'raw' : 'text';
-                echo '<span style="white-space: pre-wrap;" data-full="' . h($value) .'" data-full-type="' . $dataFullType .'">' . h($truncated) .
+                $dataFullType = in_array($object['type'], $rawTypes, true) ? 'raw' : 'text';
+                echo '<span style="white-space:pre-wrap" data-full="' . h($value) .'" data-full-type="' . $dataFullType .'">' . h($truncated) .
                     ' <b>&hellip;</b><br><a href="#">' . __('Show all') . '</a></span>';
             } else {
-                echo '<span style="white-space: pre-wrap;">' . h($value) . '</span>';
+                echo '<span style="white-space:pre-wrap">' . h($value) . '</span>';
             }
         }
 }
