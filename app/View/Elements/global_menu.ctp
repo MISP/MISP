@@ -57,13 +57,13 @@
                         'url' => $baseurl . '/tags/index'
                     ),
                     array(
-                        'text' => __('List Tag Collections'),
-                        'url' => $baseurl . '/tag_collections/index'
-                    ),
-                    array(
                         'text' => __('Add Tag'),
                         'url' => $baseurl . '/tags/add',
                         'requirement' => $isAclTagEditor
+                    ),
+                    array(
+                        'text' => __('List Tag Collections'),
+                        'url' => $baseurl . '/tag_collections/index'
                     ),
                     array(
                         'text' => __('List Taxonomies'),
@@ -72,11 +72,6 @@
                     array(
                         'text' => __('List Templates'),
                         'url' => $baseurl . '/templates/index'
-                    ),
-                    array(
-                        'text' => __('Add Template'),
-                        'url' => $baseurl . '/templates/add',
-                        'requirement' => $isAclTemplate
                     ),
                     array(
                         'type' => 'separator'
