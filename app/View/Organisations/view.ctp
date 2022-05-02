@@ -61,24 +61,22 @@
         );
     ?>
 </div>
-    <br />
+    <br>
     <?php if ($local && $fullAccess): ?>
-        <button id="button_members" class="btn btn-inverse toggle-left qet orgViewButton" onClick="organisationViewContent('members', '<?php echo $id;?>');"><?php echo __('Members');?></button>
-        <button id="button_members_active" style="display:none;" class="btn btn-primary toggle-left qet orgViewButtonActive" onClick="organisationViewContent('members', '<?php echo $id;?>');"><?php echo __('Members');?></button>
+        <button id="button_members" class="btn btn-inverse toggle-left qet orgViewButton" onclick="organisationViewContent('members', <?= intval($id) ?>);"><?php echo __('Members');?></button>
+        <button id="button_members_active" style="display:none;" class="btn btn-primary toggle-left qet orgViewButtonActive" onclick="organisationViewContent('members', <?= intval($id) ?>);"><?php echo __('Members');?></button>
 
-        <button id="button_events" class="btn btn-inverse toggle qet orgViewButton" onClick="organisationViewContent('events', '<?php echo $id;?>');"><?php echo __('Events');?></button>
-        <button id="button_events_active" style="display:none;" class="btn btn-primary toggle qet orgViewButtonActive" onClick="organisationViewContent('events', '<?php echo $id;?>');"><?php echo __('Events');?></button>
+        <button id="button_events" class="btn btn-inverse toggle qet orgViewButton" onclick="organisationViewContent('events', <?= intval($id) ?>);"><?php echo __('Events');?></button>
+        <button id="button_events_active" style="display:none;" class="btn btn-primary toggle qet orgViewButtonActive" onclick="organisationViewContent('events', <?= intval($id) ?>);"><?php echo __('Events');?></button>
 
-        <button id="button_sharing_groups" class="btn btn-inverse toggle-right qet orgViewButton" onClick="organisationViewContent('sharing_groups', '<?= $id ?>');"><?= __('Sharing Groups') ?></button>
-        <button id="button_sharing_groups_active" style="display:none;" class="btn btn-primary toggle-right qet orgViewButtonActive" onClick="organisationViewContent('sharing_groups', '<?= $id ?>');"><?= __('Sharing Groups') ?></button>
+        <button id="button_sharing_groups" class="btn btn-inverse toggle-right qet orgViewButton" onclick="organisationViewContent('sharing_groups', <?= intval($id) ?>);"><?= __('Sharing Groups') ?></button>
+        <button id="button_sharing_groups_active" style="display:none;" class="btn btn-primary toggle-right qet orgViewButtonActive" onclick="organisationViewContent('sharing_groups', <?= intval($id) ?>);"><?= __('Sharing Groups') ?></button>
         <br><br>
     <?php endif;?>
-    <?php
-        echo $this->Html->script('vis');
-        echo $this->Html->css('vis');
-        echo $this->Html->script('jquery-ui.min');
-        echo $this->Html->css('distribution-graph');
-        echo $this->Html->script('network-distribution-graph');
+    <?= $this->element('genericElements/assetLoader', [
+        'css' => ['vis', 'distribution-graph'],
+        'js' => ['vis', 'jquery-ui.min', 'network-distribution-graph'],
+    ]);
     ?>
     <div id="ajaxContent" style="width:100%;"></div>
 </div>
@@ -86,11 +84,11 @@
     if ($isSiteAdmin) echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'viewOrg'));
     else echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewOrg'));
 ?>
-<script type="text/javascript">
+<script>
     <?php
         $startingTab = ($fullAccess && $local) ? 'members' : 'events';
     ?>
     $(function () {
-        organisationViewContent('<?php echo $startingTab; ?>', '<?php echo h($id);?>');
+        organisationViewContent('<?php echo $startingTab; ?>', <?= intval($id) ?>);
     });
 </script>
