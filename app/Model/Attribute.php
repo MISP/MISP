@@ -147,24 +147,6 @@ class Attribute extends AppModel
         'last_seen'
     );
 
-    public $searchResponseTypes = array(
-        'xml' => array(
-            'type' => 'xml',
-            'layout' => 'xml/default',
-            'header' => 'Content-Disposition: download; filename="misp.search.attribute.results.xml"'
-        ),
-        'json' => array(
-            'type' => 'json',
-            'layout' => 'json/default',
-            'header' => 'Content-Disposition: download; filename="misp.search.attribute.results.json"'
-        ),
-        'openioc' => array(
-            'type' => 'xml',
-            'layout' => 'xml/default',
-            'header' => 'Content-Disposition: download; filename="misp.search.attribute.results.openioc.xml"'
-        ),
-    );
-
     public $validFormats = array(
         'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
         'cache' => array('txt', 'CacheExport', 'cache'),
@@ -192,11 +174,11 @@ class Attribute extends AppModel
     // for example, IP addresses, domain names, hostnames and e-mail addresses are network related attribute types
     // whilst filenames and hashes are file related attribute types
     // This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?)
-    public $typeGroupings = array(
-        'file' => array('attachment', 'pattern-in-file', 'filename-pattern', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-fingerprint-md5'),
-        'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'mac-address', 'mac-eui-64', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'bro', 'zeek',  'pattern-in-traffic', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256','ja3-fingerprint-md5', 'jarm-fingerprint', 'favicon-mmh3', 'hassh-md5', 'hasshserver-md5', 'community-id'),
-        'financial' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number')
-    );
+    const TYPE_GROUPINGS = [
+        'file' => ['attachment', 'pattern-in-file', 'filename-pattern', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-fingerprint-md5'],
+        'network' => ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'mac-address', 'mac-eui-64', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'bro', 'zeek',  'pattern-in-traffic', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256','ja3-fingerprint-md5', 'jarm-fingerprint', 'favicon-mmh3', 'hassh-md5', 'hasshserver-md5', 'community-id'],
+        'financial' => ['btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number']
+    ];
 
     private $__fTool = false;
 
@@ -336,22 +318,11 @@ class Attribute extends AppModel
         ]
     ];
 
-    public $hashTypes = array(
-        'md5' => array(
-            'length' => 32,
-            'pattern' => '#^[0-9a-f]{32}$#',
-            'lowerCase' => true,
-        ),
-        'sha1' => array(
-            'length' => 40,
-            'pattern' => '#^[0-9a-f]{40}$#',
-            'lowerCase' => true,
-        ),
-        'sha256' => array(
-            'length' => 64,
-            'pattern' => '#^[0-9a-f]{64}$#',
-            'lowerCase' => true,
-        )
+    const FILE_HASH_TYPES = array(
+        'md5' => 32,
+        'sha1' => 40,
+        'sha256' => 64,
+        'sha512' => 128,
     );
 
     public function afterFind($results, $primary = false)
@@ -2556,13 +2527,11 @@ class Attribute extends AppModel
 
     public function resolveHashType($hash)
     {
-        $hashTypes = $this->hashTypes;
-        $validTypes = array();
+        $validTypes = [];
         $length = strlen($hash);
-        foreach ($hashTypes as $k => $hashType) {
-            $temp = $hashType['lowerCase'] ? strtolower($hash) : $hash;
-            if ($hashType['length'] == $length && preg_match($hashType['pattern'], $temp)) {
-                $validTypes[] = $k;
+        foreach (self::FILE_HASH_TYPES as $type => $hashLength) {
+            if ($length === $hashLength && ctype_xdigit($hash)) {
+                $validTypes[] = $type;
             }
         }
         return $validTypes;

@@ -1,8 +1,3 @@
-<?php
-    $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
-    $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-?>
-
 <div>
     <div id="timeline-header" class="eventgraph_header">
         <label id="timeline-scope" class="btn center-in-network-header network-control-btn">

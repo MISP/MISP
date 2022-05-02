@@ -1,8 +1,3 @@
-<?php
-    $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
-    $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-?>
-
 <div id="distribution_graph_container">
     <div class="loadingPopover">
         <div class="spinner"></div>

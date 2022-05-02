@@ -1097,6 +1097,21 @@ a.proposal_link_red:hover {
     font-size: 125%;
 }
 
+#eventFilteringQBWrapper {
+    padding: 5px;
+    display: none;
+    border: 1px solid #dddddd;
+    border-bottom: 0;
+}
+
+#eventFilteringQB {
+    overflow-y: auto;
+    padding-right: 5px;
+    resize: vertical;
+    max-height: 750px;
+    height: 400px;
+}
+
 #eventFilteringQB .rules-group-container {
 	background-color: #00000077;
 	border-color: #222222;
@@ -1583,9 +1598,9 @@ span.success {
 
 .attributehistogram-legend .col{float: left;margin: 0 0.4em 0 0;}
 
-.attributeListContainer{
-    position:relative;
-    margin-top:10px;
+#attributeListContainer {
+    position: relative;
+    margin-top: 10px;
 }
 
 .useCursorPointer {
@@ -1967,6 +1982,10 @@ tr.deleted-attribute td {
 
 .hidden {
     display:none;
+}
+
+.hidden-important {
+    display:none !important;
 }
 
 a.discrete {
@@ -2791,6 +2810,30 @@ Query builder
     padding: 3px;
     background-color: white;
     line-height: 14px;
+}
+
+#event-correlations .event-correlation .org {
+    border-right: 1px solid #ddd;
+    padding-right: 2px;
+    min-width: 24px;
+    max-width: 24px;
+    overflow: hidden;
+    font-size: xx-small;
+    text-overflow: ellipsis;
+}
+
+#event-correlations .event-correlation .info {
+    padding-left: 2px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 410px;
+}
+
+#event-correlations .event-correlation b {
+    margin-left: 5px;
+    float: right;
+    cursor: pointer;
 }
 
 #event-correlations .event-correlation time {

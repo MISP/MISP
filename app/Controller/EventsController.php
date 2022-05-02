@@ -31,7 +31,7 @@ class EventsController extends AppController
         'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'page',
         'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution',
         'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'feed', 'server', 'toIDS',
-        'sighting', 'includeSightingdb', 'warninglistId'
+        'sighting', 'includeSightingdb', 'warninglistId', 'correlationId',
     );
 
     // private
@@ -52,11 +52,12 @@ class EventsController extends AppController
         'taggedAttributes' => '',
         'galaxyAttachedAttributes' => '',
         'warninglistId' => '',
+        'correlationId' => '',
     );
 
     // private
     const DEFAULT_HIDDEN_INDEX_COLUMNS = [
-        'timestmap',
+        'timestamp',
         'publish_timestamp'
     ];
 
@@ -1258,7 +1259,10 @@ class EventsController extends AppController
             'paramArray' => self::ACCEPTED_FILTERING_NAMED_PARAMS,
             'named_params' => $this->request->params['named']
         );
-        $filters = $this->_harvestParameters($filterData);
+        $filters = $this->_harvestParameters($filterData, $exception);
+        if ($exception) {
+            return $exception;
+        }
 
         // Remove default filters
         foreach ($filters as $filterName => $filterValue) {
@@ -1277,10 +1281,10 @@ class EventsController extends AppController
             'fetchFullClusters' => false,
             'includeAllTags' => true,
             'includeGranularCorrelations' => true,
-            'includeEventCorrelations' => false,
+            'includeEventCorrelations' => true, // event correlations are need for filtering
             'noEventReports' => true, // event reports for view are loaded dynamically
             'noSightings' => true,
-            'includeServerCorrelations' => $filters['includeServerCorrelations'] ?? 1.
+            'includeServerCorrelations' => $filters['includeServerCorrelations'] ?? 1,
         ];
         if (isset($filters['extended'])) {
             $conditions['extended'] = 1;
@@ -1294,7 +1298,7 @@ class EventsController extends AppController
         if (isset($filters['deleted'])) {
             if ($filters['deleted'] == 1) { // both
                 $conditions['deleted'] = [0, 1];
-            } elseif ($filters['deleted'] == 0) { // not-deleted only
+            } elseif ($filters['deleted'] == 0) { // not-deleted only (default)
                 $conditions['deleted'] = 0;
             } else { // only deleted
                 $conditions['deleted'] = 1;
@@ -1672,20 +1676,12 @@ class EventsController extends AppController
     private function __eventViewCommon(array $user)
     {
         $this->set('defaultFilteringRules', self::DEFAULT_FILTERING_RULE);
-        $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
+        $this->set('typeGroups', array_keys(Attribute::TYPE_GROUPINGS));
 
         $orgTable = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
         $this->set('orgTable', $orgTable);
-
-        $this->loadModel('Warninglist');
-        $warninglists = $this->Warninglist->find('list', [
-            'fields' => ['Warninglist.id', 'Warninglist.name'],
-            'order' => ['Warninglist.name'],
-            'conditions' => ['Warninglist.enabled' => true],
-        ]);
-        $this->set('warninglists', $warninglists);
 
         $dataForView = array(
             'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels', 'shortDist' => 'shortDist'),

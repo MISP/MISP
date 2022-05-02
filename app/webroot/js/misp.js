@@ -3640,31 +3640,6 @@ function syncUserSelected() {
     }
 }
 
-function filterAttributes(filter, event_id) {
-    var url = baseurl + "/events/viewEventAttributes/" + event_id;
-    if (filter === 'value'){
-        filter = encodeURIComponent($('#quickFilterField').val().trim());
-        url += filter.length > 0 ? "/searchFor:" + filter : "";
-    } else if (filter === 'all') {
-        $('#quickFilterField').val(''); // clear input value
-    } else {
-        url += "/attributeFilter:" + filter
-        filter = encodeURIComponent($('#quickFilterField').val().trim());
-        url += filter.length > 0 ? "/searchFor:" + filter : "";
-    }
-    if (deleted) url += '/deleted:true';
-    xhr({
-        type: "get",
-        url: url,
-        success: function(data) {
-            $("#attributes_div").html(data);
-        },
-        error: function() {
-            showMessage('fail', 'Something went wrong - could not fetch attributes.');
-        }
-    });
-}
-
 function eventIndexColumnsToggle(columnName) {
     xhr({
         url: "/userSettings/eventIndexColumnToggle/" + columnName,
@@ -3712,60 +3687,137 @@ function pivotObjectReferences(url, uuid) {
     if (focusObjectByUuid(uuid)) {
         return; // object is on the same page, we don't need to reload page
     }
-
-    url += '/focus:' + uuid;
-    xhr({
-        type: "get",
-        url: url,
-        success: function (data) {
-            $("#attributes_div").html(data);
-        },
-        error: function() {
-            showMessage('fail', 'Something went wrong - could not fetch attributes.');
-        },
-    });
+    fetchAttributes(currentUri, {"focus": uuid});
 }
 
-function toggleBoolFilter(url, param) {
+// Attribute filtering
+function filterAttributes(filter) {
+    var data;
+    if (filter === 'value') {
+        filter = $('#quickFilterField').val().trim();
+        data = {"searchFor": filter}
+    } else if (filter === 'all') {
+        $('#quickFilterField').val(''); // clear input value
+        data = {}
+    } else {
+        data = {"attributeFilter": filter}
+        filter = $('#quickFilterField').val().trim();
+        if (filter.length) {
+            data["searchFor"] = filter;
+        }
+    }
+    fetchAttributes(currentUri, data);
+}
+
+function toggleBoolFilter(param) {
     if (querybuilderTool === undefined) {
         triggerEventFilteringTool(true); // allows to fetch rules
     }
     var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
     var res = cleanRules(rules);
-    Object.keys(res).forEach(function(k) {
-        if (url.indexOf(k) > -1) { // delete url rule (will be replaced by query builder value later on)
-            var replace = '\/' + k + ".+/?";
-            var re = new RegExp(replace,"i");
-            url = url.replace(re, '');
-        }
-    });
+
     if (res[param] !== undefined) {
-        if (param == 'deleted') {
-            res[param] = res[param] == 0 ? 1 : 0;
-        } else {
-            res[param] = res[param] == 0 ? 1 : 0;
-        }
+        res[param] = res[param] == 0 ? 1 : 0;
     } else {
-        if (param == 'deleted') {
-            res[param] = 0;
+        res[param] = 1;
+    }
+    fetchAttributes(currentUri, res);
+}
+
+function recursiveInject(result, rules) {
+    if (rules.rules === undefined) { // add to result
+        var field = rules.field;
+        var value = rules.value;
+        if (result.hasOwnProperty(field)) {
+            if (Array.isArray(result[field])) {
+                result[field].push(value);
+            } else {
+                result[field] = [result[field], value];
+            }
         } else {
-            res[param] = 1;
+            result[field] = value;
         }
     }
+    else if (Array.isArray(rules.rules)) {
+        rules.rules.forEach(function(subrules) {
+            recursiveInject(result, subrules);
+        });
+    }
+}
 
-    url += buildFilterURL(res);
-    url = url.replace(/view\//i, 'viewEventAttributes/');
-    xhr({
+function cleanRules(rules) {
+    var res = {};
+    recursiveInject(res, rules);
+    // clean up invalid and unset
+    Object.keys(res).forEach(function(k) {
+        var v = res[k];
+        if (v === undefined || v === '') {
+            delete res[k];
+        }
+    });
+    return res;
+}
+
+function performQuery(rules) {
+    var res = cleanRules(rules);
+    fetchAttributes(currentUri, res);
+}
+
+function setAttributeFilter(field, value) {
+    if (querybuilderTool === undefined) {
+        triggerEventFilteringTool(true); // allows to fetch rules
+    }
+    var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
+
+    var found = false
+    $.each(rules.rules, function (index, rule) {
+        if (rule.field === field) {
+            rule.value = value;
+            found = true;
+        }
+    });
+    if (!found) {
+        rules.rules.push({"field": field, "value": value})
+    }
+    performQuery(rules);
+}
+
+function fetchAttributes(url, data) {
+    var options = {
         type: "get",
         url: url,
         success: function (data) {
             $("#attributes_div").html(data);
-            querybuilderTool = undefined;
         },
         error: function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
         }
-    });
+    };
+    if (data !== undefined) {
+        // Cleanup URL from rules that has default value or are part of POST request
+        for (var param in data) {
+            if (defaultFilteringRules[param] == data[param]) {
+                delete data[param];
+            }
+        }
+
+        // delete url rules thats are part of default rules
+        Object.keys(defaultFilteringRules).forEach(function (param) {
+            if (url.indexOf(param) > -1) {
+                var replace = '\/' + param + ".+/?";
+                var re = new RegExp(replace,"i");
+                url = url.replace(re, '');
+            }
+        });
+
+        if (!$.isEmptyObject(data)) {
+            options["type"] = "post";
+            options["data"] = data;
+        }
+        options["url"] = url;
+    }
+
+    xhr(options);
 }
 
 function mergeOrganisationUpdate() {
@@ -4675,7 +4727,7 @@ $(function() {
         var orderBy = $select.val();
         var array = [];
         $eventCorrelations.find(".event-correlation").each(function () {
-            $(this).removeClass("hidden");
+            $(this).removeClass("hidden-important");
             array.push({
                 "html": $(this).prop("outerHTML"),
                 "count": $(this).data("count"),
@@ -4699,9 +4751,9 @@ $(function() {
             return item["html"];
         }).join(" ");
 
-        if ($eventCorrelations.find(".correlation-expand-button").length) {
-            newHtml += $eventCorrelations.find(".correlation-expand-button").prop("outerHTML");
-            newHtml += $eventCorrelations.find(".correlation-collapse-button").prop("outerHTML");
+        if ($eventCorrelations.find(".expand-link").length) {
+            newHtml += $eventCorrelations.find(".expand-link").prop("outerHTML");
+            newHtml += $eventCorrelations.find(".collapse-link").prop("outerHTML");
         }
 
         $eventCorrelations.find(".correlation-container").html(newHtml);
@@ -4710,10 +4762,10 @@ $(function() {
 
     function changeEventVisibility() {
         if (showAllCorrelations) {
-            $eventCorrelations.find(".event-correlation.hidden").removeClass("hidden");
+            $eventCorrelations.find(".event-correlation.hidden-important").removeClass("hidden-important");
         } else {
             // Show just first ten
-            $eventCorrelations.find(".event-correlation").slice(10).addClass("hidden");
+            $eventCorrelations.find(".event-correlation").slice(10).addClass("hidden-important");
         }
     }
 
@@ -4721,19 +4773,30 @@ $(function() {
         changeEventOrder();
     });
 
-    $eventCorrelations.on("click", ".correlation-expand-button", function() {
+    $eventCorrelations.on("click", ".expand-link", function() {
         showAllCorrelations = true;
         changeEventVisibility();
-        $eventCorrelations.find(".correlation-collapse-button").show();
+        $eventCorrelations.find(".collapse-link").show();
         $(this).hide();
     });
 
-    $eventCorrelations.on("click", ".correlation-collapse-button", function() {
+    $eventCorrelations.on("click", ".collapse-link", function() {
         showAllCorrelations = false;
         changeEventVisibility();
-        $eventCorrelations.find(".correlation-expand-button").show();
+        $eventCorrelations.find(".expand-link").show();
         $(this).hide();
     });
+});
+
+// Handlers for showing/hiding attribute related events
+$(document.body).on("click", ".correlation-expand-button", function() {
+    $(this).parent().children(".correlation-expanded-area").show();
+    $(this).parent().children(".correlation-collapse-button").show();
+    $(this).hide();
+}).on("click", ".correlation-collapse-button", function() {
+    $(this).parent().children(".correlation-expanded-area").hide();
+    $(this).parent().children(".correlation-expand-button").show();
+    $(this).hide();
 });
 
 // Show full attribute value when value is truncated

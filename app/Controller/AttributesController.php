@@ -2196,10 +2196,10 @@ class AttributesController extends AppController
             $validTypes = $this->Attribute->resolveHashType($hash);
             if ($allSamples) {
                 if (empty($validTypes)) {
-                    $error = 'Invalid hash format (valid options are ' . implode(', ', array_keys($this->Attribute->hashTypes)) . ')';
+                    $error = 'Invalid hash format (valid options are ' . implode(', ', array_keys(Attribute::FILE_HASH_TYPES)) . ')';
                 } else {
                     foreach ($validTypes as $t) {
-                        if ($t == 'md5') {
+                        if ($t === 'md5') {
                             $types = array_merge($types, array('malware-sample', 'filename|md5', 'md5'));
                         } else {
                             $types = array_merge($types, array('filename|' . $t, $t));
@@ -2207,7 +2207,7 @@ class AttributesController extends AppController
                     }
                 }
                 if (empty($error)) {
-                    $event_ids = $this->Attribute->find('list', array(
+                    $event_ids = $this->Attribute->find('column', array(
                         'recursive' => -1,
                         'contain' => array('Event'),
                         'fields' => array('Event.id'),
@@ -2222,7 +2222,7 @@ class AttributesController extends AppController
                         ),
                     ));
                     $searchConditions = array(
-                        'AND' => array('Event.id' => array_values($event_ids))
+                        'AND' => array('Event.id' => $event_ids)
                     );
                     if (empty($event_ids)) {
                         $error = 'No hits with the given parameters.';
@@ -2244,18 +2244,18 @@ class AttributesController extends AppController
 
         if (empty($error)) {
             $attributes = $this->Attribute->fetchAttributes(
-                    $this->Auth->user(),
-                    array(
-                        'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.value1', 'Attribute.value2', 'Event.info'),
-                        'conditions' => array(
-                            'AND' => array(
-                                $searchConditions,
-                                array('Attribute.type' => 'malware-sample')
-                            )
-                        ),
-                        'contain' => array('Event'),
-                        'flatten' => 1
-                    )
+                $this->Auth->user(),
+                array(
+                    'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.value1', 'Attribute.value2', 'Event.info'),
+                    'conditions' => array(
+                        'AND' => array(
+                            $searchConditions,
+                            array('Attribute.type' => 'malware-sample')
+                        )
+                    ),
+                    'contain' => array('Event'),
+                    'flatten' => 1
+                )
             );
             if (empty($attributes)) {
                 $error = 'No hits with the given parameters.';

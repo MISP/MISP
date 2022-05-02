@@ -1,8 +1,3 @@
-<?php
-    $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
-    $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-?>
-
 <div class="eventgraph_header">
     <label id="network-scope" class="btn center-in-network-header network-control-btn">
         <span class="useCursorPointer fa fa-object-group" style="margin-right: 3px;">
