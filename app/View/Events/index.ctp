@@ -19,7 +19,7 @@
         ];
         $searchKey = 'searcheventinfo';
 
-        $filterParamsString = array();
+        $filterParamsString = [];
         foreach ($passedArgsArray as $k => $v) {
             if (isset($searchScopes["search$k"])) {
                 $searchKey = "search$k";
@@ -28,9 +28,10 @@
             $filterParamsString[] = sprintf(
                 '%s: %s',
                 h(ucfirst($k)),
-                h(is_array($v) ? http_build_query($v) : h($v))
+                h(is_array($v) ? http_build_query($v) : $v)
             );
         }
+        $filterParamsString = implode(' & ', $filterParamsString);
 
         $columnsDescription = [
             'owner_org' => __('Owner org'),
@@ -58,7 +59,6 @@
             ];
         }
 
-        $filterParamsString = implode(' & ', $filterParamsString);
         $data = array(
             'children' => array(
                 array(
