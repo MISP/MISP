@@ -6,8 +6,8 @@ class AuditLogBehavior extends ModelBehavior
     /** @var array|null */
     private $beforeSave;
 
-    /** @var array|null */
-    private $beforeDelete;
+    /** @var array */
+    private $beforeDelete = [];
 
     /** @var AuditLog|null */
     private $AuditLog;
@@ -224,7 +224,7 @@ class AuditLogBehavior extends ModelBehavior
             return true;
         }
 
-        $this->beforeDelete = $model->find('first', [
+        $this->beforeDelete[$model->name] = $model->find('first', [
             'conditions' => array($model->alias . '.' . $model->primaryKey => $model->id),
             'recursive' => -1,
             'callbacks' => false,
@@ -237,8 +237,8 @@ class AuditLogBehavior extends ModelBehavior
         if (!$this->enabled) {
             return;
         }
-        $model->data = $this->beforeDelete;
-        $this->beforeDelete = null;
+        $model->data = $this->beforeDelete[$model->name];
+        unset($this->beforeDelete[$model->name]);
         if ($model->name === 'Event') {
             $eventId = $model->id;
         } else {
