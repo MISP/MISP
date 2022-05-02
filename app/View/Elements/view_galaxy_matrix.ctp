@@ -36,23 +36,24 @@
 *
 *
 */
-echo $this->Html->script('attack_matrix');
-echo $this->Html->css('attack_matrix');
-?>
-<?php
-    $clusetersNamesMapping = array(); // used to map name with id for the chosen select
-    if (isset($interpolation) && !empty($interpolation)) {
-        foreach ($interpolation as $k => $colArr) {
-            $col = str_pad(dechex($colArr[0]), 2, '0', STR_PAD_LEFT) . str_pad(dechex($colArr[1]), 2, '0', STR_PAD_LEFT) . str_pad(dechex($colArr[2]), 2, '0', STR_PAD_LEFT);
-            $interpolation[$k] = '#' . $col;
-            if ($k == 0) { // force small area on white
-                $interpolation[$k] .= ' 3%';
-            }
+echo $this->element('genericElements/assetLoader', [
+    'css' => ['attack_matrix'],
+    'js' => ['attack_matrix'],
+]);
+
+$clusetersNamesMapping = array(); // used to map name with id for the chosen select
+if (isset($interpolation) && !empty($interpolation)) {
+    foreach ($interpolation as $k => $colArr) {
+        $col = str_pad(dechex($colArr[0]), 2, '0', STR_PAD_LEFT) . str_pad(dechex($colArr[1]), 2, '0', STR_PAD_LEFT) . str_pad(dechex($colArr[2]), 2, '0', STR_PAD_LEFT);
+        $interpolation[$k] = '#' . $col;
+        if ($k == 0) { // force small area on white
+            $interpolation[$k] .= ' 3%';
         }
-        $colorScale = implode($interpolation, ', ');
-    } else {
-        $colorScale = 'black';
     }
+    $colorScale = implode($interpolation, ', ');
+} else {
+    $colorScale = 'black';
+}
 ?>
 <div class="attack-matrix-options" style="right: initial; background: transparent;">
 <ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
