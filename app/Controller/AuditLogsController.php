@@ -144,7 +144,7 @@ class AuditLogsController extends AppController
         if ($org) {
             $org = $this->AuditLog->Organisation->fetchOrg($org);
             if ($org) {
-                $this->paginate['conditions']['AND']['org_id'] = $org['id'];
+                $this->paginate['conditions']['AND']['AuditLog.org_id'] = $org['id'];
             } else {
                 $this->paginate['conditions']['AND']['org_id'] = -1;
             }
@@ -155,10 +155,10 @@ class AuditLogsController extends AppController
         if (!$this->_isSiteAdmin()) {
             // Remove all user info about users from different org
             $this->loadModel('User');
-            $orgUserIds = $this->User->find('column', array(
+            $orgUserIds = $this->User->find('column', [
                 'conditions' => ['User.org_id' => $this->Auth->user('org_id')],
                 'fields' => ['User.id'],
-            ));
+            ]);
             foreach ($list as $k => $item) {
                 if ($item['AuditLog']['user_id'] == 0) {
                     continue;
