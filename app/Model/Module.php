@@ -10,12 +10,14 @@ class Module extends AppModel
         'Enrichment' => array('hover', 'expansion'),
         'Import' => array('import'),
         'Export' => array('export'),
+        'Action' => array('action'),
         'Cortex' => array('cortex')
     );
 
     private $__typeToFamily = array(
         'Import' => 'Import',
         'Export' => 'Export',
+        'Action' => 'Action',
         'hover' => 'Enrichment',
         'expansion' => 'Enrichment',
         'Cortex' => 'Cortex'
@@ -131,6 +133,8 @@ class Module extends AppModel
                 $output['Import'] = $temp['name'];
             } elseif (isset($temp['meta']['module-type']) && in_array('export', $temp['meta']['module-type'])) {
                 $output['Export'] = $temp['name'];
+            } elseif (isset($temp['meta']['module-type']) && in_array('action', $temp['meta']['module-type'])) {
+                $output['Action'] = $temp['name'];
             } else {
                 foreach ($temp['mispattributes']['input'] as $input) {
                     if (!isset($temp['meta']['module-type']) || (in_array('expansion', $temp['meta']['module-type']) || in_array('cortex', $temp['meta']['module-type']))) {
@@ -290,13 +294,49 @@ class Module extends AppModel
             foreach ($modules as $module) {
                 if (array_intersect($this->__validTypes[$moduleFamily], $module['meta']['module-type'])) {
                     $moduleSettings = [
-                        array('name' => 'enabled', 'type' => 'boolean'),
-                        array('name' => 'restrict', 'type' => 'orgs')
+                        [
+                            'name' => 'enabled',
+                            'type' => 'boolean',
+                            'description' => empty($module['meta']['description']) ? '' : $module['meta']['description']
+                        ]
                     ];
+                    if ($moduleFamily === 'Action') {
+                        $moduleSettings[] = [
+                            'name' => 'weight',
+                            'type' => 'numeric',
+                            'value' => 0,
+                            'description' => __('Set a weight (via an integer) for the module, determining its position in the order of executed modules. Higher values are taken first.'),
+                            'test' => 'testForNumeric',
+                            'null' => true
+                        ];
+                    } else {
+                        $moduleSettings[] = [
+                            'name' => 'restrict',
+                            'type' => 'orgs',
+                            'description' => __('Restrict the use of this module to an organisation.')
+                        ];
+                    }
                     if (isset($module['meta']['config'])) {
                         foreach ($module['meta']['config'] as $key => $value) {
-                            if (is_string($key)) {
-                                $moduleSettings[] = array('name' => $key, 'type' => 'string', 'description' => $value);
+                            if (is_array($value)) {
+                                $name = is_string($key) ? $key : $value['name'];
+                                $moduleSettings[] = [
+                                    'name' => $name,
+                                    'type' => isset($value['type']) ? $value['type'] : 'string',
+                                    'test' => isset($value['test']) ? $value['test'] : null,
+                                    'description' => isset($value['description']) ? $value['description'] : null,
+                                    'null' => isset($value['null']) ? $value['null'] : null,
+                                    'test' => isset($value['test']) ? $value['test'] : null,
+                                    'bigField' => isset($value['bigField']) ? $value['bigField'] : false,
+                                    'cli_only' => isset($value['cli_only']) ? $value['cli_only'] : false,
+                                    'redacted' => isset($value['redacted']) ? $value['redacted'] : false
+                                ];
+                            } else if (is_string($key)) {
+                                $moduleSettings[] = [
+                                    'name' => $key,
+                                    'type' => 'string',
+                                    'description' => $value
+                                ];
                             } else {
                                 $moduleSettings[] = array('name' => $value, 'type' => 'string');
                             }
@@ -307,5 +347,56 @@ class Module extends AppModel
             }
         }
         return $result;
+    }
+
+    public function executeActions($type, $user, $input, $logData, &$error = null)
+    {
+        $modules = $this->getEnabledModules($user, null, $moduleFamily = 'Action');
+        $sorted_modules = [];
+        foreach ($modules['modules'] as $k => &$module) {
+            if (!in_array($type, $module['mispattributes']['hooks'])) {
+                //unset($modules['modules'][$k]);
+                continue;
+            }
+            $settingPath = 'Plugin.' . $module['name'] . '_';
+            $module['weight'] = Configure::check($settingPath . 'weight') ? Configure::read($settingPath . 'weight') : 0;
+            $module['filters'] = Configure::check($settingPath . 'filters') ? json_decode(Configure::read($settingPath . 'filters'), true) : [];
+            foreach ($module['meta']['config'] as $settingName => $settingData) {
+                $module['config'][$settingName] = Configure::check($settingPath . $settingName) ? Configure::read($settingPath . $settingName) : $settingData['value'];
+            }
+            $sorted_modules[$module['weight']][] = $module;
+        }
+        krsort($sorted_modules);
+        foreach ($sorted_modules as $weight => $modules) {
+            foreach ($modules as $module) {
+                $data = [
+                    'module' => $module['name'],
+                    'config' => empty($module['config']) ? [] : $module['config'],
+                    'data' => $input
+                ];
+                $result = $this->queryModuleServer($data, false, 'Action');
+                if (!empty($result['error'])) {
+                    $this->loadLog()->createLogEntry(
+                        'SYSTEM',
+                        'warning',
+                        empty($logData['model']) ? 'Module' : $logData['model'],
+                        empty($logData['id']) ? 0 : $logData['id'],
+                        sprintf(
+                            'Executing %s action module on failed.',
+                            $type
+                        ),
+                        sprintf(
+                            'Returned error: %s',
+                            $result['error']
+                        )
+                    );
+                }
+                if (!empty($module['mispattributes']['blocking']) && (empty($result['data']) || !empty($result['error']))) {
+                    $error = empty($result['error']) ? __('Execution failed for module %s.', $module['name']) : $result['error'];
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }

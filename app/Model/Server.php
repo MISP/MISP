@@ -1226,7 +1226,7 @@ class Server extends AppModel
     public function getCurrentServerSettings()
     {
         $serverSettings = $this->serverSettings;
-        $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
+        $moduleTypes = array('Enrichment', 'Import', 'Export', 'Action', 'Cortex');
         return $this->readModuleSettings($serverSettings, $moduleTypes);
     }
 
@@ -1248,6 +1248,15 @@ class Server extends AppModel
                             $setting['test'] = 'testBool';
                             $setting['type'] = 'boolean';
                             $setting['description'] = __('Enable or disable the %s module.', $module);
+                            if (!empty($result['description'])) {
+                                $setting['description'] = sprintf(
+                                    "[%s%s%s] %s",
+                                    '<span class="bold">',
+                                    $setting['description'],
+                                    '</span>',
+                                    $result['description']
+                                );
+                            }
                             $setting['value'] = false;
                         } elseif ($result['type'] === 'orgs') {
                             $setting['description'] = __('Restrict the %s module to the given organisation.', $module);
@@ -1258,10 +1267,10 @@ class Server extends AppModel
                                 return $this->loadLocalOrganisations();
                             };
                         } else {
-                            $setting['test'] = 'testForEmpty';
-                            $setting['type'] = 'string';
+                            $setting['test'] = isset($result['test']) ? $result['test'] : 'testForEmpty';
+                            $setting['type'] = isset($result['type']) ? $result['type'] : 'string';
                             $setting['description'] = isset($result['description']) ? $result['description'] : __('Set this required module specific setting.');
-                            $setting['value'] = '';
+                            $setting['value'] = isset($result['value']) ? $result['value'] : '';
                         }
                         $serverSettings['Plugin'][$moduleType . '_' . $module . '_' .  $result['name']] = $setting;
                     }
@@ -2096,7 +2105,7 @@ class Server extends AppModel
         // This is just hack to reset opcache, so for next request cache will be reloaded.
         $this->opcacheResetConfig();
 
-        if (strpos($settingName, 'Plugin.Enrichment') !== false || strpos($settingName, 'Plugin.Import') !== false || strpos($settingName, 'Plugin.Export') !== false || strpos($settingName, 'Plugin.Cortex') !== false) {
+        if (strpos($settingName, 'Plugin.Enrichment') !== false || strpos($settingName, 'Plugin.Import') !== false || strpos($settingName, 'Plugin.Export') !== false || strpos($settingName, 'Plugin.Cortex') !== false || strpos($settingName, 'Plugin.Action') !== false) {
             $serverSettings = $this->getCurrentServerSettings();
         } else {
             $serverSettings = $this->serverSettings;
@@ -6920,6 +6929,34 @@ class Server extends AppModel
                 'Export_timeout' => array(
                     'level' => 1,
                     'description' => __('Set a timeout for the export services'),
+                    'value' => 10,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Action_services_url' => array(
+                    'level' => 1,
+                    'description' => __('The url used to access the action services. By default, it is accessible at http://127.0.0.1:6666'),
+                    'value' => 'http://127.0.0.1',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Action_services_port' => array(
+                    'level' => 1,
+                    'description' => __('The port used to access the action services. By default, it is accessible at 127.0.0.1:6666'),
+                    'value' => '6666',
+                    'test' => 'testForPortNumber',
+                    'type' => 'numeric'
+                ),
+                'Action_services_enable' => array(
+                    'level' => 0,
+                    'description' => __('Enable/disable the action services'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Action_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Set a timeout for the action services'),
                     'value' => 10,
                     'test' => 'testForEmpty',
                     'type' => 'numeric'

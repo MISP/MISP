@@ -948,7 +948,13 @@ class ServersController extends AppController
     public function serverSettingsReloadSetting($setting, $id)
     {
         $pathToSetting = explode('.', $setting);
-        if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false || strpos($setting, 'Plugin.Cortex') !== false) {
+        if (
+            strpos($setting, 'Plugin.Enrichment') !== false ||
+            strpos($setting, 'Plugin.Import') !== false ||
+            strpos($setting, 'Plugin.Export') !== false ||
+            strpos($setting, 'Plugin.Cortex') !== false ||
+            strpos($setting, 'Plugin.Action') !== false
+        ) {
             $settingObject = $this->Server->getCurrentServerSettings();
         } else {
             $settingObject = $this->Server->serverSettings;
@@ -1440,7 +1446,6 @@ class ServersController extends AppController
             }
             $this->set('id', $id);
         }
-
         $setting = $this->Server->getSettingData($settingName);
         if ($setting === false) {
             throw new NotFoundException(__('Setting %s is invalid.', $settingName));
