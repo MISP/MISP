@@ -89,7 +89,7 @@ class AppModel extends Model
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
-        81 => false, 82 => false, 83 => false, 84 => false, 85 => false,
+        81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
     );
 
     public $advanced_updates_description = array(
@@ -1683,6 +1683,23 @@ class AppModel extends Model
             case 85:
                 $this->__addIndex('cryptographic_keys', 'parent_type');
                 $this->__addIndex('cryptographic_keys', 'fingerprint');
+                break;
+            case 86:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflows` (
+                      `id` int(11) NOT NULL AUTO_INCREMENT,
+                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+                      `name` varchar(191) NOT NULL,
+                      `description` varchar(191) NOT NULL,
+                      `timestamp` int(11) NOT NULL DEFAULT 0,
+                      `user_id` int(11) NOT NULL,
+                      `org_id` int(11) NOT NULL,
+                      `data` text,
+                      PRIMARY KEY (`id`),
+                      INDEX `uuid` (`uuid`),
+                      INDEX `name` (`name`),
+                      INDEX `user_id` (`user_id`),
+                      INDEX `org_id` (`org_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
