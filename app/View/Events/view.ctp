@@ -149,7 +149,6 @@
                     'key' => __('Warnings'),
                     'key_class' => !empty($warnings) ? 'background-red bold' : '',
                     'class' => !empty($warnings) ? 'background-red bold' : '',
-                     'green',
                     'type' => 'warnings',
                     'warnings' => $warnings,
                     'requirement' => !empty($warnings) && ($me['org_id'] === $event['Event']['orgc_id'] || !empty($me['Role']['perm_site_admin']))
@@ -161,15 +160,19 @@
                 [
                     'key' => __('Published'),
                     'path' => 'Event.published',
-                    'key_class' => ($event['Event']['published'] == 0) ? 'background-red bold not-published' : 'published',
-                    'class' => ($event['Event']['published'] == 0) ? 'background-red bold not-published' : 'published',
+                    'key_class' => ($event['Event']['published'] == 0) ? 'not-published' : 'published',
+                    'class' => ($event['Event']['published'] == 0) ? 'not-published' : 'published',
                     'type' => 'custom',
-                    'function' => function($data) use($event) {
+                    'function' => function(array $event) {
                         if (!$event['Event']['published']) {
-                            return __('No');
+                            $string = '<span class="label label-important label-padding">' . __('No') . '</span>';
+                            if (!empty($event['Event']['publish_timestamp'])) {
+                                $string .= __(' (last published at %s)', $this->Time->time($event['Event']['publish_timestamp']));
+                            }
+                            return $string;
                         } else {
                             return sprintf(
-                                '<span class="green bold">%s</span> (%s)',
+                                '<span class="label label-success label-padding">%s</span> %s',
                                 __('Yes'),
                                 empty($event['Event']['publish_timestamp']) ? __('N/A') : $this->Time->time($event['Event']['publish_timestamp'])
                             );
