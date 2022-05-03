@@ -173,10 +173,16 @@ function genInput(options) {
 
 function addNode(block, position) {
     var canvasPosition = $canvas[0].getBoundingClientRect()
+    
     var adjsutedPosition = {
         left: position.left - canvasPosition.left,
         top: position.top,
     }
+
+    // TODO: Take into account zoon level
+    // pos_x = pos_x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)) - (editor.precanvas.getBoundingClientRect().x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)));
+    // pos_y = pos_y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)) - (editor.precanvas.getBoundingClientRect().y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)));
+
     block['block_param_html'] = genBlockParamHtml(block)
     var html = getTemplateForBlock(block)
     editor.addNode(
