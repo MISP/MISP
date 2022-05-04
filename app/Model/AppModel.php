@@ -1686,6 +1686,7 @@ class AppModel extends Model
                 break;
             case 86:
                 $this->__addIndex('attributes', 'timestamp');
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
