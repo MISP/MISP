@@ -456,9 +456,6 @@ class TagsController extends AppController
 
     public function selectTaxonomy($id, $scope = 'event')
     {
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
-            throw new NotFoundException('You don\'t have permission to do that.');
-        }
         $localFlag = !empty($this->params['named']['local']) ? '/local:1' : '';
         $items = array();
         $favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
@@ -559,7 +556,7 @@ class TagsController extends AppController
                 }
             } elseif ($taxonomy_id === 'all') {
                 $conditions = [
-                    'Tag.name NOT LIKE' => 'misp-galaxy:%',
+                    'Tag.is_galaxy' => 0,
                     'Tag.hide_tag' => 0,
                 ];
                 if (!$this->_isSiteAdmin()) {
@@ -569,17 +566,13 @@ class TagsController extends AppController
                 if (!$local_tag) {
                     $conditions['Tag.local_only'] = 0;
                 }
-                $allTags = $this->Tag->find('all', array(
+                $tags = $this->Tag->find('all', array(
                     'conditions' => $conditions,
                     'recursive' => -1,
                     'order' => array('name asc'),
                     'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
                 ));
-                $tags = array();
-                foreach ($allTags as $tag) {
-                    $tags[$tag['Tag']['id']] = $tag['Tag'];
-                }
-                unset($allTags);
+                $tags = array_column(array_column($tags, 'Tag'), null, "id");
                 $expanded = $tags;
             } else {
                 $taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
@@ -626,7 +619,7 @@ class TagsController extends AppController
         $items = array();
         foreach ($tags as $k => $tag) {
             $tagName = $tag['name'];
-            $choice_id = $k;
+            $choice_id = (int)$k;
             if ($taxonomy_id === 'collections') {
                 $choice_id = 'collection_' . $choice_id;
             }

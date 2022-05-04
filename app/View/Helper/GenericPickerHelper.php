@@ -27,7 +27,8 @@ class GenericPickerHelper extends AppHelper {
 
     public function add_option($param)
     {
-        $value = isset($param['value']) ? h($param['value']) : h($param['name']);
+        $value = $param['value'] ?? $param['name'];
+        $value = is_int($value) ? $value : h($value);
 
         $option_html = '<option value="' . $value. '"';
         if (isset($param['disabled']) && $param['disabled']) {

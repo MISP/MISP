@@ -259,11 +259,11 @@ function submitFunction(clicked, callback) {
                         echo $this->GenericPicker->add_option($param);
                         if (!$countThresholdReached && isset($param['template'])) {
                             $template = $this->GenericPicker->build_template($param);
-                            $option_templates[h($param['value'])] = $template;
+                            $option_templates[$param['value']] = $template;
                         }
                         if (isset($param['additionalData'])) {
                             $additionalData = $param['additionalData'];
-                            $options_additionalData[h($param['value'])] = $additionalData;
+                            $options_additionalData[$param['value']] = $additionalData;
                         }
                     }
                 }
@@ -281,7 +281,7 @@ function submitFunction(clicked, callback) {
                         echo $this->GenericPicker->add_pill($param, $defaults);
                         if (isset($param['additionalData'])) {
                             $additionalData = $param['additionalData'];
-                            $options_additionalData[h($param['value'])] = $additionalData;
+                            $options_additionalData[$param['value']] = $additionalData;
                         }
                     }
                 }
@@ -303,7 +303,7 @@ function submitFunction(clicked, callback) {
                 echo $this->GenericPicker->add_pill($param, $defaults);
                 if (isset($param['additionalData'])) {
                     $additionalData = $param['additionalData'];
-                    $options_additionalData[h($param['value'])] = $additionalData;
+                    $options_additionalData[$param['value']] = $additionalData;
                 }
             }
             ?>
