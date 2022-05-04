@@ -4,13 +4,15 @@ App::uses('AppController', 'Controller');
 class WorkflowsController extends AppController
 {
     public $components = array(
+        'RequestHandler'
     );
 
     public function index()
     {
         $params = [
             'filters' => ['name', 'uuid'],
-            'quickFilters' => ['name', 'uuid']
+            'quickFilters' => ['name', 'uuid'],
+            'contain' => ['Organisation']
         ];
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {
@@ -50,15 +52,10 @@ class WorkflowsController extends AppController
     {
         $this->set('id', $id);
         $params = [
+            'conditions' => $this->Workflow->buildACLConditions($this->Auth->user()),
             'fields' => ['name', 'description', 'data'],
-            'redirect' => [
-                'action' => 'index',
-            ]
+            'redirect' => ['action' => 'view', $id],
         ];
-        $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
-        if (empty($workflow)) {
-            throw new NotFoundException(__('Invalid workflow'));
-        }
         $this->CRUD->edit($id, $params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -71,9 +68,8 @@ class WorkflowsController extends AppController
     public function delete($id)
     {
         $params = [
-            'redirect' => [
-                'action' => 'index',
-            ]
+            'conditions' => $this->Workflow->buildACLConditions($this->Auth->user()),
+            'redirect' => ['action' => 'index']
         ];
         $this->CRUD->delete($id, $params);
         if ($this->IndexFilter->isRest()) {
@@ -84,6 +80,7 @@ class WorkflowsController extends AppController
     public function view($id)
     {
         $this->CRUD->view($id, [
+            'conditions' => $this->Workflow->buildACLConditions($this->Auth->user()),
             'contain' => ['Organisation', 'User']
         ]);
         if ($this->IndexFilter->isRest()) {
