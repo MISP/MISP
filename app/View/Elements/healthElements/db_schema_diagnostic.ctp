@@ -178,11 +178,13 @@
         __('DataSource: ') . h($dataSource),
         $dataSource != 'Database/Mysql' ? 'times' : 'check'
     );
-    echo $this->element('/healthElements/db_indexes_diagnostic', array(
-        'columnPerTable' => $columnPerTable,
-        'diagnostic' => $dbIndexDiagnostics,
-        'indexes' => $indexes
-    ));
+    if ($expectedDbVersion == $actualDbVersion) {
+        echo $this->element('/healthElements/db_indexes_diagnostic', array(
+            'columnPerTable' => $columnPerTable,
+            'diagnostic' => $dbIndexDiagnostics,
+            'indexes' => $indexes
+        ));
+    }
 ?>
 <script>
 var dbSchemaDiagnostics = <?php echo json_encode($dbSchemaDiagnostics); ?>;
