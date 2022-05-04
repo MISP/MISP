@@ -5,7 +5,7 @@
             <div class="workflow-selector-container">
                 <select type="text" placeholder="Load a workflow" class="chosen-container workflows" autocomplete="off">
                     <?php foreach ($workflows as $workflow) : ?>
-                        <option val="<?= h($workflow['Workflow']['name']) ?>"><?= h($workflow['Workflow']['name']) ?></option>
+                        <option value="<?= h($workflow['Workflow']['id']) ?>" <?= $selectedWorklow['Workflow']['id'] == $workflow['Workflow']['id'] ? 'selected' : '' ?>><?= h($workflow['Workflow']['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>

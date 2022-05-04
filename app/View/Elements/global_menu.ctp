@@ -423,6 +423,15 @@
                         'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
                     ),
                     array(
+                        'text' => __('Workflows'),
+                        'url' => $baseurl . '/workflows/index',
+                        'requirement' => $isSiteAdmin
+                    ),
+                    array(
+                        'type' => 'separator',
+                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
+                    ),
+                    array(
                         'text' => __('Blocklist Event'),
                         'url' => $baseurl . '/eventBlocklists/add',
                         'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin

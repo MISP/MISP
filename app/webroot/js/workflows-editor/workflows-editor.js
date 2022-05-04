@@ -64,7 +64,8 @@ function initDrawflow() {
 
     $chosenWorkflows.chosen()
         .on('change', function (evt, param) {
-            // console.log(param);
+            var selection = param.selected
+            window.location = '/workflows/editor/' + selection
         });
     $chosenBlocks.chosen()
         .on('change', function (evt, param) {

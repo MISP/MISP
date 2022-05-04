@@ -254,7 +254,7 @@ class Workflow extends AppModel
                     ],
                 ],
                 'outputs' => 0,
-                'disabled' => true,
+                // 'disabled' => true,
             ],
             [
                 'id' => 'enrich-attribute',
@@ -269,6 +269,25 @@ class Workflow extends AppModel
                 'id' => 'slack-message',
                 'name' => 'Slack Message',
                 'icon' => 'slack',
+                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'module_type' => 'action',
+                'params' => [
+                    [
+                        'type' => 'select',
+                        'label' => 'Channel name',
+                        'default' => 'team-4_3_misp',
+                        'options' => [
+                            'team-4_3_misp',
+                            'team-4_0_elite_as_one',
+                        ],
+                    ],
+                ],
+                'outputs' => 0,
+            ],
+            [
+                'id' => 'matter-message',
+                'name' => 'MatterMost Message',
+                'icon' => 'comment-dots',
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
                 'module_type' => 'action',
                 'params' => [

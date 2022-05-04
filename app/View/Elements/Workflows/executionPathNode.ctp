@@ -4,7 +4,7 @@
             <i class="fa-fw <?= $this->FontAwesome->getClass($node['module_data']['icon']) ?>"></i>
         </div>
         <div>
-            <strong style="font-size: large;"><?= h($node['module_data']['id']) ?></strong>
+            <strong style="font-size: larger; margin-right: 3px;"><?= h($node['module_data']['id']) ?></strong>
         </div>
     </div>
 </div>
