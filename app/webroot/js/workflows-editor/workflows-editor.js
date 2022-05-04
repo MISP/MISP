@@ -68,7 +68,16 @@ function initDrawflow() {
         });
     $chosenBlocks.chosen()
         .on('change', function (evt, param) {
-            // console.log(param);
+            var selection = param.selected
+            var selected_module = all_blocks.filter(function(block) {
+                return block.id == selection
+            })
+            var canvasBR = $canvas[0].getBoundingClientRect()
+            var position = {
+                top: canvasBR.height / 2 - canvasBR.top,
+                left: canvasBR.left + canvasBR.width / 2
+            }
+            addNode(selected_module[0], position)
         });
 
     $('.sidebar-workflow-block').each(function () {
@@ -105,81 +114,9 @@ function initDrawflow() {
 
     loadWorkflow()
     $saveWorkflowButton.click(saveWorkflow)
+    $importWorkflowButton.click(importWorkflow)
+    $exportWorkflowButton.click(exportWorkflow)
 
-}
-
-function getTemplateForBlock(block) {
-    var html = block.name
-    if (block.html !== undefined) {
-        html = block.html
-    } else {
-        if (block.html_template !== undefined) {
-            html = window['dot' + block.html_template](block)
-        } else {
-            html = dotBlockDefault(block)
-        }
-    }
-    return html
-}
-
-function genBlockParamHtml(block) {
-    if (!block.params) {
-        return ''
-    }
-    var html = ''
-    block.params.forEach(function(param) {
-        paramHtml = ''
-        switch (param.type) {
-            case 'input':
-                paramHtml = genInput(param)[0].outerHTML
-                break;
-            case 'select':
-                paramHtml = genSelect(param)[0].outerHTML
-                break;
-            default:
-                break;
-        }
-        html += paramHtml
-    })
-    return html
-}
-
-function genSelect(options) {
-    var $select = $('<select>').css({
-        width: '100%',
-    })
-    options.options.forEach(function(option) {
-        var optionValue = ''
-        var optionName = ''
-        if (typeof option === 'string') {
-            optionValue = option
-            optionName = option
-        } else {
-            optionValue = option.value
-            optionName = option.name
-        }
-        var $option = $('<option>')
-            .val(optionValue)
-            .text(optionName)
-        $select.append($option)
-    })
-    if (options.default !== undefined) {
-        $select.val(options.default)
-    }
-    return $select
-}
-
-function genInput(options) {
-    var $input = $('<input>')
-    $input.attr('type', 'text')
-    if (options.default !== undefined) {
-        // $input.val(options.default)
-        $input.attr('value', options.default) // wtf why does it not work?!
-    }
-    if (options.placeholder !== undefined) {
-        $input.attr('placeholder', options.placeholder)
-    }
-    return $input
 }
 
 function invalidateContentCache() {
@@ -203,12 +140,6 @@ function revalidateContentCache() {
         .addClass('label-success')
         .text(changeDetectedMessage1 + changeDetectedMessage2 + moment(parseInt(lastModified)).fromNow())
 }
-
-function refreshLastUpdatedField() {
-    // lastModifiedMessage = "Last modified: "
-    // $lastModifiedField.text(lastModifiedMessage + moment(parseInt(lastModified)).fromNow())
-}
-
 
 
 function addNode(block, position) {
@@ -245,7 +176,6 @@ function getEditorData() {
 function loadWorkflow() {
     fetchWorkflow(workflow_id, function(workflow) {
         lastModified = workflow.timestamp + '000'
-        // refreshLastUpdatedField()
         revalidateContentCache()
         if (workflow.data !== undefined) {
             workflow.data = JSON.parse(workflow.data)
@@ -315,7 +245,6 @@ function saveWorkflow(confirmSave, callback) {
                     showMessage('success', workflow.message);
                     if (workflow.data !== undefined) {
                         lastModified = workflow.data.Workflow.timestamp + '000'
-                        // refreshLastUpdatedField()
                         revalidateContentCache()
                     }
                 }
@@ -334,6 +263,14 @@ function saveWorkflow(confirmSave, callback) {
             url: formUrl
         })
     })
+}
+
+function importWorkflow() {
+    showMessage('fail', 'Import workflow: to be implemented')
+}
+
+function exportWorkflow() {
+    showMessage('fail', 'Export workflow: to be implemented')
 }
 
 /* UI Utils */
@@ -372,4 +309,78 @@ function toggleEditorLoading(loading, message) {
     } else {
         $loadingBackdrop.empty().hide()
     }
+}
+
+function getTemplateForBlock(block) {
+    var html = block.name
+    if (block.html !== undefined) {
+        html = block.html
+    } else {
+        if (block.html_template !== undefined) {
+            html = window['dot' + block.html_template](block)
+        } else {
+            html = dotBlockDefault(block)
+        }
+    }
+    return html
+}
+
+function genBlockParamHtml(block) {
+    if (!block.params) {
+        return ''
+    }
+    var html = ''
+    block.params.forEach(function (param) {
+        paramHtml = ''
+        switch (param.type) {
+            case 'input':
+                paramHtml = genInput(param)[0].outerHTML
+                break;
+            case 'select':
+                paramHtml = genSelect(param)[0].outerHTML
+                break;
+            default:
+                break;
+        }
+        html += paramHtml
+    })
+    return html
+}
+
+function genSelect(options) {
+    var $select = $('<select>').css({
+        width: '100%',
+    })
+    options.options.forEach(function (option) {
+        var optionValue = ''
+        var optionName = ''
+        if (typeof option === 'string') {
+            optionValue = option
+            optionName = option
+        } else {
+            optionValue = option.value
+            optionName = option.name
+        }
+        var $option = $('<option>')
+            .val(optionValue)
+            .text(optionName)
+        $select.append($option)
+    })
+    if (options.default !== undefined) {
+        $select.val(options.default)
+    }
+    return $select
+}
+
+function genInput(options) {
+    var $input = $('<input>')
+    $input.attr('type', 'text')
+    if (options.default !== undefined) {
+        // $input.val(options.default)
+        $input.attr('value', options.default) // wtf why does it not work?!
+    }
+    if (options.placeholder !== undefined) {
+        $input.attr('placeholder', options.placeholder)
+    }
+    return $input
 }

@@ -8,28 +8,30 @@
                         <option val="<?= h($workflow['Workflow']['name']) ?>"><?= h($workflow['Workflow']['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
+            </div>
+            <div class="" style="margin-top: 0.5em;">
                 <div class="btn-group" style="margin-left: 3px;">
                     <a class="btn btn-primary" href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('New') ?></a>
                     <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#"><span class="caret"></span></a>
                     <ul class="dropdown-menu">
-                        <li><a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-export') ?>"></i> <?= __('Export workflow') ?></a></li>
-                        <li><a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow') ?></a></li>
+                        <li><a id="exportWorkflow" href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-export') ?>"></i> <?= __('Export workflow') ?></a></li>
+                        <li><a id="importWorkflow" href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow') ?></a></li>
                     </ul>
                 </div>
-            </div>
-            <div class="" style="margin-left: 3px;">
                 <button id="saveWorkflow" class="btn btn-primary" href="#">
                     <i class="fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save') ?>
                     <span class="fa fa-spin fa-spinner loading-span hidden"></span>
                 </button>
                 <button id="deleteWorkflow" class="btn btn-danger" href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('trash') ?>"></i> <?= __('Delete') ?></button>
             </div>
-            <span id="lastModifiedField" title="<?= __('Last updated') ?>" class="last-modified label">2 days ago</span>
+            <div class="" style="margin-top: 0.25em;">
+                <span id="lastModifiedField" title="<?= __('Last updated') ?>" class="last-modified label">2 days ago</span>
+            </div>
 
             <h2>Blocks</h2>
             <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off">
                 <?php foreach ($modules['blocks_all'] as $block) : ?>
-                    <option val="<?= h($block['name']) ?>"><?= h($block['name']) ?></option>
+                    <option value="<?= h($block['id']) ?>"><?= h($block['name']) ?></option>
                 <?php endforeach; ?>
             </select>
 
@@ -108,14 +110,16 @@ echo $this->element('genericElements/assetLoader', [
     var $chosenWorkflows = $('.root-container .side-panel .chosen-container.workflows')
     var $chosenBlocks = $('.root-container .side-panel .chosen-container.blocks')
     var $drawflow = $('#drawflow')
+    var $importWorkflowButton = $('#importWorkflow')
+    var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')
     var $deleteWorkflowButton = $('#deleteWorkflow')
     var $lastModifiedField = $('#lastModifiedField')
     var editor = false
     var all_blocks = <?= json_encode($modules['blocks_all']) ?>;
     var worklow = false
-    <?php if (!empty($workflow)): ?>
-    var worklow = <?= json_encode($workflow) ?>;
+    <?php if (!empty($workflow)) : ?>
+        var worklow = <?= json_encode($workflow) ?>;
     <?php endif; ?>
 
     $(document).ready(function() {
