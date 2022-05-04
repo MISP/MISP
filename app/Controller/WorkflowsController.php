@@ -96,7 +96,7 @@ class WorkflowsController extends AppController
         }
         $this->set('id', $id);
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'view'));
-        $execution_order = $this->Workflow->getExecutionFlow($this->Auth->user(), $id);
+        $execution_order = $this->Workflow->getExecutionPath($this->Auth->user(), $id);
         $this->set('execution_order', $execution_order);
     }
 

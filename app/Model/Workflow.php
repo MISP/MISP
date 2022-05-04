@@ -111,7 +111,7 @@ class Workflow extends AppModel
         }
     }
 
-    public function getExecutionFlow($user, $id): array
+    public function getExecutionPath($user, $id): array
     {
         $this->loadModuleByID();
         $workflow = $this->fetchWorkflow($user, $id);
@@ -126,7 +126,7 @@ class Workflow extends AppModel
         // construct execution flow following outputs/inputs of each  blocks
         $processedNodeIDs = [];
         foreach ($trigger_modules as $i => $trigger_module) {
-            $this->buildExecutionFlowViaConnections($trigger_modules[$i], $workflow['Workflow']['data'], $processedNodeIDs);
+            $this->buildExecutionPathViaConnections($trigger_modules[$i], $workflow['Workflow']['data'], $processedNodeIDs);
         }
         $execution_order = [];
         foreach ($trigger_modules as $module) {
@@ -135,7 +135,7 @@ class Workflow extends AppModel
         return $execution_order;
     }
 
-    public function buildExecutionFlowViaConnections(&$node, $allData, &$processedNodeIDs)
+    public function buildExecutionPathViaConnections(&$node, $allData, &$processedNodeIDs)
     {
         if (!empty($processedNodeIDs[$node['id']])) { // Prevent infinite loop
             return $node;
@@ -145,7 +145,7 @@ class Workflow extends AppModel
             foreach ($node['outputs'] as $output_id => $outputs) {
                 foreach ($outputs as $connections) {
                     foreach ($connections as $connection) {
-                        $nextNode = $this->buildExecutionFlowViaConnections($allData[$connection['node']], $allData, $processedNodeIDs);
+                        $nextNode = $this->buildExecutionPathViaConnections($allData[$connection['node']], $allData, $processedNodeIDs);
                         $node['next'][] = $this->cleanNode($nextNode);
                     }
                 }
