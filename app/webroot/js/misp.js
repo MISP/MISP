@@ -4852,20 +4852,57 @@ $(document.body).on('click', '[data-popover-popup]', function (e) {
 });
 
 function queryEventLock(event_id, timestamp) {
-    if (!document.hidden) {
+    var interval = null;
+    var errorCount = 0;
+    var $container = $('#main-view-container');
+
+    function fetchLocks() {
         $.ajax({
             url: baseurl + "/events/checkLocks/" + event_id + "/" + timestamp,
             success: function(data, statusText, xhr) {
-                 if (xhr.status == 200) {
-                     $('#event_lock_warning').remove();
-                     $('#main-view-container').append(data);
-                 } else if (xhr.status == 204) {
-                     $('#event_lock_warning').remove();
-                 }
+                if (xhr.status === 200) {
+                    $('#event_lock_warning').remove();
+                    $container.append(data);
+                } else if (xhr.status === 204) {
+                    $('#event_lock_warning').remove();
+                }
+                errorCount = 0;
+            },
+            error: function (xhr) {
+                if (xhr.status === 401) {
+                    var error = '<div id="event_lock_warning" class="alert">' +
+                        '<button class="close" data-dismiss="alert">×</button>' +
+                        'Unauthorized. Please reload page to log again.' +
+                        '</div>';
+                    $('#event_lock_warning').remove();
+                    $container.append(error);
+                }
+
+                ++errorCount;
+                if (errorCount > 60) { // 5 mins
+                    clearInterval(interval);
+                    interval = null;
+                }
             }
         });
     }
-    setTimeout(function() { queryEventLock(event_id, timestamp); }, 5000);
+
+    document.addEventListener("visibilitychange", function() {
+        if (document.visibilityState === 'visible') {
+            if (interval === null) {
+                interval = setInterval(fetchLocks, 5000); // 5 seconds
+            }
+        } else {
+            if (interval) {
+                clearInterval(interval);
+                interval = null;
+            }
+        }
+    });
+
+    if (!document.hidden) {
+        interval = setInterval(fetchLocks, 5000); // 5 seconds
+    }
 }
 
 function checkIfLoggedIn() {
