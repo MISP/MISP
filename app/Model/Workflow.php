@@ -65,7 +65,7 @@ class Workflow extends AppModel
     {
         foreach ($results as $k => $result) {
             if (empty($result['Workflow']['data'])) {
-                $result['Workflow']['data'] = '[]';
+                $result['Workflow']['data'] = '{}';
             }
             $results[$k]['Workflow']['data'] = JsonTool::decode($result['Workflow']['data']);
         }
@@ -116,8 +116,12 @@ class Workflow extends AppModel
         $this->loadModuleByID();
         $workflow = $this->fetchWorkflow($user, $id);
         $trigger_modules = [];
+        $workflowData = [];
+        foreach ($workflow['Workflow']['data'] as $node) { // Re-index data by node ID
+            $workflowData[$node['id']] = $node;
+        }
         // collect trigger block acting as starting point
-        foreach ($workflow['Workflow']['data'] as $node_id => $node) {
+        foreach ($workflowData as $node_id => $node) {
             $module = $this->moduleByID[$node['data']['id']];
             if ($module['module_type'] == 'trigger') {
                 $trigger_modules[] = $node;
@@ -126,13 +130,13 @@ class Workflow extends AppModel
         // construct execution flow following outputs/inputs of each  blocks
         $processedNodeIDs = [];
         foreach ($trigger_modules as $i => $trigger_module) {
-            $this->buildExecutionPathViaConnections($trigger_modules[$i], $workflow['Workflow']['data'], $processedNodeIDs);
+            $this->buildExecutionPathViaConnections($trigger_modules[$i], $workflowData, $processedNodeIDs);
         }
-        $execution_order = [];
+        $execution_path = [];
         foreach ($trigger_modules as $module) {
-            $execution_order[] = $this->cleanNode($module);
+            $execution_path[] = $this->cleanNode($module);
         }
-        return $execution_order;
+        return $execution_path;
     }
 
     public function buildExecutionPathViaConnections(&$node, $allData, &$processedNodeIDs)

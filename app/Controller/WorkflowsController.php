@@ -33,7 +33,7 @@ class WorkflowsController extends AppController
                     $data['Workflow']['description'] = '';
                 }
                 if (empty($data['Workflow']['data'])) {
-                    $data['Workflow']['data'] = '{}';
+                    $data['Workflow']['data'] = [];
                 }
                 return $data;
             },
@@ -96,8 +96,8 @@ class WorkflowsController extends AppController
         }
         $this->set('id', $id);
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'view'));
-        $execution_order = $this->Workflow->getExecutionPath($this->Auth->user(), $id);
-        $this->set('execution_order', $execution_order);
+        $execution_path = $this->Workflow->getExecutionPath($this->Auth->user(), $id);
+        $this->set('execution_path', $execution_path);
     }
 
     public function editor($id = false)

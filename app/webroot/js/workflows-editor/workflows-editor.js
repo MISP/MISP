@@ -170,6 +170,7 @@ function addNode(block, position) {
 
 function getEditorData() {
     var data = editor.export().drawflow.Home.data
+        .filter(function (node) { return node !== null }) // for some reason, the editor create null nodes
     return data
 }
 
@@ -177,7 +178,7 @@ function loadWorkflow() {
     fetchWorkflow(workflow_id, function(workflow) {
         lastModified = workflow.timestamp + '000'
         revalidateContentCache()
-        if (workflow.data !== undefined) {
+        if (workflow.data) {
             var editor_data = {
                 drawflow: {
                     Home: {
