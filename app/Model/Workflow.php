@@ -46,6 +46,8 @@ class Workflow extends AppModel
 
     const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'data'];
 
+    private $moduleByID = [];
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -99,6 +101,69 @@ class Workflow extends AppModel
         return true;
     }
 
+    private function loadModuleByID()
+    {
+        if (empty($this->moduleByID)) {
+            $modules = $this->getModules();
+            foreach ($modules['blocks_all'] as $module) {
+                $this->moduleByID[$module['id']] = $module;
+            }
+        }
+    }
+
+    public function getExecutionFlow($user, $id): array
+    {
+        $this->loadModuleByID();
+        $workflow = $this->fetchWorkflow($user, $id);
+        $trigger_modules = [];
+        // collect trigger block acting as starting point
+        foreach ($workflow['Workflow']['data'] as $node_id => $node) {
+            $module = $this->moduleByID[$node['data']['id']];
+            if ($module['module_type'] == 'trigger') {
+                $trigger_modules[] = $node;
+            }
+        }
+        // construct execution flow following outputs/inputs of each  blocks
+        $processedNodeIDs = [];
+        foreach ($trigger_modules as $i => $trigger_module) {
+            $this->buildExecutionFlowViaConnections($trigger_modules[$i], $workflow['Workflow']['data'], $processedNodeIDs);
+        }
+        $execution_order = [];
+        foreach ($trigger_modules as $module) {
+            $execution_order[] = $this->cleanNode($module);
+        }
+        return $execution_order;
+    }
+
+    public function buildExecutionFlowViaConnections(&$node, $allData, &$processedNodeIDs)
+    {
+        if (!empty($processedNodeIDs[$node['id']])) { // Prevent infinite loop
+            return $node;
+        }
+        $processedNodeIDs[$node['id']] = true;
+        if (!empty($node['outputs'])) {
+            foreach ($node['outputs'] as $output_id => $outputs) {
+                foreach ($outputs as $connections) {
+                    foreach ($connections as $connection) {
+                        $nextNode = $this->buildExecutionFlowViaConnections($allData[$connection['node']], $allData, $processedNodeIDs);
+                        $node['next'][] = $this->cleanNode($nextNode);
+                    }
+                }
+            }
+        }
+        return $node;
+    }
+
+    public function cleanNode($node): array
+    {
+        return [
+            'id' => $node['id'],
+            'data' => $node['data'],
+            'module_data' => $this->moduleByID[$node['data']['id']],
+            'next' => $node['next'] ?? [],
+        ];
+    }
+
     public function getModules(): array
     {
         $blocks_trigger = [
@@ -107,6 +172,7 @@ class Workflow extends AppModel
                 'name' => 'Publish',
                 'icon' => 'upload',
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'module_type' => 'trigger',
                 'inputs' => 0,
             ],
             [
@@ -114,6 +180,7 @@ class Workflow extends AppModel
                 'name' => 'New Attribute',
                 'icon' => 'cube',
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'module_type' => 'trigger',
                 'inputs' => 0,
                 'disabled' => true,
             ],
@@ -122,6 +189,7 @@ class Workflow extends AppModel
                 'name' => 'New Object',
                 'icon' => 'cubes',
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'module_type' => 'trigger',
                 'inputs' => 0,
                 'disabled' => true,
             ],
@@ -130,6 +198,7 @@ class Workflow extends AppModel
                 'name' => 'Email sent',
                 'icon' => 'envelope',
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'module_type' => 'trigger',
                 'inputs' => 0,
                 'disabled' => true,
             ],
@@ -138,6 +207,7 @@ class Workflow extends AppModel
                 'name' => 'New User',
                 'icon' => 'user-plus',
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'module_type' => 'trigger',
                 'inputs' => 0,
                 'disabled' => true,
             ],
@@ -146,6 +216,7 @@ class Workflow extends AppModel
                 'name' => 'Feed pull',
                 'icon' => 'arrow-alt-circle-down',
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'module_type' => 'trigger',
                 'inputs' => 0,
                 'disabled' => true,
             ],
@@ -157,9 +228,9 @@ class Workflow extends AppModel
                 'name' => 'IF',
                 'icon' => 'code-branch',
                 'description' => 'IF conditions',
+                'module_type' => 'condition',
                 'outputs' => 2,
                 'html_template' => 'IF',
-                'disabled' => true,
             ],
         ];
 
@@ -169,6 +240,7 @@ class Workflow extends AppModel
                 'name' => 'Add Tag',
                 'icon' => 'tag',
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'module_type' => 'action',
                 'params' => [
                     [
                         'type' => 'input',
@@ -185,6 +257,7 @@ class Workflow extends AppModel
                 'name' => 'Enrich Attribute',
                 'icon' => 'asterisk',
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'module_type' => 'action',
                 'outputs' => 0,
                 'disabled' => true,
             ],
@@ -193,6 +266,7 @@ class Workflow extends AppModel
                 'name' => 'Slack Message',
                 'icon' => 'slack',
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'module_type' => 'action',
                 'params' => [
                     [
                         'type' => 'select',
@@ -211,6 +285,7 @@ class Workflow extends AppModel
                 'name' => 'Send Email',
                 'icon' => 'envelope',
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'module_type' => 'action',
                 'params' => [
                     [
                         'type' => 'select',
@@ -230,6 +305,7 @@ class Workflow extends AppModel
                 'id' => 'dev-null',
                 'icon' => 'ban',
                 'description' => 'Essentially a /dev/null',
+                'module_type' => 'action',
                 'outputs' => 0,
             ],
             [
@@ -238,6 +314,7 @@ class Workflow extends AppModel
                 'icon' => 'wifi',
                 'icon_class' => 'fa-rotate-90',
                 'description' => 'Push to the ZMQ channel',
+                'module_type' => 'action',
                 'params' => [
                     [
                         'type' => 'input',

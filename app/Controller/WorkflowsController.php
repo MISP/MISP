@@ -54,6 +54,7 @@ class WorkflowsController extends AppController
         $savedWorkflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
         if ($this->request->is('post') || $this->request->is('put')) {
             $newWorkflow = $this->request->data;
+            $newWorkflow['Workflow']['data'] = JsonTool::decode($newWorkflow['Workflow']['data']);
             $newWorkflow = $this->__applyDataFromSavedWorkflow($newWorkflow, $savedWorkflow);
             $errors = $this->Workflow->editWorkflow($this->Auth->user(), $newWorkflow);
             $redirectTarget = ['action' => 'view', $id];
@@ -95,6 +96,8 @@ class WorkflowsController extends AppController
         }
         $this->set('id', $id);
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'view'));
+        $execution_order = $this->Workflow->getExecutionFlow($this->Auth->user(), $id);
+        $this->set('execution_order', $execution_order);
     }
 
     public function editor($id = false)

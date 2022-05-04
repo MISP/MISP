@@ -178,7 +178,6 @@ function loadWorkflow() {
         lastModified = workflow.timestamp + '000'
         revalidateContentCache()
         if (workflow.data !== undefined) {
-            workflow.data = JSON.parse(workflow.data)
             var editor_data = {
                 drawflow: {
                     Home: {
@@ -197,7 +196,7 @@ function fetchWorkflow(id, callback) {
     var url = '/workflows/view/' + id + '.json'
     $.ajax({
         beforeSend: function () {
-            toggleLoadingInSaveButton(true)
+            toggleEditorLoading(true, 'Loading workflow')
         },
         success: function (workflow, textStatus) {
             if (workflow) {
@@ -215,7 +214,7 @@ function fetchWorkflow(id, callback) {
             }
         },
         complete: function () {
-            toggleLoadingInSaveButton(false)
+            toggleEditorLoading(false)
         },
         type: "post",
         url: url
