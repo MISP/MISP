@@ -31,6 +31,10 @@ var dotIF = doT.template(' \
     </div> \
 </div>')
 
+var workflow_id = 0
+var contentChanged = false
+var lastModified = 0
+
 function sanitizeObject(obj) {
     var newObj = {}
     for (var key of Object.keys(obj)) {
@@ -42,8 +46,16 @@ function sanitizeObject(obj) {
 
 
 function initDrawflow() {
+    workflow_id = $drawflow.data('workflowid')
     editor = new Drawflow($drawflow[0]);
     editor.start();
+
+    editor.on('nodeCreated', invalidateContentCache)
+    editor.on('nodeRemoved', invalidateContentCache)
+    editor.on('nodeDataChanged', invalidateContentCache)
+    editor.on('nodeMoved', invalidateContentCache)
+    editor.on('connectionCreated', invalidateContentCache)
+    editor.on('connectionRemoved', invalidateContentCache)
 
     $('#block-tabs a').click(function (e) {
         e.preventDefault();
@@ -81,18 +93,18 @@ function initDrawflow() {
             },
             stop: function (event, ui) {
                 $(this).removeClass('disabled')
-                // addNode($(this).data('block'), ui.position)
             }
         });
     })
 
     $canvas.droppable({
         drop: function (event, ui) {
-            // console.log(event)
-            // console.log(ui)
             addNode(ui.draggable.data('block'), ui.position)
         }
     });
+
+    loadWorkflow()
+    $saveWorkflowButton.click(saveWorkflow)
 
 }
 
@@ -170,6 +182,34 @@ function genInput(options) {
     return $input
 }
 
+function invalidateContentCache() {
+    changeDetectedMessage1 = "[unsaved]"
+    changeDetectedMessage2 = " Last saved change: "
+    contentTimestamp = true
+    toggleSaveButton(true)
+    $lastModifiedField
+        .removeClass('label-success')
+        .addClass('label-important')
+        .text(changeDetectedMessage1 + changeDetectedMessage2 + moment(parseInt(lastModified)).fromNow())
+}
+
+function revalidateContentCache() {
+    changeDetectedMessage1 = "[saved]"
+    changeDetectedMessage2 = " Last saved change: "
+    contentChanged = false
+    toggleSaveButton(false)
+    $lastModifiedField
+        .removeClass('label-important')
+        .addClass('label-success')
+        .text(changeDetectedMessage1 + changeDetectedMessage2 + moment(parseInt(lastModified)).fromNow())
+}
+
+function refreshLastUpdatedField() {
+    // lastModifiedMessage = "Last modified: "
+    // $lastModifiedField.text(lastModifiedMessage + moment(parseInt(lastModified)).fromNow())
+}
+
+
 
 function addNode(block, position) {
     var canvasPosition = $canvas[0].getBoundingClientRect()
@@ -195,4 +235,141 @@ function addNode(block, position) {
         block,
         html
     );
+}
+
+function getEditorData() {
+    var data = editor.export().drawflow.Home.data
+    return data
+}
+
+function loadWorkflow() {
+    fetchWorkflow(workflow_id, function(workflow) {
+        lastModified = workflow.timestamp + '000'
+        // refreshLastUpdatedField()
+        revalidateContentCache()
+        if (workflow.data !== undefined) {
+            workflow.data = JSON.parse(workflow.data)
+            var editor_data = {
+                drawflow: {
+                    Home: {
+                        data: workflow.data
+                    }
+                }
+            }
+            editor.import(editor_data);
+        }
+    })
+}
+
+
+/* API */
+function fetchWorkflow(id, callback) {
+    var url = '/workflows/view/' + id + '.json'
+    $.ajax({
+        beforeSend: function () {
+            toggleLoadingInSaveButton(true)
+        },
+        success: function (workflow, textStatus) {
+            if (workflow) {
+                workflow = workflow.Workflow
+                showMessage('success', 'Workflow fetched');
+                if (callback !== undefined) {
+                    callback(workflow)
+                }
+            }
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            showMessage('fail', saveFailedMessage + ': ' + errorThrown);
+            if (callback !== undefined) {
+                callback(false)
+            }
+        },
+        complete: function () {
+            toggleLoadingInSaveButton(false)
+        },
+        type: "post",
+        url: url
+    })
+}
+
+function saveWorkflow(confirmSave, callback) {
+    saveConfirmMessage = 'Confirm saving the current state of the workflow'
+    confirmSave = confirmSave === undefined ? true : confirmSave
+    if (confirmSave && !confirm(saveConfirmMessage)) {
+        return
+    }
+    var url = baseurl + "/workflows/edit/" + workflow_id
+    fetchFormDataAjax(url, function (formHTML) {
+        $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
+        var $tmpForm = $('#temp form')
+        var formUrl = $tmpForm.attr('action')
+        $tmpForm.find('[name="data[Workflow][data]"]').val(JSON.stringify(getEditorData()))
+
+        $.ajax({
+            data: $tmpForm.serialize(),
+            beforeSend: function () {
+                toggleLoadingInSaveButton(true)
+            },
+            success: function (workflow, textStatus) {
+                if (workflow) {
+                    showMessage('success', workflow.message);
+                    if (workflow.data !== undefined) {
+                        lastModified = workflow.data.Workflow.timestamp + '000'
+                        // refreshLastUpdatedField()
+                        revalidateContentCache()
+                    }
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                showMessage('fail', saveFailedMessage + ': ' + errorThrown);
+            },
+            complete: function () {
+                $('#temp').remove();
+                toggleLoadingInSaveButton(false)
+                if (callback !== undefined) {
+                    callback()
+                }
+            },
+            type: "post",
+            url: formUrl
+        })
+    })
+}
+
+/* UI Utils */
+function toggleSaveButton(enabled) {
+    $saveWorkflowButton
+        .prop('disabled', !enabled)
+}
+
+function toggleLoadingInSaveButton(saving) {
+    // TODO: Use I18n strings instead
+    toggleSaveButton(!saving)
+    if (saving) {
+        $saveWorkflowButton.find('.loading-span').show();
+        toggleEditorLoading(true, 'Saving workflow')
+    } else {
+        $saveWorkflowButton.find('.loading-span').hide();
+        toggleEditorLoading(false)
+    }
+}
+
+function toggleEditorLoading(loading, message) {
+    loadingSpanAnimation = '<span class="fa fa-spin fa-spinner loading-span"></span>'
+    if (loading) {
+        $loadingBackdrop.show()
+        $loadingBackdrop.append(
+            $('<div/>').css({
+                'font-size': '20px',
+                'color': 'white'
+            }).append(
+                $(loadingSpanAnimation).css({
+                    'margin-right': '0.5em'
+                }),
+                $('<span/>').text(message)
+            )
+        )
+    } else {
+        $loadingBackdrop.empty().hide()
+    }
 }

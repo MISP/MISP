@@ -40,15 +40,20 @@ class Workflow extends AppModel
     ];
 
     public $defaultContain = [
-        'Organisation',
-        'User'
+        // 'Organisation',
+        // 'User'
     ];
+
+    const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'data'];
 
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
         if (empty($this->data['Workflow']['data'])) {
             $this->data['Workflow']['data'] = [];
+        }
+        if (empty($this->data['Workflow']['timestamp'])) {
+            $this->data['Workflow']['timestamp'] = time();
         }
         $this->data['Workflow']['data'] = JsonTool::encode($this->data['Workflow']['data']);
         return true;
@@ -66,7 +71,7 @@ class Workflow extends AppModel
     }
 
     /**
-     * buildACLConditions Generate ACL conditions for viewing the report
+     * buildACLConditions Generate ACL conditions for viewing the workflow
      *
      * @param  array $user
      * @return array
@@ -96,11 +101,164 @@ class Workflow extends AppModel
 
     public function getModules(): array
     {
-        return [];
+        $blocks_trigger = [
+            [
+                'id' => 'publish',
+                'name' => 'Publish',
+                'icon' => 'upload',
+                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'inputs' => 0,
+            ],
+            [
+                'id' => 'new-attribute',
+                'name' => 'New Attribute',
+                'icon' => 'cube',
+                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'inputs' => 0,
+                'disabled' => true,
+            ],
+            [
+                'id' => 'new-object',
+                'name' => 'New Object',
+                'icon' => 'cubes',
+                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'inputs' => 0,
+                'disabled' => true,
+            ],
+            [
+                'id' => 'email-sent',
+                'name' => 'Email sent',
+                'icon' => 'envelope',
+                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'inputs' => 0,
+                'disabled' => true,
+            ],
+            [
+                'id' => 'user-new',
+                'name' => 'New User',
+                'icon' => 'user-plus',
+                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'inputs' => 0,
+                'disabled' => true,
+            ],
+            [
+                'id' => 'feed-pull',
+                'name' => 'Feed pull',
+                'icon' => 'arrow-alt-circle-down',
+                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'inputs' => 0,
+                'disabled' => true,
+            ],
+        ];
+
+        $blocks_condition = [
+            [
+                'id' => 'if',
+                'name' => 'IF',
+                'icon' => 'code-branch',
+                'description' => 'IF conditions',
+                'outputs' => 2,
+                'html_template' => 'IF',
+                'disabled' => true,
+            ],
+        ];
+
+        $blocks_action = [
+            [
+                'id' => 'add-tag',
+                'name' => 'Add Tag',
+                'icon' => 'tag',
+                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'params' => [
+                    [
+                        'type' => 'input',
+                        'label' => 'Tag name',
+                        'default' => 'tlp:red',
+                        'placeholder' => __('Enter tag name')
+                    ],
+                ],
+                'outputs' => 0,
+                'disabled' => true,
+            ],
+            [
+                'id' => 'enrich-attribute',
+                'name' => 'Enrich Attribute',
+                'icon' => 'asterisk',
+                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'outputs' => 0,
+                'disabled' => true,
+            ],
+            [
+                'id' => 'slack-message',
+                'name' => 'Slack Message',
+                'icon' => 'slack',
+                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'params' => [
+                    [
+                        'type' => 'select',
+                        'label' => 'Channel name',
+                        'default' => 'team-4_3_misp',
+                        'options' => [
+                            'team-4_3_misp',
+                            'team-4_0_elite_as_one',
+                        ],
+                    ],
+                ],
+                'outputs' => 0,
+            ],
+            [
+                'id' => 'send-email',
+                'name' => 'Send Email',
+                'icon' => 'envelope',
+                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
+                'params' => [
+                    [
+                        'type' => 'select',
+                        'label' => 'Email template',
+                        'default' => 'default',
+                        'options' => [
+                            'default',
+                            'TLP marking',
+                        ],
+                    ],
+                ],
+                'outputs' => 0,
+                'disabled' => true,
+            ],
+            [
+                'name' => 'Do nothing',
+                'id' => 'dev-null',
+                'icon' => 'ban',
+                'description' => 'Essentially a /dev/null',
+                'outputs' => 0,
+            ],
+            [
+                'name' => 'Push to ZMQ',
+                'id' => 'push-zmq',
+                'icon' => 'wifi',
+                'icon_class' => 'fa-rotate-90',
+                'description' => 'Push to the ZMQ channel',
+                'params' => [
+                    [
+                        'type' => 'input',
+                        'label' => 'ZMQ Topic',
+                        'default' => 'from-misp-workflow',
+                    ],
+                ],
+                'outputs' => 0,
+                'disabled' => true,
+            ],
+        ];
+        return [
+            'blocks_trigger' => $blocks_trigger,
+            'blocks_condition' => $blocks_condition,
+            'blocks_action' => $blocks_action,
+            'blocks_all' => array_merge($blocks_trigger, $blocks_condition, $blocks_action),
+        ];
     }
 
     /**
-     * fetchReports ACL-aware method. Basically find with ACL
+     * fetchWorkflows ACL-aware method. Basically find with ACL
      *
      * @param  array $user
      * @param  array $options
@@ -131,7 +289,7 @@ class Workflow extends AppModel
     }
 
     /**
-     * fetchReports ACL-aware method. Basically find with ACL
+     * fetchWorkflow ACL-aware method. Basically find with ACL
      *
      * @param  array $user
      * @param  int|string $id
@@ -152,6 +310,41 @@ class Workflow extends AppModel
             return [];
         }
         $workflow = $this->fetchWorkflows($user, $options);
-        return $workflow;
+        if (empty($workflow)) {
+            throw new NotFoundException(__('Invalid workflow'));
+        }
+        return $workflow[0];
+    }
+
+    /**
+     * editWorkflow Edit a worflow
+     *
+     * @param  array $user
+     * @param  array $workflow
+     * @return array Any errors preventing the edition
+     */
+    public function editWorkflow(array $user, array $workflow)
+    {
+        $errors = array();
+        if (!isset($workflow['Workflow']['uuid'])) {
+            $errors[] = __('Workflow doesn\'t have an UUID');
+            return $errors;
+        }
+        $existingWorkflow = $this->fetchWorkflow($user, $workflow['Workflow']['id']);
+        $workflow['Workflow']['id'] = $existingWorkflow['Workflow']['id'];
+        unset($workflow['Workflow']['timestamp']);
+        $errors = $this->saveAndReturnErrors($workflow, ['fieldList' => self::CAPTURE_FIELDS], $errors);
+        return $errors;
+    }
+
+    private function saveAndReturnErrors($data, $saveOptions = [], $errors = [])
+    {
+        $saveSuccess = $this->save($data, $saveOptions);
+        if (!$saveSuccess) {
+            foreach ($this->validationErrors as $validationError) {
+                $errors[] = $validationError[0];
+            }
+        }
+        return $errors;
     }
 }

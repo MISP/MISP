@@ -51,14 +51,21 @@ class WorkflowsController extends AppController
     public function edit($id)
     {
         $this->set('id', $id);
-        $params = [
-            'conditions' => $this->Workflow->buildACLConditions($this->Auth->user()),
-            'fields' => ['name', 'description', 'data'],
-            'redirect' => ['action' => 'view', $id],
-        ];
-        $this->CRUD->edit($id, $params);
-        if ($this->IndexFilter->isRest()) {
-            return $this->restResponsePayload;
+        $savedWorkflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $newWorkflow = $this->request->data;
+            $newWorkflow = $this->__applyDataFromSavedWorkflow($newWorkflow, $savedWorkflow);
+            $errors = $this->Workflow->editWorkflow($this->Auth->user(), $newWorkflow);
+            $redirectTarget = ['action' => 'view', $id];
+            if (!empty($errors)) {
+                return $this->__getFailResponseBasedOnContext($errors, null, 'edit', $this->Workflow->id, $redirectTarget);
+            } else {
+                $successMessage = __('Workflow saved.');
+                $savedWorkflow =$this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+                return $this->__getSuccessResponseBasedOnContext($successMessage, $savedWorkflow, 'edit', false, $redirectTarget);
+            }
+        } else {
+            $this->request->data = $savedWorkflow;
         }
 
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'edit'));
@@ -90,9 +97,14 @@ class WorkflowsController extends AppController
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'view'));
     }
 
-    public function editor()
+    public function editor($id = false)
     {
         $modules = $this->Workflow->getModules();
+        $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+        $workflows = $this->Workflow->fetchWorkflows($this->Auth->user());
+        $modules = $this->Workflow->getModules();
+        $this->set('selectedWorklow', $workflow);
+        $this->set('workflows', $workflows);
         $this->set('modules', $modules);
     }
 
@@ -102,10 +114,10 @@ class WorkflowsController extends AppController
             if (!is_null($data)) {
                 return $this->RestResponse->viewData($data, $this->response->type());
             } else {
-                return $this->RestResponse->saveSuccessResponse($this->EventReport->alias, $action, $id, false, $message);
+                return $this->RestResponse->saveSuccessResponse('Workflow', $action, $id, false, $message);
             }
         } elseif ($this->request->is('ajax')) {
-            return $this->RestResponse->saveSuccessResponse($this->EventReport->alias, $action, $id, false, $message, $data);
+            return $this->RestResponse->saveSuccessResponse('Workflow', $action, $id, false, $message, $data);
         } else {
             $this->Flash->success($message);
             $this->redirect($redirect);
@@ -122,13 +134,27 @@ class WorkflowsController extends AppController
             if ($data !== null) {
                 return $this->RestResponse->viewData($data, $this->response->type());
             } else {
-                return $this->RestResponse->saveFailResponse('EventReport', $action, $id, $message);
+                return $this->RestResponse->saveFailResponse('Workflow', $action, $id, $message);
             }
         } elseif ($this->request->is('ajax')) {
-            return $this->RestResponse->saveFailResponse('EventReport', $action, $id, $message, false, $data);
+            return $this->RestResponse->saveFailResponse('Workflow', $action, $id, $message, false, $data);
         } else {
             $this->Flash->error($message);
             $this->redirect($this->referer());
         }
+    }
+
+    private function __applyDataFromSavedWorkflow($newWorkflow, $savedWorkflow)
+    {
+        if (!isset($newReport['Workflow'])) {
+            $newReport = ['Workflow' => $newWorkflow];
+        }
+        $ignoreFieldList = ['id', 'uuid', 'org_id', 'user_id'];
+        foreach (Workflow::CAPTURE_FIELDS as $field) {
+            if (!in_array($field, $ignoreFieldList) && isset($newWorkflow['Workflow'][$field])) {
+                $savedWorkflow['Workflow'][$field] = $newWorkflow['Workflow'][$field];
+            }
+        }
+        return $savedWorkflow;
     }
 }

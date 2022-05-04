@@ -19,7 +19,7 @@ echo $this->element(
             ],
             [
                 'key' => __('Timestamp'),
-                'path' => 'Workflow.url',
+                'path' => 'Workflow.timestamp',
             ],
             [
                 'key' => __('Owner Organisation'),
