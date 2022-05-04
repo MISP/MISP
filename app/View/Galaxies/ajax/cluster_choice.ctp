@@ -7,14 +7,13 @@
     </div>
 <?php endif; ?>
 <script>
-    $(document).ready(function() {
+    $(function() {
         $('#GalaxyAttributeIds').attr('value', getSelected());
         $('#mirrorOnEvent').change(function() {
             var $select = $(this).closest('.generic-picker-wrapper').find('select')
             var additionalData = $select.data('additionaldata');
-            additionalData = JSON.parse(atob(additionalData));
             additionalData['mirrorOnEvent'] = $(this).prop('checked')
-            $select.data('additionaldata', btoa(JSON.stringify(additionalData)))
+            $select.data('additionaldata', JSON.stringify(additionalData))
         })
     });
 </script>

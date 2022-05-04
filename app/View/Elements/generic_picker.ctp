@@ -62,7 +62,7 @@
 </style>
 
 <script>
-function execAndClose(elem, alreadyExecuted) {
+function execAndClose(elem) {
     var dismissid = $(elem).closest('div.popover').attr('data-dismissid');
     $('[data-dismissid="' + dismissid + '"]').popover('destroy');
 }
@@ -220,25 +220,21 @@ function submitFunction(clicked, callback) {
     }
 
     var additionalData = $select.data('additionaldata');
-    if (additionalData !== undefined) {
-        additionalData = JSON.parse(atob(additionalData));
-    } else {
+    if (additionalData === undefined) {
         additionalData = {};
     }
     additionalDataOption = options_additionalData[$select.attr('id')];
-    if (additionalData !== undefined) {
-        additionalData['itemOptions'] = additionalDataOption;
-        // callback function defined in the controller can be overridden in the JS
-        var dismissId = $clicked.closest('.popover[data-dismissid]').data('dismissid');
-        var callingButton = $('button[data-dismissid="' + dismissId + '"]');
-        if (callingButton.data('popover-no-submit') && callingButton.data('popover-callback-function') !== undefined) {
-            callbackFunction = callingButton.data('popover-callback-function');
-            execAndClose(clicked);
-            callbackFunction(selected, additionalData);
-        } else {
-            execAndClose(clicked);
-            callback(selected, additionalData);
-        }
+    additionalData['itemOptions'] = additionalDataOption;
+    // callback function defined in the controller can be overridden in the JS
+    var dismissId = $clicked.closest('.popover[data-dismissid]').data('dismissid');
+    var callingButton = $('button[data-dismissid="' + dismissId + '"]');
+    if (callingButton.data('popover-no-submit') && callingButton.data('popover-callback-function') !== undefined) {
+        callbackFunction = callingButton.data('popover-callback-function');
+        execAndClose(clicked);
+        callbackFunction(selected, additionalData);
+    } else {
+        execAndClose(clicked);
+        callback(selected, additionalData);
     }
 }
 </script>
@@ -253,15 +249,14 @@ function submitFunction(clicked, callback) {
     $flag_addPills = false;
     ?>
     <?php if ($use_select): ?>
-        <select id="<?php echo $select_id; ?>"<?= $defaults['autofocus'] ? ' autofocus' : '' ?> style="height: 100px; margin-bottom: 0px;" <?= $this->GenericPicker->add_select_params($defaults); ?>>
+        <select id="<?php echo $select_id; ?>"<?= $defaults['autofocus'] ? ' autofocus' : '' ?> style="margin-bottom: 0" <?= $this->GenericPicker->add_select_params($defaults); ?>>
             <option></option>
             <?php
                 foreach ($items as $param) {
                     if (isset($param['isPill']) && $param['isPill']) {
                         $flag_addPills = true;
-                        continue;
                     } else {
-                        echo $this->GenericPicker->add_option($param, $defaults, $countThresholdReached);
+                        echo $this->GenericPicker->add_option($param);
                         if (!$countThresholdReached && isset($param['template'])) {
                             $template = $this->GenericPicker->build_template($param);
                             $option_templates[h($param['value'])] = $template;
@@ -302,7 +297,7 @@ function submitFunction(clicked, callback) {
 
     <?php elseif (count($items) > 0): ?>
         <ul class="nav nav-pills">
-            <select id="<?php echo $select_id; ?>"<?= $defaults['autofocus'] ? ' autofocus' : '' ?> style="display: none;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>></select>
+            <select id="<?php echo $select_id; ?>"<?= $defaults['autofocus'] ? ' autofocus' : '' ?> style="display: none;" <?php echo $this->GenericPicker->add_select_params($defaults); ?>></select>
             <?php
             foreach ($items as $param) {
                 echo $this->GenericPicker->add_pill($param, $defaults);
