@@ -1636,6 +1636,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'text' => __('Edit Workflow')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'editor',
+                        'url' => '/workflows/editor/' . h($id),
+                        'text' => __('Edit Workflow in editor')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/admin/audit_logs/index/model:Workflows/model_id:' .  h($id),
                         'text' => __('View worflow history'),
                         'requirement' => Configure::read('MISP.log_new_audit') && $canAccess('auditLogs', 'admin_index'),

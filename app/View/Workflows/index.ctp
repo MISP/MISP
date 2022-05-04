@@ -62,6 +62,11 @@
                 'description' => __('You can create workflows relying on pipeline hooks to that can listen to triggers and then perform actions depending on some conditions'),
                 'actions' => [
                     [
+                        'url' => $baseurl . '/workflows/view/',
+                        'url_params_data_paths' => ['Workflow.id'],
+                        'icon' => 'eye'
+                    ],
+                    [
                         'url' => $baseurl . '/workflows/editor/',
                         'url_params_data_paths' => ['Workflow.id'],
                         'icon' => 'code'
