@@ -5280,14 +5280,14 @@ function setHomePage() {
         type: 'GET',
         url: baseurl + '/userSettings/setHomePage',
         success: function (data) {
-            $('#ajax_hidden_container').html(data);
+            var $tmp = $(data);
             var currentPage = $('#setHomePage').data('current-page');
-            $('#UserSettingPath').val(currentPage);
+            $tmp.find('#UserSettingPath').val(currentPage);
             $.ajax({
                 type: 'POST',
                 url: baseurl + '/userSettings/setHomePage',
-                data: $('#UserSettingSetHomePageForm').serialize(),
-                success:function (data) {
+                data: $tmp.serialize(),
+                success: function () {
                     showMessage('success', 'Homepage set.');
                     $('#setHomePage').addClass('orange');
                 },
