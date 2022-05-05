@@ -12,6 +12,15 @@ if (!String.prototype.startsWith) {
   };
 }
 
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function copyToClipboard(element) {
     var $temp = $("<input>");
     $("body").append($temp);
@@ -1307,7 +1316,8 @@ function handleAjaxModalResponse(response, context_id, url, referer, context, co
         }
     } else {
         if (responseArray.errors && typeof responseArray.errors === 'string') {
-            showMessage("fail", responseArray.errors);
+            var fullErrors = "full_errors" in responseArray ? responseArray.full_errors : '';
+            showMessage("fail", responseArray.errors, fullErrors);
         } else {
             var savedArray = saveValuesForPersistance();
             $.ajax({
@@ -1412,21 +1422,16 @@ function updateHistogram(selected) {
     });
 }
 
-function showMessage(success, message, context) {
-    if (typeof context !== "undefined") {
-        $("#ajax_" + success, window.parent.document).html(message);
-        var duration = 1000 + (message.length * 40);
-        $("#ajax_" + success + "_container", window.parent.document).fadeIn("slow");
-        $("#ajax_" + success + "_container", window.parent.document).delay(duration).fadeOut("slow");
-    }
+function showMessage(success, message, fullError) {
+    var duration = 1000 + (message.length * 40);
 
     if (message.indexOf("$flashErrorMessage") >= 0) {
-        var flashMessageLink = '<a href="#" class="bold" onclick="flashErrorPopover();">here</a>';
+        var flashMessageLink = '<a href="#" class="bold" data-content="' + escapeHtml(fullError) + '" data-html="true" onclick="event.preventDefault();$(this).popover(\'show\')">here</a>';
         message = message.replace("$flashErrorMessage", flashMessageLink);
+        duration = 5000;
     }
 
     $("#ajax_" + success).html(message);
-    var duration = 1000 + (message.length * 40);
     $("#ajax_" + success + "_container").fadeIn("slow").delay(duration).fadeOut("slow");
 }
 
@@ -2636,8 +2641,9 @@ function popoverStartup() {
         $('[data-toggle="popover"]').not(e.target).popover('hide');
     });
     $(document).click(function (e) {
-        if (!$('[data-toggle="popover"]').is(e.target)) {
-            $('[data-toggle="popover"]').popover('hide');
+        var $popovers = $('[data-toggle="popover"]');
+        if (!$popovers.is(e.target)) {
+            $popovers.popover('hide');
         }
     });
 }
@@ -3967,12 +3973,6 @@ $(document).on("click", ".eventViewAttributePopup", function() {
         showEnrichmentPopover(type, id);
     }
 });
-
-function flashErrorPopover() {
-    var $popover = $('#popover_form');
-    $popover.html($('#flashErrorMessage').html());
-    openPopup($popover);
-}
 
 $(document.body).on('click', function (e) {
   $('[data-toggle=popover]').each(function () {

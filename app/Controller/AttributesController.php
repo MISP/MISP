@@ -155,15 +155,15 @@ class AttributesController extends AppController
             if (!isset($attributes[0])) {
                 $attributes = array(0 => $attributes);
             }
-            $fails = array();
+            $fails = [];
             $successes = 0;
             $attributeCount = count($attributes);
-            $inserted_ids = array();
+            $insertedIds = array();
             foreach ($attributes as $k => $attribute) {
                 $validationErrors = array();
                 $this->Attribute->captureAttribute($attribute, $event['Event']['id'], $this->Auth->user(), false, false, $event, $validationErrors, $this->params['named']);
                 if (empty($validationErrors)) {
-                    $inserted_ids[] = $this->Attribute->id;
+                    $insertedIds[] = $this->Attribute->id;
                     $successes++;
                 } else {
                     $fails["attribute_" . $k] = $validationErrors;
@@ -176,7 +176,7 @@ class AttributesController extends AppController
                 if ($successes !== 0) {
                     $attributes = $this->Attribute->find('all', array(
                         'recursive' => -1,
-                        'conditions' => array('Attribute.id' => $inserted_ids),
+                        'conditions' => array('Attribute.id' => $insertedIds),
                         'contain' => array(
                             'AttributeTag' => array(
                                 'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'))
@@ -212,38 +212,29 @@ class AttributesController extends AppController
                     $message = __('Attributes saved.');
                 } else {
                     if ($attributeCount > 1) {
-                        $failKeys = array_keys($fails);
-                        foreach ($failKeys as $k => $v) {
-                            $v = explode('_', $v);
-                            $failKeys[$k] = intval($v[1]);
+                        $flashErrorMessage = [];
+                        foreach ($attributes as $k => $attribute) {
+                            if (isset($fails["attribute_$k"])) {
+                                $reason = '';
+                                foreach ($fails["attribute_" . $k] as $failKey => $failData) {
+                                    $reason = $failKey . ': ' . $failData[0];
+                                }
+                                $flashErrorMessage[] = '<span class="red bold">' . h($attribute["value"]) . '</span> (' . h($reason) . ')';
+                            } else {
+                                $flashErrorMessage[] = '<span class="green bold">' . h($attribute["value"]) . '</span>';
+                            }
                         }
+                        $flashErrorMessage = implode('<br>', $flashErrorMessage);
+                        $this->Session->write('flashErrorMessage', $flashErrorMessage);
+
                         if ($successes === 0) {
-                            $message = __('Attributes could not be saved. Click $flashErrorMessage for more info', count($fails));
+                            $message = __('Attributes could not be saved. Click $flashErrorMessage for more info');
                         } else {
                             $message = __('Attributes saved, however, %s attributes could not be saved. Click $flashErrorMessage for more info', count($fails));
                         }
                     } else {
                         $message = __('Attribute could not be saved.');
                     }
-                }
-                if (!empty($failKeys)) {
-                    $flashErrorMessage = array();
-                    $original_values = trim($this->request->data['Attribute']['value']);
-                    $original_values = explode("\n", $original_values);
-                    foreach ($original_values as $k => $original_value) {
-                        $original_value = trim($original_value);
-                        if (in_array($k, $failKeys)) {
-                            $reason = '';
-                            foreach ($fails["attribute_" . $k] as $failKey => $failData) {
-                                $reason = $failKey . ': ' . $failData[0];
-                            }
-                            $flashErrorMessage[] = '<span class="red bold">' . h($original_value) . '</span> (' . h($reason) . ')';
-                        } else {
-                            $flashErrorMessage[] = '<span class="green bold">' . h($original_value) . '</span>';
-                        }
-                    }
-                    $flashErrorMessage = implode('<br>', $flashErrorMessage);
-                    $this->Session->write('flashErrorMessage', $flashErrorMessage);
                 }
                 if ($this->request->is('ajax')) {
                     if (!empty($successes)) {
