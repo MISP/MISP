@@ -1189,7 +1189,7 @@ function openGenericModalPost(url, body) {
 }
 
 function submitPopoverForm(context_id, referer, update_context_id, modal, popover_dismiss_id_to_close) {
-    var url = null;
+    var $form;
     var context = 'event';
     var contextNamingConvention = 'Attribute';
     var closePopover = true;
@@ -1227,18 +1227,17 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
     }
     var $submitButton = $("#submitButton");
     if ($submitButton.parent().hasClass('modal-footer')) {
-        var $form = $submitButton.parent().parent().find('.modal-body form');
-        url = $form.attr('action');
+        $form = $submitButton.parent().parent().find('.modal-body form');
     } else {
-        var $form = $submitButton.closest("form");
-        url = $form.attr('action');
+        $form = $submitButton.closest("form");
     }
+    var url = $form.attr('action');
     // Prepend URL with baseurl if URL is relative
     if (!url.startsWith('http')) {
         url = baseurl + url;
     }
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             if (modal) {
                 if (closePopover) {
                     $('#genericModal').modal('hide');
@@ -1255,16 +1254,15 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             }
         },
         data: $form.serialize(),
-        success: function (data, textStatus) {
-            var result;
+        success: function (data) {
             if (closePopover) {
                 if (modal) {
                     handleAjaxModalResponse(data, context_id, url, referer, context, contextNamingConvention);
                 } else {
-                    result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
+                    handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
                 }
             }
-            if (referer == 'addSighting') {
+            if (referer === 'addSighting') {
                 updateIndex(update_context_id, 'event');
                 $.get(baseurl + "/sightings/listSightings/" + id + "/attribute", function(data) {
                     $("#sightingsData").html(data);
@@ -1274,8 +1272,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 $('#sightingsListAllToggle').removeClass('btn-inverse');
                 $('#sightingsListAllToggle').addClass('btn-primary');
             }
-            if (referer == 'addEventReport' && typeof window.reloadEventReportTable === 'function') {
-                context == 'eventReport'
+            if (referer === 'addEventReport' && typeof window.reloadEventReportTable === 'function') {
                 reloadEventReportTable()
                 eventUnpublish()
             }
@@ -1288,9 +1285,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 eventUnpublish();
             }
         },
-        error: function (jqXHR, textStatus, errorThrown) {
-            showMessage('fail', textStatus + ": " + errorThrown);
-        },
+        error: xhrFailCallback,
         complete: function () {
             $(".loading").hide();
         },
@@ -1305,7 +1300,8 @@ function handleAjaxModalResponse(response, context_id, url, referer, context, co
     if (responseArray.saved) {
         updateIndex(context_id, context);
         if (responseArray.success) {
-            showMessage("success", responseArray.success);
+            var message = "message" in responseArray ? responseArray.message : responseArray.success;
+            showMessage("success", message);
         } else if (responseArray.errors) {
             showMessage("fail", responseArray.errors);
         }
