@@ -2,7 +2,7 @@ var dotBlockDefault = doT.template(' \
 <div class="canvas-workflow-block"> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
-            <i class="fas fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
@@ -19,7 +19,7 @@ var dotIF = doT.template(' \
 <div class="canvas-workflow-block small"> \
     <div style="width: 100%; height: 100%;"> \
         <div class="default-main-container-small"> \
-            <i class="fas fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
@@ -320,6 +320,7 @@ function getTemplateForBlock(block) {
         if (block.html_template !== undefined) {
             html = window['dot' + block.html_template](block)
         } else {
+            block.icon_class = block.icon_class !== undefined ? block.icon_class : 'fas'
             html = dotBlockDefault(block)
         }
     }

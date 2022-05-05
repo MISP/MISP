@@ -269,6 +269,7 @@ class Workflow extends AppModel
                 'id' => 'slack-message',
                 'name' => 'Slack Message',
                 'icon' => 'slack',
+                'icon_class' => 'fab',
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
                 'module_type' => 'action',
                 'params' => [
