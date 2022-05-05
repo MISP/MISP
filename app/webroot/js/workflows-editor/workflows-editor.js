@@ -170,8 +170,12 @@ function addNode(block, position) {
 }
 
 function getEditorData() {
-    var data = editor.export().drawflow.Home.data
-        .filter(function (node) { return node !== null }) // for some reason, the editor create null nodes
+    var data = {} // Make sure nodes are index by their internal IDs
+    editor.export().drawflow.Home.data.forEach(function(node) {
+        if (node !== null) { // for some reason, the editor create null nodes
+            data[node.id] = node
+        }
+    })
     return data
 }
 
@@ -317,10 +321,10 @@ function getTemplateForBlock(block) {
     if (block.html !== undefined) {
         html = block.html
     } else {
+        block.icon_class = block.icon_class !== undefined ? block.icon_class : 'fas'
         if (block.html_template !== undefined) {
             html = window['dot' + block.html_template](block)
         } else {
-            block.icon_class = block.icon_class !== undefined ? block.icon_class : 'fas'
             html = dotBlockDefault(block)
         }
     }
