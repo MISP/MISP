@@ -171,7 +171,9 @@ function addNode(block, position) {
 
 function getEditorData() {
     var data = {} // Make sure nodes are index by their internal IDs
-    editor.export().drawflow.Home.data.forEach(function(node) {
+    var editorExport = editor.export().drawflow.Home.data
+    editorExport = Array.isArray(editorExport) ? editorExport : Object.values(editorExport)
+    editorExport.forEach(function(node) {
         if (node !== null) { // for some reason, the editor create null nodes
             data[node.id] = node
         }
@@ -229,6 +231,7 @@ function fetchWorkflow(id, callback) {
 
 function saveWorkflow(confirmSave, callback) {
     saveConfirmMessage = 'Confirm saving the current state of the workflow'
+    saveFailedMessage = 'Failed to save the workflow'
     confirmSave = confirmSave === undefined ? true : confirmSave
     if (confirmSave && !confirm(saveConfirmMessage)) {
         return
