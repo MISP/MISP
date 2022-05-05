@@ -82,11 +82,11 @@
         <h3>Block options</h3>
     </div>
     <div class="modal-body">
-        <p>One fine body…</p>
+        <p>Block options</p>
     </div>
     <div class="modal-footer">
         <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-        <button class="btn btn-primary">Save changes</button>
+        <button id="block-modal-save-button" class="btn btn-primary">Save changes</button>
     </div>
 </div>
 <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
@@ -110,6 +110,8 @@ echo $this->element('genericElements/assetLoader', [
     var $chosenWorkflows = $('.root-container .side-panel .chosen-container.workflows')
     var $chosenBlocks = $('.root-container .side-panel .chosen-container.blocks')
     var $drawflow = $('#drawflow')
+    var $blockModal = $('#block-modal')
+    var $blockModalSave = $('#block-modal #block-modal-save-button')
     var $importWorkflowButton = $('#importWorkflow')
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')

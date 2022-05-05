@@ -10,7 +10,7 @@ var dotBlockDefault = doT.template(' \
                 <a href="#block-modal" role="button" class="btn btn-mini" data-toggle="modal"><i class="fas fa-ellipsis-h"></i></a> \
             </span> \
         </div> \
-        <div class="muted" class="description">{{=it.description}}</div> \
+        <div class="muted" class="description" style="margin-bottom: 0.5em;">{{=it.description}}</div> \
         {{=it.block_param_html}} \
     </div> \
 </div>')
@@ -117,7 +117,27 @@ function initDrawflow() {
     $saveWorkflowButton.click(saveWorkflow)
     $importWorkflowButton.click(importWorkflow)
     $exportWorkflowButton.click(exportWorkflow)
+    $blockModal.on('show', function (evt) {
+        var selectedBlock = editor.getNodeFromId(editor.node_selected.id.split('-')[1]) // Couldn't find a better way to get the selected node
+        buildModalForBlock(selectedBlock.data)
+    })
 
+    $blockModalSave.click(function() {
+        saveBlockConfiguration()
+    })
+
+}
+
+function saveBlockConfiguration() {
+    console.log(
+        $blockModal.data('selected-block')
+    );
+}
+
+function buildModalForBlock(block) {
+    var html = genBlockParamHtml(block)
+    $blockModal.data('selected-block', block)
+    $blockModal.find('.modal-body').empty().append(html)
 }
 
 function invalidateContentCache() {
@@ -340,6 +360,7 @@ function genBlockParamHtml(block) {
     }
     var html = ''
     block.params.forEach(function (param) {
+        param['param_id'] = getIDForBlockParameter(param)
         paramHtml = ''
         switch (param.type) {
             case 'input':
@@ -375,21 +396,76 @@ function genSelect(options) {
             .text(optionName)
         $select.append($option)
     })
-    if (options.default !== undefined) {
-        $select.val(options.default)
+    if (options.value !== undefined) {
+        $select.attr('value', options.value)
+    } else {
+        $select.attr('value', options.default)
     }
+    $select
+        .attr('data-paramid', options.param_id)
+        .attr('onchange', 'handleSelectChange(this)')
     return $select
 }
 
 function genInput(options) {
+    var $label = $('<label>')
+        .css({
+            marginLeft: '0.25em',
+            marginBbottom: 0,
+        })
+        .text(options.label)
     var $input = $('<input>')
-    $input.attr('type', 'text')
-    if (options.default !== undefined) {
-        // $input.val(options.default)
-        $input.attr('value', options.default) // wtf why does it not work?!
+    $input
+        .attr('type', 'text')
+        .attr('oninput', 'handleInputChange(this)')
+        .attr('data-paramid', options.param_id)
+    if (options.value !== undefined) {
+        $input.attr('value', options.value)
+    } else {
+        $input.attr('value', options.default)
     }
     if (options.placeholder !== undefined) {
         $input.attr('placeholder', options.placeholder)
     }
-    return $input
+    var $container = $('<div>').append($label, $input)
+    return $container
+}
+
+function handleInputChange(changed) {
+    var $input = $(changed)
+    var node = getNodeFromNodeInput($input)
+    var node_data = setParamValueForInput($input, node.data)
+    editor.updateNodeDataFromId(node.id, node_data)
+    invalidateContentCache()
+}
+
+function handleSelectChange(changed) {
+    var $input = $(changed)
+    var node = getNodeFromNodeInput($input)
+    var node_data = setParamValueForInput($input, node.data)
+    editor.updateNodeDataFromId(node.id, node_data)
+    invalidateContentCache()
+}
+
+function getIDForBlockParameter(param) {
+    if (param.id !== undefined) {
+        return param.id
+    }
+    return param.label.toLowerCase().replace(' ', '-')
+}
+
+function getNodeFromNodeInput($input) {
+    var node = editor.getNodeFromId($input.closest('.drawflow-node')[0].id.split('-')[1])
+    return node
+}
+
+function setParamValueForInput($input, node_data) {
+    var param_id = $input.data('paramid')
+    for (let i = 0; i < node_data.params.length; i++) {
+        const param = node_data.params[i];
+        if (param.param_id == param_id) {
+            node_data.params[i].value = $input.val()
+        }
+    }
+    return node_data
 }
