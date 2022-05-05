@@ -106,7 +106,7 @@ class WorkflowsController extends AppController
         $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
         $workflows = $this->Workflow->fetchWorkflows($this->Auth->user());
         $modules = $this->Workflow->getModules();
-        $this->set('selectedWorklow', $workflow);
+        $this->set('selectedWorkflow', $workflow);
         $this->set('workflows', $workflows);
         $this->set('modules', $modules);
     }

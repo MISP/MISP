@@ -5,7 +5,7 @@
             <div class="workflow-selector-container">
                 <select type="text" placeholder="Load a workflow" class="chosen-container workflows" autocomplete="off">
                     <?php foreach ($workflows as $workflow) : ?>
-                        <option value="<?= h($workflow['Workflow']['id']) ?>" <?= $selectedWorklow['Workflow']['id'] == $workflow['Workflow']['id'] ? 'selected' : '' ?>><?= h($workflow['Workflow']['name']) ?></option>
+                        <option value="<?= h($workflow['Workflow']['id']) ?>" <?= $selectedWorkflow['Workflow']['id'] == $workflow['Workflow']['id'] ? 'selected' : '' ?>><?= h($workflow['Workflow']['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -70,7 +70,7 @@
 
         </div>
         <div class="canvas">
-            <div id="drawflow" data-workflowid="<?= h($selectedWorklow['Workflow']['id']) ?>"></div>
+            <div id="drawflow" data-workflowid="<?= h($selectedWorkflow['Workflow']['id']) ?>"></div>
             <div id="loadingBackdrop" class="modal-backdrop" style="display: none;"></div>
         </div>
     </div>
@@ -119,9 +119,9 @@ echo $this->element('genericElements/assetLoader', [
     var $lastModifiedField = $('#lastModifiedField')
     var editor = false
     var all_blocks = <?= json_encode($modules['blocks_all']) ?>;
-    var worklow = false
+    var workflow = false
     <?php if (!empty($workflow)) : ?>
-        var worklow = <?= json_encode($workflow) ?>;
+        var workflow = <?= json_encode($workflow) ?>;
     <?php endif; ?>
 
     $(document).ready(function() {

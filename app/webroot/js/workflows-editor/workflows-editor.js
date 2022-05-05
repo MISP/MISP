@@ -205,16 +205,40 @@ function loadWorkflow() {
     fetchWorkflow(workflow_id, function(workflow) {
         lastModified = workflow.timestamp + '000'
         revalidateContentCache()
-        if (workflow.data) {
-            var editor_data = {
-                drawflow: {
-                    Home: {
-                        data: workflow.data
-                    }
-                }
+        // if (workflow.data) {
+        //     var editor_data = {
+        //         drawflow: {
+        //             Home: {
+        //                 data: workflow.data
+        //             }
+        //         }
+        //     }
+        //     editor.import(editor_data);
+        // }
+        
+        // We cannot rely on the editor's import function as it recreates the nodes with the saved HTML instead of rebuilding them
+        // We have to manually add the nodes and their connections
+        Object.values(workflow.data).forEach(function(block) {
+            block.data['block_param_html'] = genBlockParamHtml(block.data)
+            var html = getTemplateForBlock(block.data)
+            editor.addNode(
+                block.name,
+                Object.values(block.inputs).length,
+                Object.values(block.outputs).length,
+                block.pos_x,
+                block.pos_y,
+                block.class,
+                block.data,
+                html
+            );
+        })
+        Object.values(workflow.data).forEach(function (block) {
+            for (var input_name in block.inputs) {
+                block.inputs[input_name].connections.forEach(function(connection) {
+                    editor.addConnection(connection.node, block.id, connection.input, input_name)
+                })
             }
-            editor.import(editor_data);
-        }
+        })
     })
 }
 
@@ -340,16 +364,12 @@ function toggleEditorLoading(loading, message) {
 }
 
 function getTemplateForBlock(block) {
-    var html = block.name
-    if (block.html !== undefined) {
-        html = block.html
+    var html = ''
+    block.icon_class = block.icon_class !== undefined ? block.icon_class : 'fas'
+    if (block.html_template !== undefined) {
+        html = window['dot' + block.html_template](block)
     } else {
-        block.icon_class = block.icon_class !== undefined ? block.icon_class : 'fas'
-        if (block.html_template !== undefined) {
-            html = window['dot' + block.html_template](block)
-        } else {
-            html = dotBlockDefault(block)
-        }
+        html = dotBlockDefault(block)
     }
     return html
 }
