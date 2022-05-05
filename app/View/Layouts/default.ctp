@@ -14,6 +14,7 @@
             'font-awesome',
             'chosen.min',
             'main',
+            'jquery-ui',
             array('print', array('media' => 'print'))
         );
         if (Configure::read('MISP.custom_css')) {
@@ -22,7 +23,8 @@
         $js_collection = array(
             'jquery',
             'misp-touch',
-            'chosen.jquery.min'
+            'chosen.jquery.min',
+            'jquery-ui'
         );
         echo $this->element('genericElements/assetLoader', array(
             'css' => $css_collection,
