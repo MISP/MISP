@@ -657,6 +657,20 @@ function submitForm($td, type, id, field) {
         var field = $(this).data('edit-field');
         quickEditHover(this, type, objectId, field);
     });
+    // Show popover with advanced sigtings information about given or selected attributes
+    $(document.body).on('click', '.sightings_advanced_add', function() {
+        var object_context = $(this).data('object-context');
+        var object_id = $(this).data('object-id');
+        if (object_id === 'selected') {
+            var selected = [];
+            $(".select_attribute:checked").each(function() {
+                selected.push($(this).data("id"));
+            });
+            object_id = selected.join('|');
+        }
+        var url = baseurl + "/sightings/advanced/" + object_id + "/" + object_context;
+        genericPopup(url, '#popover_box');
+    });
 })();
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
