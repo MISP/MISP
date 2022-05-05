@@ -27,6 +27,10 @@
     margin-bottom: 10px;
 }
 
+.side-panel #block-tabs i.fas {
+    margin-right: 2px;
+}
+
 .side-panel .workflow-selector-container {
     display: flex;
 }
