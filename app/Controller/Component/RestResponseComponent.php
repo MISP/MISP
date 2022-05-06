@@ -601,6 +601,13 @@ class RestResponseComponent extends Component
         }
 
         if ($response instanceof TmpFileTool) {
+            if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+                $etag = '"' . $response->hash('sha1') . '"';
+                if ($_SERVER['HTTP_IF_NONE_MATCH'] === $etag) {
+                    return new CakeResponse(['status' => 304]);
+                }
+                $headers['ETag'] = $etag;
+            }
             if ($this->signContents) {
                 $this->CryptographicKey = ClassRegistry::init('CryptographicKey');
                 $data = $response->intoString();
@@ -612,7 +619,16 @@ class RestResponseComponent extends Component
                 $cakeResponse->file($response);
             }
         } else {
-            $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+            // Check if resource was changed when `If-None-Match` header is send and return 304 Not Modified
+            if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+                $etag = '"' . sha1($response) . '"';
+                if ($_SERVER['HTTP_IF_NONE_MATCH'] === $etag) {
+                    return new CakeResponse(['status' => 304]);
+                }
+                // Generate etag just when HTTP_IF_NONE_MATCH is set
+                $headers['ETag'] = $etag;
+            }
+            $cakeResponse = new CakeResponse(['body' => $response, 'status' => $code, 'type' => $type]);
             if ($this->signContents) {
                 $headers['x-pgp-signature'] = base64_encode($this->CryptographicKey->signWithInstanceKey($response));
             }
