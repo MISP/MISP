@@ -13,6 +13,9 @@ class DashboardsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions = array_merge(array('renderWidget', 'getForm'), $this->Security->unlockedActions);
+        if ($this->request->action === 'renderWidget') {
+            $this->Security->doNotGenerateToken = true;
+        }
     }
 
     public $paginate = array(
@@ -155,7 +158,7 @@ class DashboardsController extends AppController
         }
 
         $user = $this->Auth->user();
-        @session_write_close(); // allow concurrent AJAX requests (session hold lock by default)
+        @session_abort(); // allow concurrent AJAX requests (session hold lock by default)
 
         if (empty($this->request->data['data'])) {
             $this->request->data = array('data' => $this->request->data);

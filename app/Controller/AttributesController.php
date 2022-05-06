@@ -63,6 +63,10 @@ class AttributesController extends AppController
                 $this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
             }
         }
+
+        if ($this->request->action === 'viewPicture') {
+            $this->Security->doNotGenerateToken = true;
+        }
     }
 
     public function index()
