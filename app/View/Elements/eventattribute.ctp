@@ -174,6 +174,11 @@ attributes or the appropriate distribution level. If you think there is a mistak
             ?>
         </div>
     <?php endif;?>
+    <p>
+        <?= $this->Paginator->counter([
+            'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
+        ]); ?>
+    </p>
     <div class="pagination">
         <ul>
         <?= $paginatorLinks ?>
