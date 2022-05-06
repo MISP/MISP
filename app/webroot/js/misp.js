@@ -5191,7 +5191,7 @@ function submitDashboardAddWidget() {
 
 function saveDashboardState() {
     var dashBoardSettings = [];
-    $('.grid-stack-item').each(function(index) {
+    $('.grid-stack-item').each(function() {
         if ($(this).attr('config') !== undefined && $(this).attr('widget') !== undefined) {
             var config = $(this).attr('config');
             config = JSON.parse(config);
@@ -5215,11 +5215,8 @@ function saveDashboardState() {
         var $theForm = $formContainer.find('form')
         xhr({
             data: $theForm.serialize(),
-            success:function (data) {
+            success:function () {
                 showMessage('success', 'Dashboard settings saved.');
-            },
-            error:function(jqXHR, textStatus, errorThrown) {
-                showMessage('fail', textStatus + ": " + errorThrown);
             },
             beforeSend:function() {
             },
@@ -5246,21 +5243,23 @@ function updateDashboardWidget(element) {
                 config: $element.attr('config'),
                 widget: $element.attr('widget')
             },
-            success:function (data, textStatus) {
+            success:function (data) {
                 container.html(data);
             }
         });
     }
 }
 
-function resetDashboardGrid(grid) {
+function resetDashboardGrid(grid, save = true) {
     $('.grid-stack-item').each(function() {
         updateDashboardWidget(this);
     });
-    saveDashboardState();
+    if (save) {
+        saveDashboardState();
+    }
     $('.edit-widget').click(function() {
-        el = $(this).closest('.grid-stack-item');
-        data = {
+        var el = $(this).closest('.grid-stack-item');
+        var data = {
             id: el.attr('id'),
             config: JSON.parse(el.attr('config')),
             widget: el.attr('widget'),
@@ -5269,7 +5268,7 @@ function resetDashboardGrid(grid) {
         openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
     });
     $('.remove-widget').click(function() {
-        el = $(this).closest('.grid-stack-item');
+        var el = $(this).closest('.grid-stack-item');
         grid.removeWidget(el);
         saveDashboardState();
     });
