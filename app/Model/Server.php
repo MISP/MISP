@@ -551,7 +551,7 @@ class Server extends AppModel
             if ($jobId) {
                 $job->saveProgress($jobId, $technique === 'pull_relevant_clusters' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
             }
-            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $serverSync, $technique);
+            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
             if ($technique === 'pull_relevant_clusters') {
                 if ($jobId) {
                     $job->saveStatus($jobId, true, 'Pulling complete.');
@@ -662,21 +662,30 @@ class Server extends AppModel
     /**
      * fetchCustomClusterIdsFromServer Fetch custom-published remote clusters' UUIDs and versions
      *
-     * @param ServerSyncTool $serverSync
+     * @param array $server
+     * @param HttpSocketExtended|null $HttpSocket
      * @param array $conditions
      * @return array The list of clusters
-     * @throws HttpSocketHttpException|HttpSocketJsonException
+     * @throws JsonException|HttpSocketHttpException|HttpSocketJsonException
      */
-    private function fetchCustomClusterIdsFromServer(ServerSyncTool $serverSync, array $conditions=array())
+    private function fetchCustomClusterIdsFromServer(array $server, HttpSocketExtended $HttpSocket=null, array $conditions=array())
     {
+        $url = $server['Server']['url'];
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        $uri = $url . '/galaxy_clusters/restSearch';
         $filterRules = [
             'published' => 1,
             'minimal' => 1,
             'custom' => 1,
         ];
         $filterRules = array_merge($filterRules, $conditions);
+        $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
+        if (!$response->isOk()) {
+            throw new HttpSocketHttpException($response);
+        }
 
-        $clusterArray = $serverSync->galaxyClusterSearch($filterRules)->json();
+        $clusterArray = $response->json();
         if (isset($clusterArray['response'])) {
             $clusterArray = $clusterArray['response'];
         }
@@ -686,17 +695,19 @@ class Server extends AppModel
     /**
      * getElligibleClusterIdsFromServerForPull Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
      *
-     * @param ServerSyncTool $serverSync
+     * @param array $server
+     * @param mixed $HttpSocket
      * @param bool $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
      * @param array $elligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
      * @param array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
      * @return array List of cluster IDs to be pulled
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
+     * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
+    public function getElligibleClusterIdsFromServerForPull(array $server, $HttpSocket=null, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket, $conditions=$conditions);
         if (!empty($clusterArray)) {
             foreach ($clusterArray as $cluster) {
                 if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
@@ -730,8 +741,7 @@ class Server extends AppModel
      */
     public function getElligibleClusterIdsFromServerForPush(array $server, $HttpSocket=null, $localClusters=array(), $conditions=array())
     {
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket, $conditions=$conditions);
         $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
         if (!empty($localClusters)) {
             foreach ($localClusters as $k => $localCluster) {
