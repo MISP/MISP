@@ -690,6 +690,10 @@ class TestComprehensive(unittest.TestCase):
         wl = request(self.admin_misp_connector, 'POST', 'warninglists/add', data=warninglist)
         check_response(wl)
 
+        exported = request(self.admin_misp_connector, 'GET', f'warninglists/export/{wl["Warninglist"]["id"]}')
+        self.assertIn('name', exported)
+        self.assertEqual('Test', exported['name'])
+
         check_response(self.admin_misp_connector.enable_warninglist(wl["Warninglist"]["id"]))
 
         response = self.admin_misp_connector.values_in_warninglist("1.2.3.4")
@@ -717,7 +721,19 @@ class TestComprehensive(unittest.TestCase):
         response = self.admin_misp_connector.values_in_warninglist("2.3.4.5")
         self.assertEqual(0, len(response))
 
+        # Update by importing
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/import', exported)
+        check_response(response)
+
         response = request(self.admin_misp_connector, 'POST', f'warninglists/delete/{wl["Warninglist"]["id"]}')
+        check_response(response)
+
+        # Create new warninglist by importing under different name
+        exported["name"] = "Test2"
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/import', exported)
+        check_response(response)
+
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/delete/{response["id"]}')
         check_response(response)
 
     def test_protected_event(self):

@@ -479,39 +479,70 @@ class RestResponseComponent extends Component
         return [];
     }
 
-    public function saveFailResponse($controller, $action, $id = false, $validationErrors, $format = false, $data = null)
+    /**
+     * @param string $controller
+     * @param string $action
+     * @param int|false $id
+     * @param mixed $validationErrors
+     * @param string|false $format
+     * @param mixed $data
+     * @return CakeResponse
+     * @throws Exception
+     */
+    public function saveFailResponse($controller, $action, $id, $validationErrors, $format = false, $data = null)
     {
-        $response = array();
         $action = $this->__dissectAdminRouting($action);
         $stringifiedAction = $action['action'];
-        if (isset(self::CONVERT_ACTION_TO_MESSAGE[$controller][$action['action']])) {
-            $stringifiedAction = self::CONVERT_ACTION_TO_MESSAGE[$controller][$action['action']];
+        if (isset(self::CONVERT_ACTION_TO_MESSAGE[$controller][$stringifiedAction])) {
+            $stringifiedAction = self::CONVERT_ACTION_TO_MESSAGE[$controller][$stringifiedAction];
         }
-        $response['saved'] = false;
-        $response['name'] = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
-        $response['message'] = $response['name'];
+        $message = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
+
+        $response = [
+            'saved' => false,
+            'name' => $message,
+            'message' => $message,
+            'url' => $this->__generateURL($action, $controller, $id),
+            'errors' => $validationErrors,
+        ];
         if ($data !== null) {
             $response['data'] = $data;
         }
-        $response['url'] = $this->__generateURL($action, $controller, $id);
-        $response['errors'] = $validationErrors;
+        if ($id) {
+            $response['id'] = $id;
+        }
         return $this->__sendResponse($response, 403, $format);
     }
 
+    /**
+     * @param string $controller
+     * @param string $action
+     * @param int|false $id
+     * @param string|false $format
+     * @param string|false $message
+     * @param mixed $data
+     * @return CakeResponse
+     * @throws Exception
+     */
     public function saveSuccessResponse($controller, $action, $id = false, $format = false, $message = false, $data = null)
     {
         $action = $this->__dissectAdminRouting($action);
         if (!$message) {
-            $message = Inflector::singularize($controller) . ' ' . $action['action'] . ((substr($action['action'], -1) == 'e') ? 'd' : 'ed');
+            $message = Inflector::singularize($controller) . ' ' . $action['action'] . ((substr($action['action'], -1) === 'e') ? 'd' : 'ed');
         }
-        $response['saved'] = true;
-        $response['success'] = true;
-        $response['name'] = $message;
-        $response['message'] = $response['name'];
+        $response = [
+            'saved' => true,
+            'success' => true,
+            'name' => $message,
+            'message' => $message,
+            'url' => $this->__generateURL($action, $controller, $id),
+        ];
         if ($data !== null) {
             $response['data'] = $data;
         }
-        $response['url'] = $this->__generateURL($action, $controller, $id);
+        if ($id) {
+            $response['id'] = $id;
+        }
         return $this->__sendResponse($response, 200, $format);
     }
 
