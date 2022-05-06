@@ -15,7 +15,6 @@
             'font-awesome',
             'chosen.min',
             'main',
-            'jquery-ui',
             ['print', ['media' => 'print']],
         ];
         if (Configure::read('MISP.custom_css')) {
@@ -25,7 +24,6 @@
             'jquery',
             'misp-touch',
             'chosen.jquery.min',
-            'jquery-ui',
         ];
         if (!empty($additionalCss)) {
             $css = array_merge($css, $additionalCss);
