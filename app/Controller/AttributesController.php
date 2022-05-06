@@ -155,15 +155,15 @@ class AttributesController extends AppController
             if (!isset($attributes[0])) {
                 $attributes = array(0 => $attributes);
             }
-            $fails = array();
+            $fails = [];
             $successes = 0;
             $attributeCount = count($attributes);
-            $inserted_ids = array();
+            $insertedIds = array();
             foreach ($attributes as $k => $attribute) {
                 $validationErrors = array();
                 $this->Attribute->captureAttribute($attribute, $event['Event']['id'], $this->Auth->user(), false, false, $event, $validationErrors, $this->params['named']);
                 if (empty($validationErrors)) {
-                    $inserted_ids[] = $this->Attribute->id;
+                    $insertedIds[] = $this->Attribute->id;
                     $successes++;
                 } else {
                     $fails["attribute_" . $k] = $validationErrors;
@@ -176,7 +176,7 @@ class AttributesController extends AppController
                 if ($successes !== 0) {
                     $attributes = $this->Attribute->find('all', array(
                         'recursive' => -1,
-                        'conditions' => array('Attribute.id' => $inserted_ids),
+                        'conditions' => array('Attribute.id' => $insertedIds),
                         'contain' => array(
                             'AttributeTag' => array(
                                 'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'))
@@ -201,7 +201,7 @@ class AttributesController extends AppController
                     }
                     return $this->RestResponse->viewData($attributes, $this->response->type(), $fails);
                 } else {
-                    if ($attributeCount == 1) {
+                    if ($attributeCount === 1) {
                         return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $fails["attribute_0"], $this->response->type());
                     } else {
                         return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $fails, $this->response->type());
@@ -209,58 +209,52 @@ class AttributesController extends AppController
                 }
             } else {
                 if (empty($fails)) {
-                    $message = 'Attributes saved.';
+                    $message = __('Attributes saved.');
                 } else {
                     if ($attributeCount > 1) {
-                        $failKeys = array_keys($fails);
-                        foreach ($failKeys as $k => $v) {
-                            $v = explode('_', $v);
-                            $failKeys[$k] = intval($v[1]);
-                        }
-                        $failed = 1;
-                        $message = sprintf('Attributes saved, however, %s attributes could not be saved. Click %s for more info', count($fails), '$flashErrorMessage');
-                    } else {
-                        $failed = 1;
-                        $message = 'Attribute could not be saved.';
-                    }
-                }
-                if (!empty($failKeys)) {
-                    $flashErrorMessage = array();
-                    $original_values = trim($this->request->data['Attribute']['value']);
-                    $original_values = explode("\n", $original_values);
-                    foreach ($original_values as $k => $original_value) {
-                        $original_value = trim($original_value);
-                        if (in_array($k, $failKeys)) {
-                            $reason = '';
-                            foreach ($fails["attribute_" . $k] as $failKey => $failData) {
-                                $reason = $failKey . ': ' . $failData[0];
+                        $flashErrorMessage = [];
+                        foreach ($attributes as $k => $attribute) {
+                            if (isset($fails["attribute_$k"])) {
+                                $reason = '';
+                                foreach ($fails["attribute_" . $k] as $failKey => $failData) {
+                                    $reason = $failKey . ': ' . $failData[0];
+                                }
+                                $flashErrorMessage[] = '<span class="red bold">' . h($attribute["value"]) . '</span> (' . h($reason) . ')';
+                            } else {
+                                $flashErrorMessage[] = '<span class="green bold">' . h($attribute["value"]) . '</span>';
                             }
-                            $flashErrorMessage[] = '<span class="red bold">' . h($original_value) . '</span> (' . h($reason) . ')';
+                        }
+                        $flashErrorMessage = implode('<br>', $flashErrorMessage);
+                        $this->Session->write('flashErrorMessage', $flashErrorMessage);
+
+                        if ($successes === 0) {
+                            $message = __('Attributes could not be saved. Click $flashErrorMessage for more info');
                         } else {
-                            $flashErrorMessage[] = '<span class="green bold">' . h($original_value) . '</span>';
+                            $message = __('Attributes saved, however, %s attributes could not be saved. Click $flashErrorMessage for more info', count($fails));
+                        }
+                    } else {
+                        $message = __('Attribute could not be saved.');
+                    }
+                }
+                if ($this->request->is('ajax')) {
+                    if (!empty($successes)) {
+                        $data = ['saved' => true, 'success' => $message];
+                    } else {
+                        $message = $attributeCount > 1 ? $message : $this->Attribute->validationErrors;
+                        $data = ['saved' => false, 'errors' => $message];
+                        if (!empty($flashErrorMessage)) {
+                            $data['full_errors'] = $flashErrorMessage;
                         }
                     }
-                    $flashErrorMessage = implode('<br />', $flashErrorMessage);
-                    $this->Session->write('flashErrorMessage', $flashErrorMessage);
+                    return $this->RestResponse->viewData($data, 'json');
                 }
-                if (empty($failed)) {
+                if (empty($fails)) {
                     $this->Flash->success($message);
                 } else {
                     $this->Flash->error($message);
                 }
-                if ($this->request->is('ajax')) {
-                    $this->autoRender = false;
-                    $this->layout = false;
-                    $errors = ($attributeCount > 1) ? $message : $this->Attribute->validationErrors;
-                    if (!empty($successes)) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)),'status' => 200, 'type' => 'json'));
-                    } else {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errors)),'status' => 200, 'type' => 'json'));
-                    }
-                } else {
-                    if ($successes > 0) {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
-                    }
+                if ($successes > 0) {
+                    $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
                 }
             }
         }
