@@ -49,7 +49,11 @@ class Oidc
 
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
         $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
-        $organisationId = $this->checkOrganization($organisationName, $user, $mispUsername);
+
+        $organisationUuidProperty = $this->getConfig('organisation_uuid_property', 'organization_uuid');
+        $organisationUuid = $claims->{$organisationUuidProperty} ?? null;
+
+        $organisationId = $this->checkOrganization($organisationName, $organisationUuid, $user, $mispUsername);
         if (!$organisationId) {
             if ($user) {
                 $this->block($user);
@@ -302,40 +306,51 @@ class Oidc
     }
 
     /**
-     * @param string $org
-     * @param array|null $user
+     * @param string $orgName Organisation name or UUID
+     * @param string|null $orgUuid Organisation UUID
+     * @param array|null $user User that will be used as org creator
      * @param string $mispUsername
      * @return int
      * @throws Exception
      */
-    private function checkOrganization($org, $user, $mispUsername)
+    private function checkOrganization($orgName, $orgUuid, $user, $mispUsername)
     {
-        if (empty($org)) {
+        if (empty($orgName)) {
             $this->log($mispUsername, "Organisation name not provided.");
             return false;
         }
 
-        $orgIsUuid = Validation::uuid($org);
+        if ($orgUuid && !Validation::uuid($orgUuid)) {
+            $this->log($mispUsername, "Organisation UUID `$orgUuid` is not valid UUID.");
+            return false;
+        }
+
+        $orgNameIsUuid = Validation::uuid($orgName);
+        if ($orgUuid) {
+            $conditions = ['uuid' => strtolower($orgUuid)];
+        } else if ($orgNameIsUuid) {
+            $conditions = ['uuid' => strtolower($orgName)];
+        } else {
+            $conditions = ['name' => $orgName];
+        }
 
         $orgAux = $this->User->Organisation->find('first', [
             'fields' => ['Organisation.id'],
-            'conditions' => $orgIsUuid ? ['uuid' => strtolower($org)] : ['name' => $org],
+            'conditions' => $conditions,
         ]);
         if (empty($orgAux)) {
-            if ($orgIsUuid) {
-                $this->log($mispUsername, "Could not found organisation with UUID `$org`.");
+            // Org does not exists and we don't know org name, so it is not possible to crete a new one.
+            if ($orgNameIsUuid) {
+                $this->log($mispUsername, "Could not found organisation with UUID `$orgName`.");
                 return false;
             }
 
-            $orgUserId = 1; // By default created by the admin
-            if ($user) {
-                $orgUserId = $user['id'];
-            }
-            $orgId = $this->User->Organisation->createOrgFromName($org, $orgUserId, true);
-            $this->log($mispUsername, "User organisation `$org` created with ID $orgId.");
+            $orgUserId = $user ? $user['id'] : 1; // By default created by the admin
+            $orgId = $this->User->Organisation->createOrgFromName($orgName, $orgUserId, true, $orgUuid);
+            $this->log($mispUsername, "User organisation `$orgName` created with ID $orgId.");
         } else {
             $orgId = $orgAux['Organisation']['id'];
-            $this->log($mispUsername, "User organisation `$org` found with ID $orgId.");
+            $this->log($mispUsername, "User organisation `$orgName` found with ID $orgId.");
         }
         return $orgId;
     }

@@ -255,10 +255,11 @@ class Organisation extends AppModel
      * @param string $name Organisation name
      * @param int $userId Organisation creator
      * @param bool $local True if organisation should be marked as local
+     * @param string|null $uuid UUID of newly created org
      * @return int Existing or newly created organisation ID
      * @throws Exception
      */
-    public function createOrgFromName($name, $userId, $local)
+    public function createOrgFromName($name, $userId, $local, $uuid = null)
     {
         $existingOrg = $this->find('first', [
             'recursive' => -1,
@@ -272,7 +273,12 @@ class Organisation extends AppModel
                 'local' => $local,
                 'created_by' => $userId,
             ];
-            $this->save($organisation);
+            if ($uuid) {
+                $organisation['uuid'] = $uuid;
+            }
+            if (!$this->save($organisation)) {
+                throw new Exception("Could not create new org $name");
+            }
             return $this->id;
         }
         return $existingOrg[$this->alias]['id'];

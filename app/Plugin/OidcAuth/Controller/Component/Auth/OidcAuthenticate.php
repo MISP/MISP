@@ -11,6 +11,7 @@ App::uses('Oidc', 'OidcAuth.Lib');
  *  - OidcAuth.code_challenge_method
  *  - OidcAuth.role_mapper
  *  - OidcAuth.organisation_property (default: `organization`)
+ *  - OidcAuth.organisation_uuid_property (default: `organization_uuid`)
  *  - OidcAuth.roles_property (default: `roles`)
  *  - OidcAuth.default_org
  *  - OidcAuth.unblock (boolean, default: false)
