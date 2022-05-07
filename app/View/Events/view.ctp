@@ -1,8 +1,8 @@
 <?php
-    echo $this->element('genericElements/assetLoader', [
-        'css' => ['query-builder.default', 'attack_matrix'],
-        'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph', 'd3', 'd3.custom', 'jquery-ui.min'],
-    ]);
+// Include additional CSS and scripts to layout
+$this->viewVars['additionalCss'] = ['query-builder.default', 'attack_matrix', 'tree'];
+$this->viewVars['additionalJs'] = ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph', 'd3', 'd3.custom', 'jquery-ui.min'];
+
     echo $this->element(
         'genericElements/SingleViews/single_view',
         [

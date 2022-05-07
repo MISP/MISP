@@ -1,7 +1,5 @@
-<?php 
-    echo $this->element('genericElements/assetLoader', array(
-        'js' => array('redoc.standalone')
-    ));
+<?php
+$this->viewVars['additionalJs'] = ['redoc.standalone'];
 ?>
 <div id="redoc-container"></div>
 <script>

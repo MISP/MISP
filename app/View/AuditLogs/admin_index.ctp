@@ -1,3 +1,9 @@
+<?php
+// Include additional CSS and scripts to layout
+$this->viewVars['additionalCss'] = ['query-builder.default'];
+$this->viewVars['additionalJs'] = ['moment.min', 'doT', 'extendext', 'query-builder'];
+
+?>
 <div class="logs index">
     <h2><?= __('Audit logs') ?></h2>
     <div>
@@ -7,14 +13,7 @@
             <button id="qbClear" type="button" class="btn btn-xs btn-danger" title="<?= __('Clear filtering rules'); ?>"> <i class="fa fa-times"></i> <?= __('Clear'); ?></button>
         </div>
     </div>
-    <?php
-        echo $this->Html->script('moment.min');
-        echo $this->Html->script('doT');
-        echo $this->Html->script('extendext');
-        echo $this->Html->css('query-builder.default');
-        echo $this->Html->script('query-builder');
-    ?>
-    <script type="text/javascript">
+    <script>
         var qbOptions = {
             plugins: {
                 'unique-filter': null,
