@@ -558,7 +558,7 @@ class RestResponseComponent extends Component
      */
     private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
     {
-        $format = strtolower($format);
+        $format = !empty($format) ? strtolower($format) : 'json';
         if ($format === 'application/xml' || $format === 'xml') {
             if (!$raw) {
                 if (isset($response[0])) {
@@ -581,11 +581,7 @@ class RestResponseComponent extends Component
         } elseif ($format === 'csv' || $format === 'text/csv') {
             $type = 'csv';
         } else {
-            if (empty($format)) {
-                $type = 'json';
-            } else {
-                $type = $format;
-            }
+            $type = $format;
             $dumpSql = !empty($this->Controller->sql_dump) && Configure::read('debug') > 1;
             if (!$raw) {
                 if (is_string($response)) {
