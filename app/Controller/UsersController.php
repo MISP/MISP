@@ -631,21 +631,19 @@ class UsersController extends AppController
                 if (isset($this->request->data['User']['password'])) {
                     $this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
                 }
-                $default_publish_alert = Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : 0;
                 $defaults = array(
-                        'external_auth_required' => 0,
-                        'external_auth_key' => '',
-                        'server_id' => 0,
-                        'gpgkey' => '',
-                        'certif_public' => '',
-                        'autoalert' => $default_publish_alert,
-                        'contactalert' => 0,
-                        'disabled' => 0,
-                        'newsread' => 0,
-                        'change_pw' => 1,
-                        'authkey' => (new RandomTool())->random_str(true, 40),
-                        'termsaccepted' => 0,
-                        'org_id' => $this->Auth->user('org_id')
+                    'external_auth_required' => 0,
+                    'external_auth_key' => '',
+                    'server_id' => 0,
+                    'gpgkey' => '',
+                    'certif_public' => '',
+                    'autoalert' => $this->User->defaultPublishAlert(),
+                    'contactalert' => 0,
+                    'disabled' => 0,
+                    'newsread' => 0,
+                    'change_pw' => 1,
+                    'termsaccepted' => 0,
+                    'org_id' => $this->Auth->user('org_id'),
                 );
                 foreach ($defaults as $key => $value) {
                     if (!isset($this->request->data['User'][$key])) {
@@ -654,7 +652,6 @@ class UsersController extends AppController
                 }
             }
             $this->request->data['User']['date_created'] = time();
-            $this->request->data['User']['date_modified'] = time();
             if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) {
                 $this->request->data['User']['server_id'] = 0;
             }
