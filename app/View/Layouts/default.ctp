@@ -23,7 +23,6 @@
         }
         $js = [
             'jquery',
-            'misp-touch',
             'chosen.jquery.min',
             'jquery-ui',
         ];
@@ -58,19 +57,16 @@
     </div>
     <div id="flashContainer" style="padding-top:<?php echo $topPadding; ?>px; !important;">
         <div id="main-view-container" class="container-fluid">
-            <?php
-                echo $this->Flash->render();
-            ?>
+            <?= $this->Flash->render() ?>
         </div>
     </div>
     <div>
-        <?php
-            echo $this->fetch('content');
-        ?>
+        <?= $this->fetch('content') ?>
     </div>
     <?php
     echo $this->element('genericElements/assetLoader', array(
         'js' => array(
+            'misp-touch',
             'bootstrap',
             'bootstrap-timepicker',
             'bootstrap-datepicker',
