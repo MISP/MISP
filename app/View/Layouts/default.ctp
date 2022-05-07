@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language')  ?>">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>">
 <head>
+    <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <?php echo $this->Html->charset(); ?>
     <meta name="viewport" content="width=device-width">
+    <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
     <title><?= $title_for_layout, ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php
         $css_collection = array(
@@ -29,7 +30,6 @@
         echo $this->element('genericElements/assetLoader', array(
             'css' => $css_collection,
             'js' => $js_collection,
-            'meta' => 'icon'
         ));
     ?>
 </head>
@@ -87,7 +87,7 @@
         <div class="spinner"></div>
         <div class="loadingText"><?php echo __('Loading');?></div>
     </div>
-    <script type="text/javascript">
+    <script>
     <?php
         if (!isset($debugMode)):
     ?>
