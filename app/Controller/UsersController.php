@@ -1491,17 +1491,36 @@ class UsersController extends AppController
             $this->Flash->success(__('You accepted the Terms and Conditions.'));
             $this->redirect(array('action' => 'routeafterlogin'));
         }
+
+        $termsFile = Configure::read('MISP.terms_file');
+        if (empty($termsFile)) {
+            throw new NotFoundException(__("MISP Terms and Conditions are not defined"));
+        }
+
+        $termsDownload = (bool)Configure::read('MISP.terms_download');
+        if (!$termsDownload) {
+            $termsFilePath = APP . 'files' . DS . 'terms' . DS .  basename($termsFile);
+            try {
+                $termsContent = FileAccessTool::readFromFile($termsFilePath);
+            } catch (Exception $e) {
+                $termsContent = false;
+            }
+            $this->set("termsContent", $termsContent);
+        }
+
+        $this->set("termsDownload", $termsDownload);
         $this->set('termsaccepted', $this->Auth->user('termsaccepted'));
     }
 
     public function downloadTerms()
     {
-        if (!Configure::read('MISP.terms_file')) {
-            $termsFile = APP ."View/Users/terms";
-        } else {
-            $termsFile = APP . 'files' . DS . 'terms' . DS .  Configure::read('MISP.terms_file');
+        $termsFile = Configure::read('MISP.terms_file');
+        if (empty($termsFile)) {
+            throw new NotFoundException(__("MISP Terms and Conditions are not defined"));
         }
-        $this->response->file($termsFile, array('download' => true, 'name' => Configure::read('MISP.terms_file')));
+
+        $termsFilePath = APP . 'files' . DS . 'terms' . DS . basename($termsFile);
+        $this->response->file($termsFilePath, ['download' => true, 'name' => $termsFile]);
         return $this->response;
     }
 
