@@ -100,12 +100,12 @@ $(function() {
 
     $("#AttributeCategory").change(function () {
         formCategoryChanged("Attribute");
-        $("#AttributeType").chosen('destroy').chosen();
+        $("#AttributeType").trigger('chosen:updated');
     }).change();
 
     $("#AttributeType").change(function () {
         formTypeChanged();
-        $("#AttributeCategory").chosen('destroy').chosen();
+        $("#AttributeCategory").trigger('chosen:updated');
     }).change();
 
     $('.input-xxlarge').keydown(function (e) {
