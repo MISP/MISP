@@ -1,5 +1,10 @@
+<?php
+// Include addation CSS and scripts to layout
+$this->viewVars["additionalCss"] = ["gridstack.min"];
+$this->viewVars["additionalJs"] = ["gridstack.all"];
+?>
 <div class="index">
-    <div class="grid-stack" data-gs-min-row:"10">
+    <div class="grid-stack">
         <?php
             foreach ($widgets as $k => $widget) {
                 echo $this->element('/dashboard/widget', array('widget' => $widget, 'k' => $k));

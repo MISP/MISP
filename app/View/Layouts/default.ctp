@@ -7,7 +7,7 @@
     <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
     <title><?= $title_for_layout, ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php
-        $css_collection = array(
+        $css = [
             'bootstrap',
             //'bootstrap4',
             'bootstrap-datepicker',
@@ -16,21 +16,27 @@
             'chosen.min',
             'main',
             'jquery-ui',
-            array('print', array('media' => 'print'))
-        );
+            ['print', ['media' => 'print']],
+        ];
         if (Configure::read('MISP.custom_css')) {
-            $css_collection[] = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
+            $css[] = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
         }
-        $js_collection = array(
+        $js = [
             'jquery',
             'misp-touch',
             'chosen.jquery.min',
-            'jquery-ui'
-        );
-        echo $this->element('genericElements/assetLoader', array(
-            'css' => $css_collection,
-            'js' => $js_collection,
-        ));
+            'jquery-ui',
+        ];
+        if (!empty($additionalCss)) {
+            $css = array_merge($css, $additionalCss);
+        }
+        if (!empty($additionalJs)) {
+            $js = array_merge($js, $additionalJs);
+        }
+        echo $this->element('genericElements/assetLoader', [
+            'css' => $css,
+            'js' => $js,
+        ]);
     ?>
 </head>
 <body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
