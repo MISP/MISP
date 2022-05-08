@@ -185,8 +185,8 @@
     });
 </script>
 <?php
+$this->viewVars['additionalCss'] = ['vis', 'distribution-graph'];
 echo $this->element('genericElements/assetLoader', [
-    'css' => ['vis', 'distribution-graph'],
     'js' => ['vis', 'jquery-ui.min', 'network-distribution-graph'],
 ]);
 if (!$ajax) {
