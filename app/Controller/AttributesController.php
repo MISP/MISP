@@ -270,10 +270,6 @@ class AttributesController extends AppController
         $categories = array_keys($this->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
         $this->set('categories', $categories);
-
-        $this->loadModel('Noticelist');
-        $notice_list_triggers = $this->Noticelist->getTriggerData();
-        $this->set('notice_list_triggers', json_encode($notice_list_triggers));
         $this->__common();
         $this->set('title_for_layout', __('Add attribute'));
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -483,6 +479,11 @@ class AttributesController extends AppController
         $this->set('distributionLevels', $distributionData['levels']);
         $this->set('initialDistribution', $distributionData['initial']);
         $this->set('fieldDesc', $this->__fieldDesc());
+        $this->set('nonCorrelatingTypes', Attribute::NON_CORRELATING_TYPES);
+
+        $this->loadModel('Noticelist');
+        $notice_list_triggers = $this->Noticelist->getTriggerData();
+        $this->set('notice_list_triggers', json_encode($notice_list_triggers));
     }
 
     /**
@@ -870,9 +871,6 @@ class AttributesController extends AppController
         $this->set('categories', $categories);
         $this->set('categoryDefinitions', $categoryDefinitions);
         $this->set('action', $this->action);
-        $this->loadModel('Noticelist');
-        $notice_list_triggers = $this->Noticelist->getTriggerData();
-        $this->set('notice_list_triggers', json_encode($notice_list_triggers));
         $this->render('add');
     }
 
