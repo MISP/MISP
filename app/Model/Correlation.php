@@ -329,9 +329,6 @@ class Correlation extends AppModel
         if (in_array($a['type'], Attribute::NON_CORRELATING_TYPES, true)) {
             return true;
         }
-        if ($this->__preventExcludedCorrelations($a)) {
-            return true;
-        }
         if (!$event) {
             $event = $this->Attribute->Event->find('first', array(
                 'recursive' => -1,
@@ -345,10 +342,19 @@ class Correlation extends AppModel
             return true;
         }
         // generate additional correlating attribute list based on the advanced correlations
-        $extraConditions = $this->__buildAdvancedCorrelationConditions($a);
-        $correlatingValues = [$a['value1']];
-        if (!empty($a['value2']) && !in_array($a['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
+        if (!$this->__preventExcludedCorrelations($a['value1'])) {
+            $extraConditions = $this->__buildAdvancedCorrelationConditions($a);
+            $correlatingValues = [$a['value1']];
+        } else {
+            $extraConditions = null;
+            $correlatingValues = [];
+        }
+        if (!empty($a['value2']) && !in_array($a['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true) && !$this->__preventExcludedCorrelations($a['value2'])) {
             $correlatingValues[] = $a['value2'];
+        }
+
+        if (empty($correlatingValues)) {
+            return true;
         }
 
         $correlatingAttributes = [];
@@ -410,10 +416,10 @@ class Correlation extends AppModel
     }
 
     /**
-     * @param array $a
+     * @param string $value
      * @return bool True if attribute value is excluded
      */
-    private function __preventExcludedCorrelations($a)
+    private function __preventExcludedCorrelations($value)
     {
         if ($this->exclusions === null) {
             try {
@@ -426,10 +432,6 @@ class Correlation extends AppModel
             return false;
         }
 
-        $value = $a['value1'];
-        if (!empty($a['value2'])) {
-            $value .= '|' . $a['value2'];
-        }
         foreach ($this->exclusions as $exclusion) {
             if (!empty($exclusion)) {
                 $firstChar = $exclusion[0];
@@ -716,7 +718,7 @@ class Correlation extends AppModel
                 'Correlation' => [
                     'value' => $value,
                     'count' => $count,
-                    'excluded' => $this->__preventExcludedCorrelations(['value1' => $value]),
+                    'excluded' => $this->__preventExcludedCorrelations($value),
                 ]
             ];
         }
