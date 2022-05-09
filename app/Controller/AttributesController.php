@@ -1865,9 +1865,8 @@ class AttributesController extends AppController
 
     public function generateCorrelation()
     {
-        if (!self::_isSiteAdmin() || !$this->request->is('post')) {
-            throw new NotFoundException();
-        }
+        $this->request->allowMethod(['post']);
+
         if (!Configure::read('MISP.background_jobs')) {
             $k = $this->Attribute->generateCorrelation();
             $this->Flash->success(__('All done. ' . $k . ' attributes processed.'));
@@ -1894,7 +1893,7 @@ class AttributesController extends AppController
                 $jobId
             );
 
-            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
+            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (Administration -> Jobs).'));
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         }
     }
