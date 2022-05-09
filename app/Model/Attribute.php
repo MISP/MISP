@@ -1552,7 +1552,13 @@ class Attribute extends AppModel
         return $export->export($attributes, $orgs, $valueField, $allowedlist, $instanceString);
     }
 
-    public function generateCorrelation($jobId = false, $startPercentage = 0, $eventId = false, $attributeId = false)
+    /**
+     * @param int|false $jobId
+     * @param int|false $eventId
+     * @param int|false $attributeId
+     * @return int Number of processed attributes
+     */
+    public function generateCorrelation($jobId = false, $eventId = false, $attributeId = false)
     {
         $this->purgeCorrelations($eventId);
 
@@ -1579,12 +1585,8 @@ class Attribute extends AppModel
         }
         foreach ($eventIds as $j => $eventId) {
             if ($jobId) {
-                if ($attributeId) {
-                    $message = 'Correlating Attribute ' . $attributeId;
-                } else {
-                    $message = 'Correlating Event ' . $eventId;
-                }
-                $this->Job->saveProgress($jobId, $message, $startPercentage + ($j / $eventCount * (100 - $startPercentage)));
+                $message = $attributeId ? __('Correlating Attribute %s', $attributeId) : __('Correlating Event %s', $eventId);
+                $this->Job->saveProgress($jobId, $message, $j / $eventCount * 100);
             }
             $event = $this->Event->find('first', array(
                 'recursive' => -1,
