@@ -1573,7 +1573,7 @@ class Attribute extends AppModel
             ]);
             $full = true;
         } else {
-            $eventIds = array($eventId);
+            $eventIds = [$eventId];
             $full = false;
         }
         $attributeCount = 0;
@@ -1590,7 +1590,7 @@ class Attribute extends AppModel
             }
             $event = $this->Event->find('first', array(
                 'recursive' => -1,
-                'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
+                'fields' => ['Event.distribution', 'Event.id', 'Event.org_id', 'Event.sharing_group_id', 'Event.disable_correlation'],
                 'conditions' => array('id' => $eventId),
                 'order' => false,
             ));

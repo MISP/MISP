@@ -550,12 +550,13 @@ class Correlation extends AppModel
                 }
             }
 
-            $ipList = $this->Attribute->find('column', array(
+            $ipList = $this->Attribute->find('column', [
                 'conditions' => $conditions,
                 'fields' => ['Attribute.value1'],
                 'unique' => true,
                 'order' => false,
-            ));
+                'callbacks' => false,
+            ]);
             foreach ($ipList as $ipToCheck) {
                 $ipToCheckVersion = filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
                 if ($ipToCheckVersion === $ip_version) {
