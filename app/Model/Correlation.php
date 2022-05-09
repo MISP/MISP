@@ -655,7 +655,8 @@ class Correlation extends AppModel
                 'conditions' => [
                     'id >' => $page * $chunkSize,
                     'id <=' => ($page + 1) * $chunkSize
-                ]
+                ],
+                'callbacks' => false, // when callbacks are enabled, memory is leaked
             ]);
             $newElements = count($correlations);
             $correlations = array_count_values($correlations);
@@ -666,7 +667,6 @@ class Correlation extends AppModel
             $pipeline->exec();
             if ($jobId) {
                 $this->Job->saveProgress($jobId, __('Generating top correlations. Processed %s IDs.', ($page * $chunkSize) + $newElements), floor(100 * $page / $maxPage));
-                return $jobId;
             }
         }
         return true;
