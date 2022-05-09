@@ -33,11 +33,15 @@ class Correlation extends AppModel
     /** @var bool */
     private $deadlockAvoidance;
 
+    /** @var bool */
+    private $advancedCorrelationEnabled;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
         $this->oldSchema = $this->schema('date') !== null;
         $this->deadlockAvoidance = Configure::read('MISP.deadlock_avoidance');
+        $this->advancedCorrelationEnabled = (bool)Configure::read('MISP.enable_advanced_correlations');
     }
 
     public function correlateValueRouter($value)
@@ -78,18 +82,21 @@ class Correlation extends AppModel
      */
     private function __buildAdvancedCorrelationConditions($attribute)
     {
-        $extraConditions = null;
-        if (in_array($attribute['type'], ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'], true)) {
-            $extraConditions = $this->cidrCorrelation($attribute);
-        } else if ($attribute['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
-            $extraConditions = $this->ssdeepCorrelation($attribute);
+        if (!$this->advancedCorrelationEnabled) {
+            return null;
         }
-        return $extraConditions;
+
+        if (in_array($attribute['type'], ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'], true)) {
+            return $this->cidrCorrelation($attribute);
+        } else if ($attribute['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
+            return $this->ssdeepCorrelation($attribute);
+        }
+        return null;
     }
 
     private function __addAdvancedCorrelations($correlatingAttribute)
     {
-        if (empty(Configure::read('MISP.enable_advanced_correlations'))) {
+        if (!$this->advancedCorrelationEnabled) {
             return [];
         }
         $extraConditions = $this->__buildAdvancedCorrelationConditions($correlatingAttribute['Attribute']);
