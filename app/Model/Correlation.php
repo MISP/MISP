@@ -73,19 +73,16 @@ class Correlation extends AppModel
     }
 
     /**
-     * @param array $a
+     * @param array $attribute Simple attribute array
      * @return array|null
      */
-    private function __buildAdvancedCorrelationConditions($a)
+    private function __buildAdvancedCorrelationConditions($attribute)
     {
-        if (isset($a['Attribute'])) {
-            $a = $a['Attribute'];
-        }
         $extraConditions = null;
-        if (in_array($a['type'], ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'], true)) {
-            $extraConditions = $this->cidrCorrelation($a);
-        } else if ($a['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
-            $extraConditions = $this->ssdeepCorrelation($a);
+        if (in_array($attribute['type'], ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'], true)) {
+            $extraConditions = $this->cidrCorrelation($attribute);
+        } else if ($attribute['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
+            $extraConditions = $this->ssdeepCorrelation($attribute);
         }
         return $extraConditions;
     }
@@ -95,7 +92,7 @@ class Correlation extends AppModel
         if (empty(Configure::read('MISP.enable_advanced_correlations'))) {
             return [];
         }
-        $extraConditions = $this->__buildAdvancedCorrelationConditions($correlatingAttribute);
+        $extraConditions = $this->__buildAdvancedCorrelationConditions($correlatingAttribute['Attribute']);
         if (empty($extraConditions)) {
             return [];
         }
@@ -464,12 +461,17 @@ class Correlation extends AppModel
         return false;
     }
 
-    private function ssdeepCorrelation($a)
+    /**
+     * @param array $attribute Simple attribute array
+     * @return array[]|false
+     */
+    private function ssdeepCorrelation($attribute)
     {
         if (!isset($this->FuzzyCorrelateSsdeep)) {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
         }
-        $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($a['value1'], $a['id']);
+        $value = $attribute['value1'];
+        $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($value, $attribute['id']);
         if (!empty($fuzzyIds)) {
             $ssdeepIds = $this->Attribute->find('list', array(
                 'recursive' => -1,
@@ -480,10 +482,10 @@ class Correlation extends AppModel
                 'fields' => array('Attribute.id', 'Attribute.value1')
             ));
             $threshold = Configure::read('MISP.ssdeep_correlation_threshold') ?: 40;
-            $attributeIds = array();
+            $attributeIds = [];
             foreach ($ssdeepIds as $attributeId => $v) {
-                $ssdeep_value = ssdeep_fuzzy_compare($a['value1'], $v);
-                if ($ssdeep_value >= $threshold) {
+                $ssdeepValue = ssdeep_fuzzy_compare($value, $v);
+                if ($ssdeepValue >= $threshold) {
                     $attributeIds[] = $attributeId;
                 }
             }
@@ -493,13 +495,13 @@ class Correlation extends AppModel
     }
 
     /**
-     * @param $a
+     * @param array $attribute Simple attribute array
      * @return array|array[][]
      */
-    private function cidrCorrelation($a)
+    private function cidrCorrelation($attribute)
     {
         $ipValues = array();
-        $ip = $a['value1'];
+        $ip = $attribute['value1'];
         if (strpos($ip, '/') !== false) { // IP is CIDR
             list($networkIp, $mask) = explode('/', $ip);
             $ip_version = filter_var($networkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
