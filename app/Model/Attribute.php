@@ -1577,23 +1577,23 @@ class Attribute extends AppModel
         } else {
             $jobId = false;
         }
-        foreach ($eventIds as $j => $id) {
+        foreach ($eventIds as $j => $eventId) {
             if ($jobId) {
                 if ($attributeId) {
                     $message = 'Correlating Attribute ' . $attributeId;
                 } else {
-                    $message = 'Correlating Event ' . $id;
+                    $message = 'Correlating Event ' . $eventId;
                 }
                 $this->Job->saveProgress($jobId, $message, $startPercentage + ($j / $eventCount * (100 - $startPercentage)));
             }
             $event = $this->Event->find('first', array(
                 'recursive' => -1,
                 'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
-                'conditions' => array('id' => $id),
+                'conditions' => array('id' => $eventId),
                 'order' => false,
             ));
             $attributeConditions = array(
-                'Attribute.event_id' => $id,
+                'Attribute.event_id' => $eventId,
                 'Attribute.deleted' => 0,
                 'Attribute.disable_correlation' => 0,
                 'NOT' => array(
@@ -1609,17 +1609,17 @@ class Attribute extends AppModel
                 // fetch just necessary fields to save memory
                 'fields' => [
                     'Attribute.id',
-                    'Attribute.event_id',
                     'Attribute.type',
                     'Attribute.value1',
                     'Attribute.value2',
                     'Attribute.distribution',
                     'Attribute.sharing_group_id',
-                    'Attribute.disable_correlation',
                 ],
                 'order' => [],
+                'callbacks' => false, // memory leak fix
             ]);
             foreach ($attributes as $attribute) {
+                $attribute['Attribute']['event_id'] = $eventId;
                 $this->Correlation->afterSaveCorrelation($attribute['Attribute'], $full, $event);
                 $attributeCount++;
             }

@@ -389,7 +389,8 @@ class Correlation extends AppModel
                     'Attribute.value1', 'Attribute.value2'
                 ],
                 'contain' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'],
-                'order' => []
+                'order' => [],
+                'callbacks' => 'before', // memory leak fix
             ));
         }
         $correlations = [];
