@@ -347,7 +347,7 @@ class Correlation extends AppModel
             $correlatingValues = [$a['value1']];
         } else {
             $extraConditions = null;
-            $correlatingValues = [];
+            $correlatingValues = [null];
         }
         if (!empty($a['value2']) && !in_array($a['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true) && !$this->__preventExcludedCorrelations($a['value2'])) {
             $correlatingValues[] = $a['value2'];
@@ -359,6 +359,9 @@ class Correlation extends AppModel
 
         $correlatingAttributes = [];
         foreach ($correlatingValues as $k => $cV) {
+            if ($cV === null) {
+                continue;
+            }
             $conditions = [
                 'OR' => [
                     'Attribute.value1' => $cV,
@@ -375,7 +378,7 @@ class Correlation extends AppModel
                 'Event.disable_correlation' => 0,
                 'Attribute.deleted' => 0,
             ];
-            if (!empty($extraConditions)) {
+            if ($k === 0 && !empty($extraConditions)) {
                 $conditions['OR'][] = $extraConditions;
             }
             if ($full) {
