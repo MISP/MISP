@@ -72,6 +72,10 @@ class Correlation extends AppModel
         }
     }
 
+    /**
+     * @param array $a
+     * @return array|null
+     */
     private function __buildAdvancedCorrelationConditions($a)
     {
         if (isset($a['Attribute'])) {
@@ -162,6 +166,13 @@ class Correlation extends AppModel
         return $correlatingAttributes;
     }
 
+    /**
+     * @param string $value
+     * @param array $a Attribute A
+     * @param array $b Attribute B
+     * @param array $correlations
+     * @return array
+     */
     private function __addCorrelationEntry($value, $a, $b, $correlations)
     {
         if (
@@ -233,6 +244,10 @@ class Correlation extends AppModel
         return $this->__saveCorrelations($correlations);
     }
 
+    /**
+     * @param array $correlations
+     * @return array|bool|bool[]|mixed
+     */
     private function __saveCorrelations($correlations)
     {
         if (empty($correlations)) {
@@ -299,6 +314,12 @@ class Correlation extends AppModel
         }
     }
 
+    /**
+     * @param array $a
+     * @param bool $full
+     * @param array|false $event
+     * @return array|bool|bool[]|mixed
+     */
     public function afterSaveCorrelation($a, $full = false, $event = false)
     {
         if (!empty($a['disable_correlation']) || Configure::read('MISP.completely_disable_correlation')) {
@@ -320,12 +341,12 @@ class Correlation extends AppModel
             ));
         }
 
-        if (!empty($event['Event']['disable_correlation']) && $event['Event']['disable_correlation']) {
+        if (!empty($event['Event']['disable_correlation'])) {
             return true;
         }
         // generate additional correlating attribute list based on the advanced correlations
         $extraConditions = $this->__buildAdvancedCorrelationConditions($a);
-        $correlatingValues = array($a['value1']);
+        $correlatingValues = [$a['value1']];
         if (!empty($a['value2']) && !in_array($a['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
             $correlatingValues[] = $a['value2'];
         }
@@ -338,7 +359,7 @@ class Correlation extends AppModel
                     'AND' => [
                         'Attribute.value2' => $cV,
                         'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
-                    ]
+                    ],
                 ],
                 'NOT' => [
                     'Attribute.event_id' => $a['event_id'],
@@ -346,7 +367,7 @@ class Correlation extends AppModel
                 ],
                 'Attribute.disable_correlation' => 0,
                 'Event.disable_correlation' => 0,
-                'Attribute.deleted' => 0
+                'Attribute.deleted' => 0,
             ];
             if (!empty($extraConditions)) {
                 $conditions['OR'][] = $extraConditions;
@@ -365,19 +386,22 @@ class Correlation extends AppModel
                 'order' => []
             ));
         }
-        $correlations = array();
+        $correlations = [];
+        $attributeToProcess = ['Attribute' => $a, 'Event' => $event['Event']];
         foreach ($correlatingAttributes as $k => $cA) {
             foreach ($cA as $corr) {
+                // TODO: Currently it is hard to check if value1 or value2 correlated, so we check value2 and if not, it is value1
+                $value = $correlatingValues[$k] === $corr['Attribute']['value2'] ? $corr['Attribute']['value2'] : $corr['Attribute']['value1'];
                 $correlations = $this->__addCorrelationEntry(
-                    $k === 0 ? $corr['Attribute']['value1'] : $corr['Attribute']['value2'],
-                    ['Attribute' => $a, 'Event' => $event['Event']],
+                    $value,
+                    $attributeToProcess,
                     $corr,
                     $correlations
                 );
                 $correlations = $this->__addCorrelationEntry(
                     $correlatingValues[$k],
                     $corr,
-                    ['Attribute' => $a, 'Event' => $event['Event']],
+                    $attributeToProcess,
                     $correlations
                 );
             }
@@ -463,6 +487,10 @@ class Correlation extends AppModel
         return false;
     }
 
+    /**
+     * @param $a
+     * @return array|array[][]
+     */
     private function cidrCorrelation($a)
     {
         $ipValues = array();
@@ -662,7 +690,7 @@ class Correlation extends AppModel
             $correlations = array_count_values($correlations);
             $pipeline = $redis->pipeline();
             foreach ($correlations as $correlation => $count) {
-                $pipeline->zadd(self::CACHE_NAME, ['INCR'], $count, $correlation);
+                $pipeline->zIncrBy(self::CACHE_NAME, $count, $correlation);
             }
             $pipeline->exec();
             if ($jobId) {
