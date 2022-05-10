@@ -466,9 +466,11 @@ function genCheckbox(options) {
         .attr('oninput', 'handleInputChange(this)')
         .attr('data-paramid', options.param_id)
     if (options.value !== undefined) {
-        $input.attr('value', options.value)
-    } else {
-        $input.attr('value', options.default)
+        if (options.value) {
+            $input.attr('checked', '')
+        }
+    } else if (options.default) {
+        $input.attr('checked', '')
     }
     $label.append($input)
     var $container = $('<div>')
@@ -499,9 +501,13 @@ function genRadio(options) {
             .attr('name', 'option-radio-' + u_id)
             .val(optionValue)
             .attr('data-paramid', options.param_id)
-            .attr('onchange', 'handleSelectChange(this)')
-        if (options.value !== undefined && optionValue == options.value) {
-            $input.prop('checked', true)
+            .attr('onchange', 'handleInputChange(this)')
+        if (options.value !== undefined) {
+            if (optionValue == options.value) {
+                $input.attr('checked', '')
+            }
+        } else if (options.default) {
+            $input.attr('checked', '')
         }
         var $label = $('<label>')
             .addClass('radio')
@@ -567,7 +573,13 @@ function setParamValueForInput($input, node_data) {
     for (let i = 0; i < node_data.params.length; i++) {
         const param = node_data.params[i];
         if (param.param_id == param_id) {
-            node_data.params[i].value = $input.val()
+            var newValue = ''
+            if ($input.attr('type') == 'checkbox') {
+                newValue = $input.is(':checked')
+            } else {
+                newValue = $input.val()
+            }
+            node_data.params[i].value = newValue
         }
     }
     return node_data
