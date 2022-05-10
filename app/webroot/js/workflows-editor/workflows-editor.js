@@ -393,7 +393,11 @@ function genSelect(options) {
     var $select = $('<select>').css({
         width: '100%',
     })
-    options.options.forEach(function (option) {
+    var selectOptions = options.options
+    if (!Array.isArray(selectOptions)) {
+        selectOptions = Object.keys(options.options).map((k) => { return { name: options.options[k], value: k } })
+    }
+    selectOptions.forEach(function (option) {
         var optionValue = ''
         var optionName = ''
         if (typeof option === 'string') {
