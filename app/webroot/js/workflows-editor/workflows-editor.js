@@ -119,24 +119,16 @@ function initDrawflow() {
     $exportWorkflowButton.click(exportWorkflow)
     $blockModal.on('show', function (evt) {
         var selectedBlock = editor.getNodeFromId(editor.node_selected.id.split('-')[1]) // Couldn't find a better way to get the selected node
-        buildModalForBlock(selectedBlock.data)
-    })
-
-    $blockModalSave.click(function() {
-        saveBlockConfiguration()
+        buildModalForBlock(selectedBlock.id, selectedBlock.data)
     })
 
 }
 
-function saveBlockConfiguration() {
-    console.log(
-        $blockModal.data('selected-block')
-    );
-}
-
-function buildModalForBlock(block) {
+function buildModalForBlock(node_id, block) {
     var html = genBlockParamHtml(block)
-    $blockModal.data('selected-block', block)
+    $blockModal
+        .data('selected-block', block)
+        .data('selected-node-id', node_id)
     $blockModal.find('.modal-body').empty().append(html)
 }
 
@@ -475,7 +467,20 @@ function getIDForBlockParameter(param) {
 }
 
 function getNodeFromNodeInput($input) {
-    var node = editor.getNodeFromId($input.closest('.drawflow-node')[0].id.split('-')[1])
+    var node_id = 0
+    if ($input.closest('.modal').length > 0) {
+        node_id = $input.closest('.modal').data('selected-node-id')
+        // sync changes with node's content
+        // Need to handle the case where SELECT changes!
+        debugger;
+        $input.change(function() {
+            var $relatedInputInNode = $drawflow.find('#node-'+node_id).find('[data-paramid="' + $input.data('paramid') + '"]')
+            $relatedInputInNode.val($(this).val())
+        })
+    } else {
+        node_id = $input.closest('.drawflow-node')[0].id.split('-')[1]
+    }
+    var node = editor.getNodeFromId(node_id)
     return node
 }
 

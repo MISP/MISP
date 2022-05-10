@@ -86,7 +86,6 @@
     </div>
     <div class="modal-footer">
         <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-        <button id="block-modal-save-button" class="btn btn-primary">Save changes</button>
     </div>
 </div>
 <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
@@ -111,7 +110,6 @@ echo $this->element('genericElements/assetLoader', [
     var $chosenBlocks = $('.root-container .side-panel .chosen-container.blocks')
     var $drawflow = $('#drawflow')
     var $blockModal = $('#block-modal')
-    var $blockModalSave = $('#block-modal #block-modal-save-button')
     var $importWorkflowButton = $('#importWorkflow')
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')
