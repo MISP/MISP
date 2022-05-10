@@ -381,6 +381,12 @@ function genBlockParamHtml(block) {
             case 'select':
                 paramHtml = genSelect(param)[0].outerHTML
                 break;
+            case 'checkbox':
+                paramHtml = genCheckbox(param)[0].outerHTML
+                break;
+            case 'radio':
+                paramHtml = genRadio(param)[0].outerHTML
+                break;
             default:
                 break;
         }
@@ -447,6 +453,70 @@ function genInput(options) {
     return $container
 }
 
+function genCheckbox(options) {
+    var $label = $('<label>')
+        .css({
+            marginLeft: '0.25em',
+            marginBbottom: 0,
+        })
+        .text(options.label)
+    var $input = $('<input>')
+    $input
+        .attr('type', 'checkbox')
+        .attr('oninput', 'handleInputChange(this)')
+        .attr('data-paramid', options.param_id)
+    if (options.value !== undefined) {
+        $input.attr('value', options.value)
+    } else {
+        $input.attr('value', options.default)
+    }
+    $label.append($input)
+    var $container = $('<div>')
+        .addClass('checkbox')
+        .append($label)
+    return $container
+}
+
+function genRadio(options) {
+    var $container = $('<div>')
+    var selectOptions = options.options
+    if (!Array.isArray(selectOptions)) {
+        selectOptions = Object.keys(options.options).map((k) => { return { name: options.options[k], value: k } })
+    }
+    var u_id = uid()
+    selectOptions.forEach(function (option) {
+        var optionValue = ''
+        var optionName = ''
+        if (typeof option === 'string') {
+            optionValue = option
+            optionName = option
+        } else {
+            optionValue = option.value
+            optionName = option.name
+        }
+        var $input = $('<input>')
+            .attr('type', 'radio')
+            .attr('name', 'option-radio-' + u_id)
+            .val(optionValue)
+            .attr('data-paramid', options.param_id)
+            .attr('onchange', 'handleSelectChange(this)')
+        if (options.value !== undefined && optionValue == options.value) {
+            $input.prop('checked', true)
+        }
+        var $label = $('<label>')
+            .addClass('radio')
+            .css({
+                marginLeft: '0.25em',
+                marginBbottom: 0,
+            })
+        $label
+            .append($input)
+            .append($('<span>').text(optionName))
+        $container.append($label)
+    })
+    return $container
+}
+
 function handleInputChange(changed) {
     var $input = $(changed)
     var node = getNodeFromNodeInput($input)
@@ -475,7 +545,16 @@ function getNodeFromNodeInput($input) {
     if ($input.closest('.modal').length > 0) {
         node_id = $input.closest('.modal').data('selected-node-id')
         var $relatedInputInNode = $drawflow.find('#node-'+node_id).find('[data-paramid="' + $input.data('paramid') + '"]')
-        $relatedInputInNode.val($input.val())
+        if ($relatedInputInNode.attr('type') == 'checkbox') {
+            $relatedInputInNode.prop('checked', $input.is(':checked'))
+        } else if ($relatedInputInNode.attr('type') == 'radio') {
+            $relatedInputInNode = $relatedInputInNode.filter(function() {
+                return $(this).val() == $input.val()
+            })
+            $relatedInputInNode.prop('checked', $input.is(':checked'))
+        } else {
+            $relatedInputInNode.val($input.val())
+        }
     } else {
         node_id = $input.closest('.drawflow-node')[0].id.split('-')[1]
     }
@@ -492,4 +571,9 @@ function setParamValueForInput($input, node_data) {
         }
     }
     return node_data
+}
+
+// generate unique id for the inputs
+function uid() {
+    return (performance.now().toString(36) + Math.random().toString(36)).replace(/\./g, "")
 }
