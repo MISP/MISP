@@ -470,13 +470,8 @@ function getNodeFromNodeInput($input) {
     var node_id = 0
     if ($input.closest('.modal').length > 0) {
         node_id = $input.closest('.modal').data('selected-node-id')
-        // sync changes with node's content
-        // Need to handle the case where SELECT changes!
-        debugger;
-        $input.change(function() {
-            var $relatedInputInNode = $drawflow.find('#node-'+node_id).find('[data-paramid="' + $input.data('paramid') + '"]')
-            $relatedInputInNode.val($(this).val())
-        })
+        var $relatedInputInNode = $drawflow.find('#node-'+node_id).find('[data-paramid="' + $input.data('paramid') + '"]')
+        $relatedInputInNode.val($input.val())
     } else {
         node_id = $input.closest('.drawflow-node')[0].id.split('-')[1]
     }
