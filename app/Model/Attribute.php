@@ -1594,14 +1594,14 @@ class Attribute extends AppModel
                 'conditions' => array('id' => $eventId),
                 'order' => false,
             ));
-            $attributeConditions = array(
+            $attributeConditions = [
                 'Attribute.event_id' => $eventId,
                 'Attribute.deleted' => 0,
                 'Attribute.disable_correlation' => 0,
-                'NOT' => array(
+                'NOT' => [
                     'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
-                ),
-            );
+                ],
+            ];
             if ($attributeId) {
                 $attributeConditions['Attribute.id'] = $attributeId;
             }

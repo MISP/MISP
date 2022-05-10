@@ -174,43 +174,37 @@ class Correlation extends AppModel
      * @param string $value
      * @param array $a Attribute A
      * @param array $b Attribute B
-     * @param array $correlations
      * @return array
      */
-    private function __addCorrelationEntry($value, $a, $b, $correlations)
+    private function __addCorrelationEntry($value, $a, $b)
     {
-        if (
-            $a['Attribute']['event_id'] !== $b['Attribute']['event_id']
-        ) {
-            if ($this->deadlockAvoidance) {
-                $correlations[] = [
-                    'value' => $value,
-                    '1_event_id' => $a['Event']['id'],
-                    '1_attribute_id' => $a['Attribute']['id'],
-                    'event_id' => $b['Attribute']['event_id'],
-                    'attribute_id' => $b['Attribute']['id'],
-                    'org_id' => $b['Event']['org_id'],
-                    'distribution' => $b['Event']['distribution'],
-                    'a_distribution' => $b['Attribute']['distribution'],
-                    'sharing_group_id' => $b['Event']['sharing_group_id'],
-                    'a_sharing_group_id' => $b['Attribute']['sharing_group_id'],
-                ];
-            } else {
-                $correlations[] = [
-                    $value,
-                    $a['Event']['id'],
-                    $a['Attribute']['id'],
-                    $b['Attribute']['event_id'],
-                    $b['Attribute']['id'],
-                    $b['Event']['org_id'],
-                    $b['Event']['distribution'],
-                    $b['Attribute']['distribution'],
-                    $b['Event']['sharing_group_id'],
-                    $b['Attribute']['sharing_group_id'],
-                ];
-            }
+        if ($this->deadlockAvoidance) {
+            return [
+                'value' => $value,
+                '1_event_id' => $a['Event']['id'],
+                '1_attribute_id' => $a['Attribute']['id'],
+                'event_id' => $b['Attribute']['event_id'],
+                'attribute_id' => $b['Attribute']['id'],
+                'org_id' => $b['Event']['org_id'],
+                'distribution' => $b['Event']['distribution'],
+                'a_distribution' => $b['Attribute']['distribution'],
+                'sharing_group_id' => $b['Event']['sharing_group_id'],
+                'a_sharing_group_id' => $b['Attribute']['sharing_group_id'],
+            ];
+        } else {
+            return [
+                $value,
+                $a['Event']['id'],
+                $a['Attribute']['id'],
+                $b['Attribute']['event_id'],
+                $b['Attribute']['id'],
+                $b['Event']['org_id'],
+                $b['Event']['distribution'],
+                $b['Attribute']['distribution'],
+                $b['Event']['sharing_group_id'],
+                $b['Attribute']['sharing_group_id'],
+            ];
         }
-        return $correlations;
     }
 
     public function correlateValue($value, $jobId = false)
@@ -232,12 +226,18 @@ class Correlation extends AppModel
         }
         foreach ($correlatingAttributes as $k => $correlatingAttribute) {
             foreach ($correlatingAttributes as $correlatingAttribute2) {
-                $correlations = $this->__addCorrelationEntry($value, $correlatingAttribute, $correlatingAttribute2, $correlations);
+                if ($correlatingAttribute['Attribute']['event_id'] === $correlatingAttribute2['Attribute']['event_id']) {
+                    continue;
+                }
+                $correlations[] = $this->__addCorrelationEntry($value, $correlatingAttribute, $correlatingAttribute2);
             }
             $extraCorrelations = $this->__addAdvancedCorrelations($correlatingAttribute);
             if (!empty($extraCorrelations)) {
                 foreach ($extraCorrelations as $extraCorrelation) {
-                    $correlations = $this->__addCorrelationEntry($value, $correlatingAttribute, $extraCorrelation, $correlations);
+                    if ($correlatingAttribute['Attribute']['event_id'] === $extraCorrelation['Attribute']['event_id']) {
+                        continue;
+                    }
+                    $correlations[] = $this->__addCorrelationEntry($value, $correlatingAttribute, $extraCorrelation);
                     //$correlations = $this->__addCorrelationEntry($value, $extraCorrelation, $correlatingAttribute, $correlations);
                 }
             }
@@ -406,17 +406,15 @@ class Correlation extends AppModel
             foreach ($cA as $corr) {
                 // TODO: Currently it is hard to check if value1 or value2 correlated, so we check value2 and if not, it is value1
                 $value = $correlatingValues[$k] === $corr['Attribute']['value2'] ? $corr['Attribute']['value2'] : $corr['Attribute']['value1'];
-                $correlations = $this->__addCorrelationEntry(
+                $correlations[] = $this->__addCorrelationEntry(
                     $value,
                     $attributeToProcess,
-                    $corr,
-                    $correlations
+                    $corr
                 );
-                $correlations = $this->__addCorrelationEntry(
+                $correlations[] = $this->__addCorrelationEntry(
                     $correlatingValues[$k],
                     $corr,
-                    $attributeToProcess,
-                    $correlations
+                    $attributeToProcess
                 );
             }
         }
