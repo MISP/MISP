@@ -99,10 +99,8 @@ function initDrawflow() {
             scroll: false,
             disabled: $(this).data('block').disabled,
             start: function (event, ui) {
-                $(this).addClass('disabled')
             },
             stop: function (event, ui) {
-                $(this).removeClass('disabled')
             }
         });
     })
@@ -396,6 +394,13 @@ function genBlockParamHtml(block) {
 }
 
 function genSelect(options) {
+    var $container = $('<div>')
+    var $label = $('<label>')
+        .css({
+            marginLeft: '0.25em',
+            marginBbottom: 0,
+        })
+        .append($('<span>').text(options.label))
     var $select = $('<select>').css({
         width: '100%',
     })
@@ -426,17 +431,24 @@ function genSelect(options) {
     $select
         .attr('data-paramid', options.param_id)
         .attr('onchange', 'handleSelectChange(this)')
-    return $select
+    $label.append($select)
+    $container.append($label)
+    return $container
 }
 
 function genInput(options) {
+    var $container = $('<div>')
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
             marginBbottom: 0,
         })
-        .text(options.label)
-    var $input = $('<input>')
+        .append($('<span>').text(options.label))
+    var $input = $('<input>').css({
+        width: '100%',
+        'box-sizing': 'border-box',
+        height: '30px',
+    })
     $input
         .attr('type', 'text')
         .attr('oninput', 'handleInputChange(this)')
@@ -449,7 +461,8 @@ function genInput(options) {
     if (options.placeholder !== undefined) {
         $input.attr('placeholder', options.placeholder)
     }
-    var $container = $('<div>').append($label, $input)
+    $label.append($input)
+    $container.append($label)
     return $container
 }
 
@@ -481,6 +494,12 @@ function genCheckbox(options) {
 
 function genRadio(options) {
     var $container = $('<div>')
+    var $rootLabel = $('<label>')
+        .css({
+            marginLeft: '0.25em',
+            marginBbottom: 0,
+        })
+        .append($('<span>').text(options.label))
     var selectOptions = options.options
     if (!Array.isArray(selectOptions)) {
         selectOptions = Object.keys(options.options).map((k) => { return { name: options.options[k], value: k } })
@@ -520,6 +539,7 @@ function genRadio(options) {
             .append($('<span>').text(optionName))
         $container.append($label)
     })
+    $container.prepend($rootLabel)
     return $container
 }
 
