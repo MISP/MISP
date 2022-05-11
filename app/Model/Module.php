@@ -353,6 +353,9 @@ class Module extends AppModel
     {
         $modules = $this->getEnabledModules($user, null, $moduleFamily = 'Action');
         $sorted_modules = [];
+        if (empty($modules) || !is_array($modules)) {
+            return true;
+        }
         foreach ($modules['modules'] as $k => &$module) {
             if (!in_array($type, $module['mispattributes']['hooks'])) {
                 //unset($modules['modules'][$k]);
@@ -374,29 +377,61 @@ class Module extends AppModel
                     'config' => empty($module['config']) ? [] : $module['config'],
                     'data' => $input
                 ];
-                $result = $this->queryModuleServer($data, false, 'Action');
-                if (!empty($result['error'])) {
-                    $this->loadLog()->createLogEntry(
-                        'SYSTEM',
-                        'warning',
-                        empty($logData['model']) ? 'Module' : $logData['model'],
-                        empty($logData['id']) ? 0 : $logData['id'],
-                        sprintf(
-                            'Executing %s action module on failed.',
-                            $type
-                        ),
-                        sprintf(
-                            'Returned error: %s',
-                            $result['error']
-                        )
-                    );
-                }
-                if (!empty($module['mispattributes']['blocking']) && (empty($result['data']) || !empty($result['error']))) {
-                    $error = empty($result['error']) ? __('Execution failed for module %s.', $module['name']) : $result['error'];
-                    return false;
+                if (empty($module['mispattributes']['blocking'])) {
+                    $this->enqueueAction($data, $user);
+                    return true;
+                } else {
+                    $result = $this->executeAction($data);
+                    if (empty($result['data']) || !empty($result['error'])) {
+                        $error = empty($result['error']) ? __('Execution failed for module %s.', $module['name']) : $result['error'];
+                        return false;
+                    }
                 }
             }
         }
         return true;
+    }
+
+    public function enqueueAction($data, $user)
+    {
+        /** @var Job $job */
+        $job = ClassRegistry::init('Job');
+        $jobId = $job->createJob($user, Job::WORKER_PRIO, 'execute_action_module', 'Module: ' . $data["module"], 'Executing...');
+        $args = [
+            'execute_action_module',
+            $user['id'],
+            $data,
+            $jobId
+        ];
+        $this->getBackgroundJobsTool()->enqueue(
+            BackgroundJobsTool::PRIO_QUEUE,
+            BackgroundJobsTool::CMD_MODULE,
+            $args,
+            true,
+            $jobId
+        );
+        return true;
+    }
+
+    public function executeAction($data)
+    {
+        $result = $this->queryModuleServer($data, false, 'Action');
+        if (!empty($result['error'])) {
+            $this->loadLog()->createLogEntry(
+                'SYSTEM',
+                'warning',
+                empty($logData['model']) ? 'Module' : $logData['model'],
+                empty($logData['id']) ? 0 : $logData['id'],
+                sprintf(
+                    'Executing %s action module on failed.',
+                    $type
+                ),
+                sprintf(
+                    'Returned error: %s',
+                    $result['error']
+                )
+            );
+        }
+        return $result;
     }
 }
