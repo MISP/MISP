@@ -2957,8 +2957,12 @@ class EventsController extends AppController
             $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
             if (!Configure::read('MISP.background_jobs')) {
                 if (!is_array($result)) {
-                    // redirect to the view event page
-                    $message = __('Event published without alerts');
+                    if ($result === true) {
+                        $message = __('Event published without alerts');
+                    } else {
+                        $message = __('Event publishing failed due to a blocking module failing. The reason for the failure: %s', $result);
+                        $errors['Module'] = 'Module failure.';
+                    }
                 } else {
                     $lastResult = array_pop($result);
                     $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
@@ -2966,11 +2970,6 @@ class EventsController extends AppController
                     $message = __('Event published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString);
                 }
             } else {
-                // update the DB to set the published flag
-                // for background jobs, this should be done already
-                $event['Event']['published'] = 1;
-                $event['Event']['publish_timestamp'] = time();
-                $this->Event->save($event, true, ['id', 'published', 'publish_timestamp', 'info']); // info field is required because of SysLogLogableBehavior
                 $message = 'Job queued';
             }
             if ($this->_isRest()) {
@@ -2980,7 +2979,11 @@ class EventsController extends AppController
                     return $this->RestResponse->saveSuccessResponse('Events', 'publish', $event['Event']['id'], false, $message);
                 }
             } else {
-                $this->Flash->success($message);
+                if (!empty($errors)) {
+                    $this->Flash->error($message);
+                } else {
+                    $this->Flash->success($message);
+                }
                 $this->redirect(array('action' => 'view', $event['Event']['id']));
             }
         } else {
@@ -3005,11 +3008,16 @@ class EventsController extends AppController
                 // Performs all the actions required to publish an event
                 $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
                 if (!is_array($result)) {
-                    // redirect to the view event page
-                    if (Configure::read('MISP.background_jobs')) {
-                        $message = 'Job queued.';
+                    if ($result === true) {
+                        // redirect to the view event page
+                        if (Configure::read('MISP.background_jobs')) {
+                            $message = 'Job queued.';
+                        } else {
+                            $message = 'Email sent to all participants.';
+                        }
                     } else {
-                        $message = 'Email sent to all participants.';
+                        $message = $result;
+                        $errors['Module'] = 'Module failure.';
                     }
                 } else {
                     $lastResult = array_pop($result);
@@ -3021,9 +3029,14 @@ class EventsController extends AppController
                 // Performs all the actions required to publish an event
                 $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
                 if (!is_array($result)) {
+                    if ($result === true) {
+                        $message = __('Published but no email sent given GnuPG is not configured.');
+                        $errors['GnuPG'] = 'GnuPG not set up.';
+                    } else {
+                        $message = $result;
+                        $errors['Module'] = 'Module failure.';
+                    }
                     // redirect to the view event page
-                    $message = __('Published but no email sent given GnuPG is not configured.');
-                    $errors['GnuPG'] = 'GnuPG not set up.';
                 } else {
                     $lastResult = array_pop($result);
                     $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
