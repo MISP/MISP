@@ -657,9 +657,9 @@ class UsersController extends AppController
             }
             $this->User->create();
             // set invited by
-            $this->loadModel('Role');
-            $this->Role->recursive = -1;
-            $chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
+            $chosenRole = $this->User->Role->find('first', [
+                'conditions' => ['id' => $this->request->data['User']['role_id']],
+            ]);
             if (empty($chosenRole)) {
                 throw new MethodNotAllowedException('Invalid role');
             }
@@ -679,9 +679,6 @@ class UsersController extends AppController
             $this->request->data['User']['newsread'] = 0;
             if (!$this->_isSiteAdmin()) {
                 $this->request->data['User']['org_id'] = $this->Auth->user('org_id');
-                $this->loadModel('Role');
-                $this->Role->recursive = -1;
-                $chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
                 if (
                     $chosenRole['Role']['perm_site_admin'] == 1 ||
                     $chosenRole['Role']['perm_regexp_access'] == 1 ||
@@ -801,8 +798,7 @@ class UsersController extends AppController
             $this->set('isSiteAdmin', $this->_isSiteAdmin());
             $this->set('default_role_id', $default_role_id);
             $this->set('servers', $servers);
-            $this->set(compact('roles'));
-            $this->set(compact('syncRoles'));
+            $this->set(compact('roles', 'syncRoles'));
         }
     }
 
@@ -929,9 +925,9 @@ class UsersController extends AppController
                     $fields[] = 'role_id';
                 }
                 if (!$this->_isSiteAdmin() && isset($this->request->data['User']['role_id'])) {
-                    $this->loadModel('Role');
-                    $this->Role->recursive = -1;
-                    $chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
+                    $chosenRole = $this->User->Role->find('first', [
+                        'conditions' => ['id' => $this->request->data['User']['role_id']],
+                    ]);
                     if (empty($chosenRole) || (($chosenRole['Role']['id'] != $allowedRole) && ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1))) {
                         throw new Exception('You are not authorised to assign that role to a user.');
                     }
@@ -1044,8 +1040,7 @@ class UsersController extends AppController
         $this->set('servers', $servers);
         $this->set('orgs', $orgs);
         $this->set('id', $id);
-        $this->set(compact('roles'));
-        $this->set(compact('syncRoles'));
+        $this->set(compact('roles', 'syncRoles'));
         $this->set('canChangeLogin', $this->__canChangeLogin());
         $this->set('canChangePassword', $this->__canChangePassword());
     }
@@ -1054,9 +1049,6 @@ class UsersController extends AppController
     {
         if (!$this->request->is('post') && !$this->request->is('delete')) {
             throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
-        }
-        if (!$this->_isAdmin()) {
-            throw new Exception('Administrators only.');
         }
         $this->User->id = $id;
         $conditions = array('User.id' => $id);
@@ -2067,7 +2059,6 @@ class UsersController extends AppController
     private function __statisticsUsers($params = array())
     {
         $this->loadModel('Organisation');
-        $this->loadModel('User');
         $this_month = strtotime(date('Y/m') . '/01');
         $this_year = strtotime(date('Y') . '/01/01');
         $ranges = array(
