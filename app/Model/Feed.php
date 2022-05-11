@@ -485,9 +485,7 @@ class Feed extends AppModel
             }
 
             if (in_array($attribute['type'], $compositeTypes, true)) {
-                $parts = explode('|', $attribute['value']);
-                $value1 = $parts[0];
-                $value2 = $parts[1] ?? null;
+                list($value1, $value2) = explode('|', $attribute['value']);
                 $parts = [$value1];
 
                 if (!in_array($attribute['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
