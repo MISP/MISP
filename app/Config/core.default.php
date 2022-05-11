@@ -293,6 +293,11 @@ Cache::config('_cake_model_', array(
 	'duration'  => $duration
 ));
 
+Cache::config('misp_short', array(
+	'engine' => $engine,
+	'duration' => '1800', // 30 minutes
+	'prefix'    => 'misp_cache_short_',
+));
 
 //Comment the following out if you do not with to use the background workers (not recommended)
 require_once dirname(__DIR__) . '/Vendor/autoload.php';

@@ -33,6 +33,8 @@ class Taxonomy extends AppModel
         )
     );
 
+    private $localLookupTable = [];
+
     public function update()
     {
         $existing = $this->find('all', array(
@@ -588,46 +590,53 @@ class Taxonomy extends AppModel
             return false; // not taxonomy tag
         }
 
-        if (isset($splits['value'])) {
-            $contain = array(
-                'TaxonomyPredicate' => array(
-                    'TaxonomyEntry' => array()
-                )
-            );
-            if (!$fullTaxonomy) {
-                $contain['TaxonomyPredicate']['conditions'] = array(
-                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate']),
+        $key = 'taxonomies_cache:tagName=' . $tagName . "&" . "metaOnly=$metaOnly" . "&" . "fullTaxonomy=$fullTaxonomy";
+        $model = $this;
+
+        return Cache::remember($key, function () use ($model, $metaOnly, $fullTaxonomy, $splits) {
+            if (isset($splits['value'])) {
+                $contain = array(
+                    'TaxonomyPredicate' => array(
+                        'TaxonomyEntry' => array()
+                    )
                 );
-                $contain['TaxonomyPredicate']['TaxonomyEntry']['conditions'] = array(
-                    'LOWER(TaxonomyEntry.value)' => mb_strtolower($splits['value']),
-                );
+                if (!$fullTaxonomy) {
+                    $contain['TaxonomyPredicate']['conditions'] = array(
+                        'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate']),
+                    );
+                    $contain['TaxonomyPredicate']['TaxonomyEntry']['conditions'] = array(
+                        'LOWER(TaxonomyEntry.value)' => mb_strtolower($splits['value']),
+                    );
+                }
+                $taxonomy = $model->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
+                    'contain' => $contain
+                ));
+                if ($metaOnly && !empty($taxonomy)) {
+                    $taxonomy = array('Taxonomy' => $taxonomy['Taxonomy']);
+                }
+
+                return $taxonomy;
+            } else {
+                $contain = array('TaxonomyPredicate' => array());
+                if (!$fullTaxonomy) {
+                    $contain['TaxonomyPredicate']['conditions'] = array(
+                        'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate'])
+                    );
+                }
+                $taxonomy = $model->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
+                    'contain' => $contain
+                ));
+                if ($metaOnly && !empty($taxonomy)) {
+                    $taxonomy = array('Taxonomy' => $taxonomy['Taxonomy']);
+                }
+
+                return $taxonomy;
             }
-            $taxonomy = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
-                'contain' => $contain
-            ));
-            if ($metaOnly && !empty($taxonomy)) {
-                return array('Taxonomy' => $taxonomy['Taxonomy']);
-            }
-            return $taxonomy;
-        } else {
-            $contain = array('TaxonomyPredicate' => array());
-            if (!$fullTaxonomy) {
-                $contain['TaxonomyPredicate']['conditions'] = array(
-                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate'])
-                );
-            }
-            $taxonomy = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
-                'contain' => $contain
-            ));
-            if ($metaOnly && !empty($taxonomy)) {
-                return array('Taxonomy' => $taxonomy['Taxonomy']);
-            }
-            return $taxonomy;
-        }
+        }, 'misp_short');
     }
 
     /**

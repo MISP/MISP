@@ -270,6 +270,12 @@ Cache::config('_cake_core_', array(
 	'duration' => $duration
 ));
 
+Cache::config('misp_short', array(
+	'engine' => $engine,
+	'duration' => '1800', // 30 minutes
+	'prefix'    => 'misp_cache_short_',
+));
+
 /**
  * Configure the cache for model and datasource caches.  This cache configuration
  * is used to store schema descriptions, and table listings in connections.
