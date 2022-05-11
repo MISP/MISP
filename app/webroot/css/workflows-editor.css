@@ -12,9 +12,8 @@
 
 .side-panel {
     z-index: 18;
-    position: absolute;
     box-sizing: border-box;
-    height: calc(100% - 2*42px);
+    height: 100%;
     width: var(--editor-sidepanel-width);
     box-shadow: 2px 0px 6px #cecece;
     background-color: #fff;
@@ -108,8 +107,7 @@
 
 .canvas {
     height: 100%;
-    width: calc(100% - var(--editor-sidepanel-width));
-    margin-left: var(--editor-sidepanel-width);
+    width: 100%;
 }
 
 .canvas-workflow-block {

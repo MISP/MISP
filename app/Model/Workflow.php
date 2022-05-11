@@ -293,6 +293,21 @@ class Workflow extends AppModel
                 'module_type' => 'action',
                 'params' => [
                     [
+                        'type' => 'input',
+                        'label' => 'Tag name',
+                        'default' => 'tlp:red',
+                        'placeholder' => __('Enter tag name')
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => 'Channel name',
+                        'default' => 'team-4_3_misp',
+                        'options' => [
+                            'team-4_3_misp' => __('Team 4.3 MISP'),
+                            'team-4_0_elite_as_one' => __('Team 4.0 Elite as One'),
+                        ],
+                    ],
+                    [
                         'type' => 'radio',
                         'label' => 'Channel name',
                         'default' => 'team-4_3_misp',
