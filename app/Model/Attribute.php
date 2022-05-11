@@ -1586,7 +1586,7 @@ class Attribute extends AppModel
         foreach ($eventIds as $j => $eventId) {
             if ($jobId) {
                 $message = $attributeId ? __('Correlating Attribute %s', $attributeId) : __('Correlating Event %s', $eventId);
-                $this->Job->saveProgress($jobId, $message, $j / $eventCount * 100);
+                $this->Job->saveProgress($jobId, $message, ($j / $eventCount) * 100);
             }
             $event = $this->Event->find('first', array(
                 'recursive' => -1,
@@ -1605,7 +1605,7 @@ class Attribute extends AppModel
             if ($attributeId) {
                 $attributeConditions['Attribute.id'] = $attributeId;
             }
-            $attributes = $this->find('all', [
+            $query = [
                 'recursive' => -1,
                 'conditions' => $attributeConditions,
                 // fetch just necessary fields to save memory
@@ -1617,14 +1617,24 @@ class Attribute extends AppModel
                     'Attribute.distribution',
                     'Attribute.sharing_group_id',
                 ],
-                'order' => [],
+                'order' => 'Attribute.id',
+                'limit' => 10000,
                 'callbacks' => false, // memory leak fix
-            ]);
-            foreach ($attributes as $attribute) {
-                $attribute['Attribute']['event_id'] = $eventId;
-                $this->Correlation->afterSaveCorrelation($attribute['Attribute'], $full, $event);
-                $attributeCount++;
-            }
+            ];
+            do {
+                $attributes = $this->find('all', $query);
+                foreach ($attributes as $attribute) {
+                    $attribute['Attribute']['event_id'] = $eventId;
+                    $this->Correlation->afterSaveCorrelation($attribute['Attribute'], $full, $event);
+                }
+                $fetchedAttributes = count($attributes);
+                $attributeCount += $fetchedAttributes;
+                if ($fetchedAttributes === 10000) { // maximum number of attributes fetched, continue in next loop
+                    $query['conditions']['Attribute.id >'] = $attribute['Attribute']['id'];
+                } else {
+                    break;
+                }
+            } while (true);
         }
         if ($jobId) {
             $this->Job->saveStatus($jobId, true);
