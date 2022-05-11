@@ -489,7 +489,7 @@ class Attribute extends AppModel
             }
         }
         if (Configure::read('MISP.enable_advanced_correlations') && in_array($attribute['type'], ['ip-src', 'ip-dst'], true) && strpos($attribute['value'], '/')) {
-            $this->setCIDRList();
+            $this->Correlation->updateCidrList();
         }
         if ($created && isset($attribute['event_id']) && empty($attribute['skip_auto_increment'])) {
             $this->__alterAttributeCount($attribute['event_id']);
@@ -522,7 +522,7 @@ class Attribute extends AppModel
     public function afterDelete()
     {
         if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && strpos($this->data['Attribute']['value'], '/')) {
-            $this->setCIDRList();
+            $this->Correlation->updateCidrList();
         }
         if (isset($this->data['Attribute']['event_id'])) {
             if (empty($this->data['Attribute']['deleted'])) {
@@ -1635,6 +1635,8 @@ class Attribute extends AppModel
                     break;
                 }
             } while (true);
+            // Generating correlations can take long time, so clear CIDR cache after each event
+            $this->Correlation->clearCidrCache();
         }
         if ($jobId) {
             $this->Job->saveStatus($jobId, true);
@@ -2689,61 +2691,6 @@ class Attribute extends AppModel
             return $timestamp;
         }
         return $conditions;
-    }
-
-    /**
-     * Get list of all CIDR for correlation.
-     * @return array
-     */
-    private function __getCIDRList()
-    {
-        return $this->find('column', array(
-            'conditions' => array(
-                'type' => array('ip-src', 'ip-dst'),
-                'disable_correlation' => 0,
-                'deleted' => 0,
-                'value1 LIKE' => '%/%'
-            ),
-            'fields' => array('Attribute.value1'),
-            'unique' => true,
-            'order' => false
-        ));
-    }
-
-    public function setCIDRList()
-    {
-        $redis = $this->setupRedis();
-        $cidrList = array();
-        if ($redis) {
-            $cidrList = $this->__getCIDRList();
-
-            $redis->pipeline();
-            $redis->del('misp:cidr_cache_list');
-            if (method_exists($redis, 'saddArray')) {
-                $redis->sAddArray('misp:cidr_cache_list', $cidrList);
-            } else {
-                foreach ($cidrList as $cidr) {
-                    $redis->sadd('misp:cidr_cache_list', $cidr);
-                }
-            }
-            $redis->exec();
-        }
-        return $cidrList;
-    }
-
-    public function getSetCIDRList()
-    {
-        $redis = $this->setupRedis();
-        if ($redis) {
-            if (!$redis->exists('misp:cidr_cache_list')) {
-                $cidrList = $this->setCIDRList();
-            } else {
-                $cidrList = $redis->smembers('misp:cidr_cache_list');
-            }
-        } else {
-            $cidrList = $this->__getCIDRList();
-        }
-        return $cidrList;
     }
 
     public function fetchDistributionData($user)

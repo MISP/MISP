@@ -36,6 +36,9 @@ class Correlation extends AppModel
     /** @var bool */
     private $advancedCorrelationEnabled;
 
+    /** @var array */
+    private $cidrListCache;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -571,7 +574,7 @@ class Correlation extends AppModel
             }
         } else {
             $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
-            $cidrList = $this->Attribute->getSetCIDRList();
+            $cidrList = $this->getCidrList();
             foreach ($cidrList as $cidr) {
                 if (strpos($cidr, '.') !== false) {
                     if ($ip_version === 4 && $this->__ipv4InCidr($ip, $cidr)) {
@@ -745,5 +748,80 @@ class Correlation extends AppModel
             return false;
         }
         return $redis->get(self::CACHE_AGE);
+    }
+
+    /**
+     * Get list of all CIDR for correlation from database
+     * @return array
+     */
+    private function getCidrListFromDatabase()
+    {
+        return $this->Attribute->find('column', [
+            'conditions' => [
+                'type' => ['ip-src', 'ip-dst'],
+                'disable_correlation' => 0,
+                'deleted' => 0,
+                'value1 LIKE' => '%/%',
+            ],
+            'fields' => ['Attribute.value1'],
+            'unique' => true,
+            'order' => false,
+        ]);
+    }
+
+    /**
+     * @return array
+     */
+    public function updateCidrList()
+    {
+        $redis = $this->setupRedis();
+        $cidrList = [];
+        $this->cidrListCache = null;
+        if ($redis) {
+            $cidrList = $this->getCidrListFromDatabase();
+
+            $redis->pipeline();
+            $redis->del('misp:cidr_cache_list');
+            if (method_exists($redis, 'saddArray')) {
+                $redis->sAddArray('misp:cidr_cache_list', $cidrList);
+            } else {
+                foreach ($cidrList as $cidr) {
+                    $redis->sadd('misp:cidr_cache_list', $cidr);
+                }
+            }
+            $redis->exec();
+        }
+        return $cidrList;
+    }
+
+    /**
+     * @return void
+     */
+    public function clearCidrCache()
+    {
+        $this->cidrListCache = null;
+    }
+
+    /**
+     * @return array
+     */
+    public function getCidrList()
+    {
+        if ($this->cidrListCache !== null) {
+            return $this->cidrListCache;
+        }
+
+        $redis = $this->setupRedis();
+        if ($redis) {
+            if (!$redis->exists('misp:cidr_cache_list')) {
+                $cidrList = $this->updateCidrList();
+            } else {
+                $cidrList = $redis->smembers('misp:cidr_cache_list');
+            }
+        } else {
+            $cidrList = $this->getCidrListFromDatabase();
+        }
+        $this->cidrListCache = $cidrList;
+        return $cidrList;
     }
 }
