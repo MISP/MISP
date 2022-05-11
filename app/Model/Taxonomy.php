@@ -632,7 +632,7 @@ class Taxonomy extends AppModel
                 }
             }
 
-            $redis->setex($key, 1800, $taxonomy);
+            $redis->setex($key, 1800, json_encode($taxonomy));
         }
 
         return $taxonomy;
