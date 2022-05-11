@@ -255,6 +255,10 @@ Configure::write('Acl.database', 'default');
  *       and their setttings.
  */
 $engine = 'File';
+if (function_exists('apcu_dec') && (PHP_SAPI !== 'cli' || ini_get('apc.enable_cli'))) {
+    require_once APP . 'Plugin/ApcuCache/Engine/ApcuEngine.php'; // it is not possible to use plugin
+    $engine = 'Apcu'; // faster version of ApcEngine
+}
 
 // In development mode, caches should expire quickly.
 $duration = '+999 days';
@@ -288,6 +292,7 @@ Cache::config('_cake_model_', array(
 	'serialize' => ($engine === 'File'),
 	'duration'  => $duration
 ));
+
 
 //Comment the following out if you do not with to use the background workers (not recommended)
 require_once dirname(__DIR__) . '/Vendor/autoload.php';
