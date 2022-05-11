@@ -197,15 +197,15 @@ class Correlation extends AppModel
         } else {
             return [
                 $value,
-                $a['Event']['id'],
-                $a['Attribute']['id'],
-                $b['Attribute']['event_id'],
-                $b['Attribute']['id'],
-                $b['Event']['org_id'],
-                $b['Event']['distribution'],
-                $b['Attribute']['distribution'],
-                $b['Event']['sharing_group_id'],
-                $b['Attribute']['sharing_group_id'],
+                (int) $a['Event']['id'],
+                (int) $a['Attribute']['id'],
+                (int) $b['Attribute']['event_id'],
+                (int) $b['Attribute']['id'],
+                (int) $b['Event']['org_id'],
+                (int) $b['Event']['distribution'],
+                (int) $b['Attribute']['distribution'],
+                (int) $b['Event']['sharing_group_id'],
+                (int) $b['Attribute']['sharing_group_id'],
             ];
         }
     }
@@ -421,6 +421,7 @@ class Correlation extends AppModel
                 );
             }
         }
+        unset($correlatingAttributes);
         return $this->__saveCorrelations($correlations);
     }
 
