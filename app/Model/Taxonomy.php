@@ -33,8 +33,6 @@ class Taxonomy extends AppModel
         )
     );
 
-    private $localLookupTable = [];
-
     public function update()
     {
         $existing = $this->find('all', array(
