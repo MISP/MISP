@@ -7,15 +7,13 @@ class FuzzyCorrelateSsdeep extends AppModel
 
     public $recursive = -1;
 
-    public $actsAs = array('Containable');
-
     public function ssdeep_prepare($hash)
     {
         list($block_size, $hash) = explode(':', $hash, 2);
         
         $chars = array();
         for ($i = 0; $i < strlen($hash); $i++) {
-            if (!in_array($hash[$i], $chars)) {
+            if (!in_array($hash[$i], $chars, true)) {
                 $chars[] = $hash[$i];
             }
         }
