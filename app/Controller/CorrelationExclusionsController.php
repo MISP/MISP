@@ -122,7 +122,7 @@ class CorrelationExclusionsController extends AppController
         } else {
             $this->set('title', __('Clean up correlations'));
             $this->set('question', __('Execute the cleaning of all correlations that are at odds with the exclusion rules? This will delete all matching correlations.'));
-            $this->set('actionName', 'clean');
+            $this->set('actionName', __('Clean'));
             $this->layout = false;
             $this->render('/genericTemplates/confirm');
         }

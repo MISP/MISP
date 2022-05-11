@@ -90,6 +90,7 @@ class AppModel extends Model
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
+        87,
     );
 
     public $advanced_updates_description = array(
@@ -1685,6 +1686,9 @@ class AppModel extends Model
                 $this->__addIndex('cryptographic_keys', 'fingerprint');
                 break;
             case 86:
+                $this->__addIndex('attributes', 'timestamp');
+                break;
+            case 87:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflows` (
                       `id` int(11) NOT NULL AUTO_INCREMENT,
                       `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
@@ -2568,7 +2572,7 @@ class AppModel extends Model
         $pass = Configure::read('MISP.redis_password');
 
         $redis = new Redis();
-        if (!$redis->connect($host, $port)) {
+        if (!$redis->connect($host, (int) $port)) {
             throw new Exception("Could not connect to Redis: {$redis->getLastError()}");
         }
         if (!empty($pass)) {

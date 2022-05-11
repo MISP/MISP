@@ -631,21 +631,19 @@ class UsersController extends AppController
                 if (isset($this->request->data['User']['password'])) {
                     $this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
                 }
-                $default_publish_alert = Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : 0;
                 $defaults = array(
-                        'external_auth_required' => 0,
-                        'external_auth_key' => '',
-                        'server_id' => 0,
-                        'gpgkey' => '',
-                        'certif_public' => '',
-                        'autoalert' => $default_publish_alert,
-                        'contactalert' => 0,
-                        'disabled' => 0,
-                        'newsread' => 0,
-                        'change_pw' => 1,
-                        'authkey' => (new RandomTool())->random_str(true, 40),
-                        'termsaccepted' => 0,
-                        'org_id' => $this->Auth->user('org_id')
+                    'external_auth_required' => 0,
+                    'external_auth_key' => '',
+                    'server_id' => 0,
+                    'gpgkey' => '',
+                    'certif_public' => '',
+                    'autoalert' => $this->User->defaultPublishAlert(),
+                    'contactalert' => 0,
+                    'disabled' => 0,
+                    'newsread' => 0,
+                    'change_pw' => 1,
+                    'termsaccepted' => 0,
+                    'org_id' => $this->Auth->user('org_id'),
                 );
                 foreach ($defaults as $key => $value) {
                     if (!isset($this->request->data['User'][$key])) {
@@ -654,7 +652,6 @@ class UsersController extends AppController
                 }
             }
             $this->request->data['User']['date_created'] = time();
-            $this->request->data['User']['date_modified'] = time();
             if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) {
                 $this->request->data['User']['server_id'] = 0;
             }
@@ -1491,17 +1488,36 @@ class UsersController extends AppController
             $this->Flash->success(__('You accepted the Terms and Conditions.'));
             $this->redirect(array('action' => 'routeafterlogin'));
         }
+
+        $termsFile = Configure::read('MISP.terms_file');
+        if (empty($termsFile)) {
+            throw new NotFoundException(__("MISP Terms and Conditions are not defined"));
+        }
+
+        $termsDownload = (bool)Configure::read('MISP.terms_download');
+        if (!$termsDownload) {
+            $termsFilePath = APP . 'files' . DS . 'terms' . DS .  basename($termsFile);
+            try {
+                $termsContent = FileAccessTool::readFromFile($termsFilePath);
+            } catch (Exception $e) {
+                $termsContent = false;
+            }
+            $this->set("termsContent", $termsContent);
+        }
+
+        $this->set("termsDownload", $termsDownload);
         $this->set('termsaccepted', $this->Auth->user('termsaccepted'));
     }
 
     public function downloadTerms()
     {
-        if (!Configure::read('MISP.terms_file')) {
-            $termsFile = APP ."View/Users/terms";
-        } else {
-            $termsFile = APP . 'files' . DS . 'terms' . DS .  Configure::read('MISP.terms_file');
+        $termsFile = Configure::read('MISP.terms_file');
+        if (empty($termsFile)) {
+            throw new NotFoundException(__("MISP Terms and Conditions are not defined"));
         }
-        $this->response->file($termsFile, array('download' => true, 'name' => Configure::read('MISP.terms_file')));
+
+        $termsFilePath = APP . 'files' . DS . 'terms' . DS . basename($termsFile);
+        $this->response->file($termsFilePath, ['download' => true, 'name' => $termsFile]);
         return $this->response;
     }
 

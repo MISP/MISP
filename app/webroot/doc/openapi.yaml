@@ -1,6 +1,5 @@
 openapi: 3.0.0
 info:
-  version: 2.4.148
   title: MISP Automation API
   description: |
 

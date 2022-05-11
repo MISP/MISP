@@ -7,6 +7,7 @@ App::uses('JsonTool', 'Tools');
 /**
  * @property Server $Server
  * @property Feed $Feed
+ * @property Warninglist $warninglist
  * @property AdminSetting $AdminSetting
  */
 class AdminShell extends AppShell
@@ -18,6 +19,9 @@ class AdminShell extends AppShell
         $parser = parent::getOptionParser();
         $parser->addSubcommand('updateJSON', array(
             'help' => __('Update the JSON definitions of MISP.'),
+        ));
+        $parser->addSubcommand('updateWarningLists', array(
+            'help' => __('Update the JSON definition of warninglists.'),
         ));
         $parser->addSubcommand('setSetting', [
             'help' => __('Set setting in PHP config file.'),
@@ -312,7 +316,6 @@ class AdminShell extends AppShell
 
     public function updateWarningLists()
     {
-        $this->ConfigLoad->execute();
         $result = $this->Warninglist->update();
         $success = count($result['success']);
         $fails = count($result['fails']);

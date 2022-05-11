@@ -8031,7 +8031,8 @@
             "category": false,
             "sharing_group_id": false,
             "first_seen": false,
-            "last_seen": false
+            "last_seen": false,
+            "timestamp": false
         },
         "attribute_tags": {
             "id": true,
@@ -8469,5 +8470,5 @@
             "id": true
         }
     },
-    "db_version": "85"
+    "db_version": "86"
 }

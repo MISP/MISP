@@ -12,6 +12,15 @@ if (!String.prototype.startsWith) {
   };
 }
 
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function copyToClipboard(element) {
     var $temp = $("<input>");
     $("body").append($temp);
@@ -1189,7 +1198,7 @@ function openGenericModalPost(url, body) {
 }
 
 function submitPopoverForm(context_id, referer, update_context_id, modal, popover_dismiss_id_to_close) {
-    var url = null;
+    var $form;
     var context = 'event';
     var contextNamingConvention = 'Attribute';
     var closePopover = true;
@@ -1227,18 +1236,17 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
     }
     var $submitButton = $("#submitButton");
     if ($submitButton.parent().hasClass('modal-footer')) {
-        var $form = $submitButton.parent().parent().find('.modal-body form');
-        url = $form.attr('action');
+        $form = $submitButton.parent().parent().find('.modal-body form');
     } else {
-        var $form = $submitButton.closest("form");
-        url = $form.attr('action');
+        $form = $submitButton.closest("form");
     }
+    var url = $form.attr('action');
     // Prepend URL with baseurl if URL is relative
     if (!url.startsWith('http')) {
         url = baseurl + url;
     }
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             if (modal) {
                 if (closePopover) {
                     $('#genericModal').modal('hide');
@@ -1255,16 +1263,15 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             }
         },
         data: $form.serialize(),
-        success: function (data, textStatus) {
-            var result;
+        success: function (data) {
             if (closePopover) {
                 if (modal) {
-                    result = handleAjaxModalResponse(data, context_id, url, referer, context, contextNamingConvention);
+                    handleAjaxModalResponse(data, context_id, url, referer, context, contextNamingConvention);
                 } else {
-                    result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
+                    handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
                 }
             }
-            if (referer == 'addSighting') {
+            if (referer === 'addSighting') {
                 updateIndex(update_context_id, 'event');
                 $.get(baseurl + "/sightings/listSightings/" + id + "/attribute", function(data) {
                     $("#sightingsData").html(data);
@@ -1274,8 +1281,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 $('#sightingsListAllToggle').removeClass('btn-inverse');
                 $('#sightingsListAllToggle').addClass('btn-primary');
             }
-            if (referer == 'addEventReport' && typeof window.reloadEventReportTable === 'function') {
-                context == 'eventReport'
+            if (referer === 'addEventReport' && typeof window.reloadEventReportTable === 'function') {
                 reloadEventReportTable()
                 eventUnpublish()
             }
@@ -1288,9 +1294,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 eventUnpublish();
             }
         },
-        error: function (jqXHR, textStatus, errorThrown) {
-            showMessage('fail', textStatus + ": " + errorThrown);
-        },
+        error: xhrFailCallback,
         complete: function () {
             $(".loading").hide();
         },
@@ -1301,47 +1305,38 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
 }
 
 function handleAjaxModalResponse(response, context_id, url, referer, context, contextNamingConvention) {
-    responseArray = response;
-    var message = null;
-    var result = "fail";
+    var responseArray = response;
     if (responseArray.saved) {
         updateIndex(context_id, context);
         if (responseArray.success) {
-            showMessage("success", responseArray.success);
-            result = "success";
-        }
-        if (responseArray.errors) {
+            var message = "message" in responseArray ? responseArray.message : responseArray.success;
+            showMessage("success", message);
+        } else if (responseArray.errors) {
             showMessage("fail", responseArray.errors);
         }
     } else {
-        if (responseArray.errors) {
-            showMessage("fail", responseArray.errors);
+        if (responseArray.errors && typeof responseArray.errors === 'string') {
+            var fullErrors = "full_errors" in responseArray ? responseArray.full_errors : '';
+            showMessage("fail", responseArray.errors, fullErrors);
+        } else {
+            var savedArray = saveValuesForPersistance();
+            $.ajax({
+                dataType: "html",
+                success: function (data) {
+                    $('#genericModal').remove();
+                    $('body').append(data);
+                    $('#genericModal').modal();
+                    handleValidationErrors(responseArray.errors, context, contextNamingConvention);
+                    recoverValuesFromPersistance(savedArray);
+                },
+                error: xhrFailCallback,
+                complete: function () {
+                    $(".loading").hide();
+                },
+                url: url
+            });
         }
-        var savedArray = saveValuesForPersistance();
-        $.ajax({
-            dataType:"html",
-            success:function (data, textStatus) {
-                $('#genericModal').remove();
-                $('body').append(data);
-                $('#genericModal').modal();
-                var error_context = context.charAt(0).toUpperCase() + context.slice(1);
-                handleValidationErrors(responseArray.errors, context, contextNamingConvention);
-                result = "success";
-                if (!$.isEmptyObject(responseArray)) {
-                    result = "fail";
-                }
-                recoverValuesFromPersistance(savedArray);
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                showMessage('fail', textStatus + ": " + errorThrown);
-            },
-            complete: function () {
-                $(".loading").hide();
-            },
-            url:url
-        });
     }
-    return result;
 }
 
 function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
@@ -1399,8 +1394,9 @@ function recoverValuesFromPersistance(formPersistanceArray) {
 function handleValidationErrors(responseArray, context, contextNamingConvention) {
     for (var k in responseArray) {
         var elementName = k.charAt(0).toUpperCase() + k.slice(1);
-        $("#" + contextNamingConvention + elementName).parent().addClass("error");
-        $("#" + contextNamingConvention + elementName).parent().append("<div class=\"error-message\">" + responseArray[k] + "</div>");
+        var $element = $("#" + contextNamingConvention + elementName);
+        $element.parent().addClass("error");
+        $element.parent().append("<div class=\"error-message\">" + responseArray[k] + "</div>");
     }
 }
 
@@ -1426,15 +1422,16 @@ function updateHistogram(selected) {
     });
 }
 
-function showMessage(success, message, context) {
-    if (typeof context !== "undefined") {
-        $("#ajax_" + success, window.parent.document).html(message);
-        var duration = 1000 + (message.length * 40);
-        $("#ajax_" + success + "_container", window.parent.document).fadeIn("slow");
-        $("#ajax_" + success + "_container", window.parent.document).delay(duration).fadeOut("slow");
-    }
-    $("#ajax_" + success).html(message);
+function showMessage(success, message, fullError) {
     var duration = 1000 + (message.length * 40);
+
+    if (message.indexOf("$flashErrorMessage") >= 0) {
+        var flashMessageLink = '<a href="#" class="bold" data-content="' + escapeHtml(fullError) + '" data-html="true" onclick="event.preventDefault();$(this).popover(\'show\')">here</a>';
+        message = message.replace("$flashErrorMessage", flashMessageLink);
+        duration = 5000;
+    }
+
+    $("#ajax_" + success).html(message);
     $("#ajax_" + success + "_container").fadeIn("slow").delay(duration).fadeOut("slow");
 }
 
@@ -2644,8 +2641,9 @@ function popoverStartup() {
         $('[data-toggle="popover"]').not(e.target).popover('hide');
     });
     $(document).click(function (e) {
-        if (!$('[data-toggle="popover"]').is(e.target)) {
-            $('[data-toggle="popover"]').popover('hide');
+        var $popovers = $('[data-toggle="popover"]');
+        if (!$popovers.is(e.target)) {
+            $popovers.popover('hide');
         }
     });
 }
@@ -3976,15 +3974,6 @@ $(document).on("click", ".eventViewAttributePopup", function() {
     }
 });
 
-function flashErrorPopover() {
-    $('#popover_form').css( "minWidth", "200px");
-    $('#popover_form').html($('#flashErrorMessage').html());
-    $('#popover_form').show();
-    var left = ($(window).width() / 2) - ($('#popover_form').width() / 2);
-    $('#popover_form').css({'left': left + 'px'});
-    $("#gray_out").fadeIn();
-}
-
 $(document.body).on('click', function (e) {
   $('[data-toggle=popover]').each(function () {
     // hide any open popovers when the anywhere else in the body is clicked
@@ -4046,7 +4035,8 @@ function formCategoryChanged(id) {
     if (selectedCategory === "") { // if no category is selected, insert all attribute types
         optionsToPush = {};
         for (var category in category_type_mapping) {
-            for (var type in category_type_mapping[category]) {
+            for (var index in category_type_mapping[category]) {
+                var type = category_type_mapping[category][index];
                 optionsToPush[type] = type;
             }
         }
@@ -4063,6 +4053,15 @@ function formCategoryChanged(id) {
     });
     // enable the form element
     $type.prop('disabled', false);
+}
+
+function formTypeChanged(idPrefix) {
+    var $type = $('#' + idPrefix + 'Type');
+    var currentType = $type.val();
+
+    // Check if current type is correlatable and disable checkbox if yes
+    var nonCorrelatingType = non_correlating_types.indexOf(currentType) !== -1;
+    $('#' + idPrefix + 'DisableCorrelation').prop('disabled', nonCorrelatingType);
 }
 
 function malwareCheckboxSetter(context) {
@@ -4570,16 +4569,16 @@ function checkNoticeList(type) {
     var fields_to_check = {
         "attribute": ["category", "type"]
     }
-    var warnings = [];
-    $('#notice_message').html('<h4>Notices:</h4>');
-    $('#notice_message').hide();
+    var $noticeMessage = $('#notice_message');
+    $noticeMessage.html('<h4>Notices:</h4>');
+    $noticeMessage.hide();
     fields_to_check[type].forEach(function(field_name) {
         if (field_name in notice_list_triggers) {
             var field_value = $('#' + type.ucfirst() + field_name.ucfirst()).val();
             if (field_value in notice_list_triggers[field_name]) {
                 notice_list_triggers[field_name][field_value].forEach(function(notice) {
-                    $('#notice_message').show();
-                    $('#notice_message').append(
+                    $noticeMessage.show();
+                    $noticeMessage.append(
                         $('<div/>')
                             .append($('<span/>').text('['))
                             .append($('<a/>', {href: baseurl + '/noticelists/view/' + notice['list_id'], class:'bold'}).text(notice['list_name']))
@@ -4683,11 +4682,6 @@ $(function() {
     }).on('shown', function() {
         $('.tooltip').not(":last").remove();
     });
-
-    if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
-        var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
-        $('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
-    }
 });
 
 // Correlation box for events
@@ -5207,7 +5201,7 @@ function submitDashboardAddWidget() {
 
 function saveDashboardState() {
     var dashBoardSettings = [];
-    $('.grid-stack-item').each(function(index) {
+    $('.grid-stack-item').each(function() {
         if ($(this).attr('config') !== undefined && $(this).attr('widget') !== undefined) {
             var config = $(this).attr('config');
             config = JSON.parse(config);
@@ -5231,11 +5225,8 @@ function saveDashboardState() {
         var $theForm = $formContainer.find('form')
         xhr({
             data: $theForm.serialize(),
-            success:function (data) {
+            success:function () {
                 showMessage('success', 'Dashboard settings saved.');
-            },
-            error:function(jqXHR, textStatus, errorThrown) {
-                showMessage('fail', textStatus + ": " + errorThrown);
             },
             beforeSend:function() {
             },
@@ -5262,21 +5253,23 @@ function updateDashboardWidget(element) {
                 config: $element.attr('config'),
                 widget: $element.attr('widget')
             },
-            success:function (data, textStatus) {
+            success:function (data) {
                 container.html(data);
             }
         });
     }
 }
 
-function resetDashboardGrid(grid) {
+function resetDashboardGrid(grid, save = true) {
     $('.grid-stack-item').each(function() {
         updateDashboardWidget(this);
     });
-    saveDashboardState();
+    if (save) {
+        saveDashboardState();
+    }
     $('.edit-widget').click(function() {
-        el = $(this).closest('.grid-stack-item');
-        data = {
+        var el = $(this).closest('.grid-stack-item');
+        var data = {
             id: el.attr('id'),
             config: JSON.parse(el.attr('config')),
             widget: el.attr('widget'),
@@ -5285,7 +5278,7 @@ function resetDashboardGrid(grid) {
         openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
     });
     $('.remove-widget').click(function() {
-        el = $(this).closest('.grid-stack-item');
+        var el = $(this).closest('.grid-stack-item');
         grid.removeWidget(el);
         saveDashboardState();
     });
@@ -5296,14 +5289,14 @@ function setHomePage() {
         type: 'GET',
         url: baseurl + '/userSettings/setHomePage',
         success: function (data) {
-            $('#ajax_hidden_container').html(data);
+            var $tmp = $(data);
             var currentPage = $('#setHomePage').data('current-page');
-            $('#UserSettingPath').val(currentPage);
+            $tmp.find('#UserSettingPath').val(currentPage);
             $.ajax({
                 type: 'POST',
                 url: baseurl + '/userSettings/setHomePage',
-                data: $('#UserSettingSetHomePageForm').serialize(),
-                success:function (data) {
+                data: $tmp.serialize(),
+                success: function () {
                     showMessage('success', 'Homepage set.');
                     $('#setHomePage').addClass('orange');
                 },

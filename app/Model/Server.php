@@ -3407,18 +3407,18 @@ class Server extends AppModel
         $currentUser = ProcessTool::whoami();
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
-            $entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
-            $correct_user = ($currentUser === $worker['user']);
             if (!is_numeric($pid)) {
                 throw new MethodNotAllowedException('Non numeric PID found.');
             }
+            $entry = $worker['type'] === 'regular' ? $worker['queue'] : $worker['type'];
+            $correctUser = ($currentUser === $worker['user']);
             if ($procAccessible) {
-                $alive = $correct_user ? (file_exists('/proc/' . addslashes($pid))) : false;
+                $alive = $correctUser && file_exists("/proc/$pid");
             } else {
                 $alive = 'N/A';
             }
             $ok = true;
-            if (!$alive || !$correct_user) {
+            if (!$alive || !$correctUser) {
                 $ok = false;
                 $workerIssueCount++;
             }
@@ -3426,19 +3426,19 @@ class Server extends AppModel
                 'pid' => $pid,
                 'user' => $worker['user'],
                 'alive' => $alive,
-                'correct_user' => $correct_user,
+                'correct_user' => $correctUser,
                 'ok' => $ok
             );
         }
         foreach ($worker_array as $k => $queue) {
-            if (isset($worker_array[$k]['workers'])) {
-                foreach($worker_array[$k]['workers'] as $worker) {
+            if (isset($queue['workers'])) {
+                foreach ($queue['workers'] as $worker) {
                     if ($worker['ok']) {
                         $worker_array[$k]['ok'] = true; // If at least one worker is up, the queue can be considered working
                     }
                 }
             }
-            if ($k != 'scheduler') {
+            if ($k !== 'scheduler') {
                 $worker_array[$k]['jobCount'] = $this->getBackgroundJobsTool()->getQueueSize($k);
             }
             if (!isset($queue['workers'])) {

@@ -34,7 +34,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '140';
+    private $__queryVersion = '141';
     public $pyMispVersion = '2.4.157';
     public $phpmin = '7.2';
     public $phprec = '7.4';
@@ -908,11 +908,11 @@ class AppController extends Controller
     /**
      * generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
      * @param array $options
-     * @param $exception
+     * @param CakeResponse $exception
      * @param array $data
-     * @return array|false|mixed
+     * @return array|false
      */
-    protected function _harvestParameters($options, &$exception = null, $data = array())
+    protected function _harvestParameters($options, &$exception = null, $data = [])
     {
         $request = $options['request'] ?? $this->request;
         if ($request->is('post')) {
@@ -958,14 +958,15 @@ class AppController extends Controller
                 }
             }
         }
-        foreach ($data as $k => $v) {
-            if (!is_array($data[$k])) {
-                $data[$k] = trim($data[$k]);
-                if (strpos($data[$k], '||')) {
-                    $data[$k] = explode('||', $data[$k]);
+        foreach ($data as &$v) {
+            if (is_string($v)) {
+                $v = trim($v);
+                if (strpos($v, '||')) {
+                    $v = explode('||', $v);
                 }
             }
         }
+        unset($v);
         if (!empty($options['additional_delimiters'])) {
             if (!is_array($options['additional_delimiters'])) {
                 $options['additional_delimiters'] = array($options['additional_delimiters']);
@@ -975,6 +976,7 @@ class AppController extends Controller
                 foreach ($options['additional_delimiters'] as $delim) {
                     if (strpos($v, $delim) !== false) {
                         $found = true;
+                        break;
                     }
                 }
                 if ($found) {
