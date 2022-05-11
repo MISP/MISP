@@ -184,6 +184,71 @@
 
 
 
+/* Custom input/output CSS */
+.drawflow .drawflow-node > .outputs > .output::before {
+    line-height: var(--dfOutputHeight);
+    vertical-align: top;
+    text-align: end;
+    top: 0px;
+    right: 20px;
+    position: absolute;
+    white-space: nowrap;
+    width: fit-content;
+    transition-property: right, top;
+    transition-duration: .1s;
+}
+
+.drawflow .drawflow-node > .outputs > .output_1:hover::before {
+    top: 3px;
+    right: 23px;
+    font-weight: bold;
+}
+.drawflow .drawflow-node > .outputs > .output_2:hover::before {
+    top: 3px;
+    right: 23px;
+    font-weight: bold;
+}
+
+.drawflow .drawflow-node.block-type-default > .outputs > .output_1 {
+    /* No special format for default block types */
+}
+
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output_1 {
+    background-color: #ea5b57;
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output::before {
+    display: none;
+    transform: translateX(calc(50% - 8px));
+    right: 0;
+    padding: 0.25em 0.5em;
+    background-color: #fff;
+    border: 1px solid #cdcdcd;
+    border-radius: 3px;
+}
+
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output:hover::before {
+    display: block;
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output_1::before {
+    content: 'blocking';
+    top: -26px;
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output_2 {
+    background-color: #468847;
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output_2::before {
+    content: 'deferred';
+    top: 26px;
+}
+
+.drawflow .drawflow-node.block-type-IF > .outputs > .output_1::before {
+    content: 'then';
+}
+.drawflow .drawflow-node.block-type-IF > .outputs > .output_2::before {
+    content: 'else';
+}
+
+
 /* Drawflow CSS */
 
 :root {

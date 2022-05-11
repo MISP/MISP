@@ -178,6 +178,7 @@ class Workflow extends AppModel
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
                 'module_type' => 'trigger',
                 'inputs' => 0,
+                'outputs' => 2,
             ],
             [
                 'id' => 'new-attribute',
@@ -187,6 +188,7 @@ class Workflow extends AppModel
                 'module_type' => 'trigger',
                 'inputs' => 0,
                 'disabled' => true,
+                'outputs' => 2,
             ],
             [
                 'id' => 'new-object',
@@ -196,6 +198,7 @@ class Workflow extends AppModel
                 'module_type' => 'trigger',
                 'inputs' => 0,
                 'disabled' => true,
+                'outputs' => 2,
             ],
             [
                 'id' => 'email-sent',
@@ -214,6 +217,7 @@ class Workflow extends AppModel
                 'module_type' => 'trigger',
                 'inputs' => 0,
                 'disabled' => true,
+                'outputs' => 2,
             ],
             [
                 'id' => 'feed-pull',
@@ -372,6 +376,10 @@ class Workflow extends AppModel
                 'disabled' => true,
             ],
         ];
+
+        array_walk($blocks_trigger, function(&$block) {
+            $block['html_template'] = !empty($block['html_template']) ? $block['html_template'] : 'trigger';
+        });
         return [
             'blocks_trigger' => $blocks_trigger,
             'blocks_condition' => $blocks_condition,

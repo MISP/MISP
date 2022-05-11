@@ -1,4 +1,4 @@
-var dotBlockDefault = doT.template(' \
+var dotBlock_default = doT.template(' \
 <div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
@@ -15,7 +15,9 @@ var dotBlockDefault = doT.template(' \
     </div> \
 </div>')
 
-var dotIF = doT.template(' \
+var dotBlock_trigger = dotBlock_default
+
+var dotBlock_IF = doT.template(' \
 <div class="canvas-workflow-block small" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%; height: 100%;"> \
         <div class="default-main-container-small"> \
@@ -23,10 +25,6 @@ var dotIF = doT.template(' \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
-            <div class="then-else-container"> \
-                <span>then</span> \
-                <span>else</span> \
-            </div> \
         </div> \
     </div> \
 </div>')
@@ -175,13 +173,16 @@ function addNode(block, position) {
 
     block['block_param_html'] = genBlockParamHtml(block)
     var html = getTemplateForBlock(block)
+    var blockClass = block.class === undefined ? [] : block.class
+    blockClass = !Array.isArray(blockClass) ? [blockClass] : blockClass
+    blockClass.push('block-type-' + (block.html_template !== undefined ? block.html_template : 'default'))
     editor.addNode(
         block.name,
         block.inputs === undefined ? 1 : block.inputs,
         block.outputs === undefined ? 1 : block.outputs,
         adjsutedPosition.left,
         adjsutedPosition.top,
-        block.class === undefined ? '' : block.class,
+        blockClass.join(' '),
         block,
         html
     );
@@ -374,9 +375,14 @@ function getTemplateForBlock(block) {
     var html = ''
     block.icon_class = block.icon_class !== undefined ? block.icon_class : 'fas'
     if (block.html_template !== undefined) {
-        html = window['dot' + block.html_template](block)
+        if (window['dotBlock_' + block.html_template] !== undefined) {
+            html = window['dotBlock_' + block.html_template](block)
+        } else {
+            html = 'Wrong HTML template'
+            console.error('Wrong HTML template for block', block)
+        }
     } else {
-        html = dotBlockDefault(block)
+        html = dotBlock_default(block)
     }
     return html
 }
