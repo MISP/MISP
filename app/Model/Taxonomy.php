@@ -589,9 +589,10 @@ class Taxonomy extends AppModel
         }
 
         $key = 'taxonomies_cache:tagName=' . $tagName . "&" . "metaOnly=$metaOnly" . "&" . "fullTaxonomy=$fullTaxonomy";
-        $model = $this;
+        $redis = $this->setupRedisWithException();
+        $taxonomy = json_decode($redis->get($key), true);
 
-        return Cache::remember($key, function () use ($model, $metaOnly, $fullTaxonomy, $splits) {
+        if (!$taxonomy) {
             if (isset($splits['value'])) {
                 $contain = array(
                     'TaxonomyPredicate' => array(
@@ -606,7 +607,7 @@ class Taxonomy extends AppModel
                         'LOWER(TaxonomyEntry.value)' => mb_strtolower($splits['value']),
                     );
                 }
-                $taxonomy = $model->find('first', array(
+                $taxonomy = $this->find('first', array(
                     'recursive' => -1,
                     'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
                     'contain' => $contain
@@ -614,8 +615,6 @@ class Taxonomy extends AppModel
                 if ($metaOnly && !empty($taxonomy)) {
                     $taxonomy = array('Taxonomy' => $taxonomy['Taxonomy']);
                 }
-
-                return $taxonomy;
             } else {
                 $contain = array('TaxonomyPredicate' => array());
                 if (!$fullTaxonomy) {
@@ -623,7 +622,7 @@ class Taxonomy extends AppModel
                         'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate'])
                     );
                 }
-                $taxonomy = $model->find('first', array(
+                $taxonomy = $this->find('first', array(
                     'recursive' => -1,
                     'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
                     'contain' => $contain
@@ -631,10 +630,12 @@ class Taxonomy extends AppModel
                 if ($metaOnly && !empty($taxonomy)) {
                     $taxonomy = array('Taxonomy' => $taxonomy['Taxonomy']);
                 }
-
-                return $taxonomy;
             }
-        }, 'misp_short');
+
+            $redis->setex($key, 1800, $taxonomy);
+        }
+
+        return $taxonomy;
     }
 
     /**
