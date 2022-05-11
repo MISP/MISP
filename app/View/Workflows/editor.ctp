@@ -85,6 +85,7 @@
         <p>Block options</p>
     </div>
     <div class="modal-footer">
+        <button id="delete-selected-node" class="btn btn-danger">Delete</button>
         <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
     </div>
 </div>
@@ -110,6 +111,7 @@ echo $this->element('genericElements/assetLoader', [
     var $chosenBlocks = $('.root-container .side-panel .chosen-container.blocks')
     var $drawflow = $('#drawflow')
     var $blockModal = $('#block-modal')
+    var $blockModalDeleteButton = $blockModal.find('#delete-selected-node')
     var $importWorkflowButton = $('#importWorkflow')
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')

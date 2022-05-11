@@ -116,8 +116,14 @@ function initDrawflow() {
     $importWorkflowButton.click(importWorkflow)
     $exportWorkflowButton.click(exportWorkflow)
     $blockModal.on('show', function (evt) {
-        var selectedBlock = editor.getNodeFromId(editor.node_selected.id.split('-')[1]) // Couldn't find a better way to get the selected node
+        var selectedBlock = getSelectedBlock()
         buildModalForBlock(selectedBlock.id, selectedBlock.data)
+    })
+    $blockModalDeleteButton.click(function() {
+        if (confirm('Are you sure you want to remove this block?')) {
+            deleteSelectedNode()
+            $blockModal.modal('hide')
+        }
     })
 
 }
@@ -308,6 +314,22 @@ function importWorkflow() {
 
 function exportWorkflow() {
     showMessage('fail', 'Export workflow: to be implemented')
+}
+
+function getSelectedNodeID() {
+    return editor.node_selected.id // Couldn't find a better way to get the selected node
+}
+
+function getSelectedNodeIDInteger() {
+    return parseInt(getSelectedNodeID().split('-')[1]) // Couldn't find a better way to get the selected node
+}
+
+function getSelectedBlock() {
+    return editor.getNodeFromId(getSelectedNodeIDInteger())
+}
+
+function deleteSelectedNode() {
+    editor.removeNodeId(getSelectedNodeID())
 }
 
 /* UI Utils */
