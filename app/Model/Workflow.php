@@ -299,6 +299,7 @@ class Workflow extends AppModel
                         'placeholder' => __('Enter tag name')
                     ],
                     [
+                        'id' => 'channel_name_select',
                         'type' => 'select',
                         'label' => 'Channel name',
                         'default' => 'team-4_3_misp',
@@ -308,6 +309,7 @@ class Workflow extends AppModel
                         ],
                     ],
                     [
+                        'id' => 'channel_name_radio',
                         'type' => 'radio',
                         'label' => 'Channel name',
                         'default' => 'team-4_3_misp',

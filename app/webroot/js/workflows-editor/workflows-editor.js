@@ -1,5 +1,5 @@
 var dotBlockDefault = doT.template(' \
-<div class="canvas-workflow-block"> \
+<div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
             <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
@@ -16,7 +16,7 @@ var dotBlockDefault = doT.template(' \
 </div>')
 
 var dotIF = doT.template(' \
-<div class="canvas-workflow-block small"> \
+<div class="canvas-workflow-block small" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%; height: 100%;"> \
         <div class="default-main-container-small"> \
             <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
@@ -154,6 +154,8 @@ function revalidateContentCache() {
 
 
 function addNode(block, position) {
+    var node_uid = uid() // only used for UI purposes
+    block['node_uid'] = node_uid
     var canvasPosition = $canvas[0].getBoundingClientRect()
     
     var adjsutedPosition = {
@@ -195,22 +197,15 @@ function loadWorkflow() {
     fetchWorkflow(workflow_id, function(workflow) {
         lastModified = workflow.timestamp + '000'
         revalidateContentCache()
-        // if (workflow.data) {
-        //     var editor_data = {
-        //         drawflow: {
-        //             Home: {
-        //                 data: workflow.data
-        //             }
-        //         }
-        //     }
-        //     editor.import(editor_data);
-        // }
-        
+
         // We cannot rely on the editor's import function as it recreates the nodes with the saved HTML instead of rebuilding them
         // We have to manually add the nodes and their connections
         Object.values(workflow.data).forEach(function(block) {
+            var node_uid = uid() // only used for UI purposes
+            block.data['node_uid'] = node_uid
             block.data['block_param_html'] = genBlockParamHtml(block.data)
             var html = getTemplateForBlock(block.data)
+            editor.nodeId = block.id // force the editor to use the saved id of the block instead of generating a new one
             editor.addNode(
                 block.name,
                 Object.values(block.inputs).length,
@@ -370,7 +365,7 @@ function genBlockParamHtml(block) {
     }
     var html = ''
     block.params.forEach(function (param) {
-        param['param_id'] = getIDForBlockParameter(param)
+        param['param_id'] = getIDForBlockParameter(block, param)
         paramHtml = ''
         switch (param.type) {
             case 'input':
@@ -559,11 +554,11 @@ function handleSelectChange(changed) {
     invalidateContentCache()
 }
 
-function getIDForBlockParameter(param) {
+function getIDForBlockParameter(block, param) {
     if (param.id !== undefined) {
-        return param.id
+        return param.id + '-' + block.node_uid
     }
-    return param.label.toLowerCase().replace(' ', '-')
+    return param.label.toLowerCase().replace(' ', '-') + '-' + block.node_uid
 }
 
 function getNodeFromNodeInput($input) {
