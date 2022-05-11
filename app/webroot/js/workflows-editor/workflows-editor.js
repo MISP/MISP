@@ -18,14 +18,15 @@ var dotBlock_default = doT.template(' \
 var dotBlock_trigger = dotBlock_default
 
 var dotBlock_IF = doT.template(' \
-<div class="canvas-workflow-block small" data-nodeuid="{{=it.node_uid}}"> \
-    <div style="width: 100%; height: 100%;"> \
-        <div class="default-main-container-small"> \
+<div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
+    <div style="width: 100%;"> \
+        <div class="default-main-container"> \
             <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
         </div> \
+        {{=it.block_param_html}} \
     </div> \
 </div>')
 

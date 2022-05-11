@@ -119,10 +119,6 @@
     box-shadow: 0px 3px 6px 2px #33333333;
 }
 
-.canvas-workflow-block.small {
-    height: 50px;
-}
-
 .canvas-workflow-block br {
     width: 100%;
     height: 1px;
@@ -213,9 +209,6 @@
     /* No special format for default block types */
 }
 
-.drawflow .drawflow-node.block-type-trigger > .outputs > .output_1 {
-    background-color: #ea5b57;
-}
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output::before {
     display: none;
     transform: translateX(calc(50% - 8px));
@@ -229,9 +222,37 @@
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output:hover::before {
     display: block;
 }
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output::after {
+    color: white;
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    top: -4px;
+    width: 12px;
+    font-size: x-small;
+    text-align: center;
+    transition-property: width,top,font-size;
+    transition-duration: .1s
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output:hover::after {
+    font-size: larger;
+    width: 18px;
+    top: -1px;
+}
+
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output_1 {
+    background-color: #ea5b57;
+}
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output_1::before {
     content: 'blocking';
     top: -26px;
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output_1::after {
+    content: "\f251";
+    font-size: 9px;
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output_1:hover::after {
+    font-size: 14px;
 }
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output_2 {
     background-color: #468847;
@@ -240,12 +261,60 @@
     content: 'deferred';
     top: 26px;
 }
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output_2::after {
+    content: "\f061";
+}
 
+.drawflow .drawflow-node.block-type-IF > .outputs > .output::before {
+    display: none;
+    transform: translateX(calc(50% - 8px));
+    right: 0;
+    padding: 0.25em 0.5em;
+    background-color: #fff;
+    border: 1px solid #cdcdcd;
+    border-radius: 3px;
+}
+.drawflow .drawflow-node.block-type-IF > .outputs > .output:hover::before {
+    display: block;
+}
+.drawflow .drawflow-node.block-type-IF > .outputs > .output::after {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    top: -4px;
+    width: 12px;
+    font-size: x-small;
+    text-align: center;
+    transition-property: width,top,font-size;
+    transition-duration: .1s
+}
+.drawflow .drawflow-node.block-type-IF>.outputs>.output:hover::after {
+    font-size: larger;
+    width: 18px;
+    top: -1px;
+}
+
+.drawflow .drawflow-node.block-type-IF > .outputs > .output_1 {
+    background-color: #fff;
+}
 .drawflow .drawflow-node.block-type-IF > .outputs > .output_1::before {
     content: 'then';
+    top: -26px;
+}
+.drawflow .drawflow-node.block-type-IF > .outputs > .output_1::after {
+    content: "\f00c";
+}
+.drawflow .drawflow-node.block-type-IF > .outputs > .output_2 {
+    background-color: #fff;
 }
 .drawflow .drawflow-node.block-type-IF > .outputs > .output_2::before {
     content: 'else';
+    top: 26px;
+}
+.drawflow .drawflow-node.block-type-IF > .outputs > .output_2::after {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    content: "\f00d"
 }
 
 
@@ -312,16 +381,16 @@
     --dfOutputBorderColor: #5a5a5a;
     --dfOutputBorderRadius: 50px;
     --dfOutputRight: 6px;
-    --dfOutputHeight: 10px;
-    --dfOutputWidth: 10px;
+    --dfOutputHeight: 12px;
+    --dfOutputWidth: 12px;
 
     --dfOutputHoverBackgroundColor: #ffffff;
     --dfOutputHoverBorderSize: 2px;
     --dfOutputHoverBorderColor: #5a5a5a;
     --dfOutputHoverBorderRadius: 50px;
 
-    --dfOutputHeightHover: 16px;
-    --dfOutputWidthHover: 16px;
+    --dfOutputHeightHover: 18px;
+    --dfOutputWidthHover: 18px;
     --dfOutputRightHover: 9px;
 
     --dfLineWidth: 5px;
