@@ -399,6 +399,9 @@ function genBlockParamHtml(block) {
             case 'input':
                 paramHtml = genInput(param)[0].outerHTML
                 break;
+            case 'textarea':
+                paramHtml = genInput(param, true)[0].outerHTML
+                break;
             case 'select':
                 paramHtml = genSelect(param)[0].outerHTML
                 break;
@@ -459,7 +462,7 @@ function genSelect(options) {
     return $container
 }
 
-function genInput(options) {
+function genInput(options, isTextArea) {
     var $container = $('<div>')
     var $label = $('<label>')
         .css({
@@ -467,10 +470,15 @@ function genInput(options) {
             marginBbottom: 0,
         })
         .append($('<span>').text(options.label))
-    var $input = $('<input>').css({
+    var $input
+    if (isTextArea) {
+        $input = $('<textarea>').attr('rows', 4).css({resize: 'none'})
+    } else {
+        $input = $('<input>').css({height: '30px'})
+    }
+    $input.css({
         width: '100%',
         'box-sizing': 'border-box',
-        height: '30px',
     })
     $input
         .attr('type', 'text')

@@ -239,6 +239,14 @@ class Workflow extends AppModel
                 'module_type' => 'condition',
                 'outputs' => 2,
                 'html_template' => 'IF',
+                'params' => [
+                    [
+                        'type' => 'textarea',
+                        'label' => 'Event Conditions',
+                        'default' => '',
+                        'placeholder' => '{ "tags" : { "AND" : [ "tlp : green" , "Malware" ] , "NOT" : [ "%ransomware%" ]}}'
+                    ],
+                ],
             ],
         ];
 
