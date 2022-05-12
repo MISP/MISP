@@ -684,6 +684,13 @@ class Taxonomy extends AppModel
      */
     public function checkIfTagInconsistencies($tagList)
     {
+        if (Configure::read('MISP.disable_taxonomy_consistency_checks')) {
+            return [
+                'global' => [],
+                'local' => []
+            ];
+        }
+
         $eventTags = array();
         $localEventTags = array();
         foreach ($tagList as $tag) {

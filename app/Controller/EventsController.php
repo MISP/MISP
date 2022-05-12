@@ -6067,6 +6067,10 @@ class EventsController extends AppController
 
     public function runTaxonomyExclusivityCheck($id)
     {
+        if (Configure::read('MISP.disable_taxonomy_consistency_checks')) {
+            return $this->RestResponse->saveFailResponse('Events', 'runTaxonomyExclusivityCheck', null, 'Taxonomy consistency checks are disabled, set `MISP.disable_taxonomy_consistency_checks` to `false` to enable them.', 'json');
+        }
+
         $conditions = [];
         if (is_numeric($id)) {
             $conditions = array('eventid' => $id);

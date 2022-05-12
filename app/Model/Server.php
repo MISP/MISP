@@ -5145,6 +5145,14 @@ class Server extends AppModel
                     'type' => 'string',
                     'options' => array(0 => 'Minimal tags', 1 => 'Full tags', 2 => 'Shortened tags'),
                 ),
+                'disable_taxonomy_consistency_checks' => array(
+                    'level' => 0,
+                    'description' => __('*WARNING* This will disable taxonomy tags conflict checks when browsing attributes and objects, does not impact checks when adding tags. It can dramatically increase the performance when loading events with lots of tagged attributes or objects.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'welcome_text_top' => array(
                     'level' => 2,
                     'description' => __('Used on the login page, before the MISP logo'),
