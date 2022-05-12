@@ -248,6 +248,9 @@ class Correlation extends AppModel
                 $this->Job->saveProgress($jobId, __('Correlating Attributes based on value. %s attributes correlated out of %s.', $k, $count), floor(100 * $k / $count));
             }
         }
+        if (empty($correlations)) {
+            return true;
+        }
         return $this->__saveCorrelations($correlations);
     }
 
@@ -257,9 +260,6 @@ class Correlation extends AppModel
      */
     private function __saveCorrelations($correlations)
     {
-        if (empty($correlations)) {
-            return true;
-        }
         $fields = [
             'value', '1_event_id', '1_attribute_id', 'event_id', 'attribute_id', 'org_id',
             'distribution', 'a_distribution', 'sharing_group_id', 'a_sharing_group_id',
@@ -421,7 +421,9 @@ class Correlation extends AppModel
                 );
             }
         }
-        unset($correlatingAttributes);
+        if (empty($correlations)) {
+            return true;
+        }
         return $this->__saveCorrelations($correlations);
     }
 

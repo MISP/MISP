@@ -1618,7 +1618,7 @@ class Attribute extends AppModel
                     'Attribute.sharing_group_id',
                 ],
                 'order' => 'Attribute.id',
-                'limit' => 10000,
+                'limit' => 5000,
                 'callbacks' => false, // memory leak fix
             ];
             do {
@@ -1629,7 +1629,7 @@ class Attribute extends AppModel
                 }
                 $fetchedAttributes = count($attributes);
                 $attributeCount += $fetchedAttributes;
-                if ($fetchedAttributes === 10000) { // maximum number of attributes fetched, continue in next loop
+                if ($fetchedAttributes === 5000) { // maximum number of attributes fetched, continue in next loop
                     $query['conditions']['Attribute.id >'] = $attribute['Attribute']['id'];
                 } else {
                     break;
