@@ -624,11 +624,11 @@ class Correlation extends AppModel
         } catch (Exception $e) {
             throw new NotFoundException(__('No redis connection found.'));
         }
-        $max_id = $this->find('first', [
+        $maxId = $this->find('first', [
             'fields' => ['MAX(id) AS max_id'],
-            'recursive' => -1
+            'recursive' => -1,
         ]);
-        if (empty($max_id)) {
+        if (empty($maxId)) {
             return false;
         }
         if ($jobId) {
@@ -643,19 +643,20 @@ class Correlation extends AppModel
                 $jobId = false;
             }
         }
-        $max_id = $max_id[0]['max_id'];
+        $maxId = $maxId[0]['max_id'];
 
         $redis->del(self::CACHE_NAME);
         $redis->set(self::CACHE_AGE, time());
-        $chunk_size = 1000000;
-        $max = ceil($max_id / $chunk_size);
-        for ($i = 0; $i < $max; $i++) {
+        $chunkSize = 1000000;
+        $maxPage = ceil($maxId / $chunkSize);
+        for ($page = 0; $page < $maxPage; $page++) {
             $correlations = $this->find('column', [
                 'fields' => ['value'],
                 'conditions' => [
-                    'id >' => $i * $chunk_size,
-                    'id <=' => (($i + 1) * $chunk_size)
-                ]
+                    'id >' => $page * $chunkSize,
+                    'id <=' => ($page + 1) * $chunkSize
+                ],
+                'callbacks' => false, // when callbacks are enabled, memory is leaked
             ]);
             $newElements = count($correlations);
             $correlations = array_count_values($correlations);
@@ -665,8 +666,7 @@ class Correlation extends AppModel
             }
             $pipeline->exec();
             if ($jobId) {
-                $this->Job->saveProgress($jobId, __('Generating top correlations. Processed %s IDs.', ($i * $chunk_size) + $newElements), floor(100 * $i / $max));
-                return $jobId;
+                $this->Job->saveProgress($jobId, __('Generating top correlations. Processed %s IDs.', ($page * $chunkSize) + $newElements), floor(100 * $page / $maxPage));
             }
         }
         return true;
