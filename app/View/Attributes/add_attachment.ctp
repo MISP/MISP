@@ -65,7 +65,7 @@
         <?php
             echo $this->Form->input('malware', array(
                     'type' => 'checkbox',
-                    'checked' => false,
+                    'checked' => true,
                     'label' => __('Is a malware sample (encrypt and hash)')
             ));
         ?>
@@ -73,7 +73,7 @@
         <?php
             echo $this->Form->input('advanced', array(
                     'type' => 'checkbox',
-                    'checked' => true,
+                    'checked' => false,
                     'disabled' => !$advancedExtractionAvailable,
                     'data-disabled-reason' => !$advancedExtractionAvailable ? __('Advanced extraction is not installed') : '',
                     'div' => array('id' => 'advanced_input', 'style' => 'display:none'),
