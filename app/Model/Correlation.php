@@ -186,7 +186,7 @@ class Correlation extends AppModel
                 'value' => $value,
                 '1_event_id' => $a['Event']['id'],
                 '1_attribute_id' => $a['Attribute']['id'],
-                'event_id' => $b['Attribute']['event_id'],
+                'event_id' => $b['Event']['id'],
                 'attribute_id' => $b['Attribute']['id'],
                 'org_id' => $b['Event']['org_id'],
                 'distribution' => $b['Event']['distribution'],
@@ -199,7 +199,7 @@ class Correlation extends AppModel
                 $value,
                 (int) $a['Event']['id'],
                 (int) $a['Attribute']['id'],
-                (int) $b['Attribute']['event_id'],
+                (int) $b['Event']['id'],
                 (int) $b['Attribute']['id'],
                 (int) $b['Event']['org_id'],
                 (int) $b['Event']['distribution'],
@@ -395,7 +395,7 @@ class Correlation extends AppModel
                 'conditions' => $conditions,
                 'recursive' => -1,
                 'fields' => [
-                    'Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id',
+                    'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id',
                     'Attribute.value1', 'Attribute.value2'
                 ],
                 'contain' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'],
@@ -424,6 +424,7 @@ class Correlation extends AppModel
         if (empty($correlations)) {
             return true;
         }
+        unset($correlatingAttributes);
         return $this->__saveCorrelations($correlations);
     }
 

@@ -1628,6 +1628,7 @@ class Attribute extends AppModel
                     $this->Correlation->afterSaveCorrelation($attribute['Attribute'], $full, $event);
                 }
                 $fetchedAttributes = count($attributes);
+                unset($attributes);
                 $attributeCount += $fetchedAttributes;
                 if ($fetchedAttributes === 5000) { // maximum number of attributes fetched, continue in next loop
                     $query['conditions']['Attribute.id >'] = $attribute['Attribute']['id'];
@@ -1635,7 +1636,7 @@ class Attribute extends AppModel
                     break;
                 }
             } while (true);
-            // Generating correlations can take long time, so clear CIDR cache after each event
+            // Generating correlations can take long time, so clear CIDR cache after each event to refresh cache
             $this->Correlation->clearCidrCache();
         }
         if ($jobId) {
