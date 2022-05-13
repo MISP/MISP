@@ -1596,9 +1596,6 @@ class UsersController extends AppController
 
     public function admin_email($isPreview=false)
     {
-        if (!$this->_isAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         $isPostOrPut = $this->request->is('post') || $this->request->is('put');
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
@@ -1608,17 +1605,11 @@ class UsersController extends AppController
         // harvest parameters
         if ($isPostOrPut) {
             $recipient = $this->request->data['User']['recipient'];
-        } else {
-            $recipient = isset($this->params['named']['recipient']) ? $this->params['named']['recipient'] : null;
-        }
-        if ($isPostOrPut) {
             $recipientEmailList = $this->request->data['User']['recipientEmailList'];
-        } else {
-            $recipientEmailList = isset($this->params['named']['recipientEmailList']) ? $this->params['named']['recipientEmailList'] : null;
-        }
-        if ($isPostOrPut) {
             $orgNameList = $this->request->data['User']['orgNameList'];
         } else {
+            $recipient = isset($this->params['named']['recipient']) ? $this->params['named']['recipient'] : null;
+            $recipientEmailList = isset($this->params['named']['recipientEmailList']) ? $this->params['named']['recipientEmailList'] : null;
             $orgNameList = isset($this->params['named']['orgNameList']) ? $this->params['named']['orgNameList'] : null;
         }
 
@@ -1645,7 +1636,7 @@ class UsersController extends AppController
             $users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
             // User has filled in his contact form, send out the email.
             if ($isPostOrPut) {
-                $this->request->data['User']['message'] = $this->User->adminMessageResolve($this->request->data['User']['message']);
+                $this->request->data['User']['message'] = $this->__replaceEmailVariables($this->request->data['User']['message']);
                 $failures = '';
                 foreach ($users as $user) {
                     $password = $this->User->generateRandomPassword();
@@ -1692,11 +1683,11 @@ class UsersController extends AppController
             $textsToFetch = array('newUserText', 'passwordResetText');
             $this->loadModel('Server');
             foreach ($textsToFetch as $text) {
-                ${$text} = Configure::read('MISP.' . $text);
-                if (!${$text}) {
-                    ${$text} = $this->Server->serverSettings['MISP'][$text]['value'];
+                $value = Configure::read('MISP.' . $text);
+                if (!$value) {
+                    $value = $this->Server->serverSettings['MISP'][$text]['value'];
                 }
-                $this->set($text, ${$text});
+                $this->set($text, $value);
             }
         }
     }
@@ -1788,9 +1779,7 @@ class UsersController extends AppController
 
             // Email construction
             $body = Configure::read('Security.email_otp_text') ?: $this->Server->serverSettings['Security']['email_otp_text']['value'];
-            $body = str_replace('$misp', Configure::read('MISP.baseurl'), $body);
-            $body = str_replace('$org', Configure::read('MISP.org'), $body);
-            $body = str_replace('$contact', Configure::read('MISP.contact'), $body);
+            $body = $this->__replaceEmailVariables($body);
             $body = str_replace('$validity', $validity, $body);
             $body = str_replace('$otp', $otp, $body);
             $body = str_replace('$ip', $this->__getClientIP(), $body);
@@ -2768,5 +2757,18 @@ class UsersController extends AppController
             return true;
         }
         return !Configure::read('MISP.disable_user_login_change');
+    }
+
+    /**
+     * Replaces $misp, $org and $contact variables in emails
+     * @param string $body
+     * @return string
+     */
+    private function __replaceEmailVariables($body)
+    {
+        $body = str_replace('$misp', Configure::read('MISP.baseurl'), $body);
+        $body = str_replace('$org', Configure::read('MISP.org'), $body);
+        $body = str_replace('$contact', Configure::read('MISP.contact'), $body);
+        return $body;
     }
 }
