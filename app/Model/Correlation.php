@@ -298,7 +298,15 @@ class Correlation extends AppModel
                 }
             }
             $db = $this->getDataSource();
-            return $db->insertMulti('correlations', $fields, $correlations);
+            // Split to chunks datasource is is enabled
+            if (count($correlations) > 100) {
+                foreach (array_chunk($correlations, 100) as $chunk) {
+                    $db->insertMulti('correlations', $fields, $chunk);
+                }
+                return true;
+            } else {
+                return $db->insertMulti('correlations', $fields, $correlations);
+            }
         }
     }
 
