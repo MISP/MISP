@@ -1441,6 +1441,17 @@ class AppController extends Controller
     }
 
     /**
+     * Close session without writing changes to them and return current user.
+     * @return array
+     */
+    protected function _closeSession()
+    {
+        $user = $this->Auth->user();
+        session_abort();
+        return $user;
+    }
+
+    /**
      * Decode JSON with proper error handling.
      * @param string $dataToDecode
      * @return mixed
