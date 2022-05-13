@@ -4611,11 +4611,11 @@ $(function() {
         }
     });
     $(".queryPopover").click(function() {
-        url = $(this).data('url');
-        id = $(this).data('id');
-        $.get(url + '/' + id, function(data) {
-            $('#popover_form').html(data);
-            openPopup('#popover_form');
+        var url = $(this).data('url');
+        $.get(url, function(data) {
+            var $popover = $('#popover_form');
+            $popover.html(data);
+            openPopup($popover);
         }).fail(xhrFailCallback)
     });
     $('.servers_default_role_checkbox').click(function() {
