@@ -148,8 +148,6 @@ class Log extends AppModel
 
     public function returnDates($org = 'all')
     {
-        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-        $dataSource = $dataSourceConfig['datasource'];
         $conditions = array();
         $this->Organisation = ClassRegistry::init('Organisation');
         if ($org !== 'all') {
@@ -160,14 +158,14 @@ class Log extends AppModel
             $conditions['org'] = $org['name'];
         }
         $conditions['AND']['NOT'] = array('action' => array('login', 'logout', 'changepw'));
-        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $validDates = $this->find('all', array(
                     'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
                     'conditions' => $conditions,
                     'group' => array('Date'),
                     'order' => array('Date')
             ));
-        } elseif ($dataSource == 'Database/Postgres') {
+        } else {
             // manually generate the query for Postgres
             // cakephp ORM would escape "DATE" datatype in CAST expression
             $condnotinaction = "'" . implode("', '", $conditions['AND']['NOT']['action']) . "'";

@@ -270,9 +270,9 @@ class TaxonomiesController extends AppController
             $message = __('Could not update any of the taxonomy libraries');
         } else {
             $flashType = 'success';
-            $message = __('Successfully updated ') . $successes . __(' taxonomy libraries.');
+            $message = __('Successfully updated %s taxonomy libraries.', $successes);
             if ($fails != 0) {
-                $message .= __(' However, could not update ') . $fails . __(' taxonomy libraries.');
+                $message .= __(' However, could not update %s taxonomy libraries.', $fails);
             }
         }
         if ($this->_isRest()) {
