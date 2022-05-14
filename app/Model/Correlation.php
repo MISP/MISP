@@ -421,16 +421,8 @@ class Correlation extends AppModel
                 } else {
                     $value = $cV;
                 }
-                $correlations[] = $this->__addCorrelationEntry(
-                    $value,
-                    $attributeToProcess,
-                    $corr
-                );
-                $correlations[] = $this->__addCorrelationEntry(
-                    $cV,
-                    $corr,
-                    $attributeToProcess
-                );
+                $correlations[] = $this->__addCorrelationEntry($value, $attributeToProcess, $corr);
+                $correlations[] = $this->__addCorrelationEntry($cV, $corr, $attributeToProcess);
             }
         }
         if (empty($correlations)) {

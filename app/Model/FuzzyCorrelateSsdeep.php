@@ -56,7 +56,7 @@ class FuzzyCorrelateSsdeep extends AppModel
         return $results;
     }
 
-    public function query_ssdeep_chunks($hash, $attribute_id)
+    public function query_ssdeep_chunks($hash, $attributeId)
     {
         $chunks = $this->ssdeep_prepare($hash);
         
@@ -71,13 +71,17 @@ class FuzzyCorrelateSsdeep extends AppModel
             'unique' => true,
         ));
         
-        $to_save = array();
+        $toSave = [];
+        $attributeId = (int) $attributeId;
         foreach (array(1, 2) as $type) {
             foreach ($chunks[$type] as $chunk) {
-                $to_save[] = array('attribute_id' => $attribute_id, 'chunk' => $chunk);
+                $toSave[] = [$attributeId, $chunk];
             }
         }
-        $this->saveMany($to_save);
+        if (!empty($toSave)) {
+            $db = $this->getDataSource();
+            $db->insertMulti($this->table, ['attribute_id', 'chunk'], $toSave);
+        }
         return $result;
     }
 
