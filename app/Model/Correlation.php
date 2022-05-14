@@ -394,27 +394,33 @@ class Correlation extends AppModel
                 'Event.disable_correlation' => 0,
                 'Attribute.deleted' => 0,
             ];
+            $fields = ['Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id'];
             if ($k === 0 && !empty($extraConditions)) {
                 $conditions['OR'][] = $extraConditions;
+                // Fetch value field just when fetching attributes also by extra conditions, because then it can be
+                // not exact match
+                $fields[] = 'Attribute.value1';
+                $fields[] = 'Attribute.value2';
             }
             if ($full) {
                 $conditions['Attribute.id > '] = $a['id'];
             }
-            $correlatingAttributes = $this->Attribute->find('all', array(
+            $correlatingAttributes = $this->Attribute->find('all', [
                 'conditions' => $conditions,
                 'recursive' => -1,
-                'fields' => [
-                    'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id',
-                    'Attribute.value1', 'Attribute.value2'
-                ],
+                'fields' => $fields,
                 'contain' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'],
                 'order' => [],
                 'callbacks' => 'before', // memory leak fix
-            ));
+            ]);
 
             foreach ($correlatingAttributes as $corr) {
-                // TODO: Currently it is hard to check if value1 or value2 correlated, so we check value2 and if not, it is value1
-                $value = $cV === $corr['Attribute']['value2'] ? $corr['Attribute']['value2'] : $corr['Attribute']['value1'];
+                if (isset($corr['Attribute']['value1'])) {
+                    // TODO: Currently it is hard to check if value1 or value2 correlated, so we check value2 and if not, it is value1
+                    $value = $cV === $corr['Attribute']['value2'] ? $corr['Attribute']['value2'] : $corr['Attribute']['value1'];
+                } else {
+                    $value = $cV;
+                }
                 $correlations[] = $this->__addCorrelationEntry(
                     $value,
                     $attributeToProcess,
