@@ -810,8 +810,8 @@ class AppController extends Controller
             ConnectionManager::create('default', $db->config);
         }
         $dataSource = $dataSourceConfig['datasource'];
-        if (!in_array($dataSource, array('Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver'))) {
-            throw new Exception('datasource not supported: ' . $dataSource);
+        if (!in_array($dataSource, ['Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver'], true)) {
+            throw new Exception('Datasource not supported: ' . $dataSource);
         }
     }
 

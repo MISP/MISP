@@ -478,7 +478,7 @@ class Correlation extends AppModel
                 'deleted' => 0,
             );
 
-            if (in_array($this->getDataSource()->config['datasource'], ['Database/Mysql', 'Database/MysqlObserver'])) {
+            if ($this->isMysql()) {
                 // Massive speed up for CIDR correlation. Instead of testing all in PHP, database can do that work much
                 // faster. But these methods are just supported by MySQL.
                 if ($ip_version === 4) {
