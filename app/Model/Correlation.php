@@ -372,7 +372,8 @@ class Correlation extends AppModel
             return true;
         }
 
-        $correlatingAttributes = [];
+        $attributeToProcess = ['Attribute' => $a, 'Event' => $event['Event']];
+        $correlations = [];
         foreach ($correlatingValues as $k => $cV) {
             if ($cV === null) {
                 continue;
@@ -399,7 +400,7 @@ class Correlation extends AppModel
             if ($full) {
                 $conditions['Attribute.id > '] = $a['id'];
             }
-            $correlatingAttributes[$k] = $this->Attribute->find('all', array(
+            $correlatingAttributes = $this->Attribute->find('all', array(
                 'conditions' => $conditions,
                 'recursive' => -1,
                 'fields' => [
@@ -410,20 +411,17 @@ class Correlation extends AppModel
                 'order' => [],
                 'callbacks' => 'before', // memory leak fix
             ));
-        }
-        $correlations = [];
-        $attributeToProcess = ['Attribute' => $a, 'Event' => $event['Event']];
-        foreach ($correlatingAttributes as $k => $cA) {
-            foreach ($cA as $corr) {
+
+            foreach ($correlatingAttributes as $corr) {
                 // TODO: Currently it is hard to check if value1 or value2 correlated, so we check value2 and if not, it is value1
-                $value = $correlatingValues[$k] === $corr['Attribute']['value2'] ? $corr['Attribute']['value2'] : $corr['Attribute']['value1'];
+                $value = $cV === $corr['Attribute']['value2'] ? $corr['Attribute']['value2'] : $corr['Attribute']['value1'];
                 $correlations[] = $this->__addCorrelationEntry(
                     $value,
                     $attributeToProcess,
                     $corr
                 );
                 $correlations[] = $this->__addCorrelationEntry(
-                    $correlatingValues[$k],
+                    $cV,
                     $corr,
                     $attributeToProcess
                 );
@@ -432,7 +430,6 @@ class Correlation extends AppModel
         if (empty($correlations)) {
             return true;
         }
-        unset($correlatingAttributes);
         return $this->__saveCorrelations($correlations);
     }
 

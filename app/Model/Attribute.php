@@ -1585,7 +1585,7 @@ class Attribute extends AppModel
         }
         foreach ($eventIds as $j => $eventId) {
             if ($jobId) {
-                $message = $attributeId ? __('Correlating Attribute %s', $attributeId) : __('Correlating Event %s', $eventId);
+                $message = $attributeId ? __('Correlating Attribute %s', $attributeId) : __('Correlating Event %s (%s MB used)', $eventId, intval(memory_get_usage() / 1024 / 1024));
                 $this->Job->saveProgress($jobId, $message, ($j / $eventCount) * 100);
             }
             $event = $this->Event->find('first', array(
