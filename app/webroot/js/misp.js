@@ -657,6 +657,20 @@ function submitForm($td, type, id, field) {
         var field = $(this).data('edit-field');
         quickEditHover(this, type, objectId, field);
     });
+    // Show popover with advanced sigtings information about given or selected attributes
+    $(document.body).on('click', '.sightings_advanced_add', function() {
+        var object_context = $(this).data('object-context');
+        var object_id = $(this).data('object-id');
+        if (object_id === 'selected') {
+            var selected = [];
+            $(".select_attribute:checked").each(function() {
+                selected.push($(this).data("id"));
+            });
+            object_id = selected.join('|');
+        }
+        var url = baseurl + "/sightings/advanced/" + object_id + "/" + object_context;
+        genericPopup(url, '#popover_box');
+    });
 })();
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
@@ -1655,9 +1669,9 @@ function openPopover(clicked, data, hover, placement, callback) {
     var randomId = $clicked.attr('data-dismissid') !== undefined ? $clicked.attr('data-dismissid') : Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
     var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
     $clicked.attr('data-dismissid', randomId);
-    var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(&apos;[data-dismissid=&quot;' + randomId + '&quot;]&apos;).popover(\'hide\');">×</button>';
+    var closeButtonHtml = '<button class="close" style="margin-left: 5px;">×</button>';
 
-    if (!$clicked.data('popover')) {
+    if (!$clicked.data('popover')) { // true when popover was already created defined
         $clicked.addClass('have-a-popover');
         var popoverOptions = {
             html: true,
@@ -1668,22 +1682,26 @@ function openPopover(clicked, data, hover, placement, callback) {
             template: '<div class="popover" role="tooltip" data-dismissid="' + randomId + '"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
         };
         $clicked.popover(popoverOptions)
-        .on('shown.bs.popover', function(event) {
-            var $this = $(this);
+        .on('shown.bs.popover', function() {
+            var $this = $(this); // should be the same as $clicked
+            var $popover = $this.data("popover").tip(); // should be the content of popover
             var title = $this.attr('title');
-            var popover = $('div.popover[data-dismissid="' + randomId + '"]');
             title = title === "" ? $this.attr('data-original-title') : title;
+
+            $popover.on("click", ".close", function () {
+                $this.popover("hide");
+            });
 
             if (title === "") {
                 title = "&nbsp;";
                 // adjust popover position (title was empty)
-                var top = popover.offset().top;
-                popover.css('top', (top-17) + 'px');
+                var top = $popover.offset().top;
+                $popover.css('top', (top-17) + 'px');
             }
-            var popoverTitle = popover.find('h3.popover-title');
+            var popoverTitle = $popover.find('h3.popover-title');
             popoverTitle.html(title + closeButtonHtml);
             if (callback !== undefined) {
-                callback(popover);
+                callback($popover);
             }
         })
         .on('keydown.volatilePopover', function(e) {
@@ -1710,22 +1728,20 @@ function openPopover(clicked, data, hover, placement, callback) {
                 },
                 300);
             });
-        } else {
+        } else if (data !== undefined) {
             $clicked.popover('show');
         }
 
-    } else {
+    } else if (data !== undefined) {
         $clicked.popover('show');
     }
     var popover = $clicked.data('popover');
 
-    if (data === undefined) {
-        return popover
-    } else if (popover.options.content !== data) {
-        popover.options.content =  data;
+    if (data !== undefined && popover.options.content !== data) {
+        popover.options.content = data;
         $clicked.popover('show');
-        return popover;
     }
+    return popover;
 }
 
 function getMatrixPopup(scope, scope_id, galaxy_id) {
@@ -1780,15 +1796,13 @@ function popoverPopupNew(clicked, url) {
     var $clicked = $(clicked);
     var popover = openPopover($clicked, undefined);
 
-    // actual request //
+    // actual request
     $.ajax({
         dataType: "html",
         cache: false,
         success: function (data) {
-            if (popover.options.content !== data) {
-                popover.options.content = data;
-                $clicked.popover('show');
-            }
+            popover.options.content = data;
+            $clicked.popover('show');
         },
         error: function(jqXHR) {
             var errorJSON = '';
@@ -1800,6 +1814,9 @@ function popoverPopupNew(clicked, url) {
                 }
             } catch (SyntaxError) {
                 // no error provided
+                if (jqXHR.status === 401) {
+                    errorJSON = 'Unauthorized. Please reload page to log again.';
+                }
             }
             var errorText = '<div class="alert alert-error" style="margin-bottom: 3px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>';
             if (errorJSON !== '') {
@@ -4849,20 +4866,57 @@ $(document.body).on('click', '[data-popover-popup]', function (e) {
 });
 
 function queryEventLock(event_id, timestamp) {
-    if (!document.hidden) {
+    var interval = null;
+    var errorCount = 0;
+    var $container = $('#main-view-container');
+
+    function fetchLocks() {
         $.ajax({
             url: baseurl + "/events/checkLocks/" + event_id + "/" + timestamp,
             success: function(data, statusText, xhr) {
-                 if (xhr.status == 200) {
-                     $('#event_lock_warning').remove();
-                     $('#main-view-container').append(data);
-                 } else if (xhr.status == 204) {
-                     $('#event_lock_warning').remove();
-                 }
+                if (xhr.status === 200) {
+                    $('#event_lock_warning').remove();
+                    $container.append(data);
+                } else if (xhr.status === 204) {
+                    $('#event_lock_warning').remove();
+                }
+                errorCount = 0;
+            },
+            error: function (xhr) {
+                if (xhr.status === 401) {
+                    var error = '<div id="event_lock_warning" class="alert">' +
+                        '<button class="close" data-dismiss="alert">×</button>' +
+                        'Unauthorized. Please reload page to log again.' +
+                        '</div>';
+                    $('#event_lock_warning').remove();
+                    $container.append(error);
+                }
+
+                ++errorCount;
+                if (errorCount > 60) { // 5 mins
+                    clearInterval(interval);
+                    interval = null;
+                }
             }
         });
     }
-    setTimeout(function() { queryEventLock(event_id, timestamp); }, 5000);
+
+    document.addEventListener("visibilitychange", function() {
+        if (document.visibilityState === 'visible') {
+            if (interval === null) {
+                interval = setInterval(fetchLocks, 5000); // 5 seconds
+            }
+        } else {
+            if (interval) {
+                clearInterval(interval);
+                interval = null;
+            }
+        }
+    });
+
+    if (!document.hidden) {
+        interval = setInterval(fetchLocks, 5000); // 5 seconds
+    }
 }
 
 function checkIfLoggedIn() {

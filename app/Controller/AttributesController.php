@@ -955,7 +955,6 @@ class AttributesController extends AppController
     public function viewPicture($id, $thumbnail=false)
     {
         $user = $this->_closeSession();
-
         $conditions = $this->__idToConditions($id);
         $conditions['Attribute.type'] = 'attachment';
 

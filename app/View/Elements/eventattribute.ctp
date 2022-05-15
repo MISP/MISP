@@ -232,19 +232,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
             attributeListAnyAttributeCheckBoxesChecked();
             attributeListAnyProposalCheckBoxesChecked();
         });
-        $('.sightings_advanced_add').click(function() {
-            var selected = [];
-            var object_context = $(this).data('object-context');
-            var object_id = $(this).data('object-id');
-            if (object_id === 'selected') {
-                $(".select_attribute:checked").each(function() {
-                    selected.push($(this).data("id"));
-                });
-                object_id = selected.join('|');
-            }
-            var url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
-            genericPopup(url, '#popover_box');
-        });
     });
     $('.searchFilterButton, #quickFilterButton').click(function() {
         filterAttributes('value');

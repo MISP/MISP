@@ -5693,9 +5693,7 @@ class EventsController extends AppController
 
     public function checkLocks($id, $timestamp)
     {
-        // Close session without writing changes to them.
-        $user = $this->Auth->user();
-        session_abort();
+        $user = $this->_closeSession();
 
         $event = $this->Event->find('first', array(
             'recursive' => -1,
