@@ -954,6 +954,8 @@ class AttributesController extends AppController
 
     public function viewPicture($id, $thumbnail=false)
     {
+        $user = $this->_closeSession();
+
         $conditions = $this->__idToConditions($id);
         $conditions['Attribute.type'] = 'attachment';
 
@@ -966,7 +968,7 @@ class AttributesController extends AppController
                 'deleted' => [0, 1],
                 'withAttachments' => true,
             );
-            $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $options);
+            $attribute = $this->Attribute->fetchAttributes($user, $options);
             if (empty($attribute)) {
                 throw new MethodNotAllowedException('Invalid attribute');
             }
@@ -977,7 +979,7 @@ class AttributesController extends AppController
             return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
         }
 
-        $attribute = $this->Attribute->fetchAttributeSimple($this->Auth->user(), [
+        $attribute = $this->Attribute->fetchAttributeSimple($user, [
             'conditions' => $conditions,
             'fields' => ['Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'],
         ]);
@@ -1901,8 +1903,9 @@ class AttributesController extends AppController
 
     public function fetchViewValue($id, $field = null)
     {
-        $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp', 'first_seen', 'last_seen');
-        if (!isset($field) || !in_array($field, $validFields)) {
+        $user = $this->_closeSession();
+        $validFields = ['value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp', 'first_seen', 'last_seen'];
+        if (!isset($field) || !in_array($field, $validFields, true)) {
             throw new MethodNotAllowedException(__('Invalid field requested.'));
         }
         if (!$this->request->is('ajax')) {
@@ -1922,7 +1925,7 @@ class AttributesController extends AppController
             'contain' => ['Event'],
             'flatten' => 1,
         );
-        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
+        $attribute = $this->Attribute->fetchAttributes($user, $params);
         if (empty($attribute)) {
             throw new NotFoundException(__('Invalid attribute'));
         }
@@ -1931,7 +1934,7 @@ class AttributesController extends AppController
         if ($field === 'distribution') {
             $result = $this->Attribute->shortDist[$result];
         } elseif ($field === 'to_ids') {
-            $result = ($result == 0 ? 'No' : 'Yes');
+            $result = $result == 0 ? 'No' : 'Yes';
         } elseif ($field === 'value') {
             $this->loadModel('Warninglist');
             $attribute['Attribute'] = $this->Warninglist->checkForWarning($attribute['Attribute']);

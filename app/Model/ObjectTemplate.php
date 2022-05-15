@@ -279,11 +279,7 @@ class ObjectTemplate extends AppModel
     // simple test to see if there are any object templates - if not trigger update
     public function populateIfEmpty($user)
     {
-        $result = $this->find('first', array(
-            'recursive' => -1,
-            'fields' => array('ObjectTemplate.id')
-        ));
-        if (empty($result)) {
+        if (!$this->hasAny()) {
             $this->update($user);
         }
         return true;
