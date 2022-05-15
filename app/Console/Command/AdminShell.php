@@ -10,6 +10,7 @@ App::uses('JsonTool', 'Tools');
  * @property Warninglist $warninglist
  * @property AdminSetting $AdminSetting
  * @property Taxonomy $Taxonomy
+ * @property Warninglist $Warninglist
  */
 class AdminShell extends AppShell
 {
@@ -328,7 +329,13 @@ class AdminShell extends AppShell
         $result = $this->Warninglist->update();
         $success = count($result['success']);
         $fails = count($result['fails']);
-        echo "$success warninglists updated, $fails fails" . PHP_EOL;
+        $this->out("$success warninglists updated, $fails fails");
+        if ($fails) {
+            $this->out(__('Fails:'));
+            foreach ($result['fails'] as $fail) {
+                $this->out("{$fail['name']}: {$fail['fail']}");
+            }
+        }
     }
 
     public function updateNoticeLists()
