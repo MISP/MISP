@@ -1003,6 +1003,7 @@ class TagsController extends AppController
 
     public function search($tag = false, $strictTagNameOnly = false, $searchIfTagExists = true)
     {
+        $user = $this->_closeSession();
         if (isset($this->request->data['Tag'])) {
             $this->request->data = $this->request->data['Tag'];
         }
@@ -1022,7 +1023,7 @@ class TagsController extends AppController
                 $tag[$k] = strtolower($t);
                 $conditionsCluster['OR'][] = array('LOWER(GalaxyCluster.value)' => $tag[$k]);
             }
-            foreach ($tag as $k => $t) {
+            foreach ($tag as $t) {
                 $conditionsCluster['OR'][] = array('AND' => array('GalaxyElement.key' => 'synonyms', 'LOWER(GalaxyElement.value) LIKE' => $t));
             }
             $elements = $this->GalaxyCluster->GalaxyElement->find('all', array(
@@ -1033,7 +1034,7 @@ class TagsController extends AppController
             foreach ($elements as $element) {
                 $tag[] = strtolower($element['GalaxyCluster']['tag_name']);
             }
-            foreach ($tag as $k => $t) {
+            foreach ($tag as $t) {
                 $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
             }
         } else {
@@ -1067,7 +1068,7 @@ class TagsController extends AppController
                 $tags[$k]['Taxonomy'] = $taxonomy['Taxonomy'];
                 $tags[$k]['TaxonomyPredicate'] = $taxonomy['TaxonomyPredicate'][0];
             }
-            $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name'], $this->Auth->user());
+            $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name'], $user);
             if (!empty($cluster)) {
                 $dataFound = true;
                 $tags[$k]['GalaxyCluster'] = $cluster['GalaxyCluster'];
