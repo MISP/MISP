@@ -1,11 +1,11 @@
 <?php
 App::uses('AppHelper', 'View/Helper');
 
-
 /* Class containing functions to ease the creation of the GenericPicker */
-class GenericPickerHelper extends AppHelper {
-
-    function add_select_params($options) {
+class GenericPickerHelper extends AppHelper
+{
+    public function add_select_params($options)
+    {
         if (isset($options['select_options']['additionalData'])) {
             $additionalData = json_encode($options['select_options']['additionalData']);
             unset($options['select_options']['additionalData']);
@@ -41,7 +41,8 @@ class GenericPickerHelper extends AppHelper {
         return $option_html;
     }
 
-    function add_link_params($param, $defaults=array(), $ignoreFunction=false) {
+    private function add_link_params($param, $defaults=array(), $ignoreFunction=false)
+    {
         $param_html = ' ';
         if (!$ignoreFunction && isset($param['functionName'])) {
             $param_html .= sprintf('onclick="execAndClose(this);%s" ', h($param['functionName']));
@@ -66,9 +67,9 @@ class GenericPickerHelper extends AppHelper {
         return $param_html;
     }
 
-    function add_pill($param, $defaults=array()) {
-        $pill_html = '<li>';
-        $pill_html .= '<a href="#" data-toggle="pill" class="pill-pre-picker"';
+    public function add_pill($param, $defaults=array())
+    {
+        $pill_html = '<li><a href="#" data-toggle="pill" class="pill-pre-picker"';
         $pill_html .= ' ' . $this->add_link_params($param, $defaults) . '>';
         if (isset($param['img'])) {
             $pill_html .= '<img src="' . h($param['img']) . '" style="margin-right: 5px; height: 14px;">';
@@ -90,12 +91,12 @@ class GenericPickerHelper extends AppHelper {
             );
             $pill_html .= $span;
         }
-        $pill_html .= '</a>';
-        $pill_html .= '</li>';
+        $pill_html .= '</a></li>';
         return $pill_html;
     }
 
-    public function build_template($param) {
+    public function build_template($param)
+    {
         $template = "";
         if (isset($param['template'])) {
             $templateParam = $param['template'];
