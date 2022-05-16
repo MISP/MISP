@@ -50,11 +50,12 @@ echo $this->element(
             ],
             [
                 'key' => __('Listening Triggers'),
-                'path' => 'Workflow.name',
+                'path' => 'Workflow.listening_triggers',
                 'type' => 'custom',
                 'function' => function ($row) {
-                    // return $this->element('Workflows/', ['trigger' => $row]);
-                    return 'trigger-name';
+                    return implode('<br />', array_map(function($trigger) {
+                        return sprintf('<a href="/workflows/trigger_view/%s">%s</a>', h($trigger), h($trigger));
+                    }, $row['Workflow']['listening_triggers']));
                 }
             ],
             [

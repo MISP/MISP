@@ -90,7 +90,7 @@
                     ],
                     [
                         'url' => $baseurl . '/workflows/trigger_view',
-                        'url_params_data_paths' => ['Workflow.id'],
+                        'url_params_data_paths' => ['id'],
                         'icon' => 'eye'
                     ],
                 ]

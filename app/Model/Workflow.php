@@ -44,7 +44,13 @@ class Workflow extends AppModel
         // 'User'
     ];
 
-    const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'priority_level', '', 'data'];
+    const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'priority_level', 'data'];
+
+    const WORKFLOW_BLOCKING_PATH_NAME = 'output_1';
+    const WORKFLOW_NON_BLOCKING_PATH_NAME = 'output_2';
+
+    const REDIS_KEY_WORKFLOW_PER_TRIGGER = 'workflow:workflow_list:%s';
+    const REDIS_KEY_TRIGGER_PER_WORKFLOW = 'workflow:trigger_list:%s';
 
     private $moduleByID = [];
 
@@ -68,8 +74,96 @@ class Workflow extends AppModel
                 $result['Workflow']['data'] = '{}';
             }
             $results[$k]['Workflow']['data'] = JsonTool::decode($result['Workflow']['data']);
+            if (!empty($result['Workflow']['id'])) {
+                $results[$k]['Workflow']['listening_triggers'] = $this->getTriggersPerWorkflow((int) $result['Workflow']['id']);
+            }
         }
         return $results;
+    }
+
+    public function afterSave($created, $options = array())
+    {
+        $this->updateListeningTriggers($this->data['Workflow']);
+    }
+
+    /**
+     * updateListeningTriggers Regenerate the list of triggers that will run this workflow
+     *  - collect trigger name for workflow
+     *  - remove wf id from trigger list
+     *  - remove trigger name from workflow
+     *  - add wf id to trigger list
+     *  - add trigger name to workflow
+     *
+     * @param  array $workflow
+     */
+    private function updateListeningTriggers($workflow)
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+        $workflow = $this->data;
+        $workflow['Workflow']['data'] = JsonTool::decode($workflow['Workflow']['data']);
+        $pipeline = $redis->pipeline();
+        $trigger_list = $this->getTriggersPerWorkflow((int)$workflow['Workflow']['id']);
+        foreach ($trigger_list as $trigger_name) {
+            $pipeline->sRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_name), $workflow['Workflow']['id']);
+            $pipeline->sRem(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_name);
+        }
+        $listening_triggers = $this->extractTriggerFromWorkflow($workflow);
+        foreach ($listening_triggers as $trigger_name) {
+            $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_name), $workflow['Workflow']['id']);
+            $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_name);
+        }
+        $pipeline->exec();
+    }
+
+    /**
+     * getWorkflowsPerTrigger Get list of workflow IDs listening to the specified trigger
+     *
+     * @param  string $workflow
+     */
+    private function getWorkflowsPerTrigger(string $trigger_name)
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+        return $redis->sMembers(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_name));
+    }
+
+    /**
+     * getTriggersPerWorkflow Get list of trigger name running to the specified workflow
+     *
+     * @param  array $workflow
+     */
+    private function getTriggersPerWorkflow(int $workflow_id)
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+        return $redis->sMembers(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow_id));
+    }
+
+    /**
+     * getTriggerFromWorkflow Return the list of trigger names that are specified in the workflow
+     *
+     * @param  array $workflow
+     * @return array
+     */
+    public function extractTriggerFromWorkflow(array $workflow)
+    {
+        $triggers = [];
+        foreach ($workflow['Workflow']['data'] as $node) {
+            if ($node['data']['module_type'] == 'trigger') {
+                $triggers[] = $node['data']['id'];
+            }
+        }
+        return $triggers;
     }
 
     /**
@@ -109,6 +203,78 @@ class Workflow extends AppModel
                 $this->moduleByID[$module['id']] = $module;
             }
         }
+    }
+
+    /**
+     * attachWorkflowsToTriggers Collect the workflows listening to this trigger
+     *
+     * @param  array $user
+     * @param  array $triggers
+     * @param  bool $group_per_blocking Wheter or not the workflows should be grouped together if they have a blocking path set
+     * @return array
+     */
+    public function attachWorkflowsToTriggers(array $user, array $triggers, bool $group_per_blocking=true): array
+    {
+        $workflow_IDs = [];
+        $workflows_per_trigger = [];
+        foreach ($triggers as $trigger) {
+            $workflow_IDs_for_trigger = $this->getWorkflowsPerTrigger($trigger['id']);
+            $workflows_per_trigger[$trigger['id']] = $workflow_IDs_for_trigger;
+            foreach ($workflow_IDs_for_trigger as $id) {
+                $workflow_IDs[$id] = true;
+            }
+        }
+        $workflow_IDs = array_keys($workflow_IDs);
+        $workflows = $this->fetchWorkflows($user, [
+            'conditions' => [
+                'Workflow.id' => $workflow_IDs
+            ],
+            'fields' => ['*'],
+            'contain' => ['Organisation' => ['fields' => ['*']]],
+        ]);
+        $workflows = Hash::combine($workflows, '{n}.Workflow.id', '{n}');
+        foreach ($triggers as $i => $trigger) {
+            $workflow_IDs = $workflows_per_trigger[$trigger['id']];
+            $triggers[$i]['Workflows'] = [];
+            foreach ($workflow_IDs as $workflow_ID) {
+                $triggers[$i]['Workflows'][] = $workflows[$workflow_ID];
+            }
+            usort($triggers[$i]['Workflows'], function($a, $b) {
+                return $a['Workflow']['priority_level'] - $b['Workflow']['priority_level'];
+            }); 
+            if (!empty($group_per_blocking)) {
+                $triggers[$i]['Workflows'] = $this->groupWorkflowsPerBlockingType($triggers[$i]['Workflows'], $trigger['id']);
+            }
+        }
+        return $triggers;
+    }
+
+    /**
+     * groupWorkflowsPerBlockingType Group workflows together if they have a blocking path set
+     *
+     * @param  array $workflows
+     * @param  string $trigger_name The trigger for which we should decide if it's blocking or not
+     * @return array
+     */
+    public function groupWorkflowsPerBlockingType(array $workflows, string $trigger_name): array
+    {
+        $groupedWorkflows = [
+            'blocking' => [],
+            'non-blocking' => [],
+        ];
+        foreach ($workflows as $workflow) {
+            foreach ($workflow['Workflow']['data'] as $block) {
+                if ($block['data']['id'] == $trigger_name) {
+                    if (!empty($block['outputs'][Workflow::WORKFLOW_BLOCKING_PATH_NAME])) {
+                        $groupedWorkflows['blocking'][] = $workflow;
+                    }
+                    if (!empty($block['outputs'][Workflow::WORKFLOW_NON_BLOCKING_PATH_NAME])) {
+                        $groupedWorkflows['non-blocking'][] = $workflow;
+                    }
+                }
+            }
+        }
+        return $groupedWorkflows;
     }
 
     public function getExecutionPath($user, $id): array
@@ -187,7 +353,7 @@ class Workflow extends AppModel
                 'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
                 'module_type' => 'trigger',
                 'inputs' => 0,
-                'disabled' => true,
+                // 'disabled' => true,
                 'outputs' => 2,
             ],
             [
@@ -421,7 +587,13 @@ class Workflow extends AppModel
             $params['conditions']['AND'][] = $options['conditions'];
         }
         if (isset($options['group'])) {
-            $params['group'] = empty($options['group']) ? $options['group'] : false;
+            $params['group'] = !empty($options['group']) ? $options['group'] : false;
+        }
+        if (isset($options['contain'])) {
+            $params['contain'] = !empty($options['contain']) ? $options['contain'] : [];
+        }
+        if (isset($options['order'])) {
+            $params['order'] = !empty($options['order']) ? $options['order'] : [];
         }
         $workflows = $this->find('all', $params);
         return $workflows;

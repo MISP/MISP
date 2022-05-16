@@ -97,8 +97,8 @@ class WorkflowsController extends AppController
         }
         $this->set('id', $id);
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'view'));
-        $execution_path = $this->Workflow->getExecutionPath($this->Auth->user(), $id);
-        $this->set('execution_path', $execution_path);
+        // $execution_path = $this->Workflow->getExecutionPath($this->Auth->user(), $id);
+        // $this->set('execution_path', $execution_path);
     }
 
     public function enable($id)
@@ -142,6 +142,7 @@ class WorkflowsController extends AppController
     {
         $modules = $this->Workflow->getModules();
         $triggers = $modules['blocks_trigger'];
+        $triggers = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), $triggers, true);
         $this->set('data', $triggers);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_trigger']);
     }
