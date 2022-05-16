@@ -66,6 +66,7 @@ class WorkflowsController extends AppController
                 return $this->__getSuccessResponseBasedOnContext($successMessage, $savedWorkflow, 'edit', false, $redirectTarget);
             }
         } else {
+            $savedWorkflow['Workflow']['data'] = JsonTool::encode($savedWorkflow['Workflow']['data']);
             $this->request->data = $savedWorkflow;
         }
 
