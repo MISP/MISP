@@ -21,6 +21,13 @@
             'sort' => 'Workflow.description',
             'data_path' => 'Workflow.description'
         ],
+        [
+            'name' => __('Enabled'),
+            'element' => 'boolean',
+            'sort' => 'enabled',
+            'class' => 'short',
+            'data_path' => 'Workflow.enabled',
+        ],
     ];
 
 
@@ -61,6 +68,42 @@
                 'title' => __('Workflows'),
                 'description' => __('You can create workflows relying on pipeline hooks to that can listen to triggers and then perform actions depending on some conditions'),
                 'actions' => [
+                    [
+                        'title' => __('Enable'),
+                        'icon' => 'play',
+                        'postLink' => true,
+                        'url' => $baseurl . '/workflows/enable',
+                        'url_params_data_paths' => ['Workflow.id'],
+                        'postLinkConfirm' => __('Are you sure you want to enable this workflow?'),
+                        'complex_requirement' => array(
+                            'function' => function ($row, $options) use ($isSiteAdmin) {
+                                return $isSiteAdmin && !$options['datapath']['enabled'];
+                            },
+                            'options' => array(
+                                'datapath' => array(
+                                    'enabled' => 'Workflow.enabled'
+                                )
+                            )
+                        ),
+                    ],
+                    [
+                        'title' => __('Disable'),
+                        'icon' => 'stop',
+                        'postLink' => true,
+                        'url' => $baseurl . '/workflows/disable',
+                        'url_params_data_paths' => ['Workflow.id'],
+                        'postLinkConfirm' => __('Are you sure you want to disable this workflow?'),
+                        'complex_requirement' => array(
+                            'function' => function ($row, $options) use ($isSiteAdmin) {
+                                return $isSiteAdmin && $options['datapath']['enabled'];
+                            },
+                            'options' => array(
+                                'datapath' => array(
+                                    'enabled' => 'Workflow.enabled'
+                                )
+                            )
+                        ),
+                    ],
                     [
                         'url' => $baseurl . '/workflows/view',
                         'url_params_data_paths' => ['Workflow.id'],

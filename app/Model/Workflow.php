@@ -476,6 +476,24 @@ class Workflow extends AppModel
         return $errors;
     }
 
+    /**
+     * fetchWorkflow ACL-aware method. Basically find with ACL
+     *
+     * @param  array $user
+     * @param  int|string $id
+     * @param  bool $enable
+     * @param  bool $throwErrors
+     * @return array
+     */
+    public function toggleWorkflow(array $user, $id, $enable=true, bool $throwErrors=true)
+    {
+        $errors = array();
+        $workflow = $this->fetchWorkflow($user, $id, $throwErrors);
+        $workflow['Workflow']['enabled'] = $enable;
+        $errors = $this->saveAndReturnErrors($workflow, ['fieldList' => ['enabled']], $errors);
+        return $errors;
+    }
+
     private function saveAndReturnErrors($data, $saveOptions = [], $errors = [])
     {
         $saveSuccess = $this->save($data, $saveOptions);
@@ -486,4 +504,5 @@ class Workflow extends AppModel
         }
         return $errors;
     }
+    
 }

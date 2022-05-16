@@ -100,6 +100,32 @@ class WorkflowsController extends AppController
         $this->set('execution_path', $execution_path);
     }
 
+    public function enable($id)
+    {
+        $errors = $this->Workflow->toggleWorkflow($this->Auth->user(), $id, true);
+        $redirectTarget = ['action' => 'index'];
+        if (!empty($errors)) {
+            return $this->__getFailResponseBasedOnContext($errors, null, 'edit', $this->Workflow->id, $redirectTarget);
+        } else {
+            $successMessage = __('Workflow enabled.');
+            $savedWorkflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+            return $this->__getSuccessResponseBasedOnContext($successMessage, $savedWorkflow, 'edit', false, $redirectTarget);
+        }
+    }
+
+    public function disable($id)
+    {
+        $errors = $this->Workflow->toggleWorkflow($this->Auth->user(), $id, false);
+        $redirectTarget = ['action' => 'index'];
+        if (!empty($errors)) {
+            return $this->__getFailResponseBasedOnContext($errors, null, 'edit', $this->Workflow->id, $redirectTarget);
+        } else {
+            $successMessage = __('Workflow disabled.');
+            $savedWorkflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+            return $this->__getSuccessResponseBasedOnContext($successMessage, $savedWorkflow, 'edit', false, $redirectTarget);
+        }
+    }
+
     public function editor($id = false)
     {
         $modules = $this->Workflow->getModules();

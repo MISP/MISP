@@ -1697,6 +1697,7 @@ class AppModel extends Model
                       `timestamp` int(11) NOT NULL DEFAULT 0,
                       `user_id` int(11) NOT NULL,
                       `org_id` int(11) NOT NULL,
+                      `enabled` tinyint(1) NOT NULL DEFAULT 0,
                       `data` text,
                       PRIMARY KEY (`id`),
                       INDEX `uuid` (`uuid`),
