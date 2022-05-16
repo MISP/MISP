@@ -23,7 +23,7 @@
             }
         ],
         [
-            'name' => __('Enabled'),
+            'name' => __('Trigger Enabled'),
             'element' => 'boolean',
             'sort' => 'enabled',
             'class' => 'short',

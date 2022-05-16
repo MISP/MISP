@@ -12,7 +12,7 @@ $trigger['execution_order'] = [
                 <?php if ($i == 0) : ?>
                     <i class="fa-fw <?= $this->FontAwesome->getClass('hourglass-start') ?>" style="font-size: larger;" title="<?= __('Blocking execution path') ?>"></i>
                 <?php else : ?>
-                    <i class="fa-fw fa-rotate-90 <?= $this->FontAwesome->getClass('level-up-alt') ?>" style="margin-left: <?= $i ?>em"></i>
+                    <i class="fa-fw fa-rotate-90 <?= $this->FontAwesome->getClass(empty($workflow['enabled']) ? 'arrow-right' : 'level-up-alt') ?>" style="margin-left: <?= $i ?>em"></i>
                 <?php endif; ?>
                 <a
                     href="<?= $baseurl . '/workflows/view/' . h($workflow['id']) ?>"
