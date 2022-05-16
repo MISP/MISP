@@ -196,6 +196,9 @@ function addNode(block, position) {
 }
 
 function toggleTriggersDraggableState() {
+    if (editor.disableDraggableStateCheck) {
+        return
+    }
     var data = Object.values(getEditorData())
     var registeredTriggers = {}
     for (var i = 0; i < data.length; i++) {
@@ -215,7 +218,7 @@ function toggleTriggersDraggableState() {
     for (var i = 0; i < data.length; i++) {
         var node = data[i];
         if (node.data.module_type == 'trigger') {
-            $blockContainerTriggers.find('.sidebar-workflow-block')
+            $blockContainerTriggers.find('#'+node.data.id + '.sidebar-workflow-block')
                 .filter(function () {
                     return !$(this).hasClass('ui-draggable-dragging')
                         && $(this).data('block').disabled === undefined
@@ -241,6 +244,7 @@ function getEditorData() {
 }
 
 function loadWorkflow() {
+    editor.disableDraggableStateCheck = true
     fetchWorkflow(workflow_id, function(workflow) {
         lastModified = workflow.timestamp + '000'
         revalidateContentCache()
@@ -271,6 +275,8 @@ function loadWorkflow() {
                 })
             }
         })
+        editor.disableDraggableStateCheck = false
+        toggleTriggersDraggableState()
     })
 }
 
