@@ -42,7 +42,7 @@
                     </a></li>
                 <li><a href="#container-conditions">
                         <i class="<?= $this->FontAwesome->getClass('code-branch') ?>"></i>
-                        conditions
+                        Logic
                     </a></li>
                 <li><a href="#container-actions">
                         <i class="<?= $this->FontAwesome->getClass('play') ?>"></i>
