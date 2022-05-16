@@ -1,7 +1,11 @@
 <div class="root-container">
     <div class="main-container">
         <div class="side-panel">
-            <h2>Workflows</h2>
+            <a href="<?= $baseurl . '/workflows/index' ?>">
+                <i class="fa-fw <?= $this->FontAwesome->getClass('caret-left') ?>"></i>
+                <?= __('Workflow index') ?>
+            </a>
+            <h3>Workflows</h3>
             <div class="workflow-selector-container">
                 <select type="text" placeholder="Load a workflow" class="chosen-container workflows" autocomplete="off">
                     <?php foreach ($workflows as $workflow) : ?>
@@ -28,7 +32,7 @@
                 <span id="lastModifiedField" title="<?= __('Last updated') ?>" class="last-modified label">2 days ago</span>
             </div>
 
-            <h2>Blocks</h2>
+            <h3>Blocks</h3>
             <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off">
                 <?php foreach ($modules['blocks_all'] as $block) : ?>
                     <option value="<?= h($block['id']) ?>"><?= h($block['name']) ?></option>
