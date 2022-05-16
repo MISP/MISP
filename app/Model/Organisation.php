@@ -299,8 +299,6 @@ class Organisation extends AppModel
         }
         $dir = new Folder();
         $this->Log = ClassRegistry::init('Log');
-        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-        $dataSource = $dataSourceConfig['datasource'];
         $dirPath = APP . 'tmp' . DS . 'logs' . DS . 'merges';
         if (!$dir->create($dirPath)) {
             throw new MethodNotAllowedException('Merge halted because the log directory (default: /var/www/MISP/app/tmp/logs/merges) could not be created. This is most likely a permission issue, make sure that MISP can write to the logs directory and try again.');
@@ -313,9 +311,9 @@ class Organisation extends AppModel
         if (!$backupFile->create()) {
             throw new MethodNotAllowedException('Merge halted because the backup script file (default location: /var/www/MISP/app/tmp/logs/merges/[old_org_id]_[new_org_id]_timestamp.sql) could not be created. This is most likely a permission issue, make sure that MISP can write to the logs directory and try again.');
         }
-        if ($dataSource == 'Database/Mysql') {
+        if ($this->isMysql()) {
             $sql = 'INSERT INTO organisations (`' . implode('`, `', array_keys($currentOrg['Organisation'])) . '`) VALUES (\'' . implode('\', \'', array_values($currentOrg['Organisation'])) . '\');';
-        } elseif ($dataSource == 'Database/Postgres') {
+        } else {
             $sql = 'INSERT INTO organisations ("' . implode('", "', array_keys($currentOrg['Organisation'])) . '") VALUES (\'' . implode('\', \'', array_values($currentOrg['Organisation'])) . '\');';
         }
         $backupFile->append($sql . PHP_EOL);
@@ -334,9 +332,9 @@ class Organisation extends AppModel
         $success = true;
         foreach ($this->organisationAssociations as $model => $data) {
             foreach ($data['fields'] as $field) {
-                if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+                if ($this->isMysql()) {
                     $sql = 'SELECT `id` FROM `' . $data['table'] . '` WHERE `' . $field . '` = "' . $currentOrg['Organisation']['id'] . '"';
-                } elseif ($dataSource == 'Database/Postgres') {
+                } else {
                     $sql = 'SELECT "id" FROM "' . $data['table'] . '" WHERE "' . $field . '" = "' . $currentOrg['Organisation']['id'] . '"';
                 }
                 $temp = $this->query($sql);
@@ -345,15 +343,15 @@ class Organisation extends AppModel
                     if (!empty($dataMoved['values_changed'][$model][$field])) {
                         $this->Log->create();
                         try {
-                            if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+                            if ($this->isMysql()) {
                                 $sql = 'UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $targetOrg['Organisation']['id'] . ' WHERE `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ';';
-                            } elseif ($dataSource == 'Database/Postgres') {
+                            } else {
                                 $sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $targetOrg['Organisation']['id'] . ' WHERE "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ';';
                             }
                             $result = $this->query($sql);
-                            if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+                            if ($this->isMysql()) {
                                 $sql = 'UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ' WHERE `id` IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
-                            } elseif ($dataSource == 'Database/Postgres') {
+                            } else {
                                 $sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ' WHERE "id" IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
                             }
                             $backupFile->append($sql . PHP_EOL);

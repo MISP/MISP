@@ -108,7 +108,7 @@ class EventsController extends AppController
             $this->paginate = Set::merge($this->paginate, array('conditions' => $conditions));
         }
 
-        if ($this->request->action === 'checkLocks') {
+        if (in_array($this->request->action, ['checkLocks', 'getDistributionGraph'], true)) {
             $this->Security->doNotGenerateToken = true;
         }
     }
@@ -750,7 +750,7 @@ class EventsController extends AppController
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->set('shortDist', $this->Event->shortDist);
-        $this->set('distributionData', $this->genDistributionGraph(-1));
+        $this->set('distributionData', $this->__genDistributionGraph(-1));
         $this->set('urlparams', $urlparams);
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('passedArgs', json_encode($passedArgs));
@@ -4680,8 +4680,9 @@ class EventsController extends AppController
 
     public function updateGraph($id, $type = 'event')
     {
+        $user = $this->_closeSession();
         $validTools = array('event', 'galaxy', 'tag');
-        if (!in_array($type, $validTools)) {
+        if (!in_array($type, $validTools, true)) {
             throw new MethodNotAllowedException(__('Invalid type.'));
         }
         $this->loadModel('Taxonomy');
@@ -4689,18 +4690,17 @@ class EventsController extends AppController
         App::uses('CorrelationGraphTool', 'Tools');
         $grapher = new CorrelationGraphTool();
         $data = $this->request->is('post') ? $this->request->data : array();
-        $grapher->construct($this->Event, $this->Taxonomy, $this->GalaxyCluster, $this->Auth->user(), $data);
+        $grapher->construct($this->Event, $this->Taxonomy, $this->GalaxyCluster, $user, $data);
         $json = $grapher->buildGraphJson($id, $type);
         array_walk_recursive($json, function (&$item, $key) {
             if (!mb_detect_encoding($item, 'utf-8', true)) {
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return $this->RestResponse->viewData($json, 'json');
     }
 
-    private function genDistributionGraph($id, $type = 'event', $extended = 0, $user = null)
+    private function __genDistributionGraph($id, $type = 'event', $extended = 0, $user = null)
     {
         $validTools = array('event');
         if (!in_array($type, $validTools)) {
@@ -4756,12 +4756,9 @@ class EventsController extends AppController
 
     public function getDistributionGraph($id, $type = 'event')
     {
-        // Close session without writing changes to them.
-        $user = $this->Auth->user();
-        session_abort();
-
+        $user = $this->_closeSession();
         $extended = isset($this->params['named']['extended']) ? 1 : 0;
-        $json = $this->genDistributionGraph($id, $type, $extended, $user);
+        $json = $this->__genDistributionGraph($id, $type, $extended, $user);
         return $this->RestResponse->viewData($json, 'json');
     }
 
@@ -5515,7 +5512,8 @@ class EventsController extends AppController
 
     public function checkPublishedStatus($id)
     {
-        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['fields' => 'Event.published']);
+        $user = $this->_closeSession();
+        $event = $this->Event->fetchSimpleEvent($user, $id, ['fields' => 'Event.published']);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
         }
@@ -5708,9 +5706,7 @@ class EventsController extends AppController
 
     public function checkLocks($id, $timestamp)
     {
-        // Close session without writing changes to them.
-        $user = $this->Auth->user();
-        session_abort();
+        $user = $this->_closeSession();
 
         $event = $this->Event->find('first', array(
             'recursive' => -1,

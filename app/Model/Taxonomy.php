@@ -49,14 +49,15 @@ class Taxonomy extends AppModel
                 continue;
             }
 
-            $file = new File(APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json');
-            if (!$file->exists()) {
+            $machineTagPath = APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json';
+            if (!file_exists($machineTagPath)) {
                 continue;
             }
+
             try {
-                $vocab = $this->jsonDecode($file->read());
+                $vocab = FileAccessTool::readJsonFromFile($machineTagPath);
             } catch (Exception $e) {
-                $updated['fails'][] = array('namespace' => $dir, 'fail' => "File machinetag.json is not valid JSON.");
+                $updated['fails'][] = ['namespace' => $dir, 'fail' => $e->getMessage()];
                 continue;
             }
 

@@ -810,8 +810,8 @@ class AppController extends Controller
             ConnectionManager::create('default', $db->config);
         }
         $dataSource = $dataSourceConfig['datasource'];
-        if (!in_array($dataSource, array('Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver'))) {
-            throw new Exception('datasource not supported: ' . $dataSource);
+        if (!in_array($dataSource, ['Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver'], true)) {
+            throw new Exception('Datasource not supported: ' . $dataSource);
         }
     }
 
@@ -1438,6 +1438,17 @@ class AppController extends Controller
             return new AppView($this);
         }
         return parent::_getViewObject();
+    }
+
+    /**
+     * Close session without writing changes to them and return current user.
+     * @return array
+     */
+    protected function _closeSession()
+    {
+        $user = $this->Auth->user();
+        session_abort();
+        return $user;
     }
 
     /**

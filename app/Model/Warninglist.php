@@ -290,10 +290,10 @@ class Warninglist extends AppModel
             if (!isset($existingWarninglist[$list['name']]) || $list['version'] > $existingWarninglist[$list['name']]['version']) {
                 $current = isset($existingWarninglist[$list['name']]) ? $existingWarninglist[$list['name']] : [];
                 try {
-                    $result = $this->__updateList($list, $current);
-                    $result['success'][$result] = ['name' => $list['name'], 'new' => $list['version']];
+                    $id = $this->__updateList($list, $current);
+                    $result['success'][$id] = ['name' => $list['name'], 'new' => $list['version']];
                     if (!empty($current)) {
-                        $result['success'][$result]['old'] = $current['version'];
+                        $result['success'][$id]['old'] = $current['version'];
                     }
                 } catch (Exception $e) {
                     $result['fails'][] = ['name' => $list['name'], 'fail' => $e->getMessage()];
@@ -388,7 +388,7 @@ class Warninglist extends AppModel
                 $valuesToInsert = [];
                 foreach ($chunk as $value) {
                     if (!empty($value)) {
-                        $valuesToInsert[] = ['value' => $value, 'warninglist_id' => $warninglistId];
+                        $valuesToInsert[] = [$value, $warninglistId];
                     }
                 }
                 $result = $db->insertMulti('warninglist_entries', ['value', 'warninglist_id'], $valuesToInsert);
@@ -398,7 +398,7 @@ class Warninglist extends AppModel
                 $valuesToInsert = [];
                 foreach ($chunk as $value => $comment) {
                     if (!empty($value)) {
-                        $valuesToInsert[] = ['value' => $value, 'comment' => $comment, 'warninglist_id' => $warninglistId];
+                        $valuesToInsert[] = [$value, $comment, $warninglistId];
                     }
                 }
                 $result = $db->insertMulti('warninglist_entries', ['value', 'comment', 'warninglist_id'], $valuesToInsert);

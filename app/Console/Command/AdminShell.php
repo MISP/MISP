@@ -9,6 +9,8 @@ App::uses('JsonTool', 'Tools');
  * @property Feed $Feed
  * @property Warninglist $warninglist
  * @property AdminSetting $AdminSetting
+ * @property Taxonomy $Taxonomy
+ * @property Warninglist $Warninglist
  */
 class AdminShell extends AppShell
 {
@@ -22,6 +24,9 @@ class AdminShell extends AppShell
         ));
         $parser->addSubcommand('updateWarningLists', array(
             'help' => __('Update the JSON definition of warninglists.'),
+        ));
+        $parser->addSubcommand('updateTaxonomies', array(
+            'help' => __('Update the JSON definition of taxonomies.'),
         ));
         $parser->addSubcommand('setSetting', [
             'help' => __('Set setting in PHP config file.'),
@@ -282,22 +287,27 @@ class AdminShell extends AppShell
 
     public function updateTaxonomies()
     {
-        $this->ConfigLoad->execute();
         $result = $this->Taxonomy->update();
-        $successes = count(!empty($result['success']) ? $result['success'] : []);
-        $fails = count(!empty($result['fails']) ? $result['fails'] : []);
-        $message = '';
-        if ($successes == 0 && $fails == 0) {
-            $message = __('All taxonomies are up to date already.');
-        } elseif ($successes == 0 && $fails > 0) {
+        $successes = empty($result['success']) ? 0 : count($result['success']);
+        $fails = empty($result['fails']) ? 0 : count($result['fails']);
+
+        if ($successes === 0 && $fails === 0) {
+            $message =  __('All taxonomies are up to date already.');
+        } elseif ($successes === 0 && $fails > 0) {
             $message = __('Could not update any of the taxonomies.');
-        } elseif ($successes > 0 ) {
+        } else {
             $message = __('Successfully updated %s taxonomies.', $successes);
-            if ($fails != 0) {
+            if ($fails !== 0) {
                 $message .= __(' However, could not update %s taxonomies.', $fails);
             }
         }
-        echo $message . PHP_EOL;
+        $this->out($message);
+        if ($fails) {
+            $this->out(__('Fails:'));
+            foreach ($result['fails'] as $fail) {
+                $this->out("{$fail['namespace']}: {$fail['fail']}");
+            }
+        }
     }
 
     public function enableTaxonomyTags()
@@ -319,7 +329,13 @@ class AdminShell extends AppShell
         $result = $this->Warninglist->update();
         $success = count($result['success']);
         $fails = count($result['fails']);
-        echo "$success warninglists updated, $fails fails" . PHP_EOL;
+        $this->out("$success warninglists updated, $fails fails");
+        if ($fails) {
+            $this->out(__('Fails:'));
+            foreach ($result['fails'] as $fail) {
+                $this->out("{$fail['name']}: {$fail['fail']}");
+            }
+        }
     }
 
     public function updateNoticeLists()

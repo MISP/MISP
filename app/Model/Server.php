@@ -2608,8 +2608,7 @@ class Server extends AppModel
         };
 
         $result = [];
-        $dataSource = $this->getDataSource()->config['datasource'];
-        if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $sql = sprintf(
                 'select TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE from information_schema.tables where table_schema = %s group by TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE;',
                 "'" . $this->getDataSource()->config['database'] . "'"
@@ -2627,8 +2626,7 @@ class Server extends AppModel
                 ];
             }
 
-        }
-        else if ($dataSource === 'Database/Postgres') {
+        } else {
             $sql = sprintf(
                 'select TABLE_NAME as table, pg_total_relation_size(%s||%s||TABLE_NAME) as used from information_schema.tables where table_schema = %s group by TABLE_NAME;',
                 "'" . $this->getDataSource()->config['database'] . "'",
@@ -2686,7 +2684,7 @@ class Server extends AppModel
             'update_fail_number_reached' => $this->UpdateFailNumberReached(),
             'indexes' => array()
         );
-        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $dbActualSchema = $this->getActualDBSchema();
             $dbExpectedSchema = $this->getExpectedDBSchema();
             if ($dbExpectedSchema !== false) {
@@ -2847,8 +2845,7 @@ class Server extends AppModel
     ){
         $dbActualSchema = array();
         $dbActualIndexes = array();
-        $dataSource = $this->getDataSource()->config['datasource'];
-        if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $sqlGetTable = sprintf('SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = %s ORDER BY TABLE_NAME;', "'" . $this->getDataSource()->config['database'] . "'");
             $sqlResult = $this->query($sqlGetTable);
             $tables = Hash::extract($sqlResult, '{n}.tables.TABLE_NAME');
@@ -2865,7 +2862,7 @@ class Server extends AppModel
                 }
                 $dbActualIndexes[$table] = $this->getDatabaseIndexes($this->getDataSource()->config['database'], $table);
             }
-        } else if ($dataSource == 'Database/Postgres') {
+        } else {
             return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
         }
         return ['schema' => $dbActualSchema, 'column' => $tableColumnNames, 'indexes' => $dbActualIndexes];

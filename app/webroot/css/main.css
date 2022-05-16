@@ -2839,3 +2839,16 @@ Query builder
 #event-correlations .event-correlation time {
     font-style: italic;
 }
+
+.label-padding {
+    padding: 2px 10px;
+    margin-right: 5px
+}
+
+.warninglist-value {
+    font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+}
+
+.warninglist-comment {
+    color: gray;
+}
