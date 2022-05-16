@@ -93,6 +93,10 @@
     background-color: #ff000022;
 }
 
+.sidebar-workflow-block.disabled-one-instance {
+    background-color: #ff000066;
+}
+
 .sidebar-workflow-block.disabled:hover {
     box-shadow: 0px 3px 6px 2px #33333311;
 }

@@ -49,8 +49,14 @@ function initDrawflow() {
     editor = new Drawflow($drawflow[0]);
     editor.start();
 
-    editor.on('nodeCreated', invalidateContentCache)
-    editor.on('nodeRemoved', invalidateContentCache)
+    editor.on('nodeCreated', function() {
+        invalidateContentCache()
+        toggleTriggersDraggableState()
+    })
+    editor.on('nodeRemoved', function () {
+        invalidateContentCache()
+        toggleTriggersDraggableState()
+    })
     editor.on('nodeDataChanged', invalidateContentCache)
     editor.on('nodeMoved', invalidateContentCache)
     editor.on('connectionCreated', invalidateContentCache)
@@ -187,6 +193,39 @@ function addNode(block, position) {
         block,
         html
     );
+}
+
+function toggleTriggersDraggableState() {
+    var data = Object.values(getEditorData())
+    var registeredTriggers = {}
+    for (var i = 0; i < data.length; i++) {
+        var node = data[i];
+        if (node.data.module_type == 'trigger') {
+            registeredTriggers[node.data.id] = true
+        }
+    }
+    $blockContainerTriggers.find('.sidebar-workflow-block')
+        .filter(function () {
+            return !$(this).hasClass('ui-draggable-dragging')
+                && $(this).data('block').disabled === undefined
+        })
+        .draggable('option', { disabled: false })
+        .removeClass(['disabled', 'disabled-one-instance'])
+        .attr('title', '')
+    for (var i = 0; i < data.length; i++) {
+        var node = data[i];
+        if (node.data.module_type == 'trigger') {
+            $blockContainerTriggers.find('.sidebar-workflow-block')
+                .filter(function () {
+                    return !$(this).hasClass('ui-draggable-dragging')
+                        && $(this).data('block').disabled === undefined
+                        && registeredTriggers[$(this).data('block').id] !== undefined
+                })
+                .draggable('option', { disabled: true })
+                .addClass(['disabled', 'disabled-one-instance'])
+                .attr('title', 'Only one instance of this trigger is allowed per workflow')
+        }
+    }
 }
 
 function getEditorData() {

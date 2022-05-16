@@ -230,13 +230,13 @@ class Workflow extends AppModel
             ],
         ];
 
-        $blocks_condition = [
+        $blocks_logic = [
             [
                 'id' => 'if',
                 'name' => 'IF',
                 'icon' => 'code-branch',
                 'description' => 'IF conditions',
-                'module_type' => 'condition',
+                'module_type' => 'logic',
                 'outputs' => 2,
                 'html_template' => 'IF',
                 'params' => [
@@ -390,9 +390,9 @@ class Workflow extends AppModel
         });
         return [
             'blocks_trigger' => $blocks_trigger,
-            'blocks_condition' => $blocks_condition,
+            'blocks_logic' => $blocks_logic,
             'blocks_action' => $blocks_action,
-            'blocks_all' => array_merge($blocks_trigger, $blocks_condition, $blocks_action),
+            'blocks_all' => array_merge($blocks_trigger, $blocks_logic, $blocks_action),
         ];
     }
 

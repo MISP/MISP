@@ -44,7 +44,7 @@
                         <i class="<?= $this->FontAwesome->getClass('flag') ?>"></i>
                         Triggers
                     </a></li>
-                <li><a href="#container-conditions">
+                <li><a href="#container-logic">
                         <i class="<?= $this->FontAwesome->getClass('code-branch') ?>"></i>
                         Logic
                     </a></li>
@@ -60,8 +60,8 @@
                         <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
                     <?php endforeach; ?>
                 </div>
-                <div class="tab-pane" id="container-conditions">
-                    <?php foreach ($modules['blocks_condition'] as $block) : ?>
+                <div class="tab-pane" id="container-logic">
+                    <?php foreach ($modules['blocks_logic'] as $block) : ?>
                         <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
                     <?php endforeach; ?>
                 </div>
@@ -120,6 +120,9 @@ echo $this->element('genericElements/assetLoader', [
     var $saveWorkflowButton = $('#saveWorkflow')
     var $deleteWorkflowButton = $('#deleteWorkflow')
     var $lastModifiedField = $('#lastModifiedField')
+    var $blockContainerTriggers = $('#container-triggers')
+    var $blockContainerLogic = $('#container-logic')
+    var $blockContainerAction = $('#container-actions')
     var editor = false
     var all_blocks = <?= json_encode($modules['blocks_all']) ?>;
     var workflow = false
