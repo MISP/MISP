@@ -3,23 +3,42 @@
         [
             'name' => __('ID'),
             'sort' => 'Workflow.id',
-            'data_path' => 'Workflow.id'
+            'data_path' => 'Workflow.id',
         ],
         [
             'name' => __('Owner Org'),
             'sort' => 'Organisation',
             'data_path' => 'Organisation',
-            'element' => 'org'
+            'element' => 'org',
         ],
         [
             'name' => __('Name'),
             'sort' => 'Workflow.name',
-            'data_path' => 'Workflow.name'
+            'data_path' => 'Workflow.name',
         ],
         [
             'name' => __('Description'),
             'sort' => 'Workflow.description',
-            'data_path' => 'Workflow.description'
+            'data_path' => 'Workflow.description',
+        ],
+        [
+            'name' => __('Run counter'),
+            'sort' => 'Workflow.counter',
+            'data_path' => 'Workflow.counter',
+        ],
+        [
+            'name' => __('Priority Level'),
+            'sort' => 'Workflow.priority_level',
+            'data_path' => 'Workflow.priority_level',
+        ],
+        [
+            'name' => __('Listening Triggers'),
+            'data_path' => 'Workflow.description',
+            'element' => 'custom',
+            'function' => function ($row) {
+                // return $this->element('Workflows/', ['trigger' => $row]);
+                return 'trigger-name';
+            }
         ],
         [
             'name' => __('Enabled'),

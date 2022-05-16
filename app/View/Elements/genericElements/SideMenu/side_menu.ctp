@@ -1615,9 +1615,14 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index',
                     'url' => '/workflows/index',
-                    'text' => __('List Worflows')
+                    'text' => __('List Workflows')
                 ));
-                if ($isAclAdd) {
+                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                    'element_id' => 'index_trigger',
+                    'url' => '/workflows/triggerIndex',
+                    'text' => __('List Triggers')
+                ));
+                if ($isSiteAdmin) {
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'add',
                         'text' => __('Add Workflow'),
@@ -1630,11 +1635,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => '/workflows/view/' . h($id),
                         'text' => __('View Workflow')
                     ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'edit',
-                        'url' => '/workflows/edit/' . h($id),
-                        'text' => __('Edit Workflow')
-                    ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'edit',
+                            'url' => '/workflows/edit/' . h($id),
+                            'text' => __('Edit Workflow')
+                        ));
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'editor',
                         'url' => '/workflows/editor/' . h($id),

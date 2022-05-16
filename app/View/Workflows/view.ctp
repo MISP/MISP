@@ -33,6 +33,31 @@ echo $this->element(
                 'path' => 'Workflow.description'
             ],
             [
+                'key' => __('Run counter'),
+                'path' => 'Workflow.counter',
+                'type' => 'custom',
+                'function' => function ($row) {
+                    return h($row['Workflow']['counter']);
+                }
+            ],
+            [
+                'key' => __('Priority Level'),
+                'path' => 'Workflow.priority_level',
+                'type' => 'custom',
+                'function' => function ($row) {
+                    return h($row['Workflow']['priority_level']);
+                }
+            ],
+            [
+                'key' => __('Listening Triggers'),
+                'path' => 'Workflow.name',
+                'type' => 'custom',
+                'function' => function ($row) {
+                    // return $this->element('Workflows/', ['trigger' => $row]);
+                    return 'trigger-name';
+                }
+            ],
+            [
                 'key' => __('Data'),
                 'class' => 'restrict-height',
                 'path' => 'Workflow.data',

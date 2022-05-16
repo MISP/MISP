@@ -138,6 +138,14 @@ class WorkflowsController extends AppController
         $this->set('modules', $modules);
     }
 
+    public function triggerIndex()
+    {
+        $modules = $this->Workflow->getModules();
+        $triggers = $modules['blocks_trigger'];
+        $this->set('data', $triggers);
+        $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_trigger']);
+    }
+
     private function __getSuccessResponseBasedOnContext($message, $data = null, $action = '', $id = false, $redirect = array())
     {
         if ($this->_isRest()) {

@@ -44,7 +44,7 @@ class Workflow extends AppModel
         // 'User'
     ];
 
-    const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'data'];
+    const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'priority_level', '', 'data'];
 
     private $moduleByID = [];
 

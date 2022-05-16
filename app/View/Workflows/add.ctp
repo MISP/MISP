@@ -11,6 +11,11 @@ $fields = [
         'class' => 'input span6',
     ],
     [
+        'field' => 'priority_level',
+        'type' => 'number',
+        'class' => 'span6',
+    ],
+    [
         'field' => 'data',
         'type' => 'textarea',
         'class' => 'input span6'

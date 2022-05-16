@@ -1695,6 +1695,8 @@ class AppModel extends Model
                       `user_id` int(11) NOT NULL,
                       `org_id` int(11) NOT NULL,
                       `enabled` tinyint(1) NOT NULL DEFAULT 0,
+                      `priority_level` int(11) NOT NULL DEFAULT 0,
+                      `counter` int(11) NOT NULL DEFAULT 0,
                       `data` text,
                       PRIMARY KEY (`id`),
                       INDEX `uuid` (`uuid`),
