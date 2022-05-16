@@ -89,11 +89,10 @@
         <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
     </div>
 </div>
-<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
 
 <?php
 echo $this->element('genericElements/assetLoader', [
-    'css' => ['drawflow.min'],
+    'css' => ['drawflow.min', 'drawflow-default'],
     'js' => ['jquery-ui', 'drawflow.min', 'doT', 'moment.min'],
 ]);
 echo $this->element('genericElements/assetLoader', [
