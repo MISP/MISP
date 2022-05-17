@@ -15,8 +15,7 @@
             'data_path' => 'description',
         ],
         [
-            'name' => __('Workflow Execution Order'),
-            'data_path' => 'execution_order',
+            'name' => __('Execution Order'),
             'element' => 'custom',
             'function' => function ($row) {
                 return $this->element('Workflows/executionOrder', ['trigger' => $row]);
@@ -89,7 +88,7 @@
                         ),
                     ],
                     [
-                        'url' => $baseurl . '/workflows/trigger_view',
+                        'url' => $baseurl . '/workflows/triggerView',
                         'url_params_data_paths' => ['id'],
                         'icon' => 'eye'
                     ],

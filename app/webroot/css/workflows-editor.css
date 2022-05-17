@@ -266,7 +266,7 @@
     top: 26px;
 }
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output_2::after {
-    content: "\f061";
+    content: "\f074";
 }
 
 .drawflow .drawflow-node.block-type-IF > .outputs > .output::before {

@@ -147,6 +147,17 @@ class WorkflowsController extends AppController
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_trigger']);
     }
 
+    public function triggerView($trigger_id)
+    {
+        $trigger = $this->Workflow->getModule($trigger_id);
+        if (empty($trigger)) {
+            throw new NotFoundException(__('Invalid trigger ID'));
+        }
+        $trigger = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), [$trigger], true)[0];
+        $this->set('data', $trigger);
+        $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'view_trigger']);
+    }
+
     private function __getSuccessResponseBasedOnContext($message, $data = null, $action = '', $id = false, $redirect = array())
     {
         if ($this->_isRest()) {
