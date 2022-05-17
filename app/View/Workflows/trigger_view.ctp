@@ -26,7 +26,12 @@ echo $this->element(
             [
                 'key' => __('Trigger Enabled'),
                 'type' => 'boolean',
-                'path' => 'enabled',
+                'path' => 'disabled',
+                'element' => 'boolean',
+                'mapping' => [
+                    true => '<i class="fas fa-times"></i>',
+                    false => '<i class="fas fa-check"></i>'
+                ],
             ],
             [
                 'key' => __('Execution Order'),

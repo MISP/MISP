@@ -124,7 +124,7 @@ class Workflow extends AppModel
      *
      * @param  string $workflow
      */
-    private function getWorkflowsPerTrigger(string $trigger_name)
+    private function getWorkflowsPerTrigger($trigger_name)
     {
         try {
             $redis = $this->setupRedisWithException();
@@ -256,7 +256,7 @@ class Workflow extends AppModel
      * @param  string $trigger_name The trigger for which we should decide if it's blocking or not
      * @return array
      */
-    public function groupWorkflowsPerBlockingType(array $workflows, string $trigger_name): array
+    public function groupWorkflowsPerBlockingType(array $workflows, $trigger_name): array
     {
         $groupedWorkflows = [
             'blocking' => [],
@@ -334,7 +334,7 @@ class Workflow extends AppModel
         ];
     }
 
-    public function getModules(): array
+    public function getModules($module_type=false): array
     {
         $blocks_trigger = [
             [
@@ -553,13 +553,39 @@ class Workflow extends AppModel
 
         array_walk($blocks_trigger, function(&$block) {
             $block['html_template'] = !empty($block['html_template']) ? $block['html_template'] : 'trigger';
+            $block['disabled'] = !empty($block['disabled']);
         });
-        return [
+        $modules = [
             'blocks_trigger' => $blocks_trigger,
             'blocks_logic' => $blocks_logic,
             'blocks_action' => $blocks_action,
             'blocks_all' => array_merge($blocks_trigger, $blocks_logic, $blocks_action),
         ];
+        if (!empty($module_type)) {
+            if (!empty($modules[$module_type])) {
+                return $modules['block_' . $module_type];
+            } else {
+                return [];
+            }
+        }
+        return $modules;
+    }
+
+    /**
+     * getModule Return the module from the provided ID
+     *
+     * @param string $module_id
+     * @return array
+     */
+    public function getModule($module_id): array
+    {
+        $modules = $this->getModules()['blocks_all'];
+        foreach ($modules as $module) {
+            if ($module['id'] == $module_id) {
+                return $module;
+            }
+        }
+        return [];
     }
 
     /**

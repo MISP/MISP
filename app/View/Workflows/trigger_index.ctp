@@ -23,10 +23,11 @@
         ],
         [
             'name' => __('Trigger Enabled'),
-            'element' => 'boolean',
-            'sort' => 'enabled',
+            'sort' => 'disabled',
             'class' => 'short',
-            'data_path' => 'enabled',
+            'data_path' => 'disabled',
+            'element' => 'booleanOrNA',
+            'boolean_reverse' => true
         ],
     ];
 
