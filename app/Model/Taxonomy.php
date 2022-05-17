@@ -589,46 +589,56 @@ class Taxonomy extends AppModel
             return false; // not taxonomy tag
         }
 
-        if (isset($splits['value'])) {
-            $contain = array(
-                'TaxonomyPredicate' => array(
-                    'TaxonomyEntry' => array()
-                )
-            );
-            if (!$fullTaxonomy) {
-                $contain['TaxonomyPredicate']['conditions'] = array(
-                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate']),
+        $key = 'taxonomies_cache:tagName=' . $tagName . "&" . "metaOnly=$metaOnly" . "&" . "fullTaxonomy=$fullTaxonomy";
+        $redis = $this->setupRedis();
+        $taxonomy = $redis ? json_decode($redis->get($key), true) : null;
+
+        if (!$taxonomy) {
+            if (isset($splits['value'])) {
+                $contain = array(
+                    'TaxonomyPredicate' => array(
+                        'TaxonomyEntry' => array()
+                    )
                 );
-                $contain['TaxonomyPredicate']['TaxonomyEntry']['conditions'] = array(
-                    'LOWER(TaxonomyEntry.value)' => mb_strtolower($splits['value']),
-                );
+                if (!$fullTaxonomy) {
+                    $contain['TaxonomyPredicate']['conditions'] = array(
+                        'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate']),
+                    );
+                    $contain['TaxonomyPredicate']['TaxonomyEntry']['conditions'] = array(
+                        'LOWER(TaxonomyEntry.value)' => mb_strtolower($splits['value']),
+                    );
+                }
+                $taxonomy = $this->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
+                    'contain' => $contain
+                ));
+                if ($metaOnly && !empty($taxonomy)) {
+                    $taxonomy = array('Taxonomy' => $taxonomy['Taxonomy']);
+                }
+            } else {
+                $contain = array('TaxonomyPredicate' => array());
+                if (!$fullTaxonomy) {
+                    $contain['TaxonomyPredicate']['conditions'] = array(
+                        'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate'])
+                    );
+                }
+                $taxonomy = $this->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
+                    'contain' => $contain
+                ));
+                if ($metaOnly && !empty($taxonomy)) {
+                    $taxonomy = array('Taxonomy' => $taxonomy['Taxonomy']);
+                }
             }
-            $taxonomy = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
-                'contain' => $contain
-            ));
-            if ($metaOnly && !empty($taxonomy)) {
-                return array('Taxonomy' => $taxonomy['Taxonomy']);
+
+            if ($redis) {
+                $redis->setex($key, 1800, json_encode($taxonomy));
             }
-            return $taxonomy;
-        } else {
-            $contain = array('TaxonomyPredicate' => array());
-            if (!$fullTaxonomy) {
-                $contain['TaxonomyPredicate']['conditions'] = array(
-                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate'])
-                );
-            }
-            $taxonomy = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
-                'contain' => $contain
-            ));
-            if ($metaOnly && !empty($taxonomy)) {
-                return array('Taxonomy' => $taxonomy['Taxonomy']);
-            }
-            return $taxonomy;
         }
+
+        return $taxonomy;
     }
 
     /**
@@ -677,6 +687,13 @@ class Taxonomy extends AppModel
      */
     public function checkIfTagInconsistencies($tagList)
     {
+        if (Configure::read('MISP.disable_taxonomy_consistency_checks')) {
+            return [
+                'global' => [],
+                'local' => []
+            ];
+        }
+
         $eventTags = array();
         $localEventTags = array();
         foreach ($tagList as $tag) {
