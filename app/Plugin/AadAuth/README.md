@@ -109,16 +109,16 @@ Scroll down to near the bottom of the page and add in the following configuratio
 ```PHP
 'AadAuth' =>
   array (
-    'client_id' => '',
-    'ad_tenant' => '',
-    'client_secret' => '',
-    'redirect_uri' => 'https://misp.mydomain.com/users/login',
-    'auth_provider' => 'https://login.microsoftonline.com/',
-    'auth_provider_user' => 'https://graph.microsoft.com/',
-    'misp_user' => 'Misp Users',
-    'misp_orgadmin' => 'Misp Org Admins',
-    'misp_siteadmin' => 'Misp Site Admins',
-    'check_ad_groups' => true,
+    'client_id' => '', // Client ID (see Azure AD)
+    'ad_tenant' => '', // Directory ID (see Azure AD)
+    'client_secret' => '', // Client secret (see Azure AD)
+    'redirect_uri' => 'https://misp.mydomain.com/users/login', // Your MISP URI, must be the same as in Azure AD
+    'auth_provider' => 'https://login.microsoftonline.com/', // No change required
+    'auth_provider_user' => 'https://graph.microsoft.com/', // No change required
+    'misp_user' => 'Misp Users', // The AD group for MISP users
+    'misp_orgadmin' => 'Misp Org Admins', // The AD group for MISP administrators
+    'misp_siteadmin' => 'Misp Site Admins', // The AD group for MISP site administrators
+    'check_ad_groups' => true, // Should we check if the user belongs to one of the above AD groups?
   ),
 ```
 
