@@ -30,4 +30,34 @@ class BetterCakeEventManager extends CakeEventManager
             }
         }
     }
+
+    /**
+     * @param $eventKey
+     * @return array
+     */
+    public function listeners($eventKey)
+    {
+        if ($this->_isGlobal) {
+            $localListeners = [];
+        } else {
+            $localListeners = $this->_listeners[$eventKey] ?? [];
+        }
+
+        $globalListeners = static::instance()->prioritisedListeners($eventKey);
+
+        $priorities = array_merge(array_keys($globalListeners), array_keys($localListeners));
+        $priorities = array_unique($priorities, SORT_REGULAR);
+        asort($priorities);
+
+        $result = [];
+        foreach ($priorities as $priority) {
+            if (isset($globalListeners[$priority])) {
+                $result = array_merge($result, $globalListeners[$priority]);
+            }
+            if (isset($localListeners[$priority])) {
+                $result = array_merge($result, $localListeners[$priority]);
+            }
+        }
+        return $result;
+    }
 }

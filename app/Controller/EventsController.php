@@ -619,7 +619,7 @@ class EventsController extends AppController
                         if (empty($usersToMatch)) {
                             $nothing = true;
                         } else {
-                            $this->paginate['conditions']['AND'][] = ['Event.user_id' => array_unique($usersToMatch)];
+                            $this->paginate['conditions']['AND'][] = ['Event.user_id' => array_unique($usersToMatch, SORT_REGULAR)];
                         }
                     }
                     break;

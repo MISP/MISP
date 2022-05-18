@@ -769,7 +769,7 @@ class Event extends AppModel
         }
 
         $correlations = array_column($correlations, $correlationModelName);
-        $eventIds = array_unique(array_column($correlations, 'event_id'));
+        $eventIds = array_unique(array_column($correlations, 'event_id'), SORT_REGULAR);
 
         $conditions = $this->createEventConditions($user);
         $conditions['Event.id'] = $eventIds;
