@@ -1536,6 +1536,12 @@ class AttributesController extends AppController
             if (!isset($params['conditions']['Attribute.deleted'])) {
                 $params['conditions']['Attribute.deleted'] = 0;
             }
+
+            // Force index for performance reasons see #3321
+            if (isset($filters['value'])) {
+                $this->paginate['useIndexHint'] = '(value1, value2)';
+            }
+
             $this->paginate['conditions'] = $params['conditions'];
             $attributes = $this->paginate();
             $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);

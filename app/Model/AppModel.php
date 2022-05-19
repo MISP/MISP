@@ -3309,7 +3309,6 @@ class AppModel extends Model
     {
         $dataSource = ConnectionManager::getDataSource('default');
         $dataSourceName = $dataSource->config['datasource'];
-        return $dataSourceName === 'Database/Mysql' || $dataSourceName === 'Database/MysqlObserver' || $dataSource instanceof Mysql;
-
+        return $dataSourceName === 'Database/Mysql' || $dataSourceName === 'Database/MysqlObserver' || $dataSourceName === 'Database/MysqlExtended' || $dataSource instanceof Mysql;
     }
 }
