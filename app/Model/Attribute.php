@@ -489,7 +489,7 @@ class Attribute extends AppModel
             }
         }
         if (Configure::read('MISP.enable_advanced_correlations') && in_array($attribute['type'], ['ip-src', 'ip-dst'], true) && strpos($attribute['value'], '/')) {
-            $this->setCIDRList();
+            $this->Correlation->updateCidrList();
         }
         if ($created && isset($attribute['event_id']) && empty($attribute['skip_auto_increment'])) {
             $this->__alterAttributeCount($attribute['event_id']);
@@ -522,7 +522,7 @@ class Attribute extends AppModel
     public function afterDelete()
     {
         if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && strpos($this->data['Attribute']['value'], '/')) {
-            $this->setCIDRList();
+            $this->Correlation->updateCidrList();
         }
         if (isset($this->data['Attribute']['event_id'])) {
             if (empty($this->data['Attribute']['deleted'])) {
@@ -1552,7 +1552,13 @@ class Attribute extends AppModel
         return $export->export($attributes, $orgs, $valueField, $allowedlist, $instanceString);
     }
 
-    public function generateCorrelation($jobId = false, $startPercentage = 0, $eventId = false, $attributeId = false)
+    /**
+     * @param int|false $jobId
+     * @param int|false $eventId
+     * @param int|false $attributeId
+     * @return int Number of processed attributes
+     */
+    public function generateCorrelation($jobId = false, $eventId = false, $attributeId = false)
     {
         $this->purgeCorrelations($eventId);
 
@@ -1567,7 +1573,7 @@ class Attribute extends AppModel
             ]);
             $full = true;
         } else {
-            $eventIds = array($eventId);
+            $eventIds = [$eventId];
             $full = false;
         }
         $attributeCount = 0;
@@ -1577,52 +1583,61 @@ class Attribute extends AppModel
         } else {
             $jobId = false;
         }
-        foreach ($eventIds as $j => $id) {
+        foreach ($eventIds as $j => $eventId) {
             if ($jobId) {
-                if ($attributeId) {
-                    $message = 'Correlating Attribute ' . $attributeId;
-                } else {
-                    $message = 'Correlating Event ' . $id;
-                }
-                $this->Job->saveProgress($jobId, $message, $startPercentage + ($j / $eventCount * (100 - $startPercentage)));
+                $message = $attributeId ? __('Correlating Attribute %s', $attributeId) : __('Correlating Event %s (%s MB used)', $eventId, intval(memory_get_usage() / 1024 / 1024));
+                $this->Job->saveProgress($jobId, $message, ($j / $eventCount) * 100);
             }
             $event = $this->Event->find('first', array(
                 'recursive' => -1,
-                'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
-                'conditions' => array('id' => $id),
+                'fields' => ['Event.distribution', 'Event.id', 'Event.org_id', 'Event.sharing_group_id', 'Event.disable_correlation'],
+                'conditions' => array('id' => $eventId),
                 'order' => false,
             ));
-            $attributeConditions = array(
-                'Attribute.event_id' => $id,
+            $attributeConditions = [
+                'Attribute.event_id' => $eventId,
                 'Attribute.deleted' => 0,
                 'Attribute.disable_correlation' => 0,
-                'NOT' => array(
+                'NOT' => [
                     'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
-                ),
-            );
+                ],
+            ];
             if ($attributeId) {
                 $attributeConditions['Attribute.id'] = $attributeId;
             }
-            $attributes = $this->find('all', [
+            $query = [
                 'recursive' => -1,
                 'conditions' => $attributeConditions,
                 // fetch just necessary fields to save memory
                 'fields' => [
                     'Attribute.id',
-                    'Attribute.event_id',
                     'Attribute.type',
                     'Attribute.value1',
                     'Attribute.value2',
                     'Attribute.distribution',
                     'Attribute.sharing_group_id',
-                    'Attribute.disable_correlation',
                 ],
-                'order' => [],
-            ]);
-            foreach ($attributes as $attribute) {
-                $this->Correlation->afterSaveCorrelation($attribute['Attribute'], $full, $event);
-                $attributeCount++;
-            }
+                'order' => 'Attribute.id',
+                'limit' => 5000,
+                'callbacks' => false, // memory leak fix
+            ];
+            do {
+                $attributes = $this->find('all', $query);
+                foreach ($attributes as $attribute) {
+                    $attribute['Attribute']['event_id'] = $eventId;
+                    $this->Correlation->afterSaveCorrelation($attribute['Attribute'], $full, $event);
+                }
+                $fetchedAttributes = count($attributes);
+                unset($attributes);
+                $attributeCount += $fetchedAttributes;
+                if ($fetchedAttributes === 5000) { // maximum number of attributes fetched, continue in next loop
+                    $query['conditions']['Attribute.id >'] = $attribute['Attribute']['id'];
+                } else {
+                    break;
+                }
+            } while (true);
+            // Generating correlations can take long time, so clear CIDR cache after each event to refresh cache
+            $this->Correlation->clearCidrCache();
         }
         if ($jobId) {
             $this->Job->saveStatus($jobId, true);
@@ -2677,61 +2692,6 @@ class Attribute extends AppModel
             return $timestamp;
         }
         return $conditions;
-    }
-
-    /**
-     * Get list of all CIDR for correlation.
-     * @return array
-     */
-    private function __getCIDRList()
-    {
-        return $this->find('column', array(
-            'conditions' => array(
-                'type' => array('ip-src', 'ip-dst'),
-                'disable_correlation' => 0,
-                'deleted' => 0,
-                'value1 LIKE' => '%/%'
-            ),
-            'fields' => array('Attribute.value1'),
-            'unique' => true,
-            'order' => false
-        ));
-    }
-
-    public function setCIDRList()
-    {
-        $redis = $this->setupRedis();
-        $cidrList = array();
-        if ($redis) {
-            $cidrList = $this->__getCIDRList();
-
-            $redis->pipeline();
-            $redis->del('misp:cidr_cache_list');
-            if (method_exists($redis, 'saddArray')) {
-                $redis->sAddArray('misp:cidr_cache_list', $cidrList);
-            } else {
-                foreach ($cidrList as $cidr) {
-                    $redis->sadd('misp:cidr_cache_list', $cidr);
-                }
-            }
-            $redis->exec();
-        }
-        return $cidrList;
-    }
-
-    public function getSetCIDRList()
-    {
-        $redis = $this->setupRedis();
-        if ($redis) {
-            if (!$redis->exists('misp:cidr_cache_list')) {
-                $cidrList = $this->setCIDRList();
-            } else {
-                $cidrList = $redis->smembers('misp:cidr_cache_list');
-            }
-        } else {
-            $cidrList = $this->__getCIDRList();
-        }
-        return $cidrList;
     }
 
     public function fetchDistributionData($user)
