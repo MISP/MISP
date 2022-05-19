@@ -27,17 +27,13 @@
             'data_path' => 'Workflow.counter',
         ],
         [
-            'name' => __('Priority Level'),
-            'sort' => 'Workflow.priority_level',
-            'data_path' => 'Workflow.priority_level',
-        ],
-        [
             'name' => __('Listening Triggers'),
-            'data_path' => 'Workflow.description',
+            'data_path' => 'Workflow.listening_triggers',
             'element' => 'custom',
-            'function' => function ($row) {
-                // return $this->element('Workflows/', ['trigger' => $row]);
-                return 'trigger-name';
+            'function' => function ($row) use ($baseurl) {
+                return implode('<br />', array_map(function($trigger) use ($baseurl) {
+                    return sprintf('<a href="%s/workflows/triggerView/%s">%s</a>', $baseurl, h($trigger), h($trigger));
+                }, $row['Workflow']['listening_triggers']));
             }
         ],
         [

@@ -49,8 +49,9 @@
                     ]
                 ],
                 'fields' => $fields,
-                'title' => __('Workflows Trigger'),
-                'description' => __('List the available triggers as well as the workflows relying on them'),
+                'icon' => 'flag',
+                'title' => __('Triggers'),
+                'description' => __('List the available triggers that can be used by workflows'),
                 'actions' => [
                     [
                         'title' => __('Enable'),
@@ -61,11 +62,11 @@
                         'postLinkConfirm' => __('Are you sure you want to enable this trigger?'),
                         'complex_requirement' => array(
                             'function' => function ($row, $options) use ($isSiteAdmin) {
-                                return $isSiteAdmin && !$options['datapath']['enabled'];
+                                return $isSiteAdmin && !$options['datapath']['disabled'];
                             },
                             'options' => array(
                                 'datapath' => array(
-                                    'enabled' => 'enabled'
+                                    'disabled' => 'disabled'
                                 )
                             )
                         ),
@@ -79,11 +80,11 @@
                         'postLinkConfirm' => __('Are you sure you want to disable this trigger?'),
                         'complex_requirement' => array(
                             'function' => function ($row, $options) use ($isSiteAdmin) {
-                                return $isSiteAdmin && $options['datapath']['enabled'];
+                                return $isSiteAdmin && $options['datapath']['disabled'];
                             },
                             'options' => array(
                                 'datapath' => array(
-                                    'enabled' => 'enabled'
+                                    'disabled' => 'disabled'
                                 )
                             )
                         ),

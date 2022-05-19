@@ -1695,12 +1695,12 @@ class AppModel extends Model
                       `user_id` int(11) NOT NULL,
                       `org_id` int(11) NOT NULL,
                       `enabled` tinyint(1) NOT NULL DEFAULT 0,
-                      `priority_level` int(11) NOT NULL DEFAULT 0,
                       `counter` int(11) NOT NULL DEFAULT 0,
                       `data` text,
                       PRIMARY KEY (`id`),
                       INDEX `uuid` (`uuid`),
                       INDEX `name` (`name`),
+                      INDEX `timestamp` (`timestamp`),
                       INDEX `user_id` (`user_id`),
                       INDEX `org_id` (`org_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";

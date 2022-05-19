@@ -16,8 +16,12 @@
      *  ));
      *
      */
+    $iconHtml = '';
+    if (!empty($data['icon'])) {
+        $iconHtml = sprintf('<i class="%s"></i> ', $this->FontAwesome->getClass($data['icon']));
+    }
     if (!empty($data['title'])) {
-        echo sprintf('<h2>%s</h2>', h($data['title']));
+        echo sprintf('<h2>%s%s</h2>', $iconHtml, h($data['title']));
     }
     if (!empty($data['description'])) {
         echo sprintf(

@@ -41,20 +41,12 @@ echo $this->element(
                 }
             ],
             [
-                'key' => __('Priority Level'),
-                'path' => 'Workflow.priority_level',
-                'type' => 'custom',
-                'function' => function ($row) {
-                    return h($row['Workflow']['priority_level']);
-                }
-            ],
-            [
                 'key' => __('Listening Triggers'),
                 'path' => 'Workflow.listening_triggers',
                 'type' => 'custom',
-                'function' => function ($row) {
-                    return implode('<br />', array_map(function($trigger) {
-                        return sprintf('<a href="/workflows/trigger_view/%s">%s</a>', h($trigger), h($trigger));
+                'function' => function ($row) use ($baseurl) {
+                    return implode('<br />', array_map(function($trigger) use ($baseurl) {
+                        return sprintf('<a href="%s/workflows/triggerView/%s">%s</a>', $baseurl, h($trigger), h($trigger));
                     }, $row['Workflow']['listening_triggers']));
                 }
             ],

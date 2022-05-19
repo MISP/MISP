@@ -1,5 +1,4 @@
 <?php
-// debug($data);
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
@@ -41,6 +40,14 @@ echo $this->element(
                 }
             ],
         ],
+        'append' => [
+            [
+                'element' => 'Workflows/executionOrderWidget',
+                'element_params' => [
+                    'trigger' => $data
+                ]
+            ],
+        ]
     ]
 );
 

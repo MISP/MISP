@@ -44,12 +44,13 @@ class Workflow extends AppModel
         // 'User'
     ];
 
-    const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'priority_level', 'data'];
+    const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'data'];
 
     const WORKFLOW_BLOCKING_PATH_NAME = 'output_1';
     const WORKFLOW_NON_BLOCKING_PATH_NAME = 'output_2';
 
     const REDIS_KEY_WORKFLOW_PER_TRIGGER = 'workflow:workflow_list:%s';
+    const REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER = 'workflow:workflow_blocking_order_list:%s';
     const REDIS_KEY_TRIGGER_PER_WORKFLOW = 'workflow:trigger_list:%s';
 
     private $moduleByID = [];
@@ -87,12 +88,10 @@ class Workflow extends AppModel
     }
 
     /**
-     * updateListeningTriggers Regenerate the list of triggers that will run this workflow
-     *  - collect trigger name for workflow
-     *  - remove wf id from trigger list
-     *  - remove trigger name from workflow
-     *  - add wf id to trigger list
-     *  - add trigger name to workflow
+     * updateListeningTriggers 
+     *  - Update the list of triggers that will be run this workflow
+     *  - Update the list of workflows that are run by their triggers
+     *  - Update the ordered list of workflows that are run by their triggers
      *
      * @param  array $workflow
      */
@@ -105,16 +104,18 @@ class Workflow extends AppModel
         }
         $workflow = $this->data;
         $workflow['Workflow']['data'] = JsonTool::decode($workflow['Workflow']['data']);
-        $pipeline = $redis->pipeline();
+        $pipeline = $redis->multi();
         $trigger_list = $this->getTriggersPerWorkflow((int)$workflow['Workflow']['id']);
-        foreach ($trigger_list as $trigger_name) {
-            $pipeline->sRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_name), $workflow['Workflow']['id']);
-            $pipeline->sRem(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_name);
+        foreach ($trigger_list as $trigger_id) {
+            $pipeline->sRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
+            $pipeline->sRem(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
+            $pipeline->lRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), $workflow['Workflow']['id'], 0);
         }
         $listening_triggers = $this->extractTriggerFromWorkflow($workflow);
-        foreach ($listening_triggers as $trigger_name) {
-            $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_name), $workflow['Workflow']['id']);
-            $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_name);
+        foreach ($listening_triggers as $trigger_id) {
+            $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
+            $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
+            $pipeline->rPush(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
         }
         $pipeline->exec();
     }
@@ -122,22 +123,39 @@ class Workflow extends AppModel
     /**
      * getWorkflowsPerTrigger Get list of workflow IDs listening to the specified trigger
      *
-     * @param  string $workflow
+     * @param  string $trigger_id
+     * @return array
      */
-    private function getWorkflowsPerTrigger($trigger_name)
+    private function getWorkflowsPerTrigger($trigger_id): array
     {
         try {
             $redis = $this->setupRedisWithException();
         } catch (Exception $e) {
             return false;
         }
-        return $redis->sMembers(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_name));
+        $list = $redis->sMembers(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id));
+        return !empty($list) ? $list : [];
+    }
+
+    /**
+     * getOrderedWorkflowsPerTrigger Get list of workflow IDs in the execution order for the specified trigger
+     *
+     * @param  string $trigger_id
+     */
+    private function getOrderedWorkflowsPerTrigger($trigger_id): array
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+        return $redis->lRange(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), 0, -1);
     }
 
     /**
      * getTriggersPerWorkflow Get list of trigger name running to the specified workflow
      *
-     * @param  array $workflow
+     * @param  int $workflow_id
      */
     private function getTriggersPerWorkflow(int $workflow_id)
     {
@@ -147,6 +165,30 @@ class Workflow extends AppModel
             return false;
         }
         return $redis->sMembers(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow_id));
+    }
+
+    /**
+     * getTriggersPerWorkflow Get list of trigger name running to the specified workflow
+     *
+     * @param  string $trigger_id
+     * @param  array $workflows List of workflow IDs in priority order
+     * @return bool
+     */
+    public function saveBlockingWorkflowExecutionOrder($trigger_id, array $workflow_order): bool
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+        $key = sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id);
+        $pipeline = $redis->multi();
+        $pipeline->del($key);
+        foreach ($workflow_order as $workflow_id) {
+            $pipeline->rpush($key, (string)$workflow_id);
+        }
+        $pipeline->exec();
+        return true;
     }
 
     /**
@@ -215,36 +257,37 @@ class Workflow extends AppModel
      */
     public function attachWorkflowsToTriggers(array $user, array $triggers, bool $group_per_blocking=true): array
     {
-        $workflow_IDs = [];
+        $all_workflow_ids = [];
         $workflows_per_trigger = [];
+        $ordered_workflows_per_trigger = [];
         foreach ($triggers as $trigger) {
-            $workflow_IDs_for_trigger = $this->getWorkflowsPerTrigger($trigger['id']);
-            $workflows_per_trigger[$trigger['id']] = $workflow_IDs_for_trigger;
-            foreach ($workflow_IDs_for_trigger as $id) {
-                $workflow_IDs[$id] = true;
+            $workflow_ids_for_trigger = $this->getWorkflowsPerTrigger($trigger['id']);
+            $workflows_per_trigger[$trigger['id']] = $workflow_ids_for_trigger;
+            $ordered_workflows_per_trigger[$trigger['id']] = $this->getOrderedWorkflowsPerTrigger($trigger['id']);
+            foreach ($workflow_ids_for_trigger as $id) {
+                $all_workflow_ids[$id] = true;
             }
         }
-        $workflow_IDs = array_keys($workflow_IDs);
+        $all_workflow_ids = array_keys($all_workflow_ids);
         $workflows = $this->fetchWorkflows($user, [
             'conditions' => [
-                'Workflow.id' => $workflow_IDs
+                'Workflow.id' => $all_workflow_ids,
             ],
             'fields' => ['*'],
             'contain' => ['Organisation' => ['fields' => ['*']]],
         ]);
         $workflows = Hash::combine($workflows, '{n}.Workflow.id', '{n}');
         foreach ($triggers as $i => $trigger) {
-            $workflow_IDs = $workflows_per_trigger[$trigger['id']];
+            $workflow_ids = $workflows_per_trigger[$trigger['id']];
+            $ordered_workflow_ids = $ordered_workflows_per_trigger[$trigger['id']];
             $triggers[$i]['Workflows'] = [];
-            foreach ($workflow_IDs as $workflow_ID) {
-                $triggers[$i]['Workflows'][] = $workflows[$workflow_ID];
+            foreach ($workflow_ids as $workflow_id) {
+                $triggers[$i]['Workflows'][] = $workflows[$workflow_id];
             }
-            usort($triggers[$i]['Workflows'], function($a, $b) {
-                return $a['Workflow']['priority_level'] - $b['Workflow']['priority_level'];
-            }); 
             if (!empty($group_per_blocking)) {
-                $triggers[$i]['Workflows'] = $this->groupWorkflowsPerBlockingType($triggers[$i]['Workflows'], $trigger['id']);
+                $triggers[$i]['GroupedWorkflows'] = $this->groupWorkflowsPerBlockingType($triggers[$i]['Workflows'], $trigger['id'], $ordered_workflow_ids);
             }
+            // debug(Hash::extract($triggers[$i]['GroupedWorkflows'], 'blocking.{n}.Workflow.name'));
         }
         return $triggers;
     }
@@ -253,10 +296,11 @@ class Workflow extends AppModel
      * groupWorkflowsPerBlockingType Group workflows together if they have a blocking path set
      *
      * @param  array $workflows
-     * @param  string $trigger_name The trigger for which we should decide if it's blocking or not
-     * @return array
+     * @param  string $trigger_id The trigger for which we should decide if it's blocking or not
+     * @param  array $ordered_workflow_ids If provided, will sort the blocking workflows based on the workflow_id order in of the provided list
+     * @return bool|array
      */
-    public function groupWorkflowsPerBlockingType(array $workflows, $trigger_name): array
+    public function groupWorkflowsPerBlockingType(array $workflows, $trigger_id, $ordered_workflow_ids=false): array
     {
         $groupedWorkflows = [
             'blocking' => [],
@@ -264,9 +308,10 @@ class Workflow extends AppModel
         ];
         foreach ($workflows as $workflow) {
             foreach ($workflow['Workflow']['data'] as $block) {
-                if ($block['data']['id'] == $trigger_name) {
+                if ($block['data']['id'] == $trigger_id) {
                     if (!empty($block['outputs'][Workflow::WORKFLOW_BLOCKING_PATH_NAME])) {
-                        $groupedWorkflows['blocking'][] = $workflow;
+                        $order_index = array_search($workflow['Workflow']['id'], $ordered_workflow_ids);
+                        $groupedWorkflows['blocking'][$order_index] = $workflow;
                     }
                     if (!empty($block['outputs'][Workflow::WORKFLOW_NON_BLOCKING_PATH_NAME])) {
                         $groupedWorkflows['non-blocking'][] = $workflow;
@@ -274,6 +319,7 @@ class Workflow extends AppModel
                 }
             }
         }
+        ksort($groupedWorkflows['blocking']);
         return $groupedWorkflows;
     }
 
