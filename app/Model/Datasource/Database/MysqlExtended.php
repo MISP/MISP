@@ -109,7 +109,7 @@ class MysqlExtended extends Mysql
     {
         $index = '';
         if (isset($useIndexHint)) {
-            $index = 'USE INDEX ' . $this->value($useIndexHint);
+            $index = 'USE INDEX ' . $useIndexHint;
         }
         return $index;
     }
