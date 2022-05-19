@@ -107,7 +107,6 @@ class MysqlExtended extends Mysql
      */
     private function __buildIndexHint(?string $useIndexHint = null): string
     {
-        // TODO: support force and ignore indexes
         $index = '';
         if (isset($useIndexHint)) {
             $index = 'USE INDEX ' . $this->value($useIndexHint);
