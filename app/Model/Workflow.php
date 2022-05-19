@@ -76,7 +76,8 @@ class Workflow extends AppModel
             }
             $results[$k]['Workflow']['data'] = JsonTool::decode($result['Workflow']['data']);
             if (!empty($result['Workflow']['id'])) {
-                $results[$k]['Workflow']['listening_triggers'] = $this->getTriggersPerWorkflow((int) $result['Workflow']['id']);
+                $trigger_ids = $this->getTriggersIDPerWorkflow((int) $result['Workflow']['id']);
+                $results[$k]['Workflow']['listening_triggers'] = $this->getModuleByID($trigger_ids);
             }
         }
         return $results;
@@ -105,7 +106,7 @@ class Workflow extends AppModel
         $workflow = $this->data;
         $workflow['Workflow']['data'] = JsonTool::decode($workflow['Workflow']['data']);
         $pipeline = $redis->multi();
-        $trigger_list = $this->getTriggersPerWorkflow((int)$workflow['Workflow']['id']);
+        $trigger_list = $this->getTriggersIDPerWorkflow((int)$workflow['Workflow']['id']);
         foreach ($trigger_list as $trigger_id) {
             $pipeline->sRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
             $pipeline->sRem(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
@@ -121,12 +122,12 @@ class Workflow extends AppModel
     }
 
     /**
-     * getWorkflowsPerTrigger Get list of workflow IDs listening to the specified trigger
+     * getWorkflowsIDPerTrigger Get list of workflow IDs listening to the specified trigger
      *
      * @param  string $trigger_id
      * @return array
      */
-    private function getWorkflowsPerTrigger($trigger_id): array
+    private function getWorkflowsIDPerTrigger($trigger_id): array
     {
         try {
             $redis = $this->setupRedisWithException();
@@ -141,8 +142,9 @@ class Workflow extends AppModel
      * getOrderedWorkflowsPerTrigger Get list of workflow IDs in the execution order for the specified trigger
      *
      * @param  string $trigger_id
+     * @return bool|array
      */
-    private function getOrderedWorkflowsPerTrigger($trigger_id): array
+    private function getOrderedWorkflowsPerTrigger($trigger_id)
     {
         try {
             $redis = $this->setupRedisWithException();
@@ -153,11 +155,12 @@ class Workflow extends AppModel
     }
 
     /**
-     * getTriggersPerWorkflow Get list of trigger name running to the specified workflow
+     * getTriggersIDPerWorkflow Get list of trigger name running to the specified workflow
      *
      * @param  int $workflow_id
+     * @return bool|array
      */
-    private function getTriggersPerWorkflow(int $workflow_id)
+    private function getTriggersIDPerWorkflow(int $workflow_id)
     {
         try {
             $redis = $this->setupRedisWithException();
@@ -168,7 +171,7 @@ class Workflow extends AppModel
     }
 
     /**
-     * getTriggersPerWorkflow Get list of trigger name running to the specified workflow
+     * saveBlockingWorkflowExecutionOrder Get list of trigger name running to the specified workflow
      *
      * @param  string $trigger_id
      * @param  array $workflows List of workflow IDs in priority order
@@ -261,7 +264,7 @@ class Workflow extends AppModel
         $workflows_per_trigger = [];
         $ordered_workflows_per_trigger = [];
         foreach ($triggers as $trigger) {
-            $workflow_ids_for_trigger = $this->getWorkflowsPerTrigger($trigger['id']);
+            $workflow_ids_for_trigger = $this->getWorkflowsIDPerTrigger($trigger['id']);
             $workflows_per_trigger[$trigger['id']] = $workflow_ids_for_trigger;
             $ordered_workflows_per_trigger[$trigger['id']] = $this->getOrderedWorkflowsPerTrigger($trigger['id']);
             foreach ($workflow_ids_for_trigger as $id) {
@@ -287,9 +290,35 @@ class Workflow extends AppModel
             if (!empty($group_per_blocking)) {
                 $triggers[$i]['GroupedWorkflows'] = $this->groupWorkflowsPerBlockingType($triggers[$i]['Workflows'], $trigger['id'], $ordered_workflow_ids);
             }
-            // debug(Hash::extract($triggers[$i]['GroupedWorkflows'], 'blocking.{n}.Workflow.name'));
         }
         return $triggers;
+    }
+
+    public function fetchWorkflowsForTrigger($user, $trigger_id): array
+    {
+        $workflow_ids_for_trigger = $this->getWorkflowsIDPerTrigger($trigger_id);
+        $workflows = $this->fetchWorkflows($user, [
+            'conditions' => [
+                'Workflow.id' => $workflow_ids_for_trigger,
+            ],
+            'fields' => ['*'],
+            'contain' => ['Organisation' => ['fields' => ['*']]],
+        ]);
+        return $workflows;
+    }
+
+    /**
+     * getExecutionPathsForTrigger Generate the e
+     *
+     * @param  array $triggers
+     * @param  bool $group_per_blocking Wheter or not the workflows should be grouped together if they have a blocking path set
+     * @return array
+     */
+    public function getExecutionOrderForTrigger(array $user, array $trigger, bool $group_per_blocking=true): array
+    {
+        $workflows = $this->fetchWorkflowsForTrigger($user, $trigger['id']);
+        $ordered_workflow_ids = $this->getOrderedWorkflowsPerTrigger($trigger['id']);
+        return $this->groupWorkflowsPerBlockingType($workflows, $trigger['id'], $ordered_workflow_ids);
     }
 
     /**
@@ -618,20 +647,26 @@ class Workflow extends AppModel
     }
 
     /**
-     * getModule Return the module from the provided ID
+     * getModules Return the module from the provided ID
      *
-     * @param string $module_id
+     * @param string|array $module_ids
      * @return array
      */
-    public function getModule($module_id): array
+    public function getModuleByID($module_ids): array
     {
+        $returnAString = false;
+        if (!is_array($module_ids)) {
+            $returnAString = true;
+            $module_ids = [$module_ids];
+        }
+        $matchingModules = [];
         $modules = $this->getModules()['blocks_all'];
         foreach ($modules as $module) {
-            if ($module['id'] == $module_id) {
-                return $module;
+            if (in_array($module['id'], $module_ids)) {
+                $matchingModules[] = $module;
             }
         }
-        return [];
+        return $returnAString ? $matchingModules[0] : $matchingModules;
     }
 
     /**

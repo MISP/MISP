@@ -32,8 +32,14 @@
             'element' => 'custom',
             'function' => function ($row) use ($baseurl) {
                 return implode('<br />', array_map(function($trigger) use ($baseurl) {
-                    return sprintf('<a href="%s/workflows/triggerView/%s">%s</a>', $baseurl, h($trigger), h($trigger));
-                }, $row['Workflow']['listening_triggers']));
+                        return sprintf('<a href="%s/workflows/triggerView/%s"><i class="fa-fw %s"></i> %s</a>',
+                            $baseurl,
+                            h($trigger['id']),
+                            $this->FontAwesome->getClass($trigger['icon']),
+                            h($trigger['id'])
+                        );
+                    }, $row['Workflow']['listening_triggers'])
+                );
             }
         ],
         [

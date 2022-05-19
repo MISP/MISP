@@ -149,7 +149,7 @@ class WorkflowsController extends AppController
 
     public function triggerView($trigger_id)
     {
-        $trigger = $this->Workflow->getModule($trigger_id);
+        $trigger = $this->Workflow->getModuleByID($trigger_id);
         if (empty($trigger)) {
             throw new NotFoundException(__('Invalid trigger ID'));
         }
@@ -160,7 +160,7 @@ class WorkflowsController extends AppController
 
     public function rearrangeExecutionOrder($trigger_id)
     {
-        $trigger = $this->Workflow->getModule($trigger_id);
+        $trigger = $this->Workflow->getModuleByID($trigger_id);
         if (empty($trigger)) {
             throw new NotFoundException(__('Invalid trigger ID'));
         }
