@@ -105,7 +105,7 @@ class MysqlExtended extends Mysql
      * @param string|null $useIndexHint USE INDEX hint
      * @return string
      */
-    private function __buildIndexHint(?string $useIndexHint = null): string
+    private function __buildIndexHint($useIndexHint = null): string
     {
         $index = '';
         if (isset($useIndexHint)) {
