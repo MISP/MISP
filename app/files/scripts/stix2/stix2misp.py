@@ -23,6 +23,7 @@ import time
 import io
 import pymisp
 import stix2misp_mapping
+import uuid
 from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
@@ -34,6 +35,9 @@ from pymisp import MISPEvent, MISPObject, MISPAttribute
 _scripts_path = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_scripts_path / 'cti-python-stix2'))
 import stix2
+
+_RFC_UUID_VERSIONS = (1, 3, 4, 5)
+_UUIDv4 = uuid.UUID('76beed5f-7251-457e-8c2a-b45f7b589d3d')
 
 
 class StixParser():
@@ -107,9 +111,28 @@ class StixParser():
             self.report = {report['id'].split('--')[1]: report}
 
     def save_file(self):
+        for attribute in self.misp_event.attributes:
+            if uuid.UUID(attribute.uuid).version not in _RFC_UUID_VERSIONS:
+                attribute.uuid = self._sanitize_uuid(attribute)
+        for misp_object in self.misp_event.objects:
+            if uuid.UUID(misp_object.uuid).version not in _RFC_UUID_VERSIONS:
+                misp_object.uuid = self._sanitize_uuid(misp_object)
+                for reference in misp_object.references:
+                    reference.object_uuid = misp_object.uuid
+                    if uuid.UUID(reference.referenced_uuid).version not in _RFC_UUID_VERSIONS:
+                        reference.referenced_uuid = uuid.uuid5(_UUIDv4, reference.referenced_uuid)
+                for attribute in misp_object.attributes:
+                    if uuid.UUID(attribute.uuid).version not in _RFC_UUID_VERSIONS:
+                        attribute.uuid = self._sanitize_uuid(attribute)
         event = self.misp_event.to_json()
         with open(f'{self.filename}.stix2', 'wt', encoding='utf-8') as f:
             f.write(event)
+
+    @staticmethod
+    def _sanitize_uuid(misp_feature):
+        comment = f'Original UUID was: {misp_feature.uuid}'
+        misp_feature.comment = f'{misp_feature.comment} - {comment}' if hasattr(misp_feature, 'comment') else comment
+        return uuid.uuid5(_UUIDv4, misp_feature.uuid)
 
     ################################################################################
     ##                 PARSING FUNCTIONS USED BY BOTH SUBCLASSES.                 ##

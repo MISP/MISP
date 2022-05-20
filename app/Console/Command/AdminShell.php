@@ -11,6 +11,8 @@ App::uses('JsonTool', 'Tools');
  * @property AdminSetting $AdminSetting
  * @property Taxonomy $Taxonomy
  * @property Warninglist $Warninglist
+ * @property Attribute $Attribute
+ * @property Job $Job
  */
 class AdminShell extends AppShell
 {
@@ -97,19 +99,12 @@ class AdminShell extends AppShell
 
     public function jobGenerateCorrelation()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate correlation'] . PHP_EOL);
         }
 
         $jobId = $this->args[0];
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('Attribute');
-        $this->Attribute->generateCorrelation($jobId, 0);
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done.');
-        $this->Job->saveField('status', 4);
+        $this->Attribute->generateCorrelation($jobId);
     }
 
     public function jobPurgeCorrelation()
