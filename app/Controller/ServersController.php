@@ -998,8 +998,8 @@ class ServersController extends AppController
         $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
         $sessionErrors = array(
             0 => __('OK'),
-            1 => __('Too many expired sessions in the database, please clear the expired sessions.'),
-            2 => __('PHP session handler is using the default file storage. This is not recommended, please use the redis or database storage.'),
+            1 => __('Too many expired sessions in the database, please clear the expired sessions'),
+            2 => __('PHP session handler is using the default file storage. This is not recommended, please use the redis or database storage'),
             8 => __('Alternative setting used'),
             9 => __('Test failed')
         );
