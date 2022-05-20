@@ -109,6 +109,11 @@
     padding: 0 0.25em;
 }
 
+.sidebar-workflow-block .block-notification-container {
+    margin-left: auto;
+    vertical-align: middle;
+}
+
 .canvas {
     height: 100%;
     width: 100%;

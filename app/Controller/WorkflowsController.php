@@ -138,7 +138,7 @@ class WorkflowsController extends AppController
         $modules = $this->Workflow->getModules();
         $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
         $workflows = $this->Workflow->fetchWorkflows($this->Auth->user());
-        $modules = $this->Workflow->getModules();
+        $modules = $this->Workflow->attachNotificationToModules($this->Auth->user(), $modules);
         $this->set('selectedWorkflow', $workflow);
         $this->set('workflows', $workflows);
         $this->set('modules', $modules);
@@ -163,6 +163,16 @@ class WorkflowsController extends AppController
         $this->set('data', $trigger);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'view_trigger']);
     }
+
+    // public function getOrderedWorkflowsPerTrigger($trigger_id)
+    // {
+    //     $trigger = $this->Workflow->getModuleByID($trigger_id);
+    //     if (empty($trigger)) {
+    //         throw new NotFoundException(__('Invalid trigger ID'));
+    //     }
+    //     $trigger = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), [$trigger], true)[0];
+    //     return $this->RestResponse->viewData($trigger['Workflows'], 'json');
+    // }
 
     public function rearrangeExecutionOrder($trigger_id)
     {
