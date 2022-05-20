@@ -2,8 +2,8 @@
 if (isset($field['raw'])) {
     $string = $field['raw'];
 } else {
-    $value = Hash::extract($data, $field['path']);
-    $string = empty($value[0]) ? '' : h($value[0]);
+    $value = Hash::get($data, $field['path']);
+    $string = empty($value) ? '' : h($value);
 }
 if (!empty($field['url'])) {
     if (!empty($field['url_vars'])) {
@@ -11,7 +11,7 @@ if (!empty($field['url'])) {
             $field['url_vars'] = [$field['url_vars']];
         }
         foreach ($field['url_vars'] as $k => $path) {
-            $field['url'] = str_replace('{{' . $k . '}}', Hash::extract($data, $path)[0], $field['url']);
+            $field['url'] = str_replace('{{' . $k . '}}', Hash::get($data, $path), $field['url']);
             $temp = explode(':', $field['url']);
             if (!in_array(strtolower($temp[0]), ['http', 'https'])) {
                 $field['url'] = '#';
