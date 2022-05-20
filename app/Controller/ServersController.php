@@ -1154,9 +1154,8 @@ class ServersController extends AppController
                 $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
             }
 
-            // check the size of the session table
-            $sessionCount = 0;
-            $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
+            // get php session diagnostics
+            $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors);
 
             $this->loadModel('AttachmentScan');
             try {
