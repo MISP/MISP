@@ -324,6 +324,14 @@ class StixParser():
             pass
         return misp_object
 
+    def _parse_galaxy_name(self, galaxy_name, default = None):
+        for identifier in galaxy_name.split(' - '):
+            if identifier[0].isalpha() and any(character.isdecimal() for character in identifier[1:]):
+                for name, tag_names in self._synonyms_to_tag_names.items():
+                    if identifier in name:
+                        return tag_names
+        return default
+
     @staticmethod
     def _process_test_filter(value, main_type):
         _is_main_process = any(feature in value for feature in ('parent_ref', 'child_refs'))
@@ -478,7 +486,7 @@ class StixFromMISPParser(StixParser):
             return self._synonyms_to_tag_names[galaxy.name]
         except KeyError:
             print(f'Unknown {galaxy._type} name: {galaxy.name}', file=sys.stderr)
-            return [f'misp-galaxy:{galaxy._type}="{galaxy.name}"']
+            return self._parse_galaxy_name(galaxy.name, default=[f'misp-galaxy:{galaxy._type}="{galaxy.name}"'])
 
     def parse_indicator_attribute(self, indicator):
         attribute = self.create_attribute_dict(indicator)
@@ -1984,10 +1992,7 @@ class ExternalStixParser(StixParser):
     def _check_existing_galaxy_name(self, galaxy_name):
         if galaxy_name in self._synonyms_to_tag_names:
             return self._synonyms_to_tag_names[galaxy_name]
-        for name, tag_names in self._synonyms_to_tag_names.items():
-            if galaxy_name in name:
-                return tag_names
-        return None
+        return self._parse_galaxy_name(galaxy_name)
 
     def create_misp_object(self, stix_object, name=None):
         misp_object = MISPObject(name if name is not None else stix_object.type,
