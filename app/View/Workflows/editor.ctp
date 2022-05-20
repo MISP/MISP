@@ -101,7 +101,7 @@ echo $this->element('genericElements/assetLoader', [
 ]);
 echo $this->element('genericElements/assetLoader', [
     'css' => ['workflows-editor'],
-    'js' => ['workflows-editor/workflows-editor'],
+    'js' => ['workflows-editor/workflows-editor', 'taskScheduler'],
 ]);
 ?>
 
@@ -127,7 +127,7 @@ echo $this->element('genericElements/assetLoader', [
     var all_blocks = <?= json_encode($modules['blocks_all']) ?>;
     var workflow = false
     <?php if (!empty($workflow)) : ?>
-        var workflow = <?= json_encode($workflow) ?>;
+        var workflow = <?= json_encode($selectedWorkflow) ?>;
     <?php endif; ?>
 
     $(document).ready(function() {

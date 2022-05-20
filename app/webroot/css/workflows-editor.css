@@ -182,6 +182,12 @@
     margin: 0.25em 0.5em;
 }
 
+.drawflow svg.connection > path.connection-danger {
+    stroke: #e05952;
+}
+.drawflow svg.connection > path.connection-danger:hover {
+    stroke: #bd362f;
+}
 
 
 /* Custom input/output CSS */

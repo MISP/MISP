@@ -7,6 +7,12 @@ class WorkflowsController extends AppController
         'RequestHandler'
     );
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        $this->Security->unlockedActions[] = 'hasAcyclicGraph';
+    }
+
     public function index()
     {
         $params = [
@@ -237,5 +243,18 @@ class WorkflowsController extends AppController
             }
         }
         return $savedWorkflow;
+    }
+
+    public function hasAcyclicGraph()
+    {
+        $this->request->allowMethod(['post']);
+        $graphData = $this->request->data;
+        $cycles = [];
+        $isAcyclic = $this->Workflow->workflowGraphTool->isAcyclic($graphData, $cycles);
+        $data = [
+            'is_acyclic' => $isAcyclic,
+            'cycles' => $cycles,
+        ];
+        return $this->RestResponse->viewData($data, 'json');
     }
 }

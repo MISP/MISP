@@ -1,5 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('WorkflowGraphTool', 'Tools');
+
 class Workflow extends AppModel
 {
     public $recursive = -1;
@@ -37,6 +39,10 @@ class Workflow extends AppModel
                 'required' => 'create'
             ]
         ],
+        'data' => [
+            'rule' => ['hasAcyclicGraph'],
+            'message' => 'Cannot save a workflow containing a cycle',
+        ]
     ];
 
     public $defaultContain = [
@@ -46,14 +52,18 @@ class Workflow extends AppModel
 
     const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'data'];
 
-    const WORKFLOW_BLOCKING_PATH_NAME = 'output_1';
-    const WORKFLOW_NON_BLOCKING_PATH_NAME = 'output_2';
-
+    const REDIS_KEY_WORKFLOW_NAMESPACE = 'workflow';
     const REDIS_KEY_WORKFLOW_PER_TRIGGER = 'workflow:workflow_list:%s';
     const REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER = 'workflow:workflow_blocking_order_list:%s';
     const REDIS_KEY_TRIGGER_PER_WORKFLOW = 'workflow:trigger_list:%s';
 
     private $moduleByID = [];
+
+    public function __construct($id = false, $table = null, $ds = null)
+    {
+        parent::__construct($id, $table, $ds);
+        $this->workflowGraphTool = new WorkflowGraphTool();
+    }
 
     public function beforeValidate($options = array())
     {
@@ -64,7 +74,6 @@ class Workflow extends AppModel
         if (empty($this->data['Workflow']['timestamp'])) {
             $this->data['Workflow']['timestamp'] = time();
         }
-        $this->data['Workflow']['data'] = JsonTool::encode($this->data['Workflow']['data']);
         return true;
     }
 
@@ -83,9 +92,30 @@ class Workflow extends AppModel
         return $results;
     }
 
-    public function afterSave($created, $options = array())
+    public function beforeSave($options = [])
     {
-        $this->updateListeningTriggers($this->data['Workflow']);
+        $this->data['Workflow']['data'] = JsonTool::encode($this->data['Workflow']['data']);
+        return true;
+    }
+
+    public function afterSave($created, $options = [])
+    {
+        $this->updateListeningTriggers($this->data);
+    }
+
+    public function rebuildRedis($user)
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+        $workflows = $this->fetchWorkflows($user);
+        $keys = $redis->keys(Workflow::REDIS_KEY_WORKFLOW_NAMESPACE . ':*');
+        $redis->delete($keys);
+        foreach ($workflows as $wokflow) {
+            $this->updateListeningTriggers($wokflow);
+        }
     }
 
     /**
@@ -96,27 +126,41 @@ class Workflow extends AppModel
      *
      * @param  array $workflow
      */
-    private function updateListeningTriggers($workflow)
+    public function updateListeningTriggers($workflow)
     {
         try {
             $redis = $this->setupRedisWithException();
         } catch (Exception $e) {
             return false;
         }
-        $workflow = $this->data;
-        $workflow['Workflow']['data'] = JsonTool::decode($workflow['Workflow']['data']);
+        if (!is_array($workflow['Workflow']['data'])) {
+            $workflow['Workflow']['data'] = JsonTool::decode($workflow['Workflow']['data']);
+        }
+        $original_trigger_list_id = $this->getTriggersIDPerWorkflow((int)$workflow['Workflow']['id']);
+        $new_node_trigger_list = $this->workflowGraphTool->extractTriggersFromWorkflow($workflow['Workflow'], true);
+        $new_node_trigger_list_per_id = Hash::combine($new_node_trigger_list, '{n}.data.id', '{n}');
+        $new_trigger_list_id = array_keys($new_node_trigger_list_per_id);
+        $trigger_to_remove = array_diff($original_trigger_list_id, $new_trigger_list_id);
+        $trigger_to_add = array_diff($new_trigger_list_id, $original_trigger_list_id);
         $pipeline = $redis->multi();
-        $trigger_list = $this->getTriggersIDPerWorkflow((int)$workflow['Workflow']['id']);
-        foreach ($trigger_list as $trigger_id) {
+        foreach ($trigger_to_remove as $trigger_id) {
             $pipeline->sRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
             $pipeline->sRem(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
             $pipeline->lRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), $workflow['Workflow']['id'], 0);
         }
-        $listening_triggers = $this->extractTriggerFromWorkflow($workflow);
-        foreach ($listening_triggers as $trigger_id) {
-            $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
-            $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
-            $pipeline->rPush(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
+        $pipeline->exec();
+        $pipeline = $redis->multi();
+        foreach ($trigger_to_add as $trigger_id) {
+            if (
+                $this->workflowGraphTool->triggerHasNonBlockingPath($new_node_trigger_list_per_id[$trigger_id])
+                || $this->workflowGraphTool->triggerHasBlockingPath($new_node_trigger_list_per_id[$trigger_id])
+            ) {
+                $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
+                $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
+                if ($this->workflowGraphTool->triggerHasBlockingPath($new_node_trigger_list_per_id[$trigger_id])) {
+                    $pipeline->rPush(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
+                }
+            }
         }
         $pipeline->exec();
     }
@@ -195,23 +239,6 @@ class Workflow extends AppModel
     }
 
     /**
-     * getTriggerFromWorkflow Return the list of trigger names that are specified in the workflow
-     *
-     * @param  array $workflow
-     * @return array
-     */
-    public function extractTriggerFromWorkflow(array $workflow)
-    {
-        $triggers = [];
-        foreach ($workflow['Workflow']['data'] as $node) {
-            if ($node['data']['module_type'] == 'trigger') {
-                $triggers[] = $node['data']['id'];
-            }
-        }
-        return $triggers;
-    }
-
-    /**
      * buildACLConditions Generate ACL conditions for viewing the workflow
      *
      * @param  array $user
@@ -255,7 +282,7 @@ class Workflow extends AppModel
      *
      * @param  array $user
      * @param  array $triggers
-     * @param  bool $group_per_blocking Wheter or not the workflows should be grouped together if they have a blocking path set
+     * @param  bool $group_per_blocking Whether or not the workflows should be grouped together if they have a blocking path set
      * @return array
      */
     public function attachWorkflowsToTriggers(array $user, array $triggers, bool $group_per_blocking=true): array
@@ -314,20 +341,23 @@ class Workflow extends AppModel
      * @param  bool $group_per_blocking Wheter or not the workflows should be grouped together if they have a blocking path set
      * @return array
      */
-    public function getExecutionOrderForTrigger(array $user, array $trigger, bool $group_per_blocking=true): array
+    public function getExecutionOrderForTrigger(array $user, array $trigger): array
     {
+        if (empty($trigger)) {
+            return ['blocking' => [], 'non-blocking' => [] ];
+        }
         $workflows = $this->fetchWorkflowsForTrigger($user, $trigger['id']);
         $ordered_workflow_ids = $this->getOrderedWorkflowsPerTrigger($trigger['id']);
         return $this->groupWorkflowsPerBlockingType($workflows, $trigger['id'], $ordered_workflow_ids);
     }
 
     /**
-     * groupWorkflowsPerBlockingType Group workflows together if they have a blocking path set
+     * groupWorkflowsPerBlockingType Group workflows together if they have a blocking path set or not. Also, sort the blocking list based on execution order
      *
      * @param  array $workflows
      * @param  string $trigger_id The trigger for which we should decide if it's blocking or not
      * @param  array $ordered_workflow_ids If provided, will sort the blocking workflows based on the workflow_id order in of the provided list
-     * @return bool|array
+     * @return array
      */
     public function groupWorkflowsPerBlockingType(array $workflows, $trigger_id, $ordered_workflow_ids=false): array
     {
@@ -338,11 +368,11 @@ class Workflow extends AppModel
         foreach ($workflows as $workflow) {
             foreach ($workflow['Workflow']['data'] as $block) {
                 if ($block['data']['id'] == $trigger_id) {
-                    if (!empty($block['outputs'][Workflow::WORKFLOW_BLOCKING_PATH_NAME])) {
+                    if ($this->workflowGraphTool->triggerHasBlockingPath($block)) {
                         $order_index = array_search($workflow['Workflow']['id'], $ordered_workflow_ids);
                         $groupedWorkflows['blocking'][$order_index] = $workflow;
                     }
-                    if (!empty($block['outputs'][Workflow::WORKFLOW_NON_BLOCKING_PATH_NAME])) {
+                    if ($this->workflowGraphTool->triggerHasNonBlockingPath($block)) {
                         $groupedWorkflows['non-blocking'][] = $workflow;
                     }
                 }
@@ -352,61 +382,18 @@ class Workflow extends AppModel
         return $groupedWorkflows;
     }
 
-    public function getExecutionPath($user, $id): array
+    /**
+     * isGraphAcyclic Return if the graph is acyclic or not
+     *
+     * @param array $graphData
+     * @return boolean
+     */
+    public function hasAcyclicGraph(array $workflow): bool
     {
-        $this->loadModuleByID();
-        $workflow = $this->fetchWorkflow($user, $id);
-        $trigger_modules = [];
-        $workflowData = [];
-        foreach ($workflow['Workflow']['data'] as $node) { // Re-index data by node ID
-            $workflowData[$node['id']] = $node;
-        }
-        // collect trigger block acting as starting point
-        foreach ($workflowData as $node_id => $node) {
-            $module = $this->moduleByID[$node['data']['id']];
-            if ($module['module_type'] == 'trigger') {
-                $trigger_modules[] = $node;
-            }
-        }
-        // construct execution flow following outputs/inputs of each  blocks
-        $processedNodeIDs = [];
-        foreach ($trigger_modules as $i => $trigger_module) {
-            $this->buildExecutionPathViaConnections($trigger_modules[$i], $workflowData, $processedNodeIDs);
-        }
-        $execution_path = [];
-        foreach ($trigger_modules as $module) {
-            $execution_path[] = $this->cleanNode($module);
-        }
-        return $execution_path;
-    }
-
-    public function buildExecutionPathViaConnections(&$node, $allData, &$processedNodeIDs)
-    {
-        if (!empty($processedNodeIDs[$node['id']])) { // Prevent infinite loop
-            return $node;
-        }
-        $processedNodeIDs[$node['id']] = true;
-        if (!empty($node['outputs'])) {
-            foreach ($node['outputs'] as $output_id => $outputs) {
-                foreach ($outputs as $connections) {
-                    foreach ($connections as $connection) {
-                        $nextNode = $this->buildExecutionPathViaConnections($allData[$connection['node']], $allData, $processedNodeIDs);
-                        $node['next'][] = $this->cleanNode($nextNode);
-                    }
-                }
-            }
-        }
-        return $node;
-    }
-
-    public function cleanNode($node): array
-    {
-        return [
-            'id' => $node['id'],
-            'data' => $node['data'],
-            'module_data' => $this->moduleByID[$node['data']['id']],
-            'next' => $node['next'] ?? [],
-        ];
+        $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
+        $cycles = [];
+        $isAcyclic = $this->workflowGraphTool->isAcyclic($graphData, $cycles);
+        return $isAcyclic;
     }
 
     public function getModules($module_type=false): array
@@ -665,6 +652,9 @@ class Workflow extends AppModel
             if (in_array($module['id'], $module_ids)) {
                 $matchingModules[] = $module;
             }
+        }
+        if (empty($matchingModules)) {
+            return [];
         }
         return $returnAString ? $matchingModules[0] : $matchingModules;
     }

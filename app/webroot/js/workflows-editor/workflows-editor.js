@@ -33,6 +33,7 @@ var dotBlock_IF = doT.template(' \
 var workflow_id = 0
 var contentChanged = false
 var lastModified = 0
+var graphPooler
 
 function sanitizeObject(obj) {
     var newObj = {}
@@ -59,8 +60,18 @@ function initDrawflow() {
     })
     editor.on('nodeDataChanged', invalidateContentCache)
     editor.on('nodeMoved', invalidateContentCache)
-    editor.on('connectionCreated', invalidateContentCache)
-    editor.on('connectionRemoved', invalidateContentCache)
+    editor.on('connectionCreated', function() {
+        invalidateContentCache()
+        if (!editor.isLoading) {
+            graphPooler.do()
+        }
+    })
+    editor.on('connectionRemoved', function() {
+        invalidateContentCache()
+        if (!editor.isLoading) {
+            graphPooler.do()
+        }
+    })
 
     $('#block-tabs a').click(function (e) {
         e.preventDefault();
@@ -116,7 +127,13 @@ function initDrawflow() {
         }
     });
 
-    loadWorkflow()
+    graphPooler = new TaskScheduler(checkGraphProperties, {
+        interval: 10000,
+    })
+
+    loadWorkflow().then(function() {
+        graphPooler.start(undefined)
+    })
     $saveWorkflowButton.click(saveWorkflow)
     $importWorkflowButton.click(importWorkflow)
     $exportWorkflowButton.click(exportWorkflow)
@@ -196,7 +213,7 @@ function addNode(block, position) {
 }
 
 function toggleTriggersDraggableState() {
-    if (editor.disableDraggableStateCheck) {
+    if (editor.isLoading) {
         return
     }
     var data = Object.values(getEditorData())
@@ -244,39 +261,42 @@ function getEditorData() {
 }
 
 function loadWorkflow() {
-    editor.disableDraggableStateCheck = true
-    fetchWorkflow(workflow_id, function(workflow) {
-        lastModified = workflow.timestamp + '000'
-        revalidateContentCache()
+    return new Promise(function (resolve, reject) {
+        editor.isLoading = true
+        fetchWorkflow(workflow_id, function(workflow) {
+            lastModified = workflow.timestamp + '000'
 
-        // We cannot rely on the editor's import function as it recreates the nodes with the saved HTML instead of rebuilding them
-        // We have to manually add the nodes and their connections
-        Object.values(workflow.data).forEach(function(block) {
-            var node_uid = uid() // only used for UI purposes
-            block.data['node_uid'] = node_uid
-            block.data['block_param_html'] = genBlockParamHtml(block.data)
-            var html = getTemplateForBlock(block.data)
-            editor.nodeId = block.id // force the editor to use the saved id of the block instead of generating a new one
-            editor.addNode(
-                block.name,
-                Object.values(block.inputs).length,
-                Object.values(block.outputs).length,
-                block.pos_x,
-                block.pos_y,
-                block.class,
-                block.data,
-                html
-            );
+            // We cannot rely on the editor's import function as it recreates the nodes with the saved HTML instead of rebuilding them
+            // We have to manually add the nodes and their connections
+            Object.values(workflow.data).forEach(function(block) {
+                var node_uid = uid() // only used for UI purposes
+                block.data['node_uid'] = node_uid
+                block.data['block_param_html'] = genBlockParamHtml(block.data)
+                var html = getTemplateForBlock(block.data)
+                editor.nodeId = block.id // force the editor to use the saved id of the block instead of generating a new one
+                editor.addNode(
+                    block.name,
+                    Object.values(block.inputs).length,
+                    Object.values(block.outputs).length,
+                    block.pos_x,
+                    block.pos_y,
+                    block.class,
+                    block.data,
+                    html
+                );
+            })
+            Object.values(workflow.data).forEach(function (block) {
+                for (var input_name in block.inputs) {
+                    block.inputs[input_name].connections.forEach(function(connection) {
+                        editor.addConnection(connection.node, block.id, connection.input, input_name)
+                    })
+                }
+            })
+            editor.isLoading = false
+            toggleTriggersDraggableState()
+            revalidateContentCache()
+            resolve()
         })
-        Object.values(workflow.data).forEach(function (block) {
-            for (var input_name in block.inputs) {
-                block.inputs[input_name].connections.forEach(function(connection) {
-                    editor.addConnection(connection.node, block.id, connection.input, input_name)
-                })
-            }
-        })
-        editor.disableDraggableStateCheck = false
-        toggleTriggersDraggableState()
     })
 }
 
@@ -339,7 +359,8 @@ function saveWorkflow(confirmSave, callback) {
                     }
                 }
             },
-            error: function (jqXHR, textStatus, errorThrown) {
+            error: function (jqXHR, _, _) {
+                errorThrown = jqXHR.responseJSON.errors
                 showMessage('fail', saveFailedMessage + ': ' + errorThrown);
             },
             complete: function () {
@@ -353,6 +374,22 @@ function saveWorkflow(confirmSave, callback) {
             url: formUrl
         })
     })
+}
+
+function checkGraphProperties() {
+    var url = baseurl + "/workflows/hasAcyclicGraph/"
+    var graphData = getEditorData()
+    $.ajax({
+        data: graphData,
+        success: function (data, textStatus) {
+            highlightGraphIssues(data);
+        },
+        error: function () {
+            showMessage('fail', 'Could not check graph properties')
+        },
+        type: "post",
+        url: url,
+    });
 }
 
 function importWorkflow() {
@@ -682,7 +719,28 @@ function setParamValueForInput($input, node_data) {
     return node_data
 }
 
+function getPathForEdge(from_id, to_id) {
+    return $drawflow.find('svg.connection').filter(function() {
+        return $(this).hasClass('node_out_node-' + from_id) && $(this).hasClass('node_in_node-' + to_id)
+    }).find('path.main-path')
+}
+
 // generate unique id for the inputs
 function uid() {
     return (performance.now().toString(36) + Math.random().toString(36)).replace(/\./g, "")
+}
+
+function highlightGraphIssues(graphProperties) {
+    if (!graphProperties.is_acyclic) {
+        graphProperties.cycles.forEach(function(cycle) {
+            getPathForEdge(cycle[0], cycle[1])
+                .addClass('connection-danger')
+                .empty()
+                .append($(document.createElementNS('http://www.w3.org/2000/svg', 'title')).text(cycle[2]))
+        })
+    } else {
+        $drawflow.find('svg.connection > path.main-path')
+            .removeClass('connection-danger')
+            .empty()
+    }
 }
