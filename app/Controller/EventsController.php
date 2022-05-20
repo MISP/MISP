@@ -3150,9 +3150,6 @@ class EventsController extends AppController
     public function automation($legacy = false)
     {
         // Simply display a static view
-        if (!$this->userRole['perm_auth']) {
-            $this->redirect(array('controller' => 'events', 'action' => 'index'));
-        }
         App::uses('BroExport', 'Export');
         $export = new BroExport();
         $temp = $export->mispTypes;
@@ -3180,7 +3177,7 @@ class EventsController extends AppController
         }
         $rpzSettings = $this->Server->retrieveCurrentSettings('Plugin', 'RPZ_');
         $this->set('rpzSettings', $rpzSettings);
-        $this->set('hashTypes', array_keys($this->Event->Attribute->hashTypes));
+        $this->set('hashTypes', array_keys(Attribute::FILE_HASH_TYPES));
         if ($legacy) {
             $this->render('legacy_automation');
         }
@@ -3270,7 +3267,10 @@ class EventsController extends AppController
                     $exportTypes[$k]['progress'] = 0;
                 }
             }
+        } else {
+            $exportTypes = [];
         }
+
         $this->set('sigTypes', array_keys($this->Event->Attribute->typeDefinitions));
         $this->set('export_types', $exportTypes);
     }
@@ -5479,7 +5479,7 @@ class EventsController extends AppController
             if ($event['Event']['disable_correlation']) {
                 $event['Event']['disable_correlation'] = 0;
                 $this->Event->save($event);
-                $this->Event->Attribute->generateCorrelation(false, 0, $event['Event']['id']);
+                $this->Event->Attribute->generateCorrelation(false, $event['Event']['id']);
             } else {
                 $event['Event']['disable_correlation'] = 1;
                 $this->Event->save($event);

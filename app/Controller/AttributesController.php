@@ -1536,6 +1536,12 @@ class AttributesController extends AppController
             if (!isset($params['conditions']['Attribute.deleted'])) {
                 $params['conditions']['Attribute.deleted'] = 0;
             }
+
+            // Force index for performance reasons see #3321
+            if (isset($filters['value'])) {
+                $this->paginate['useIndexHint'] = '(value1, value2)';
+            }
+
             $this->paginate['conditions'] = $params['conditions'];
             $attributes = $this->paginate();
             $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
@@ -1866,12 +1872,11 @@ class AttributesController extends AppController
 
     public function generateCorrelation()
     {
-        if (!self::_isSiteAdmin() || !$this->request->is('post')) {
-            throw new NotFoundException();
-        }
+        $this->request->allowMethod(['post']);
+
         if (!Configure::read('MISP.background_jobs')) {
             $k = $this->Attribute->generateCorrelation();
-            $this->Flash->success(__('All done. ' . $k . ' attributes processed.'));
+            $this->Flash->success(__('All done. %s attributes processed.', $k));
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         } else {
             /** @var Job $job */
@@ -1895,7 +1900,7 @@ class AttributesController extends AppController
                 $jobId
             );
 
-            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
+            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (Administration -> Jobs).'));
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         }
     }
