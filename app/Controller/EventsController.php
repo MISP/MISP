@@ -1665,7 +1665,7 @@ class EventsController extends AppController
         $this->set('mayModify', $this->__canModifyEvent($event));
         $this->set('mayPublish', $this->__canPublishEvent($event));
         try {
-            $instanceKey = $this->Event->CryptographicKey->ingestInstanceKey();
+            $instanceKey = $event['Event']['protected'] ? $this->Event->CryptographicKey->ingestInstanceKey() : null;
         } catch (Exception $e) {
             $instanceKey = null;
         }
