@@ -4,6 +4,7 @@ App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
+App::uses('BetterCakeEventManager', 'Tools');
 
 /**
  * Application Controller
@@ -1441,6 +1442,16 @@ class AppController extends Controller
             return new AppView($this);
         }
         return parent::_getViewObject();
+    }
+
+    public function getEventManager()
+    {
+        if (empty($this->_eventManager)) {
+            $this->_eventManager = new BetterCakeEventManager();
+            $this->_eventManager->attach($this->Components);
+            $this->_eventManager->attach($this);
+        }
+        return $this->_eventManager;
     }
 
     /**
