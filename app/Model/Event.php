@@ -1252,7 +1252,7 @@ class Event extends AppModel
             'fields' => array('Thread.id'),
             'recursive' => -1
         ));
-        $thread_id = !empty($thread) ? $thread['Thread']['id'] : false;
+        $thread_id = !empty($thread) ? (int)$thread['Thread']['id'] : false;
         $relations = array(
             array(
                 'table' => 'attributes',
@@ -1327,10 +1327,17 @@ class Event extends AppModel
                 )
             );
         }
-        App::uses('QueryTool', 'Tools');
-        $queryTool = new QueryTool();
+
+        $db = $this->getDataSource();
+        $connection = $db->getConnection();
         foreach ($relations as $relation) {
-            $queryTool->quickDelete($relation['table'], $relation['foreign_key'], $relation['value'], $this);
+            if ($this->isMysql()) {
+                $query = $connection->prepare('DELETE FROM ' . $relation['table'] . ' WHERE ' . $relation['foreign_key'] . ' = :value');
+            } else {
+                $query = $connection->prepare('DELETE FROM "' . $relation['table'] . '" WHERE "' . $relation['foreign_key'] . '" = :value');
+            }
+            $query->bindValue(':value', $relation['value'], PDO::PARAM_INT);
+            $query->execute();
         }
         $this->set($event);
         return $this->delete(null, false);
