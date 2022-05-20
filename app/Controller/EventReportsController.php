@@ -179,7 +179,7 @@ class EventReportsController extends AppController
             $reports = $this->EventReport->find('all', [
                 'recursive' => -1,
                 'conditions' => $compiledConditions,
-                'contain' => $this->EventReport->defaultContain,
+                'contain' => EventReport::DEFAULT_CONTAIN,
             ]);
             return $this->RestResponse->viewData($reports, $this->response->type());
         } else {

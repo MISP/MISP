@@ -46,7 +46,7 @@ class EventReport extends AppModel
     );
 
     const CAPTURE_FIELDS = array('uuid', 'name', 'content', 'distribution', 'sharing_group_id', 'timestamp', 'deleted', 'event_id');
-    public $defaultContain = array(
+    const DEFAULT_CONTAIN = array(
         'SharingGroup' => array('fields' => array('id', 'name', 'uuid')),
         'Event' => array(
             'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
@@ -355,7 +355,7 @@ class EventReport extends AppModel
     {
         $params = array(
             'conditions' => $this->buildACLConditions($user),
-            'contain' => $this->defaultContain,
+            'contain' => self::DEFAULT_CONTAIN,
             'recursive' => -1
         );
         if ($full) {
