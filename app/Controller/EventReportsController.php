@@ -78,8 +78,9 @@ class EventReportsController extends AppController
         if (!$this->_isRest()) {
             throw new MethodNotAllowedException(__('This function can only be reached via the API.'));
         }
-        $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
-        $proxyMISPElements = $this->EventReport->getProxyMISPElements($this->Auth->user(), $report['EventReport']['event_id']);
+        $user = $this->_closeSession();
+        $report = $this->EventReport->simpleFetchById($user, $reportId);
+        $proxyMISPElements = $this->EventReport->getProxyMISPElements($user, $report['EventReport']['event_id']);
         return $this->RestResponse->viewData($proxyMISPElements, $this->response->type());
     }
 
