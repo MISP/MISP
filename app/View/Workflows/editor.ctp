@@ -86,7 +86,7 @@ foreach ($modules as $moduleType => $module) {
     </div>
 </div>
 
-<div id="block-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+<div id="block-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="Module block modal" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
         <h3>Block options</h3>
@@ -96,6 +96,19 @@ foreach ($modules as $moduleType => $module) {
     </div>
     <div class="modal-footer">
         <button id="delete-selected-node" class="btn btn-danger">Delete</button>
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    </div>
+</div>
+
+<div id="block-notifications-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="Module notification modal" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3><?= __('Module Notifications') ?></h3>
+    </div>
+    <div class="modal-body">
+        <p>Block notifications</p>
+    </div>
+    <div class="modal-footer">
         <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
     </div>
 </div>
@@ -121,6 +134,7 @@ echo $this->element('genericElements/assetLoader', [
     var $drawflow = $('#drawflow')
     var $blockModal = $('#block-modal')
     var $blockModalDeleteButton = $blockModal.find('#delete-selected-node')
+    var $blockNotificationModal = $('#block-notifications-modal')
     var $importWorkflowButton = $('#importWorkflow')
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')

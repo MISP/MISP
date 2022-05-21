@@ -410,10 +410,15 @@ class Workflow extends AppModel
         $triggers = $modules['blocks_trigger'];
         foreach ($triggers as $i => $trigger) {
             $blockingExecutionOrder = $this->getExecutionOrderForTrigger($user, $trigger)['blocking'];
+            $details = [];
+            foreach ($blockingExecutionOrder as $workflow) {
+                $details[] = sprintf('[%s] %s', h($workflow['Workflow']['id']), h($workflow['Workflow']['name']));
+            }
             if (!empty($blockingExecutionOrder)) {
                 $modules['blocks_trigger'][$i]['notifications']['warning'][] = [
                     'text' => __('%s blocking worflows are executed before this trigger', count($blockingExecutionOrder)),
                     'description' => __('The blocking path of this trigger might not be executed. If any of the blocking workflows stop the propagation, this blocking path of this trigger will not be exeucted. However, the deferred path will be executed.'),
+                    'details' => $details,
                 ];
             }
         }

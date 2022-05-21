@@ -43,6 +43,18 @@ var dotBlock_IF = doT.template(' \
     </div> \
 </div>')
 
+var classBySeverity = {
+    'info': 'info',
+    'warning': 'warning',
+    'error': 'danger',
+}
+var iconBySeverity = {
+    'info': 'fa-times-circle',
+    'warning': 'fa-exclamation-triangle',
+    'error': 'fa-exclamation-circle',
+}
+var severities = ['info', 'warning', 'error']
+
 var workflow_id = 0
 var contentChanged = false
 var lastModified = 0
@@ -152,6 +164,10 @@ function initDrawflow() {
         var selectedBlock = getSelectedBlock()
         buildModalForBlock(selectedBlock.id, selectedBlock.data)
     })
+    $blockNotificationModal.on('show', function (evt) {
+        var selectedBlock = getSelectedBlock()
+        buildNotificationModalForBlock(selectedBlock.id, selectedBlock.data)
+    })
     $blockModalDeleteButton.click(function() {
         if (confirm('Are you sure you want to remove this block?')) {
             deleteSelectedNode()
@@ -167,6 +183,14 @@ function buildModalForBlock(node_id, block) {
         .data('selected-block', block)
         .data('selected-node-id', node_id)
     $blockModal.find('.modal-body').empty().append(html)
+}
+
+function buildNotificationModalForBlock(node_id, block) {
+    var html = genBlockNotificationForModalHtml(block)
+    $blockNotificationModal
+        .data('selected-block', block)
+        .data('selected-node-id', node_id)
+    $blockNotificationModal.find('.modal-body').empty().append(html)
 }
 
 function invalidateContentCache() {
@@ -734,17 +758,6 @@ function setParamValueForInput($input, node_data) {
 
 function genBlockNotificationHtml(block) {
     var module = all_blocks_by_id[block.id]
-    var classBySeverity = {
-        'info': 'info',
-        'warning': 'warning',
-        'error': 'danger',
-    }
-    var iconBySeverity = {
-        'info': 'fa-times-circle',
-        'warning': 'fa-exclamation-triangle',
-        'error': 'fa-exclamation-circle',
-    }
-    var severities = ['info', 'warning', 'error']
     var html = ''
     var $notificationContainer = $('<span></span>')
     severities.forEach(function(severity) {
@@ -752,7 +765,7 @@ function genBlockNotificationHtml(block) {
             var notificationTitles = module.notifications[severity].map(function (notification) {
                 return notification.text
             }).join('&#013;')
-            var $notification = $('<button class="btn btn-mini" type="button"></button>')
+            var $notification = $('<a class="btn btn-mini" role="button" href="#block-notifications-modal" data-toggle="modal"></a>')
                 .attr('title', notificationTitles)
                 .addClass('btn-' + classBySeverity[severity])
                 .css({
@@ -767,6 +780,39 @@ function genBlockNotificationHtml(block) {
         }
     })
     html = $notificationContainer[0].outerHTML
+    return html
+}
+
+function genBlockNotificationForModalHtml(block) {
+    var module = all_blocks_by_id[block.id]
+    var html = ''
+    var $notificationMainContainer = $('<div></div>')
+    var reversedSeverities = [].concat(severities)
+    reversedSeverities.reverse()
+    reversedSeverities.forEach(function (severity) {
+        if (module.notifications[severity] && module.notifications[severity].length > 0) {
+            var $notificationSeverityContainer = $('<div></div>')
+                .addClass(['alert', 'alert-'+classBySeverity[severity]])
+            module.notifications[severity].forEach(function(notification) {
+                var $notification = $('<div></div>')
+                $notification.append(
+                    $('<i class="fas"></i>').addClass(iconBySeverity[severity]),
+                    $('<strong></strong>').text(' '+notification.text),
+                    $('<p></p>').addClass('muted').text(notification.description),
+                )
+                if (notification.details.length > 0) {
+                    var notificationDetails = notification.details.map(function(detail) {
+                        return $('<li></li>').text(detail)
+                    })
+                    notificationDetails = $('<ul></ul>').addClass('muted').append(notificationDetails)
+                    $notification.append(notificationDetails)
+                }
+                $notificationSeverityContainer.append($notification)
+            })
+            $notificationMainContainer.append($notificationSeverityContainer)
+        }
+    })
+    html = $notificationMainContainer[0].outerHTML
     return html
 }
 
