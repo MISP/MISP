@@ -1243,6 +1243,10 @@ class Event extends AppModel
         return $data[0];
     }
 
+    /**
+     * @param array $event
+     * @return bool
+     */
     public function quickDelete(array $event)
     {
         $id = (int)$event['Event']['id'];
@@ -1329,6 +1333,7 @@ class Event extends AppModel
         }
 
         $db = $this->getDataSource();
+        $db->begin();
         $connection = $db->getConnection();
         foreach ($relations as $relation) {
             if ($this->isMysql()) {
@@ -1338,6 +1343,9 @@ class Event extends AppModel
             }
             $query->bindValue(':value', $relation['value'], PDO::PARAM_INT);
             $query->execute();
+        }
+        if (!$db->commit()) {
+            return false;
         }
         $this->set($event);
         return $this->delete(null, false);
