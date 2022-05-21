@@ -97,17 +97,17 @@ class StixParser():
     # and write it in the output file
     def saveFile(self):
         for attribute in self.misp_event.attributes:
-            if uuid.UUID(attribute.uuid).version not in _RFC_UUID_VERSIONS:
+            if attribute.uuid.version not in _RFC_UUID_VERSIONS:
                 attribute.uuid = self._sanitize_uuid(attribute)
         for misp_object in self.misp_event.objects:
-            if uuid.UUID(misp_object.uuid).version not in _RFC_UUID_VERSIONS:
+            if misp_object.uuid.version not in _RFC_UUID_VERSIONS:
                 misp_object.uuid = self._sanitize_uuid(misp_object)
                 for reference in misp_object.references:
                     reference.object_uuid = misp_object.uuid
-                    if uuid.UUID(reference.referenced_uuid).version not in _RFC_UUID_VERSIONS:
-                        reference.referenced_uuid = uuid.uuid5(_UUIDv4, reference.referenced_uuid)
+                    if reference.referenced_uuid.version not in _RFC_UUID_VERSIONS:
+                        reference.referenced_uuid = uuid.uuid5(_UUIDv4, str(reference.referenced_uuid))
                 for attribute in misp_object.attributes:
-                    if uuid.UUID(attribute.uuid).version not in _RFC_UUID_VERSIONS:
+                    if attribute.uuid.version not in _RFC_UUID_VERSIONS:
                         attribute.uuid = self._sanitize_uuid(attribute)
         eventDict = self.misp_event.to_json()
         with open(self.outputname, 'wt', encoding='utf-8') as f:
@@ -117,7 +117,7 @@ class StixParser():
     def _sanitize_uuid(misp_feature):
         comment = f'Original UUID was: {misp_feature.uuid}'
         misp_feature.comment = f'{misp_feature.comment} - {comment}' if hasattr(misp_feature, 'comment') else comment
-        return uuid.uuid5(_UUIDv4, misp_feature.uuid)
+        return uuid.uuid5(_UUIDv4, str(misp_feature.uuid))
 
     def parse_marking(self, handling):
         tags = []
