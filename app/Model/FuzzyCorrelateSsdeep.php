@@ -101,10 +101,13 @@ class FuzzyCorrelateSsdeep extends AppModel
                     'Attribute.event_id' => $eventId,
                     'Attribute.type' => 'ssdeep',
                 ),
-                'fields' => 'Attribute.id',
+                'fields' => ['Attribute.id'],
             ));
+            if (empty($attributeId)) {
+                return true;
+            }
         }
 
-        return $this->deleteAll(array('FuzzyCorrelateSsdeep.attribute_id' => $attributeId));
+        return $this->deleteAll(array('FuzzyCorrelateSsdeep.attribute_id' => $attributeId), false);
     }
 }
