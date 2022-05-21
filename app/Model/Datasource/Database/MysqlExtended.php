@@ -97,16 +97,15 @@ class MysqlExtended extends Mysql
      * @return string|null Rendered SQL expression to be run, otherwise null.\
      * @see DboSource::renderStatement()
      */
-
     public function renderStatement($type, $data)
     {
-        if ($type === 'select' && $data['indexHint'] != null) {
+        if ($type === 'select') {
             extract($data);
             $having = !empty($having) ? " $having" : '';
-            return trim("SELECT {$fields} FROM {$table} {$alias} {$indexHint} {$joins} {$conditions} {$group}{$having} {$order} {$limit}{$lock}");
-        } else {
-            return parent::renderStatement($type, $data);
+            $lock = !empty($lock) ? " $lock" : '';
+            return rtrim("SELECT {$fields} FROM {$table} {$alias} {$indexHint} {$joins} {$conditions} {$group}{$having} {$order} {$limit}{$lock}");
         }
+        return parent::renderStatement($type, $data);
     }
 
     /**
@@ -115,13 +114,9 @@ class MysqlExtended extends Mysql
      * @param string|null $useIndexHint USE INDEX hint
      * @return string
      */
-    private function __buildIndexHint($useIndexHint = null): string
+    private function __buildIndexHint($useIndexHint = null): ?string
     {
-        $index = '';
-        if (isset($useIndexHint)) {
-            $index = 'USE INDEX ' . $useIndexHint;
-        }
-        return $index;
+        return isset($useIndexHint) ? ('USE INDEX ' . $useIndexHint) : null;
     }
 
     /**
@@ -176,5 +171,36 @@ class MysqlExtended extends Mysql
             $this->logQuery($sql, $valuesList);
         }
         return $result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function value($data, $column = null, $null = true)
+    {
+        // Fast check if data is int, then return value
+        if (is_int($data)) {
+            return $data;
+        }
+
+        // No need to quote bool values
+        if (is_bool($data)) {
+            return $data ? '1' : '0';
+        }
+
+        // No need to call expensive array_map
+        if (is_array($data) && !empty($data)) {
+            $output = [];
+            foreach ($data as $d) {
+                if (is_int($d)) {
+                    $output[] = $d;
+                } else {
+                    $output[] = parent::value($d, $column);
+                }
+            }
+            return $output;
+        }
+
+        return parent::value($data, $column, $null);
     }
 }
