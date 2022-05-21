@@ -5594,24 +5594,25 @@ class EventsController extends AppController
 
     public function getEventInfoById($id)
     {
+        $user = $this->_closeSession();
         if (empty($id)) {
             throw new MethodNotAllowedException(__('Invalid ID.'));
         }
-        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, [
+        $event = $this->Event->fetchSimpleEvent($user, $id, [
             'fields' => ['Event.id', 'Event.info', 'Event.threat_level_id', 'Event.analysis'],
             'contain' => ['EventTag' => ['Tag.id', 'Tag.name', 'Tag.colour'], 'ThreatLevel.name'],
         ]);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($event, $this->response->type());
-        } else {
-            if ($this->request->is('ajax')) {
-                $this->layout = false;
-            }
-            $this->set('analysisLevels', $this->Event->analysisLevels);
-            $this->set('validUuid', Validation::uuid($id));
-            $this->set('id', $id);
-            $this->set('event', $event);
         }
+
+        if ($this->request->is('ajax')) {
+            $this->layout = false;
+        }
+        $this->set('analysisLevels', $this->Event->analysisLevels);
+        $this->set('validUuid', Validation::uuid($id));
+        $this->set('id', $id);
+        $this->set('event', $event);
     }
 
     public function enrichEvent($id)
