@@ -3,10 +3,12 @@
         'css' => ['query-builder.default', 'attack_matrix'],
         'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph', 'd3', 'd3.custom', 'jquery-ui.min'],
     ]);
+    $title = ($extended ? '[' . __('Extended view') . '] ' : '') . $event['Event']['info'];
     echo $this->element(
         'genericElements/SingleViews/single_view',
         [
-            'title' => ($extended ? '[' . __('Extended view') . '] ' : '') . $event['Event']['info'],
+            'title' => $title,
+            'description' => mb_strlen($title) > 40 ? $event['Event']['info'] : null,
             'data' => $event,
             'fields' => [
                 [
@@ -152,10 +154,6 @@
                     'type' => 'warnings',
                     'warnings' => $warnings,
                     'requirement' => !empty($warnings) && ($me['org_id'] === $event['Event']['orgc_id'] || !empty($me['Role']['perm_site_admin']))
-                ],
-                [
-                    'key' => __('Info'),
-                    'path' => 'Event.info'
                 ],
                 [
                     'key' => __('Published'),
