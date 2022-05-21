@@ -135,10 +135,10 @@ class WorkflowsController extends AppController
 
     public function editor($id = false)
     {
-        $modules = $this->Workflow->getModules();
+        $modules = $this->Workflow->getModulesByType();
+        $modules = $this->Workflow->attachNotificationToModules($this->Auth->user(), $modules);
         $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
         $workflows = $this->Workflow->fetchWorkflows($this->Auth->user());
-        $modules = $this->Workflow->attachNotificationToModules($this->Auth->user(), $modules);
         $this->set('selectedWorkflow', $workflow);
         $this->set('workflows', $workflows);
         $this->set('modules', $modules);
@@ -146,7 +146,7 @@ class WorkflowsController extends AppController
 
     public function triggerIndex()
     {
-        $modules = $this->Workflow->getModules();
+        $modules = $this->Workflow->getModulesByType();
         $triggers = $modules['blocks_trigger'];
         $triggers = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), $triggers, true);
         $this->set('data', $triggers);

@@ -7,11 +7,16 @@ var dotBlock_default = doT.template(' \
                 {{=it.name}} \
             </strong> \
             <span style="margin-left: auto;"> \
-                <a href="#block-modal" role="button" class="btn btn-mini" data-toggle="modal"><i class="fas fa-ellipsis-h"></i></a> \
+                <span class="block-notification-container"> \
+                    {{=it._block_notification_html}} \
+                </span> \
+                <span> \
+                    <a href="#block-modal" role="button" class="btn btn-mini" data-toggle="modal"><i class="fas fa-ellipsis-h"></i></a> \
+                </span> \
             </span> \
         </div> \
         <div class="muted" class="description" style="margin-bottom: 0.5em;">{{=it.description}}</div> \
-        {{=it.block_param_html}} \
+        {{=it._block_param_html}} \
     </div> \
 </div>')
 
@@ -25,8 +30,16 @@ var dotBlock_IF = doT.template(' \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
+            <span style="margin-left: auto;"> \
+                <span class="block-notification-container"> \
+                    {{=it._block_notification_html}} \
+                </span> \
+                <span> \
+                    <a href="#block-modal" role="button" class="btn btn-mini" data-toggle="modal"><i class="fas fa-ellipsis-h"></i></a> \
+                </span> \
+            </span> \
         </div> \
-        {{=it.block_param_html}} \
+        {{=it._block_param_html}} \
     </div> \
 </div>')
 
@@ -86,15 +99,13 @@ function initDrawflow() {
     $chosenBlocks.chosen()
         .on('change', function (evt, param) {
             var selection = param.selected
-            var selected_module = all_blocks.filter(function(block) {
-                return block.id == selection
-            })
+            var selected_module = all_blocks_by_id[selection]
             var canvasBR = $canvas[0].getBoundingClientRect()
             var position = {
                 top: canvasBR.height / 2 - canvasBR.top,
                 left: canvasBR.left + canvasBR.width / 2
             }
-            addNode(selected_module[0], position)
+            addNode(selected_module, position)
         });
 
     $('.sidebar-workflow-block').each(function () {
@@ -195,7 +206,8 @@ function addNode(block, position) {
     // pos_x = pos_x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)) - (editor.precanvas.getBoundingClientRect().x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)));
     // pos_y = pos_y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)) - (editor.precanvas.getBoundingClientRect().y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)));
 
-    block['block_param_html'] = genBlockParamHtml(block)
+    block['_block_param_html'] = genBlockParamHtml(block)
+    block['_block_notification_html'] = genBlockNotificationHtml(block)
     var html = getTemplateForBlock(block)
     var blockClass = block.class === undefined ? [] : block.class
     blockClass = !Array.isArray(blockClass) ? [blockClass] : blockClass
@@ -271,7 +283,8 @@ function loadWorkflow() {
             Object.values(workflow.data).forEach(function(block) {
                 var node_uid = uid() // only used for UI purposes
                 block.data['node_uid'] = node_uid
-                block.data['block_param_html'] = genBlockParamHtml(block.data)
+                block.data['_block_param_html'] = genBlockParamHtml(block.data)
+                block.data['_block_notification_html'] = genBlockNotificationHtml(block.data)
                 var html = getTemplateForBlock(block.data)
                 editor.nodeId = block.id // force the editor to use the saved id of the block instead of generating a new one
                 editor.addNode(
@@ -717,6 +730,44 @@ function setParamValueForInput($input, node_data) {
         }
     }
     return node_data
+}
+
+function genBlockNotificationHtml(block) {
+    var module = all_blocks_by_id[block.id]
+    var classBySeverity = {
+        'info': 'info',
+        'warning': 'warning',
+        'error': 'danger',
+    }
+    var iconBySeverity = {
+        'info': 'fa-times-circle',
+        'warning': 'fa-exclamation-triangle',
+        'error': 'fa-exclamation-circle',
+    }
+    var severities = ['info', 'warning', 'error']
+    var html = ''
+    var $notificationContainer = $('<span></span>')
+    severities.forEach(function(severity) {
+        if (module.notifications[severity] && module.notifications[severity].length > 0) {
+            var notificationTitles = module.notifications[severity].map(function (notification) {
+                return notification.text
+            }).join('&#013;')
+            var $notification = $('<button class="btn btn-mini" type="button"></button>')
+                .attr('title', notificationTitles)
+                .addClass('btn-' + classBySeverity[severity])
+                .css({
+                    'vertical-align': 'middle',
+                    'margin-right': '0.25em',
+                })
+                .append(
+                    $('<i class="fas"></i>').addClass(iconBySeverity[severity]),
+                    $('<strong></strong>').text(' '+module.notifications[severity].length)
+                )
+            $notificationContainer.append($notification)
+        }
+    })
+    html = $notificationContainer[0].outerHTML
+    return html
 }
 
 function getPathForEdge(from_id, to_id) {

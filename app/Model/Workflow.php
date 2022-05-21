@@ -271,7 +271,7 @@ class Workflow extends AppModel
     {
         if (empty($this->moduleByID)) {
             $modules = $this->getModules();
-            foreach ($modules['blocks_all'] as $module) {
+            foreach ($modules as $module) {
                 $this->moduleByID[$module['id']] = $module;
             }
         }
@@ -335,10 +335,10 @@ class Workflow extends AppModel
     }
 
     /**
-     * getExecutionPathsForTrigger Generate the e
+     * getExecutionOrderForTrigger Generate the e
      *
-     * @param  array $triggers
-     * @param  bool $group_per_blocking Wheter or not the workflows should be grouped together if they have a blocking path set
+     * @param  array $user
+     * @param  array $trigger
      * @return array
      */
     public function getExecutionOrderForTrigger(array $user, array $trigger): array
@@ -396,7 +396,31 @@ class Workflow extends AppModel
         return $isAcyclic;
     }
 
-    public function getModules($module_type=false): array
+    public function attachNotificationToModules(array $user, array $modules): array
+    {
+        foreach ($modules as $moduleType => $modulesByType) {
+            foreach ($modulesByType as $i => $module) {
+                $modules[$moduleType][$i]['notifications'] = !empty($module['notifications']) ? $module['notifications'] : [
+                    'error' => [],
+                    'warning' => [],
+                    'info' => [],
+                ];
+            }
+        }
+        $triggers = $modules['blocks_trigger'];
+        foreach ($triggers as $i => $trigger) {
+            $blockingExecutionOrder = $this->getExecutionOrderForTrigger($user, $trigger)['blocking'];
+            if (!empty($blockingExecutionOrder)) {
+                $modules['blocks_trigger'][$i]['notifications']['warning'][] = [
+                    'text' => __('%s blocking worflows are executed before this trigger', count($blockingExecutionOrder)),
+                    'description' => __('The blocking path of this trigger might not be executed. If any of the blocking workflows stop the propagation, this blocking path of this trigger will not be exeucted. However, the deferred path will be executed.'),
+                ];
+            }
+        }
+        return $modules;
+    }
+
+    public function getModulesByType($module_type=false): array
     {
         $blocks_trigger = [
             [
@@ -621,7 +645,6 @@ class Workflow extends AppModel
             'blocks_trigger' => $blocks_trigger,
             'blocks_logic' => $blocks_logic,
             'blocks_action' => $blocks_action,
-            'blocks_all' => array_merge($blocks_trigger, $blocks_logic, $blocks_action),
         ];
         if (!empty($module_type)) {
             if (!empty($modules[$module_type])) {
@@ -631,6 +654,12 @@ class Workflow extends AppModel
             }
         }
         return $modules;
+    }
+
+    public function getModules($module_type = false): array
+    {
+        $modulesByType = $this->getModulesByType();
+        return array_merge($modulesByType['blocks_trigger'], $modulesByType['blocks_logic'], $modulesByType['blocks_action']);
     }
 
     /**
@@ -647,7 +676,8 @@ class Workflow extends AppModel
             $module_ids = [$module_ids];
         }
         $matchingModules = [];
-        $modules = $this->getModules()['blocks_all'];
+        // $modules = $this->getModules()['blocks_all'];
+        $modules = $this->getModules();
         foreach ($modules as $module) {
             if (in_array($module['id'], $module_ids)) {
                 $matchingModules[] = $module;

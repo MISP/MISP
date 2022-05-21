@@ -1,3 +1,9 @@
+<?php
+$allModules = [];
+foreach ($modules as $moduleType => $module) {
+    $allModules = array_merge($allModules, $module);
+}
+?>
 <div class="root-container">
     <div class="main-container">
         <div class="side-panel">
@@ -34,7 +40,7 @@
 
             <h3>Blocks</h3>
             <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off">
-                <?php foreach ($modules['blocks_all'] as $block) : ?>
+                <?php foreach ($allModules as $block) : ?>
                     <option value="<?= h($block['id']) ?>"><?= h($block['name']) ?></option>
                 <?php endforeach; ?>
             </select>
@@ -124,7 +130,8 @@ echo $this->element('genericElements/assetLoader', [
     var $blockContainerLogic = $('#container-logic')
     var $blockContainerAction = $('#container-actions')
     var editor = false
-    var all_blocks = <?= json_encode($modules['blocks_all']) ?>;
+    var all_blocks = <?= json_encode($allModules) ?>;
+    var all_blocks_by_id = <?= json_encode(Hash::combine($allModules, '{n}.id', '{n}')) ?>;
     var workflow = false
     <?php if (!empty($workflow)) : ?>
         var workflow = <?= json_encode($selectedWorkflow) ?>;
