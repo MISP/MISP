@@ -24,7 +24,6 @@
             $date = time();
             $day = 86400;
         ?>
-
         <?php if (in_array('owner_org', $columns, true)): ?><th class="filter"><?= $this->Paginator->sort('Org.name', __('Owner org')) ?></th><?php endif; ?>
         <th><?= $this->Paginator->sort('id', __('ID'), ['direction' => 'desc']) ?></th>
         <?php if (in_array('clusters', $columns, true)): ?><th><?= __('Clusters') ?></th><?php endif; ?>
@@ -40,16 +39,14 @@
         <?php if (in_array('timestamp', $columns, true)): ?><th title="<?= __('Last modified at') ?>"><?= $this->Paginator->sort('timestamp', __('Last modified at')) ?></th><?php endif; ?>
         <?php if (in_array('publish_timestamp', $columns, true)): ?><th title="<?= __('Last modified at') ?>"><?= $this->Paginator->sort('publish_timestamp', __('Published at')) ?></th><?php endif; ?>
         <th class="filter"><?= $this->Paginator->sort('info');?></th>
-        <th title="<?= $eventDescriptions['distribution']['desc'];?>">
-            <?= $this->Paginator->sort('distribution');?>
-        </th>
+        <th title="<?= $eventDescriptions['distribution']['desc'];?>"><?= $this->Paginator->sort('distribution');?></th>
         <th class="actions"><?php echo __('Actions');?></th>
     </tr>
     <?php foreach ($events as $event): $eventId = (int)$event['Event']['id']; ?>
     <tr id="event_<?= $eventId ?>">
         <?php if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):?>
         <td style="width:10px;">
-            <input class="select" type="checkbox" data-id="<?= $eventId ?>" data-uuid="<?= h($event['Event']['uuid']) ?>" />
+            <input class="select" type="checkbox" data-id="<?= $eventId ?>" data-uuid="<?= h($event['Event']['uuid']) ?>">
         </td>
         <?php else: ?>
         <td style="padding-left:0;padding-right:0;"></td>
@@ -218,7 +215,7 @@
     </tr>
     <?php endforeach; ?>
 </table>
-<script type="text/javascript">
+<script>
     var lastSelected = false;
     $(function() {
         $('.select').on('change', function() {
@@ -234,7 +231,7 @@
 
         $('.distributionNetworkToggle').each(function() {
             $(this).distributionNetwork({
-                distributionData: <?php echo json_encode($distributionData); ?>,
+                distributionData: <?= json_encode($distributionData, JSON_UNESCAPED_UNICODE); ?>,
             });
         });
     });
