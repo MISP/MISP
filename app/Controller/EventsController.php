@@ -3310,13 +3310,13 @@ class EventsController extends AppController
         return $difference . " " . $periods[$j] . " ago";
     }
 
-    public function restSearchExport($id=null, $returnFormat=null)
+    public function restSearchExport($id = null, $returnFormat = null)
     {
         if (is_null($returnFormat)) {
             if (is_numeric($id)) {
                 $idList = [$id];
             } else {
-                $idList = json_decode($id, true);
+                $idList = $this->_jsonDecode($id);
             }
             if (empty($idList)) {
                 throw new NotFoundException(__('Invalid input.'));
@@ -3331,7 +3331,7 @@ class EventsController extends AppController
                 if (is_numeric($idList) || Validation::uuid($idList)) {
                     $idList = array($idList);
                 } else {
-                    $idList = $this->Event->jsonDecode($idList);
+                    $idList = $this->_jsonDecode($idList);
                 }
             }
             if (empty($idList)) {
