@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property Event $Event
+ * @property SharingGroup $SharingGroup
  */
 class EventReport extends AppModel
 {
@@ -249,10 +250,9 @@ class EventReport extends AppModel
      */
     public function buildACLConditions(array $user)
     {
-        $this->Event = ClassRegistry::init('Event');
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $eventConditions = $this->Event->createEventConditions($user);
             $conditions = array(
                 'AND' => array(
@@ -282,9 +282,8 @@ class EventReport extends AppModel
      */
     public function attachReportCountsToEvents(array $user, $events)
     {
-        $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
         }
         foreach ($events as $k => $event) {
             $conditions = [

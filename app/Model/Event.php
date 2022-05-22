@@ -491,10 +491,7 @@ class Event extends AppModel
      */
     public function attachCorrelationCountToEvents(array $user, array $events)
     {
-        $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-        if (!isset($sgids) || empty($sgids)) {
-            $sgids = array(-1);
-        }
+        $sgids = $this->SharingGroup->authorizedIds($user);
         $eventIds = array_column(array_column($events, 'Event'), 'id');
         $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventIds, $sgids);
         $this->Attribute->Correlation->virtualFields['count'] = 'count(distinct(Correlation.event_id))';
@@ -709,7 +706,7 @@ class Event extends AppModel
             $this->{$correlationModelName} = ClassRegistry::init($correlationModelName);
         }
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $conditionsCorrelation = array(
                 'AND' => array(
                     $correlationModelName . '.1_' . $scope . '_id' => $id,
@@ -1340,7 +1337,7 @@ class Event extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions['AND']['OR'] = [
                 'Event.org_id' => $user['org_id'],
@@ -1772,7 +1769,7 @@ class Event extends AppModel
         $flatten = (bool)$options['flatten'];
 
         // restricting to non-private or same org if the user is not a site-admin.
-        $sgids = $this->cacheSgids($user, $useCache);
+        $sgids = $this->SharingGroup->authorizedIds($user);
         if (!$isSiteAdmin) {
             // if delegations are enabled, check if there is an event that the current user might see because of the request itself
             if (Configure::read('MISP.delegation')) {
@@ -5711,22 +5708,6 @@ class Event extends AppModel
             'extension' => $module['mispattributes']['outputFileExtension'],
             'response' => $module['mispattributes']['responseType']
         ];
-    }
-
-    public function cacheSgids($user, $useCache = false)
-    {
-        if ($useCache && isset($this->assetCache['sgids'])) {
-            return $this->assetCache['sgids'];
-        } else {
-            $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-            if (empty($sgids)) {
-                $sgids = array(-1);
-            }
-            if ($useCache) {
-                $this->assetCache['sgids'] = $sgids;
-            }
-            return $sgids;
-        }
     }
 
     public function __cacheSharingGroupData($user, $useCache = false)

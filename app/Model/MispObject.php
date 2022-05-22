@@ -488,7 +488,7 @@ class MispObject extends AppModel
             return [];
         }
 
-        $sgids = $this->Event->cacheSgids($user, true);
+        $sgids = $this->SharingGroup->authorizedIds($user);
         return [
             'AND' => [
                 'OR' => [
@@ -543,7 +543,7 @@ class MispObject extends AppModel
     {
         $attributeConditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $attributeConditions = array(
                 'OR' => array(
                     array(
