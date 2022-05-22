@@ -751,13 +751,13 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     if (undefined != addData['local'] && addData['local']) {
         localFlag = '/local:1';
     }
-    url = baseurl + "/tag_collections/addTag/" + tag_collection_id + localFlag;
+    var url = baseurl + "/tag_collections/addTag/" + tag_collection_id + localFlag;
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #TagCollectionTag').val(JSON.stringify(selected_tag_ids));
+        var $formData = $(formData);
+        $formData.find('#TagCollectionTag').val(JSON.stringify(selected_tag_ids));
         xhr({
-            data: $('#TagCollectionAddTagForm').serialize(),
-            success:function (data, textStatus) {
+            data: $formData.serialize(),
+            success:function (data) {
                 handleGenericAjaxResponse(data);
                 refreshTagCollectionRow(tag_collection_id);
             },
@@ -769,7 +769,6 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
-                $('#temp').remove();
             },
             type:"post",
             url: url
@@ -942,18 +941,16 @@ function multiSelectToggleFeeds(on, cache) {
 
 function multiSelectToggleField(scope, action, fieldName, enabled) {
     var selected = [];
-    $(".select").each(function() {
-        if ($(this).is(":checked")) {
-            var temp = $(this).data("id");
-            if (temp != null) {
-                selected.push(temp);
-            }
+    $(".select:checked").each(function() {
+        var temp = $(this).data("id");
+        if (temp != null) {
+            selected.push(temp);
         }
     });
     $.get(baseurl + "/" + scope + "/" + action + "/" + fieldName + "/" + enabled, function(data) {
-        $('body').append($('<div id="temp"/>').html(data));
-        $('#temp form #UserUserIds').val(JSON.stringify(selected));
-        $('#temp form')[0].submit();
+        var $formData = $(data);
+        $formData.find("#UserUserIds").val(JSON.stringify(selected));
+        $formData.find("form")[0].submit();
     }).fail(xhrFailCallback);
 }
 
