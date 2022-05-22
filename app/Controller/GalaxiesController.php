@@ -319,17 +319,17 @@ class GalaxiesController extends AppController
 
     public function selectGalaxy($target_id, $target_type='event', $namespace='misp', $noGalaxyMatrix = false)
     {
+        $this->_closeSession();
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
         $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
         $eventid = !empty($this->params['named']['eventid']) ? $this->params['named']['eventid'] : '0';
-        $conditions = $namespace === '0' ? array() : array('namespace' => $namespace);
-        $conditions[] = [
-            'enabled' => true
-        ];
-        if(!$local) {
-            $conditions[] = [
-                'local_only' => 0
-            ];
+
+        $conditions = ['enabled' => true];
+        if ($namespace !== '0') {
+            $conditions['namespace'] = $namespace;
+        }
+        if (!$local) {
+            $conditions['local_only'] = false;
         }
         $galaxies = $this->Galaxy->find('all', array(
             'recursive' => -1,
@@ -383,21 +383,21 @@ class GalaxiesController extends AppController
 
     public function selectGalaxyNamespace($target_id, $target_type='event', $noGalaxyMatrix = false)
     {
-        $namespaces = $this->Galaxy->find('list', array(
+        $this->_closeSession();
+        $namespaces = $this->Galaxy->find('column', array(
             'recursive' => -1,
-            'fields' => array('namespace', 'namespace'),
+            'fields' => array('namespace'),
             'conditions' => array('enabled' => 1),
-            'group' => array('namespace'),
+            'unique' => true,
             'order' => array('namespace asc')
         ));
         $local = !empty($this->params['named']['local']) ? '1' : '0';
         $eventid = !empty($this->params['named']['eventid']) ? $this->params['named']['eventid'] : '0';
-        $items = array();
         $noGalaxyMatrix = $noGalaxyMatrix ? '1' : '0';
-        $items[] = array(
+        $items = [[
             'name' => __('All namespaces'),
             'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/' . $noGalaxyMatrix . '/local:' . $local . '/eventid:' . $eventid
-        );
+        ]];
         foreach ($namespaces as $namespace) {
             $items[] = array(
                 'name' => $namespace,
@@ -414,7 +414,7 @@ class GalaxiesController extends AppController
 
     public function selectCluster($target_id, $target_type = 'event', $selectGalaxy = false)
     {
-        $conditions = array();
+        $user = $this->_closeSession();
         $conditions = array(
             'OR' => array(
                 'GalaxyCluster.published' => true,
@@ -431,14 +431,14 @@ class GalaxiesController extends AppController
             $conditions['GalaxyCluster.galaxy_id'] = $selectGalaxy;
         }
         $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
-        $data = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
-                'conditions' => $conditions,
-                'fields' => array('value', 'description', 'source', 'type', 'id', 'uuid'),
-                'order' => array('value asc'),
+        $data = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($user, array(
+            'conditions' => $conditions,
+            'fields' => array('value', 'description', 'source', 'type', 'id', 'uuid'),
+            'order' => array('value asc'),
         ), false);
         $clusters = array();
         $cluster_ids = array();
-        foreach ($data as $k => $cluster) {
+        foreach ($data as $cluster) {
             $cluster_ids[] = $cluster['GalaxyCluster']['id'];
         }
         $synonyms = $this->Galaxy->GalaxyCluster->GalaxyElement->find('all', array(
@@ -446,13 +446,14 @@ class GalaxiesController extends AppController
                 'GalaxyElement.galaxy_cluster_id' => $cluster_ids,
                 'GalaxyElement.key' => 'synonyms'
             ),
+            'fields' => ['GalaxyElement.value'],
             'recursive' => -1
         ));
         $sorted_synonyms = array();
         foreach ($synonyms as $synonym) {
             $sorted_synonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym;
         }
-        foreach ($data as $k => $cluster) {
+        foreach ($data as $cluster) {
             $cluster['GalaxyCluster']['synonyms_string'] = array();
             if (!empty($sorted_synonyms[$cluster['GalaxyCluster']['id']])) {
                 foreach ($sorted_synonyms[$cluster['GalaxyCluster']['id']] as $element) {
@@ -466,17 +467,14 @@ class GalaxiesController extends AppController
             $clusters[$cluster['GalaxyCluster']['type']][$cluster['GalaxyCluster']['uuid']] = $cluster['GalaxyCluster'];
         }
         ksort($clusters);
-        $this->set('target_id', $target_id);
-        $this->set('target_type', $target_type);
 
         $items = array();
-        foreach ($clusters as $namespace => $cluster_data) {
-            foreach ($cluster_data as $k => $cluster) {
-                $name = $cluster['value'];
+        foreach ($clusters as $cluster_data) {
+            foreach ($cluster_data as $cluster) {
                 $optionName = $cluster['value'];
                 if ($cluster['synonyms_string'] !== '') {
                     $synom = __('Synonyms: ') . $cluster['synonyms_string'];
-                    $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . $cluster['synonyms_string'] . ')' : '';
+                    $optionName .= ' (' . $cluster['synonyms_string'] . ')';
                 } else {
                     $synom = '';
                 }
@@ -484,7 +482,7 @@ class GalaxiesController extends AppController
                     'name' => $optionName,
                     'value' => $cluster['id'],
                     'template' => array(
-                        'name' => $name,
+                        'name' => $cluster['value'],
                         'infoExtra' => $cluster['description'],
                     ),
                     'additionalData' => array(
@@ -495,30 +493,29 @@ class GalaxiesController extends AppController
                     $itemParam['template']['infoContextual'] = $synom;
                 }
                 $items[] = $itemParam;
-                unset($cluster_data[$k]);
             }
         }
-        $onClickForm = 'quickSubmitGalaxyForm';
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($items, $this->response->type());
-        } else {
-            $mirrorOnEventEnabled = Configure::read("MISP.enable_clusters_mirroring_from_attributes_to_event");
-            $mirrorOnEvent = $mirrorOnEventEnabled && $target_type == 'attribute';
-            $this->set('mirrorOnEvent', $mirrorOnEvent);
-            $this->set('items', $items);
-            $this->set('options', array( // set chosen (select picker) options
-                'functionName' => $onClickForm,
-                'multiple' => $target_type == 'galaxyClusterRelation' ? 0 : '-1',
-                'select_options' => array(
-                    'additionalData' => array(
-                        'target_id' => $target_id,
-                        'target_type' => $target_type,
-                        'local' => $local
-                    )
-                ),
-            ));
-            $this->render('ajax/cluster_choice');
         }
+        $mirrorOnEventEnabled = Configure::read("MISP.enable_clusters_mirroring_from_attributes_to_event");
+        $mirrorOnEvent = $mirrorOnEventEnabled && $target_type == 'attribute';
+        $this->set('target_id', $target_id);
+        $this->set('target_type', $target_type);
+        $this->set('mirrorOnEvent', $mirrorOnEvent);
+        $this->set('items', $items);
+        $this->set('options', array( // set chosen (select picker) options
+            'functionName' => 'quickSubmitGalaxyForm',
+            'multiple' => $target_type == 'galaxyClusterRelation' ? 0 : '-1',
+            'select_options' => array(
+                'additionalData' => array(
+                    'target_id' => $target_id,
+                    'target_type' => $target_type,
+                    'local' => $local
+                )
+            ),
+        ));
+        $this->render('ajax/cluster_choice');
     }
 
     public function attachCluster($target_id, $target_type = 'event')
