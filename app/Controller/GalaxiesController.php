@@ -446,7 +446,7 @@ class GalaxiesController extends AppController
                 'GalaxyElement.galaxy_cluster_id' => $cluster_ids,
                 'GalaxyElement.key' => 'synonyms'
             ),
-            'fields' => ['GalaxyElement.value'],
+            'fields' => ['GalaxyElement.galaxy_cluster_id', 'GalaxyElement.value'],
             'recursive' => -1
         ));
         $sorted_synonyms = array();
