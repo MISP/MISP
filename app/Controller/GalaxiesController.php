@@ -430,41 +430,29 @@ class GalaxiesController extends AppController
         if ($selectGalaxy) {
             $conditions['GalaxyCluster.galaxy_id'] = $selectGalaxy;
         }
-        $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
-        $data = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($user, array(
+        $data = array_column($this->Galaxy->GalaxyCluster->fetchGalaxyClusters($user, array(
             'conditions' => $conditions,
             'fields' => array('value', 'description', 'source', 'type', 'id', 'uuid'),
             'order' => array('value asc'),
-        ), false);
-        $clusters = array();
-        $cluster_ids = array();
-        foreach ($data as $cluster) {
-            $cluster_ids[] = $cluster['GalaxyCluster']['id'];
-        }
+        )), 'GalaxyCluster');
         $synonyms = $this->Galaxy->GalaxyCluster->GalaxyElement->find('all', array(
             'conditions' => array(
-                'GalaxyElement.galaxy_cluster_id' => $cluster_ids,
+                'GalaxyElement.galaxy_cluster_id' => array_column($data, 'id'),
                 'GalaxyElement.key' => 'synonyms'
             ),
             'fields' => ['GalaxyElement.galaxy_cluster_id', 'GalaxyElement.value'],
             'recursive' => -1
         ));
-        $sorted_synonyms = array();
+        $sortedSynonyms = array();
         foreach ($synonyms as $synonym) {
-            $sorted_synonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym;
+            $sortedSynonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym['GalaxyElement']['value'];
         }
+        $clusters = [];
         foreach ($data as $cluster) {
-            $cluster['GalaxyCluster']['synonyms_string'] = array();
-            if (!empty($sorted_synonyms[$cluster['GalaxyCluster']['id']])) {
-                foreach ($sorted_synonyms[$cluster['GalaxyCluster']['id']] as $element) {
-                    $cluster['GalaxyCluster']['synonyms_string'][] = $element['GalaxyElement']['value'];
-                    $cluster['GalaxyElement'][] = $element['GalaxyElement'];
-                }
-                unset($sorted_synonyms[$cluster['GalaxyCluster']['id']]);
+            if (!empty($sortedSynonyms[$cluster['id']])) {
+                $cluster['synonyms_string'] = implode(', ', $sortedSynonyms[$cluster['id']]);
             }
-            $cluster['GalaxyCluster']['synonyms_string'] = implode(', ', $cluster['GalaxyCluster']['synonyms_string']);
-            unset($cluster['GalaxyElement']);
-            $clusters[$cluster['GalaxyCluster']['type']][$cluster['GalaxyCluster']['uuid']] = $cluster['GalaxyCluster'];
+            $clusters[$cluster['type']][$cluster['uuid']] = $cluster;
         }
         ksort($clusters);
 
@@ -472,11 +460,8 @@ class GalaxiesController extends AppController
         foreach ($clusters as $cluster_data) {
             foreach ($cluster_data as $cluster) {
                 $optionName = $cluster['value'];
-                if ($cluster['synonyms_string'] !== '') {
-                    $synom = __('Synonyms: ') . $cluster['synonyms_string'];
+                if (isset($cluster['synonyms_string'])) {
                     $optionName .= ' (' . $cluster['synonyms_string'] . ')';
-                } else {
-                    $synom = '';
                 }
                 $itemParam = array(
                     'name' => $optionName,
@@ -489,8 +474,8 @@ class GalaxiesController extends AppController
                         'uuid' => $cluster['uuid']
                     )
                 );
-                if ($cluster['synonyms_string'] !== '') {
-                    $itemParam['template']['infoContextual'] = $synom;
+                if (isset($cluster['synonyms_string'])) {
+                    $itemParam['template']['infoContextual'] =  __('Synonyms: ') . $cluster['synonyms_string'];
                 }
                 $items[] = $itemParam;
             }
@@ -504,6 +489,7 @@ class GalaxiesController extends AppController
         $this->set('target_type', $target_type);
         $this->set('mirrorOnEvent', $mirrorOnEvent);
         $this->set('items', $items);
+        $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
         $this->set('options', array( // set chosen (select picker) options
             'functionName' => 'quickSubmitGalaxyForm',
             'multiple' => $target_type == 'galaxyClusterRelation' ? 0 : '-1',
