@@ -2331,6 +2331,7 @@ class UsersController extends AppController
 
     public function searchGpgKey($email = false)
     {
+        session_abort();
         if (!$email) {
             throw new NotFoundException('No email provided.');
         }
@@ -2339,7 +2340,6 @@ class UsersController extends AppController
             throw new NotFoundException('No keys found for given email at keyserver.');
         }
         $this->set('keys', $keys);
-        $this->autorender = false;
         $this->layout = false;
         $this->render('ajax/fetchpgpkey');
     }
