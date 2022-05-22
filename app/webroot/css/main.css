@@ -1193,11 +1193,17 @@ li .generic-picker-item-element-check {
     margin-right: 5px;
 }
 
+.generic-picker-item-element-info {
+    float:  right;
+    line-height: 13px;
+    margin-left: 5px;
+}
+
 .chosen-single .generic-picker-item-element-info {
     margin-top: 5px;
 }
 
-.chosen-single .apply_css_arrow{
+.chosen-single .apply_css_arrow {
     display: none !important;
 }
 
