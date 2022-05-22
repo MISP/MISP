@@ -805,4 +805,47 @@ class Tag extends AppModel
         }
         return $full_print_buffer;
     }
+
+    /**
+     * Similar method as `Event::massageTags`, but just removes tags that are part of existing galaxy
+     * @param array $user
+     * @param array $data
+     * @param string $dataType
+     * @return array
+     */
+    public function removeGalaxyClusterTags(array $user, array $data, $dataType = 'Event')
+    {
+        $possibleGalaxyClusterTag = [];
+        foreach ($data[$dataType . 'Tag'] as $k => &$dataTag) {
+            if (empty($dataTag['Tag'])) {
+                unset($data[$dataType . 'Tag'][$k]);
+                continue;
+            }
+            $dataTag['Tag']['local'] = empty($dataTag['local']) ? 0 : 1;
+            if (substr($dataTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
+                $possibleGalaxyClusterTag[] = $dataTag['Tag']['name'];
+            }
+        }
+        unset($dataTag);
+
+        if (empty($possibleGalaxyClusterTag)) {
+            return $data;
+        }
+
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $conditions = $this->GalaxyCluster->buildConditions($user);
+        $conditions['GalaxyCluster.tag_name'] = $possibleGalaxyClusterTag;
+        $galaxyClusterTags = $this->GalaxyCluster->find('column', [
+            'conditions' => $conditions,
+            'fields' => ['GalaxyCluster.tag_name'],
+        ]);
+
+        foreach ($data[$dataType . 'Tag'] as $k => $dataTag) {
+            if (in_array($dataTag['Tag']['name'], $galaxyClusterTags, true)) {
+                unset($data[$dataType . 'Tag'][$k]);
+            }
+        }
+
+        return $data;
+    }
 }

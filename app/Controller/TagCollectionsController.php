@@ -13,29 +13,29 @@ class TagCollectionsController extends AppController
     );
 
     public $paginate = array(
-            'limit' => 60,
-            'order' => array(
-                    'TagCollection.name' => 'ASC'
+        'limit' => 60,
+        'order' => array(
+                'TagCollection.name' => 'ASC'
+        ),
+        'recursive' => -1,
+        'contain' => array(
+            'TagCollectionTag' => array(
+                'Tag'
             ),
-            'recursive' => -1,
-            'contain' => array(
-                'TagCollectionTag' => array(
-                    'Tag'
-                ),
-                'Organisation' => array(
-                    'fields' => array(
-                        'Organisation.id',
-                        'Organisation.name',
-                        'Organisation.uuid'
-                    )
-                ),
-                'User' => array(
-                    'fields' => array(
-                        'User.email',
-                        'User.id'
-                    )
+            'Organisation' => array(
+                'fields' => array(
+                    'Organisation.id',
+                    'Organisation.name',
+                    'Organisation.uuid'
+                )
+            ),
+            'User' => array(
+                'fields' => array(
+                    'User.email',
+                    'User.id'
                 )
             )
+        )
     );
 
     public function add()
@@ -446,7 +446,6 @@ class TagCollectionsController extends AppController
 
     public function index()
     {
-        //$this->Auth->user('Role')['perm_site_admin']);
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
             $conditions = array(
@@ -512,9 +511,9 @@ class TagCollectionsController extends AppController
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($list, $this->response->type());
-        } else {
-            $this->set('list', $list);
         }
+        $this->set('list', $list);
+        $this->set('title_for_layout', __('Tag Collections'));
     }
 
     public function getRow($id)

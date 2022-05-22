@@ -72,7 +72,7 @@ class GenericPickerHelper extends AppHelper
         $pill_html = '<li><a href="#" data-toggle="pill" class="pill-pre-picker"';
         $pill_html .= ' ' . $this->add_link_params($param, $defaults) . '>';
         if (isset($param['img'])) {
-            $pill_html .= '<img src="' . h($param['img']) . '" style="margin-right: 5px; height: 14px;">';
+            $pill_html .= '<img src="' . h($param['img']) . '" style="margin-right: 5px; height: 11px;">';
         } else if (isset($param['icon'])) {
             $icon = $param['icon'];
             $pill_html .= '<span class="fa fa-' . h($icon) . '" style="margin-right: 5px;"></span>';

@@ -1408,7 +1408,7 @@ class EventsController extends AppController
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
-        $this->set('mayModify', $this->__canModifyEvent($event));
+        $this->set('mayModify', $this->__canModifyEvent($event, $user));
         $this->set('mayPublish', $this->__canPublishEvent($event));
         $this->response->disableCache();
 
@@ -1422,7 +1422,7 @@ class EventsController extends AppController
         }
 
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
-            $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($this->Auth->user()));
+            $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($user));
         }
         $this->set('currentUri', $this->request->here);
         $this->layout = false;
@@ -1662,7 +1662,7 @@ class EventsController extends AppController
         $this->set('object_count', $objectCount);
         $this->set('warnings', $this->Event->generateWarnings($event));
         $this->set('menuData', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
-        $this->set('mayModify', $this->__canModifyEvent($event));
+        $this->set('mayModify', $this->__canModifyEvent($event, $user));
         $this->set('mayPublish', $this->__canPublishEvent($event));
         try {
             $instanceKey = $event['Event']['protected'] ? $this->Event->CryptographicKey->ingestInstanceKey() : null;
@@ -3310,13 +3310,13 @@ class EventsController extends AppController
         return $difference . " " . $periods[$j] . " ago";
     }
 
-    public function restSearchExport($id=null, $returnFormat=null)
+    public function restSearchExport($id = null, $returnFormat = null)
     {
         if (is_null($returnFormat)) {
             if (is_numeric($id)) {
                 $idList = [$id];
             } else {
-                $idList = json_decode($id, true);
+                $idList = $this->_jsonDecode($id);
             }
             if (empty($idList)) {
                 throw new NotFoundException(__('Invalid input.'));
@@ -3331,7 +3331,7 @@ class EventsController extends AppController
                 if (is_numeric($idList) || Validation::uuid($idList)) {
                     $idList = array($idList);
                 } else {
-                    $idList = $this->Event->jsonDecode($idList);
+                    $idList = $this->_jsonDecode($idList);
                 }
             }
             if (empty($idList)) {
@@ -5594,24 +5594,25 @@ class EventsController extends AppController
 
     public function getEventInfoById($id)
     {
+        $user = $this->_closeSession();
         if (empty($id)) {
             throw new MethodNotAllowedException(__('Invalid ID.'));
         }
-        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, [
+        $event = $this->Event->fetchSimpleEvent($user, $id, [
             'fields' => ['Event.id', 'Event.info', 'Event.threat_level_id', 'Event.analysis'],
             'contain' => ['EventTag' => ['Tag.id', 'Tag.name', 'Tag.colour'], 'ThreatLevel.name'],
         ]);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($event, $this->response->type());
-        } else {
-            if ($this->request->is('ajax')) {
-                $this->layout = false;
-            }
-            $this->set('analysisLevels', $this->Event->analysisLevels);
-            $this->set('validUuid', Validation::uuid($id));
-            $this->set('id', $id);
-            $this->set('event', $event);
         }
+
+        if ($this->request->is('ajax')) {
+            $this->layout = false;
+        }
+        $this->set('analysisLevels', $this->Event->analysisLevels);
+        $this->set('validUuid', Validation::uuid($id));
+        $this->set('id', $id);
+        $this->set('event', $event);
     }
 
     public function enrichEvent($id)
