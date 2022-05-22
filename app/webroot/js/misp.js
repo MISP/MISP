@@ -763,7 +763,7 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
             },
             error:function() {
                 showMessage('fail', 'Could not add tag.');
-                loadTagCollectionTags(tag_collection_id);
+                refreshTagCollectionRow(tag_collection_id);
             },
             complete:function() {
                 $("#popover_form").fadeOut();
@@ -783,7 +783,7 @@ function refreshTagCollectionRow(tag_collection_id) {
         error:function() {
             showMessage('fail', 'Could not fetch updates to the modified row.');
         },
-        success: function (data, textStatus) {
+        success: function (data) {
             $('[data-row-id="' + tag_collection_id + '"]').replaceWith(data);
         }
     });
@@ -1088,17 +1088,6 @@ function loadGalaxies(id, scope) {
             }
         },
         url: baseurl + "/galaxies/showGalaxies/" + id + "/" + scope,
-    });
-}
-
-function loadTagCollectionTags(id) {
-    $.ajax({
-        dataType:"html",
-        cache: false,
-        success:function (data) {
-            $(".tagCollectionTagContainer").html(data);
-        },
-        url: baseurl + "/tags/showEventTag/" + id,
     });
 }
 
