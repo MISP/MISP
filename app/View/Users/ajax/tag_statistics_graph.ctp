@@ -25,5 +25,5 @@
     var root = <?php echo json_encode($treemap); ?>;
     var flatData = <?php echo json_encode($flatData); ?>;
     var taxonomies = <?php echo json_encode($taxonomies); ?>;
-    var hiddenTaxonomies = [];
+    tagStatisticGraph(root, flatData, taxonomies);
 </script>
