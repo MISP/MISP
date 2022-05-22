@@ -1189,9 +1189,7 @@ function openGenericModal(url, modalData, callback) {
                 }
             });
         },
-        error: function (data, textStatus, errorThrown) {
-            showMessage('fail', textStatus + ": " + errorThrown);
-        }
+        error: xhrFailCallback,
     });
 }
 
