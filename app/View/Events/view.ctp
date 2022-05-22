@@ -135,7 +135,7 @@
                 ],
                 [
                     'key' => __('Analysis'),
-                    'key_title' => h($eventDescriptions['analysis']['desc']),
+                    'key_title' => $eventDescriptions['analysis']['desc'],
                     'path' => 'Event.analysis',
                     'type' => 'mapping',
                     'mapping' => $analysisLevels
