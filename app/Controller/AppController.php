@@ -1295,21 +1295,24 @@ class AppController extends Controller
      * Returns true if user can modify given event.
      *
      * @param array $event
+     * @param array|null $user If empty, currently logged user will be used
      * @return bool
      */
-    protected function __canModifyEvent(array $event)
+    protected function __canModifyEvent(array $event, $user = null)
     {
         if (!isset($event['Event'])) {
             throw new InvalidArgumentException('Passed object does not contain an Event.');
         }
 
-        if ($this->userRole['perm_site_admin']) {
+        $user = $user ?: $this->Auth->user();
+
+        if ($user['Role']['perm_site_admin']) {
             return true;
         }
-        if ($this->userRole['perm_modify_org'] && $event['Event']['orgc_id'] == $this->Auth->user()['org_id']) {
+        if ($user['Role']['perm_modify_org'] && $event['Event']['orgc_id'] == $user['org_id']) {
             return true;
         }
-        if ($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user()['id']) {
+        if ($user['Role']['perm_modify'] && $event['Event']['user_id'] == $user['id']) {
             return true;
         }
         return false;

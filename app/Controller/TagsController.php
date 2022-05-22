@@ -349,9 +349,10 @@ class TagsController extends AppController
 
     public function showEventTag($id)
     {
+        $user = $this->_closeSession();
         $this->loadModel('Taxonomy');
 
-        $event = $this->Tag->EventTag->Event->fetchSimpleEvent($this->Auth->user(), $id, [
+        $event = $this->Tag->EventTag->Event->fetchSimpleEvent($user, $id, [
             'fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'],
             'contain' => [
                 'EventTag' => array(
@@ -364,13 +365,14 @@ class TagsController extends AppController
             throw new NotFoundException(__('Invalid event.'));
         }
         // Remove galaxy tags
-        $event = $this->Tag->EventTag->Event->massageTags($this->Auth->user(), $event, 'Event', false, true);
+        $event = $this->Tag->EventTag->Event->massageTags($user, $event, 'Event', false, true);
 
         $this->set('tags', $event['EventTag']);
         $this->set('missingTaxonomies', $this->Tag->EventTag->Event->missingTaxonomies($event));
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
         $this->set('tagConflicts', $tagConflicts);
         $this->set('event', $event);
+        $this->set('mayModify', $this->__canModifyEvent($event, $user));
         $this->layout = false;
         $this->render('/Events/ajax/ajaxTags');
     }

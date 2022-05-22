@@ -1408,7 +1408,7 @@ class EventsController extends AppController
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
-        $this->set('mayModify', $this->__canModifyEvent($event));
+        $this->set('mayModify', $this->__canModifyEvent($event, $user));
         $this->set('mayPublish', $this->__canPublishEvent($event));
         $this->response->disableCache();
 
@@ -1422,7 +1422,7 @@ class EventsController extends AppController
         }
 
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
-            $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($this->Auth->user()));
+            $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($user));
         }
         $this->set('currentUri', $this->request->here);
         $this->layout = false;
@@ -1662,7 +1662,7 @@ class EventsController extends AppController
         $this->set('object_count', $objectCount);
         $this->set('warnings', $this->Event->generateWarnings($event));
         $this->set('menuData', array('menuList' => 'event', 'menuItem' => 'viewEvent'));
-        $this->set('mayModify', $this->__canModifyEvent($event));
+        $this->set('mayModify', $this->__canModifyEvent($event, $user));
         $this->set('mayPublish', $this->__canPublishEvent($event));
         try {
             $instanceKey = $event['Event']['protected'] ? $this->Event->CryptographicKey->ingestInstanceKey() : null;
