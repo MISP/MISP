@@ -526,83 +526,81 @@ class TagsController extends AppController
                     $expanded[$tagCollection['TagCollection']['id']] .= sprintf(' (%s)', $tagList);
                 }
             }
+        } elseif ($taxonomy_id === '0') { // custom tags
+            $temp = $this->Taxonomy->getAllTaxonomyTags(true, $user, true, true, $local_tag);
+            $tags = array();
+            foreach ($temp as $tag) {
+                $tags[$tag['Tag']['id']] = $tag['Tag'];
+            }
+            unset($temp);
+            $expanded = $tags;
+        } elseif ($taxonomy_id === 'favourites') {
+            $tags = array();
+            $conditions = array(
+                'FavouriteTag.user_id' => $user['id'],
+                'Tag.org_id' => array(0, $user['org_id']),
+                'Tag.user_id' => array(0, $user['id']),
+                'Tag.hide_tag' => 0,
+            );
+            if (!$local_tag) {
+                $conditions['Tag.local_only'] = 0;
+            }
+            $favTags = $this->Tag->FavouriteTag->find('all', array(
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'contain' => array('Tag'),
+                'order' => array('Tag.name asc')
+            ));
+            foreach ($favTags as $favTag) {
+                $tags[$favTag['FavouriteTag']['tag_id']] = $favTag['Tag'];
+                $expanded = $tags;
+            }
+        } elseif ($taxonomy_id === 'all') { // all tags
+            $conditions = [
+                'Tag.is_galaxy' => 0,
+                'Tag.hide_tag' => 0,
+            ];
+            if (!$this->_isSiteAdmin()) {
+                $conditions['Tag.org_id'] = array(0, $user['org_id']);
+                $conditions['Tag.user_id'] = array(0, $user['id']);
+            }
+            if (!$local_tag) {
+                $conditions['Tag.local_only'] = 0;
+            }
+            $tags = $this->Tag->find('all', array(
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'order' => array('name asc'),
+                'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
+            ));
+            $tags = array_column(array_column($tags, 'Tag'), null, "id");
+            $expanded = $tags;
         } else {
-            if ($taxonomy_id === '0') {
-                $temp = $this->Taxonomy->getAllTaxonomyTags(true, $user, true, true, $local_tag);
-                $tags = array();
-                foreach ($temp as $tag) {
-                    $tags[$tag['Tag']['id']] = $tag['Tag'];
-                }
-                unset($temp);
-                $expanded = $tags;
-            } elseif ($taxonomy_id === 'favourites') {
-                $tags = array();
-                $conditions = array(
-                    'FavouriteTag.user_id' => $user['id'],
-                    'Tag.org_id' => array(0, $user['org_id']),
-                    'Tag.user_id' => array(0, $user['id']),
-                    'Tag.hide_tag' => 0,
-                );
-                if (!$local_tag) {
-                    $conditions['Tag.local_only'] = 0;
-                }
-                $favTags = $this->Tag->FavouriteTag->find('all', array(
-                    'conditions' => $conditions,
-                    'recursive' => -1,
-                    'contain' => array('Tag'),
-                    'order' => array('Tag.name asc')
-                ));
-                foreach ($favTags as $favTag) {
-                    $tags[$favTag['FavouriteTag']['tag_id']] = $favTag['Tag'];
-                    $expanded = $tags;
-                }
-            } elseif ($taxonomy_id === 'all') {
-                $conditions = [
-                    'Tag.is_galaxy' => 0,
-                    'Tag.hide_tag' => 0,
-                ];
-                if (!$this->_isSiteAdmin()) {
-                    $conditions['Tag.org_id'] = array(0, $user['org_id']);
-                    $conditions['Tag.user_id'] = array(0, $user['id']);
-                }
-                if (!$local_tag) {
-                    $conditions['Tag.local_only'] = 0;
-                }
-                $tags = $this->Tag->find('all', array(
-                    'conditions' => $conditions,
-                    'recursive' => -1,
-                    'order' => array('name asc'),
-                    'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
-                ));
-                $tags = array_column(array_column($tags, 'Tag'), null, "id");
-                $expanded = $tags;
-            } else {
-                $taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
-                $tags = array();
-                if (!empty($taxonomies['entries'])) {
-                    $isSiteAdmin = $this->_isSiteAdmin();
-                    foreach ($taxonomies['entries'] as $entry) {
-                        if (!empty($entry['existing_tag']['Tag'])) {
-                            $tag = $entry['existing_tag']['Tag'];
-                            if ($tag['hide_tag']) {
-                                continue; // do not include hidden tags
-                            }
-                            if ($tag['local_only'] && !$local_tag) {
-                                continue; // we skip the local tags for global entries
-                            }
-                            if (!$isSiteAdmin) {
-                                // Skip all tags that this user cannot use for tagging, determined by the org restriction on tags
-                                if ($tag['org_id'] != '0' && $tag['org_id'] != $user['org_id']) {
-                                    continue;
-                                }
-                                if ($tag['user_id'] != '0' && $tag['user_id'] != $user['id']) {
-                                    continue;
-                                }
-                            }
-
-                            $tags[$tag['id']] = $tag;
-                            $expanded[$tag['id']] = $entry['expanded'];
+            $taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
+            $tags = array();
+            if (!empty($taxonomies['entries'])) {
+                $isSiteAdmin = $this->_isSiteAdmin();
+                foreach ($taxonomies['entries'] as $entry) {
+                    if (!empty($entry['existing_tag']['Tag'])) {
+                        $tag = $entry['existing_tag']['Tag'];
+                        if ($tag['hide_tag']) {
+                            continue; // do not include hidden tags
                         }
+                        if ($tag['local_only'] && !$local_tag) {
+                            continue; // we skip the local tags for global entries
+                        }
+                        if (!$isSiteAdmin) {
+                            // Skip all tags that this user cannot use for tagging, determined by the org restriction on tags
+                            if ($tag['org_id'] != '0' && $tag['org_id'] != $user['org_id']) {
+                                continue;
+                            }
+                            if ($tag['user_id'] != '0' && $tag['user_id'] != $user['id']) {
+                                continue;
+                            }
+                        }
+
+                        $tags[$tag['id']] = $tag;
+                        $expanded[$tag['id']] = $entry['expanded'];
                     }
                 }
             }
