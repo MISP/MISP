@@ -53,7 +53,7 @@
         <?php endif; ?>
         <td class="short dblclickElement">
             <a href="<?= "$baseurl/events/view/$eventId" ?>" title="<?= __('View') ?>" aria-label="<?= __('View') ?>">
-                <i class="black fa <?= $event['Event']['published'] == 1 ? 'fa-check' : 'fa-times' ?>"></i>
+                <i class="fa <?= $event['Event']['published'] ? 'fa-check green' : 'fa-times grey' ?>"></i>
             </a>
         </td>
         <?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
