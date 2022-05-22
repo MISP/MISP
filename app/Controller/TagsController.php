@@ -365,7 +365,7 @@ class TagsController extends AppController
             throw new NotFoundException(__('Invalid event.'));
         }
         // Remove galaxy tags
-        $event = $this->Tag->EventTag->Event->massageTags($user, $event, 'Event', false, true);
+        $event = $this->Tag->removeGalaxyClusterTags($user, $event);
 
         $this->set('tags', $event['EventTag']);
         $this->set('missingTaxonomies', $this->Tag->EventTag->Event->missingTaxonomies($event));
@@ -379,11 +379,12 @@ class TagsController extends AppController
 
     public function showAttributeTag($id)
     {
+        $user = $this->_closeSession();
         $this->helpers[] = 'TextColour';
         $this->loadModel('Attribute');
         $this->loadModel('Taxonomy');
 
-        $attributes = $this->Attribute->fetchAttributes($this->Auth->user(), [
+        $attributes = $this->Attribute->fetchAttributes($user, [
             'conditions' => ['Attribute.id' => $id],
             'includeAllTags' => true,
             'flatten' => true,
@@ -396,7 +397,7 @@ class TagsController extends AppController
         }
         $attribute = $attributes[0];
         // Remove galaxy tags
-        $attribute = $this->Tag->EventTag->Event->massageTags($this->Auth->user(), $attribute, 'Attribute', false, true);
+        $attribute = $this->Tag->removeGalaxyClusterTags($user, $attribute, 'Attribute');
         $attributeTags = $attribute['AttributeTag'];
 
         $this->set('event', ['Event' => $attribute['Event']]);
@@ -404,6 +405,7 @@ class TagsController extends AppController
         $this->set('attributeId', $id);
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attributeTags);
         $this->set('tagConflicts', $tagConflicts);
+        $this->set('mayModify', $this->__canModifyEvent($attribute, $user));
         $this->layout = false;
         $this->render('/Attributes/ajax/ajaxAttributeTags');
     }
