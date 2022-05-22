@@ -172,23 +172,19 @@ class Taxonomy extends AppModel
      */
     private function __getTaxonomy($id, $options = array('full' => false, 'filter' => false))
     {
-        $recursive = -1;
-        if ($options['full']) {
-            $recursive = 2;
-        }
-
         $filter = false;
         if (isset($options['filter'])) {
             $filter = $options['filter'];
         }
-        $conditions = ['Taxonomy.id' => $id];
         if (!is_numeric($id)) {
             $conditions = ['Taxonomy.namespace' => trim(mb_strtolower($id))];
+        } else {
+            $conditions = ['Taxonomy.id' => $id];
         }
         $taxonomy_params = array(
-                'recursive' => -1,
-                'contain' => array('TaxonomyPredicate' => array('TaxonomyEntry')),
-                'conditions' => $conditions
+            'recursive' => -1,
+            'contain' => array('TaxonomyPredicate' => array('TaxonomyEntry')),
+            'conditions' => $conditions
         );
         $taxonomy = $this->find('first', $taxonomy_params);
         if (empty($taxonomy)) {
@@ -348,7 +344,6 @@ class Taxonomy extends AppModel
             return false;
         }
         $this->Tag = ClassRegistry::init('Tag');
-        $taxonomy = $this->__getTaxonomy($id, $options);
         if (isset($options['full']) && $options['full']) {
             $tagNames = array_column($taxonomy['entries'], 'tag');
             $tags = $this->Tag->getTagsByName($tagNames, false);

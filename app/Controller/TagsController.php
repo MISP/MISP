@@ -456,10 +456,11 @@ class TagsController extends AppController
 
     public function selectTaxonomy($id, $scope = 'event')
     {
+        $user = $this->_closeSession();
         $localFlag = !empty($this->params['named']['local']) ? '/local:1' : '';
         $items = array();
-        $favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
-        if ($favourites) {
+        $hasFavourites = $this->Tag->FavouriteTag->hasAny(array('FavouriteTag.user_id' => $user['id']));
+        if ($hasFavourites) {
             $items[] = array(
                 'name' => __('Favourite Tags'),
                 'value' => $this->baseurl . "/tags/selectTag/" . h($id) . "/favourites/" . h($scope) . $localFlag
@@ -481,11 +482,11 @@ class TagsController extends AppController
         );
 
         $this->loadModel('Taxonomy');
-        $options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
-        foreach ($options as $k => $option) {
+        $taxonomies = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
+        foreach ($taxonomies as $taxonomyId => $name) {
             $items[] = array(
-                'name' => __('Taxonomy Library') . ":" . h($option),
-                'value' => $this->baseurl . "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope . $localFlag)
+                'name' => __('Taxonomy Library') . ":" . h($name),
+                'value' => $this->baseurl . "/tags/selectTag/" . h($id) . "/" . h($taxonomyId) . "/" . h($scope) . $localFlag
             );
         }
         $this->set('items', $items);
@@ -499,6 +500,7 @@ class TagsController extends AppController
 
     public function selectTag($id, $taxonomy_id, $scope = 'event', $filterData = '')
     {
+        $user = $this->_closeSession();
         $this->loadModel('Taxonomy');
         $expanded = array();
         $this->set('taxonomy_id', $taxonomy_id);
@@ -526,7 +528,7 @@ class TagsController extends AppController
             }
         } else {
             if ($taxonomy_id === '0') {
-                $temp = $this->Taxonomy->getAllTaxonomyTags(true, $this->Auth->user(), true, true, $local_tag);
+                $temp = $this->Taxonomy->getAllTaxonomyTags(true, $user, true, true, $local_tag);
                 $tags = array();
                 foreach ($temp as $tag) {
                     $tags[$tag['Tag']['id']] = $tag['Tag'];
@@ -536,9 +538,9 @@ class TagsController extends AppController
             } elseif ($taxonomy_id === 'favourites') {
                 $tags = array();
                 $conditions = array(
-                    'FavouriteTag.user_id' => $this->Auth->user('id'),
-                    'Tag.org_id' => array(0, $this->Auth->user('org_id')),
-                    'Tag.user_id' => array(0, $this->Auth->user('id')),
+                    'FavouriteTag.user_id' => $user['id'],
+                    'Tag.org_id' => array(0, $user['org_id']),
+                    'Tag.user_id' => array(0, $user['id']),
                     'Tag.hide_tag' => 0,
                 );
                 if (!$local_tag) {
@@ -560,8 +562,8 @@ class TagsController extends AppController
                     'Tag.hide_tag' => 0,
                 ];
                 if (!$this->_isSiteAdmin()) {
-                    $conditions['Tag.org_id'] = array(0, $this->Auth->user('org_id'));
-                    $conditions['Tag.user_id'] = array(0, $this->Auth->user('id'));
+                    $conditions['Tag.org_id'] = array(0, $user['org_id']);
+                    $conditions['Tag.user_id'] = array(0, $user['id']);
                 }
                 if (!$local_tag) {
                     $conditions['Tag.local_only'] = 0;
@@ -590,10 +592,10 @@ class TagsController extends AppController
                             }
                             if (!$isSiteAdmin) {
                                 // Skip all tags that this user cannot use for tagging, determined by the org restriction on tags
-                                if ($tag['org_id'] != '0' && $tag['org_id'] != $this->Auth->user('org_id')) {
+                                if ($tag['org_id'] != '0' && $tag['org_id'] != $user['org_id']) {
                                     continue;
                                 }
-                                if ($tag['user_id'] != '0' && $tag['user_id'] != $this->Auth->user('id')) {
+                                if ($tag['user_id'] != '0' && $tag['user_id'] != $user['id']) {
                                     continue;
                                 }
                             }
@@ -657,7 +659,7 @@ class TagsController extends AppController
             ),
         ));
         $this->set('local', !empty($this->params['named']['local']));
-        $this->render('ajax/select_tag');
+        $this->render('/Elements/generic_picker');
     }
 
     public function tagStatistics($percentage = false, $keysort = false)
