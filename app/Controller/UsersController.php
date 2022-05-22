@@ -1372,16 +1372,16 @@ class UsersController extends AppController
 
     public function histogram($selected = null)
     {
-        //if (!$this->request->is('ajax') && !$this->_isRest()) throw new MethodNotAllowedException('This function can only be accessed via AJAX or the API.');
+        $user = $this->_closeSession();
         if ($selected == '[]') {
             $selected = null;
         }
         $selectedTypes = array();
         if ($selected) {
-            $selectedTypes = json_decode($selected);
+            $selectedTypes = $this->_jsonDecode($selected);
         }
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
-            $org_ids = array($this->Auth->user('org_id'));
+            $org_ids = array($user['org_id']);
         } else {
             $org_ids = $this->User->Event->find('column', array(
                 'fields' => array('Event.orgc_id'),
@@ -1392,12 +1392,7 @@ class UsersController extends AppController
             'fields' => array('Organisation.id', 'Organisation.name'),
             'conditions' => array('Organisation.id' => $org_ids)
         ));
-        $orgs = array(0 => 'All organisations');
-        foreach ($org_ids as $v) {
-            if (!empty($orgs_temp[$v])) {
-                $orgs[$v] = $orgs_temp[$v];
-            }
-        }
+        $orgs = array(0 => 'All organisations') + $orgs_temp;
         $data = array();
         $max = 1;
         foreach ($orgs as $org_id => $org_name) {
@@ -2099,12 +2094,13 @@ class UsersController extends AppController
 
     public function tagStatisticsGraph()
     {
+        $this->_closeSession();
         $this->loadModel('EventTag');
         $tags = $this->EventTag->getSortedTagList();
         $this->loadModel('Taxonomy');
         $taxonomies = $this->Taxonomy->find('list', array(
-                'conditions' => array('enabled' => true),
-                'fields' => array('Taxonomy.namespace')
+            'conditions' => array('enabled' => true),
+            'fields' => array('Taxonomy.namespace')
         ));
         $flatData = array();
         $tagIds = $this->EventTag->Tag->find('list', array('fields' => array('Tag.name', 'Tag.id')));
