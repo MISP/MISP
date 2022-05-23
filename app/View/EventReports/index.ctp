@@ -58,6 +58,7 @@
                 ),
                 array(
                     'name' => __('Event ID'),
+                    'sort' => 'event_id',
                     'class' => 'short',
                     'element' => 'links',
                     'data_path' => 'EventReport.event_id',
@@ -91,7 +92,10 @@
                     'url_params_data_paths' => array(
                         'EventReport.id'
                     ),
-                    'icon' => 'edit'
+                    'icon' => 'edit',
+                    'complex_requirement' => function (array $row) use ($me) {
+                        return $me['Role']['perm_site_admin'] || $me['org_id'] == $row['Event']['orgc_id'];
+                    }
                 ),
                 array(
                     'title' => __('Delete'),
