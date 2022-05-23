@@ -900,6 +900,7 @@ if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   if [[ "${RELEASE}" == "22.04" ]]; then
     echo "Install on Ubuntu 22.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    upgradeToPHP74
     installSupported PHP="7.4" && exit || exit
   fi
   if [[ "${RELEASE}" == "18.10" ]]; then
