@@ -897,17 +897,18 @@ class Attribute extends AppModel
     /**
      * @param array $attribute
      * @param string $path_suffix
+     * @param bool $skipAvScan
      * @return bool
      * @throws Exception
      */
-    private function saveAttachment(array $attribute, $path_suffix='')
+    private function saveAttachment(array $attribute, $path_suffix='', $skipAvScan = false)
     {
         if ($attribute['data'] === false) {
             $this->log("Invalid attachment data provided for attribute with ID {$attribute['id']}.");
             return false;
         }
         $result = $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
-        if ($result) {
+        if ($result && !$skipAvScan) {
             $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
         }
         return $result;
@@ -930,14 +931,14 @@ class Attribute extends AppModel
     }
 
     /**
-     * Currently, as image are considered files with JPG (JPEG), PNG or GIF extension.
+     * Currently, as image are considered files with JPG (JPEG), PNG, GIF or WEBP extension.
      * @param array $attribute
      * @return bool
      */
     public function isImage(array $attribute)
     {
         return $attribute['type'] === 'attachment' &&
-            Validation::extension($attribute['value'], array('jpg', 'jpeg', 'png', 'gif'));
+            Validation::extension($attribute['value'], ['jpg', 'jpeg', 'png', 'gif', 'webp']);
     }
 
     /**
@@ -954,7 +955,7 @@ class Attribute extends AppModel
      * @param array $attribute
      * @param int|null $maxWidth
      * @param int|null $maxHeight
-     * @param string $outputFormat
+     * @param string $outputFormat Can be 'png' or 'webp'
      * @return string|File
      * @throws Exception
      */
@@ -964,6 +965,7 @@ class Attribute extends AppModel
             return $this->getPictureData($attribute);
         }
 
+        // Use two times bigget thumbnail for webp to generate hires preview image
         $defaultMaxSize = $outputFormat === 'webp' ? 400 : 200;
         $maxWidth = $maxWidth ?: $defaultMaxSize;
         $maxHeight = $maxHeight ?: $defaultMaxSize;
@@ -985,7 +987,7 @@ class Attribute extends AppModel
         // Save just when requested default thumbnail size
         if ($maxWidth == $defaultMaxSize && $maxHeight == $defaultMaxSize) {
             $attribute['Attribute']['data'] = $imageData;
-            $this->saveAttachment($attribute['Attribute'], $suffix);
+            $this->saveAttachment($attribute['Attribute'], $suffix, true);
         }
         return $imageData;
     }

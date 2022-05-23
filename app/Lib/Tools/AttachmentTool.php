@@ -387,7 +387,7 @@ class AttachmentTool
      * @param string $data
      * @param int $maxWidth
      * @param int $maxHeight
-     * @param string $outputFormat
+     * @param string $outputFormat Can be 'png' or 'webp'
      * @return string
      * @throws Exception
      */
