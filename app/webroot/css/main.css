@@ -65,6 +65,18 @@ pre {
     overflow: hidden;
 }
 
+h2.overflow {
+    font-weight: normal;
+    line-height: 20px;
+    font-size: 12px;
+}
+
+h2.overflow::first-line {
+    font-weight: bold;
+    line-height: 40px;
+    font-size: 25px;
+}
+
 .nav-list {
     padding-right: 5px;
 }
