@@ -97,10 +97,12 @@ class StixParser():
     # and write it in the output file
     def saveFile(self):
         for attribute in self.misp_event.attributes:
-            if attribute.uuid.version not in _RFC_UUID_VERSIONS:
+            attribute_uuid = uuid.UUID(attribute.uuid) if isinstance(attribute.uuid, str) else attribute.uuid
+            if attribute_uuid.version not in _RFC_UUID_VERSIONS:
                 attribute.uuid = self._sanitize_uuid(attribute)
         for misp_object in self.misp_event.objects:
-            if misp_object.uuid.version not in _RFC_UUID_VERSIONS:
+            object_uuid = uuid.UUID(misp_object.uuid) if isinstance(misp_object.uuid, str) else misp_object.uuid
+            if object_uuid.version not in _RFC_UUID_VERSIONS:
                 misp_object.uuid = self._sanitize_uuid(misp_object)
                 for reference in misp_object.references:
                     reference.object_uuid = misp_object.uuid
