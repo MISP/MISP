@@ -3641,6 +3641,11 @@ if [[ "${FLAVOUR}" == "ubuntu" ]]; then
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP="7.4" && exit || exit
   fi
+  if [[ "${RELEASE}" == "22.04" ]]; then
+    echo "Install on Ubuntu 22.04 LTS fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installSupported PHP="7.4" && exit || exit
+  fi
   if [[ "${RELEASE}" == "18.10" ]]; then
     echo "Install on Ubuntu 18.10 partially supported, bye."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
