@@ -40,15 +40,14 @@
         $paginationData['data-paginator'] = "#{$containerId}_content";
     }
     $this->Paginator->options($paginationData);
-    $skipPagination = (!empty($data['skip_pagination']) || !empty($data['stupid_pagination'])) ? 1 : 0;
+    $skipPagination = !empty($data['skip_pagination']) || !empty($data['stupid_pagination']);
     if (!$skipPagination) {
         $paginatonLinks = $this->element('/genericElements/IndexTable/pagination_links');
         echo $paginatonLinks;
     }
 
     if (!empty($data['stupid_pagination'])) {
-        $paginatonLinks = $this->element('/genericElements/IndexTable/stupid_pagination_links');
-        echo $paginatonLinks;
+        echo $this->element('/genericElements/IndexTable/stupid_pagination_links');
     }
     $hasSearch = false;
     if (!empty($data['top_bar'])) {
@@ -66,11 +65,7 @@
     $actions = isset($data['actions']) ? $data['actions'] : array();
     $dblclickActionArray = isset($data['actions']) ? Hash::extract($data['actions'], '{n}[dbclickAction]') : array();
     foreach ($data['data'] as $k => $data_row) {
-        $primary = null;
-        if (!empty($data['primary_id_path'])) {
-            $primary = Hash::extract($data_row, $data['primary_id_path'])[0];
-        }
-
+        $primary = !empty($data['primary_id_path']) ? Hash::get($data_row, $data['primary_id_path']) : null;
         $row = '<tr data-row-id="' . h($k) . '"';
         if (!empty($dblclickActionArray)) {
             $row .= ' class="dblclickElement"';
@@ -107,7 +102,7 @@
     }
     $url = $baseurl . '/' . $this->params['controller'] . '/' . $this->params['action'];
 ?>
-<script type="text/javascript">
+<script>
     var passedArgsArray = <?= isset($passedArgs) ? $passedArgs : '{}'; ?>;
     var url = "<?= $url ?>";
     <?php if ($hasSearch): ?>

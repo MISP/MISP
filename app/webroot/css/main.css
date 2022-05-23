@@ -1804,6 +1804,10 @@ span.success {
     color:white;
 }
 
+input.select {
+    margin-top: 0; /* remove top margin for checkboxes in index table */
+}
+
 .templateChoiceButtonLast {
     border-radius:0 0 10px 10px;
     color:white;
