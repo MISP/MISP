@@ -8,22 +8,20 @@
             'value_class' => 'quickSelect',
             'value' => isset($org['Organisation']['uuid']) ? $org['Organisation']['uuid'] : '',
         );
-        $table_data[] = array('key' => __('Organisation name'), 'value' => $org['Organisation']['name']);
         $table_data[] = array(
             'key' => __('Local or remote'),
             'html' => sprintf(
-                '<dd><span class="%s bold">%s</span></dd>',
+                '<span class="%s bold">%s</span>',
                 $org['Organisation']['local'] ? 'green' : 'red',
                 $org['Organisation']['local'] ? __('Local') : __('Remote')
             )
         );
-        $table_data[] = array('key' => __('Description'), 'value' => $org['Organisation']['description']);
+        if (!empty($org['Organisation']['description'])) {
+            $table_data[] = array('key' => __('Description'), 'value' => $org['Organisation']['description']);
+        }
         if (!empty($org['Organisation']['restricted_to_domain'])) {
             $domains = $org['Organisation']['restricted_to_domain'];
-            foreach ($domains as $k => $domain) {
-                $domains[$k] = h($domain);
-            }
-            $domains = implode("<br>", $domains);
+            $domains = implode("<br>", array_map('h', $domains));
             $table_data[] = array('key' => __('Domain restrictions'), 'html' => $domains);
         }
         if ($isSiteAdmin) {
@@ -43,8 +41,9 @@
             );
         }
         foreach (array('sector' => __('Sector'), 'type' => __('Organisation type'), 'contacts' => __('Contact information')) as $k => $field) {
-            if (!empty(trim($org['Organisation'][$k]))) {
-                $table_data[] = array('key' => $field, 'html' => nl2br(trim(h($org['Organisation'][$k]))));
+            $value = trim($org['Organisation'][$k]);
+            if (!empty($value)) {
+                $table_data[] = array('key' => $field, 'html' => nl2br(h($value), false));
             }
         }
         echo sprintf(
