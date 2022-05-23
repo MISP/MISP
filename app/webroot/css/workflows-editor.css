@@ -331,3 +331,48 @@
     font-weight: 900;
     content: "\f00d"
 }
+
+.drawflow .drawflow-node.block-type-parallel > .outputs > .output::before {
+    display: none;
+    transform: translateX(calc(50% - 8px));
+    right: 0;
+    padding: 0.25em 0.5em;
+    background-color: #fff;
+    border: 1px solid #cdcdcd;
+    border-radius: 3px;
+}
+
+.drawflow .drawflow-node.block-type-parallel > .outputs > .output:hover::before {
+    display: block;
+}
+
+.drawflow .drawflow-node.block-type-parallel > .outputs > .output::after {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    top: -4px;
+    width: 12px;
+    font-size: x-small;
+    text-align: center;
+    transition-property: width, top, font-size;
+    transition-duration: .1s
+}
+
+.drawflow .drawflow-node.block-type-parallel > .outputs > .output:hover::after {
+    font-size: larger;
+    width: 18px;
+    top: -1px;
+}
+
+.drawflow .drawflow-node.block-type-parallel > .outputs > .output_1 {
+    background-color: #fff;
+}
+
+.drawflow .drawflow-node.block-type-parallel > .outputs > .output_1::before {
+    content: 'parallel tasks';
+    top: -26px;
+}
+
+.drawflow .drawflow-node.block-type-parallel > .outputs > .output_1::after {
+    content: "\f074";
+}

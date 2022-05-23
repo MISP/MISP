@@ -43,6 +43,28 @@ var dotBlock_IF = doT.template(' \
     </div> \
 </div>')
 
+var dotBlock_parallel = doT.template(' \
+<div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
+    <div style="width: 100%;"> \
+        <div class="default-main-container"> \
+            <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            <strong style="margin-left: 0.25em;"> \
+                {{=it.name}} \
+            </strong> \
+            <span style="margin-left: auto;"> \
+                <span class="block-notification-container"> \
+                    {{=it._block_notification_html}} \
+                </span> \
+                <span> \
+                    <a href="#block-modal" role="button" class="btn btn-mini" data-toggle="modal"><i class="fas fa-ellipsis-h"></i></a> \
+                </span> \
+            </span> \
+        </div> \
+        {{=it._block_param_html}} \
+        <div class="muted" class="description" style="margin-bottom: 0.5em;">{{=it.description}}</div> \
+    </div> \
+</div>')
+
 var classBySeverity = {
     'info': 'info',
     'warning': 'warning',

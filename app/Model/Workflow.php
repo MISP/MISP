@@ -495,7 +495,7 @@ class Workflow extends AppModel
                 'id' => 'if',
                 'name' => 'IF',
                 'icon' => 'code-branch',
-                'description' => 'IF conditions',
+                'description' => 'Simple IF / ELSE condition block. Use the `then` output for execution path satifying the conditions passed to the `IF` block.',
                 'module_type' => 'logic',
                 'outputs' => 2,
                 'html_template' => 'IF',
@@ -507,6 +507,16 @@ class Workflow extends AppModel
                         'placeholder' => '{ "tags" : { "AND" : [ "tlp : green" , "Malware" ] , "NOT" : [ "%ransomware%" ]}}'
                     ],
                 ],
+            ],
+            [
+                'id' => 'parallel-task',
+                'name' => 'Parallel Task',
+                'icon' => 'random',
+                'description' => 'Allow breaking the execution process and running parallel tasks. You can connect multiple blocks the `parallel` output.',
+                'module_type' => 'logic',
+                'outputs' => 1,
+                'html_template' => 'parallel',
+                'params' => [],
             ],
         ];
 
