@@ -2,12 +2,13 @@
 
 class CyclicGraphException extends Exception {}
 
-class GraphProperties
+class GraphUtil
 {
     public function __construct($graphData)
     {
-        $this->numberNodes = count($graphData);
-        $this->graph = $this->_buildEdgeList($graphData);
+        $this->graph = $graphData;
+        $this->numberNodes = count($this->graph);
+        $this->edgeList = $this->_buildEdgeList($graphData);
         $this->properties = [];
     }
 
@@ -30,7 +31,7 @@ class GraphProperties
     private function _DFSUtil($node_id, &$color, $depth=0): bool
     {
         $color[$node_id] = 'GRAY';
-        foreach ($this->graph[$node_id] as $i) {
+        foreach ($this->edgeList[$node_id] as $i) {
             if ($color[$i] == 'GRAY') {
                 $this->properties[] = [$node_id, $i, __('Cycle')];
                 return true;
@@ -58,10 +59,10 @@ class GraphProperties
     {
         $this->properties = [];
         $color = [];
-        foreach (array_keys($this->graph) as $node_id) {
+        foreach (array_keys($this->edgeList) as $node_id) {
             $color[$node_id] = 'WHITE';
         }
-        foreach (array_keys($this->graph) as $node_id) {
+        foreach (array_keys($this->edgeList) as $node_id) {
             if ($color[$node_id] == 'WHITE') {
                 if ($this->_DFSUtil($node_id, $color)) {
                     return [true, $this->properties];
@@ -131,8 +132,8 @@ class WorkflowGraphTool
      */
     public static function isAcyclic(array $graphData, array &$cycles=[]): bool
     {
-        $graphProperties = new GraphProperties($graphData);
-        $result = $graphProperties->isCyclic();
+        $graphUtil = new GraphUtil($graphData);
+        $result = $graphUtil->isCyclic();
         $isCyclic = $result[0];
         $cycles = $result[1];
         return !$isCyclic;
@@ -144,63 +145,5 @@ class WorkflowGraphTool
         // return true;
     }
 
-    // /**
-    //  * buildExecutionPath Return the execution path for the provided workflow graph
-    //  * 
-    //  * @param array $graphData
-    //  * @returns array
-    //  */
-    // public static function buildExecutionPath(array $graphData): array
-    // {
-    //     $starting_nodes = [];
-    //     $nodesById = [];
-    //     foreach ($graphData as $node) { // Re-index data by node ID
-    //         $nodesById[$node['id']] = $node;
-    //         if (empty($node['inputs']) && !empty($node['outputs'])) { // collect nodes acting as starting point (no input and at least one output)
-    //             $starting_nodes[] = $node;
-    //         }
-    //     }
-
-    //     // construct execution flow following outputs/inputs of each  blocks
-    //     $processedNodeIDs = [];
-    //     foreach (array_keys($starting_nodes) as $i) {
-    //         WorkflowGraphTool::buildExecutionPathViaConnections($starting_nodes[$i], $nodesById, $processedNodeIDs);
-    //     }
-    //     $execution_path = [];
-    //     foreach ($starting_nodes as $node) {
-    //         $execution_path[] = WorkflowGraphTool::cleanNode($node);
-    //     }
-    //     return $execution_path;
-    // }
-
-    // public static function buildExecutionPathViaConnections(&$node, $nodesById, &$processedNodeIDs)
-    // {
-    //     if (!empty($processedNodeIDs[$node['id']])) { // Prevent infinite loop
-    //         throw new CyclicGraphException(__('The graph contains a cycle leading to node %s (%s)', $node['name'], $node['id']));
-    //     }
-    //     $processedNodeIDs[$node['id']] = true;
-    //     if (!empty($node['outputs'])) {
-    //                     // $ode['next'][] = $this->cleanNode($nextNode);
-    //                     $node['next'][$output_id] = WorkflowGraphTool::cleanNode($nextNode);
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     return $node;
-    // }
-
-    // public static function cleanNode($node): array
-    // {
-    //     return [
-    //         'id' => $node['id'],
-    //         // 'data' => $node['data'],
-    //         'data' => [
-    //             'name' => $node['data']['name'],
-    //             'inputs' => $node['data']['inputs'] ?? [],
-    //             'outputs' => $node['data']['outputs'] ?? [],
-    //         ],
-    //         // 'module_data' => $this->moduleByID[$node['data']['id']],
-    //         'next' => $node['next'] ?? [],
-    //     ];
-    // }
+    // public static function navigate
 }

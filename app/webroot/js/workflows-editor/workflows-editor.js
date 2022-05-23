@@ -152,6 +152,7 @@ function initDrawflow() {
 
     graphPooler = new TaskScheduler(checkGraphProperties, {
         interval: 10000,
+        slowInterval: 60000,
     })
 
     loadWorkflow().then(function() {
@@ -433,8 +434,12 @@ function checkGraphProperties() {
         data: graphData,
         success: function (data, textStatus) {
             highlightGraphIssues(data);
+            graphPooler.unthrottle()
         },
-        error: function () {
+        error: function (jqXHR, textStatus, errorThrown) {
+            if (jqXHR.status === 401) {
+                graphPooler.throttle()
+            }
             showMessage('fail', 'Could not check graph properties')
         },
         type: "post",
