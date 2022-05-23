@@ -34,11 +34,11 @@ switch ($object['type']) {
         if ($object['type'] === 'attachment' && isset($object['image'])) {
             if ($object['image'] === true) {
                 $src = $baseurl . '/' . ($object['objectType'] === 'proposal' ? 'shadowAttributes' : 'attributes') . '/viewPicture/' . (int)$object['id'] . '/1';
-                echo '<img class="screenshot screenshot-collapsed useCursorPointer img-rounded" src="' . $src . '" title="' . h($object['value']) . '" loading="lazy">';
+                echo '<img class="screenshot useCursorPointer img-rounded" src="' . $src . '" title="' . h($object['value']) . '" loading="lazy">';
             } else {
                 $extension = pathinfo($object['value'], PATHINFO_EXTENSION);
                 $uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($object['image']);
-                echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '">';
+                echo '<img class="screenshot useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '">';
             }
         } else {
             $filenameHash = explode('|', h($object['value']));

@@ -1804,7 +1804,7 @@ span.success {
     color:white;
 }
 
-input.select {
+input.select, input.select_attribute {
     margin-top: 0; /* remove top margin for checkboxes in index table */
 }
 
@@ -2175,10 +2175,6 @@ table.table.table-striped tr.deleted_row td {
     padding-bottom: 1px;
     text-align:center;
     width:100%;
-}
-
-.screenshot-collapsed {
-    width:200px;
 }
 
 /*
