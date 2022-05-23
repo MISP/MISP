@@ -73,6 +73,91 @@ class GraphUtil
     }
 }
 
+class GraphNavigator
+{
+    public function __construct(array $graphData, $startNodeID)
+    {
+        $this->graph = $graphData;
+        $this->startNodeID = $startNodeID;
+        $this->graphUtil = new GraphUtil($graphData);
+        $this->edgeList = $this->graphUtil->edgeList;
+        $this->triggersByNodeID = [];
+        $this->triggersByModuleID = [];
+        $this->setTriggers();
+        if (empty($this->triggersByNodeID) || empty($this->triggersByModuleID[$this->startNodeID])) {
+            throw new Exception(__('Could not find start node %s', $startNodeID), 1);
+        }
+        $this->cursor = $this->triggersByModuleID[$startNodeID];
+        $this->path_type = null;
+    }
+
+    private function setTriggers(): array
+    {
+        $triggers = [];
+        foreach ($this->graph as $node_id => $node) {
+            if ($node['data']['module_type'] == 'trigger') {
+                $this->triggersByNodeID[$node_id] = $node;
+                $this->triggersByModuleID[$node['data']['id']] = $node_id;
+            }
+        }
+        return $triggers;
+    }
+
+    private function _getPathType($node_id, $path_type, $output_id)
+    {
+        $node = $this->graph[$node_id];
+        if (!empty($this->triggersByNodeID[$node_id])) {
+            return $output_id == 'output_1' ? 'blocking' : 'parallel';
+        } elseif ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'parallel-task') {
+            return 'parallel';
+        }
+        return $path_type;
+    }
+
+
+    private function _evaluateOutputs($node_id, $outputs)
+    {
+        $node = $this->graph[$node_id];
+        if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'if') {
+            $useThenBranch = $this->_evaluateIFCondition($node);
+            return $useThenBranch ? ['output_1' => $outputs['output_1']] : ['output_2' => $outputs['output_2']];
+        }
+        return $outputs;
+    }
+
+    private function _evaluateIFCondition($node): bool
+    {
+        // $result = $node->execute();
+        $result = true;
+        return $result;
+    }
+
+    public function _navigate($node_id, $path_type=null)
+    {
+        $this->cursor = $node_id;
+        $node = $this->graph[$node_id];
+        if ($node['data']['module_type'] != 'trigger' && $node['data']['module_type'] != 'logic') { // trigger and logic nodes should not be returned as they are "control" nodes
+            yield [$node_id, $path_type];
+        }
+        $outputs = ($node['outputs'] ?? []);
+        $allowedOutputs = $this->_evaluateOutputs($node_id, $outputs);
+        foreach ($allowedOutputs as $output_id => $outputs) {
+            $path_type = $this->_getPathType($node_id, $path_type, $output_id);
+            foreach ($outputs as $connections) {
+                foreach ($connections as $connection) {
+                    $next_node_id = (int)$connection['node'];
+                    yield from $this->_navigate($next_node_id, $path_type);
+                }
+            }
+        }
+    }
+
+    public function navigate()
+    {
+        return $this->_navigate($this->cursor);
+    }
+}
+
 class WorkflowGraphTool
 {
 
@@ -145,5 +230,9 @@ class WorkflowGraphTool
         // return true;
     }
 
-    // public static function navigate
+    public static function getNavigatorIterator(array $graphData, $startNodeID)
+    {
+        $graphNavigator = new GraphNavigator($graphData, $startNodeID);
+        return $graphNavigator->navigate();
+    }
 }
