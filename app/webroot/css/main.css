@@ -1042,6 +1042,11 @@ a.proposal_link_red:hover {
   box-shadow: 4px 4px 4px #333;
 }
 
+.screenshot {
+    max-width: 200px;
+    max-height: 200px;
+}
+
 .ajax_popover_form legend, .ajax_popover_form .legend {
     border-radius: 10px 10px 0px 0px;
     padding-left:10px;

@@ -942,37 +942,52 @@ class Attribute extends AppModel
 
     /**
      * @param array $attribute
-     * @param bool $thumbnail
-     * @param int $maxWidth - When $thumbnail is true
-     * @param int $maxHeight - When $thumbnail is true
+     * @return File
+     * @throws Exception
+     */
+    public function getPictureData(array $attribute)
+    {
+        return $this->loadAttachmentTool()->getFile($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
+    }
+
+    /**
+     * @param array $attribute
+     * @param int|null $maxWidth
+     * @param int|null $maxHeight
+     * @param string $outputFormat
      * @return string|File
      * @throws Exception
      */
-    public function getPictureData(array $attribute, $thumbnail = false, $maxWidth = 200, $maxHeight = 200)
+    public function getThumbnail(array $attribute, $outputFormat = 'png', $maxWidth = null, $maxHeight = null)
     {
-        if ($thumbnail && extension_loaded('gd')) {
-            if ($maxWidth == 200 && $maxHeight == 200) {
-                // Return thumbnail directly if already exists
-                try {
-                    return $this->loadAttachmentTool()->getFile($attribute['Attribute']['event_id'], $attribute['Attribute']['id'], $path_suffix = '_thumbnail');
-                } catch (NotFoundException $e) {
-                    // pass
-                }
-            }
-
-            // Thumbnail doesn't exists, we need to generate it
-            $imageData = $this->getAttachment($attribute['Attribute']);
-            $imageData = $this->loadAttachmentTool()->resizeImage($imageData, $maxWidth, $maxHeight);
-
-            // Save just when requested default thumbnail size
-            if ($maxWidth == 200 && $maxHeight == 200) {
-                $attribute['Attribute']['data'] = $imageData;
-                $this->saveAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
-            }
-            return $imageData;
+        if (!extension_loaded('gd')) {
+            return $this->getPictureData($attribute);
         }
 
-        return $this->loadAttachmentTool()->getFile($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
+        $defaultMaxSize = $outputFormat === 'webp' ? 400 : 200;
+        $maxWidth = $maxWidth ?: $defaultMaxSize;
+        $maxHeight = $maxHeight ?: $defaultMaxSize;
+
+        if ($maxWidth == $defaultMaxSize && $maxHeight == $defaultMaxSize) {
+            $suffix = $outputFormat === 'png' ? '_thumbnail' : '_thumbnail_' . $outputFormat;
+            // Return thumbnail directly if already exists
+            try {
+                return $this->loadAttachmentTool()->getFile($attribute['Attribute']['event_id'], $attribute['Attribute']['id'], $suffix);
+            } catch (NotFoundException $e) {
+                // pass
+            }
+        }
+
+        // Thumbnail doesn't exists, we need to generate it
+        $imageData = $this->getAttachment($attribute['Attribute']);
+        $imageData = $this->loadAttachmentTool()->resizeImage($imageData, $maxWidth, $maxHeight, $outputFormat);
+
+        // Save just when requested default thumbnail size
+        if ($maxWidth == $defaultMaxSize && $maxHeight == $defaultMaxSize) {
+            $attribute['Attribute']['data'] = $imageData;
+            $this->saveAttachment($attribute['Attribute'], $suffix);
+        }
+        return $imageData;
     }
 
     /**
