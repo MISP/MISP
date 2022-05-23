@@ -849,6 +849,7 @@ x86_64-debian-buster
 x86_64-ubuntu-bionic
 x86_64-ubuntu-focal
 x86_64-ubuntu-hirsute
+x86_64-ubuntu-jammy
 x86_64-kali-2021.4
 x86_64-kali-2022.1
 x86_64-kali-2022.2
@@ -894,6 +895,12 @@ if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   if [[ "${RELEASE}" == "21.04" ]]; then
     echo "Install on Ubuntu 21.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installSupported PHP="7.4" && exit || exit
+  fi
+  if [[ "${RELEASE}" == "22.04" ]]; then
+    echo "Install on Ubuntu 22.04 LTS fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    upgradeToPHP74
     installSupported PHP="7.4" && exit || exit
   fi
   if [[ "${RELEASE}" == "18.10" ]]; then
