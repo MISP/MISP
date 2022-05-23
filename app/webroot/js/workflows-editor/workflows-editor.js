@@ -164,10 +164,6 @@ function initDrawflow() {
         var selectedBlock = getSelectedBlock()
         buildModalForBlock(selectedBlock.id, selectedBlock.data)
     })
-    $blockNotificationModal.on('show', function (evt) {
-        var selectedBlock = getSelectedBlock()
-        buildNotificationModalForBlock(selectedBlock.id, selectedBlock.data)
-    })
     $blockModalDeleteButton.click(function() {
         if (confirm('Are you sure you want to remove this block?')) {
             deleteSelectedNode()
@@ -191,6 +187,23 @@ function buildNotificationModalForBlock(node_id, block) {
         .data('selected-block', block)
         .data('selected-node-id', node_id)
     $blockNotificationModal.find('.modal-body').empty().append(html)
+}
+
+function showNotificationModalForBlock(clicked) {
+    var selectedBlock = getSelectedBlock()
+    buildNotificationModalForBlock(selectedBlock.id, selectedBlock.data)
+    $blockNotificationModal.modal('show')
+}
+
+function showNotificationModalForModule(module_id, data) {
+    buildNotificationModalForBlock(module_id, data)
+    $blockNotificationModal.modal('show')
+}
+
+function showNotificationModalForSidebarModule(clicked) {
+    var $block = $(clicked).closest('.sidebar-workflow-block')
+    var blockID = $block.data('blockid')
+    showNotificationModalForModule(blockID, all_blocks_by_id[blockID])
 }
 
 function invalidateContentCache() {
@@ -765,8 +778,11 @@ function genBlockNotificationHtml(block) {
             var notificationTitles = module.notifications[severity].map(function (notification) {
                 return notification.text
             }).join('&#013;')
-            var $notification = $('<a class="btn btn-mini" role="button" href="#block-notifications-modal" data-toggle="modal"></a>')
-                .attr('title', notificationTitles)
+            var $notification = $('<button class="btn btn-mini" role="button" onclick="showNotificationModalForBlock(this)"></button>')
+                .attr({
+                    'title': notificationTitles,
+                    'data-blockid': block.id,
+                })
                 .addClass('btn-' + classBySeverity[severity])
                 .css({
                     'vertical-align': 'middle',

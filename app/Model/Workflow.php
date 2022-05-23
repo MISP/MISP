@@ -396,7 +396,7 @@ class Workflow extends AppModel
         return $isAcyclic;
     }
 
-    public function attachNotificationToModules(array $user, array $modules): array
+    public function attachNotificationToModules(array $user, array $modules, array $workflow): array
     {
         foreach ($modules as $moduleType => $modulesByType) {
             foreach ($modulesByType as $i => $module) {
@@ -410,14 +410,17 @@ class Workflow extends AppModel
         $triggers = $modules['blocks_trigger'];
         foreach ($triggers as $i => $trigger) {
             $blockingExecutionOrder = $this->getExecutionOrderForTrigger($user, $trigger)['blocking'];
+            $blockingExecutionOrderIDs = Hash::extract($blockingExecutionOrder, '{n}.Workflow.id');
+            $indexInExecutionPath = array_search($workflow['Workflow']['id'], $blockingExecutionOrderIDs);
+            $effectiveBlockingExecutionOrder = array_slice($blockingExecutionOrder, 0, $indexInExecutionPath);
             $details = [];
-            foreach ($blockingExecutionOrder as $workflow) {
+            foreach ($effectiveBlockingExecutionOrder as $workflow) {
                 $details[] = sprintf('[%s] %s', h($workflow['Workflow']['id']), h($workflow['Workflow']['name']));
             }
-            if (!empty($blockingExecutionOrder)) {
+            if (!empty($effectiveBlockingExecutionOrder)) {
                 $modules['blocks_trigger'][$i]['notifications']['warning'][] = [
-                    'text' => __('%s blocking worflows are executed before this trigger', count($blockingExecutionOrder)),
-                    'description' => __('The blocking path of this trigger might not be executed. If any of the blocking workflows stop the propagation, this blocking path of this trigger will not be exeucted. However, the deferred path will be executed.'),
+                    'text' => __('%s blocking worflows are executed before this trigger.', count($effectiveBlockingExecutionOrder)),
+                    'description' => __('The blocking path of this trigger might not be executed. If any of the blocking workflows stop the propagation, the blocking path of this trigger will not be executed. Nevertheless, the deferred path will always be executed.'),
                     'details' => $details,
                 ];
             }

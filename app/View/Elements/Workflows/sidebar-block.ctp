@@ -17,7 +17,7 @@ $classFromSeverity = [
             <span class="block-notification-container">
                 <?php foreach (array_keys($classFromSeverity) as $severity) : ?>
                     <?php if (!empty($block['notifications'][$severity])) : ?>
-                        <button class="btn btn-mini btn-<?= $classFromSeverity[$severity] ?>" type="button" title="<?= implode('&#013;', h(Hash::extract($block['notifications'][$severity], '{n}.text'))) ?>">
+                        <button class="btn btn-mini btn-<?= $classFromSeverity[$severity] ?>" type="button" title="<?= implode('&#013;', h(Hash::extract($block['notifications'][$severity], '{n}.text'))) ?>" onclick="showNotificationModalForSidebarModule(this)">
                             <?php if ($severity == 'danger') : ?>
                                 <i class="fas fa-times-circle"></i>
                             <?php elseif ($severity == 'warning') : ?>

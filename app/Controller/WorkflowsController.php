@@ -136,8 +136,8 @@ class WorkflowsController extends AppController
     public function editor($id = false)
     {
         $modules = $this->Workflow->getModulesByType();
-        $modules = $this->Workflow->attachNotificationToModules($this->Auth->user(), $modules);
         $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+        $modules = $this->Workflow->attachNotificationToModules($this->Auth->user(), $modules, $workflow);
         $workflows = $this->Workflow->fetchWorkflows($this->Auth->user());
         $this->set('selectedWorkflow', $workflow);
         $this->set('workflows', $workflows);
