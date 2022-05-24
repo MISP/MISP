@@ -12,7 +12,7 @@ class WorkflowsController extends AppController
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'hasAcyclicGraph';
         try {
-            $redis = $this->Workflow->setupRedisWithException();
+            $this->Workflow->setupRedisWithException();
         } catch (Exception $e) {
             $this->set('error', $e->getMessage());
             $this->render('error');
