@@ -68,7 +68,7 @@ class Workflow extends AppModel
     {
         parent::__construct($id, $table, $ds);
         $this->workflowGraphTool = new WorkflowGraphTool();
-        $this->loadAllWorkflowModules();
+        $this->loadAllWorkflowModules(); // TODO Clever loading to avoid doing this task at every trigger check
     }
 
     public function beforeValidate($options = array())
@@ -315,13 +315,17 @@ class Workflow extends AppModel
         return $triggers;
     }
 
-    public function fetchWorkflowsForTrigger($user, $trigger_id): array
+    public function fetchWorkflowsForTrigger($user, $trigger_id, $filterDisabled=false): array
     {
         $workflow_ids_for_trigger = $this->__getWorkflowsIDPerTrigger($trigger_id);
+        $conditions = [
+            'Workflow.id' => $workflow_ids_for_trigger,
+        ];
+        if (!empty($filterDisabled)) {
+            $conditions['Workflow.enabled'] = true;
+        }
         $workflows = $this->fetchWorkflows($user, [
-            'conditions' => [
-                'Workflow.id' => $workflow_ids_for_trigger,
-            ],
+            'conditions' => $conditions,
             'fields' => ['*'],
             'contain' => ['Organisation' => ['fields' => ['*']]],
         ]);
@@ -329,18 +333,18 @@ class Workflow extends AppModel
     }
 
     /**
-     * getExecutionOrderForTrigger Generate the e
+     * getExecutionOrderForTrigger Generate the execution order for the provided trigger
      *
      * @param  array $user
      * @param  array $trigger
      * @return array
      */
-    public function getExecutionOrderForTrigger(array $user, array $trigger): array
+    public function getExecutionOrderForTrigger(array $user, array $trigger, $filterDisabled=false): array
     {
         if (empty($trigger)) {
             return ['blocking' => [], 'non-blocking' => [] ];
         }
-        $workflows = $this->fetchWorkflowsForTrigger($user, $trigger['id']);
+        $workflows = $this->fetchWorkflowsForTrigger($user, $trigger['id'], $filterDisabled);
         $ordered_workflow_ids = $this->__getOrderedWorkflowsPerTrigger($trigger['id']);
         return $this->groupWorkflowsPerBlockingType($workflows, $trigger['id'], $ordered_workflow_ids);
     }
@@ -390,13 +394,38 @@ class Workflow extends AppModel
         return $isAcyclic;
     }
 
+    public function executeWorkflowsForTrigger($trigger_id)
+    {
+        $user = ['Role' => ['perm_site_admin' => true]];
+        if (empty($this->loaded_modules['trigger'][$trigger_id])) {
+            return false;
+        }
+        $trigger = $this->loaded_modules['trigger'][$trigger_id];
+        $workflowExecutionOrder = $this->getExecutionOrderForTrigger($user, $trigger, true);
+        $orderedBlockingWorkflows = $workflowExecutionOrder['blocking'];
+        $orderedDeferredWorkflows = $workflowExecutionOrder['non-blocking'];
+        foreach ($orderedBlockingWorkflows as $workflow) {
+            debug('Executing blocking: ' . $workflow['Workflow']['name']);
+            $continueExecution = $this->walkGraph($workflow);
+            if (!$continueExecution) {
+                debug('Execution was stopped.');
+                break;
+            }
+            debug('Execution done.');
+        }
+        foreach ($orderedDeferredWorkflows as $workflow) {
+            debug('Executing deferred: ' . $workflow['Workflow']['name']);
+            $this->walkGraph($workflow);
+        }
+    }
+
     /**
      * walkGraph Explore the graph and execute each nodes
      *
      * @param array $graphData
-     * @return boolean
+     * @return boolean Did all module returned a successful response
      */
-    public function walkGraph(array $workflow)
+    private function walkGraph(array $workflow): bool
     {
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, 'publish');
@@ -406,13 +435,21 @@ class Workflow extends AppModel
             $moduleClass = $this->getModuleClass($node);
             if (!is_null($moduleClass)) {
                 try {
-                    $result = $moduleClass->exec($node);
+                    debug(sprintf('  Executing node `%s` (%s)', $node['data']['name'], $node['id']));
+                    $success = $moduleClass->exec($node);
                 } catch (Exception $e) {
                     $message = sprintf(__('Error while executing module: %s'), $e->getMessage());
                     $this->__logError($node['data']['id'], $message);
+                    debug(sprintf('  Error while executing node `%s` (%s)', $node['data']['name'], $node['id']));
+                    return false;
                 }
             }
+            if (empty($success) && $path_type == 'blocking') {
+                debug(sprintf('  Node stopped exection `%s` (%s)', $node['data']['name'], $node['id']));
+                return false;
+            }
         }
+        return true;
     }
 
     public function getModuleClass($node)
@@ -434,10 +471,7 @@ class Workflow extends AppModel
         }
         $triggers = $modules['blocks_trigger'];
         foreach ($triggers as $i => $trigger) {
-            $blockingExecutionOrder = $this->getExecutionOrderForTrigger($user, $trigger)['blocking'];
-            $blockingExecutionOrder = array_filter($blockingExecutionOrder, function($workflow) {
-                return $workflow['Workflow']['enabled'];
-            });
+            $blockingExecutionOrder = $this->getExecutionOrderForTrigger($user, $trigger, true)['blocking'];
             $blockingExecutionOrderIDs = Hash::extract($blockingExecutionOrder, '{n}.Workflow.id');
             $indexInExecutionPath = array_search($workflow['Workflow']['id'], $blockingExecutionOrderIDs);
             $effectiveBlockingExecutionOrder = array_slice($blockingExecutionOrder, 0, $indexInExecutionPath);
@@ -624,7 +658,7 @@ class Workflow extends AppModel
         return $modules;
     }
 
-    public function getModules($module_type = false): array
+    public function getModules(): array
     {
         $modulesByType = $this->getModulesByType();
         return array_merge($modulesByType['blocks_trigger'], $modulesByType['blocks_logic'], $modulesByType['blocks_action']);

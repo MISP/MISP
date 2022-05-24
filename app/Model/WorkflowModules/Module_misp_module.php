@@ -38,8 +38,9 @@ class Module_misp_module extends WorkflowBaseModule
         $this->Module = ClassRegistry::init('Module');
     }
 
-    public function exec(array $node)
+    public function exec(array $node): bool
     {
+        parent::exec($node);
         $postData = ['module' => $this->name];
         $postData['data'] = ['post-data' => 'test-' . time()];
         $result = $this->Module->queryModuleServer($postData, false, 'Action', false);
@@ -47,6 +48,6 @@ class Module_misp_module extends WorkflowBaseModule
             "Got result from $this->name" => json_encode($result)
         ];
         $this->push_zmq($message);
-        return $result;
+        return true;
     }
 }

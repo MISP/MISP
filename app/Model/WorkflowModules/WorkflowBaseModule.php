@@ -38,8 +38,12 @@ class WorkflowBaseModule
         return $properties;
     }
 
-    public function exec(array $node)
+    public function exec(array $node): bool
     {
+        $this->push_zmq([
+            'Executing module' => $this->name,
+            'timestamp' => time(),
+        ]);
         return true;
     }
 
