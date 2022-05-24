@@ -406,10 +406,10 @@ class Workflow extends AppModel
             $moduleClass = $this->getModuleClass($node);
             if (!is_null($moduleClass)) {
                 try {
-                    $moduleClass->exec($node);
+                    $result = $moduleClass->exec($node);
                 } catch (Exception $e) {
                     $message = sprintf(__('Error while executing module: %s'), $e->getMessage());
-                    $this->__logLoadingError($node['data']['id'], $message);
+                    $this->__logError($node['data']['id'], $message);
                 }
             }
         }
@@ -540,7 +540,7 @@ class Workflow extends AppModel
             $instancedClass = $this->__getClassFromModuleFile($filepath);
             if (is_string($instancedClass)) {
                 $message = sprintf(__('Error while trying to load module: %s'), $instancedClass);
-                $this->__logLoadingError($filename, $message);
+                $this->__logError($filename, $message);
             }
             if (!empty($classConfigs[$instancedClass->id])) {
                 throw new WorkflowDuplicatedModuleIDException(__('Module %s has already been defined', $instancedClass->id));
@@ -554,7 +554,7 @@ class Workflow extends AppModel
         ];
     }
 
-    private function __logLoadingError($id, $message)
+    private function __logError($id, $message)
     {
         $this->Log = ClassRegistry::init('Log');
         $this->Log->createLogEntry('SYSTEM', 'load_module', 'Workflow', $id, $message);
@@ -601,7 +601,7 @@ class Workflow extends AppModel
             $block['disabled'] = !in_array($block['id'], ['publish', 'new-attribute', ]);
         });
         array_walk($blocks_action, function(&$block) {
-            $block['disabled'] = !in_array($block['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', ]);
+            $block['disabled'] = !in_array($block['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', 'writeactions', ]);
         });
         ksort($blocks_trigger);
         ksort($blocks_logic);

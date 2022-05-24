@@ -40,10 +40,13 @@ class Module_misp_module extends WorkflowBaseModule
 
     public function exec(array $node)
     {
-        $postData = ['post-data' => 'test'];
+        $postData = ['module' => $this->name];
+        $postData['data'] = ['post-data' => 'test-' . time()];
         $result = $this->Module->queryModuleServer($postData, false, 'Action', false);
-        if (!empty($result['error'])) {
-        }
+        $message = [
+            "Got result from $this->name" => json_encode($result)
+        ];
+        $this->push_zmq($message);
         return $result;
     }
 }

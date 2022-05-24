@@ -12,19 +12,10 @@ class Module_push_zmq extends WorkflowBaseModule
     public $outputs = 0;
     public $params = [];
 
-    /** @var PubSubTool */
-    private static $loadedPubSubTool;
-
-
     public function __construct()
     {
         parent::__construct();
         $this->params = [
-            [
-                'type' => 'input',
-                'label' => 'ZMQ Topic',
-                'default' => 'from-misp-workflow',
-            ],
             [
                 'type' => 'input',
                 'label' => 'Content',
@@ -37,20 +28,8 @@ class Module_push_zmq extends WorkflowBaseModule
     public function exec(array $node)
     {
         $params = $this->getParams($node);
-        $this->pushZmqHandler([
+        $this->push_zmq([
             'Node content' => $params['Content']['value']
         ]);
-    }
-
-    public function pushZmqHandler($message)
-    {
-        if (!self::$loadedPubSubTool) {
-            App::uses('PubSubTool', 'Tools');
-            $pubSubTool = new PubSubTool();
-            $pubSubTool->initTool();
-            self::$loadedPubSubTool = $pubSubTool;
-        }
-        $pubSubTool = self::$loadedPubSubTool;
-        $pubSubTool->workflow_push($message);
     }
 }

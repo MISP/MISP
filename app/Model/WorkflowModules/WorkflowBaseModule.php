@@ -10,6 +10,9 @@ class WorkflowBaseModule
     public $outputs = 0;
     public $params = [];
 
+    /** @var PubSubTool */
+    private static $loadedPubSubTool;
+
     public function __construct()
     {
     }
@@ -38,6 +41,18 @@ class WorkflowBaseModule
     public function exec(array $node)
     {
         return true;
+    }
+
+    public function push_zmq($message)
+    {
+        if (!self::$loadedPubSubTool) {
+            App::uses('PubSubTool', 'Tools');
+            $pubSubTool = new PubSubTool();
+            $pubSubTool->initTool();
+            self::$loadedPubSubTool = $pubSubTool;
+        }
+        $pubSubTool = self::$loadedPubSubTool;
+        $pubSubTool->workflow_push($message);
     }
 
     public function checkLoading()
