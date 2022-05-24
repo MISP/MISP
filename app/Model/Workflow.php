@@ -42,6 +42,7 @@ class Workflow extends AppModel
         'data' => [
             'rule' => ['hasAcyclicGraph'],
             'message' => 'Cannot save a workflow containing a cycle',
+            // TODO: Force only one type of trigger module per WF
         ]
     ];
 
@@ -49,6 +50,9 @@ class Workflow extends AppModel
         // 'Organisation',
         // 'User'
     ];
+
+    public $loaded_modules = [];
+    public $loaded_handlers = [];
 
     const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'data'];
 
@@ -63,6 +67,7 @@ class Workflow extends AppModel
     {
         parent::__construct($id, $table, $ds);
         $this->workflowGraphTool = new WorkflowGraphTool();
+        $this->loadAllWorkflowModules();
     }
 
     public function beforeValidate($options = array())
@@ -396,6 +401,32 @@ class Workflow extends AppModel
         return $isAcyclic;
     }
 
+    /**
+     * navigateGraph Explore the graph and execute each nodes
+     *
+     * @param array $graphData
+     * @return boolean
+     */
+    public function navigateGraph(array $workflow)
+    {
+        $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
+        $navigator = $this->workflowGraphTool->getNavigatorIterator($graphData, 'publish');
+        foreach ($navigator as $graphNode) {
+            $node = $graphNode['node'];
+            $path_type = $graphNode['path_type'];
+            $nodeClass = $this->getNodeClass($node);
+            if (!is_null($nodeClass)) {
+                $nodeClass->executeNode($node);
+            }
+        }
+    }
+
+    public function getNodeClass($node)
+    {
+        $handler = $this->loaded_handlers[$node['data']['module_type']] ?? null;
+        return $handler;
+    }
+
     public function attachNotificationToModules(array $user, array $modules, array $workflow): array
     {
         foreach ($modules as $moduleType => $modulesByType) {
@@ -410,6 +441,9 @@ class Workflow extends AppModel
         $triggers = $modules['blocks_trigger'];
         foreach ($triggers as $i => $trigger) {
             $blockingExecutionOrder = $this->getExecutionOrderForTrigger($user, $trigger)['blocking'];
+            $blockingExecutionOrder = array_filter($blockingExecutionOrder, function($workflow) {
+                return $workflow['Workflow']['enabled'];
+            });
             $blockingExecutionOrderIDs = Hash::extract($blockingExecutionOrder, '{n}.Workflow.id');
             $indexInExecutionPath = array_search($workflow['Workflow']['id'], $blockingExecutionOrderIDs);
             $effectiveBlockingExecutionOrder = array_slice($blockingExecutionOrder, 0, $indexInExecutionPath);
@@ -428,232 +462,44 @@ class Workflow extends AppModel
         return $modules;
     }
 
+    public function loadAllWorkflowModules() {
+
+        include_once 'WorkflowModules/WorkflowModulesTrigger.php';
+        include_once 'WorkflowModules/WorkflowModulesLogic.php';
+        include_once 'WorkflowModules/WorkflowModulesAction.php';
+        try {
+            $this->loaded_handlers = [
+                'trigger' => ClassRegistry::init('WorkflowModulesTrigger'),
+                'logic' => ClassRegistry::init('WorkflowModulesLogic'),
+                'action' => ClassRegistry::init('WorkflowModulesAction'),
+            ];
+            // debug(get_class_methods($this->loaded_handlers['action']));
+            $this->loaded_modules = [
+                'trigger' => $this->loaded_handlers['trigger']->getModules(),
+                'logic' => $this->loaded_handlers['logic']->getModules(),
+                'action' => $this->loaded_handlers['action']->getModules(),
+            ];
+        } catch (Exception $e) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'Workflow',
+                'model_id' => 0,
+                'email' => 'SYSTEM',
+                'action' => 'loadAllWorkflowModules',
+                'title' => sprintf('Error while trying to load workflow modules'),
+                'change' => ''
+            ));
+            return false;
+        }
+    }
+
     public function getModulesByType($module_type=false): array
     {
-        $blocks_trigger = [
-            [
-                'id' => 'publish',
-                'name' => 'Publish',
-                'icon' => 'upload',
-                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
-                'module_type' => 'trigger',
-                'inputs' => 0,
-                'outputs' => 2,
-            ],
-            [
-                'id' => 'new-attribute',
-                'name' => 'New Attribute',
-                'icon' => 'cube',
-                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
-                'module_type' => 'trigger',
-                'inputs' => 0,
-                // 'disabled' => true,
-                'outputs' => 2,
-            ],
-            [
-                'id' => 'new-object',
-                'name' => 'New Object',
-                'icon' => 'cubes',
-                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
-                'module_type' => 'trigger',
-                'inputs' => 0,
-                'disabled' => true,
-                'outputs' => 2,
-            ],
-            [
-                'id' => 'email-sent',
-                'name' => 'Email sent',
-                'icon' => 'envelope',
-                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
-                'module_type' => 'trigger',
-                'inputs' => 0,
-                'disabled' => true,
-            ],
-            [
-                'id' => 'user-new',
-                'name' => 'New User',
-                'icon' => 'user-plus',
-                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
-                'module_type' => 'trigger',
-                'inputs' => 0,
-                'disabled' => true,
-                'outputs' => 2,
-            ],
-            [
-                'id' => 'feed-pull',
-                'name' => 'Feed pull',
-                'icon' => 'arrow-alt-circle-down',
-                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
-                'module_type' => 'trigger',
-                'inputs' => 0,
-                'disabled' => true,
-            ],
-        ];
-
-        $blocks_logic = [
-            [
-                'id' => 'if',
-                'name' => 'IF',
-                'icon' => 'code-branch',
-                'description' => 'Simple IF / ELSE condition block. Use the `then` output for execution path satifying the conditions passed to the `IF` block.',
-                'module_type' => 'logic',
-                'outputs' => 2,
-                'html_template' => 'IF',
-                'params' => [
-                    [
-                        'type' => 'textarea',
-                        'label' => 'Event Conditions',
-                        'default' => '',
-                        'placeholder' => '{ "tags" : { "AND" : [ "tlp : green" , "Malware" ] , "NOT" : [ "%ransomware%" ]}}'
-                    ],
-                ],
-            ],
-            [
-                'id' => 'parallel-task',
-                'name' => 'Parallel Task',
-                'icon' => 'random',
-                'description' => 'Allow breaking the execution process and running parallel tasks. You can connect multiple blocks the `parallel` output.',
-                'module_type' => 'logic',
-                'outputs' => 1,
-                'html_template' => 'parallel',
-                'params' => [],
-            ],
-        ];
-
-        $blocks_action = [
-            [
-                'id' => 'add-tag',
-                'name' => 'Add Tag',
-                'icon' => 'tag',
-                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
-                'module_type' => 'action',
-                'params' => [
-                    [
-                        'type' => 'input',
-                        'label' => 'Tag name',
-                        'default' => 'tlp:red',
-                        'placeholder' => __('Enter tag name')
-                    ],
-                ],
-                'outputs' => 0,
-                // 'disabled' => true,
-            ],
-            [
-                'id' => 'enrich-attribute',
-                'name' => 'Enrich Attribute',
-                'icon' => 'asterisk',
-                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
-                'module_type' => 'action',
-                'outputs' => 0,
-                'disabled' => true,
-            ],
-            [
-                'id' => 'slack-message',
-                'name' => 'Slack Message',
-                'icon' => 'slack',
-                'icon_class' => 'fab',
-                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
-                'module_type' => 'action',
-                'params' => [
-                    [
-                        'type' => 'select',
-                        'label' => 'Channel name',
-                        'default' => 'team-4_3_misp',
-                        'options' => [
-                            'team-4_3_misp' => __('Team 4.3 MISP'),
-                            'team-4_0_elite_as_one' => __('Team 4.0 Elite as One'),
-                        ],
-                    ],
-                ],
-                'outputs' => 0,
-            ],
-            [
-                'id' => 'matter-message',
-                'name' => 'MatterMost Message',
-                'icon' => 'comment-dots',
-                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
-                'module_type' => 'action',
-                'params' => [
-                    [
-                        'type' => 'input',
-                        'label' => 'Tag name',
-                        'default' => 'tlp:red',
-                        'placeholder' => __('Enter tag name')
-                    ],
-                    [
-                        'id' => 'channel_name_select',
-                        'type' => 'select',
-                        'label' => 'Channel name',
-                        'default' => 'team-4_3_misp',
-                        'options' => [
-                            'team-4_3_misp' => __('Team 4.3 MISP'),
-                            'team-4_0_elite_as_one' => __('Team 4.0 Elite as One'),
-                        ],
-                    ],
-                    [
-                        'id' => 'channel_name_radio',
-                        'type' => 'radio',
-                        'label' => 'Channel name',
-                        'default' => 'team-4_3_misp',
-                        'options' => [
-                            'team-4_3_misp' => __('Team 4.3 MISP'),
-                            'team-4_0_elite_as_one' => __('Team 4.0 Elite as One'),
-                        ],
-                    ],
-                    [
-                        'type' => 'checkbox',
-                        'label' => __('Priority'),
-                        'default' => true,
-                    ],
-                ],
-                'outputs' => 0,
-            ],
-            [
-                'id' => 'send-email',
-                'name' => 'Send Email',
-                'icon' => 'envelope',
-                'description' => 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.',
-                'module_type' => 'action',
-                'params' => [
-                    [
-                        'type' => 'select',
-                        'label' => 'Email template',
-                        'default' => 'default',
-                        'options' => [
-                            'default',
-                            'TLP marking',
-                        ],
-                    ],
-                ],
-                'outputs' => 0,
-                'disabled' => true,
-            ],
-            [
-                'name' => 'Do nothing',
-                'id' => 'dev-null',
-                'icon' => 'ban',
-                'description' => 'Essentially a /dev/null',
-                'module_type' => 'action',
-                'outputs' => 0,
-            ],
-            [
-                'name' => 'Push to ZMQ',
-                'id' => 'push-zmq',
-                'icon' => 'wifi',
-                'icon_class' => 'fa-rotate-90',
-                'description' => 'Push to the ZMQ channel',
-                'module_type' => 'action',
-                'params' => [
-                    [
-                        'type' => 'input',
-                        'label' => 'ZMQ Topic',
-                        'default' => 'from-misp-workflow',
-                    ],
-                ],
-                'outputs' => 0,
-                'disabled' => true,
-            ],
-        ];
+        $blocks_trigger = $this->loaded_modules['trigger'];
+        $blocks_logic = $this->loaded_modules['logic'];
+        $blocks_action = $this->loaded_modules['action'];
 
         array_walk($blocks_trigger, function(&$block) {
             $block['html_template'] = !empty($block['html_template']) ? $block['html_template'] : 'trigger';

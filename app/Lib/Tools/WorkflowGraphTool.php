@@ -127,7 +127,7 @@ class GraphNavigator
 
     private function _evaluateIFCondition($node): bool
     {
-        // $result = $node->execute();
+        // $result = $node['execute']();
         $result = true;
         return $result;
     }
@@ -137,7 +137,7 @@ class GraphNavigator
         $this->cursor = $node_id;
         $node = $this->graph[$node_id];
         if ($node['data']['module_type'] != 'trigger' && $node['data']['module_type'] != 'logic') { // trigger and logic nodes should not be returned as they are "control" nodes
-            yield [$node_id, $path_type];
+            yield ['node' => $node, 'path_type' => $path_type];
         }
         $outputs = ($node['outputs'] ?? []);
         $allowedOutputs = $this->_evaluateOutputs($node_id, $outputs);
