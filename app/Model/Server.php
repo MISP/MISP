@@ -5710,6 +5710,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                 ],
+                'thumbnail_in_redis' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Store image thumbnails in Redis insteadof file system.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
             ),
             'GnuPG' => array(
                 'branch' => 1,

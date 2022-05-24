@@ -989,17 +989,22 @@ class AttributesController extends AppController
             throw new NotFoundException("Attribute is not an image.");
         }
 
-        $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
-        $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
-        $extension = pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION);
+        if ($thumbnail) {
+            $extension = $thumbnail === 'webp' ? 'webp' : 'png';
+            $maxWidth = $this->request->params['named']['width'] ?? null;
+            $maxHeight = $this->request->params['named']['height'] ?? null;
+            $imageData = $this->Attribute->getThumbnail($attribute, $extension, $maxWidth, $maxHeight);
+        } else {
+            $imageData = $this->Attribute->getPictureData($attribute);
+            $extension = strtolower(pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION));
+        }
 
-        $imageData = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
         if ($imageData instanceof File) {
-            return $this->RestResponse->sendFile($imageData, strtolower($extension));
+            return $this->RestResponse->sendFile($imageData, $extension);
         }
 
         $this->response->body($imageData);
-        $this->response->type(strtolower($extension));
+        $this->response->type($extension);
         return $this->response;
     }
 

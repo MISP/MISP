@@ -33,12 +33,20 @@ switch ($object['type']) {
     case 'malware-sample':
         if ($object['type'] === 'attachment' && isset($object['image'])) {
             if ($object['image'] === true) {
-                $src = $baseurl . '/' . ($object['objectType'] === 'proposal' ? 'shadowAttributes' : 'attributes') . '/viewPicture/' . (int)$object['id'] . '/1';
-                echo '<img class="screenshot screenshot-collapsed useCursorPointer img-rounded" src="' . $src . '" title="' . h($object['value']) . '" loading="lazy">';
+                if ($object['objectType'] === 'proposal') {
+                    $src = $baseurl . '/shadowAttributes/viewPicture/' . (int)$object['id'] . '/1';
+                    echo '<img class="screenshot useCursorPointer img-rounded" src="' . $src . '" title="' . h($object['value']) . '" loading="lazy">';
+                } else { // attribute
+                    $src = $baseurl . '/attributes/viewPicture/' . (int)$object['id'] . '/';
+                    echo '<picture>';
+                    echo '<source srcset="' . $src . 'webp" type="image/webp">';
+                    echo '<img class="screenshot useCursorPointer img-rounded" src="' . $src . '1" title="' . h($object['value']) . '" loading="lazy">';
+                    echo '</picture>';
+                }
             } else {
                 $extension = pathinfo($object['value'], PATHINFO_EXTENSION);
                 $uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($object['image']);
-                echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '">';
+                echo '<img class="screenshot useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '">';
             }
         } else {
             $filenameHash = explode('|', h($object['value']));
