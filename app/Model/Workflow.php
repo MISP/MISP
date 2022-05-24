@@ -64,8 +64,6 @@ class Workflow extends AppModel
     const REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER = 'workflow:workflow_blocking_order_list:%s';
     const REDIS_KEY_TRIGGER_PER_WORKFLOW = 'workflow:trigger_list:%s';
 
-    private $moduleByID = [];
-
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -93,7 +91,7 @@ class Workflow extends AppModel
             }
             $results[$k]['Workflow']['data'] = JsonTool::decode($result['Workflow']['data']);
             if (!empty($result['Workflow']['id'])) {
-                $trigger_ids = $this->getTriggersIDPerWorkflow((int) $result['Workflow']['id']);
+                $trigger_ids = $this->__getTriggersIDPerWorkflow((int) $result['Workflow']['id']);
                 $results[$k]['Workflow']['listening_triggers'] = $this->getModuleByID($trigger_ids);
             }
         }
@@ -113,11 +111,7 @@ class Workflow extends AppModel
 
     public function rebuildRedis($user)
     {
-        try {
-            $redis = $this->setupRedisWithException();
-        } catch (Exception $e) {
-            return false;
-        }
+        $redis = $this->setupRedisWithException();
         $workflows = $this->fetchWorkflows($user);
         $keys = $redis->keys(Workflow::REDIS_KEY_WORKFLOW_NAMESPACE . ':*');
         $redis->delete($keys);
@@ -139,12 +133,13 @@ class Workflow extends AppModel
         try {
             $redis = $this->setupRedisWithException();
         } catch (Exception $e) {
+            $this->logException('Failed to setup redis ', $e);
             return false;
         }
         if (!is_array($workflow['Workflow']['data'])) {
             $workflow['Workflow']['data'] = JsonTool::decode($workflow['Workflow']['data']);
         }
-        $original_trigger_list_id = $this->getTriggersIDPerWorkflow((int)$workflow['Workflow']['id']);
+        $original_trigger_list_id = $this->__getTriggersIDPerWorkflow((int)$workflow['Workflow']['id']);
         $new_node_trigger_list = $this->workflowGraphTool->extractTriggersFromWorkflow($workflow['Workflow'], true);
         $new_node_trigger_list_per_id = Hash::combine($new_node_trigger_list, '{n}.data.id', '{n}');
         $new_trigger_list_id = array_keys($new_node_trigger_list_per_id);
@@ -174,12 +169,12 @@ class Workflow extends AppModel
     }
 
     /**
-     * getWorkflowsIDPerTrigger Get list of workflow IDs listening to the specified trigger
+     * __getWorkflowsIDPerTrigger Get list of workflow IDs listening to the specified trigger
      *
      * @param  string $trigger_id
-     * @return array
+     * @return bool|array
      */
-    private function getWorkflowsIDPerTrigger($trigger_id): array
+    private function __getWorkflowsIDPerTrigger($trigger_id): array
     {
         try {
             $redis = $this->setupRedisWithException();
@@ -191,12 +186,12 @@ class Workflow extends AppModel
     }
 
     /**
-     * getOrderedWorkflowsPerTrigger Get list of workflow IDs in the execution order for the specified trigger
+     * __getOrderedWorkflowsPerTrigger Get list of workflow IDs in the execution order for the specified trigger
      *
      * @param  string $trigger_id
      * @return bool|array
      */
-    private function getOrderedWorkflowsPerTrigger($trigger_id)
+    private function __getOrderedWorkflowsPerTrigger($trigger_id)
     {
         try {
             $redis = $this->setupRedisWithException();
@@ -207,12 +202,12 @@ class Workflow extends AppModel
     }
 
     /**
-     * getTriggersIDPerWorkflow Get list of trigger name running to the specified workflow
+     * __getTriggersIDPerWorkflow Get list of trigger name running to the specified workflow
      *
      * @param  int $workflow_id
      * @return bool|array
      */
-    private function getTriggersIDPerWorkflow(int $workflow_id)
+    private function __getTriggersIDPerWorkflow(int $workflow_id)
     {
         try {
             $redis = $this->setupRedisWithException();
@@ -223,7 +218,7 @@ class Workflow extends AppModel
     }
 
     /**
-     * saveBlockingWorkflowExecutionOrder Get list of trigger name running to the specified workflow
+     * saveBlockingWorkflowExecutionOrder Save the workflow execution order for the provided trigger
      *
      * @param  string $trigger_id
      * @param  array $workflows List of workflow IDs in priority order
@@ -234,6 +229,7 @@ class Workflow extends AppModel
         try {
             $redis = $this->setupRedisWithException();
         } catch (Exception $e) {
+            $this->logException('Failed to setup redis ', $e);
             return false;
         }
         $key = sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id);
@@ -275,16 +271,6 @@ class Workflow extends AppModel
         return true;
     }
 
-    private function loadModuleByID()
-    {
-        if (empty($this->moduleByID)) {
-            $modules = $this->getModules();
-            foreach ($modules as $module) {
-                $this->moduleByID[$module['id']] = $module;
-            }
-        }
-    }
-
     /**
      * attachWorkflowsToTriggers Collect the workflows listening to this trigger
      *
@@ -299,9 +285,9 @@ class Workflow extends AppModel
         $workflows_per_trigger = [];
         $ordered_workflows_per_trigger = [];
         foreach ($triggers as $trigger) {
-            $workflow_ids_for_trigger = $this->getWorkflowsIDPerTrigger($trigger['id']);
+            $workflow_ids_for_trigger = $this->__getWorkflowsIDPerTrigger($trigger['id']);
             $workflows_per_trigger[$trigger['id']] = $workflow_ids_for_trigger;
-            $ordered_workflows_per_trigger[$trigger['id']] = $this->getOrderedWorkflowsPerTrigger($trigger['id']);
+            $ordered_workflows_per_trigger[$trigger['id']] = $this->__getOrderedWorkflowsPerTrigger($trigger['id']);
             foreach ($workflow_ids_for_trigger as $id) {
                 $all_workflow_ids[$id] = true;
             }
@@ -331,7 +317,7 @@ class Workflow extends AppModel
 
     public function fetchWorkflowsForTrigger($user, $trigger_id): array
     {
-        $workflow_ids_for_trigger = $this->getWorkflowsIDPerTrigger($trigger_id);
+        $workflow_ids_for_trigger = $this->__getWorkflowsIDPerTrigger($trigger_id);
         $workflows = $this->fetchWorkflows($user, [
             'conditions' => [
                 'Workflow.id' => $workflow_ids_for_trigger,
@@ -355,7 +341,7 @@ class Workflow extends AppModel
             return ['blocking' => [], 'non-blocking' => [] ];
         }
         $workflows = $this->fetchWorkflowsForTrigger($user, $trigger['id']);
-        $ordered_workflow_ids = $this->getOrderedWorkflowsPerTrigger($trigger['id']);
+        $ordered_workflow_ids = $this->__getOrderedWorkflowsPerTrigger($trigger['id']);
         return $this->groupWorkflowsPerBlockingType($workflows, $trigger['id'], $ordered_workflow_ids);
     }
 
@@ -481,6 +467,50 @@ class Workflow extends AppModel
             $this->loaded_modules[$type] = $classModuleFromFiles['classConfigs'];
             $this->loaded_classes[$type] = $classModuleFromFiles['instancedClasses'];
         }
+        $superUser = ['Role' => ['perm_site_admin' => true]];
+        $modules_from_service = $this->__getModulesFromModuleService($superUser)['modules'];
+        $misp_module_class = $this->__getClassForMispModule($modules_from_service);
+        foreach ($misp_module_class as $i => $module_class) {
+            $misp_module_configs[$i] = $module_class->getConfig();
+            $misp_module_configs[$i]['module_type'] = 'action';
+        }
+        $this->loaded_modules['action'] = array_merge($this->loaded_modules['action'], $misp_module_configs);
+        $this->loaded_classes['action'] = array_merge($this->loaded_classes['action'], $misp_module_class);
+    }
+
+    private function __getModulesFromModuleService($user)
+    {
+        if (empty($this->Module)) {
+            $this->Module = ClassRegistry::init('Module');
+        }
+        $enabledModules = $this->Module->getEnabledModules($user, null, 'Action');
+        $misp_module_config = empty($enabledModules) ? false : $enabledModules;
+        return $misp_module_config;
+    }
+
+    private function __getClassForMispModule($misp_module_configs)
+    {
+        $filepathMispModule = sprintf('%s/%s', Workflow::MODULE_ROOT_PATH, 'Module_misp_module.php');
+        $className = 'Module_misp_module';
+        $reflection = null;
+        try {
+            require_once($filepathMispModule);
+            try {
+                $reflection = new \ReflectionClass($className);
+            } catch (\ReflectionException $e) {
+                return $e->getMessage();
+            }
+        } catch (Exception $e) {
+            return $e->getMessage();
+        }
+        $moduleClasses = [];
+        foreach ($misp_module_configs as $moduleConfig) {
+            $mainClass = $reflection->newInstance($moduleConfig);
+            if ($mainClass->checkLoading() === 'The Factory Must Grow') {
+                $moduleClasses[$mainClass->id] = $mainClass;
+            }
+        }
+        return $moduleClasses;
     }
 
     private function __listPHPModuleFiles()
@@ -514,7 +544,6 @@ class Workflow extends AppModel
             }
             if (!empty($classConfigs[$instancedClass->id])) {
                 throw new WorkflowDuplicatedModuleIDException(__('Module %s has already been defined', $instancedClass->id));
-                
             }
             $classConfigs[$instancedClass->id] = $instancedClass->getConfig();
             $instancedClasses[$instancedClass->id] = $instancedClass;
@@ -548,14 +577,16 @@ class Workflow extends AppModel
             try {
                 $reflection = new \ReflectionClass($className);
             } catch (\ReflectionException $e) {
-                return $e->getMessage();
+                $this->logException(__('Could not load module for path %s', $filepath), $e);
+                return false;
             }
-            $mainClass = $reflection->newInstance(true);
+            $mainClass = $reflection->newInstance();
             if ($mainClass->checkLoading() === 'The Factory Must Grow') {
                 return $mainClass;
             }
         } catch (Exception $e) {
-            return $e->getMessage();
+            $this->logException(__('Could not load module for path %s', $filepath), $e);
+            return false;
         }
     }
 
@@ -567,8 +598,17 @@ class Workflow extends AppModel
 
         array_walk($blocks_trigger, function(&$block) {
             $block['html_template'] = !empty($block['html_template']) ? $block['html_template'] : 'trigger';
-            $block['disabled'] = !empty($block['disabled']);
+            $block['disabled'] = !in_array($block['id'], ['publish', 'new-attribute', ]);
         });
+        array_walk($blocks_action, function(&$block) {
+            $block['disabled'] = !in_array($block['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', ]);
+        });
+        ksort($blocks_trigger);
+        ksort($blocks_logic);
+        ksort($blocks_action);
+        $blocks_trigger = array_values($blocks_trigger);
+        $blocks_logic = array_values($blocks_logic);
+        $blocks_action = array_values($blocks_action);
         $modules = [
             'blocks_trigger' => $blocks_trigger,
             'blocks_logic' => $blocks_logic,
@@ -604,7 +644,6 @@ class Workflow extends AppModel
             $module_ids = [$module_ids];
         }
         $matchingModules = [];
-        // $modules = $this->getModules()['blocks_all'];
         $modules = $this->getModules();
         foreach ($modules as $module) {
             if (in_array($module['id'], $module_ids)) {
@@ -699,7 +738,7 @@ class Workflow extends AppModel
         $existingWorkflow = $this->fetchWorkflow($user, $workflow['Workflow']['id']);
         $workflow['Workflow']['id'] = $existingWorkflow['Workflow']['id'];
         unset($workflow['Workflow']['timestamp']);
-        $errors = $this->saveAndReturnErrors($workflow, ['fieldList' => self::CAPTURE_FIELDS], $errors);
+        $errors = $this->__saveAndReturnErrors($workflow, ['fieldList' => self::CAPTURE_FIELDS], $errors);
         return $errors;
     }
 
@@ -717,11 +756,11 @@ class Workflow extends AppModel
         $errors = array();
         $workflow = $this->fetchWorkflow($user, $id, $throwErrors);
         $workflow['Workflow']['enabled'] = $enable;
-        $errors = $this->saveAndReturnErrors($workflow, ['fieldList' => ['enabled']], $errors);
+        $errors = $this->__saveAndReturnErrors($workflow, ['fieldList' => ['enabled']], $errors);
         return $errors;
     }
 
-    private function saveAndReturnErrors($data, $saveOptions = [], $errors = [])
+    private function __saveAndReturnErrors($data, $saveOptions = [], $errors = [])
     {
         $saveSuccess = $this->save($data, $saveOptions);
         if (!$saveSuccess) {

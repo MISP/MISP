@@ -25,7 +25,14 @@ class WorkflowBaseModule
 
     public function getConfig(): array
     {
-        return (array) $this;
+        $reflection = new ReflectionObject($this);
+        $properties = [];
+        foreach ($reflection->getProperties() as $property) {
+            if ($property->isPublic()) {
+                $properties[$property->getName()] = $property->getValue($this);
+            }
+        }
+        return $properties;
     }
 
     public function exec(array $node)

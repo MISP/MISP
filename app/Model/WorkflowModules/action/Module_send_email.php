@@ -3,7 +3,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
 class Module_send_email extends WorkflowBaseModule
 {
-    public $id = 'send-emai';
+    public $id = 'send-email';
     public $name = 'Send Email';
     public $description = 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.';
     public $icon = 'tag';
