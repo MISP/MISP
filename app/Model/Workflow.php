@@ -2,6 +2,8 @@
 App::uses('AppModel', 'Model');
 App::uses('WorkflowGraphTool', 'Tools');
 
+class WorkflowDuplicatedModuleIDException extends Exception {}
+
 class Workflow extends AppModel
 {
     public $recursive = -1;
@@ -489,6 +491,12 @@ class Workflow extends AppModel
             $folder = new Folder(Workflow::MODULE_ROOT_PATH . $dir);
             $filesInFolder = $folder->find('.*\.php', true);
             $files[$dir] = array_diff($filesInFolder, ['..', '.']);
+            $customFolder = new Folder(Workflow::MODULE_ROOT_PATH . $dir . '/Custom');
+            $filesInCustomFolder = $customFolder->find('.*\.php', true);
+            $filesInCustomFolder = array_map(function($file) {
+                return 'Custom/' . $file;
+            }, $filesInCustomFolder);
+            $files[$dir] = array_merge($filesInFolder, array_diff($filesInCustomFolder, ['..', '.']));
         }
         return $files;
     }
@@ -503,6 +511,10 @@ class Workflow extends AppModel
             if (is_string($instancedClass)) {
                 $message = sprintf(__('Error while trying to load module: %s'), $instancedClass);
                 $this->__logLoadingError($filename, $message);
+            }
+            if (!empty($classConfigs[$instancedClass->id])) {
+                throw new WorkflowDuplicatedModuleIDException(__('Module %s has already been defined', $instancedClass->id));
+                
             }
             $classConfigs[$instancedClass->id] = $instancedClass->getConfig();
             $instancedClasses[$instancedClass->id] = $instancedClass;
