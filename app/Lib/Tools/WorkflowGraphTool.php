@@ -73,7 +73,7 @@ class GraphUtil
     }
 }
 
-class GraphNavigator
+class GraphWalker
 {
     public function __construct(array $graphData, $startNodeID)
     {
@@ -132,7 +132,7 @@ class GraphNavigator
         return $result;
     }
 
-    public function _navigate($node_id, $path_type=null)
+    public function _walk($node_id, $path_type=null)
     {
         $this->cursor = $node_id;
         $node = $this->graph[$node_id];
@@ -146,15 +146,15 @@ class GraphNavigator
             foreach ($outputs as $connections) {
                 foreach ($connections as $connection) {
                     $next_node_id = (int)$connection['node'];
-                    yield from $this->_navigate($next_node_id, $path_type);
+                    yield from $this->_walk($next_node_id, $path_type);
                 }
             }
         }
     }
 
-    public function navigate()
+    public function walk()
     {
-        return $this->_navigate($this->cursor);
+        return $this->_walk($this->cursor);
     }
 }
 
@@ -230,9 +230,9 @@ class WorkflowGraphTool
         // return true;
     }
 
-    public static function getNavigatorIterator(array $graphData, $startNodeID)
+    public static function getWalkerIterator(array $graphData, $startNodeID)
     {
-        $graphNavigator = new GraphNavigator($graphData, $startNodeID);
-        return $graphNavigator->navigate();
+        $graphWalker = new GraphWalker($graphData, $startNodeID);
+        return $graphWalker->walk();
     }
 }

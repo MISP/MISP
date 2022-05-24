@@ -391,16 +391,16 @@ class Workflow extends AppModel
     }
 
     /**
-     * navigateGraph Explore the graph and execute each nodes
+     * walkGraph Explore the graph and execute each nodes
      *
      * @param array $graphData
      * @return boolean
      */
-    public function navigateGraph(array $workflow)
+    public function walkGraph(array $workflow)
     {
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
-        $navigator = $this->workflowGraphTool->getNavigatorIterator($graphData, 'publish');
-        foreach ($navigator as $graphNode) {
+        $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, 'publish');
+        foreach ($graphWalker as $graphNode) {
             $node = $graphNode['node'];
             $path_type = $graphNode['path_type'];
             $moduleClass = $this->getModuleClass($node);
