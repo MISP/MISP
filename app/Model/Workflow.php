@@ -52,10 +52,11 @@ class Workflow extends AppModel
     ];
 
     public $loaded_modules = [];
-    public $loaded_handlers = [];
+    public $loaded_classes = [];
 
     const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'data'];
 
+    const MODULE_ROOT_PATH = APP . 'Model/WorkflowModules/';
     const REDIS_KEY_WORKFLOW_NAMESPACE = 'workflow';
     const REDIS_KEY_WORKFLOW_PER_TRIGGER = 'workflow:workflow_list:%s';
     const REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER = 'workflow:workflow_blocking_order_list:%s';
@@ -414,17 +415,22 @@ class Workflow extends AppModel
         foreach ($navigator as $graphNode) {
             $node = $graphNode['node'];
             $path_type = $graphNode['path_type'];
-            $nodeClass = $this->getNodeClass($node);
-            if (!is_null($nodeClass)) {
-                $nodeClass->executeNode($node);
+            $moduleClass = $this->getModuleClass($node);
+            if (!is_null($moduleClass)) {
+                try {
+                    $moduleClass->exec($node);
+                } catch (Exception $e) {
+                    $message = sprintf(__('Error while executing module: %s'), $e->getMessage());
+                    $this->__logLoadingError($node['data']['id'], $message);
+                }
             }
         }
     }
 
-    public function getNodeClass($node)
+    public function getModuleClass($node)
     {
-        $handler = $this->loaded_handlers[$node['data']['module_type']] ?? null;
-        return $handler;
+        $moduleClass = $this->loaded_classes[$node['data']['module_type']][$node['data']['id']] ?? null;
+        return $moduleClass;
     }
 
     public function attachNotificationToModules(array $user, array $modules, array $workflow): array
@@ -462,36 +468,82 @@ class Workflow extends AppModel
         return $modules;
     }
 
-    public function loadAllWorkflowModules() {
+    public function loadAllWorkflowModules()
+    {
+        $phpModuleFiles = $this->__listPHPModuleFiles();
+        foreach ($phpModuleFiles as $type => $files) {
+            $classModuleFromFiles = $this->__getClassFromModuleFiles($type, $files);
+            foreach ($classModuleFromFiles['classConfigs'] as $i => $config) {
+                $classModuleFromFiles['classConfigs'][$i]['module_type'] = $type;
+            }
+            $this->loaded_modules[$type] = $classModuleFromFiles['classConfigs'];
+            $this->loaded_classes[$type] = $classModuleFromFiles['instancedClasses'];
+        }
+    }
 
-        include_once 'WorkflowModules/WorkflowModulesTrigger.php';
-        include_once 'WorkflowModules/WorkflowModulesLogic.php';
-        include_once 'WorkflowModules/WorkflowModulesAction.php';
+    private function __listPHPModuleFiles()
+    {
+        $dirs = ['trigger', 'logic', 'action'];
+        $files = [];
+        foreach ($dirs as $dir) {
+            $folder = new Folder(Workflow::MODULE_ROOT_PATH . $dir);
+            $filesInFolder = $folder->find('.*\.php', true);
+            $files[$dir] = array_diff($filesInFolder, ['..', '.']);
+        }
+        return $files;
+    }
+
+    private function __getClassFromModuleFiles($type, $files)
+    {
+        $instancedClasses = [];
+        $classConfigs = [];
+        foreach ($files as $filename) {
+            $filepath = sprintf('%s%s/%s', Workflow::MODULE_ROOT_PATH, $type, $filename);
+            $instancedClass = $this->__getClassFromModuleFile($filepath);
+            if (is_string($instancedClass)) {
+                $message = sprintf(__('Error while trying to load module: %s'), $instancedClass);
+                $this->__logLoadingError($filename, $message);
+            }
+            $classConfigs[$instancedClass->id] = $instancedClass->getConfig();
+            $instancedClasses[$instancedClass->id] = $instancedClass;
+        }
+        return [
+            'classConfigs' => $classConfigs,
+            'instancedClasses' => $instancedClasses,
+        ];
+    }
+
+    private function __logLoadingError($id, $message)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->createLogEntry('SYSTEM', 'load_module', 'Workflow', $id, $message);
+        return false;
+    }
+
+    /**
+     * getProcessorClass
+     *
+     * @param  string $filePath
+     * @param  string $processorMainClassName
+     * @return object|string Object loading success, string containing the error if failure
+     */
+    private function __getClassFromModuleFile($filepath)
+    {
+        $className = explode('/', $filepath);
+        $className = str_replace('.php', '', $className[count($className)-1]);
         try {
-            $this->loaded_handlers = [
-                'trigger' => ClassRegistry::init('WorkflowModulesTrigger'),
-                'logic' => ClassRegistry::init('WorkflowModulesLogic'),
-                'action' => ClassRegistry::init('WorkflowModulesAction'),
-            ];
-            // debug(get_class_methods($this->loaded_handlers['action']));
-            $this->loaded_modules = [
-                'trigger' => $this->loaded_handlers['trigger']->getModules(),
-                'logic' => $this->loaded_handlers['logic']->getModules(),
-                'action' => $this->loaded_handlers['action']->getModules(),
-            ];
+            require_once($filepath);
+            try {
+                $reflection = new \ReflectionClass($className);
+            } catch (\ReflectionException $e) {
+                return $e->getMessage();
+            }
+            $mainClass = $reflection->newInstance(true);
+            if ($mainClass->checkLoading() === 'The Factory Must Grow') {
+                return $mainClass;
+            }
         } catch (Exception $e) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                'org' => 'SYSTEM',
-                'model' => 'Workflow',
-                'model_id' => 0,
-                'email' => 'SYSTEM',
-                'action' => 'loadAllWorkflowModules',
-                'title' => sprintf('Error while trying to load workflow modules'),
-                'change' => ''
-            ));
-            return false;
+            return $e->getMessage();
         }
     }
 
