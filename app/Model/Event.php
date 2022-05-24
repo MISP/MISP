@@ -1336,11 +1336,7 @@ class Event extends AppModel
         $db->begin();
         $connection = $db->getConnection();
         foreach ($relations as $relation) {
-            if ($this->isMysql()) {
-                $query = $connection->prepare('DELETE FROM ' . $relation['table'] . ' WHERE ' . $relation['foreign_key'] . ' = :value');
-            } else {
-                $query = $connection->prepare('DELETE FROM "' . $relation['table'] . '" WHERE "' . $relation['foreign_key'] . '" = :value');
-            }
+            $query = $connection->prepare('DELETE FROM ' . $db->name($relation['table']) . ' WHERE ' . $db->name($relation['foreign_key']) . ' = :value');
             $query->bindValue(':value', $relation['value'], PDO::PARAM_INT);
             $query->execute();
         }
