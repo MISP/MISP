@@ -47,10 +47,11 @@ class WorkflowBaseModule
         return $properties;
     }
 
-    public function exec(array $node): bool
+    public function exec(array $node, WorkflowRoamingData $roamingData): bool
     {
         $this->push_zmq([
             'module' => $this->name,
+            'data' => json_encode($roamingData->getData(), true),
             'timestamp' => time(),
         ]);
         return true;
@@ -66,6 +67,12 @@ class WorkflowBaseModule
         }
         $pubSubTool = self::$loadedPubSubTool;
         $pubSubTool->workflow_push($message);
+    }
+
+    public function logError($message)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->createLogEntry('SYSTEM', 'exec_module', 'Workflow', $this->id, $message);
     }
 
     public function checkLoading()

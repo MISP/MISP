@@ -38,9 +38,9 @@ class Module_misp_module extends WorkflowBaseModule
         $this->Module = ClassRegistry::init('Module');
     }
 
-    public function exec(array $node): bool
+    public function exec(array $node, WorkflowRoamingData $roamingData): bool
     {
-        parent::exec($node);
+        parent::exec($node, $roamingData);
         $postData = ['module' => $this->name];
         $postData['data'] = ['post-data' => 'test-' . time()];
         $result = $this->Module->queryModuleServer($postData, false, 'Action', false);

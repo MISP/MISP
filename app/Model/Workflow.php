@@ -394,7 +394,7 @@ class Workflow extends AppModel
         return $isAcyclic;
     }
 
-    public function executeWorkflowsForTrigger($trigger_id)
+    public function executeWorkflowsForTrigger($trigger_id, array $data)
     {
         $user = ['Role' => ['perm_site_admin' => true]];
         if (empty($this->loaded_modules['trigger'][$trigger_id])) {
@@ -405,7 +405,7 @@ class Workflow extends AppModel
         $orderedBlockingWorkflows = $workflowExecutionOrder['blocking'];
         $orderedDeferredWorkflows = $workflowExecutionOrder['non-blocking'];
         foreach ($orderedBlockingWorkflows as $workflow) {
-            $continueExecution = $this->walkGraph($workflow, $trigger_id, 'blocking');
+            $continueExecution = $this->walkGraph($workflow, $trigger_id, 'blocking', $data);
             if (!$continueExecution) {
                 break;
             }
@@ -421,7 +421,8 @@ class Workflow extends AppModel
         $workflow = $this->fetchWorkflow($user, $id);
         $trigger_ids = $this->workflowGraphTool->extractTriggersFromWorkflow($workflow['Workflow']['data'], false);
         foreach ($trigger_ids as $trigger_id) {
-            $this->walkGraph($workflow, $trigger_id);
+            $data = ['uuid' => '2683b27f-c509-4458-84f9-8980f60548df'];
+            $this->walkGraph($workflow, $trigger_id, null, $data);
         }
     }
 
@@ -433,18 +434,20 @@ class Workflow extends AppModel
      * @param bool|null $for_path If provided, execute the workflow for the provided path. If not provided, execute the worflow regardless of the path
      * @return boolean If all module returned a successful response
      */
-    private function walkGraph(array $workflow, $trigger_id, $for_path=null): bool
+    private function walkGraph(array $workflow, $trigger_id, $for_path=null, $data=[]): bool
     {
+        $workflowUser = $this->User->getAuthUser($workflow['Workflow']['user_id'], true);
+        $roamingData = $this->workflowGraphTool->getRoamingData($workflowUser, $data);
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $startNode = $this->workflowGraphTool->getNodeIdForTrigger($graphData, $trigger_id);
         if ($startNode  == -1) {
             return false;
         }
-        $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $this, $startNode, $for_path);
+        $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $this, $startNode, $for_path, $roamingData);
         foreach ($graphWalker as $graphNode) {
             $node = $graphNode['node'];
             $path_type = $graphNode['path_type'];
-            $success = $this->__executeNode($node);
+            $success = $this->__executeNode($node, $roamingData);
             if (empty($success) && $path_type == 'blocking') {
                 return false; // Node stopped execution for blocking path
             }
@@ -452,12 +455,12 @@ class Workflow extends AppModel
         return true;
     }
 
-    public function __executeNode($node): bool
+    public function __executeNode($node, WorkflowRoamingData $roamingData): bool
     {
         $moduleClass = $this->getModuleClass($node);
         if (!is_null($moduleClass)) {
             try {
-                $success = $moduleClass->exec($node);
+                $success = $moduleClass->exec($node, $roamingData);
             } catch (Exception $e) {
                 $message = sprintf(__('Error while executing module: %s'), $e->getMessage());
                 $this->__logError($node['data']['id'], $message);

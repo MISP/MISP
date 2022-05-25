@@ -129,11 +129,11 @@ class GraphWalker
     }
 
 
-    private function _evaluateOutputs($node)
+    private function _evaluateOutputs($node, WorkflowRoamingData $roamingData)
     {
         $allowed_outputs = ($node['outputs'] ?? []);
         if ($node['data']['module_type'] == 'logic') {
-            $allowed_outputs = $this->_executeModuleLogic($node);
+            $allowed_outputs = $this->_executeModuleLogic($node, $roamingData);
         }
         return $allowed_outputs;
     }
@@ -144,46 +144,73 @@ class GraphWalker
      * @param array $node
      * @return array
      */
-    private function _executeModuleLogic(array $node): array
+    private function _executeModuleLogic(array $node, WorkflowRoamingData $roamingData): array
     {
         $outputs = ($node['outputs'] ?? []);
         if ($node['data']['id'] == 'if') {
-            $useThenBranch = $this->_evaluateIFCondition($node);
+            $useThenBranch = $this->_evaluateIFCondition($node, $roamingData);
             return $useThenBranch ? ['output_1' => $outputs['output_1']] : ['output_2' => $outputs['output_2']];
         }
         return $outputs;
     }
 
-    private function _evaluateIFCondition($node): bool
+    private function _evaluateIFCondition($node, WorkflowRoamingData $roamingData): bool
     {
-        $result = $this->WorkflowModel->__executeNode($node);
+        $result = $this->WorkflowModel->__executeNode($node, $roamingData);
         return $result;
     }
 
-    public function _walk($node_id, $path_type=null)
+    public function _walk($node_id, $path_type=null, WorkflowRoamingData $roamingData)
     {
         $this->cursor = $node_id;
         $node = $this->graph[$node_id];
         if ($node['data']['module_type'] != 'trigger' && $node['data']['module_type'] != 'logic') { // trigger and logic nodes should not be returned as they are "control" nodes
             yield ['node' => $node, 'path_type' => $path_type];
         }
-        $allowedOutputs = $this->_evaluateOutputs($node);
+        $allowedOutputs = $this->_evaluateOutputs($node, $roamingData);
         foreach ($allowedOutputs as $output_id => $outputs) {
             $path_type = $this->_getPathType($node_id, $path_type, $output_id);
             if (is_null($this->for_path) || $path_type == $this->for_path) {
                 foreach ($outputs as $connections) {
                     foreach ($connections as $connection) {
                         $next_node_id = (int)$connection['node'];
-                        yield from $this->_walk($next_node_id, $path_type);
+                        yield from $this->_walk($next_node_id, $path_type, $roamingData);
                     }
                 }
             }
         }
     }
 
-    public function walk()
+    public function walk(WorkflowRoamingData $roamingData)
     {
-        return $this->_walk($this->cursor);
+        return $this->_walk($this->cursor, null, $roamingData);
+    }
+}
+
+class WorkflowRoamingData
+{
+    private $workflow_user;
+    private $data;
+
+    public function __construct(array $workflow_user, array $data)
+    {
+        $this->workflow_user = $workflow_user;
+        $this->data = $data;
+    }
+
+    public function getUser(): array
+    {
+        return $this->workflow_user;
+    }
+
+    public function getData(): array
+    {
+        return $this->data;
+    }
+
+    public function setData(array $data): array
+    {
+        return $this->data = $data;
     }
 }
 
@@ -271,9 +298,14 @@ class WorkflowGraphTool
         return -1;
     }
 
-    public static function getWalkerIterator(array $graphData, $WorkflowModel, $startNodeID, $path_type=null)
+    public static function getRoamingData(array $user, array $data)
+    {
+        return new WorkflowRoamingData($user, $data);
+    }
+
+    public static function getWalkerIterator(array $graphData, $WorkflowModel, $startNodeID, $path_type=null, WorkflowRoamingData $roamingData)
     {
         $graphWalker = new GraphWalker($graphData, $WorkflowModel, $startNodeID, $path_type);
-        return $graphWalker->walk();
+        return $graphWalker->walk($roamingData);
     }
 }

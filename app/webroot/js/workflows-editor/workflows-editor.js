@@ -426,7 +426,8 @@ function saveWorkflow(confirmSave, callback) {
         $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
         var $tmpForm = $('#temp form')
         var formUrl = $tmpForm.attr('action')
-        $tmpForm.find('[name="data[Workflow][data]"]').val(JSON.stringify(getEditorData()))
+        var editorData = getEditorData()
+        $tmpForm.find('[name="data[Workflow][data]"]').val(JSON.stringify(editorData))
 
         $.ajax({
             data: $tmpForm.serialize(),
