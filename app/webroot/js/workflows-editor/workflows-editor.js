@@ -253,6 +253,12 @@ function revalidateContentCache() {
 
 
 function addNode(block, position) {
+    var module = all_blocks_by_id[block.id]
+    if (!module) {
+        console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
+        return '';
+    }
+
     var node_uid = uid() // only used for UI purposes
     block['node_uid'] = node_uid
     var canvasPosition = $canvas[0].getBoundingClientRect()
@@ -341,6 +347,10 @@ function loadWorkflow() {
             // We cannot rely on the editor's import function as it recreates the nodes with the saved HTML instead of rebuilding them
             // We have to manually add the nodes and their connections
             Object.values(workflow.data).forEach(function(block) {
+                if (!all_blocks_by_id[block.data.id]) {
+                    console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
+                    return '';
+                }
                 var node_uid = uid() // only used for UI purposes
                 block.data['node_uid'] = node_uid
                 block.data['_block_param_html'] = genBlockParamHtml(block.data)
@@ -533,7 +543,7 @@ function toggleEditorLoading(loading, message) {
 
 function getTemplateForBlock(block) {
     var html = ''
-    block.icon_class = block.icon_class !== undefined ? block.icon_class : 'fas'
+    block.icon_class = block.icon_class ? block.icon_class : 'fas'
     if (block.html_template !== undefined) {
         if (window['dotBlock_' + block.html_template] !== undefined) {
             html = window['dotBlock_' + block.html_template](block)
@@ -548,11 +558,24 @@ function getTemplateForBlock(block) {
 }
 
 function genBlockParamHtml(block) {
-    if (!block.params) {
-        return ''
-    }
+    var blockParams = block.params !== undefined ? block.params : []
+    var module = all_blocks_by_id[block.id]
+    var moduleParams = (module === undefined || module.params === undefined) ? [] : module.params
+    var ModuleParamsByFormattedName = {}
+    moduleParams.forEach(function(param) {
+        ModuleParamsByFormattedName[param.label.toLowerCase().replace(' ', '-')] = param
+    })
+    var processedParam = {};
     var html = ''
-    block.params.forEach(function (param) {
+    var savedAndModuleParams = blockParams.concat(moduleParams)
+    savedAndModuleParams.forEach(function (param) {
+        var formattedName = param.label.toLowerCase().replace(' ', '-')
+        if (processedParam[formattedName]) { // param has already been processed
+            return;
+        }
+        if (ModuleParamsByFormattedName[formattedName] === undefined) { // Param do not exist in the module (anymore or never did)
+            param.is_invalid = true
+        }
         param['param_id'] = getIDForBlockParameter(block, param)
         paramHtml = ''
         switch (param.type) {
@@ -574,9 +597,21 @@ function genBlockParamHtml(block) {
             default:
                 break;
         }
+        processedParam[formattedName] = true
         html += paramHtml
     })
     return html
+}
+
+function genParameterWarning(options) {
+    return options.is_invalid ?
+        $('<span>').addClass('text-error').css('margin-left', '5px')
+            .append(
+                $('<i>').addClass('fas fa-exclamation-triangle'),
+                $('<span>').text('Invalid parameter')
+            )
+            .attr('title', 'This parameter does not exist in the associated workflow module and thus will be ignored. Make sure you have the latest version of the this module.') :
+        ''
 }
 
 function genSelect(options) {
@@ -586,7 +621,10 @@ function genSelect(options) {
             marginLeft: '0.25em',
             marginBbottom: 0,
         })
-        .append($('<span>').text(options.label))
+        .append(
+            $('<span>').text(options.label),
+            genParameterWarning(options)
+        )
     var $select = $('<select>').css({
         width: '100%',
     })
@@ -629,7 +667,10 @@ function genInput(options, isTextArea) {
             marginLeft: '0.25em',
             marginBbottom: 0,
         })
-        .append($('<span>').text(options.label))
+        .append(
+            $('<span>').text(options.label),
+            genParameterWarning(options)
+        )
     var $input
     if (isTextArea) {
         $input = $('<textarea>').attr('rows', 4).css({resize: 'none'})
@@ -663,7 +704,10 @@ function genCheckbox(options) {
             marginLeft: '0.25em',
             marginBbottom: 0,
         })
-        .text(options.label)
+        .append(
+            $('<span>').text(options.label),
+            genParameterWarning(options)
+        )
     var $input = $('<input>')
     $input
         .attr('type', 'checkbox')
@@ -690,7 +734,10 @@ function genRadio(options) {
             marginLeft: '0.25em',
             marginBbottom: 0,
         })
-        .append($('<span>').text(options.label))
+        .append(
+            $('<span>').text(options.label),
+            genParameterWarning(options)
+        )
     var selectOptions = options.options
     if (!Array.isArray(selectOptions)) {
         selectOptions = Object.keys(options.options).map((k) => { return { name: options.options[k], value: k } })
@@ -798,6 +845,10 @@ function setParamValueForInput($input, node_data) {
 
 function genBlockNotificationHtml(block) {
     var module = all_blocks_by_id[block.id]
+    if (!module) {
+        console.error('Tried to get notification of unknown module ' + block.id)
+        return '';
+    }
     var html = ''
     var $notificationContainer = $('<span></span>')
     severities.forEach(function(severity) {
