@@ -140,7 +140,7 @@ class Workflow extends AppModel
             $workflow['Workflow']['data'] = JsonTool::decode($workflow['Workflow']['data']);
         }
         $original_trigger_list_id = $this->__getTriggersIDPerWorkflow((int)$workflow['Workflow']['id']);
-        $new_node_trigger_list = $this->workflowGraphTool->extractTriggersFromWorkflow($workflow['Workflow'], true);
+        $new_node_trigger_list = $this->workflowGraphTool->extractTriggersFromWorkflow($workflow['Workflow']['data'], true);
         $new_node_trigger_list_per_id = Hash::combine($new_node_trigger_list, '{n}.data.id', '{n}');
         $new_trigger_list_id = array_keys($new_node_trigger_list_per_id);
         $trigger_to_remove = array_diff($original_trigger_list_id, $new_trigger_list_id);
@@ -405,48 +405,60 @@ class Workflow extends AppModel
         $orderedBlockingWorkflows = $workflowExecutionOrder['blocking'];
         $orderedDeferredWorkflows = $workflowExecutionOrder['non-blocking'];
         foreach ($orderedBlockingWorkflows as $workflow) {
-            debug('Executing blocking: ' . $workflow['Workflow']['name']);
-            $continueExecution = $this->walkGraph($workflow);
+            $continueExecution = $this->walkGraph($workflow, $trigger_id, 'blocking');
             if (!$continueExecution) {
-                debug('Execution was stopped.');
                 break;
             }
-            debug('Execution done.');
         }
         foreach ($orderedDeferredWorkflows as $workflow) {
-            debug('Executing deferred: ' . $workflow['Workflow']['name']);
-            $this->walkGraph($workflow);
+            $this->walkGraph($workflow, $trigger_id, 'non-blocking');
+        }
+    }
+
+    public function executeWorkflow($id)
+    {
+        $user = ['Role' => ['perm_site_admin' => true]];
+        $workflow = $this->fetchWorkflow($user, $id);
+        $trigger_ids = $this->workflowGraphTool->extractTriggersFromWorkflow($workflow['Workflow']['data'], false);
+        foreach ($trigger_ids as $trigger_id) {
+            $this->walkGraph($workflow, $trigger_id);
         }
     }
 
     /**
-     * walkGraph Explore the graph and execute each nodes
+     * walkGraph Walk the graph for the provided trigger and execute each nodes
      *
-     * @param array $graphData
-     * @return boolean Did all module returned a successful response
+     * @param array $workflow The worflow to walk
+     * @param string $trigger_id The ID of the trigger to start from
+     * @param bool|null $for_path If provided, execute the workflow for the provided path. If not provided, execute the worflow regardless of the path
+     * @return boolean If all module returned a successful response
      */
-    private function walkGraph(array $workflow): bool
+    private function walkGraph(array $workflow, $trigger_id, $for_path=null): bool
     {
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
-        $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, 'publish');
+        $startNode = $this->workflowGraphTool->getNodeIdForTrigger($graphData, $trigger_id);
+        if ($startNode  == -1) {
+            return false;
+        }
+        $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $startNode, $for_path);
         foreach ($graphWalker as $graphNode) {
             $node = $graphNode['node'];
             $path_type = $graphNode['path_type'];
             $moduleClass = $this->getModuleClass($node);
             if (!is_null($moduleClass)) {
                 try {
-                    debug(sprintf('  Executing node `%s` (%s)', $node['data']['name'], $node['id']));
                     $success = $moduleClass->exec($node);
                 } catch (Exception $e) {
                     $message = sprintf(__('Error while executing module: %s'), $e->getMessage());
                     $this->__logError($node['data']['id'], $message);
-                    debug(sprintf('  Error while executing node `%s` (%s)', $node['data']['name'], $node['id']));
-                    return false;
+                    if ($path_type == 'blocking') {
+                        return false; // Error in node stopped execution for blocking path
+                    }
+                    return true;
                 }
             }
             if (empty($success) && $path_type == 'blocking') {
-                debug(sprintf('  Node stopped exection `%s` (%s)', $node['data']['name'], $node['id']));
-                return false;
+                return false; // Node stopped execution for blocking path
             }
         }
         return true;
@@ -502,8 +514,9 @@ class Workflow extends AppModel
             $this->loaded_classes[$type] = $classModuleFromFiles['instancedClasses'];
         }
         $superUser = ['Role' => ['perm_site_admin' => true]];
-        $modules_from_service = $this->__getModulesFromModuleService($superUser)['modules'];
+        $modules_from_service = $this->__getModulesFromModuleService($superUser)['modules'] ?? [];
         $misp_module_class = $this->__getClassForMispModule($modules_from_service);
+        $misp_module_configs = [];
         foreach ($misp_module_class as $i => $module_class) {
             $misp_module_configs[$i] = $module_class->getConfig();
             $misp_module_configs[$i]['module_type'] = 'action';
@@ -512,7 +525,7 @@ class Workflow extends AppModel
         $this->loaded_classes['action'] = array_merge($this->loaded_classes['action'], $misp_module_class);
     }
 
-    private function __getModulesFromModuleService($user)
+    private function __getEnabledModulesFromModuleService($user)
     {
         if (empty($this->Module)) {
             $this->Module = ClassRegistry::init('Module');
@@ -520,6 +533,15 @@ class Workflow extends AppModel
         $enabledModules = $this->Module->getEnabledModules($user, null, 'Action');
         $misp_module_config = empty($enabledModules) ? false : $enabledModules;
         return $misp_module_config;
+    }
+
+    private function __getModulesFromModuleService($user)
+    {
+        if (empty($this->Module)) {
+            $this->Module = ClassRegistry::init('Module');
+        }
+        $modules = $this->Module->getModules('Action');
+        return $modules;
     }
 
     private function __getClassForMispModule($misp_module_configs)

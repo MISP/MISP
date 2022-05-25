@@ -75,19 +75,25 @@ class GraphUtil
 
 class GraphWalker
 {
-    public function __construct(array $graphData, $startNodeID)
+    private $graph;
+    private $startNodeID;
+    private $for_path;
+    private $triggersByNodeID;
+    private $triggersByModuleID;
+    private $cursor;
+
+    public function __construct(array $graphData, $startNodeID, $for_path=null)
     {
         $this->graph = $graphData;
         $this->startNodeID = $startNodeID;
-        $this->graphUtil = new GraphUtil($graphData);
-        $this->edgeList = $this->graphUtil->edgeList;
+        $this->for_path = $for_path;
         $this->triggersByNodeID = [];
         $this->triggersByModuleID = [];
         $this->setTriggers();
-        if (empty($this->triggersByNodeID) || empty($this->triggersByModuleID[$this->startNodeID])) {
-            throw new Exception(__('Could not find start node %s', $startNodeID), 1);
+        if (empty($this->graph[$startNodeID])) {
+            throw new Exception(__('Could not find start node %s', $startNodeID));
         }
-        $this->cursor = $this->triggersByModuleID[$startNodeID];
+        $this->cursor = $startNodeID;
         $this->path_type = null;
     }
 
@@ -107,9 +113,9 @@ class GraphWalker
     {
         $node = $this->graph[$node_id];
         if (!empty($this->triggersByNodeID[$node_id])) {
-            return $output_id == 'output_1' ? 'blocking' : 'parallel';
+            return $output_id == 'output_1' ? 'blocking' : 'non-blocking';
         } elseif ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'parallel-task') {
-            return 'parallel';
+            return 'non-blocking';
         }
         return $path_type;
     }
@@ -143,10 +149,12 @@ class GraphWalker
         $allowedOutputs = $this->_evaluateOutputs($node_id, $outputs);
         foreach ($allowedOutputs as $output_id => $outputs) {
             $path_type = $this->_getPathType($node_id, $path_type, $output_id);
-            foreach ($outputs as $connections) {
-                foreach ($connections as $connection) {
-                    $next_node_id = (int)$connection['node'];
-                    yield from $this->_walk($next_node_id, $path_type);
+            if (is_null($this->for_path) || $path_type == $this->for_path) {
+                foreach ($outputs as $connections) {
+                    foreach ($connections as $connection) {
+                        $next_node_id = (int)$connection['node'];
+                        yield from $this->_walk($next_node_id, $path_type);
+                    }
                 }
             }
         }
@@ -174,7 +182,7 @@ class WorkflowGraphTool
     public static function extractTriggersFromWorkflow(array $graphData, bool $fullNode = false): array
     {
         $triggers = [];
-        foreach ($graphData['data'] as $node) {
+        foreach ($graphData as $node) {
             if ($node['data']['module_type'] == 'trigger') {
                 if (!empty($fullNode)) {
                     $triggers[] = $node;
@@ -222,17 +230,29 @@ class WorkflowGraphTool
         $isCyclic = $result[0];
         $cycles = $result[1];
         return !$isCyclic;
-        // try {
-        //     WorkflowGraphTool::buildExecutionPath($graphData);
-        // } catch (CyclicGraphException $e) {
-        //     return false;
-        // }
-        // return true;
     }
 
-    public static function getWalkerIterator(array $graphData, $startNodeID)
+    /**
+     * Undocumented getNodeIdForTrigger
+     *
+     * @param array $graphData 
+     * @param string $trigger_id
+     * @return integer Return the ID of the node for the provided trigger and -1 if no nodes with this id was found.
+     */
+    public static function getNodeIdForTrigger(array $graphData, $trigger_id): int
     {
-        $graphWalker = new GraphWalker($graphData, $startNodeID);
+        $triggers = WorkflowGraphTool::extractTriggersFromWorkflow($graphData, true);
+        foreach ($triggers as $node) {
+            if ($node['data']['id'] == $trigger_id) {
+                return $node['id'];
+            }
+        }
+        return -1;
+    }
+
+    public static function getWalkerIterator(array $graphData, $startNodeID, $path_type=null)
+    {
+        $graphWalker = new GraphWalker($graphData, $startNodeID, $path_type);
         return $graphWalker->walk();
     }
 }
