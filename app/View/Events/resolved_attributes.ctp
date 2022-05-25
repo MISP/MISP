@@ -88,20 +88,22 @@
             <td class="shortish">
                 <?php
                     foreach (array_slice($item['related'], 0, 10) as $relation):
-                        $popover = array(
-                            'Event ID' => $relation['Event']['id'],
-                            'Event Info' => $relation['Event']['info'],
-                            'Category' => $relation['Attribute']['category'],
-                            'Type' => $relation['Attribute']['type'],
-                            'Value' => $relation['Attribute']['value'],
-                            'Comment' => $relation['Attribute']['comment'],
-                        );
+                        $popover = [
+                            __('Event ID') => $relation['Event']['id'],
+                            __('Event Info') => $relation['Event']['info'],
+                            __('Category') => $relation['Attribute']['category'],
+                            __('Type') => $relation['Attribute']['type'],
+                            __('Value') => $relation['Attribute']['value'],
+                        ];
+                        if (!empty($relation['Attribute']['comment'])) {
+                            $popover[__('Comment')] = $relation['Attribute']['comment'];
+                        }
                         $popoverHTML = '';
                         foreach ($popover as $key => $popoverElement) {
-                            $popoverHTML .= '<span class=\'bold\'>' . $key . '</span>: <span class=\'blue bold\'>' . h($popoverElement) . '</span><br>';
+                            $popoverHTML .= '<b>' . $key . '</b>: ' . h($popoverElement) . '<br>';
                         }
                 ?>
-                        <a href="<?= $baseurl; ?>/events/view/<?= h($relation['Event']['id']) ?>/focus:<?= h($relation['Attribute']['uuid']) ?>" data-toggle="popover" title="Attribute details" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
+                        <a href="<?= $baseurl; ?>/events/view/<?= h($relation['Event']['id']) ?>/focus:<?= h($relation['Attribute']['uuid']) ?>" data-toggle="popover" title="<?= __('Attribute details') ?>" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?= h($relation['Event']['id']) ?></a>
                 <?php
                     endforeach;
                     echo count($item['related']) > 10 ? sprintf('<div><i class="muted">%s</i></div>', __('10 +more')) : '';
@@ -119,7 +121,6 @@
                     } else {
                         if (isset($item['category_default'])) $default = $item['category_default'];
                         else $default = array_search($item['categories'][0], $typeCategoryMapping[$item['default_type']]);
-
                     }
                 ?>
                 <select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;' class="categoryToggle">
