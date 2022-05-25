@@ -675,20 +675,19 @@ function genInput(options, isTextArea) {
     if (isTextArea) {
         $input = $('<textarea>').attr('rows', 4).css({resize: 'none'})
     } else {
-        $input = $('<input>').css({height: '30px'})
+        $input = $('<input>').attr('type', 'text').css({height: '30px'})
     }
     $input.css({
         width: '100%',
         'box-sizing': 'border-box',
     })
     $input
-        .attr('type', 'text')
         .attr('oninput', 'handleInputChange(this)')
         .attr('data-paramid', options.param_id)
-    if (options.value !== undefined) {
-        $input.attr('value', options.value)
+    if (isTextArea) {
+        $input.text(options.value !== undefined ? options.value : options.default)
     } else {
-        $input.attr('value', options.default)
+        $input.attr('value', options.value !== undefined ? options.value : options.default)
     }
     if (options.placeholder !== undefined) {
         $input.attr('placeholder', options.placeholder)
