@@ -24,4 +24,13 @@ class Module_if extends WorkflowBaseModule
             ],
         ];
     }
+
+    public function exec(array $node): bool
+    {
+        parent::exec($node);
+        $params = $this->getParamsWithValues($node);
+        $ifFilter = json_decode($params['Event Conditions']['value']);
+        debug($ifFilter);
+        return true;
+    }
 }

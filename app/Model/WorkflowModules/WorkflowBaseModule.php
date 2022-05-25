@@ -26,6 +26,15 @@ class WorkflowBaseModule
         return $indexedParam;
     }
 
+    protected function getParamsWithValues($node): array
+    {
+        $indexedParam = $this->getParams($node);
+        foreach ($indexedParam as $label => $param) {
+            $indexedParam[$label]['value'] = $param['value'] ?? ($param['default'] ?? '');
+        }
+        return $indexedParam;
+    }
+
     public function getConfig(): array
     {
         $reflection = new ReflectionObject($this);
@@ -41,7 +50,7 @@ class WorkflowBaseModule
     public function exec(array $node): bool
     {
         $this->push_zmq([
-            'Executing module' => $this->name,
+            'module' => $this->name,
             'timestamp' => time(),
         ]);
         return true;

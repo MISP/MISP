@@ -440,28 +440,31 @@ class Workflow extends AppModel
         if ($startNode  == -1) {
             return false;
         }
-        $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $startNode, $for_path);
+        $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $this, $startNode, $for_path);
         foreach ($graphWalker as $graphNode) {
             $node = $graphNode['node'];
             $path_type = $graphNode['path_type'];
-            $moduleClass = $this->getModuleClass($node);
-            if (!is_null($moduleClass)) {
-                try {
-                    $success = $moduleClass->exec($node);
-                } catch (Exception $e) {
-                    $message = sprintf(__('Error while executing module: %s'), $e->getMessage());
-                    $this->__logError($node['data']['id'], $message);
-                    if ($path_type == 'blocking') {
-                        return false; // Error in node stopped execution for blocking path
-                    }
-                    return true;
-                }
-            }
+            $success = $this->__executeNode($node);
             if (empty($success) && $path_type == 'blocking') {
                 return false; // Node stopped execution for blocking path
             }
         }
         return true;
+    }
+
+    public function __executeNode($node): bool
+    {
+        $moduleClass = $this->getModuleClass($node);
+        if (!is_null($moduleClass)) {
+            try {
+                $success = $moduleClass->exec($node);
+            } catch (Exception $e) {
+                $message = sprintf(__('Error while executing module: %s'), $e->getMessage());
+                $this->__logError($node['data']['id'], $message);
+                return false;
+            }
+        }
+        return $success;
     }
 
     public function getModuleClass($node)

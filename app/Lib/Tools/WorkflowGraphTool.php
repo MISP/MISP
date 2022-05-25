@@ -76,15 +76,17 @@ class GraphUtil
 class GraphWalker
 {
     private $graph;
+    private $WorkflowModel;
     private $startNodeID;
     private $for_path;
     private $triggersByNodeID;
     private $triggersByModuleID;
     private $cursor;
 
-    public function __construct(array $graphData, $startNodeID, $for_path=null)
+    public function __construct(array $graphData, $WorkflowModel, $startNodeID, $for_path=null)
     {
         $this->graph = $graphData;
+        $this->WorkflowModel = $WorkflowModel;
         $this->startNodeID = $startNodeID;
         $this->for_path = $for_path;
         $this->triggersByNodeID = [];
@@ -95,6 +97,12 @@ class GraphWalker
         }
         $this->cursor = $startNodeID;
         $this->path_type = null;
+    }
+
+    private function getModuleClass($node)
+    {
+        $moduleClass = $this->loaded_classes[$node['data']['module_type']][$node['data']['id']] ?? null;
+        return $moduleClass;
     }
 
     private function setTriggers(): array
@@ -121,10 +129,25 @@ class GraphWalker
     }
 
 
-    private function _evaluateOutputs($node_id, $outputs)
+    private function _evaluateOutputs($node)
     {
-        $node = $this->graph[$node_id];
-        if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'if') {
+        $allowed_outputs = ($node['outputs'] ?? []);
+        if ($node['data']['module_type'] == 'logic') {
+            $allowed_outputs = $this->_executeModuleLogic($node);
+        }
+        return $allowed_outputs;
+    }
+
+    /**
+     * _executeModuleLogic function
+     *
+     * @param array $node
+     * @return array
+     */
+    private function _executeModuleLogic(array $node): array
+    {
+        $outputs = ($node['outputs'] ?? []);
+        if ($node['data']['id'] == 'if') {
             $useThenBranch = $this->_evaluateIFCondition($node);
             return $useThenBranch ? ['output_1' => $outputs['output_1']] : ['output_2' => $outputs['output_2']];
         }
@@ -133,8 +156,7 @@ class GraphWalker
 
     private function _evaluateIFCondition($node): bool
     {
-        // $result = $node['execute']();
-        $result = true;
+        $result = $this->WorkflowModel->__executeNode($node);
         return $result;
     }
 
@@ -145,8 +167,7 @@ class GraphWalker
         if ($node['data']['module_type'] != 'trigger' && $node['data']['module_type'] != 'logic') { // trigger and logic nodes should not be returned as they are "control" nodes
             yield ['node' => $node, 'path_type' => $path_type];
         }
-        $outputs = ($node['outputs'] ?? []);
-        $allowedOutputs = $this->_evaluateOutputs($node_id, $outputs);
+        $allowedOutputs = $this->_evaluateOutputs($node);
         foreach ($allowedOutputs as $output_id => $outputs) {
             $path_type = $this->_getPathType($node_id, $path_type, $output_id);
             if (is_null($this->for_path) || $path_type == $this->for_path) {
@@ -250,9 +271,9 @@ class WorkflowGraphTool
         return -1;
     }
 
-    public static function getWalkerIterator(array $graphData, $startNodeID, $path_type=null)
+    public static function getWalkerIterator(array $graphData, $WorkflowModel, $startNodeID, $path_type=null)
     {
-        $graphWalker = new GraphWalker($graphData, $startNodeID, $path_type);
+        $graphWalker = new GraphWalker($graphData, $WorkflowModel, $startNodeID, $path_type);
         return $graphWalker->walk();
     }
 }
