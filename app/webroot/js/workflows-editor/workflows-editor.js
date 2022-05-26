@@ -258,11 +258,15 @@ function addNode(block, position) {
         console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
         return '';
     }
+    
+    if (editor.registeredTriggers[module.id]) {
+        console.info('Tried to add node for a trigger already registered: ' + module.id)
+        return '';
+    }
 
     var node_uid = uid() // only used for UI purposes
     block['node_uid'] = node_uid
-    var canvasPosition = $canvas[0].getBoundingClientRect()
-    
+
     var pos_x = position.left;
     var pos_y = position.top;
 
@@ -293,13 +297,12 @@ function toggleTriggersDraggableState() {
         return
     }
     var data = Object.values(getEditorData())
-    var registeredTriggers = {}
-    for (var i = 0; i < data.length; i++) {
-        var node = data[i];
+    editor.registeredTriggers = {}
+    data.forEach(function(node) {
         if (node.data.module_type == 'trigger') {
-            registeredTriggers[node.data.id] = true
+            editor.registeredTriggers[node.data.id] = true
         }
-    }
+    })
     $blockContainerTriggers.find('.sidebar-workflow-block')
         .filter(function () {
             return !$(this).hasClass('ui-draggable-dragging')
@@ -315,11 +318,20 @@ function toggleTriggersDraggableState() {
                 .filter(function () {
                     return !$(this).hasClass('ui-draggable-dragging')
                         || $(this).data('block').disabled
-                        || registeredTriggers[$(this).data('block').id] !== undefined
+                        || editor.registeredTriggers[$(this).data('block').id] !== undefined
                 })
                 .draggable('option', { disabled: true })
                 .addClass(['disabled', 'disabled-one-instance'])
                 .attr('title', 'Only one instance of this trigger is allowed per workflow')
+                .each(function() {
+                    var block_id = $(this).data('block').id
+                    $chosenBlocks.find('option')
+                        .filter(function() {
+                            return $(this).val() == block_id
+                        })
+                        .prop('disabled', true)
+                    $chosenBlocks.chosen('destroy').chosen()
+                })
         }
     })
 }
