@@ -18,6 +18,12 @@ class Module_push_zmq extends WorkflowBaseModule
         $this->params = [
             [
                 'type' => 'input',
+                'label' => 'Namespace',
+                'default' => '',
+                'placeholder' => 'A namespace in the ZMQ topic'
+            ],
+            [
+                'type' => 'input',
                 'label' => 'Content',
                 'default' => '',
                 'placeholder' => 'Whatever text to be published'
@@ -28,10 +34,15 @@ class Module_push_zmq extends WorkflowBaseModule
     public function exec(array $node, WorkflowRoamingData $roamingData): bool
     {
         parent::exec($node, $roamingData);
-        $params = $this->getParams($node);
+        $params = $this->getParamsWithValues($node);
+        // $this->push_zmq([
+        //     'Module_push_zmq has passed option' => $params['Content']['value']
+        // ]);
+        debug($params);
         $this->push_zmq([
-            'Module_push_zmq has passed option' => $params['Content']['value']
-        ]);
+            'content' => $params['Content']['value'],
+            'pass_along' => $roamingData->getData(),
+        ], $params['Namespace']['value']);
         return true;
     }
 }

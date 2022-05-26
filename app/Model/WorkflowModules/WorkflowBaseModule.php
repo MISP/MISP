@@ -20,12 +20,17 @@ class WorkflowBaseModule
     protected function getParams($node): array
     {
         $indexedParam = [];
+        $nodeParam = [];
         foreach ($node['data']['params'] as $param) {
+            $nodeParam[$param['label']] = $param;
+        }
+        foreach ($this->params as $param) {
+            $param['value'] = $nodeParam[$param['label']]['value'] ?? null;
             $indexedParam[$param['label']] = $param;
         }
         return $indexedParam;
     }
-
+    
     protected function getParamsWithValues($node): array
     {
         $indexedParam = $this->getParams($node);
@@ -57,7 +62,7 @@ class WorkflowBaseModule
         return true;
     }
 
-    public function push_zmq($message)
+    public function push_zmq($message, $namespace='')
     {
         if (!self::$loadedPubSubTool) {
             App::uses('PubSubTool', 'Tools');
@@ -66,7 +71,7 @@ class WorkflowBaseModule
             self::$loadedPubSubTool = $pubSubTool;
         }
         $pubSubTool = self::$loadedPubSubTool;
-        $pubSubTool->workflow_push($message);
+        $pubSubTool->workflow_push($message, $namespace);
     }
 
     public function logError($message)

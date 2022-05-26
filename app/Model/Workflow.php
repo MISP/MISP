@@ -415,13 +415,13 @@ class Workflow extends AppModel
         }
     }
 
-    public function executeWorkflow($id)
+    public function executeWorkflow($id, array $data=[])
     {
         $user = ['Role' => ['perm_site_admin' => true]];
         $workflow = $this->fetchWorkflow($user, $id);
         $trigger_ids = $this->workflowGraphTool->extractTriggersFromWorkflow($workflow['Workflow']['data'], false);
         foreach ($trigger_ids as $trigger_id) {
-            $data = ['uuid' => '2683b27f-c509-4458-84f9-8980f60548df'];
+            $data = ['Event.uuid' => ['2683b27f-c509-4458-84f9-8980f60548df']];
             $this->walkGraph($workflow, $trigger_id, null, $data);
         }
     }

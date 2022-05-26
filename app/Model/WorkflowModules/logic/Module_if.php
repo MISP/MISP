@@ -43,6 +43,9 @@ class Module_if extends WorkflowBaseModule
         $ifScope = $params['Scope']['value'];
         $ifFilter = json_decode($params['Matching Conditions']['value'], true);
         $matchingUUID = $this->getMatchingUUID($roamingData->getUser(), $ifScope, $roamingData->getData(), $ifFilter);
+        if (!empty($matchingUUID)) {
+            $this->propagateConditions($roamingData, $ifScope, $matchingUUID);
+        }
         return !empty($matchingUUID);
     }
 
@@ -52,14 +55,42 @@ class Module_if extends WorkflowBaseModule
             $this->logError(__('Unknown model %s', $model));
             return [];
         }
-        $loadedMode = ClassRegistry::init($model);
-        if (empty($user) || empty($data['uuid'])) {
+        $loadedModel = ClassRegistry::init($model);
+        if (empty($user)) {
             return [];
         }
-        $filters['uuid'] = $data['uuid'];
-        $final = $loadedMode->restSearch($user, 'json', $filters);
-        $events = json_decode($final->intoString(), true)['response'];
-        $matchingUUID = Hash::extract($events, '{n}.Event.uuid');
+        if ($model == 'Event') {
+            if (!empty($data['Event.uuid'])) {
+                $filters['uuid'] = $data['Event.uuid'];
+            }
+            $filters['metadata'] = true;
+        } elseif ($model == 'Attribute') {
+            if (!empty($data['Event.uuid'])) {
+                $filters['eventid'] = $data['Event.uuid'];
+            }
+            if (!empty($data['Attribute.uuid'])) {
+                $filters['uuid'] = $data['Attribute.uuid'];
+            }
+        }
+        $final = $loadedModel->restSearch($user, 'json', $filters);
+        $result = json_decode($final->intoString(), true)['response'];
+        $matchingUUID = [];
+        if ($model == 'Event') {
+            $matchingUUID = Hash::extract($result, '{n}.Event.uuid');
+        } elseif ($model == 'Attribute') {
+            $matchingUUID = Hash::extract($result, 'Attribute.{n}.uuid');
+        }
         return $matchingUUID;
+    }
+
+    public function propagateConditions(WorkflowRoamingData $roamingData, $scope, array $matchingUUID)
+    {
+        $data = $roamingData->getData();
+        if ($scope == 'Event') {
+            $data['Event.uuid'] = $matchingUUID;
+        } elseif ($scope == 'Attribute') {
+            $data['Attribute.uuid'] = $matchingUUID;
+        }
+        $roamingData->setData($data);
     }
 }
