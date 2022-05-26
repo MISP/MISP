@@ -303,25 +303,25 @@ function toggleTriggersDraggableState() {
     $blockContainerTriggers.find('.sidebar-workflow-block')
         .filter(function () {
             return !$(this).hasClass('ui-draggable-dragging')
-                && $(this).data('block').disabled === undefined
+                && !$(this).data('block').disabled
         })
         .draggable('option', { disabled: false })
         .removeClass(['disabled', 'disabled-one-instance'])
         .attr('title', '')
-    for (var i = 0; i < data.length; i++) {
-        var node = data[i];
+
+    data.forEach(function(node) {
         if (node.data.module_type == 'trigger') {
             $blockContainerTriggers.find('#'+node.data.id + '.sidebar-workflow-block')
                 .filter(function () {
                     return !$(this).hasClass('ui-draggable-dragging')
-                        && $(this).data('block').disabled === undefined
-                        && registeredTriggers[$(this).data('block').id] !== undefined
+                        || $(this).data('block').disabled
+                        || registeredTriggers[$(this).data('block').id] !== undefined
                 })
                 .draggable('option', { disabled: true })
                 .addClass(['disabled', 'disabled-one-instance'])
                 .attr('title', 'Only one instance of this trigger is allowed per workflow')
         }
-    }
+    })
 }
 
 function getEditorData() {

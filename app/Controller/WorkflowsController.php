@@ -33,6 +33,22 @@ class WorkflowsController extends AppController
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'index'));
     }
 
+    public function test($id)
+    {
+        // $this->Workflow->rebuildRedis($this->Auth->user());
+        // return $this->RestResponse->viewData($ret);
+        $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+        // $ret = $this->Workflow->walkGraph($workflow);
+        // $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+        // $ret = $this->Workflow->getModulesByType();
+
+        // $ret = $this->Workflow->executeWorkflowsForTrigger('publish');
+        $ret = $this->Workflow->executeWorkflow($id);
+        $this->set('error', '');
+        return $this->render('error');
+        
+    }
+
     public function add()
     {
         $currentUser = $this->Auth->user();
@@ -169,16 +185,6 @@ class WorkflowsController extends AppController
         $this->set('data', $trigger);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'view_trigger']);
     }
-
-    // public function getOrderedWorkflowsPerTrigger($trigger_id)
-    // {
-    //     $trigger = $this->Workflow->getModuleByID($trigger_id);
-    //     if (empty($trigger)) {
-    //         throw new NotFoundException(__('Invalid trigger ID'));
-    //     }
-    //     $trigger = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), [$trigger], true)[0];
-    //     return $this->RestResponse->viewData($trigger['Workflows'], 'json');
-    // }
 
     public function rearrangeExecutionOrder($trigger_id)
     {
