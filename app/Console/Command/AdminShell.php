@@ -109,19 +109,13 @@ class AdminShell extends AppShell
 
     public function jobPurgeCorrelation()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Purge correlation'] . PHP_EOL);
         }
 
         $jobId = $this->args[0];
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('Attribute');
         $this->Attribute->purgeCorrelations();
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done.');
-        $this->Job->saveField('status', 4);
+        $this->Job->saveStatus($jobId);
     }
 
     public function jobGenerateShadowAttributeCorrelation()
