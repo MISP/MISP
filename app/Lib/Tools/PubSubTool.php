@@ -143,9 +143,10 @@ class PubSubTool
         return $this->pushToRedis('data:misp_json_warninglist', $warninglist);
     }
 
-    public function workflow_push(array $data)
+    public function workflow_push(array $data, $namespace='')
     {
-        return $this->pushToRedis('data:misp_json_workflow', $data);
+        $topic = 'data:misp_json_workflow' . (!empty($namespace) ? ":$namespace" : '');
+        return $this->pushToRedis($topic, $data);
     }
 
     /**
