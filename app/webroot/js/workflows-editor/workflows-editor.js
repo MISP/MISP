@@ -263,14 +263,12 @@ function addNode(block, position) {
     block['node_uid'] = node_uid
     var canvasPosition = $canvas[0].getBoundingClientRect()
     
-    var adjsutedPosition = {
-        left: position.left - canvasPosition.left,
-        top: position.top,
-    }
+    var pos_x = position.left;
+    var pos_y = position.top;
 
-    // TODO: Take into account zoon level
-    // pos_x = pos_x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)) - (editor.precanvas.getBoundingClientRect().x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)));
-    // pos_y = pos_y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)) - (editor.precanvas.getBoundingClientRect().y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)));
+    // Credit: Drawflow example page
+    pos_x = pos_x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)) - (editor.precanvas.getBoundingClientRect().x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)));
+    pos_y = pos_y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)) - (editor.precanvas.getBoundingClientRect().y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)));
 
     block['_block_param_html'] = genBlockParamHtml(block)
     block['_block_notification_html'] = genBlockNotificationHtml(block)
@@ -282,8 +280,8 @@ function addNode(block, position) {
         block.name,
         block.inputs === undefined ? 1 : block.inputs,
         block.outputs === undefined ? 1 : block.outputs,
-        adjsutedPosition.left,
-        adjsutedPosition.top,
+        pos_x,
+        pos_y,
         blockClass.join(' '),
         block,
         html
