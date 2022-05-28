@@ -970,8 +970,8 @@
   {
     "Feed": {
       "name": "URLHaus Malware URLs",
-      "provider": "Abuse.ch",
-      "url": "https://urlhaus.abuse.ch/downloads/csv/",
+      "provider": "abuse.ch",
+      "url": "https://urlhaus.abuse.ch/downloads/csv_recent/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "3",
@@ -1471,7 +1471,7 @@
     "Feed": {
       "name": "Malware Bazaar",
       "provider": "abuse.ch",
-      "url": "https://bazaar.abuse.ch/export/txt/md5/full/",
+      "url": "https://bazaar.abuse.ch/export/txt/md5/recent/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"url_params\":\"\"}",
       "enabled": false,
       "distribution": "0",
@@ -1522,7 +1522,7 @@
   {
     "Feed": {
       "name": "Threatfox",
-      "provider": "Abuse.ch",
+      "provider": "abuse.ch",
       "url": "https://threatfox.abuse.ch/downloads/misp/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"url_params\":\"\"}",
       "enabled": true,
@@ -1551,7 +1551,7 @@
   {
     "Feed": {
       "name": "MalwareBazaar",
-      "provider": "Abuse.ch",
+      "provider": "abuse.ch",
       "url": "https://bazaar.abuse.ch/downloads/misp/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": false,
@@ -1571,7 +1571,7 @@
   {
     "Feed": {
       "name": "URLhaus",
-      "provider": "Abuse.ch",
+      "provider": "abuse.ch",
       "url": "https://urlhaus.abuse.ch/downloads/misp/",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": false,
@@ -1674,5 +1674,5 @@
       "exportable": true,
       "hide_tag": false
     }
-  } 
+  }
 ]
