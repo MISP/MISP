@@ -1680,7 +1680,7 @@
         "name": "threatfox indicators of compromise",
         "provider": "abuse.ch",
         "url": "https://threatfox.abuse.ch/export/csv/recent/",
-        "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}",
+        "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
         "enabled": false,
         "distribution": "0",
         "sharing_group_id": "0",
