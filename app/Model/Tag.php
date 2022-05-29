@@ -293,7 +293,7 @@ class Tag extends AppModel
                 $conditions[] = array('Tag.name LIKE' => $tagName);
             }
             $result = $this->find('column', array(
-                'recursive' => 1,
+                'recursive' => -1,
                 'conditions' => ['OR' => $conditions],
                 'fields' => array('Tag.id')
             ));
