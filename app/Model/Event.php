@@ -3636,7 +3636,7 @@ class Event extends AppModel
             $existingEvent = $this->find('first', [
                 'conditions' => ['Event.uuid' => $data['Event']['uuid']],
                 'fields' => ['Event.id'],
-                'recursive' => -1.
+                'recursive' => -1,
             ]);
             if ($existingEvent) {
                 // RESTful, set response location header so client can find right URL to edit
