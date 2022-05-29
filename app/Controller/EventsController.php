@@ -2331,36 +2331,38 @@ class EventsController extends AppController
     {
         if ($this->request->is('post')) {
             $results = array();
-            if (!empty($this->data)) {
-                if (!isset($this->data['Event']['submittedfile'])) {
+            if (!empty($this->request->data)) {
+                if (!empty($this->request->data['Event']['filecontent'])) {
+                    $data = $this->request->data['Event']['filecontent'];
+                    $isXml = $data[0] === '<';
+                } elseif (isset($this->request->data['Event']['submittedfile'])) {
+                    $file = $this->request->data['Event']['submittedfile'];
+                    if ($file['error'] === UPLOAD_ERR_NO_FILE) {
+                        $this->Flash->error(__('No file was uploaded.'));
+                        $this->redirect(['controller' => 'events', 'action' => 'add_misp_export']);
+                    }
+
+                    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                    if (($ext !== 'xml' && $ext !== 'json') && $file['size'] > 0 && is_uploaded_file($file['tmp_name'])) {
+                        $log = ClassRegistry::init('Log');
+                        $log->createLogEntry($this->Auth->user(), 'file_upload', 'Event', 0, 'MISP export file upload failed', 'File details: ' . json_encode($file));
+                        $this->Flash->error(__('You may only upload MISP XML or MISP JSON files.'));
+                        throw new MethodNotAllowedException(__('File upload failed or file does not have the expected extension (.xml / .json).'));
+                    }
+
+                    $isXml = $ext === 'xml';
+                    $data = FileAccessTool::readFromFile($file['tmp_name'], $file['size']);
+                } else {
                     throw new MethodNotAllowedException(__('No file uploaded.'));
                 }
 
-                $file = $this->data['Event']['submittedfile'];
-                if ($file['error'] === UPLOAD_ERR_NO_FILE) {
-                    $this->Flash->error(__('No file was uploaded.'));
-                    $this->redirect(['controller' => 'events', 'action' => 'add_misp_export']);
-                }
-
-                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                if (($ext !== 'xml' && $ext !== 'json') && $file['size'] > 0 && is_uploaded_file($file['tmp_name'])) {
-                    $log = ClassRegistry::init('Log');
-                    // #TODO Think about whether we want to Localize Log entries.
-                    $log->createLogEntry($this->Auth->user(), 'file_upload', 'Event', 0, 'MISP export file upload failed', 'File details: ' . json_encode($file));
-                    $this->Flash->error(__('You may only upload MISP XML or MISP JSON files.'));
-                    throw new MethodNotAllowedException(__('File upload failed or file does not have the expected extension (.xml / .json).'));
-                }
-
-                $isXml = $ext === 'xml';
-                App::uses('FileAccessTool', 'Tools');
-                $data = FileAccessTool::readFromFile($file['tmp_name'], $file['size']);
                 $takeOwnership = Configure::read('MISP.take_ownership_xml_import')
-                    && (isset($this->data['Event']['takeownership']) && $this->data['Event']['takeownership'] == 1);
+                    && (isset($this->request->data['Event']['takeownership']) && $this->request->data['Event']['takeownership'] == 1);
 
                 try {
-                    $results = $this->Event->addMISPExportFile($this->Auth->user(), $data, $isXml, $takeOwnership, $this->data['Event']['publish']);
+                    $results = $this->Event->addMISPExportFile($this->Auth->user(), $data, $isXml, $takeOwnership, $this->request->data['Event']['publish']);
                 } catch (Exception $e) {
-                    $this->log("Exception during processing MISP file import '{$file['name']}': {$e->getMessage()}");
+                    $this->log("Exception during processing MISP file import: {$e->getMessage()}");
                     $this->Flash->error(__('Could not process MISP export file. Probably file content is invalid.'));
                     $this->redirect(['controller' => 'events', 'action' => 'add_misp_export']);
                 }

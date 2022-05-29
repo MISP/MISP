@@ -3503,40 +3503,25 @@ class Event extends AppModel
             throw new Exception($exception);
         }
         $dataArray = $this->updateXMLArray($dataArray);
+        $eventsToAdd = isset($dataArray['response']['Event'][0]) ? $dataArray['response']['Event'] : [$dataArray['response']['Event']];
         $results = array();
         $validationIssues = array();
-        if (isset($dataArray['response']['Event'][0])) {
-            foreach ($dataArray['response']['Event'] as $event) {
-                $result = array('info' => $event['info']);
-                if ($takeOwnership) {
-                    $event['orgc_id'] = $user['org_id'];
-                    unset($event['Orgc']);
-                }
-                $event = array('Event' => $event);
-                $created_id = 0;
-                $event['Event']['locked'] = 1;
-                $event['Event']['published'] = $publish;
-                $result['result'] = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
-                $result['id'] = $created_id;
-                $result['validationIssues'] = $validationIssues;
-                $results[] = $result;
-            }
-        } else {
-            $temp['Event'] = $dataArray['response']['Event'];
+        foreach ($eventsToAdd as $event) {
             if ($takeOwnership) {
-                $temp['Event']['orgc_id'] = $user['org_id'];
-                unset($temp['Event']['Orgc']);
+                $event['orgc_id'] = $user['org_id'];
+                unset($event['Orgc']);
             }
+            $event = array('Event' => $event);
             $created_id = 0;
-            $temp['Event']['locked'] = 1;
-            $temp['Event']['published'] = $publish;
-            $result = $this->_add($temp, true, $user, '', null, false, null, $created_id, $validationIssues);
-            $results = array(array(
-                'info' => $temp['Event']['info'],
+            $event['Event']['locked'] = 1;
+            $event['Event']['published'] = $publish;
+            $result = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
+            $results[] = [
+                'info' => $event['Event']['info'],
                 'result' => $result,
                 'id' => $created_id,
                 'validationIssues' => $validationIssues,
-            ));
+            ];
         }
         return $results;
     }
