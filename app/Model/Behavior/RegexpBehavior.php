@@ -9,7 +9,7 @@ class RegexpBehavior extends ModelBehavior
 {
     private $__allRegexp = null;
 
-    const EXCLUDED_TYPES = array('sigma', 'float');
+    const EXCLUDED_TYPES = ['sigma', 'size-in-bytes', 'counter', 'float'];
 
     /**
      * replace the current value according to the regexp rules, or block blocklisted regular expressions
