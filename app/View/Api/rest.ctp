@@ -199,7 +199,6 @@
     echo $this->element('genericElements/assetLoader', array(
         'js' => array(
             'moment.min',
-            'extendext',
             'doT',
             'query-builder',
             'FileSaver',
