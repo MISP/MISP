@@ -5638,7 +5638,7 @@ class Event extends AppModel
         } else {
             $attribute_type = $attribute['type'];
             if (empty($attribute['category'])) {
-                $attribute['category'] = $this->Attribute->typedefinitions[$attribute_type]['default_category'];
+                $attribute['category'] = $this->Attribute->typeDefinitions[$attribute_type]['default_category'];
             }
         }
         if (!isset($attribute['to_ids'])) {
