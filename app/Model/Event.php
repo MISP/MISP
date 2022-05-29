@@ -3503,40 +3503,25 @@ class Event extends AppModel
             throw new Exception($exception);
         }
         $dataArray = $this->updateXMLArray($dataArray);
+        $eventsToAdd = isset($dataArray['response']['Event'][0]) ? $dataArray['response']['Event'] : [$dataArray['response']['Event']];
         $results = array();
         $validationIssues = array();
-        if (isset($dataArray['response']['Event'][0])) {
-            foreach ($dataArray['response']['Event'] as $event) {
-                $result = array('info' => $event['info']);
-                if ($takeOwnership) {
-                    $event['orgc_id'] = $user['org_id'];
-                    unset($event['Orgc']);
-                }
-                $event = array('Event' => $event);
-                $created_id = 0;
-                $event['Event']['locked'] = 1;
-                $event['Event']['published'] = $publish;
-                $result['result'] = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
-                $result['id'] = $created_id;
-                $result['validationIssues'] = $validationIssues;
-                $results[] = $result;
-            }
-        } else {
-            $temp['Event'] = $dataArray['response']['Event'];
+        foreach ($eventsToAdd as $event) {
             if ($takeOwnership) {
-                $temp['Event']['orgc_id'] = $user['org_id'];
-                unset($temp['Event']['Orgc']);
+                $event['orgc_id'] = $user['org_id'];
+                unset($event['Orgc']);
             }
+            $event = array('Event' => $event);
             $created_id = 0;
-            $temp['Event']['locked'] = 1;
-            $temp['Event']['published'] = $publish;
-            $result = $this->_add($temp, true, $user, '', null, false, null, $created_id, $validationIssues);
-            $results = array(array(
-                'info' => $temp['Event']['info'],
+            $event['Event']['locked'] = 1;
+            $event['Event']['published'] = $publish;
+            $result = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
+            $results[] = [
+                'info' => $event['Event']['info'],
                 'result' => $result,
                 'id' => $created_id,
                 'validationIssues' => $validationIssues,
-            ));
+            ];
         }
         return $results;
     }
@@ -3604,13 +3589,15 @@ class Event extends AppModel
             }
         }
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
-            $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
             if (!isset($data['Event']['Orgc']['uuid'])) {
-                $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $data['Event']['orgc_id']), 'fields' => array('Orgc.uuid'), 'recursive' => -1));
+                $orgc = $data['Event']['orgc_id'];
             } else {
-                $orgc = array('Orgc' => array('uuid' => $data['Event']['Orgc']['uuid']));
+                $orgc = $data['Event']['Orgc']['uuid'];
             }
-            if ($this->OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgc['Orgc']['uuid']))) {
+            if (!isset($this->OrgBlocklist)) {
+                $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
+            }
+            if ($this->OrgBlocklist->isBlocked($orgc)) {
                 return 'blocked';
             }
         }
@@ -3649,7 +3636,7 @@ class Event extends AppModel
             $existingEvent = $this->find('first', [
                 'conditions' => ['Event.uuid' => $data['Event']['uuid']],
                 'fields' => ['Event.id'],
-                'recursive' => -1.
+                'recursive' => -1,
             ]);
             if ($existingEvent) {
                 // RESTful, set response location header so client can find right URL to edit
@@ -5651,7 +5638,7 @@ class Event extends AppModel
         } else {
             $attribute_type = $attribute['type'];
             if (empty($attribute['category'])) {
-                $attribute['category'] = $this->Attribute->typedefinitions[$attribute_type]['default_category'];
+                $attribute['category'] = $this->Attribute->typeDefinitions[$attribute_type]['default_category'];
             }
         }
         if (!isset($attribute['to_ids'])) {

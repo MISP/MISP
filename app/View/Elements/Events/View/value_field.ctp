@@ -58,7 +58,7 @@ switch ($object['type']) {
                 $filename = $filenameHash[0];
             }
 
-            if (isset($object['objectType'])) {
+            if (isset($object['objectType']) && isset($object['id'])) {
                 if (array_key_exists('infected', $object) && $object['infected'] !== false) { // it is not possible to use isset
                     if ($object['infected'] === null) {
                         $confirm = __('This file was not checked by AV scan. Do you really want to download it?');

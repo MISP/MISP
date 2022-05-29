@@ -3211,13 +3211,85 @@ class AppModel extends Model
      */
     public function hasAny($conditions = null)
     {
-        return (bool)$this->find('first', array(
+        return (bool)$this->find('first', [
             'fields' => [$this->alias . '.' . $this->primaryKey],
             'conditions' => $conditions,
             'recursive' => -1,
             'callbacks' => false,
             'order' => [], // disable order
-        ));
+        ]);
+    }
+
+    /**
+     * Faster version of original `isUnique` method
+     * {@inheritDoc}
+     */
+    public function isUnique($fields, $or = true)
+    {
+        if (is_array($or)) {
+            $isRule = (
+                array_key_exists('rule', $or) &&
+                array_key_exists('required', $or) &&
+                array_key_exists('message', $or)
+            );
+            if (!$isRule) {
+                $args = func_get_args();
+                $fields = $args[1];
+                $or = isset($args[2]) ? $args[2] : true;
+            }
+        }
+        if (!is_array($fields)) {
+            $fields = func_get_args();
+            $fieldCount = count($fields) - 1;
+            if (is_bool($fields[$fieldCount])) {
+                $or = $fields[$fieldCount];
+                unset($fields[$fieldCount]);
+            }
+        }
+
+        foreach ($fields as $field => $value) {
+            if (is_numeric($field)) {
+                unset($fields[$field]);
+
+                $field = $value;
+                $value = null;
+                if (isset($this->data[$this->alias][$field])) {
+                    $value = $this->data[$this->alias][$field];
+                }
+            }
+
+            if (strpos($field, '.') === false) {
+                unset($fields[$field]);
+                $fields[$this->alias . '.' . $field] = $value;
+            }
+        }
+
+        if ($or) {
+            $fields = array('or' => $fields);
+        }
+
+        if (!empty($this->id)) {
+            $fields[$this->alias . '.' . $this->primaryKey . ' !='] = $this->id;
+        }
+
+        return !$this->hasAny($fields);
+    }
+
+    /**
+     * Faster version of original `exists` method
+     * {@inheritDoc}
+     */
+    public function exists($id = null)
+    {
+        if ($id === null) {
+            $id = $this->getID();
+        }
+
+        if ($id === false || $this->useTable === false) {
+            return false;
+        }
+
+        return $this->hasAny([$this->alias . '.' . $this->primaryKey => $id]);
     }
 
     /**
