@@ -54,7 +54,9 @@ class WorkflowsController extends AppController
         $currentUser = $this->Auth->user();
         $params = [
             'beforeSave' => function ($data) use ($currentUser) {
-                $data['Workflow']['uuid'] = CakeText::uuid();
+                if (empty($data['Workflow']['uuid'])) {
+                    $data['Workflow']['uuid'] = CakeText::uuid();
+                }
                 $data['Workflow']['user_id'] = $currentUser['id'];
                 $data['Workflow']['org_id'] = $currentUser['org_id'];
                 if (!isset($data['Workflow']['description'])) {
@@ -186,6 +188,27 @@ class WorkflowsController extends AppController
         $trigger = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), [$trigger], true)[0];
         $this->set('data', $trigger);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'view_trigger']);
+    }
+
+    public function import()
+    {
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $data = $this->request->data['Workflow'];
+            $text = FileAccessTool::getTempUploadedFile($data['submittedjson'], $data['json']);
+            $workflow = JsonTool::decode($text);
+            if ($workflow === null) {
+                throw new MethodNotAllowedException(__('Error while decoding JSON'));
+            }
+            $workflow['Workflow']['enabled'] = false;
+            $workflow['Workflow']['data'] = JsonTool::encode($workflow['Workflow']['data']);
+            $this->request->data = $workflow;
+            $this->add();
+        }
+    }
+
+    public function export($id)
+    {
+
     }
 
     public function rearrangeExecutionOrder($trigger_id)
