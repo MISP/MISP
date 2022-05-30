@@ -32,7 +32,6 @@ foreach ($modules as $moduleType => $module) {
                     <i class="fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save') ?>
                     <span class="fa fa-spin fa-spinner loading-span hidden"></span>
                 </button>
-                <button id="deleteWorkflow" class="btn btn-danger" href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('trash') ?>"></i> <?= __('Delete') ?></button>
             </div>
             <div class="" style="margin-top: 0.25em;">
                 <span id="lastModifiedField" title="<?= __('Last updated') ?>" class="last-modified label">2 days ago</span>
@@ -138,7 +137,6 @@ echo $this->element('genericElements/assetLoader', [
     var $importWorkflowButton = $('#importWorkflow')
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')
-    var $deleteWorkflowButton = $('#deleteWorkflow')
     var $lastModifiedField = $('#lastModifiedField')
     var $blockContainerTriggers = $('#container-triggers')
     var $blockContainerLogic = $('#container-logic')
