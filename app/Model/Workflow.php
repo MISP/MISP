@@ -498,6 +498,7 @@ class Workflow extends AppModel
             if (empty($success) && $path_type == 'blocking') {
                 return false; // Node stopped execution for blocking path
             }
+            // FIXME: Block execution for deferred path for output path if execution blocked. But continue execution for the current output. 
         }
         return true;
     }
