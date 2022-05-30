@@ -1214,45 +1214,6 @@ class EventsController extends AppController
         $this->layout = false;
     }
 
-    /**
-     * Search for a value on an attribute level for a specific field.
-     *
-     * @param array $attribute An attribute
-     * @param array $fields List of keys in attribute to search in
-     * @param array $searchParts Values to search
-     * @return bool Returns true on match
-     */
-    private function __valueInFieldAttribute($attribute, $fields, $searchParts)
-    {
-        foreach ($fields as $field) {
-            if (strpos($field, 'Tag') === 0) {
-                if (empty($attribute['AttributeTag'])) {
-                    continue;
-                }
-                $fieldValues = Hash::extract($attribute, 'AttributeTag.{n}.' . $field);
-                foreach ($fieldValues as $fieldValue) {
-                    $fieldValue = mb_strtolower($fieldValue);
-                    foreach ($searchParts as $s) {
-                        if (strpos($fieldValue, $s) !== false) {
-                            return true;
-                        }
-                    }
-                }
-            } else {
-                if (!isset($attribute[$field])) {
-                    continue;
-                }
-                $fieldValue = mb_strtolower($attribute[$field]);
-                foreach ($searchParts as $s) {
-                    if (strpos($fieldValue, $s) !== false) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
     public function viewEventAttributes($id, $all = false)
     {
         $filterData = array(
@@ -2004,7 +1965,7 @@ class EventsController extends AppController
      * @param string $searchFor
      * @param string|false $filterColumnsOverwrite
      */
-    private function __applyQueryString(&$event, $searchFor, $filterColumnsOverwrite=false)
+    private function __applyQueryString(&$event, $searchFor, $filterColumnsOverwrite = false)
     {
         // filtering on specific columns is specified
         if ($filterColumnsOverwrite !== false) {
@@ -2012,7 +1973,7 @@ class EventsController extends AppController
         } else {
             $filterColumnsOverwrite = Configure::read('MISP.event_view_filter_fields') ?: 'id,uuid,value,comment,type,category,Tag.name';
             $filterValue = array_map('trim', explode(",", $filterColumnsOverwrite));
-            $validFilters = array('id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name');
+            $validFilters = ['id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name'];
             foreach ($filterValue as $k => $v) {
                 if (!in_array($v, $validFilters, true)) {
                     unset($filterValue[$k]);
@@ -2023,39 +1984,79 @@ class EventsController extends AppController
         $searchParts = explode('|', mb_strtolower($searchFor));
 
         // search in all attributes
-        foreach ($event['Attribute'] as $k => $attribute) {
-            if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchParts)) {
-                unset($event['Attribute'][$k]);
+        $foundAttributes = [];
+        foreach ($event['Attribute'] as $attribute) {
+            if ($this->__valueInFieldAttribute($attribute, $filterValue, $searchParts)) {
+                $foundAttributes[] = $attribute;
             }
         }
-        $event['Attribute'] = array_values($event['Attribute']);
+        $event['Attribute'] = $foundAttributes;
 
-        // search in all attributes
-        foreach ($event['ShadowAttribute'] as $k => $proposals) {
-            if (!$this->__valueInFieldAttribute($proposals, $filterValue, $searchParts)) {
-                unset($event['ShadowAttribute'][$k]);
+        // search in all proposals
+        $foundProposals = [];
+        foreach ($event['ShadowAttribute'] as $proposals) {
+            if ($this->__valueInFieldAttribute($proposals, $filterValue, $searchParts)) {
+                $foundProposals[] = $proposals;
             }
         }
-        $event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
+        $event['ShadowAttribute'] = $foundProposals;
 
         // search for all attributes in object
         foreach ($event['Object'] as $k => $object) {
             if ($this->__valueInFieldAttribute($object, ['id', 'uuid', 'name', 'comment'], $searchParts)) {
                 continue;
             }
-            foreach ($object['Attribute'] as $k2 => $attribute) {
-                if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchParts)) {
-                    unset($event['Object'][$k]['Attribute'][$k2]);
+            $foundAttributes = [];
+            foreach ($object['Attribute'] as $attribute) {
+                if ($this->__valueInFieldAttribute($attribute, $filterValue, $searchParts)) {
+                    $foundAttributes[] = $attribute;
                 }
             }
-            if (empty($event['Object'][$k]['Attribute'])) {
-                // remove object if empty
-                unset($event['Object'][$k]);
+            if (empty($foundAttributes)) {
+                unset($event['Object'][$k]); // remove object if contains no attributes
             } else {
-                $event['Object'][$k]['Attribute'] = array_values($event['Object'][$k]['Attribute']);
+                $event['Object'][$k]['Attribute'] = $foundAttributes;
             }
         }
         $event['Object'] = array_values($event['Object']);
+    }
+
+    /**
+     * Search for a value on an attribute level for a specific field.
+     *
+     * @param array $attribute An attribute
+     * @param array $fields List of keys in attribute to search in
+     * @param array $searchParts Values to search (OR)
+     * @return bool Returns true on match
+     */
+    private function __valueInFieldAttribute($attribute, $fields, $searchParts)
+    {
+        foreach ($fields as $field) {
+            if ($field === 'Tag.name') {
+                if (empty($attribute['AttributeTag'])) {
+                    continue;
+                }
+                foreach ($attribute['AttributeTag'] as $fieldValue) {
+                    $fieldValue = mb_strtolower($fieldValue['Tag']['name']);
+                    foreach ($searchParts as $s) {
+                        if (strpos($fieldValue, $s) !== false) {
+                            return true;
+                        }
+                    }
+                }
+            } else {
+                if (!isset($attribute[$field])) {
+                    continue;
+                }
+                $fieldValue = mb_strtolower($attribute[$field]);
+                foreach ($searchParts as $s) {
+                    if (strpos($fieldValue, $s) !== false) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     // look in the parameters if we are doing advanced filtering or not
