@@ -224,7 +224,7 @@ function initDrawflow() {
         slowInterval: 60000,
     })
 
-    loadWorkflow().then(function() {
+    fetchAndLoadWorkflow().then(function() {
         graphPooler.start(undefined)
         editor.fitCanvas()
     })
@@ -384,60 +384,77 @@ function toggleTriggersDraggableState() {
     })
 }
 
-function getEditorData() {
+function getEditorData(cleanInvalidParams) {
     var data = {} // Make sure nodes are index by their internal IDs
     var editorExport = editor.export().drawflow.Home.data
     editorExport = Array.isArray(editorExport) ? editorExport : Object.values(editorExport)
     editorExport.forEach(function(node) {
         if (node !== null) { // for some reason, the editor create null nodes
+            if (cleanInvalidParams && node.data.params !== undefined) {
+                node.data.params = deleteInvalidParams(node.data.params)
+            }
             data[node.id] = node
         }
     })
     return data
 }
 
-function loadWorkflow() {
+function deleteInvalidParams(params) {
+    for (var i = 0; i < params.length; i++) {
+        var param = params[i];
+        if (param.is_invalid) {
+            params.splice(i, 1)
+        }
+    }
+    return params
+}
+
+function fetchAndLoadWorkflow() {
     return new Promise(function (resolve, reject) {
         editor.isLoading = true
-        fetchWorkflow(workflow_id, function(workflow) {
+        fetchWorkflow(workflow_id, function (workflow) {
             lastModified = workflow.timestamp + '000'
-
-            // We cannot rely on the editor's import function as it recreates the nodes with the saved HTML instead of rebuilding them
-            // We have to manually add the nodes and their connections
-            Object.values(workflow.data).forEach(function(block) {
-                if (!all_blocks_by_id[block.data.id]) {
-                    console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
-                    return '';
-                }
-                var node_uid = uid() // only used for UI purposes
-                block.data['node_uid'] = node_uid
-                block.data['_block_param_html'] = genBlockParamHtml(block.data)
-                block.data['_block_notification_html'] = genBlockNotificationHtml(block.data)
-                var html = getTemplateForBlock(block.data)
-                editor.nodeId = block.id // force the editor to use the saved id of the block instead of generating a new one
-                editor.addNode(
-                    block.name,
-                    Object.values(block.inputs).length,
-                    Object.values(block.outputs).length,
-                    block.pos_x,
-                    block.pos_y,
-                    block.class,
-                    block.data,
-                    html
-                );
-            })
-            Object.values(workflow.data).forEach(function (block) {
-                for (var input_name in block.inputs) {
-                    block.inputs[input_name].connections.forEach(function(connection) {
-                        editor.addConnection(connection.node, block.id, connection.input, input_name)
-                    })
-                }
-            })
+            loadWorkflow(workflow)
             editor.isLoading = false
             toggleTriggersDraggableState()
             revalidateContentCache()
             resolve()
         })
+    })
+}
+
+function loadWorkflow(workflow) {
+    editor.clear()
+    // We cannot rely on the editor's import function as it recreates the nodes with the saved HTML instead of rebuilding them
+    // We have to manually add the nodes and their connections
+    Object.values(workflow.data).forEach(function (block) {
+        if (!all_blocks_by_id[block.data.id]) {
+            console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
+            return '';
+        }
+        var node_uid = uid() // only used for UI purposes
+        block.data['node_uid'] = node_uid
+        block.data['_block_param_html'] = genBlockParamHtml(block.data)
+        block.data['_block_notification_html'] = genBlockNotificationHtml(block.data)
+        var html = getTemplateForBlock(block.data)
+        editor.nodeId = block.id // force the editor to use the saved id of the block instead of generating a new one
+        editor.addNode(
+            block.name,
+            Object.values(block.inputs).length,
+            Object.values(block.outputs).length,
+            block.pos_x,
+            block.pos_y,
+            block.class,
+            block.data,
+            html
+        );
+    })
+    Object.values(workflow.data).forEach(function (block) {
+        for (var input_name in block.inputs) {
+            block.inputs[input_name].connections.forEach(function (connection) {
+                editor.addConnection(connection.node, block.id, connection.input, input_name)
+            })
+        }
     })
 }
 
@@ -484,7 +501,7 @@ function saveWorkflow(confirmSave, callback) {
         $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
         var $tmpForm = $('#temp form')
         var formUrl = $tmpForm.attr('action')
-        var editorData = getEditorData()
+        var editorData = getEditorData(true)
         $tmpForm.find('[name="data[Workflow][data]"]').val(JSON.stringify(editorData))
 
         $.ajax({
@@ -497,6 +514,7 @@ function saveWorkflow(confirmSave, callback) {
                     showMessage('success', workflow.message);
                     if (workflow.data !== undefined) {
                         lastModified = workflow.data.Workflow.timestamp + '000'
+                        loadWorkflow(workflow.data.Workflow)
                         revalidateContentCache()
                     }
                 }
@@ -669,7 +687,7 @@ function genParameterWarning(options) {
                 $('<i>').addClass('fas fa-exclamation-triangle'),
                 $('<span>').text('Invalid parameter')
             )
-            .attr('title', 'This parameter does not exist in the associated workflow module and thus will be ignored. Make sure you have the latest version of the this module.') :
+            .attr('title', 'This parameter does not exist in the associated workflow module and thus will be removed upon saving. Make sure you have the latest version of the this module.') :
         ''
 }
 
@@ -887,7 +905,7 @@ function getNodeFromNodeInput($input) {
 function setParamValueForInput($input, node_data) {
     var param_id = $input.data('paramid')
     for (let i = 0; i < node_data.params.length; i++) {
-        const param = node_data.params[i];
+        var param = node_data.params[i];
         if (param.param_id == param_id) {
             var newValue = ''
             if ($input.attr('type') == 'checkbox') {

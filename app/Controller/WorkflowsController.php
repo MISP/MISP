@@ -60,7 +60,9 @@ class WorkflowsController extends AppController
                 if (!isset($data['Workflow']['description'])) {
                     $data['Workflow']['description'] = '';
                 }
-                if (empty($data['Workflow']['data'])) {
+                if (!empty($data['Workflow']['data'])) {
+                    $data['Workflow']['data'] = JsonTool::decode($data['Workflow']['data']);
+                } else {
                     $data['Workflow']['data'] = [];
                 }
                 return $data;
