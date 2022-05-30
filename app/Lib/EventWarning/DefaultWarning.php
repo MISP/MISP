@@ -7,7 +7,8 @@ class DefaultWarning
     public $functions = [
         'emptyEventCheck',
         'contextCheck',
-        'tlpDistributionCheck'
+        'tlpDistributionCheck',
+        'taxonomyInconsistenciesCheck'
     ];
 
     function __construct()
@@ -44,6 +45,13 @@ class DefaultWarning
                     $warnings[__('Distribution')][] = __('The event is tagged as %s, yet the distribution is set to all, be aware of potential information leakage.', $tagName);
                 }
             }
+        }
+    }
+
+    public function taxonomyInconsistenciesCheck(array $event, array &$warnings)
+    {
+        if (Configure::read('MISP.disable_taxonomy_consistency_checks')) {
+            $warnings[__('Tags')][] = __('Taxonomy consistency checks are disabled in the configuration, set `MISP.disable_taxonomy_consistency_checks` to `false` to enable them.');
         }
     }
 

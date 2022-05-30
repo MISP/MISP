@@ -2,7 +2,7 @@
     <tr>
         <?php if ($isSiteAdmin): ?>
             <th>
-                <input class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onClick="toggleAllCheckboxes();">
+                <input class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onclick="toggleAllCheckboxes();">
             </th>
         <?php else: ?>
             <th style="padding-left:0;padding-right:0;">&nbsp;</th>
@@ -24,7 +24,6 @@
             $date = time();
             $day = 86400;
         ?>
-
         <?php if (in_array('owner_org', $columns, true)): ?><th class="filter"><?= $this->Paginator->sort('Org.name', __('Owner org')) ?></th><?php endif; ?>
         <th><?= $this->Paginator->sort('id', __('ID'), ['direction' => 'desc']) ?></th>
         <?php if (in_array('clusters', $columns, true)): ?><th><?= __('Clusters') ?></th><?php endif; ?>
@@ -40,23 +39,21 @@
         <?php if (in_array('timestamp', $columns, true)): ?><th title="<?= __('Last modified at') ?>"><?= $this->Paginator->sort('timestamp', __('Last modified at')) ?></th><?php endif; ?>
         <?php if (in_array('publish_timestamp', $columns, true)): ?><th title="<?= __('Last modified at') ?>"><?= $this->Paginator->sort('publish_timestamp', __('Published at')) ?></th><?php endif; ?>
         <th class="filter"><?= $this->Paginator->sort('info');?></th>
-        <th title="<?= $eventDescriptions['distribution']['desc'];?>">
-            <?= $this->Paginator->sort('distribution');?>
-        </th>
+        <th title="<?= $eventDescriptions['distribution']['desc'];?>"><?= $this->Paginator->sort('distribution');?></th>
         <th class="actions"><?php echo __('Actions');?></th>
     </tr>
     <?php foreach ($events as $event): $eventId = (int)$event['Event']['id']; ?>
     <tr id="event_<?= $eventId ?>">
         <?php if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):?>
         <td style="width:10px;">
-            <input class="select" type="checkbox" data-id="<?= $eventId ?>" data-uuid="<?= h($event['Event']['uuid']) ?>" />
+            <input class="select" type="checkbox" data-id="<?= $eventId ?>" data-uuid="<?= h($event['Event']['uuid']) ?>">
         </td>
         <?php else: ?>
         <td style="padding-left:0;padding-right:0;"></td>
         <?php endif; ?>
         <td class="short dblclickElement">
             <a href="<?= "$baseurl/events/view/$eventId" ?>" title="<?= __('View') ?>" aria-label="<?= __('View') ?>">
-                <i class="black fa <?= $event['Event']['published'] == 1 ? 'fa-check' : 'fa-times' ?>"></i>
+                <i class="fa <?= $event['Event']['published'] ? 'fa-check green' : 'fa-times grey' ?>"></i>
             </a>
         </td>
         <?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
@@ -136,14 +133,14 @@
         <td class="bold" style="width:30px;">
             <?php if (!empty($event['Event']['sightings_count'])): ?>
                 <a href="<?php echo $baseurl."/events/view/" . $eventId . '/sighting:1';?>" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . ' sighting(s). Show filtered event with sighting(s) only.';?>">
-                    <?php echo h($event['Event']['sightings_count']); ?>
+                    <?= intval($event['Event']['sightings_count']) ?>
                 </a>
             <?php endif; ?>
         </td>
         <?php endif; ?>
         <?php if (in_array('proposals', $columns, true)): ?>
         <td class="bold dblclickElement" style="width:30px;" title="<?= __n('%s proposal', '%s proposals', $event['Event']['proposals_count'], $event['Event']['proposals_count']) ?>">
-            <?php echo !empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : ''; ?>
+            <?= !empty($event['Event']['proposals_count']) ? intval($event['Event']['proposals_count']) : ''; ?>
         </td>
         <?php endif;?>
         <?php if (in_array('discussion', $columns, true)): ?>
@@ -167,7 +164,7 @@
         </td>
         <?php endif; ?>
         <td class="short dblclickElement">
-            <?= $event['Event']['date'] ?>
+            <time><?= $event['Event']['date'] ?></time>
         </td>
         <?php if (in_array('timestamp', $columns, true)): ?>
         <td class="short dblclickElement">
@@ -182,9 +179,9 @@
         <td class="dblclickElement">
             <?= nl2br(h($event['Event']['info']), false) ?>
         </td>
-        <td class="short dblclickElement <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" title="<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : __('All');?>">
+        <td class="short dblclickElement<?php if ($event['Event']['distribution'] == 0) echo ' privateRedText';?>" title="<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : __('All');?>">
             <?php if ($event['Event']['distribution'] == 4):?>
-                <a href="<?php echo $baseurl;?>/sharingGroups/view/<?php echo h($event['SharingGroup']['id']); ?>"><?php echo h($event['SharingGroup']['name']);?></a>
+                <a href="<?php echo $baseurl;?>/sharingGroups/view/<?= intval($event['SharingGroup']['id']); ?>"><?= h($event['SharingGroup']['name']) ?></a>
             <?php else:
                 echo h($shortDist[$event['Event']['distribution']]);
             endif;
@@ -218,7 +215,7 @@
     </tr>
     <?php endforeach; ?>
 </table>
-<script type="text/javascript">
+<script>
     var lastSelected = false;
     $(function() {
         $('.select').on('change', function() {
@@ -234,7 +231,7 @@
 
         $('.distributionNetworkToggle').each(function() {
             $(this).distributionNetwork({
-                distributionData: <?php echo json_encode($distributionData); ?>,
+                distributionData: <?= json_encode($distributionData, JSON_UNESCAPED_UNICODE); ?>,
             });
         });
     });

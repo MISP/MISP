@@ -66,7 +66,7 @@
                 [
                     'key' => __('Contributors'),
                     'type' => 'custom',
-                    'function' => function ($data) use ($contributors, $baseurl, $event) {
+                    'function' => function (array $event) use ($contributors, $baseurl) {
                         $contributorsContent = [];
                         foreach ($contributors as $organisationId => $name) {
                             $org = ['Organisation' => ['id' => $organisationId, 'name' => $name]];
@@ -104,7 +104,7 @@
                 [
                     'key' => __('Tags'),
                     'type' => 'custom',
-                    'function' => function($data) use($event, $isSiteAdmin, $mayModify, $me, $missingTaxonomies, $tagConflicts) {
+                    'function' => function(array $event) use($isSiteAdmin, $mayModify, $me, $missingTaxonomies, $tagConflicts) {
                         return sprintf(
                             '<span class="eventTagContainer">%s</span>',
                             $this->element(
@@ -112,8 +112,8 @@
                                 [
                                     'event' => $event,
                                     'tags' => $event['EventTag'],
-                                    'tagAccess' => ($isSiteAdmin || $mayModify),
-                                    'localTagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id')),
+                                    'tagAccess' => $isSiteAdmin || $mayModify,
+                                    'localTagAccess' => $isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id'),
                                     'missingTaxonomies' => $missingTaxonomies,
                                     'tagConflicts' => $tagConflicts
                                 ]
@@ -133,7 +133,7 @@
                 ],
                 [
                     'key' => __('Analysis'),
-                    'key_title' => h($eventDescriptions['analysis']['desc']),
+                    'key_title' => $eventDescriptions['analysis']['desc'],
                     'path' => 'Event.analysis',
                     'type' => 'mapping',
                     'mapping' => $analysisLevels
@@ -152,10 +152,6 @@
                     'type' => 'warnings',
                     'warnings' => $warnings,
                     'requirement' => !empty($warnings) && ($me['org_id'] === $event['Event']['orgc_id'] || !empty($me['Role']['perm_site_admin']))
-                ],
-                [
-                    'key' => __('Info'),
-                    'path' => 'Event.info'
                 ],
                 [
                     'key' => __('Published'),
@@ -249,19 +245,19 @@
                     'key' => __('Correlation'),
                     'class' => $event['Event']['disable_correlation'] ? 'background-red bold' : '',
                     'type' => 'custom',
-                    'function' => function($data) use($mayModify, $isSiteAdmin) {
+                    'function' => function($event) use($mayModify, $isSiteAdmin) {
                         return sprintf(
                             '%s%s',
-                            $data['Event']['disable_correlation'] ? __('Disabled') : __('Enabled'),
+                            $event['Event']['disable_correlation'] ? __('Disabled') : __('Enabled'),
                             (!$mayModify && !$isSiteAdmin) ? '' :
                                 sprintf(
-                                    ' (<a onClick="getPopup(%s);" style="%scursor:pointer;font-weight:normal;">%s</a>)',
+                                    ' (<a onclick="getPopup(%s);" style="%scursor:pointer">%s</a>)',
                                     sprintf(
                                         "'%s', 'events', 'toggleCorrelation', '', '#confirmation_box'",
-                                        h($data['Event']['id'])
+                                        h($event['Event']['id'])
                                     ),
-                                    $data['Event']['disable_correlation'] ? 'color:white;' : '',
-                                    $data['Event']['disable_correlation'] ? __('enable') : __('disable')
+                                    $event['Event']['disable_correlation'] ? 'color:white;' : '',
+                                    $event['Event']['disable_correlation'] ? __('enable') : __('disable')
                                 )
                         );
                     },

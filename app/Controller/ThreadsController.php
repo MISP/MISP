@@ -148,7 +148,7 @@ class ThreadsController extends AppController
     {
         $this->loadModel('Posts');
         $this->loadModel('SharingGroup');
-        $sgids = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
+        $sgids = $this->SharingGroup->authorizedIds($this->Auth->user());
         $conditions = null;
         if (!$this->_isSiteAdmin()) {
             $conditions['AND']['OR'] = array(

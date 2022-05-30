@@ -989,17 +989,22 @@ class AttributesController extends AppController
             throw new NotFoundException("Attribute is not an image.");
         }
 
-        $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
-        $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
-        $extension = pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION);
+        if ($thumbnail) {
+            $extension = $thumbnail === 'webp' ? 'webp' : 'png';
+            $maxWidth = $this->request->params['named']['width'] ?? null;
+            $maxHeight = $this->request->params['named']['height'] ?? null;
+            $imageData = $this->Attribute->getThumbnail($attribute, $extension, $maxWidth, $maxHeight);
+        } else {
+            $imageData = $this->Attribute->getPictureData($attribute);
+            $extension = strtolower(pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION));
+        }
 
-        $imageData = $this->Attribute->getPictureData($attribute, $thumbnail, $width, $height);
         if ($imageData instanceof File) {
-            return $this->RestResponse->sendFile($imageData, strtolower($extension));
+            return $this->RestResponse->sendFile($imageData, $extension);
         }
 
         $this->response->body($imageData);
-        $this->response->type(strtolower($extension));
+        $this->response->type($extension);
         return $this->response;
     }
 
@@ -1536,6 +1541,12 @@ class AttributesController extends AppController
             if (!isset($params['conditions']['Attribute.deleted'])) {
                 $params['conditions']['Attribute.deleted'] = 0;
             }
+
+            // Force index for performance reasons see #3321
+            if (isset($filters['value'])) {
+                $this->paginate['useIndexHint'] = '(value1, value2)';
+            }
+
             $this->paginate['conditions'] = $params['conditions'];
             $attributes = $this->paginate();
             $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
@@ -1866,12 +1877,11 @@ class AttributesController extends AppController
 
     public function generateCorrelation()
     {
-        if (!self::_isSiteAdmin() || !$this->request->is('post')) {
-            throw new NotFoundException();
-        }
+        $this->request->allowMethod(['post']);
+
         if (!Configure::read('MISP.background_jobs')) {
             $k = $this->Attribute->generateCorrelation();
-            $this->Flash->success(__('All done. ' . $k . ' attributes processed.'));
+            $this->Flash->success(__('All done. %s attributes processed.', $k));
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         } else {
             /** @var Job $job */
@@ -1895,7 +1905,7 @@ class AttributesController extends AppController
                 $jobId
             );
 
-            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
+            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (Administration -> Jobs).'));
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         }
     }

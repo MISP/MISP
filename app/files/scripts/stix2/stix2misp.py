@@ -23,6 +23,7 @@ import time
 import io
 import pymisp
 import stix2misp_mapping
+import uuid
 from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
@@ -34,6 +35,9 @@ from pymisp import MISPEvent, MISPObject, MISPAttribute
 _scripts_path = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_scripts_path / 'cti-python-stix2'))
 import stix2
+
+_RFC_UUID_VERSIONS = (1, 3, 4, 5)
+_UUIDv4 = uuid.UUID('76beed5f-7251-457e-8c2a-b45f7b589d3d')
 
 
 class StixParser():
@@ -107,9 +111,28 @@ class StixParser():
             self.report = {report['id'].split('--')[1]: report}
 
     def save_file(self):
+        for attribute in self.misp_event.attributes:
+            if uuid.UUID(attribute.uuid).version not in _RFC_UUID_VERSIONS:
+                attribute.uuid = self._sanitize_uuid(attribute)
+        for misp_object in self.misp_event.objects:
+            if uuid.UUID(misp_object.uuid).version not in _RFC_UUID_VERSIONS:
+                misp_object.uuid = self._sanitize_uuid(misp_object)
+                for reference in misp_object.references:
+                    reference.object_uuid = misp_object.uuid
+                    if uuid.UUID(reference.referenced_uuid).version not in _RFC_UUID_VERSIONS:
+                        reference.referenced_uuid = uuid.uuid5(_UUIDv4, reference.referenced_uuid)
+                for attribute in misp_object.attributes:
+                    if uuid.UUID(attribute.uuid).version not in _RFC_UUID_VERSIONS:
+                        attribute.uuid = self._sanitize_uuid(attribute)
         event = self.misp_event.to_json()
         with open(f'{self.filename}.stix2', 'wt', encoding='utf-8') as f:
             f.write(event)
+
+    @staticmethod
+    def _sanitize_uuid(misp_feature):
+        comment = f'Original UUID was: {misp_feature.uuid}'
+        misp_feature.comment = f'{misp_feature.comment} - {comment}' if hasattr(misp_feature, 'comment') else comment
+        return uuid.uuid5(_UUIDv4, misp_feature.uuid)
 
     ################################################################################
     ##                 PARSING FUNCTIONS USED BY BOTH SUBCLASSES.                 ##
@@ -324,6 +347,14 @@ class StixParser():
             pass
         return misp_object
 
+    def _parse_galaxy_name(self, galaxy_name, default = None):
+        for identifier in galaxy_name.split(' - '):
+            if identifier[0].isalpha() and any(character.isdecimal() for character in identifier[1:]):
+                for name, tag_names in self._synonyms_to_tag_names.items():
+                    if identifier in name:
+                        return tag_names
+        return default
+
     @staticmethod
     def _process_test_filter(value, main_type):
         _is_main_process = any(feature in value for feature in ('parent_ref', 'child_refs'))
@@ -478,7 +509,7 @@ class StixFromMISPParser(StixParser):
             return self._synonyms_to_tag_names[galaxy.name]
         except KeyError:
             print(f'Unknown {galaxy._type} name: {galaxy.name}', file=sys.stderr)
-            return [f'misp-galaxy:{galaxy._type}="{galaxy.name}"']
+            return self._parse_galaxy_name(galaxy.name, default=[f'misp-galaxy:{galaxy._type}="{galaxy.name}"'])
 
     def parse_indicator_attribute(self, indicator):
         attribute = self.create_attribute_dict(indicator)
@@ -1984,10 +2015,7 @@ class ExternalStixParser(StixParser):
     def _check_existing_galaxy_name(self, galaxy_name):
         if galaxy_name in self._synonyms_to_tag_names:
             return self._synonyms_to_tag_names[galaxy_name]
-        for name, tag_names in self._synonyms_to_tag_names.items():
-            if galaxy_name in name:
-                return tag_names
-        return None
+        return self._parse_galaxy_name(galaxy_name)
 
     def create_misp_object(self, stix_object, name=None):
         misp_object = MISPObject(name if name is not None else stix_object.type,

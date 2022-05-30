@@ -722,7 +722,7 @@ class ShadowAttribute extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->Event->SharingGroup->authorizedIds($user);
             $attributeDistribution = array(
                 'Attribute.distribution' => array(1,2,3,5)
             );

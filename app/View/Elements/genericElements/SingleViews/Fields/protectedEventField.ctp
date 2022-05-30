@@ -1,5 +1,4 @@
 <?php
-    $keys = Hash::extract($data, $field['path']);
     $event = Hash::extract($data, $field['event_path']);
     if ($event['protected']) {
         echo sprintf(
@@ -26,6 +25,7 @@
             )
         );
         $foundInstanceKey = false;
+        $keys = Hash::extract($data, $field['path']);
         foreach ($keys as $key) {
             $isInstanceKey = $key['fingerprint'] === $field['instanceFingerprint'];
             if ($isInstanceKey) {

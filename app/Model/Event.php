@@ -491,10 +491,7 @@ class Event extends AppModel
      */
     public function attachCorrelationCountToEvents(array $user, array $events)
     {
-        $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-        if (!isset($sgids) || empty($sgids)) {
-            $sgids = array(-1);
-        }
+        $sgids = $this->SharingGroup->authorizedIds($user);
         $eventIds = array_column(array_column($events, 'Event'), 'id');
         $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventIds, $sgids);
         $this->Attribute->Correlation->virtualFields['count'] = 'count(distinct(Correlation.event_id))';
@@ -709,7 +706,7 @@ class Event extends AppModel
             $this->{$correlationModelName} = ClassRegistry::init($correlationModelName);
         }
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $conditionsCorrelation = array(
                 'AND' => array(
                     $correlationModelName . '.1_' . $scope . '_id' => $id,
@@ -1340,7 +1337,7 @@ class Event extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions['AND']['OR'] = [
                 'Event.org_id' => $user['org_id'],
@@ -1489,7 +1486,7 @@ class Event extends AppModel
             );
             foreach ($params as $param => $paramData) {
                 foreach ($simple_params as $scope => $simple_param_scoped) {
-                    if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
+                    if (isset($simple_param_scoped[$param]) && $paramData !== false) {
                         $options = array(
                             'filter' => $param,
                             'scope' => $scope,
@@ -1772,7 +1769,7 @@ class Event extends AppModel
         $flatten = (bool)$options['flatten'];
 
         // restricting to non-private or same org if the user is not a site-admin.
-        $sgids = $this->cacheSgids($user, $useCache);
+        $sgids = $this->SharingGroup->authorizedIds($user);
         if (!$isSiteAdmin) {
             // if delegations are enabled, check if there is an event that the current user might see because of the request itself
             if (Configure::read('MISP.delegation')) {
@@ -2831,14 +2828,14 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_value(&$params, $conditions, $options, $keys = array('Attribute.value1', 'Attribute.value2'))
+    public function set_filter_value(&$params, $conditions, $options)
     {
         if (!empty($params['value'])) {
-            $valueParts = explode('|', $params['value'], 2);
             $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
-            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], $keys);
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], ['Attribute.value1', 'Attribute.value2']);
             // Allows searching for ['value1' => [full, part1], 'value2' => [full, part2]]
-            if (count($valueParts) == 2) {
+            if (is_string($params['value']) && strpos('|', $params['value']) !== false) {
+                $valueParts = explode('|', $params['value'], 2);
                 $convertedFilterVal1 = $this->convert_filters($valueParts[0]);
                 $convertedFilterVal2 = $this->convert_filters($valueParts[1]);
                 $conditionVal1 = $this->generic_add_filter([], $convertedFilterVal1, ['Attribute.value1'])['AND'][0]['OR'];
@@ -3506,40 +3503,25 @@ class Event extends AppModel
             throw new Exception($exception);
         }
         $dataArray = $this->updateXMLArray($dataArray);
+        $eventsToAdd = isset($dataArray['response']['Event'][0]) ? $dataArray['response']['Event'] : [$dataArray['response']['Event']];
         $results = array();
         $validationIssues = array();
-        if (isset($dataArray['response']['Event'][0])) {
-            foreach ($dataArray['response']['Event'] as $event) {
-                $result = array('info' => $event['info']);
-                if ($takeOwnership) {
-                    $event['orgc_id'] = $user['org_id'];
-                    unset($event['Orgc']);
-                }
-                $event = array('Event' => $event);
-                $created_id = 0;
-                $event['Event']['locked'] = 1;
-                $event['Event']['published'] = $publish;
-                $result['result'] = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
-                $result['id'] = $created_id;
-                $result['validationIssues'] = $validationIssues;
-                $results[] = $result;
-            }
-        } else {
-            $temp['Event'] = $dataArray['response']['Event'];
+        foreach ($eventsToAdd as $event) {
             if ($takeOwnership) {
-                $temp['Event']['orgc_id'] = $user['org_id'];
-                unset($temp['Event']['Orgc']);
+                $event['orgc_id'] = $user['org_id'];
+                unset($event['Orgc']);
             }
+            $event = array('Event' => $event);
             $created_id = 0;
-            $temp['Event']['locked'] = 1;
-            $temp['Event']['published'] = $publish;
-            $result = $this->_add($temp, true, $user, '', null, false, null, $created_id, $validationIssues);
-            $results = array(array(
-                'info' => $temp['Event']['info'],
+            $event['Event']['locked'] = 1;
+            $event['Event']['published'] = $publish;
+            $result = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
+            $results[] = [
+                'info' => $event['Event']['info'],
                 'result' => $result,
                 'id' => $created_id,
                 'validationIssues' => $validationIssues,
-            ));
+            ];
         }
         return $results;
     }
@@ -3607,13 +3589,15 @@ class Event extends AppModel
             }
         }
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
-            $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
             if (!isset($data['Event']['Orgc']['uuid'])) {
-                $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $data['Event']['orgc_id']), 'fields' => array('Orgc.uuid'), 'recursive' => -1));
+                $orgc = $data['Event']['orgc_id'];
             } else {
-                $orgc = array('Orgc' => array('uuid' => $data['Event']['Orgc']['uuid']));
+                $orgc = $data['Event']['Orgc']['uuid'];
             }
-            if ($this->OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgc['Orgc']['uuid']))) {
+            if (!isset($this->OrgBlocklist)) {
+                $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
+            }
+            if ($this->OrgBlocklist->isBlocked($orgc)) {
                 return 'blocked';
             }
         }
@@ -3652,7 +3636,7 @@ class Event extends AppModel
             $existingEvent = $this->find('first', [
                 'conditions' => ['Event.uuid' => $data['Event']['uuid']],
                 'fields' => ['Event.id'],
-                'recursive' => -1.
+                'recursive' => -1,
             ]);
             if ($existingEvent) {
                 // RESTful, set response location header so client can find right URL to edit
@@ -5639,7 +5623,7 @@ class Event extends AppModel
         } else {
             $attribute_type = $attribute['type'];
             if (empty($attribute['category'])) {
-                $attribute['category'] = $this->Attribute->typedefinitions[$attribute_type]['default_category'];
+                $attribute['category'] = $this->Attribute->typeDefinitions[$attribute_type]['default_category'];
             }
         }
         if (!isset($attribute['to_ids'])) {
@@ -5696,22 +5680,6 @@ class Event extends AppModel
             'extension' => $module['mispattributes']['outputFileExtension'],
             'response' => $module['mispattributes']['responseType']
         ];
-    }
-
-    public function cacheSgids($user, $useCache = false)
-    {
-        if ($useCache && isset($this->assetCache['sgids'])) {
-            return $this->assetCache['sgids'];
-        } else {
-            $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-            if (empty($sgids)) {
-                $sgids = array(-1);
-            }
-            if ($useCache) {
-                $this->assetCache['sgids'] = $sgids;
-            }
-            return $sgids;
-        }
     }
 
     public function __cacheSharingGroupData($user, $useCache = false)

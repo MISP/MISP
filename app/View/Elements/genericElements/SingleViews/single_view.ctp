@@ -120,10 +120,10 @@
     echo sprintf(
         '<div class="view"><div class="row-fluid"><div class="span8">%s</div><div class="span4">%s</div></div><div id="accordion"></div>%s%s</div>%s',
         sprintf(
-            '<div><h2 class="ellipsis-overflow">%s</h2>%s%s<table class="meta_table table table-striped table-condensed">%s</table></div>',
+            '<div><h2 class="overflow">%s</h2>%s%s<table class="meta_table table table-striped table-condensed">%s</table></div>',
             h($title),
-            empty($description) ? '' : sprintf('<p>%s</p>', h($description)),
-            empty($description_html) ? '' : sprintf('<p>%s</p>', $description_html),
+            empty($description) ? '' : sprintf('<p class="description">%s</p>', h($description)),
+            empty($description_html) ? '' : sprintf('<p class="description">%s</p>', $description_html),
             $listElements
         ),
         $side_panels,

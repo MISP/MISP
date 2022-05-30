@@ -652,13 +652,13 @@ class Galaxy extends AppModel
     public function getMitreAttackGalaxyId($type="mitre-attack-pattern", $namespace="mitre-attack")
     {
         $galaxy = $this->find('first', array(
-                'recursive' => -1,
-                'fields' => array('MAX(Galaxy.version) as latest_version', 'id'),
-                'conditions' => array(
-                    'Galaxy.type' => $type,
-                    'Galaxy.namespace' => $namespace
-                ),
-                'group' => array('name', 'id')
+            'recursive' => -1,
+            'fields' => array('MAX(Galaxy.version) as latest_version', 'id'),
+            'conditions' => array(
+                'Galaxy.type' => $type,
+                'Galaxy.namespace' => $namespace
+            ),
+            'group' => array('name', 'id')
         ));
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
     }

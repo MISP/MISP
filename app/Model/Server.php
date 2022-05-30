@@ -2011,12 +2011,12 @@ class Server extends AppModel
         if (!Configure::read('MISP.background_jobs')) {
             $this->Attribute = ClassRegistry::init('Attribute');
             if ($value) {
-                $k = $this->Attribute->purgeCorrelations();
+                $this->Attribute->purgeCorrelations();
             } else {
-                $k = $this->Attribute->generateCorrelation();
+                $this->Attribute->generateCorrelation();
             }
         } else {
-            if ($value == true) {
+            if ($value) {
                 $jobType = 'jobPurgeCorrelation';
                 $jobTypeText = 'purge correlations';
             } else {
@@ -2038,7 +2038,6 @@ class Server extends AppModel
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [
-                    'updateAfterPull',
                     $jobType,
                     $jobId
                 ],
@@ -3372,25 +3371,54 @@ class Server extends AppModel
         return $proxyStatus;
     }
 
-    public function sessionDiagnostics(&$diagnostic_errors = 0, &$sessionCount = '')
+    public function sessionDiagnostics(&$diagnostic_errors = 0)
     {
-        if (Configure::read('Session.defaults') !== 'database') {
-            $sessionCount = 'N/A';
-            return 2;
+        $sessionCount = null;
+        $sessionHandler = null;
+        $errorCode = 9;
+
+        switch (Configure::read('Session.defaults')) {
+            case 'php':
+                $sessionHandler = 'php_' .  ini_get('session.save_handler');
+                switch ($sessionHandler) {
+                    case 'php_files':
+                        $diagnostic_errors++;
+                        $errorCode = 2;
+                        break;
+                    case 'php_redis':
+                        $errorCode = 0;
+                        break;
+                    default:
+                        $diagnostic_errors++;
+                        $errorCode = 8;
+                        break;
+                }
+                break;
+            case 'database':
+                $sessionHandler = 'database';
+                $sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
+                $sqlResult = $this->query($sql);
+                if (isset($sqlResult[0][0])) {
+                    $sessionCount = $sqlResult[0][0]['session_count'];
+                } else {
+                    $errorCode = 9;
+                }
+                if ($sessionCount > 1000) {
+                    $diagnostic_errors++;
+                    $errorCode = 1;
+                }
+                break;
+            default:
+                $diagnostic_errors++;
+                $errorCode =  8;
+                break;
         }
-        $sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
-        $sqlResult = $this->query($sql);
-        if (isset($sqlResult[0][0])) {
-            $sessionCount = $sqlResult[0][0]['session_count'];
-        } else {
-            $sessionCount = 'Error';
-            return 3;
-        }
-        if ($sessionCount > 1000) {
-            $diagnostic_errors++;
-            return 1;
-        }
-        return 0;
+
+        return [
+            'handler' => $sessionHandler,
+            'expired_count' => $sessionCount,
+            'error_code' => $errorCode
+        ];
     }
 
     public function workerDiagnostics(&$workerIssueCount)
@@ -5151,6 +5179,14 @@ class Server extends AppModel
                     'type' => 'string',
                     'options' => array(0 => 'Minimal tags', 1 => 'Full tags', 2 => 'Shortened tags'),
                 ),
+                'disable_taxonomy_consistency_checks' => array(
+                    'level' => 0,
+                    'description' => __('*WARNING* This will disable taxonomy tags conflict checks when browsing attributes and objects, does not impact checks when adding tags. It can dramatically increase the performance when loading events with lots of tagged attributes or objects.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'welcome_text_top' => array(
                     'level' => 2,
                     'description' => __('Used on the login page, before the MISP logo'),
@@ -5708,6 +5744,14 @@ class Server extends AppModel
                     'description' => __('Add a checkbox when attaching a cluster to an Attribute which, when checked, will also create the same clusters on the attribute\'s event.'),
                     'value' => false,
                     'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
+                'thumbnail_in_redis' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Store image thumbnails in Redis insteadof file system.'),
+                    'value' => false,
+                    'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
                 ],

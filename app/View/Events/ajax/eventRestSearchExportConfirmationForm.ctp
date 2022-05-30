@@ -1,18 +1,17 @@
 <?php
-$modelForForm = 'Event';
 echo $this->element('genericElements/Form/genericForm', [
     'form' => $this->Form,
     'data' => [
         'title' => __('Export the selected events into the selected format'),
-        'model' => $modelForForm,
+        'model' => 'Event',
         'fields' => [
             [
                 'field' => 'returnFormat',
-                'label' => __('RestSearch Export Format'),
+                'label' => __('Export Format'),
                 'class' => 'input span6',
                 'div' => 'input clear',
                 'type' => 'select',
-                'options' => Hash::combine($exportFormats, '{n}', '{n}'),
+                'options' => array_combine($exportFormats, $exportFormats),
             ],
         ],
         'submit' => [
@@ -22,7 +21,6 @@ echo $this->element('genericElements/Form/genericForm', [
     ],
 ]);
 ?>
-
 <script>
     function redirectToExportResult() {
         var idListStr = '<?= json_encode($idList) ?>'

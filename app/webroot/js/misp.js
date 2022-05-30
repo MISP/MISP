@@ -751,25 +751,24 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     if (undefined != addData['local'] && addData['local']) {
         localFlag = '/local:1';
     }
-    url = baseurl + "/tag_collections/addTag/" + tag_collection_id + localFlag;
+    var url = baseurl + "/tag_collections/addTag/" + tag_collection_id + localFlag;
     fetchFormDataAjax(url, function(formData) {
-        $('body').append($('<div id="temp"/>').html(formData));
-        $('#temp #TagCollectionTag').val(JSON.stringify(selected_tag_ids));
+        var $formData = $(formData);
+        $formData.find('#TagCollectionTag').val(JSON.stringify(selected_tag_ids));
         xhr({
-            data: $('#TagCollectionAddTagForm').serialize(),
-            success:function (data, textStatus) {
+            data: $formData.serialize(),
+            success:function (data) {
                 handleGenericAjaxResponse(data);
                 refreshTagCollectionRow(tag_collection_id);
             },
             error:function() {
                 showMessage('fail', 'Could not add tag.');
-                loadTagCollectionTags(tag_collection_id);
+                refreshTagCollectionRow(tag_collection_id);
             },
             complete:function() {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
-                $('#temp').remove();
             },
             type:"post",
             url: url
@@ -784,7 +783,7 @@ function refreshTagCollectionRow(tag_collection_id) {
         error:function() {
             showMessage('fail', 'Could not fetch updates to the modified row.');
         },
-        success: function (data, textStatus) {
+        success: function (data) {
             $('[data-row-id="' + tag_collection_id + '"]').replaceWith(data);
         }
     });
@@ -942,18 +941,16 @@ function multiSelectToggleFeeds(on, cache) {
 
 function multiSelectToggleField(scope, action, fieldName, enabled) {
     var selected = [];
-    $(".select").each(function() {
-        if ($(this).is(":checked")) {
-            var temp = $(this).data("id");
-            if (temp != null) {
-                selected.push(temp);
-            }
+    $(".select:checked").each(function() {
+        var temp = $(this).data("id");
+        if (temp != null) {
+            selected.push(temp);
         }
     });
     $.get(baseurl + "/" + scope + "/" + action + "/" + fieldName + "/" + enabled, function(data) {
-        $('body').append($('<div id="temp"/>').html(data));
-        $('#temp form #UserUserIds').val(JSON.stringify(selected));
-        $('#temp form')[0].submit();
+        var $formData = $(data);
+        $formData.find("#UserUserIds").val(JSON.stringify(selected));
+        $formData.find("form")[0].submit();
     }).fail(xhrFailCallback);
 }
 
@@ -1094,17 +1091,6 @@ function loadGalaxies(id, scope) {
     });
 }
 
-function loadTagCollectionTags(id) {
-    $.ajax({
-        dataType:"html",
-        cache: false,
-        success:function (data) {
-            $(".tagCollectionTagContainer").html(data);
-        },
-        url: baseurl + "/tags/showEventTag/" + id,
-    });
-}
-
 function loadAttributeTags(attribute_id) {
     $.ajax({
         dataType: "html",
@@ -1189,9 +1175,7 @@ function openGenericModal(url, modalData, callback) {
                 }
             });
         },
-        error: function (data, textStatus, errorThrown) {
-            showMessage('fail', textStatus + ": " + errorThrown);
-        }
+        error: xhrFailCallback,
     });
 }
 

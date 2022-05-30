@@ -432,7 +432,8 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'edit',
                             'url' => '/eventReports/edit/' . h($id),
-                            'text' => __('Edit Event Report')
+                            'text' => __('Edit Event Report'),
+                            'requirement' => $canEdit,
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/admin/audit_logs/index/model:EventReport/model_id:' .  h($id),
