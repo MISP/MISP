@@ -208,7 +208,12 @@ class WorkflowsController extends AppController
 
     public function export($id)
     {
-
+        $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+        $content = JsonTool::encode($workflow, JSON_PRETTY_PRINT);
+        $this->response->body($content);
+        $this->response->type('json');
+        $this->response->download(sprintf('workflow_%s_%s.json', $workflow['Workflow']['name'], time()));
+        return $this->response;
     }
 
     public function rearrangeExecutionOrder($trigger_id)

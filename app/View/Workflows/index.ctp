@@ -141,6 +141,12 @@
                         'icon' => 'edit'
                     ],
                     [
+                        'url' => $baseurl . '/workflows/export',
+                        'url_params_data_paths' => ['Workflow.id'],
+                        'title' => __('Export Workflow'),
+                        'icon' => 'file-upload',
+                    ],
+                    [
                         'onclick' => sprintf(
                         'openGenericModal(\'%s/workflows/delete/[onclick_params_data_path]\');',
                             $baseurl
