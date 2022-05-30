@@ -878,9 +878,9 @@ class Attribute extends AppModel
         return in_array($type, self::ZIPPED_DEFINITION, true) || in_array($type, self::UPLOAD_DEFINITIONS, true);
     }
 
-    public function getAttachment($attribute, $path_suffix='')
+    public function getAttachment($attribute)
     {
-        return $this->loadAttachmentTool()->getContent($attribute['event_id'], $attribute['id'], $path_suffix);
+        return $this->loadAttachmentTool()->getContent($attribute['event_id'], $attribute['id']);
     }
 
     /**
@@ -889,26 +889,30 @@ class Attribute extends AppModel
      * @return File
      * @throws Exception
      */
-    public function getAttachmentFile(array $attribute, $path_suffix='')
+    public function getAttachmentFile(array $attribute)
     {
-        return $this->loadAttachmentTool()->getFile($attribute['event_id'], $attribute['id'], $path_suffix);
+        return $this->loadAttachmentTool()->getFile($attribute['event_id'], $attribute['id']);
     }
 
     /**
      * @param array $attribute
-     * @param string $path_suffix
      * @return bool
      * @throws Exception
      */
-    private function saveAttachment(array $attribute, $path_suffix='')
+    private function saveAttachment(array $attribute)
     {
         if ($attribute['data'] === false) {
             $this->log("Invalid attachment data provided for attribute with ID {$attribute['id']}.");
             return false;
         }
-        $result = $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
+        $result = $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data']);
         if ($result) {
             $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
+            // Clean thumbnail cache
+            if ($this->isImage($attribute) && Configure::read('MISP.thumbnail_in_redis')) {
+                $redis = $this->setupRedisWithException();
+                $redis->del($redis->keys("misp:thumbnail:attribute:{$attribute['id']}:*"));
+            }
         }
         return $result;
     }
@@ -930,54 +934,82 @@ class Attribute extends AppModel
     }
 
     /**
-     * Currently, as image are considered files with JPG (JPEG), PNG or GIF extension.
+     * Currently, as image are considered files with JPG (JPEG), PNG, GIF or WEBP extension.
      * @param array $attribute
      * @return bool
      */
     public function isImage(array $attribute)
     {
         return $attribute['type'] === 'attachment' &&
-            Validation::extension($attribute['value'], array('jpg', 'jpeg', 'png', 'gif'));
+            Validation::extension($attribute['value'], ['jpg', 'jpeg', 'png', 'gif', 'webp']);
     }
 
     /**
      * @param array $attribute
-     * @param bool $thumbnail
-     * @param int $maxWidth - When $thumbnail is true
-     * @param int $maxHeight - When $thumbnail is true
+     * @return File
+     * @throws Exception
+     */
+    public function getPictureData(array $attribute)
+    {
+        return $this->loadAttachmentTool()->getFile($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
+    }
+
+    /**
+     * @param array $attribute
+     * @param string $outputFormat Can be 'png' or 'webp'
+     * @param int|null $maxWidth
+     * @param int|null $maxHeight
      * @return string|File
      * @throws Exception
      */
-    public function getPictureData(array $attribute, $thumbnail = false, $maxWidth = 200, $maxHeight = 200)
+    public function getThumbnail(array $attribute, $outputFormat = 'png', $maxWidth = null, $maxHeight = null)
     {
-        if ($thumbnail && extension_loaded('gd')) {
-            if ($maxWidth == 200 && $maxHeight == 200) {
+        if (!extension_loaded('gd')) {
+            return $this->getPictureData($attribute);
+        }
+
+        // Use two times bigger thumbnail for webp to generate hires preview image
+        $defaultMaxSize = $outputFormat === 'webp' ? 400 : 200;
+        $maxWidth = $maxWidth ?: $defaultMaxSize;
+        $maxHeight = $maxHeight ?: $defaultMaxSize;
+
+        if ($maxWidth == $defaultMaxSize && $maxHeight == $defaultMaxSize) {
+            $thumbnailInRedis = Configure::read('MISP.thumbnail_in_redis');
+            if ($thumbnailInRedis) {
+                $redis = $this->setupRedisWithException();
+                if ($data = $redis->get("misp:thumbnail:attribute:{$attribute['Attribute']['id']}:$outputFormat")) {
+                    return $data;
+                }
+            } else {
+                $suffix = $outputFormat === 'png' ? '_thumbnail' : '_thumbnail_' . $outputFormat;
                 // Return thumbnail directly if already exists
                 try {
-                    return $this->loadAttachmentTool()->getFile($attribute['Attribute']['event_id'], $attribute['Attribute']['id'], $path_suffix = '_thumbnail');
+                    return $this->loadAttachmentTool()->getFile($attribute['Attribute']['event_id'], $attribute['Attribute']['id'], $suffix);
                 } catch (NotFoundException $e) {
                     // pass
                 }
             }
-
-            // Thumbnail doesn't exists, we need to generate it
-            $imageData = $this->getAttachment($attribute['Attribute']);
-            $imageData = $this->loadAttachmentTool()->resizeImage($imageData, $maxWidth, $maxHeight);
-
-            // Save just when requested default thumbnail size
-            if ($maxWidth == 200 && $maxHeight == 200) {
-                $attribute['Attribute']['data'] = $imageData;
-                $this->saveAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
-            }
-            return $imageData;
         }
 
-        return $this->loadAttachmentTool()->getFile($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
+        // Thumbnail doesn't exists, we need to generate it
+        $imageData = $this->getAttachment($attribute['Attribute']);
+        $imageData = $this->loadAttachmentTool()->resizeImage($imageData, $maxWidth, $maxHeight, $outputFormat);
+
+        // Save just when requested default thumbnail size
+        if ($maxWidth == $defaultMaxSize && $maxHeight == $defaultMaxSize) {
+            if ($thumbnailInRedis) {
+                $redis->set("misp:thumbnail:attribute:{$attribute['Attribute']['id']}:$outputFormat", $imageData, 3600);
+            } else {
+                $this->loadAttachmentTool()->save($attribute['Attribute']['event_id'], $attribute['Attribute']['id'], $imageData, $suffix);
+            }
+        }
+        return $imageData;
     }
 
     /**
      * @param array $user
      * @param array $resultArray
+     * @throws Exception
      */
     public function fetchRelated(array $user, array &$resultArray)
     {

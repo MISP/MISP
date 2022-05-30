@@ -14,8 +14,8 @@ class EventReportsController extends AppController
     public $paginate = array(
         'limit' => 60,
         'order' => array(
-                'EventReport.event_id' => 'ASC',
-                'EventReport.name' => 'ASC'
+            'EventReport.event_id' => 'ASC',
+            'EventReport.name' => 'ASC'
         ),
         'recursive' => -1,
         'contain' => array(
@@ -202,6 +202,8 @@ class EventReportsController extends AppController
                 $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
                 $this->set('importModuleEnabled', is_array($fetcherModule));
                 $this->render('ajax/indexForEvent');
+            } else {
+                $this->set('title_for_layout', __('Event Reports'));
             }
         }
     }

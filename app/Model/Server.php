@@ -2002,12 +2002,12 @@ class Server extends AppModel
         if (!Configure::read('MISP.background_jobs')) {
             $this->Attribute = ClassRegistry::init('Attribute');
             if ($value) {
-                $k = $this->Attribute->purgeCorrelations();
+                $this->Attribute->purgeCorrelations();
             } else {
-                $k = $this->Attribute->generateCorrelation();
+                $this->Attribute->generateCorrelation();
             }
         } else {
-            if ($value == true) {
+            if ($value) {
                 $jobType = 'jobPurgeCorrelation';
                 $jobTypeText = 'purge correlations';
             } else {
@@ -2029,7 +2029,6 @@ class Server extends AppModel
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [
-                    'updateAfterPull',
                     $jobType,
                     $jobId
                 ],
@@ -5707,6 +5706,14 @@ class Server extends AppModel
                     'description' => __('Add a checkbox when attaching a cluster to an Attribute which, when checked, will also create the same clusters on the attribute\'s event.'),
                     'value' => false,
                     'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
+                'thumbnail_in_redis' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Store image thumbnails in Redis insteadof file system.'),
+                    'value' => false,
+                    'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true,
                 ],

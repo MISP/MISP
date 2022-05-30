@@ -46,7 +46,8 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'name' => __('Value'),
                 'sort' => 'Attribute.value',
-                'data_path' => 'Attribute.value'
+                'data_path' => 'Attribute',
+                'element' => 'attributeValue',
             ],
             [
                 'name' => __('Tags'),

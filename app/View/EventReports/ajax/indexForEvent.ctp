@@ -114,8 +114,8 @@
                         'icon' => 'trash',
                         'onclick' => 'simplePopup(\'' . $baseurl . '/event_reports/delete/[onclick_params_data_path]\');',
                         'onclick_params_data_path' => 'EventReport.id',
-                        'complex_requirement' =>  function (array $row) use ($me) {
-                            return ($me['Role']['perm_site_admin'] || $me['org_id'] == $row['EventReport']['orgc_id']) && !$row['EventReport']['deleted'];
+                        'complex_requirement' =>  function (array $row) use ($canModify) {
+                            return $canModify && !$row['EventReport']['deleted'];
                         },
                     ),
                     array(
@@ -125,8 +125,8 @@
                         'icon' => 'trash-restore',
                         'postLink' => true,
                         'postLinkConfirm' => __('Are you sure you want to restore the Report?'),
-                        'complex_requirement' => function (array $row) use ($me) {
-                            return ($me['Role']['perm_site_admin'] || $me['org_id'] == $row['EventReport']['orgc_id']) && $row['EventReport']['deleted'];
+                        'complex_requirement' => function (array $row) use ($canModify) {
+                            return $canModify && $row['EventReport']['deleted'];
                         }
                     ),
                 )
