@@ -631,7 +631,7 @@ class Workflow extends AppModel
             $folder = new Folder(Workflow::MODULE_ROOT_PATH . $dir);
             $filesInFolder = $folder->find('.*\.php', true);
             $files[$dir] = array_diff($filesInFolder, ['..', '.']);
-            if ($dir != 'trigger') { // No custom module for the triggers
+            if ($dir == 'action') { // No custom module for the triggers
                 $customFolder = new Folder(Workflow::MODULE_ROOT_PATH . $dir . '/Custom');
                 $filesInCustomFolder = $customFolder->find('.*\.php', true);
                 $filesInCustomFolder = array_map(function($file) {
