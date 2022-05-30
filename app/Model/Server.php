@@ -3362,25 +3362,54 @@ class Server extends AppModel
         return $proxyStatus;
     }
 
-    public function sessionDiagnostics(&$diagnostic_errors = 0, &$sessionCount = '')
+    public function sessionDiagnostics(&$diagnostic_errors = 0)
     {
-        if (Configure::read('Session.defaults') !== 'database') {
-            $sessionCount = 'N/A';
-            return 2;
+        $sessionCount = null;
+        $sessionHandler = null;
+        $errorCode = 9;
+
+        switch (Configure::read('Session.defaults')) {
+            case 'php':
+                $sessionHandler = 'php_' .  ini_get('session.save_handler');
+                switch ($sessionHandler) {
+                    case 'php_files':
+                        $diagnostic_errors++;
+                        $errorCode = 2;
+                        break;
+                    case 'php_redis':
+                        $errorCode = 0;
+                        break;
+                    default:
+                        $diagnostic_errors++;
+                        $errorCode = 8;
+                        break;
+                }
+                break;
+            case 'database':
+                $sessionHandler = 'database';
+                $sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
+                $sqlResult = $this->query($sql);
+                if (isset($sqlResult[0][0])) {
+                    $sessionCount = $sqlResult[0][0]['session_count'];
+                } else {
+                    $errorCode = 9;
+                }
+                if ($sessionCount > 1000) {
+                    $diagnostic_errors++;
+                    $errorCode = 1;
+                }
+                break;
+            default:
+                $diagnostic_errors++;
+                $errorCode =  8;
+                break;
         }
-        $sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
-        $sqlResult = $this->query($sql);
-        if (isset($sqlResult[0][0])) {
-            $sessionCount = $sqlResult[0][0]['session_count'];
-        } else {
-            $sessionCount = 'Error';
-            return 3;
-        }
-        if ($sessionCount > 1000) {
-            $diagnostic_errors++;
-            return 1;
-        }
-        return 0;
+
+        return [
+            'handler' => $sessionHandler,
+            'expired_count' => $sessionCount,
+            'error_code' => $errorCode
+        ];
     }
 
     public function workerDiagnostics(&$workerIssueCount)

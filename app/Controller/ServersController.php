@@ -996,7 +996,13 @@ class ServersController extends AppController
         $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed'));
         $proxyErrors = array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed'));
         $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
-        $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
+        $sessionErrors = array(
+            0 => __('OK'),
+            1 => __('Too many expired sessions in the database, please clear the expired sessions'),
+            2 => __('PHP session handler is using the default file storage. This is not recommended, please use the redis or database storage'),
+            8 => __('Alternative setting used'),
+            9 => __('Test failed')
+        );
         $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
         $backgroundJobsErrors = array(
             0 => __('OK'),
@@ -1148,10 +1154,8 @@ class ServersController extends AppController
                 $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
             }
 
-            // check the size of the session table
-            $sessionCount = 0;
-            $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
-            $this->set('sessionCount', $sessionCount);
+            // get php session diagnostics
+            $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors);
 
             $this->loadModel('AttachmentScan');
             try {
