@@ -119,6 +119,53 @@ function initDrawflow() {
             graphPooler.do()
         }
     })
+    editor.on('keydown', function (evt) {
+        if (evt.keyCode == 67) {
+            editor.fitCanvas()
+        }
+    })
+    editor.translate_to = function (x, y) {
+        this.canvas_x = x;
+        this.canvas_y = y;
+        let storedZoom = this.zoom;
+        this.zoom = 1;
+        this.precanvas.style.transform = "translate(" + this.canvas_x + "px, " + this.canvas_y + "px) scale(" + this.zoom + ")";
+        this.zoom = storedZoom;
+        this.zoom_last_value = 1;
+        this.zoom_refresh();
+    }
+    editor.fitCanvas = function () {
+        editor.translate_to(0, 0)
+        editor.zoom = 1
+        editor.zoom_refresh()
+        var editor_bcr = editor.container.getBoundingClientRect()
+        var offset_x = editor_bcr.width / 2
+        var offset_y = editor_bcr.height / 2
+
+        var sumX = 0, sumY = 0, maxX = 0, maxY = 0
+        var offset_block_x = 0, offset_block_y = 0
+        var nodes = $(editor.precanvas).find('.drawflow-node')
+        nodes.each(function () {
+            var node_bcr = this.getBoundingClientRect()
+            offset_block_x = node_bcr.left > maxX ? node_bcr.width : offset_block_x
+            offset_block_y = node_bcr.top > maxY ? node_bcr.height : offset_block_y
+            sumX += node_bcr.left
+            sumY += node_bcr.top
+            maxX = node_bcr.left > maxX ? node_bcr.left : maxX
+            maxY = node_bcr.top > maxY ? node_bcr.top : maxY
+        });
+        var centroidX = sumX / nodes.length
+        var centroidY = sumY / nodes.length
+        centroidX -= offset_block_x / 2
+        centroidY += offset_block_y / 2
+        var calc_zoom = Math.min(editor_bcr.width / maxX, editor_bcr.height / maxY) // Zoom out if needed
+        editor.translate_to(
+            offset_x - centroidX + offset_block_x / 2 - 100, // Harcoded offset as it's more pleasant if it's slightly positioned top-left
+            offset_y - centroidY + offset_block_y / 2 - 200  // Harcoded offset as it's more pleasant if it's slightly positioned top-left
+        )
+        editor.zoom = calc_zoom
+        editor.zoom_refresh()
+    }
 
     $('#block-tabs a').click(function (e) {
         e.preventDefault();
@@ -179,6 +226,7 @@ function initDrawflow() {
 
     loadWorkflow().then(function() {
         graphPooler.start(undefined)
+        editor.fitCanvas()
     })
     $saveWorkflowButton.click(saveWorkflow)
     $importWorkflowButton.click(importWorkflow)
