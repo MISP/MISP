@@ -62,7 +62,7 @@
                         'postLinkConfirm' => __('Are you sure you want to enable this trigger?'),
                         'complex_requirement' => array(
                             'function' => function ($row, $options) use ($isSiteAdmin) {
-                                return $isSiteAdmin && !$options['datapath']['disabled'];
+                                return $isSiteAdmin && $options['datapath']['disabled'];
                             },
                             'options' => array(
                                 'datapath' => array(
@@ -80,7 +80,7 @@
                         'postLinkConfirm' => __('Are you sure you want to disable this trigger?'),
                         'complex_requirement' => array(
                             'function' => function ($row, $options) use ($isSiteAdmin) {
-                                return $isSiteAdmin && $options['datapath']['disabled'];
+                                return $isSiteAdmin && !$options['datapath']['disabled'];
                             },
                             'options' => array(
                                 'datapath' => array(
