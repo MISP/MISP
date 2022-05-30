@@ -4486,24 +4486,46 @@ class Event extends AppModel
         if (empty($event)) {
             return false;
         }
-        $hostOrg = $this->Org->getHostOrg();
-        $user = [
+        $hostOrg = $this->Org->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'id' => Configure::read('MISP.host_org_id')
+            ],
+        ]);
+        if (empty($hostOrg)) {
+            $hostOrg = $this->Org->find('first', [
+                'recursive' => -1,
+                'order' => ['id ASC']
+            ]);
+        }
+        $userForPubSub = [
             'id' => 0,
             'org_id' => $hostOrg['Org']['id'],
-            'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0),
+            'Role' => ['perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0],
             'Organisation' => $hostOrg['Org']
         ];
-        $fullEvent = null;
-        if (Configure::read('Plugin.Action_services_enable')) {
-            $fullEvent = $this->fetchEvent($user, [
-                'eventid' => $id,
-                'includeAttachments' => 1
-            ]);
-            $this->Module = ClassRegistry::init('Module');
-            $error = null;
-            if (!$this->Module->executeActions('publish', $user, $fullEvent, ['model' => 'Event', 'id' => $id], $error)) {
-                return $error;
-            }
+        $currentUserId = Configure::read('CurrentUserId');
+        $tmpUser = $this->User->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'User.id' => $currentUserId,
+            ],
+            'contain' => ['Organisation', 'Role'],
+        ]);
+        $userForWorkflow = array_merge($tmpUser['User'], [
+            'Role' => $tmpUser['Role'],
+            'Organisation' => $tmpUser['Organisation'],
+        ]);
+        $fullEvent = $this->fetchEvent($userForWorkflow, [
+            'eventid' => $id,
+            'includeAttachments' => 1
+        ]);
+        $errors = [];
+        $success = $this->executeTrigger('publish', $fullEvent, $errors);
+        if (empty($success)) {
+            $errorMessage = implode(', ', $errors);
+            $this->loadLog()->createLogEntry('SYSTEM', 'warning', 'Event', $id, __('Publishing stopped by a blocking workflow.'), __('Returned message: %s', $errorMessage));
+            return $errorMessage;
         }
         if ($jobId) {
             $this->Behaviors->unload('SysLogLogable.SysLogLogable');
@@ -4519,14 +4541,14 @@ class Event extends AppModel
         }
         $kafkaTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
         if (Configure::read('Plugin.ZeroMQ_enable')) {
-            $this->publishEventToZmq($id, $user, $fullEvent);
+            $this->publishEventToZmq($id, $userForPubSub, $fullEvent);
         }
         if (
             Configure::read('Plugin.Kafka_enable') &&
             Configure::read('Plugin.Kafka_event_publish_notifications_enable') &&
             !empty($kafkaTopic)
         ) {
-            $this->publishEventToKafka($id, $user, $fullEvent, $kafkaTopic);
+            $this->publishEventToKafka($id, $userForPubSub, $fullEvent, $kafkaTopic);
         }
         return $this->uploadEventToServersRouter($id, $passAlong);
     }
