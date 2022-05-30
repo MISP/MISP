@@ -31,9 +31,9 @@ class Module_push_zmq extends WorkflowBaseModule
         ];
     }
 
-    public function exec(array $node, WorkflowRoamingData $roamingData): bool
+    public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
-        parent::exec($node, $roamingData);
+        parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
         // $this->push_zmq([
         //     'Module_push_zmq has passed option' => $params['Content']['value']

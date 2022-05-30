@@ -36,9 +36,9 @@ class Module_if extends WorkflowBaseModule
         ];
     }
 
-    public function exec(array $node, WorkflowRoamingData $roamingData): bool
+    public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
-        parent::exec($node, $roamingData);
+        parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
         $ifScope = $params['Scope']['value'];
         $ifFilter = json_decode($params['Matching Conditions']['value'], true);

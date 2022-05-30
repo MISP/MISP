@@ -23,4 +23,11 @@ class Module_add_tag extends WorkflowBaseModule
             ],
         ];
     }
+
+    public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
+    {
+        parent::exec($node, $roamingData, $errors);
+        $errors[] = __('Could not add tag!');
+        return false;
+    }
 }

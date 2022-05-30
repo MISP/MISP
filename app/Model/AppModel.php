@@ -3333,4 +3333,26 @@ class AppModel extends Model
         return $dataSourceName === 'Database/Mysql' || $dataSourceName === 'Database/MysqlObserver' || $dataSource instanceof Mysql;
 
     }
+
+    /**
+     * executeTrigger
+     *
+     * @param string $trigger_id
+     * @param array $data Data to be passed to the workflow
+     * @param array $errors
+     * @return boolean If the execution for the blocking path was a success
+     */
+    public function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[]): bool
+    {
+        if ($this->Workflow === null) {
+            $this->Workflow = ClassRegistry::init('Workflow');
+        }
+        if (
+            $this->Workflow->checkTriggerEnabled($trigger_id) &&
+            $this->Workflow->checkTriggerListenedTo($trigger_id)
+        ) {
+           return $this->Workflow->executeWorkflowsForTrigger($trigger_id, $data, $blockingErrors);
+        }
+        return true;
+    }
 }

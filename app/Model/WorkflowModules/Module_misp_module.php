@@ -19,7 +19,7 @@ class Module_misp_module extends WorkflowBaseModule
     public function __construct($misp_module_config)
     {
         parent::__construct();
-        $this->id = Inflector::tableize($misp_module_config['name']);
+        $this->id = Inflector::underscore($misp_module_config['name']);
         $this->name = $misp_module_config['name'];
         $this->description = $misp_module_config['meta']['description'];
         if (!empty($misp_module_config['meta']['icon'])) {
@@ -38,7 +38,7 @@ class Module_misp_module extends WorkflowBaseModule
         $this->Module = ClassRegistry::init('Module');
     }
 
-    public function exec(array $node, WorkflowRoamingData $roamingData): bool
+    public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         parent::exec($node, $roamingData);
         $postData = ['module' => $this->name];

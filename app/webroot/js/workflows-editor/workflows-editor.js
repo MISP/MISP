@@ -158,7 +158,7 @@ function initDrawflow() {
         var centroidY = sumY / nodes.length
         centroidX -= offset_block_x / 2
         centroidY += offset_block_y / 2
-        var calc_zoom = Math.min(editor_bcr.width / maxX, editor_bcr.height / maxY) // Zoom out if needed
+        var calc_zoom = Math.min(Math.min(editor_bcr.width / maxX, editor_bcr.height / maxY), 1) // Zoom out if needed
         editor.translate_to(
             offset_x - centroidX + offset_block_x / 2 - 100, // Harcoded offset as it's more pleasant if it's slightly positioned top-left
             offset_y - centroidY + offset_block_y / 2 - 200  // Harcoded offset as it's more pleasant if it's slightly positioned top-left

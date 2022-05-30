@@ -21,11 +21,11 @@ foreach ($modules as $moduleType => $module) {
             </div>
             <div class="" style="margin-top: 0.5em;">
                 <div class="btn-group" style="margin-left: 3px;">
-                    <a class="btn btn-primary" href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('New') ?></a>
+                    <a class="btn btn-primary" href="<?= $baseurl . '/workflows/add' ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('New') ?></a>
                     <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#"><span class="caret"></span></a>
                     <ul class="dropdown-menu">
-                        <li><a id="exportWorkflow" href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-export') ?>"></i> <?= __('Export workflow') ?></a></li>
-                        <li><a id="importWorkflow" href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow') ?></a></li>
+                        <li><a id="importWorkflow" href="<?= $baseurl . '/workflows/import/' ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow') ?></a></li>
+                        <li><a id="exportWorkflow" href="<?= $baseurl . '/workflows/export/' . h($selectedWorkflow['Workflow']['id']) ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-export') ?>"></i> <?= __('Export workflow') ?></a></li>
                     </ul>
                 </div>
                 <button id="saveWorkflow" class="btn btn-primary" href="#">

@@ -32,9 +32,10 @@
             'element' => 'custom',
             'function' => function ($row) use ($baseurl) {
                 return implode('<br />', array_map(function($trigger) use ($baseurl) {
-                        return sprintf('<a href="%s/workflows/triggerView/%s"><i class="fa-fw %s"></i> %s</a>',
+                        return sprintf('<a href="%s/workflows/triggerView/%s" %s><i class="fa-fw %s"></i> %s</a>',
                             $baseurl,
                             h($trigger['id']),
+                            !empty($trigger['disabled']) ? sprintf('class="%s" style="%s" title="%s"', 'muted', 'text-decoration: line-through;', __('Trigger disabled')) : '',
                             $this->FontAwesome->getClass($trigger['icon']),
                             h($trigger['id'])
                         );
@@ -128,17 +129,18 @@
                     [
                         'url' => $baseurl . '/workflows/view',
                         'url_params_data_paths' => ['Workflow.id'],
-                        'icon' => 'eye'
+                        'icon' => 'eye',
                     ],
                     [
                         'url' => $baseurl . '/workflows/editor',
                         'url_params_data_paths' => ['Workflow.id'],
-                        'icon' => 'code'
+                        'icon' => 'code',
+                        'dbclickAction' => true,
                     ],
                     [
                         'url' => $baseurl . '/workflows/edit',
                         'url_params_data_paths' => ['Workflow.id'],
-                        'icon' => 'edit'
+                        'icon' => 'edit',
                     ],
                     [
                         'url' => $baseurl . '/workflows/export',

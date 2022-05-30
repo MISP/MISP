@@ -92,7 +92,8 @@
                     [
                         'url' => $baseurl . '/workflows/triggerView',
                         'url_params_data_paths' => ['id'],
-                        'icon' => 'eye'
+                        'icon' => 'eye',
+                        'dbclickAction' => true,
                     ],
                 ]
             ]

@@ -52,7 +52,7 @@ class WorkflowBaseModule
         return $properties;
     }
 
-    public function exec(array $node, WorkflowRoamingData $roamingData): bool
+    public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         $this->push_zmq([
             'module' => $this->name,

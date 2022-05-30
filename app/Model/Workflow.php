@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('WorkflowGraphTool', 'Tools');
 
 class WorkflowDuplicatedModuleIDException extends Exception {}
+class TriggerNotFoundException extends Exception {}
 
 class Workflow extends AppModel
 {
@@ -58,8 +59,10 @@ class Workflow extends AppModel
         // 'User'
     ];
 
-    public $loaded_modules = [];
-    public $loaded_classes = [];
+    private $loaded_modules = [];
+    private $loaded_classes = [];
+
+    private $module_initialized = false;
 
     const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'data'];
 
@@ -73,7 +76,6 @@ class Workflow extends AppModel
     {
         parent::__construct($id, $table, $ds);
         $this->workflowGraphTool = new WorkflowGraphTool();
-        $this->loadAllWorkflowModules(); // TODO Clever loading to avoid doing this task at every trigger check
     }
 
     public function beforeValidate($options = array())
@@ -130,6 +132,19 @@ class Workflow extends AppModel
         // $this->data is empty?!
         parent::afterDelete();
         $this->updateListeningTriggers($this->workflowToDelete);
+    }
+
+    protected function checkTriggerEnabled($trigger_id)
+    {
+        $filename = sprintf('Module_%s.php', preg_replace('/[^a-zA-Z0-9_]/', '_', Inflector::underscore($trigger_id)));
+        $module_config = $this->__getClassFromModuleFiles('trigger', [$filename])['classConfigs'];
+        // FIXME: Merge global configuration!
+        return empty($module_config['disabled']);
+    }
+
+    protected function checkTriggerListenedTo($trigger_id)
+    {
+        return !empty($this->__getWorkflowsIDPerTrigger($trigger_id));
     }
 
     public function rebuildRedis($user)
@@ -441,25 +456,43 @@ class Workflow extends AppModel
         return true;
     }
 
-    public function executeWorkflowsForTrigger($trigger_id, array $data)
+    /**
+     * executeWorkflowsForTrigger
+     *
+     * @param string $trigger_id
+     * @param array $data
+     * @param array $errors
+     * @return boolean True if the execution for the blocking path was a success
+     * @throws TriggerNotFoundException
+     */
+    public function executeWorkflowsForTrigger($trigger_id, array $data, array &$blockingErrors=[]): bool
     {
+        $this->loadAllWorkflowModules();
+
         $user = ['Role' => ['perm_site_admin' => true]];
         if (empty($this->loaded_modules['trigger'][$trigger_id])) {
-            return false;
+            throw new TriggerNotFoundException(__('Unknown trigger `%s`', $trigger_id));
         }
         $trigger = $this->loaded_modules['trigger'][$trigger_id];
+        if (!empty($trigger['disabled'])) {
+            return true;
+        }
+        
+        $blockingPathExecutionSuccess = true;
         $workflowExecutionOrder = $this->getExecutionOrderForTrigger($user, $trigger, true);
         $orderedBlockingWorkflows = $workflowExecutionOrder['blocking'];
         $orderedDeferredWorkflows = $workflowExecutionOrder['non-blocking'];
         foreach ($orderedBlockingWorkflows as $workflow) {
-            $continueExecution = $this->walkGraph($workflow, $trigger_id, 'blocking', $data);
+            $continueExecution = $this->walkGraph($workflow, $trigger_id, 'blocking', $data, $blockingErrors);
             if (!$continueExecution) {
+                $blockingPathExecutionSuccess = false;
                 break;
             }
         }
         foreach ($orderedDeferredWorkflows as $workflow) {
             $this->walkGraph($workflow, $trigger_id, 'non-blocking');
         }
+        return $blockingPathExecutionSuccess;
     }
 
     public function executeWorkflow($id, array $data=[])
@@ -479,9 +512,11 @@ class Workflow extends AppModel
      * @param array $workflow The worflow to walk
      * @param string $trigger_id The ID of the trigger to start from
      * @param bool|null $for_path If provided, execute the workflow for the provided path. If not provided, execute the worflow regardless of the path
+     * @param array $data
+     * @param array $errors
      * @return boolean If all module returned a successful response
      */
-    private function walkGraph(array $workflow, $trigger_id, $for_path=null, $data=[]): bool
+    private function walkGraph(array $workflow, $trigger_id, $for_path=null, array $data=[], array &$errors=[]): bool
     {
         $workflowUser = $this->User->getAuthUser($workflow['Workflow']['user_id'], true);
         $roamingData = $this->workflowGraphTool->getRoamingData($workflowUser, $data);
@@ -494,7 +529,7 @@ class Workflow extends AppModel
         foreach ($graphWalker as $graphNode) {
             $node = $graphNode['node'];
             $path_type = $graphNode['path_type'];
-            $success = $this->__executeNode($node, $roamingData);
+            $success = $this->__executeNode($node, $roamingData, $errors);
             if (empty($success) && $path_type == 'blocking') {
                 return false; // Node stopped execution for blocking path
             }
@@ -503,12 +538,12 @@ class Workflow extends AppModel
         return true;
     }
 
-    public function __executeNode($node, WorkflowRoamingData $roamingData): bool
+    public function __executeNode($node, WorkflowRoamingData $roamingData, array &$errors): bool
     {
         $moduleClass = $this->getModuleClass($node);
         if (!is_null($moduleClass)) {
             try {
-                $success = $moduleClass->exec($node, $roamingData);
+                $success = $moduleClass->exec($node, $roamingData, $errors);
             } catch (Exception $e) {
                 $message = sprintf(__('Error while executing module: %s'), $e->getMessage());
                 $this->__logError($node['data']['id'], $message);
@@ -520,6 +555,7 @@ class Workflow extends AppModel
 
     public function getModuleClass($node)
     {
+        $this->loadAllWorkflowModules();
         $moduleClass = $this->loaded_classes[$node['data']['module_type']][$node['data']['id']] ?? null;
         return $moduleClass;
     }
@@ -558,7 +594,10 @@ class Workflow extends AppModel
 
     public function loadAllWorkflowModules()
     {
-        $phpModuleFiles = $this->__listPHPModuleFiles();
+        if ($this->module_initialized) {
+            return;
+        }
+        $phpModuleFiles = Workflow::__listPHPModuleFiles();
         foreach ($phpModuleFiles as $type => $files) {
             $classModuleFromFiles = $this->__getClassFromModuleFiles($type, $files);
             foreach ($classModuleFromFiles['classConfigs'] as $i => $config) {
@@ -577,6 +616,28 @@ class Workflow extends AppModel
         }
         $this->loaded_modules['action'] = array_merge($this->loaded_modules['action'], $misp_module_configs);
         $this->loaded_classes['action'] = array_merge($this->loaded_classes['action'], $misp_module_class);
+        $this->__mergeGlobalConfigIntoLoadedModules();
+        $this->module_initialized = true;
+    }
+
+    private function __mergeGlobalConfigIntoLoadedModules()
+    {
+        /* FIXME: Delete `disabled` entry. This is for testing while we wait for module settings */
+        array_walk($this->loaded_modules['trigger'], function (&$trigger) {
+            $module_enabled = !in_array($trigger['id'], ['publish', 'new-attribute']);
+            $trigger['html_template'] = !empty($trigger['html_template']) ? $trigger['html_template'] : 'trigger';
+            $trigger['disabled'] = $module_enabled;
+            $this->loaded_classes['trigger'][$trigger['id']]->disabled = $module_enabled;
+            $this->loaded_classes['trigger'][$trigger['id']]->html_template = !empty($trigger['html_template']) ? $trigger['html_template'] : 'trigger';
+        });
+        array_walk($this->loaded_modules['logic'], function (&$logic) {
+        });
+        array_walk($this->loaded_modules['action'], function (&$action) {
+            $module_enabled = !in_array($action['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', 'writeactions',]);
+            $action['disabled'] = $module_enabled;
+            $this->loaded_classes['action'][$action['id']]->disabled = $module_enabled;
+        });
+        /* FIXME: end */
     }
 
     private function __getEnabledModulesFromModuleService($user)
@@ -623,9 +684,18 @@ class Workflow extends AppModel
         return $moduleClasses;
     }
 
-    private function __listPHPModuleFiles()
+    /**
+     * __listPHPModuleFiles List all PHP modules files
+     *
+     * @param boolean|array $targetDir If provided, will only collect files from that directory
+     * @return array
+     */
+    private static function __listPHPModuleFiles($targetDir=false): array
     {
         $dirs = ['trigger', 'logic', 'action'];
+        if (!empty($targetDir)) {
+            $dirs = $targetDir;
+        }
         $files = [];
         foreach ($dirs as $dir) {
             $folder = new Folder(Workflow::MODULE_ROOT_PATH . $dir);
@@ -704,17 +774,12 @@ class Workflow extends AppModel
 
     public function getModulesByType($module_type=false): array
     {
+        $this->loadAllWorkflowModules();
+
         $blocks_trigger = $this->loaded_modules['trigger'];
         $blocks_logic = $this->loaded_modules['logic'];
         $blocks_action = $this->loaded_modules['action'];
 
-        array_walk($blocks_trigger, function(&$block) {
-            $block['html_template'] = !empty($block['html_template']) ? $block['html_template'] : 'trigger';
-            $block['disabled'] = !in_array($block['id'], ['publish', 'new-attribute', ]);
-        });
-        array_walk($blocks_action, function(&$block) {
-            $block['disabled'] = !in_array($block['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', 'writeactions', ]);
-        });
         ksort($blocks_trigger);
         ksort($blocks_logic);
         ksort($blocks_action);
