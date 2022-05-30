@@ -33,20 +33,20 @@ class WorkflowsController extends AppController
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'index'));
     }
 
-    public function test($id)
-    {
-        // $this->Workflow->rebuildRedis($this->Auth->user());
-        // return $this->RestResponse->viewData($ret);
-        $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
-        // $ret = $this->Workflow->walkGraph($workflow);
-        // $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
-        // $ret = $this->Workflow->getModulesByType();
+    // public function test($id)
+    // {
+    //     // $this->Workflow->rebuildRedis($this->Auth->user());
+    //     // return $this->RestResponse->viewData($ret);
+    //     $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+    //     // $ret = $this->Workflow->walkGraph($workflow);
+    //     // $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+    //     // $ret = $this->Workflow->getModulesByType();
 
-        // $ret = $this->Workflow->executeWorkflowsForTrigger('publish');
-        $ret = $this->Workflow->executeWorkflow($id);
-        $this->set('error', '');
-        return $this->render('error');
-    }
+    //     // $ret = $this->Workflow->executeWorkflowsForTrigger('publish', ['foo' => 'bar']);
+    //     // $ret = $this->Workflow->executeWorkflow($id);
+    //     $this->set('error', '');
+    //     return $this->render('error');
+    // }
 
     public function rebuildRedis()
     {
@@ -132,8 +132,6 @@ class WorkflowsController extends AppController
         }
         $this->set('id', $id);
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'view'));
-        // $execution_path = $this->Workflow->getExecutionPath($this->Auth->user(), $id);
-        // $this->set('execution_path', $execution_path);
     }
 
     public function enable($id)
