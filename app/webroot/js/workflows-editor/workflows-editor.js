@@ -725,9 +725,13 @@ function genSelect(options) {
         $select.append($option)
     })
     if (options.value !== undefined) {
-        $select.attr('value', options.value)
+        $select.find('option').filter(function() {
+            return this.value == options.value
+        }).attr('selected', 'selected')
     } else {
-        $select.attr('value', options.default)
+        $select.find('option').filter(function() {
+            return this.value == options.default
+        }).attr('selected', 'selected')
     }
     $select
         .attr('data-paramid', options.param_id)
