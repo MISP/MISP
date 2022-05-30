@@ -630,12 +630,14 @@ class Workflow extends AppModel
             $folder = new Folder(Workflow::MODULE_ROOT_PATH . $dir);
             $filesInFolder = $folder->find('.*\.php', true);
             $files[$dir] = array_diff($filesInFolder, ['..', '.']);
-            $customFolder = new Folder(Workflow::MODULE_ROOT_PATH . $dir . '/Custom');
-            $filesInCustomFolder = $customFolder->find('.*\.php', true);
-            $filesInCustomFolder = array_map(function($file) {
-                return 'Custom/' . $file;
-            }, $filesInCustomFolder);
-            $files[$dir] = array_merge($filesInFolder, array_diff($filesInCustomFolder, ['..', '.']));
+            if ($dir != 'trigger') { // No custom module for the triggers
+                $customFolder = new Folder(Workflow::MODULE_ROOT_PATH . $dir . '/Custom');
+                $filesInCustomFolder = $customFolder->find('.*\.php', true);
+                $filesInCustomFolder = array_map(function($file) {
+                    return 'Custom/' . $file;
+                }, $filesInCustomFolder);
+                $files[$dir] = array_merge($filesInFolder, array_diff($filesInCustomFolder, ['..', '.']));
+            }
         }
         return $files;
     }
