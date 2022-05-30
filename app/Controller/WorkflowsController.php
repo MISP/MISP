@@ -46,7 +46,11 @@ class WorkflowsController extends AppController
         $ret = $this->Workflow->executeWorkflow($id);
         $this->set('error', '');
         return $this->render('error');
-        
+    }
+
+    public function rebuildRedis()
+    {
+        $this->Workflow->rebuildRedis($this->Auth->user());
     }
 
     public function add()
@@ -110,7 +114,6 @@ class WorkflowsController extends AppController
     {
         $params = [
             'conditions' => $this->Workflow->buildACLConditions($this->Auth->user()),
-            'redirect' => ['action' => 'index']
         ];
         $this->CRUD->delete($id, $params);
         if ($this->IndexFilter->isRest()) {

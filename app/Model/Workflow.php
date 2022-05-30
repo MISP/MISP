@@ -114,6 +114,24 @@ class Workflow extends AppModel
         $this->updateListeningTriggers($this->data);
     }
 
+    public function beforeDelete($cascade = true)
+    {
+        parent::beforeDelete($cascade);
+        $workflow = $this->find('first', [ // $this->data is empty in afterDelete?!
+            'recursive' => -1,
+            'conditions' => ['Workflow.id' => $this->id]
+        ]);
+        $workflow['Workflow']['data'] = []; // Make sure not trigger are listening
+        $this->workflowToDelete = $workflow;
+    }
+
+    public function afterDelete()
+    {
+        // $this->data is empty?!
+        parent::afterDelete();
+        $this->updateListeningTriggers($this->workflowToDelete);
+    }
+
     public function rebuildRedis($user)
     {
         $redis = $this->setupRedisWithException();
@@ -150,27 +168,31 @@ class Workflow extends AppModel
         $new_trigger_list_id = array_keys($new_node_trigger_list_per_id);
         $trigger_to_remove = array_diff($original_trigger_list_id, $new_trigger_list_id);
         $trigger_to_add = array_diff($new_trigger_list_id, $original_trigger_list_id);
-        $pipeline = $redis->multi();
-        foreach ($trigger_to_remove as $trigger_id) {
-            $pipeline->sRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
-            $pipeline->sRem(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
-            $pipeline->lRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), $workflow['Workflow']['id'], 0);
+        if (!empty($trigger_to_remove)) {
+            $pipeline = $redis->multi();
+            foreach ($trigger_to_remove as $trigger_id) {
+                $pipeline->sRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
+                $pipeline->sRem(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
+                $pipeline->lRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), $workflow['Workflow']['id'], 0);
+            }
+            $pipeline->exec();
         }
-        $pipeline->exec();
-        $pipeline = $redis->multi();
-        foreach ($trigger_to_add as $trigger_id) {
-            if (
-                $this->workflowGraphTool->triggerHasNonBlockingPath($new_node_trigger_list_per_id[$trigger_id])
-                || $this->workflowGraphTool->triggerHasBlockingPath($new_node_trigger_list_per_id[$trigger_id])
-            ) {
-                $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
-                $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
-                if ($this->workflowGraphTool->triggerHasBlockingPath($new_node_trigger_list_per_id[$trigger_id])) {
-                    $pipeline->rPush(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
+        if (!empty($trigger_to_add)) {
+            $pipeline = $redis->multi();
+            foreach ($trigger_to_add as $trigger_id) {
+                if (
+                    $this->workflowGraphTool->triggerHasNonBlockingPath($new_node_trigger_list_per_id[$trigger_id])
+                    || $this->workflowGraphTool->triggerHasBlockingPath($new_node_trigger_list_per_id[$trigger_id])
+                ) {
+                    $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
+                    $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
+                    if ($this->workflowGraphTool->triggerHasBlockingPath($new_node_trigger_list_per_id[$trigger_id])) {
+                        $pipeline->rPush(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
+                    }
                 }
             }
+            $pipeline->exec();
         }
-        $pipeline->exec();
     }
 
     /**
