@@ -430,6 +430,7 @@ class StixParser():
                 misp_object.uuid = object_uuid
                 for attribute in object_attributes:
                     misp_object.add_attribute(**attribute)
+                self.misp_event.add_object(**misp_object)
                 references.append(object_uuid)
             return "process", self.return_attributes(attributes), {"process_uuid": references}
         return "process", self.return_attributes(attributes), ""
