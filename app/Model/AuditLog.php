@@ -360,8 +360,7 @@ class AuditLog extends AppModel
             $conditions['org_id'] = $org['id'];
         }
 
-        $dataSource = ConnectionManager::getDataSource('default')->config['datasource'];
-        if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $validDates = $this->find('all', [
                 'recursive' => -1,
                 'fields' => ['DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'],
@@ -370,7 +369,7 @@ class AuditLog extends AppModel
                 'order' => ['Date'],
                 'callbacks' => false,
             ]);
-        } elseif ($dataSource === 'Database/Postgres') {
+        } else {
             if (!empty($conditions['org_id'])) {
                 $condOrg = sprintf('WHERE org_id = %s', intval($conditions['org_id']));
             } else {

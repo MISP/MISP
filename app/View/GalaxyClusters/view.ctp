@@ -119,13 +119,14 @@ if (!empty($extendedByHtml)) {
     ?>
     <div id="elements_content"></div>
 </div>
-<?= $this->element('genericElements/assetLoader', array(
-    'js' => array(
+<?= $this->element('genericElements/assetLoader', [
+    'js' => [
         'markdown-it',
-    ),
-));
+        'jquery-ui.min',
+    ],
+]);
 ?>
-<script type="text/javascript">
+<script>
 $(function () {
     $.get("<?= $baseurl ?>/galaxy_elements/index/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
         $("#elements_content").html(data);

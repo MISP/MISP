@@ -678,7 +678,7 @@ function getRuleStatus(context, rulername, rulename) {
 }
 
 function isInsideModal() {
-    return $(cm.getWrapperElement()).closest('.modal').length > 0
+    return $(".markdownEditor-full-container").closest('.modal').length > 0
 }
 
 // Inject line numbers for sync scroll. Notes:

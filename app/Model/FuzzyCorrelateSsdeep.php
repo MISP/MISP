@@ -7,15 +7,13 @@ class FuzzyCorrelateSsdeep extends AppModel
 
     public $recursive = -1;
 
-    public $actsAs = array('Containable');
-
     public function ssdeep_prepare($hash)
     {
         list($block_size, $hash) = explode(':', $hash, 2);
         
         $chars = array();
         for ($i = 0; $i < strlen($hash); $i++) {
-            if (!in_array($hash[$i], $chars)) {
+            if (!in_array($hash[$i], $chars, true)) {
                 $chars[] = $hash[$i];
             }
         }
@@ -58,7 +56,7 @@ class FuzzyCorrelateSsdeep extends AppModel
         return $results;
     }
 
-    public function query_ssdeep_chunks($hash, $attribute_id)
+    public function query_ssdeep_chunks($hash, $attributeId)
     {
         $chunks = $this->ssdeep_prepare($hash);
         
@@ -73,13 +71,17 @@ class FuzzyCorrelateSsdeep extends AppModel
             'unique' => true,
         ));
         
-        $to_save = array();
+        $toSave = [];
+        $attributeId = (int) $attributeId;
         foreach (array(1, 2) as $type) {
             foreach ($chunks[$type] as $chunk) {
-                $to_save[] = array('attribute_id' => $attribute_id, 'chunk' => $chunk);
+                $toSave[] = [$attributeId, $chunk];
             }
         }
-        $this->saveMany($to_save);
+        if (!empty($toSave)) {
+            $db = $this->getDataSource();
+            $db->insertMulti($this->table, ['attribute_id', 'chunk'], $toSave);
+        }
         return $result;
     }
 
@@ -99,10 +101,13 @@ class FuzzyCorrelateSsdeep extends AppModel
                     'Attribute.event_id' => $eventId,
                     'Attribute.type' => 'ssdeep',
                 ),
-                'fields' => 'Attribute.id',
+                'fields' => ['Attribute.id'],
             ));
+            if (empty($attributeId)) {
+                return true;
+            }
         }
 
-        return $this->deleteAll(array('FuzzyCorrelateSsdeep.attribute_id' => $attributeId));
+        return $this->deleteAll(array('FuzzyCorrelateSsdeep.attribute_id' => $attributeId), false);
     }
 }

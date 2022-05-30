@@ -232,7 +232,6 @@ class ACLComponent extends Component
                     'getEventGraphTags' => array('*'),
                     'getEventGraphGeneric' => array('*'),
                     'getEventTimeline' => array('*'),
-                    'genDistributionGraph' => array('*'),
                     'getDistributionGraph' => array('*'),
                     'getReferenceData' => array('*'),
                     'getReferences' => array('*'),
@@ -340,7 +339,6 @@ class ACLComponent extends Component
             ),
             'galaxyClusters' => array(
                 'add' => array('perm_galaxy_editor'),
-                'attachToEvent' => array('perm_tagger'),
                 'delete' => array('perm_galaxy_editor'),
                 'detach' => array('perm_tagger'),
                 'edit' => array('perm_galaxy_editor'),

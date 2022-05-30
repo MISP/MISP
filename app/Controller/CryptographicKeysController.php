@@ -95,7 +95,7 @@ class CryptographicKeysController extends AppController
                 nl2br(h($key['CryptographicKey']['key_data']))
             )
         );
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('/genericTemplates/display');
     }
 }

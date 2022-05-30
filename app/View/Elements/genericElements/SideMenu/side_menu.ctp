@@ -359,16 +359,6 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/attributes/search',
                         'text' => __('Search Attributes')
                     ));
-                    if ($menuItem == 'searchAttributes2') {
-                        echo $divider;
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'onClick' => array(
-                                'function' => 'getPopup',
-                                'params' => array(0, 'attributes', 'exportSearch')
-                            ),
-                            'text' => __('Download as…')
-                        ));
-                    }
                     echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'viewProposals',
@@ -442,7 +432,8 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'edit',
                             'url' => '/eventReports/edit/' . h($id),
-                            'text' => __('Edit Event Report')
+                            'text' => __('Edit Event Report'),
+                            'requirement' => $canEdit,
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/admin/audit_logs/index/model:EventReport/model_id:' .  h($id),

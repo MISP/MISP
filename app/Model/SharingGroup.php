@@ -72,6 +72,8 @@ class SharingGroup extends AppModel
         'access' => array()
     );
 
+    private $authorizedIds = [];
+
     public function beforeValidate($options = array())
     {
         if (empty($this->data['SharingGroup']['uuid'])) {
@@ -121,7 +123,6 @@ class SharingGroup extends AppModel
      *  - sharing_group: specific scope that fetch just necessary information for generating distribution graph
      *  - name: array in ID => name format
      *  - uuid: array in ID => uuid format
-     *  - false: array with all sharing group IDs
      *
      * @param array $user
      * @param string|false $scope
@@ -131,29 +132,21 @@ class SharingGroup extends AppModel
      */
     public function fetchAllAuthorised(array $user, $scope = false, $active = false, $id = false)
     {
-        $conditions = array();
-        if ($id) {
-            $conditions['AND']['SharingGroup.id'] = $id;
-        }
-        if ($active !== false) {
-            $conditions['AND']['SharingGroup.active'] = $active;
+        $authorizedIds = $this->authorizedIds($user);
+        if ($authorizedIds === [-1]) { // hack
+            return [];
         }
 
-        if ($user['Role']['perm_site_admin']) {
-            $ids = $this->find('column', array(
-                'fields' => array('id'),
-                'conditions' => $conditions
-            ));
+        if ($id) {
+            if (!in_array($id, $authorizedIds)) {
+                return []; // user is not authorized to see that sharing group
+            }
+            $conditions['SharingGroup.id'] = $id;
         } else {
-            $ids = array_unique(array_merge(
-                $this->SharingGroupServer->fetchAllAuthorised(),
-                $this->SharingGroupOrg->fetchAllAuthorised($user['org_id'])
-            ));
+            $conditions = ['SharingGroup.id' => $authorizedIds];
         }
-        if (!empty($ids)) {
-            $conditions['AND'][] = array('SharingGroup.id' => $ids);
-        } else {
-            return array();
+        if ($active !== false) {
+            $conditions['SharingGroup.active'] = $active;
         }
         if ($scope === 'full') {
             $sgs = $this->find('all', array(
@@ -228,9 +221,8 @@ class SharingGroup extends AppModel
                 'conditions' => $conditions,
             ));
             return $sgs;
-        } else {
-            return $ids;
         }
+        throw new InvalidArgumentException("Invalid scope $scope");
     }
 
     /**
@@ -471,6 +463,38 @@ class SharingGroup extends AppModel
             $this->__sgAuthorisationCache['access'][$adminCheck][$uuid] = $authorized;
         }
         return $authorized;
+    }
+
+    /**
+     * Returns sharing groups IDs that the user is allowed to see it
+     * @param array $user
+     * @param bool $useCache
+     * @return int[]
+     */
+    public function authorizedIds(array $user, $useCache = true)
+    {
+        $cacheKey = "{$user['Role']['perm_site_admin']}-{$user['org_id']}";
+        if ($useCache && isset($this->authorizedIds[$cacheKey])) {
+            return $this->authorizedIds[$cacheKey];
+        }
+
+        if ($user['Role']['perm_site_admin']) {
+            $sgids = $this->find('column', [
+                'fields' => ['id'],
+            ]);
+        } else {
+            $sgids = array_unique(array_merge(
+                $this->SharingGroupServer->fetchAllAuthorised(),
+                $this->SharingGroupOrg->fetchAllAuthorised($user['org_id'])
+            ), SORT_REGULAR);
+        }
+        if (empty($sgids)) {
+            $sgids = [-1];
+        }
+        if ($useCache) {
+            $this->authorizedIds[$cacheKey] = $sgids;
+        }
+        return $sgids;
     }
 
     /**

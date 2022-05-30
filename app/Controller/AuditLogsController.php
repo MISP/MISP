@@ -99,7 +99,22 @@ class AuditLogsController extends AppController
             $this->paginate['fields'][] = 'request_id';
         }
 
-        $this->paginate['conditions'] = $this->__searchConditions();
+        $params = $this->IndexFilter->harvestParameters([
+            'ip',
+            'user',
+            'request_id',
+            'authkey_id',
+            'model',
+            'model_id',
+            'event_id',
+            'model_title',
+            'action',
+            'org',
+            'created',
+            'request_type',
+        ]);
+
+        $this->paginate['conditions'] = $this->__searchConditions($params);
         $list = $this->paginate();
 
         if ($this->_isRest()) {
@@ -133,32 +148,27 @@ class AuditLogsController extends AppController
 
     public function eventIndex($eventId, $org = null)
     {
-        $this->loadModel('Event');
-        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
+        $event = $this->AuditLog->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
         if (empty($event)) {
             throw new NotFoundException('Invalid event.');
         }
 
         $this->paginate['conditions'] = $this->__createEventIndexConditions($event);
 
+        $params = $this->IndexFilter->harvestParameters(['created', 'org']);
         if ($org) {
-            $org = $this->AuditLog->Organisation->fetchOrg($org);
-            if ($org) {
-                $this->paginate['conditions']['AND']['org_id'] = $org['id'];
-            } else {
-                $this->paginate['conditions']['AND']['org_id'] = -1;
-            }
+            $params['org'] = $org;
         }
+        $this->paginate['conditions'][] = $this->__searchConditions($params);
 
         $list = $this->paginate();
 
         if (!$this->_isSiteAdmin()) {
             // Remove all user info about users from different org
-            $this->loadModel('User');
-            $orgUserIds = $this->User->find('column', array(
+            $orgUserIds = $this->User->find('column', [
                 'conditions' => ['User.org_id' => $this->Auth->user('org_id')],
                 'fields' => ['User.id'],
-            ));
+            ]);
             foreach ($list as $k => $item) {
                 if ($item['AuditLog']['user_id'] == 0) {
                     continue;
@@ -199,14 +209,12 @@ class AuditLogsController extends AppController
 
     public function returnDates($org = 'all')
     {
-        if (!$this->Auth->user('Role')['perm_sharing_group'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
-            if ($org !== 'all' && $org !== $this->Auth->user('Organisation')['name']) {
+        $user = $this->_closeSession();
+        if (!$user['Role']['perm_sharing_group'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+            if ($org !== 'all' && $org !== $user['Organisation']['name']) {
                 throw new MethodNotAllowedException('Invalid organisation.');
             }
         }
-
-        // Fetching dates can be slow, so to allow concurrent requests, we can close sessions to release session lock
-        session_write_close();
 
         $data = $this->AuditLog->returnDates($org);
         return $this->RestResponse->viewData($data, $this->response->type());
@@ -215,23 +223,8 @@ class AuditLogsController extends AppController
     /**
      * @return array
      */
-    private function __searchConditions()
+    private function __searchConditions(array $params)
     {
-        $params = $this->IndexFilter->harvestParameters([
-            'ip',
-            'user',
-            'request_id',
-            'authkey_id',
-            'model',
-            'model_id',
-            'event_id',
-            'model_title',
-            'action',
-            'org',
-            'created',
-            'request_type',
-        ]);
-
         $qbRules = [];
         foreach ($params as $key => $value) {
             if ($key === 'model' && strpos($value, ':') !== false) {

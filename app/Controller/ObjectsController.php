@@ -600,7 +600,7 @@ class ObjectsController extends AppController
         }
         $this->set('value', $result);
         $this->set('field', $field);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/objectViewFieldForm');
     }
 
@@ -632,7 +632,7 @@ class ObjectsController extends AppController
         if (!$this->__canModifyEvent($object)) {
             throw new NotFoundException(__('Invalid object'));
         }
-        $this->layout = 'ajax';
+        $this->layout = false;
         if ($field == 'distribution') {
             $distributionLevels = $this->MispObject->shortDist;
             unset($distributionLevels[4]);
@@ -728,10 +728,9 @@ class ObjectsController extends AppController
             if (!isset($fieldName)) {
                 throw new MethodNotAllowedException('No field requested.');
             }
-            $fields = array('template_uuid', 'template_version', 'id', 'event_id');
             $params = array(
                 'conditions' => array('Object.id' => $id),
-                'fields' => $fields,
+                'fields' => array('template_uuid', 'template_version', 'id', 'event_id'),
                 'flatten' => 1,
                 'contain' => array(
                     'Event'
@@ -741,9 +740,8 @@ class ObjectsController extends AppController
             $object = $this->MispObject->fetchObjects($this->Auth->user(), $params);
             if (empty($object)) {
                 throw new NotFoundException(__('Invalid object'));
-            } else {
-                $object = $object[0];
             }
+            $object = $object[0];
             if (!$this->__canModifyEvent($object)) {
                 throw new ForbiddenException(__('You do not have permission to do that.'));
             }
@@ -768,25 +766,30 @@ class ObjectsController extends AppController
             }
 
             // check if fields can be added
-            foreach($object['Attribute'] as $i => $objAttr) {
+            foreach($object['Attribute'] as $objAttr) {
                 $objectAttrFromTemplate = $template['ObjectTemplateElement'][0];
                 if ($objAttr['object_relation'] == $fieldName && !$objectAttrFromTemplate['multiple']) {
                     throw new NotFoundException(__('Invalid field'));
                 }
             }
             $template = $this->MispObject->prepareTemplate($template, $object);
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->set('object', $object['Object']);
             $template_element = $template['ObjectTemplateElement'][0];
             unset($template_element['value']); // avoid filling if multiple
             $this->set('template_element', $template_element);
-            $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
+            $distributionData = $this->MispObject->Attribute->fetchDistributionData($this->Auth->user());
             $this->set('distributionData', $distributionData);
-            $info = array();
-            foreach ($distributionData['levels'] as $key => $value) {
-                $info['distribution'][$key] = array('key' => $value, 'desc' => $this->MispObject->Event->Attribute->distributionDescriptions[$key]['formdesc']);
+
+            $info = ['category' => [], 'distribution' => []];
+            foreach ($this->MispObject->Attribute->categoryDefinitions as $key => $value) {
+                $info['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
             }
-            $this->set('info', $info);
+            foreach ($this->MispObject->Attribute->distributionLevels as $key => $value) {
+                $info['distribution'][$key] = $this->MispObject->Attribute->distributionDescriptions[$key]['formdesc'];
+            }
+
+            $this->set('fieldDesc', $info);
             $this->render('ajax/quickAddAttributeForm');
         } else if ($this->request->is('post') || $this->request->is('put')) {
             return $this->edit($this->request->data['Object']['id'], false, true);

@@ -67,9 +67,7 @@ if (!empty($data['fields'])) {
 }
 $metaFieldString = '';
 if (!empty($data['metaFields'])) {
-    foreach ($data['metaFields'] as $metaField) {
-        $metaFieldString .= $metaField;
-    }
+    $metaFieldString = implode('', $data['metaFields']);
 }
 $submitButtonData = array('model' => $modelForForm);
 if (!empty($data['submit'])) {

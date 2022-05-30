@@ -10,6 +10,7 @@ require_once 'AppShell.php';
  * @property Job $Job
  * @property Tag $Tag
  * @property Server $Server
+ * @property Correlation $Correlation
  */
 class EventShell extends AppShell
 {
@@ -43,6 +44,9 @@ class EventShell extends AppShell
         ]);
         $parser->addSubcommand('duplicateTags', [
             'help' => __('Show duplicate tags'),
+        ]);
+        $parser->addSubcommand('generateTopCorrelations', [
+            'help' => __('Generate top correlations'),
         ]);
         $parser->addSubcommand('mergeTags', [
             'help' => __('Merge tags'),
@@ -644,17 +648,20 @@ class EventShell extends AppShell
 
     public function generateTopCorrelations()
     {
-        $this->ConfigLoad->execute();
-        $jobId = $this->args[0];
-        $job = $this->Job->read(null, $jobId);
-        $job['Job']['progress'] = 1;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $job['Job']['message'] = __('Generating top correlations list.');
-        $this->Job->save($job);
-        $result = $this->Correlation->generateTopCorrelations($jobId);
-        $job['Job']['progress'] = 100;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $job['Job']['message'] = __('Job done.');
-        $this->Job->save($job);
+        $jobId = $this->args[0] ?? null;
+        if ($jobId) {
+            $job = $this->Job->read(null, $jobId);
+            $job['Job']['progress'] = 1;
+            $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+            $job['Job']['message'] = __('Generating top correlations list.');
+            $this->Job->save($job);
+        }
+        $this->Correlation->generateTopCorrelations($jobId);
+        if ($jobId) {
+            $job['Job']['progress'] = 100;
+            $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+            $job['Job']['message'] = __('Job done.');
+            $this->Job->save($job);
+        }
     }
 }

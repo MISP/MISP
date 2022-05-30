@@ -193,6 +193,19 @@ class TmpFileTool
     }
 
     /**
+     * @param string $algo
+     * @return string
+     * @throws Exception
+     */
+    public function hash($algo)
+    {
+        $this->rewind();
+        $hash = hash_init($algo);
+        hash_update_stream($hash, $this->tmpfile);
+        return hash_final($hash);
+    }
+
+    /**
      * @return string
      * @throws Exception
      */

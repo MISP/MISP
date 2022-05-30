@@ -3,7 +3,7 @@
     "Feed": {
       "name": "CIRCL OSINT Feed",
       "provider": "CIRCL",
-      "url": "https://www.circl.lu/doc/misp/feed-osint/",
+      "url": "https://www.circl.lu/doc/misp/feed-osint",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "3",
@@ -981,7 +981,7 @@
       "delta_merge": false,
       "publish": false,
       "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"},\"disable_correlation\":\"1\"}",
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": true
@@ -1582,7 +1582,7 @@
       "delta_merge": false,
       "publish": false,
       "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"},\"disable_correlation\":\"1\"}",
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": false

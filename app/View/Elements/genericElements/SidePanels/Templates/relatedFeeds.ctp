@@ -56,11 +56,7 @@
         sprintf(
             '<a href="#attributeList" title="%s" onclick="%s">%s</a>',
             __('Show just attributes that have feed hits'),
-            sprintf(
-                "toggleBoolFilter('%s/events/view/%s', 'feed')",
-                $baseurl,
-                h($event['Event']['id'])
-            ),
+            "toggleBoolFilter('feed')",
             __('(show)')
         ),
         implode(PHP_EOL, $htmlElements)

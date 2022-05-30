@@ -1025,6 +1025,11 @@ class Feed extends AppModel
         if (!$this->__checkIfEventBlockedByFilter($event, $filterRules)) {
             return 'blocked';
         }
+        if (!empty($feed['Feed']['settings'])) {
+            if (!empty($feed['Feed']['settings']['disable_correlation'])) {
+                $event['Event']['disable_correlation'] = (bool) $feed['Feed']['settings']['disable_correlation'];
+            }
+        }
         return $event;
     }
 
@@ -1225,6 +1230,10 @@ class Feed extends AppModel
             if (!empty($feed['Feed']['orgc_id'])) {
                 $orgc_id = $feed['Feed']['orgc_id'];
             }
+            $disableCorrelation = false;
+            if (!empty($feed['Feed']['settings'])) {
+                $disableCorrelation = (bool) $feed['Feed']['settings']['disable_correlation'] ?? false;
+            }
             $event = array(
                 'info' => $feed['Feed']['name'] . ' feed',
                 'analysis' => 2,
@@ -1234,7 +1243,8 @@ class Feed extends AppModel
                 'date' => date('Y-m-d'),
                 'distribution' => $feed['Feed']['distribution'],
                 'sharing_group_id' => $feed['Feed']['sharing_group_id'],
-                'user_id' => $user['id']
+                'user_id' => $user['id'],
+                'disable_correlation' => $disableCorrelation,
             );
             $result = $this->Event->save($event);
             if (!$result) {
