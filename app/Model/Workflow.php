@@ -46,8 +46,8 @@ class Workflow extends AppModel
                 'rule' => ['hasAcyclicGraph'],
                 'message' => 'Cannot save a workflow containing a cycle',
             ],
-            'MoreThanOneInstanceOfTrigger' => [
-                'rule' => ['MoreThanOneInstanceOfTrigger'],
+            'MoreThanOneTriggerInstance' => [
+                'rule' => ['MoreThanOneTriggerInstance'],
                 'message' => 'Cannot save a workflow containing more than one instance of the same trigger',
             ]
         ]
@@ -400,12 +400,12 @@ class Workflow extends AppModel
     }
 
     /**
-     * MoreThanOneInstanceOfTrigger Return if the graph contain more than one instance of the same trigger
+     * MoreThanOneTriggerInstance Return if the graph contain more than one instance of the same trigger
      *
      * @param array $graphData
      * @return boolean
      */
-    public function MoreThanOneInstanceOfTrigger(array $workflow): bool
+    public function MoreThanOneTriggerInstance(array $workflow): bool
     {
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $triggers = $this->workflowGraphTool->extractTriggersFromWorkflow($graphData, true);
