@@ -9,7 +9,7 @@ class Module_push_zmq extends WorkflowBaseModule
     public $icon = 'wifi';
     public $icon_class = 'fas fa-rotate-90';
     public $inputs = 1;
-    public $outputs = 0;
+    public $outputs = 1;
     public $params = [];
 
     public function __construct()
@@ -20,13 +20,13 @@ class Module_push_zmq extends WorkflowBaseModule
                 'type' => 'input',
                 'label' => 'Namespace',
                 'default' => '',
-                'placeholder' => 'A namespace in the ZMQ topic'
+                'placeholder' => __('A namespace in the ZMQ topic')
             ],
             [
                 'type' => 'input',
                 'label' => 'Content',
                 'default' => '',
-                'placeholder' => 'Whatever text to be published'
+                'placeholder' => __('Whatever text to be published')
             ],
         ];
     }
@@ -35,10 +35,6 @@ class Module_push_zmq extends WorkflowBaseModule
     {
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
-        // $this->push_zmq([
-        //     'Module_push_zmq has passed option' => $params['Content']['value']
-        // ]);
-        debug($params);
         $this->push_zmq([
             'content' => $params['Content']['value'],
             'pass_along' => $roamingData->getData(),

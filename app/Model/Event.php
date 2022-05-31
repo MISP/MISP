@@ -4505,23 +4505,13 @@ class Event extends AppModel
             'Organisation' => $hostOrg['Org']
         ];
         $currentUserId = Configure::read('CurrentUserId');
-        $tmpUser = $this->User->find('first', [
-            'recursive' => -1,
-            'conditions' => [
-                'User.id' => $currentUserId,
-            ],
-            'contain' => ['Organisation', 'Role'],
-        ]);
-        $userForWorkflow = array_merge($tmpUser['User'], [
-            'Role' => $tmpUser['Role'],
-            'Organisation' => $tmpUser['Organisation'],
-        ]);
+        $userForWorkflow = $this->User->getAuthUser($currentUserId, true);
         $fullEvent = $this->fetchEvent($userForWorkflow, [
             'eventid' => $id,
             'includeAttachments' => 1
         ]);
         $errors = [];
-        $success = $this->executeTrigger('publish', $fullEvent, $errors);
+        $success = $this->executeTrigger('publish', $fullEvent[0], $errors);
         if (empty($success)) {
             $errorMessage = implode(', ', $errors);
             $this->loadLog()->createLogEntry('SYSTEM', 'warning', 'Event', $id, __('Publishing stopped by a blocking workflow.'), __('Returned message: %s', $errorMessage));

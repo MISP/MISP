@@ -8,7 +8,7 @@ class Module_mattermost_message extends WorkflowBaseModule
     public $description = 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.';
     public $icon = 'comment-dots';
     public $inputs = 1;
-    public $outputs = 0;
+    public $outputs = 1;
     public $params = [];
 
 

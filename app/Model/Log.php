@@ -39,11 +39,13 @@ class Log extends AppModel
                     'enrichment',
                     'error',
                     'execute_blueprint',
+                    'exec_module',
                     'export',
                     'fetchEvent',
                     'file_upload',
                     'galaxy',
                     'include_formula',
+                    'load_module',
                     'login',
                     'login_fail',
                     'logout',
@@ -75,6 +77,7 @@ class Log extends AppModel
                     'validateSig',
                     'version_warning',
                     'warning',
+                    'walkGraph',
                     'wipe_default'
                 )
             ),

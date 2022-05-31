@@ -9,7 +9,7 @@ class Module_slack_message extends WorkflowBaseModule
     public $icon = 'tag';
     public $icon_class = 'fab';
     public $inputs = 1;
-    public $outputs = 0;
+    public $outputs = 1;
     public $params = [];
 
 

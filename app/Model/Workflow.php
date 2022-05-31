@@ -369,7 +369,7 @@ class Workflow extends AppModel
         $workflows = $this->fetchWorkflows($user, [
             'conditions' => $conditions,
             'fields' => ['*'],
-            'contain' => ['Organisation' => ['fields' => ['*']]],
+            'contain' => ['Organisation' => ['fields' => ['*']], 'User' => ['Role']],
         ]);
         return $workflows;
     }
@@ -483,28 +483,32 @@ class Workflow extends AppModel
         $orderedBlockingWorkflows = $workflowExecutionOrder['blocking'];
         $orderedDeferredWorkflows = $workflowExecutionOrder['non-blocking'];
         foreach ($orderedBlockingWorkflows as $workflow) {
-            $continueExecution = $this->walkGraph($workflow, $trigger_id, 'blocking', $data, $blockingErrors);
+            $walkResult = [];
+            $continueExecution = $this->walkGraph($workflow, $trigger_id, 'blocking', $data, $blockingErrors, $walkResult);
+            $this->loadLog()->createLogEntry($this->User->getAuthUser($workflow['User']['id']), 'walkGraph', 'Workflow', $workflow['Workflow']['id'], __('Executed blocking path for trigger `%s`', $trigger_id), $this->digestExecutionResult($walkResult));
             if (!$continueExecution) {
                 $blockingPathExecutionSuccess = false;
                 break;
             }
         }
         foreach ($orderedDeferredWorkflows as $workflow) {
-            $this->walkGraph($workflow, $trigger_id, 'non-blocking');
+            $deferredErrors = [];
+            $walkResult = [];
+            $this->walkGraph($workflow, $trigger_id, 'non-blocking',  $data, $deferredErrors, $walkResult);
+            $this->loadLog()->createLogEntry($this->User->getAuthUser($workflow['User']['id']), 'walkGraph', 'Workflow', $workflow['Workflow']['id'], __('Executed non-blocking path for trigger `%s`', $trigger_id), $this->digestExecutionResult($walkResult));
         }
         return $blockingPathExecutionSuccess;
     }
 
-    public function executeWorkflow($id, array $data=[])
-    {
-        $user = ['Role' => ['perm_site_admin' => true]];
-        $workflow = $this->fetchWorkflow($user, $id);
-        $trigger_ids = $this->workflowGraphTool->extractTriggersFromWorkflow($workflow['Workflow']['data'], false);
-        foreach ($trigger_ids as $trigger_id) {
-            $data = ['Event.uuid' => ['2683b27f-c509-4458-84f9-8980f60548df']];
-            $this->walkGraph($workflow, $trigger_id, null, $data);
-        }
-    }
+    // public function executeWorkflow($id, array $data=[])
+    // {
+    //     $user = ['Role' => ['perm_site_admin' => true]];
+    //     $workflow = $this->fetchWorkflow($user, $id);
+    //     $trigger_ids = $this->workflowGraphTool->extractTriggersFromWorkflow($workflow['Workflow']['data'], false);
+    //     foreach ($trigger_ids as $trigger_id) {
+    //         $this->walkGraph($workflow, $trigger_id, null, $data);
+    //     }
+    // }
 
     /**
      * walkGraph Walk the graph for the provided trigger and execute each nodes
@@ -516,8 +520,13 @@ class Workflow extends AppModel
      * @param array $errors
      * @return boolean If all module returned a successful response
      */
-    private function walkGraph(array $workflow, $trigger_id, $for_path=null, array $data=[], array &$errors=[]): bool
+    private function walkGraph(array $workflow, $trigger_id, $for_path=null, array $data=[], array &$errors=[], array &$walkResult=[]): bool
     {
+        $walkResult = [
+            'Blocked paths' => [],
+            'Executed nodes' => [],
+            'Nodes that stopped execution' => [],
+        ];
         $workflowUser = $this->User->getAuthUser($workflow['Workflow']['user_id'], true);
         $roamingData = $this->workflowGraphTool->getRoamingData($workflowUser, $data);
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
@@ -526,14 +535,37 @@ class Workflow extends AppModel
             return false;
         }
         $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $this, $startNode, $for_path, $roamingData);
+        $preventExecutionForPaths = [];
         foreach ($graphWalker as $graphNode) {
             $node = $graphNode['node'];
-            $path_type = $graphNode['path_type'];
-            $success = $this->__executeNode($node, $roamingData, $errors);
-            if (empty($success) && $path_type == 'blocking') {
-                return false; // Node stopped execution for blocking path
+            foreach ($preventExecutionForPaths as $path_to_block) {
+                if ($path_to_block == array_slice($graphNode['path_list'], 0, count($path_to_block))) {
+                    $walkResult['Blocked paths'][] = $graphNode['path_list'];
+                    continue 2;
+                }
             }
-            // FIXME: Block execution for deferred path for output path if execution blocked. But continue execution for the current output. 
+            $nodeError = [];
+            $success = $this->__executeNode($node, $roamingData, $nodeError);
+            $walkResult['Executed nodes'][] = $node;
+            if (empty($success)) {
+                $walkResult['Nodes that stopped execution'][] = $node;
+                if ($graphNode['path_type'] == 'blocking') {
+                    if (!empty($nodeError)) {
+                        $errors[] = __(
+                            'Node `%s` (%s) from Workflow `%s` (%s) returned the following error: %s',
+                            $node['data']['id'],
+                            $node['id'],
+                            $workflow['Workflow']['name'],
+                            $workflow['Workflow']['id'],
+                            implode(', ', $nodeError)
+                        );
+                    }
+                    return false; // Node stopped execution for blocking path
+                }
+                if ($graphNode['path_type'] == 'non-blocking') {
+                    $preventExecutionForPaths[] = $graphNode['path_list']; // Paths down the chain for this path should not be executed
+                }
+            }
         }
         return true;
     }
@@ -551,6 +583,18 @@ class Workflow extends AppModel
             }
         }
         return $success;
+    }
+
+    private function digestExecutionResult(array $walkResult)
+    {
+        if (empty($walkResult['Nodes that stopped execution'])) {
+            return __('All nodes executed.');
+        }
+        $str = [];
+        foreach ($walkResult['Nodes that stopped execution'] as $node) {
+            $str[] = __('Node `%s` (%s) stopped execution.', $node['data']['id'], $node['id']);
+        }
+        return implode(', ', $str);
     }
 
     public function getModuleClass($node)
@@ -633,7 +677,7 @@ class Workflow extends AppModel
         array_walk($this->loaded_modules['logic'], function (&$logic) {
         });
         array_walk($this->loaded_modules['action'], function (&$action) {
-            $module_enabled = !in_array($action['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', 'writeactions',]);
+            $module_enabled = !in_array($action['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', 'writeactions', 'enrich-event', ]);
             $action['disabled'] = $module_enabled;
             $this->loaded_classes['action'][$action['id']]->disabled = $module_enabled;
         });

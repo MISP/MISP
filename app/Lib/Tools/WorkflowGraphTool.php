@@ -160,21 +160,23 @@ class GraphWalker
         return $result;
     }
 
-    public function _walk($node_id, $path_type=null, WorkflowRoamingData $roamingData)
+    public function _walk($node_id, $path_type=null, array $path_list=[], WorkflowRoamingData $roamingData)
     {
         $this->cursor = $node_id;
         $node = $this->graph[$node_id];
         if ($node['data']['module_type'] != 'trigger' && $node['data']['module_type'] != 'logic') { // trigger and logic nodes should not be returned as they are "control" nodes
-            yield ['node' => $node, 'path_type' => $path_type];
+            yield ['node' => $node, 'path_type' => $path_type, 'path_list' => $path_list];
         }
         $allowedOutputs = $this->_evaluateOutputs($node, $roamingData);
         foreach ($allowedOutputs as $output_id => $outputs) {
             $path_type = $this->_getPathType($node_id, $path_type, $output_id);
             if (is_null($this->for_path) || $path_type == $this->for_path) {
                 foreach ($outputs as $connections) {
-                    foreach ($connections as $connection) {
+                    foreach ($connections as $connection_id => $connection) {
                         $next_node_id = (int)$connection['node'];
-                        yield from $this->_walk($next_node_id, $path_type, $roamingData);
+                        $next_path_list = $path_list;
+                        $next_path_list[] = sprintf('%s:%s:%s:%s', $node_id, $output_id, $connection_id, $next_node_id);
+                        yield from $this->_walk($next_node_id, $path_type, $next_path_list, $roamingData);
                     }
                 }
             }
@@ -183,7 +185,7 @@ class GraphWalker
 
     public function walk(WorkflowRoamingData $roamingData)
     {
-        return $this->_walk($this->cursor, null, $roamingData);
+        return $this->_walk($this->cursor, null, [], $roamingData);
     }
 }
 
