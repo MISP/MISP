@@ -41,7 +41,8 @@ class Module_if extends WorkflowBaseModule
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
         $ifScope = $params['Scope']['value'];
-        $ifFilter = json_decode($params['Matching Conditions']['value'], true);
+        $ifFilter = JsonTool::decode($params['Matching Conditions']['value'], true);
+        $this->propagateInitialConditions($roamingData, $ifScope);
         $matchingUUID = $this->getMatchingUUID($roamingData->getUser(), $ifScope, $roamingData->getData(), $ifFilter);
         if (!empty($matchingUUID)) {
             $this->propagateConditions($roamingData, $ifScope, $matchingUUID);
@@ -60,16 +61,16 @@ class Module_if extends WorkflowBaseModule
             return [];
         }
         if ($model == 'Event') {
-            if (!empty($data['Event.uuid'])) {
-                $filters['uuid'] = $data['Event.uuid'];
+            if (!empty($data['__conditionData']['Event.uuid'])) {
+                $filters['uuid'] = $data['__conditionData']['Event.uuid'];
             }
             $filters['metadata'] = true;
         } elseif ($model == 'Attribute') {
-            if (!empty($data['Event.uuid'])) {
-                $filters['eventid'] = $data['Event.uuid'];
+            if (!empty($data['__conditionData']['Event.uuid'])) {
+                $filters['eventid'] = $data['__conditionData']['Event.uuid'];
             }
-            if (!empty($data['Attribute.uuid'])) {
-                $filters['uuid'] = $data['Attribute.uuid'];
+            if (!empty($data['__conditionData']['Attribute.uuid'])) {
+                $filters['uuid'] = $data['__conditionData']['Attribute.uuid'];
             }
         }
         $final = $loadedModel->restSearch($user, 'json', $filters);
@@ -86,11 +87,33 @@ class Module_if extends WorkflowBaseModule
     public function propagateConditions(WorkflowRoamingData $roamingData, $scope, array $matchingUUID)
     {
         $data = $roamingData->getData();
+        $conditionData = [];
         if ($scope == 'Event') {
-            $data['Event.uuid'] = $matchingUUID;
+            $conditionData['Event.uuid'] = $matchingUUID;
         } elseif ($scope == 'Attribute') {
-            $data['Attribute.uuid'] = $matchingUUID;
+            $conditionData['Attribute.uuid'] = $matchingUUID;
         }
+        $data['__conditionData'] = $conditionData;
         $roamingData->setData($data);
+    }
+
+    public function propagateInitialConditions(WorkflowRoamingData $roamingData, $scope)
+    {
+        $data = $roamingData->getData();
+        if (!empty($data['__conditionData'])) {
+            return;
+        }
+        // We expect data to be of the MISP core format
+        $matchingUUID = -1;
+        if ($scope == 'Event') {
+            $matchingUUID = $data['Event']['uuid'];
+        } elseif ($scope == 'Attribute') {
+            if (is_array($data['Attribute'])) {
+                $matchingUUID = Hash::extract($data['Attribute'], '{n}.uuid');
+            } else {
+                $matchingUUID = $data['Attribute']['uuid'];
+            }
+        }
+        $this->propagateConditions($roamingData, $scope, $matchingUUID);
     }
 }

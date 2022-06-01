@@ -28,6 +28,12 @@ class Module_push_zmq extends WorkflowBaseModule
                 'default' => '',
                 'placeholder' => __('Whatever text to be published')
             ],
+            [
+                'type' => 'input',
+                'label' => 'Extract Pass Along Path',
+                'default' => '',
+                'placeholder' => 'Attribute.{n}.uuid',
+            ],
         ];
     }
 
@@ -35,12 +41,24 @@ class Module_push_zmq extends WorkflowBaseModule
     {
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
+        // $this->push_zmq([
+        //     'namespace' => $params['Namespace']['value'],
+        //     'content' => $params['Content']['value'],
+        //     'pass_along' => $roamingData->getData(),
+        // ], 'zmq');
+        $passAlongExtractedData = $roamingData->getData();
+        if (!empty($params['Extract Pass Along Path']['value'])) {
+            try {
+                $passAlongExtractedData = Hash::extract($passAlongExtractedData, $params['Extract Pass Along Path']['value']);
+            } catch (Exception $e) {
+                $passAlongExtractedData = __('Invalid path or path not matching the passed data.');
+            }
+        }
         $this->push_zmq([
             'namespace' => $params['Namespace']['value'],
             'content' => $params['Content']['value'],
-            'pass_along' => $roamingData->getData(),
-        ], 'zmq');
-        return false;
-        // return true;
+            'pass_along' => $passAlongExtractedData,
+        ],);
+        return true;
     }
 }

@@ -570,7 +570,7 @@ class Workflow extends AppModel
         return true;
     }
 
-    public function __executeNode($node, WorkflowRoamingData $roamingData, array &$errors): bool
+    public function __executeNode($node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         $moduleClass = $this->getModuleClass($node);
         if (!is_null($moduleClass)) {
@@ -676,7 +676,7 @@ class Workflow extends AppModel
         });
         array_walk($this->loaded_modules['logic'], function (&$logic) {
             $module_enabled = true;
-            $logic['disabled'] = $module_enabled;
+            $logic['disabled'] = !$module_enabled;
             $this->loaded_classes['logic'][$logic['id']]->disabled = $module_enabled;
         });
         array_walk($this->loaded_modules['action'], function (&$action) {
