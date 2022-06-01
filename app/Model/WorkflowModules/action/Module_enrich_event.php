@@ -31,20 +31,26 @@ class Module_enrich_event extends WorkflowBaseModule
     {
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
-        $event = $roamingData->getData();
-        $options = array(
-            'user' => $roamingData->getUser(),
-            'event_id' => $event['Event']['id'],
-            'modules' => [$params['Modules']['value']]
-        );
         if (empty($params['Modules']['value'])) {
             $errors[] = __('No enrichmnent module selected');
             return false;
         }
+
+        $rData = $roamingData->getData();
+        $event_id = $rData['Event']['id'];
+        $options = [
+            'user' => $roamingData->getUser(),
+            'event_id' => $event_id,
+            'modules' => [$params['Modules']['value']]
+        ];
+        if (!empty($rData['__conditionData']['Attribute.uuid'])) {
+            $options['attribute_uuids'] = $rData['__conditionData']['Attribute.uuid'];
+        }
+
         $this->Event = ClassRegistry::init('Event');
         $result = $this->Event->enrichment($options);
         $this->push_zmq([
-            'Enriching event' => $event['Event']['id'],
+            'Enriching event' => $event_id,
             'Attribute added' => $result
         ]);
         return true;

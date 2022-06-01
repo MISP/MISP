@@ -5961,7 +5961,27 @@ class Event extends AppModel
                 throw new MethodNotAllowedException(__('%s not set', $option_field));
             }
         }
-        $event = $this->fetchEvent($params['user'], array('eventid' => $params['event_id'], 'includeAttachments' => 1, 'flatten' => 1));
+        $event = [];
+        if (!empty($params['attribute_uuids'])) {
+            $attributes = $this->Attribute->fetchAttributes($params['user'], [
+                'conditions' => [
+                    'Attribute.uuid' => $params['attribute_uuids'],
+                ],
+                'withAttachments' => 1,
+            ]);
+            $event = [
+                [
+                    'Event' => ['id' => $params['event_id']],
+                    'Attribute' => Hash::extract($attributes, '{n}.Attribute')
+                ]
+            ];
+        } else {
+            $event = $this->fetchEvent($params['user'], [
+                'eventid' => $params['event_id'],
+                'includeAttachments' => 1,
+                'flatten' => 1,
+            ]);
+        }
         $this->Module = ClassRegistry::init('Module');
         $enabledModules = $this->Module->getEnabledModules($params['user']);
         if (empty($enabledModules)) {
