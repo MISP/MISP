@@ -174,6 +174,9 @@ class WorkflowsController extends AppController
     public function moduleIndex()
     {
         $modules = $this->Workflow->getModulesByType();
+        $this->Module = ClassRegistry::init('Module');
+        $mispModules = $this->Module->getModules('Enrichment');
+        $this->set('module_service_error', !is_array($mispModules));
         // FIXME: Apply ACL to filter out module not available to users
         $filters = $this->IndexFilter->harvestParameters(['type']);
         $moduleType = $filters['type'] ?? 'trigger';
