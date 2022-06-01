@@ -1,14 +1,14 @@
 <div>
+    <h3 class="bold">
+        <i class="bold fa-fw <?= $this->FontAwesome->getClass('hourglass-start') ?>" style="font-size: larger;" title="<?= __('Blocking execution path') ?>"></i>
+        <?= __('Blocking Execution order') ?>
+    </h3>
     <?php if (empty($trigger['GroupedWorkflows']['blocking'])) : ?>
         <div class="alert alert-info">
             <strong><?= __('No blocking workflows!') ?></strong>
             <div><?= __('The trigger <strong>%s</strong> has no blocking workflows listening to it.', h($trigger['name'])) ?></div>
         </div>
     <?php else : ?>
-        <h3 class="bold">
-            <i class="bold fa-fw <?= $this->FontAwesome->getClass('hourglass-start') ?>" style="font-size: larger;" title="<?= __('Blocking execution path') ?>"></i>
-            <?= __('Blocking Execution order') ?>
-        </h3>
         <div id="container-unsaved-change" class="alert alert-info hidden">
             <strong><?= __('Unsaved changes!') ?></strong>
             <div><?= __('The execution order has changed and hasn\'t been saved.') ?></div>

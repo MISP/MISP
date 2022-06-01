@@ -1,4 +1,7 @@
 <div>
+    <?php if (empty($trigger['GroupedWorkflows']['blocking']) && empty($trigger['GroupedWorkflows']['non-blocking'])): ?>
+        <?= __('No workflows listen to this trigger') ?>
+    <?php endif; ?>
     <?php if (!empty($trigger['GroupedWorkflows']['blocking'])): ?>
         <ul class="unstyled">
             <li class="bold">

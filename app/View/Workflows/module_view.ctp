@@ -1,8 +1,18 @@
 <?php
+$append = [];
+if ($data['module_type'] == 'trigger') {
+    $append[] = [
+        'element' => 'Workflows/executionOrderWidget',
+        'element_params' => [
+            'trigger' => $data
+        ]
+    ];
+}
+
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
-        'title' => 'Trigger view',
+        'title' => 'Workflow module view',
         'data' => $data,
         'fields' => [
             [
@@ -23,7 +33,7 @@ echo $this->element(
                 'path' => 'description'
             ],
             [
-                'key' => __('Trigger Enabled'),
+                'key' => __('Module Enabled'),
                 'type' => 'boolean',
                 'path' => 'disabled',
                 'element' => 'boolean',
@@ -33,21 +43,15 @@ echo $this->element(
                 ],
             ],
             [
-                'key' => __('Execution Order'),
+                'key' => __('Workflow Execution Order'),
+                'requirement' => $data['module_type'] == 'trigger',
                 'type' => 'custom',
                 'function' => function ($row) {
                     return $this->element('Workflows/executionOrder', ['trigger' => $row]);
                 }
             ],
         ],
-        'append' => [
-            [
-                'element' => 'Workflows/executionOrderWidget',
-                'element_params' => [
-                    'trigger' => $data
-                ]
-            ],
-        ]
+        'append' => $append
     ]
 );
 

@@ -54,11 +54,11 @@ class WorkflowBaseModule
 
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
-        $this->push_zmq([
-            'module' => $this->name,
-            'data' => json_encode($roamingData->getData(), true),
-            'timestamp' => time(),
-        ]);
+        // $this->push_zmq([
+        //     'module' => $this->name,
+        //     'data' => json_encode($roamingData->getData(), true),
+        //     'timestamp' => time(),
+        // ]);
         return true;
     }
 

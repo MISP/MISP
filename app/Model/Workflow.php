@@ -651,7 +651,7 @@ class Workflow extends AppModel
             $this->loaded_classes[$type] = $classModuleFromFiles['instancedClasses'];
         }
         $superUser = ['Role' => ['perm_site_admin' => true]];
-        $modules_from_service = $this->__getModulesFromModuleService($superUser)['modules'] ?? [];
+        $modules_from_service = $this->__getModulesFromModuleService($superUser) ?? [];
         $misp_module_class = $this->__getClassForMispModule($modules_from_service);
         $misp_module_configs = [];
         foreach ($misp_module_class as $i => $module_class) {
@@ -675,6 +675,9 @@ class Workflow extends AppModel
             $this->loaded_classes['trigger'][$trigger['id']]->html_template = !empty($trigger['html_template']) ? $trigger['html_template'] : 'trigger';
         });
         array_walk($this->loaded_modules['logic'], function (&$logic) {
+            $module_enabled = true;
+            $logic['disabled'] = $module_enabled;
+            $this->loaded_classes['logic'][$logic['id']]->disabled = $module_enabled;
         });
         array_walk($this->loaded_modules['action'], function (&$action) {
             $module_enabled = !in_array($action['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', 'writeactions', 'enrich-event', ]);
@@ -694,12 +697,17 @@ class Workflow extends AppModel
         return $misp_module_config;
     }
 
-    private function __getModulesFromModuleService($user)
+    private function __getModulesFromModuleService()
     {
         if (empty($this->Module)) {
             $this->Module = ClassRegistry::init('Module');
         }
         $modules = $this->Module->getModules('Action');
+        foreach ($modules as $i => $temp) {
+            if (!isset($temp['meta']['module-type']) || !in_array('action', $temp['meta']['module-type'])) {
+                unset($modules[$i]);
+            }
+        }
         return $modules;
     }
 

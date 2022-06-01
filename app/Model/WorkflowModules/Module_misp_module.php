@@ -3,6 +3,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
 class Module_misp_module extends WorkflowBaseModule
 {
+    public $is_misp_module = true;
     public $id = 'misp-module';
     public $name = 'misp-module';
     public $description = 'misp-module';

@@ -171,24 +171,41 @@ class WorkflowsController extends AppController
         $this->set('modules', $modules);
     }
 
-    public function triggerIndex()
+    public function moduleIndex()
     {
         $modules = $this->Workflow->getModulesByType();
-        $triggers = $modules['blocks_trigger'];
-        $triggers = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), $triggers, true);
-        $this->set('data', $triggers);
-        $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_trigger']);
+        // FIXME: Apply ACL to filter out module not available to users
+        $filters = $this->IndexFilter->harvestParameters(['type']);
+        $moduleType = $filters['type'] ?? 'trigger';
+        if ($moduleType == 'trigger') {
+            $triggers = $modules['blocks_trigger'];
+            $triggers = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), $triggers, true);
+            $data = $triggers;
+        } elseif ($moduleType == 'all') {
+            $data = array_merge(
+                $modules["blocks_trigger"],
+                $modules["blocks_logic"],
+                $modules["blocks_action"]
+            );
+        } else {
+            $data = $modules["blocks_{$moduleType}"];
+        }
+        $this->set('data', $data);
+        $this->set('indexType', $moduleType);
+        $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_module']);
     }
 
-    public function triggerView($trigger_id)
+    public function moduleView($module_id)
     {
-        $trigger = $this->Workflow->getModuleByID($trigger_id);
-        if (empty($trigger)) {
+        $module = $this->Workflow->getModuleByID($module_id);
+        if (empty($module)) {
             throw new NotFoundException(__('Invalid trigger ID'));
         }
-        $trigger = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), [$trigger], true)[0];
-        $this->set('data', $trigger);
-        $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'view_trigger']);
+        if ($module['module_type'] == 'trigger') {
+            $module = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), [$module], true)[0];
+        }
+        $this->set('data', $module);
+        $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'view_module']);
     }
 
     public function import()

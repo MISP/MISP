@@ -36,9 +36,11 @@ class Module_push_zmq extends WorkflowBaseModule
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
         $this->push_zmq([
+            'namespace' => $params['Namespace']['value'],
             'content' => $params['Content']['value'],
             'pass_along' => $roamingData->getData(),
-        ], $params['Namespace']['value']);
-        return true;
+        ], 'zmq');
+        return false;
+        // return true;
     }
 }
