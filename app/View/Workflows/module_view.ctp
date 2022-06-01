@@ -9,7 +9,6 @@ if ($data['module_type'] == 'trigger') {
     ];
 }
 
-// $data['params'] = JsonTool::encode($data['params']);
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [

@@ -1621,7 +1621,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index_trigger',
                     'url' => '/workflows/moduleIndex',
-                    'text' => __('List Triggers')
+                    'text' => __('List Modules')
                 ));
                 if ($isSiteAdmin) {
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(

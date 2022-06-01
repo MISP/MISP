@@ -1,6 +1,7 @@
 <?php
 class WorkflowBaseModule
 {
+    public $is_misp_module = false;
     public $id = 'to-override';
     public $name = 'to-override';
     public $description = 'to-override';
