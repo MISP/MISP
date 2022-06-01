@@ -18,11 +18,18 @@ class Module_enrich_event extends WorkflowBaseModule
     {
         parent::__construct();
         $this->Module = ClassRegistry::init('Module');
+        $modules = $this->Module->getModules('Enrichment');
+        $moduleOptions = [];
+        if (is_array($modules)) {
+            $moduleOptions = array_merge([''], Hash::combine($modules, '{n}.name', '{n}.name'));
+        } else {
+            $moduleOptions[] = $modules;
+        }
         $this->params = [
             [
                 'type' => 'select',
                 'label' => 'Modules',
-                'options' => array_merge([''], Hash::combine($this->Module->getModules('Enrichment'), '{n}.name', '{n}.name')),
+                'options' => $moduleOptions,
             ],
         ];
     }

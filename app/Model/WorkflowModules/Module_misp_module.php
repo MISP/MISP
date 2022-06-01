@@ -47,14 +47,14 @@ class Module_misp_module extends WorkflowBaseModule
     {
         parent::exec($node, $roamingData);
         $postData = ['module' => $this->name];
-        $postData['data'] = ['post-data' => 'test-' . time()];
+        $postData['data'] = $roamingData->getData();
         $query = $this->Module->queryModuleServer($postData, false, 'Action', false);
         if (!empty($query['error'])) {
             $errors[] = $query['error'];
             return false;
         }
         $message = [
-            "Got result from $this->name" => JsonTool::encode($query['data'])
+            "module:$this->name" => JsonTool::encode($query['data'])
         ];
         $this->push_zmq($message);
         return true;

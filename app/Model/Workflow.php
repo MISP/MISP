@@ -703,9 +703,11 @@ class Workflow extends AppModel
             $this->Module = ClassRegistry::init('Module');
         }
         $modules = $this->Module->getModules('Action');
-        foreach ($modules as $i => $temp) {
-            if (!isset($temp['meta']['module-type']) || !in_array('action', $temp['meta']['module-type'])) {
-                unset($modules[$i]);
+        if (is_array($modules)) {
+            foreach ($modules as $i => $temp) {
+                if (!isset($temp['meta']['module-type']) || !in_array('action', $temp['meta']['module-type'])) {
+                    unset($modules[$i]);
+                }
             }
         }
         return $modules;
@@ -727,10 +729,12 @@ class Workflow extends AppModel
             return $e->getMessage();
         }
         $moduleClasses = [];
-        foreach ($misp_module_configs as $moduleConfig) {
-            $mainClass = $reflection->newInstance($moduleConfig);
-            if ($mainClass->checkLoading() === 'The Factory Must Grow') {
-                $moduleClasses[$mainClass->id] = $mainClass;
+        if (is_array($misp_module_configs)) {
+            foreach ($misp_module_configs as $moduleConfig) {
+                $mainClass = $reflection->newInstance($moduleConfig);
+                if ($mainClass->checkLoading() === 'The Factory Must Grow') {
+                    $moduleClasses[$mainClass->id] = $mainClass;
+                }
             }
         }
         return $moduleClasses;
