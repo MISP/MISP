@@ -190,6 +190,9 @@ class WorkflowsController extends AppController
         } else {
             $data = $modules["blocks_{$moduleType}"];
         }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($data, $this->response->type());
+        }
         $this->set('data', $data);
         $this->set('indexType', $moduleType);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_module']);
@@ -203,6 +206,9 @@ class WorkflowsController extends AppController
         }
         if ($module['module_type'] == 'trigger') {
             $module = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), [$module], true)[0];
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($module, $this->response->type());
         }
         $this->set('data', $module);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'view_module']);

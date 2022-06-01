@@ -26,7 +26,9 @@ class Module_misp_module extends WorkflowBaseModule
         if (!empty($misp_module_config['meta']['icon'])) {
             $this->icon = $misp_module_config['meta']['icon'];
         }
-        $this->icon_class = $misp_module_config['meta']['icon_class'] ?? '';
+        if (!empty($misp_module_config['meta']['icon_class'])) {
+            $this->icon_class = $misp_module_config['meta']['icon_class'];
+        }
         if (!empty($misp_module_config['meta']['inputs'])) {
             $this->inputs = (int)$misp_module_config['meta']['inputs'];
         }
@@ -34,7 +36,9 @@ class Module_misp_module extends WorkflowBaseModule
             $this->inputs = (int)$misp_module_config['meta']['outputs'];
         }
         if (!empty($misp_module_config['meta']['config'])) {
-            $this->params = $misp_module_config['meta']['config'];
+            foreach ($misp_module_config['meta']['config'] as $paramName => $moduleParam) {
+                $this->params[] = $this->translateParams($paramName, $moduleParam);
+            }
         }
         $this->Module = ClassRegistry::init('Module');
     }
@@ -44,11 +48,25 @@ class Module_misp_module extends WorkflowBaseModule
         parent::exec($node, $roamingData);
         $postData = ['module' => $this->name];
         $postData['data'] = ['post-data' => 'test-' . time()];
-        $result = $this->Module->queryModuleServer($postData, false, 'Action', false);
+        $query = $this->Module->queryModuleServer($postData, false, 'Action', false);
+        if (!empty($query['error'])) {
+            $errors[] = $query['error'];
+            return false;
+        }
         $message = [
-            "Got result from $this->name" => json_encode($result)
+            "Got result from $this->name" => JsonTool::encode($query['data'])
         ];
         $this->push_zmq($message);
         return true;
+    }
+
+    // FIXME: We might want to align the module config with what's currently supported
+    protected function translateParams($paramName, $moduleParam): array
+    {
+        $param = [];
+        $param['label'] = $paramName;
+        $param['placeholder'] = $moduleParam['value'];
+        $param['type'] = 'input';
+        return $param;
     }
 }

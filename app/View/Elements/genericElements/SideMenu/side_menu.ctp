@@ -1620,7 +1620,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 ));
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index_trigger',
-                    'url' => '/workflows/triggerIndex',
+                    'url' => '/workflows/moduleIndex',
                     'text' => __('List Triggers')
                 ));
                 if ($isSiteAdmin) {

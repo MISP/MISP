@@ -9,6 +9,7 @@ if ($data['module_type'] == 'trigger') {
     ];
 }
 
+// $data['params'] = JsonTool::encode($data['params']);
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
@@ -29,6 +30,15 @@ echo $this->element(
                 }
             ],
             [
+                'key' => __('Module Type'),
+                'path' => 'module_type'
+            ],
+            [
+                'key' => __('Is MISP module'),
+                'type' => 'boolean',
+                'path' => 'is_misp_module'
+            ],
+            [
                 'key' => __('Description'),
                 'path' => 'description'
             ],
@@ -41,6 +51,11 @@ echo $this->element(
                     true => '<i class="fas fa-times"></i>',
                     false => '<i class="fas fa-check"></i>'
                 ],
+            ],
+            [
+                'key' => __('Module Parameters'),
+                'type' => 'json',
+                'path' => 'params',
             ],
             [
                 'key' => __('Workflow Execution Order'),

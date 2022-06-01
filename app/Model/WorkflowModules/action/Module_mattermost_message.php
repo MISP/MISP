@@ -20,7 +20,7 @@ class Module_mattermost_message extends WorkflowBaseModule
                 'type' => 'input',
                 'label' => 'Tag name',
                 'default' => 'tlp:red',
-                'placeholder' => __('Enter tag name')
+                'placeholder' => __('Enter tag name'),
             ],
             [
                 'id' => 'channel_name_select',

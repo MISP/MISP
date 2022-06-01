@@ -81,7 +81,7 @@ echo $this->element(
         box-shadow: 0px 3px 6px 2px #33333311;
     }
 
-    .restrict-height>.json_container_Data {
+    .restrict-height > div {
         height: 200px;
         overflow: auto;
         resize: both;
