@@ -46,7 +46,7 @@ echo $this->element(
                 'type' => 'custom',
                 'function' => function ($row) use ($baseurl) {
                     return implode('<br />', array_map(function($trigger) use ($baseurl) {
-                        return sprintf('<a href="%s/workflows/triggerView/%s"><i class="fa-fw %s"></i> %s</a>',
+                        return sprintf('<a href="%s/workflows/moduleView/%s"><i class="fa-fw %s"></i> %s</a>',
                             $baseurl,
                             h($trigger['id']),
                             $this->FontAwesome->getClass($trigger['icon']),

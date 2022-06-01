@@ -33,21 +33,6 @@ class WorkflowsController extends AppController
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'index'));
     }
 
-    // public function test($id)
-    // {
-    //     // $this->Workflow->rebuildRedis($this->Auth->user());
-    //     // return $this->RestResponse->viewData($ret);
-    //     $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
-    //     // $ret = $this->Workflow->walkGraph($workflow);
-    //     // $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
-    //     // $ret = $this->Workflow->getModulesByType();
-
-    //     // $ret = $this->Workflow->executeWorkflowsForTrigger('publish', ['foo' => 'bar']);
-    //     // $ret = $this->Workflow->executeWorkflow($id);
-    //     $this->set('error', '');
-    //     return $this->render('error');
-    // }
-
     public function rebuildRedis()
     {
         $this->Workflow->rebuildRedis($this->Auth->user());
@@ -257,7 +242,7 @@ class WorkflowsController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             $workflow_order = array_unique(JsonTool::decode($this->request->data['Workflow']['workflow_order']));
             $saved = $this->Workflow->saveBlockingWorkflowExecutionOrder($trigger['id'], $workflow_order);
-            $redirectTarget = ['action' => 'triggerView', $trigger_id];
+            $redirectTarget = ['action' => 'moduleView', $trigger_id];
             if (empty($saved)) {
                 return $this->__getFailResponseBasedOnContext([__('Could not save workflow execution order.')], null, 'rearrangeExecutionOrder', $trigger_id, $redirectTarget);
             } else {
