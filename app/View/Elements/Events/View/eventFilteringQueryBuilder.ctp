@@ -422,6 +422,12 @@ function triggerEventFilteringTool(hide) {
         }
     });
 
+    // Use chosen for value select
+    $ev.find('.rule-value-container select').chosen();
+    querybuilderTool.on('rulesChanged', function() {
+        $ev.find('.rule-value-container select').chosen();
+    });
+
     updateURL();
 
     function updateURL() {
