@@ -738,6 +738,7 @@ class ACLComponent extends Component
                 'verifyGPG' => array(),
                 'view' => array('*'),
                 'getGpgPublicKey' => array('*'),
+                'unsubscribe' => ['*'],
             ),
             'userSettings' => array(
                 'index' => array('*'),
