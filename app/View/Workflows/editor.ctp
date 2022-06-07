@@ -1,8 +1,10 @@
 <?php
-$allModules = [];
-foreach ($modules as $moduleType => $module) {
-    $allModules = array_merge($allModules, $module);
-}
+$usableModules = [
+    'blocks_action' => $modules['blocks_action'],
+    'blocks_logic' => $modules['blocks_logic'],
+];
+$allModules = array_merge($usableModules['blocks_action'], $usableModules['blocks_logic']);
+$triggerModules = $modules['blocks_trigger'];
 ?>
 <div class="root-container">
     <div class="main-container">
@@ -11,18 +13,13 @@ foreach ($modules as $moduleType => $module) {
                 <i class="fa-fw <?= $this->FontAwesome->getClass('caret-left') ?>"></i>
                 <?= __('Workflow index') ?>
             </a>
-            <h3>Workflows</h3>
-            <div class="workflow-selector-container">
-                <select type="text" placeholder="Load a workflow" class="chosen-container workflows" autocomplete="off">
-                    <?php foreach ($workflows as $workflow) : ?>
-                        <option value="<?= h($workflow['Workflow']['id']) ?>" <?= $selectedWorkflow['Workflow']['id'] == $workflow['Workflow']['id'] ? 'selected' : '' ?>><?= h($workflow['Workflow']['name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+            <h3>
+                <span style="font-weight:normal;"><?= __('Workflows:') ?></span>
+                <strong><?= h($selectedWorkflow['Workflow']['trigger_id']) ?></strong>
+            </h3>
             <div class="" style="margin-top: 0.5em;">
                 <div class="btn-group" style="margin-left: 3px;">
-                    <a class="btn btn-primary" href="<?= $baseurl . '/workflows/add' ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('New') ?></a>
-                    <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#"><span class="caret"></span></a>
+                    <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#"><?= __('More Actions') ?> <span class="caret"></span></a>
                     <ul class="dropdown-menu">
                         <li><a id="importWorkflow" href="<?= $baseurl . '/workflows/import/' ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow') ?></a></li>
                         <li><a id="exportWorkflow" href="<?= $baseurl . '/workflows/export/' . h($selectedWorkflow['Workflow']['id']) ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-export') ?>"></i> <?= __('Export workflow') ?></a></li>
@@ -45,33 +42,24 @@ foreach ($modules as $moduleType => $module) {
             </select>
 
             <ul class="nav nav-tabs" id="block-tabs">
-                <li class="active"><a href="#container-triggers">
-                        <i class="<?= $this->FontAwesome->getClass('flag') ?>"></i>
-                        Triggers
+                <li class="active"><a href="#container-actions">
+                        <i class="<?= $this->FontAwesome->getClass('play') ?>"></i>
+                        Actions
                     </a></li>
                 <li><a href="#container-logic">
                         <i class="<?= $this->FontAwesome->getClass('code-branch') ?>"></i>
                         Logic
                     </a></li>
-                <li><a href="#container-actions">
-                        <i class="<?= $this->FontAwesome->getClass('play') ?>"></i>
-                        Actions
-                    </a></li>
             </ul>
 
             <div class="tab-content">
-                <div class="tab-pane active" id="container-triggers">
-                    <?php foreach ($modules['blocks_trigger'] as $block) : ?>
+                <div class="tab-pane active" id="container-actions">
+                    <?php foreach ($modules['blocks_action'] as $block) : ?>
                         <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
                     <?php endforeach; ?>
                 </div>
                 <div class="tab-pane" id="container-logic">
                     <?php foreach ($modules['blocks_logic'] as $block) : ?>
-                        <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
-                    <?php endforeach; ?>
-                </div>
-                <div class="tab-pane" id="container-actions">
-                    <?php foreach ($modules['blocks_action'] as $block) : ?>
                         <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
                     <?php endforeach; ?>
                 </div>
@@ -138,14 +126,14 @@ echo $this->element('genericElements/assetLoader', [
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')
     var $lastModifiedField = $('#lastModifiedField')
-    var $blockContainerTriggers = $('#container-triggers')
     var $blockContainerLogic = $('#container-logic')
     var $blockContainerAction = $('#container-actions')
     var editor = false
     var all_blocks = <?= json_encode($allModules) ?>;
     var all_blocks_by_id = <?= json_encode(Hash::combine($allModules, '{n}.id', '{n}')) ?>;
+    var all_triggers_by_id = <?= json_encode(Hash::combine($triggerModules, '{n}.id', '{n}')) ?>;
     var workflow = false
-    <?php if (!empty($workflow)) : ?>
+    <?php if (!empty($selectedWorkflow)) : ?>
         var workflow = <?= json_encode($selectedWorkflow) ?>;
     <?php endif; ?>
 

@@ -22,13 +22,6 @@ echo $this->element(
                 'path' => 'Workflow.timestamp',
             ],
             [
-                'key' => __('Owner Organisation'),
-                'path' => 'Workflow.org_id',
-                'pathName' => 'Organisation.name',
-                'type' => 'model',
-                'model' => 'organisations'
-            ],
-            [
                 'key' => __('Description'),
                 'path' => 'Workflow.description'
             ],

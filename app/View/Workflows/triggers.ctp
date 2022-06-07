@@ -15,20 +15,6 @@
             'data_path' => 'description',
         ],
         [
-            'name' => __('Module Type'),
-            'sort' => 'module_type',
-            'class' => 'short',
-            'data_path' => 'module_type',
-        ],
-        [
-            'name' => __('Is misp-module'),
-            'sort' => 'is_misp_module',
-            'class' => 'short',
-            'data_path' => 'is_misp_module',
-            'element' => 'boolean',
-            'requirement' => $indexType == 'action',
-        ],
-        [
             'name' => __('Module Enabled'),
             'sort' => 'disabled',
             'class' => 'short',
@@ -38,54 +24,17 @@
         ],
     ];
 
-    if (!empty($module_service_error)) {
-        echo sprintf('<div class="alert alert-error"><strong>%s</strong> %s</div>', __('MISP Modules Action Services is not reachable!'), __('Some modules will not be available.'));
-    }
-
     echo $this->element('genericElements/IndexTable/scaffold', [
         'scaffold_data' => [
             'data' => [
                 'stupid_pagination' => true,
                 'data' => $data,
                 'top_bar' => [
-                    'children' => [
-                        [
-                            'type' => 'simple',
-                            'children' => [
-                                [
-                                    'url' => $baseurl . '/workflows/moduleIndex/type:all',
-                                    'text' => __('All'),
-                                    'active' => $indexType === 'all',
-                                ],
-                                [
-                                    'url' => $baseurl . '/workflows/moduleIndex/type:action',
-                                    'text' => __('Action'),
-                                    'active' => $indexType === 'action',
-                                ],
-                                [
-                                    'url' => $baseurl . '/workflows/moduleIndex/type:logic',
-                                    'text' => __('Logic'),
-                                    'active' => $indexType === 'logic',
-                                ],
-                            ]
-                        ],
-                        [
-                            'type' => 'search',
-                            'button' => __('Filter'),
-                            'placeholder' => __('Enter value to search'),
-                            'searchKey' => 'value',
-                            'cancel' => [
-                                'fa-icon' => 'times',
-                                'title' => __('Remove filters'),
-                                'onClick' => 'cancelSearch',
-                            ]
-                        ]
-                    ]
                 ],
                 'fields' => $fields,
                 'icon' => 'flag',
-                'title' => __('Workflow Modules'),
-                'description' => __('List the available modules that can be used by workflows'),
+                'title' => __('Triggers'),
+                'description' => __('List the available triggers that can be listened to by workflows'),
                 'actions' => [
                     [
                         'title' => __('Enable'),
@@ -124,10 +73,15 @@
                         ),
                     ],
                     [
+                        'url' => $baseurl . '/workflows/editor',
+                        'url_params_data_paths' => ['id'],
+                        'icon' => 'code',
+                        'dbclickAction' => true,
+                    ],
+                    [
                         'url' => $baseurl . '/workflows/moduleView',
                         'url_params_data_paths' => ['id'],
                         'icon' => 'eye',
-                        'dbclickAction' => true,
                     ],
                 ]
             ]

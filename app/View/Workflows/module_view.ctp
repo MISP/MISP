@@ -1,18 +1,8 @@
 <?php
-$append = [];
-if ($data['module_type'] == 'trigger') {
-    $append[] = [
-        'element' => 'Workflows/executionOrderWidget',
-        'element_params' => [
-            'trigger' => $data
-        ]
-    ];
-}
-
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
-        'title' => 'Workflow module view',
+        'title' => $data['module_type'] == 'trigger' ? __('Trigger module view') : __('Workflow module view'),
         'data' => $data,
         'fields' => [
             [
@@ -57,16 +47,32 @@ echo $this->element(
                 'path' => 'params',
             ],
             [
-                'key' => __('Workflow Execution Order'),
-                'requirement' => $data['module_type'] == 'trigger',
+                'key' => __('Run counter'),
+                'path' => 'Workflow.counter',
                 'type' => 'custom',
                 'function' => function ($row) {
-                    return $this->element('Workflows/executionOrder', ['trigger' => $row]);
+                    return h($row['Workflow']['counter']);
                 }
             ],
+            [
+                'key' => __('Workflow Data'),
+                'class' => 'restrict-height',
+                'path' => 'Workflow.data',
+                'type' => 'json',
+            ],
         ],
-        'append' => $append
+        'append' => [
+            ['element' => 'Workflows/executionPath', 'element_params' => ['workflow' => $data['Workflow']]],
+        ]
     ]
 );
 
 ?>
+
+<style>
+    .restrict-height>div {
+        height: 200px;
+        overflow: auto;
+        resize: both;
+    }
+</style>

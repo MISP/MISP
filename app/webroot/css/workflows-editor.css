@@ -224,6 +224,12 @@
     /* No special format for default block types */
 }
 
+.drawflow .drawflow-node.block-type-trigger {
+    border-left-color: #73a2c9;
+    border-left-width: 0.25rem;
+    border-left-style: solid;
+}
+
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output::before {
     display: none;
     transform: translateX(calc(50% - 8px));
@@ -256,28 +262,18 @@
 }
 
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output_1 {
-    background-color: #ea5b57;
+    background-color: #73a2c9;
 }
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output_1::before {
-    content: 'blocking';
+    content: 'Listen';
     top: -26px;
 }
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output_1::after {
-    content: "\f251";
+    content: "\f025";
     font-size: 9px;
 }
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output_1:hover::after {
     font-size: 14px;
-}
-.drawflow .drawflow-node.block-type-trigger > .outputs > .output_2 {
-    background-color: #468847;
-}
-.drawflow .drawflow-node.block-type-trigger > .outputs > .output_2::before {
-    content: 'deferred';
-    top: 26px;
-}
-.drawflow .drawflow-node.block-type-trigger > .outputs > .output_2::after {
-    content: "\f074";
 }
 
 .drawflow .drawflow-node.block-type-IF > .outputs > .output::before {

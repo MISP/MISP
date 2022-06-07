@@ -24,7 +24,6 @@ class WorkflowsController extends AppController
         $params = [
             'filters' => ['name', 'uuid'],
             'quickFilters' => ['name', 'uuid'],
-            'contain' => ['Organisation']
         ];
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {
@@ -35,19 +34,16 @@ class WorkflowsController extends AppController
 
     public function rebuildRedis()
     {
-        $this->Workflow->rebuildRedis($this->Auth->user());
+        $this->Workflow->rebuildRedis();
     }
 
     public function add()
     {
-        $currentUser = $this->Auth->user();
         $params = [
-            'beforeSave' => function ($data) use ($currentUser) {
+            'beforeSave' => function ($data) {
                 if (empty($data['Workflow']['uuid'])) {
                     $data['Workflow']['uuid'] = CakeText::uuid();
                 }
-                $data['Workflow']['user_id'] = $currentUser['id'];
-                $data['Workflow']['org_id'] = $currentUser['org_id'];
                 if (!isset($data['Workflow']['description'])) {
                     $data['Workflow']['description'] = '';
                 }
@@ -72,18 +68,18 @@ class WorkflowsController extends AppController
     public function edit($id)
     {
         $this->set('id', $id);
-        $savedWorkflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+        $savedWorkflow = $this->Workflow->fetchWorkflow($id);
         if ($this->request->is('post') || $this->request->is('put')) {
             $newWorkflow = $this->request->data;
             $newWorkflow['Workflow']['data'] = JsonTool::decode($newWorkflow['Workflow']['data']);
             $newWorkflow = $this->__applyDataFromSavedWorkflow($newWorkflow, $savedWorkflow);
-            $errors = $this->Workflow->editWorkflow($this->Auth->user(), $newWorkflow);
+            $errors = $this->Workflow->editWorkflow($newWorkflow);
             $redirectTarget = ['action' => 'view', $id];
             if (!empty($errors)) {
                 return $this->__getFailResponseBasedOnContext($errors, null, 'edit', $this->Workflow->id, $redirectTarget);
             } else {
                 $successMessage = __('Workflow saved.');
-                $savedWorkflow =$this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+                $savedWorkflow =$this->Workflow->fetchWorkflow($id);
                 return $this->__getSuccessResponseBasedOnContext($successMessage, $savedWorkflow, 'edit', false, $redirectTarget);
             }
         } else {
@@ -98,7 +94,6 @@ class WorkflowsController extends AppController
     public function delete($id)
     {
         $params = [
-            'conditions' => $this->Workflow->buildACLConditions($this->Auth->user()),
         ];
         $this->CRUD->delete($id, $params);
         if ($this->IndexFilter->isRest()) {
@@ -109,8 +104,6 @@ class WorkflowsController extends AppController
     public function view($id)
     {
         $this->CRUD->view($id, [
-            'conditions' => $this->Workflow->buildACLConditions($this->Auth->user()),
-            'contain' => ['Organisation', 'User']
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -121,59 +114,90 @@ class WorkflowsController extends AppController
 
     public function enable($id)
     {
-        $errors = $this->Workflow->toggleWorkflow($this->Auth->user(), $id, true);
+        $errors = $this->Workflow->toggleWorkflow($id, true);
         $redirectTarget = ['action' => 'index'];
         if (!empty($errors)) {
             return $this->__getFailResponseBasedOnContext($errors, null, 'edit', $this->Workflow->id, $redirectTarget);
         } else {
             $successMessage = __('Workflow enabled.');
-            $savedWorkflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+            $savedWorkflow = $this->Workflow->fetchWorkflow($id);
             return $this->__getSuccessResponseBasedOnContext($successMessage, $savedWorkflow, 'edit', false, $redirectTarget);
         }
     }
 
     public function disable($id)
     {
-        $errors = $this->Workflow->toggleWorkflow($this->Auth->user(), $id, false);
+        $errors = $this->Workflow->toggleWorkflow($id, false);
         $redirectTarget = ['action' => 'index'];
         if (!empty($errors)) {
             return $this->__getFailResponseBasedOnContext($errors, null, 'edit', $this->Workflow->id, $redirectTarget);
         } else {
             $successMessage = __('Workflow disabled.');
-            $savedWorkflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+            $savedWorkflow = $this->Workflow->fetchWorkflow($id);
             return $this->__getSuccessResponseBasedOnContext($successMessage, $savedWorkflow, 'edit', false, $redirectTarget);
         }
     }
 
-    public function editor($id = false)
+    public function editor($trigger_id)
     {
         $modules = $this->Workflow->getModulesByType();
-        $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
-        $modules = $this->Workflow->attachNotificationToModules($this->Auth->user(), $modules, $workflow);
-        $workflows = $this->Workflow->fetchWorkflows($this->Auth->user());
+        $trigger_ids = Hash::extract($modules['blocks_trigger'], '{n}.id');
+        if (!in_array($trigger_id, $trigger_ids)) {
+            return $this->__getFailResponseBasedOnContext(
+                [__('Unkown trigger %s', $trigger_id)],
+                null,
+                'add',
+                $trigger_id,
+                ['controller' => 'workflows', 'action' => 'triggers']
+            );
+        }
+        $workflow = $this->Workflow->fetchWorkflowByTrigger($trigger_id, false);
+        if (empty($workflow)) { // Workflow do not exists yet. Create it.
+            $this->Workflow->create();
+            $savedWorkflow = $this->Workflow->save([
+                'name' => sprintf('Workflow for trigger %s', $trigger_id),
+                'trigger_id' => $trigger_id,
+            ]);
+            if (empty($savedWorkflow)) {
+                return $this->__getFailResponseBasedOnContext(
+                    [__('Could not create workflow for trigger %s', $trigger_id), $this->validationErrors],
+                    null,
+                    'add',
+                    $trigger_id,
+                    ['controller' => 'workflows', 'action' => 'editor']
+                );
+            }
+            $workflow = $savedWorkflow;
+        }
+        $modules = $this->Workflow->attachNotificationToModules($modules, $workflow);
         $this->set('selectedWorkflow', $workflow);
-        $this->set('workflows', $workflows);
         $this->set('modules', $modules);
+    }
+
+    public function triggers()
+    {
+        $triggers = $this->Workflow->getModulesByType('trigger');
+        $triggers = $this->Workflow->attachWorkflowToTriggers($triggers);
+        $data = $triggers;
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($data, $this->response->type());
+        }
+        $this->set('data', $data);
+        $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_trigger']);
     }
 
     public function moduleIndex()
     {
         $modules = $this->Workflow->getModulesByType();
         $this->Module = ClassRegistry::init('Module');
-        $mispModules = $this->Module->getModules('Enrichment');
+        $mispModules = $this->Module->getModules('Action');
         $this->set('module_service_error', !is_array($mispModules));
-        // FIXME: Apply ACL to filter out module not available to users
         $filters = $this->IndexFilter->harvestParameters(['type']);
-        $moduleType = $filters['type'] ?? 'trigger';
-        if ($moduleType == 'trigger') {
-            $triggers = $modules['blocks_trigger'];
-            $triggers = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), $triggers, true);
-            $data = $triggers;
-        } elseif ($moduleType == 'all') {
+        $moduleType = $filters['type'] ?? 'action';
+        if ($moduleType == 'all') {
             $data = array_merge(
-                $modules["blocks_trigger"],
-                $modules["blocks_logic"],
-                $modules["blocks_action"]
+                $modules["blocks_action"],
+                $modules["blocks_logic"]
             );
         } else {
             $data = $modules["blocks_{$moduleType}"];
@@ -192,8 +216,9 @@ class WorkflowsController extends AppController
         if (empty($module)) {
             throw new NotFoundException(__('Invalid trigger ID'));
         }
-        if ($module['module_type'] == 'trigger') {
-            $module = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), [$module], true)[0];
+        $is_trigger = $module['module_type'] == 'trigger';
+        if ($is_trigger) {
+            $module = $this->Workflow->attachWorkflowToTriggers([$module])[0];
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($module, $this->response->type());
@@ -220,7 +245,7 @@ class WorkflowsController extends AppController
 
     public function export($id)
     {
-        $workflow = $this->Workflow->fetchWorkflow($this->Auth->user(), $id);
+        $workflow = $this->Workflow->fetchWorkflow($id);
         $content = JsonTool::encode($workflow, JSON_PRETTY_PRINT);
         $this->response->body($content);
         $this->response->type('json');
@@ -234,7 +259,7 @@ class WorkflowsController extends AppController
         if (empty($trigger)) {
             throw new NotFoundException(__('Invalid trigger ID'));
         }
-        $trigger = $this->Workflow->attachWorkflowsToTriggers($this->Auth->user(), [$trigger], true)[0];
+        $trigger = $this->Workflow->attachWorkflowToTriggers([$trigger])[0];
         $workflow_order = [];
         if (!empty($trigger['Workflows']['blocking'])) {
             $workflow_order = Hash::extract($trigger['Workflows']['blocking'], '{n}.Workflow.id');
@@ -291,7 +316,7 @@ class WorkflowsController extends AppController
             return $this->RestResponse->saveFailResponse('Workflow', $action, $id, $message, false, $data);
         } else {
             $this->Flash->error($message);
-            $this->redirect($this->referer());
+            $this->redirect($redirect);
         }
     }
 
@@ -300,7 +325,7 @@ class WorkflowsController extends AppController
         if (!isset($newReport['Workflow'])) {
             $newReport = ['Workflow' => $newWorkflow];
         }
-        $ignoreFieldList = ['id', 'uuid', 'org_id', 'user_id'];
+        $ignoreFieldList = ['id', 'uuid'];
         foreach (Workflow::CAPTURE_FIELDS as $field) {
             if (!in_array($field, $ignoreFieldList) && isset($newWorkflow['Workflow'][$field])) {
                 $savedWorkflow['Workflow'][$field] = $newWorkflow['Workflow'][$field];

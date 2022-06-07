@@ -1615,8 +1615,8 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
             case 'workflows':
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index',
-                    'url' => '/workflows/index',
-                    'text' => __('List Workflows')
+                    'url' => '/workflows/triggers',
+                    'text' => __('List Triggers')
                 ));
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index_trigger',

@@ -20,7 +20,22 @@ var dotBlock_default = doT.template(' \
     </div> \
 </div>')
 
-var dotBlock_trigger = dotBlock_default
+var dotBlock_trigger = doT.template(' \
+<div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
+    <div style="width: 100%;"> \
+        <div class="default-main-container" style="border:none;"> \
+            <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            <strong style="margin-left: 0.25em;"> \
+                {{=it.name}} \
+            </strong> \
+            <span style="margin-left: auto;"> \
+                <span class="block-notification-container"> \
+                    {{=it._block_notification_html}} \
+                </span> \
+            </span> \
+        </div> \
+    </div> \
+</div>')
 
 var dotBlock_IF = doT.template(' \
 <div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
@@ -99,11 +114,9 @@ function initDrawflow() {
 
     editor.on('nodeCreated', function() {
         invalidateContentCache()
-        toggleTriggersDraggableState()
     })
     editor.on('nodeRemoved', function () {
         invalidateContentCache()
-        toggleTriggersDraggableState()
     })
     editor.on('nodeDataChanged', invalidateContentCache)
     editor.on('nodeMoved', invalidateContentCache)
@@ -120,7 +133,7 @@ function initDrawflow() {
         }
     })
     editor.on('keydown', function (evt) {
-        if (evt.keyCode == 67) {
+        if (evt.keyCode == 67 && $drawflow.is(evt.target)) {
             editor.fitCanvas()
         }
     })
@@ -227,6 +240,14 @@ function initDrawflow() {
     fetchAndLoadWorkflow().then(function() {
         graphPooler.start(undefined)
         editor.fitCanvas()
+        // block contextual menu for trigger blocks
+        $canvas.find('.canvas-workflow-block').on('contextmenu', function (evt) {
+            var selectedNode = getSelectedBlock()
+            if (selectedNode !== undefined && selectedNode.data.module_type == 'trigger') {
+                evt.stopPropagation();
+                evt.preventDefault();
+            }
+        })
     })
     $saveWorkflowButton.click(saveWorkflow)
     $importWorkflowButton.click(importWorkflow)
@@ -301,14 +322,9 @@ function revalidateContentCache() {
 
 
 function addNode(block, position) {
-    var module = all_blocks_by_id[block.id]
+    var module = all_blocks_by_id[block.id] || all_triggers_by_id[block.id]
     if (!module) {
         console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
-        return '';
-    }
-    
-    if (editor.registeredTriggers[module.id]) {
-        console.info('Tried to add node for a trigger already registered: ' + module.id)
         return '';
     }
 
@@ -338,50 +354,6 @@ function addNode(block, position) {
         block,
         html
     );
-}
-
-function toggleTriggersDraggableState() {
-    if (editor.isLoading) {
-        return
-    }
-    var data = Object.values(getEditorData())
-    editor.registeredTriggers = {}
-    data.forEach(function(node) {
-        if (node.data.module_type == 'trigger') {
-            editor.registeredTriggers[node.data.id] = true
-        }
-    })
-    $blockContainerTriggers.find('.sidebar-workflow-block')
-        .filter(function () {
-            return !$(this).hasClass('ui-draggable-dragging')
-                && !$(this).data('block').disabled
-        })
-        .draggable('option', { disabled: false })
-        .removeClass(['disabled', 'disabled-one-instance'])
-        .attr('title', '')
-
-    data.forEach(function(node) {
-        if (node.data.module_type == 'trigger') {
-            $blockContainerTriggers.find('#'+node.data.id + '.sidebar-workflow-block')
-                .filter(function () {
-                    return !$(this).hasClass('ui-draggable-dragging')
-                        || $(this).data('block').disabled
-                        || editor.registeredTriggers[$(this).data('block').id] !== undefined
-                })
-                .draggable('option', { disabled: true })
-                .addClass(['disabled', 'disabled-one-instance'])
-                .attr('title', 'Only one instance of this trigger is allowed per workflow')
-                .each(function() {
-                    var block_id = $(this).data('block').id
-                    $chosenBlocks.find('option')
-                        .filter(function() {
-                            return $(this).val() == block_id
-                        })
-                        .prop('disabled', true)
-                    $chosenBlocks.chosen('destroy').chosen()
-                })
-        }
-    })
 }
 
 function getEditorData(cleanInvalidParams) {
@@ -416,7 +388,6 @@ function fetchAndLoadWorkflow() {
             lastModified = workflow.timestamp + '000'
             loadWorkflow(workflow)
             editor.isLoading = false
-            toggleTriggersDraggableState()
             revalidateContentCache()
             resolve()
         })
@@ -425,10 +396,21 @@ function fetchAndLoadWorkflow() {
 
 function loadWorkflow(workflow) {
     editor.clear()
+    if (workflow.data.length == 0) {
+        console.log('stop');
+        var trigger_id = workflow['trigger_id'];
+        if (all_triggers_by_id[trigger_id] === undefined) {
+            console.error('Unknown trigger');
+            showMessage('error', 'Unknown trigger')
+        }
+        var trigger_block = all_triggers_by_id[trigger_id]
+        addNode(trigger_block, {left: 0, top: 0})
+    }
     // We cannot rely on the editor's import function as it recreates the nodes with the saved HTML instead of rebuilding them
     // We have to manually add the nodes and their connections
     Object.values(workflow.data).forEach(function (block) {
-        if (!all_blocks_by_id[block.data.id]) {
+        var module = all_blocks_by_id[block.data.id] || all_triggers_by_id[block.data.id]
+        if (!module) {
             console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
             return '';
         }
@@ -924,7 +906,7 @@ function setParamValueForInput($input, node_data) {
 }
 
 function genBlockNotificationHtml(block) {
-    var module = all_blocks_by_id[block.id]
+    var module = all_blocks_by_id[block.id] || all_triggers_by_id[block.id]
     if (!module) {
         console.error('Tried to get notification of unknown module ' + block.id)
         return '';

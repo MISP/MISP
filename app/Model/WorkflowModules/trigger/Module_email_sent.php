@@ -8,7 +8,7 @@ class Module_email_sent extends WorkflowBaseModule
     public $description = 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.';
     public $icon = 'envelope';
     public $inputs = 0;
-    public $outputs = 2;
+    public $outputs = 1;
 
     public function __construct()
     {

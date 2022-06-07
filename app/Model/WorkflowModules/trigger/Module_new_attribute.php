@@ -8,7 +8,7 @@ class Module_new_attribute extends WorkflowBaseModule
     public $description = 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.';
     public $icon = 'cube';
     public $inputs = 0;
-    public $outputs = 2;
+    public $outputs = 1;
 
     public function __construct()
     {

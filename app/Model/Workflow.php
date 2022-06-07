@@ -15,14 +15,6 @@ class Workflow extends AppModel
     ];
 
     public $belongsTo = [
-        'User' => [
-            'className' => 'User',
-            'foreignKey' => 'user_id',
-        ],
-        'Organisation' => [
-            'className' => 'Organisation',
-            'foreignKey' => 'org_id'
-        ]
     ];
 
     public $validate = [
@@ -55,8 +47,6 @@ class Workflow extends AppModel
     ];
 
     public $defaultContain = [
-        // 'Organisation',
-        // 'User'
     ];
 
     private $loaded_modules = [];
@@ -81,6 +71,11 @@ class Workflow extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
+        if (empty($this->data['Workflow']['uuid'])) {
+            $this->data['Workflow']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['Workflow']['uuid'] = strtolower($this->data['Workflow']['uuid']);
+        }
         if (empty($this->data['Workflow']['data'])) {
             $this->data['Workflow']['data'] = [];
         }
@@ -147,10 +142,10 @@ class Workflow extends AppModel
         return !empty($this->__getWorkflowsIDPerTrigger($trigger_id));
     }
 
-    public function rebuildRedis($user)
+    public function rebuildRedis()
     {
         $redis = $this->setupRedisWithException();
-        $workflows = $this->fetchWorkflows($user);
+        $workflows = $this->fetchWorkflows();
         $keys = $redis->keys(Workflow::REDIS_KEY_WORKFLOW_NAMESPACE . ':*');
         $redis->delete($keys);
         foreach ($workflows as $wokflow) {
@@ -285,79 +280,60 @@ class Workflow extends AppModel
     }
 
     /**
-     * buildACLConditions Generate ACL conditions for viewing the workflow
+     * attachWorkflowToTriggers Collect the workflows listening to this trigger
      *
-     * @param  array $user
-     * @return array
-     */
-    public function buildACLConditions(array $user)
-    {
-        $conditions = [];
-        if (!$user['Role']['perm_site_admin']) {
-            $conditions['Workflow.org_id'] = $user['org_id'];
-        }
-        return $conditions;
-    }
-
-    public function canEdit(array $user, array $workflow)
-    {
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        if (empty($workflow['Workflow'])) {
-            return __('Could not find associated workflow');
-        }
-        if ($workflow['Workflow']['user_id'] != $user['id']) {
-            return __('Only the creator user of the workflow can modify it');
-        }
-        return true;
-    }
-
-    /**
-     * attachWorkflowsToTriggers Collect the workflows listening to this trigger
-     *
-     * @param  array $user
      * @param  array $triggers
-     * @param  bool $group_per_blocking Whether or not the workflows should be grouped together if they have a blocking path set
      * @return array
      */
-    public function attachWorkflowsToTriggers(array $user, array $triggers, bool $group_per_blocking=true): array
+    public function attachWorkflowToTriggers(array $triggers): array
     {
-        $all_workflow_ids = [];
-        $workflows_per_trigger = [];
-        $ordered_workflows_per_trigger = [];
-        foreach ($triggers as $trigger) {
-            $workflow_ids_for_trigger = $this->__getWorkflowsIDPerTrigger($trigger['id']);
-            $workflows_per_trigger[$trigger['id']] = $workflow_ids_for_trigger;
-            $ordered_workflows_per_trigger[$trigger['id']] = $this->__getOrderedWorkflowsPerTrigger($trigger['id']);
-            foreach ($workflow_ids_for_trigger as $id) {
-                $all_workflow_ids[$id] = true;
-            }
-        }
-        $all_workflow_ids = array_keys($all_workflow_ids);
-        $workflows = $this->fetchWorkflows($user, [
+        // $all_workflow_ids = [];
+        // $workflows_per_trigger = [];
+        // $ordered_workflows_per_trigger = [];
+        // foreach ($triggers as $trigger) {
+        //     $workflow_ids_for_trigger = $this->__getWorkflowsIDPerTrigger($trigger['id']);
+        //     $workflows_per_trigger[$trigger['id']] = $workflow_ids_for_trigger;
+        //     $ordered_workflows_per_trigger[$trigger['id']] = $this->__getOrderedWorkflowsPerTrigger($trigger['id']);
+        //     foreach ($workflow_ids_for_trigger as $id) {
+        //         $all_workflow_ids[$id] = true;
+        //     }
+        // }
+        // $all_workflow_ids = array_keys($all_workflow_ids);
+        // $workflows = $this->fetchWorkflows([
+        //     'conditions' => [
+        //         'Workflow.id' => $all_workflow_ids,
+        //     ],
+        //     'fields' => ['*'],
+        // ]);
+        // $workflows = Hash::combine($workflows, '{n}.Workflow.id', '{n}');
+        // foreach ($triggers as $i => $trigger) {
+        //     $workflow_ids = $workflows_per_trigger[$trigger['id']];
+        //     $ordered_workflow_ids = $ordered_workflows_per_trigger[$trigger['id']];
+        //     $triggers[$i]['Workflows'] = [];
+        //     foreach ($workflow_ids as $workflow_id) {
+        //         $triggers[$i]['Workflows'][] = $workflows[$workflow_id];
+        //     }
+        //     if (!empty($group_per_blocking)) {
+        //         $triggers[$i]['GroupedWorkflows'] = $this->groupWorkflowsPerBlockingType($triggers[$i]['Workflows'], $trigger['id'], $ordered_workflow_ids);
+        //     }
+        // }
+        // return $triggers;
+        $workflows = $this->fetchWorkflows([
             'conditions' => [
-                'Workflow.id' => $all_workflow_ids,
+                'Workflow.trigger_id' => Hash::extract($triggers, '{n}.id'),
             ],
             'fields' => ['*'],
-            'contain' => ['Organisation' => ['fields' => ['*']]],
         ]);
-        $workflows = Hash::combine($workflows, '{n}.Workflow.id', '{n}');
+        $workflows_per_trigger = Hash::combine($workflows, '{n}.Workflow.trigger_id', '{n}');
         foreach ($triggers as $i => $trigger) {
-            $workflow_ids = $workflows_per_trigger[$trigger['id']];
-            $ordered_workflow_ids = $ordered_workflows_per_trigger[$trigger['id']];
-            $triggers[$i]['Workflows'] = [];
-            foreach ($workflow_ids as $workflow_id) {
-                $triggers[$i]['Workflows'][] = $workflows[$workflow_id];
-            }
-            if (!empty($group_per_blocking)) {
-                $triggers[$i]['GroupedWorkflows'] = $this->groupWorkflowsPerBlockingType($triggers[$i]['Workflows'], $trigger['id'], $ordered_workflow_ids);
+            if (!empty($workflows_per_trigger[$trigger['id']])) {
+                $triggers[$i]['Workflow'] = $workflows_per_trigger[$trigger['id']]['Workflow'];
             }
         }
         return $triggers;
     }
 
-    public function fetchWorkflowsForTrigger($user, $trigger_id, $filterDisabled=false): array
+    public function fetchWorkflowsForTrigger($trigger_id, $filterDisabled=false): array
     {
         $workflow_ids_for_trigger = $this->__getWorkflowsIDPerTrigger($trigger_id);
         $conditions = [
@@ -366,10 +342,9 @@ class Workflow extends AppModel
         if (!empty($filterDisabled)) {
             $conditions['Workflow.enabled'] = true;
         }
-        $workflows = $this->fetchWorkflows($user, [
+        $workflows = $this->fetchWorkflows([
             'conditions' => $conditions,
             'fields' => ['*'],
-            'contain' => ['Organisation' => ['fields' => ['*']], 'User' => ['Role']],
         ]);
         return $workflows;
     }
@@ -377,16 +352,15 @@ class Workflow extends AppModel
     /**
      * getExecutionOrderForTrigger Generate the execution order for the provided trigger
      *
-     * @param  array $user
      * @param  array $trigger
      * @return array
      */
-    public function getExecutionOrderForTrigger(array $user, array $trigger, $filterDisabled=false): array
+    public function getExecutionOrderForTrigger(array $trigger, $filterDisabled=false): array
     {
         if (empty($trigger)) {
             return ['blocking' => [], 'non-blocking' => [] ];
         }
-        $workflows = $this->fetchWorkflowsForTrigger($user, $trigger['id'], $filterDisabled);
+        $workflows = $this->fetchWorkflowsForTrigger($trigger['id'], $filterDisabled);
         $ordered_workflow_ids = $this->__getOrderedWorkflowsPerTrigger($trigger['id']);
         return $this->groupWorkflowsPerBlockingType($workflows, $trigger['id'], $ordered_workflow_ids);
     }
@@ -469,7 +443,6 @@ class Workflow extends AppModel
     {
         $this->loadAllWorkflowModules();
 
-        $user = ['Role' => ['perm_site_admin' => true]];
         if (empty($this->loaded_modules['trigger'][$trigger_id])) {
             throw new TriggerNotFoundException(__('Unknown trigger `%s`', $trigger_id));
         }
@@ -479,13 +452,13 @@ class Workflow extends AppModel
         }
         
         $blockingPathExecutionSuccess = true;
-        $workflowExecutionOrder = $this->getExecutionOrderForTrigger($user, $trigger, true);
+        $workflowExecutionOrder = $this->getExecutionOrderForTrigger($trigger, true);
         $orderedBlockingWorkflows = $workflowExecutionOrder['blocking'];
         $orderedDeferredWorkflows = $workflowExecutionOrder['non-blocking'];
         foreach ($orderedBlockingWorkflows as $workflow) {
             $walkResult = [];
             $continueExecution = $this->walkGraph($workflow, $trigger_id, 'blocking', $data, $blockingErrors, $walkResult);
-            $this->loadLog()->createLogEntry($this->User->getAuthUser($workflow['User']['id']), 'walkGraph', 'Workflow', $workflow['Workflow']['id'], __('Executed blocking path for trigger `%s`', $trigger_id), $this->digestExecutionResult($walkResult));
+            // $this->loadLog()->createLogEntry($this->User->getAuthUser($workflow['User']['id']), 'walkGraph', 'Workflow', $workflow['Workflow']['id'], __('Executed blocking path for trigger `%s`', $trigger_id), $this->digestExecutionResult($walkResult));
             if (!$continueExecution) {
                 $blockingPathExecutionSuccess = false;
                 break;
@@ -495,7 +468,7 @@ class Workflow extends AppModel
             $deferredErrors = [];
             $walkResult = [];
             $this->walkGraph($workflow, $trigger_id, 'non-blocking',  $data, $deferredErrors, $walkResult);
-            $this->loadLog()->createLogEntry($this->User->getAuthUser($workflow['User']['id']), 'walkGraph', 'Workflow', $workflow['Workflow']['id'], __('Executed non-blocking path for trigger `%s`', $trigger_id), $this->digestExecutionResult($walkResult));
+            // $this->loadLog()->createLogEntry($this->User->getAuthUser($workflow['User']['id']), 'walkGraph', 'Workflow', $workflow['Workflow']['id'], __('Executed non-blocking path for trigger `%s`', $trigger_id), $this->digestExecutionResult($walkResult));
         }
         return $blockingPathExecutionSuccess;
     }
@@ -527,7 +500,7 @@ class Workflow extends AppModel
             'Executed nodes' => [],
             'Nodes that stopped execution' => [],
         ];
-        $workflowUser = $this->User->getAuthUser($workflow['Workflow']['user_id'], true);
+        // $workflowUser = $this->User->getAuthUser($workflow['Workflow']['user_id'], true);
         $roamingData = $this->workflowGraphTool->getRoamingData($workflowUser, $data);
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $startNode = $this->workflowGraphTool->getNodeIdForTrigger($graphData, $trigger_id);
@@ -604,7 +577,7 @@ class Workflow extends AppModel
         return $moduleClass;
     }
 
-    public function attachNotificationToModules(array $user, array $modules, array $workflow): array
+    public function attachNotificationToModules(array $modules, array $workflow): array
     {
         foreach ($modules as $moduleType => $modulesByType) {
             foreach ($modulesByType as $i => $module) {
@@ -612,24 +585,6 @@ class Workflow extends AppModel
                     'error' => [],
                     'warning' => [],
                     'info' => [],
-                ];
-            }
-        }
-        $triggers = $modules['blocks_trigger'];
-        foreach ($triggers as $i => $trigger) {
-            $blockingExecutionOrder = $this->getExecutionOrderForTrigger($user, $trigger, true)['blocking'];
-            $blockingExecutionOrderIDs = Hash::extract($blockingExecutionOrder, '{n}.Workflow.id');
-            $indexInExecutionPath = array_search($workflow['Workflow']['id'], $blockingExecutionOrderIDs);
-            $effectiveBlockingExecutionOrder = array_slice($blockingExecutionOrder, 0, $indexInExecutionPath);
-            $details = [];
-            foreach ($effectiveBlockingExecutionOrder as $workflow) {
-                $details[] = sprintf('[%s] %s', h($workflow['Workflow']['id']), h($workflow['Workflow']['name']));
-            }
-            if (!empty($effectiveBlockingExecutionOrder)) {
-                $modules['blocks_trigger'][$i]['notifications']['warning'][] = [
-                    'text' => __('%s blocking worflows are executed before this trigger.', count($effectiveBlockingExecutionOrder)),
-                    'description' => __('The blocking path of this trigger might not be executed. If any of the blocking workflows stop the propagation, the blocking path of this trigger will not be executed. Nevertheless, the deferred path will always be executed.'),
-                    'details' => $details,
                 ];
             }
         }
@@ -650,8 +605,7 @@ class Workflow extends AppModel
             $this->loaded_modules[$type] = $classModuleFromFiles['classConfigs'];
             $this->loaded_classes[$type] = $classModuleFromFiles['instancedClasses'];
         }
-        $superUser = ['Role' => ['perm_site_admin' => true]];
-        $modules_from_service = $this->__getModulesFromModuleService($superUser) ?? [];
+        $modules_from_service = $this->__getModulesFromModuleService() ?? [];
         $misp_module_class = $this->__getClassForMispModule($modules_from_service);
         $misp_module_configs = [];
         foreach ($misp_module_class as $i => $module_class) {
@@ -687,12 +641,12 @@ class Workflow extends AppModel
         /* FIXME: end */
     }
 
-    private function __getEnabledModulesFromModuleService($user)
+    private function __getEnabledModulesFromModuleService()
     {
         if (empty($this->Module)) {
             $this->Module = ClassRegistry::init('Module');
         }
-        $enabledModules = $this->Module->getEnabledModules($user, null, 'Action');
+        $enabledModules = $this->Module->getEnabledModules(null, 'Action');
         $misp_module_config = empty($enabledModules) ? false : $enabledModules;
         return $misp_module_config;
     }
@@ -848,8 +802,8 @@ class Workflow extends AppModel
             'blocks_action' => $blocks_action,
         ];
         if (!empty($module_type)) {
-            if (!empty($modules[$module_type])) {
-                return $modules['block_' . $module_type];
+            if (!empty($modules['blocks_' . $module_type])) {
+                return $modules['blocks_' . $module_type];
             } else {
                 return [];
             }
@@ -890,17 +844,15 @@ class Workflow extends AppModel
     }
 
     /**
-     * fetchWorkflows ACL-aware method. Basically find with ACL
+     * fetchWorkflows
      *
-     * @param  array $user
      * @param  array $options
      * @param  bool  $full
      * @return array
      */
-    public function fetchWorkflows(array $user, array $options = array(), $full = false)
+    public function fetchWorkflows(array $options = array(), $full = false)
     {
         $params = array(
-            'conditions' => $this->buildACLConditions($user),
             'contain' => $this->defaultContain,
             'recursive' => -1
         );
@@ -927,29 +879,55 @@ class Workflow extends AppModel
     }
 
     /**
-     * fetchWorkflow ACL-aware method. Basically find with ACL
+     * fetchWorkflow
      *
-     * @param  array $user
      * @param  int|string $id
      * @param  bool $throwErrors
+     * @throws NotFoundException
      * @return array
      */
-    public function fetchWorkflow(array $user, $id, bool $throwErrors = true)
+    public function fetchWorkflow($id, bool $throwErrors = true): array
     {
         $options = [];
         if (is_numeric($id)) {
-            $options = ['conditions' => ["Workflow.id" => $id]];
+            $options = ['conditions' => ['Workflow.id' => $id]];
         } elseif (Validation::uuid($id)) {
-            $options = ['conditions' => ["Workflow.uuid" => $id]];
+            $options = ['conditions' => ['Workflow.uuid' => $id]];
         } else {
             if ($throwErrors) {
                 throw new NotFoundException(__('Invalid workflow'));
             }
             return [];
         }
-        $workflow = $this->fetchWorkflows($user, $options);
+        $workflow = $this->fetchWorkflows($options);
         if (empty($workflow)) {
-            throw new NotFoundException(__('Invalid workflow'));
+            if ($throwErrors) {
+                throw new NotFoundException(__('Invalid workflow'));
+            }
+            return [];
+        }
+        return $workflow[0];
+    }
+
+    /**
+     * fetchWorkflowByTrigger
+     *
+     * @param  int|string $id
+     * @param  bool $throwErrors
+     * @throws NotFoundException
+     * @return array
+     */
+    public function fetchWorkflowByTrigger($trigger_id, bool $throwErrors = true): array
+    {
+        $options = ['conditions' => [
+            'Workflow.trigger_id' => $trigger_id,
+        ]];
+        $workflow = $this->fetchWorkflows($options);
+        if (empty($workflow)) {
+            if ($throwErrors) {
+                throw new NotFoundException(__('Invalid workflow'));
+            }
+            return [];
         }
         return $workflow[0];
     }
@@ -957,18 +935,17 @@ class Workflow extends AppModel
     /**
      * editWorkflow Edit a worflow
      *
-     * @param  array $user
      * @param  array $workflow
      * @return array Any errors preventing the edition
      */
-    public function editWorkflow(array $user, array $workflow)
+    public function editWorkflow(array $workflow)
     {
         $errors = array();
         if (!isset($workflow['Workflow']['uuid'])) {
             $errors[] = __('Workflow doesn\'t have an UUID');
             return $errors;
         }
-        $existingWorkflow = $this->fetchWorkflow($user, $workflow['Workflow']['id']);
+        $existingWorkflow = $this->fetchWorkflow($workflow['Workflow']['id']);
         $workflow['Workflow']['id'] = $existingWorkflow['Workflow']['id'];
         unset($workflow['Workflow']['timestamp']);
         $errors = $this->__saveAndReturnErrors($workflow, ['fieldList' => self::CAPTURE_FIELDS], $errors);
@@ -978,16 +955,15 @@ class Workflow extends AppModel
     /**
      * fetchWorkflow ACL-aware method. Basically find with ACL
      *
-     * @param  array $user
      * @param  int|string $id
      * @param  bool $enable
      * @param  bool $throwErrors
      * @return array
      */
-    public function toggleWorkflow(array $user, $id, $enable=true, bool $throwErrors=true)
+    public function toggleWorkflow($id, $enable=true, bool $throwErrors=true)
     {
         $errors = array();
-        $workflow = $this->fetchWorkflow($user, $id, $throwErrors);
+        $workflow = $this->fetchWorkflow($id, $throwErrors);
         $workflow['Workflow']['enabled'] = $enable;
         $errors = $this->__saveAndReturnErrors($workflow, ['fieldList' => ['enabled']], $errors);
         return $errors;
