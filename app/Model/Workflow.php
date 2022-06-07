@@ -680,7 +680,7 @@ class Workflow extends AppModel
             $this->loaded_classes['logic'][$logic['id']]->disabled = $module_enabled;
         });
         array_walk($this->loaded_modules['action'], function (&$action) {
-            $module_enabled = !in_array($action['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', 'writeactions', 'enrich-event', 'testaction', ]);
+            $module_enabled = !in_array($action['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', 'writeactions', 'enrich-event', 'testaction', 'stop-execution', ]);
             $action['disabled'] = $module_enabled;
             $this->loaded_classes['action'][$action['id']]->disabled = $module_enabled;
         });
