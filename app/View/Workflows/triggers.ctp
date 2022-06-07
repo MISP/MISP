@@ -15,7 +15,7 @@
             'data_path' => 'description',
         ],
         [
-            'name' => __('Module Enabled'),
+            'name' => __('Trigger Enabled'),
             'sort' => 'disabled',
             'class' => 'short',
             'data_path' => 'disabled',

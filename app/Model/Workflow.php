@@ -39,9 +39,9 @@ class Workflow extends AppModel
                 'rule' => ['hasAcyclicGraph'],
                 'message' => 'Cannot save a workflow containing a cycle',
             ],
-            'MoreThanOneTriggerInstance' => [
-                'rule' => ['MoreThanOneTriggerInstance'],
-                'message' => 'Cannot save a workflow containing more than one instance of the same trigger',
+            'hasOneTrigger' => [
+                'rule' => ['hasOneTrigger'],
+                'message' => 'Cannot save a workflow containing more than one trigger',
             ]
         ]
     ];
@@ -59,7 +59,6 @@ class Workflow extends AppModel
     const MODULE_ROOT_PATH = APP . 'Model/WorkflowModules/';
     const REDIS_KEY_WORKFLOW_NAMESPACE = 'workflow';
     const REDIS_KEY_WORKFLOW_PER_TRIGGER = 'workflow:workflow_list:%s';
-    const REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER = 'workflow:workflow_blocking_order_list:%s';
     const REDIS_KEY_TRIGGER_PER_WORKFLOW = 'workflow:trigger_list:%s';
 
     public function __construct($id = false, $table = null, $ds = null)
@@ -183,7 +182,6 @@ class Workflow extends AppModel
             foreach ($trigger_to_remove as $trigger_id) {
                 $pipeline->sRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
                 $pipeline->sRem(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
-                $pipeline->lRem(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), $workflow['Workflow']['id'], 0);
             }
             $pipeline->exec();
         }
@@ -191,14 +189,11 @@ class Workflow extends AppModel
             $pipeline = $redis->multi();
             foreach ($trigger_to_add as $trigger_id) {
                 if (
-                    $this->workflowGraphTool->triggerHasNonBlockingPath($new_node_trigger_list_per_id[$trigger_id])
-                    || $this->workflowGraphTool->triggerHasBlockingPath($new_node_trigger_list_per_id[$trigger_id])
+                    $this->workflowGraphTool->triggerHasNonBlockingPath($new_node_trigger_list_per_id[$trigger_id]) ||
+                    $this->workflowGraphTool->triggerHasBlockingPath($new_node_trigger_list_per_id[$trigger_id])
                 ) {
                     $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
                     $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
-                    if ($this->workflowGraphTool->triggerHasBlockingPath($new_node_trigger_list_per_id[$trigger_id])) {
-                        $pipeline->rPush(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
-                    }
                 }
             }
             $pipeline->exec();
@@ -223,22 +218,6 @@ class Workflow extends AppModel
     }
 
     /**
-     * __getOrderedWorkflowsPerTrigger Get list of workflow IDs in the execution order for the specified trigger
-     *
-     * @param  string $trigger_id
-     * @return bool|array
-     */
-    private function __getOrderedWorkflowsPerTrigger($trigger_id)
-    {
-        try {
-            $redis = $this->setupRedisWithException();
-        } catch (Exception $e) {
-            return false;
-        }
-        return $redis->lRange(sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id), 0, -1);
-    }
-
-    /**
      * __getTriggersIDPerWorkflow Get list of trigger name running to the specified workflow
      *
      * @param  int $workflow_id
@@ -255,31 +234,6 @@ class Workflow extends AppModel
     }
 
     /**
-     * saveBlockingWorkflowExecutionOrder Save the workflow execution order for the provided trigger
-     *
-     * @param  string $trigger_id
-     * @param  array $workflows List of workflow IDs in priority order
-     * @return bool
-     */
-    public function saveBlockingWorkflowExecutionOrder($trigger_id, array $workflow_order): bool
-    {
-        try {
-            $redis = $this->setupRedisWithException();
-        } catch (Exception $e) {
-            $this->logException('Failed to setup redis ', $e);
-            return false;
-        }
-        $key = sprintf(Workflow::REDIS_KEY_WORKFLOW_ORDER_PER_BLOCKING_TRIGGER, $trigger_id);
-        $pipeline = $redis->multi();
-        $pipeline->del($key);
-        foreach ($workflow_order as $workflow_id) {
-            $pipeline->rpush($key, (string)$workflow_id);
-        }
-        $pipeline->exec();
-        return true;
-    }
-
-    /**
      * attachWorkflowToTriggers Collect the workflows listening to this trigger
      *
      * @param  array $triggers
@@ -287,37 +241,6 @@ class Workflow extends AppModel
      */
     public function attachWorkflowToTriggers(array $triggers): array
     {
-        // $all_workflow_ids = [];
-        // $workflows_per_trigger = [];
-        // $ordered_workflows_per_trigger = [];
-        // foreach ($triggers as $trigger) {
-        //     $workflow_ids_for_trigger = $this->__getWorkflowsIDPerTrigger($trigger['id']);
-        //     $workflows_per_trigger[$trigger['id']] = $workflow_ids_for_trigger;
-        //     $ordered_workflows_per_trigger[$trigger['id']] = $this->__getOrderedWorkflowsPerTrigger($trigger['id']);
-        //     foreach ($workflow_ids_for_trigger as $id) {
-        //         $all_workflow_ids[$id] = true;
-        //     }
-        // }
-        // $all_workflow_ids = array_keys($all_workflow_ids);
-        // $workflows = $this->fetchWorkflows([
-        //     'conditions' => [
-        //         'Workflow.id' => $all_workflow_ids,
-        //     ],
-        //     'fields' => ['*'],
-        // ]);
-        // $workflows = Hash::combine($workflows, '{n}.Workflow.id', '{n}');
-        // foreach ($triggers as $i => $trigger) {
-        //     $workflow_ids = $workflows_per_trigger[$trigger['id']];
-        //     $ordered_workflow_ids = $ordered_workflows_per_trigger[$trigger['id']];
-        //     $triggers[$i]['Workflows'] = [];
-        //     foreach ($workflow_ids as $workflow_id) {
-        //         $triggers[$i]['Workflows'][] = $workflows[$workflow_id];
-        //     }
-        //     if (!empty($group_per_blocking)) {
-        //         $triggers[$i]['GroupedWorkflows'] = $this->groupWorkflowsPerBlockingType($triggers[$i]['Workflows'], $trigger['id'], $ordered_workflow_ids);
-        //     }
-        // }
-        // return $triggers;
         $workflows = $this->fetchWorkflows([
             'conditions' => [
                 'Workflow.trigger_id' => Hash::extract($triggers, '{n}.id'),
@@ -331,69 +254,6 @@ class Workflow extends AppModel
             }
         }
         return $triggers;
-    }
-
-    public function fetchWorkflowsForTrigger($trigger_id, $filterDisabled=false): array
-    {
-        $workflow_ids_for_trigger = $this->__getWorkflowsIDPerTrigger($trigger_id);
-        $conditions = [
-            'Workflow.id' => $workflow_ids_for_trigger,
-        ];
-        if (!empty($filterDisabled)) {
-            $conditions['Workflow.enabled'] = true;
-        }
-        $workflows = $this->fetchWorkflows([
-            'conditions' => $conditions,
-            'fields' => ['*'],
-        ]);
-        return $workflows;
-    }
-
-    /**
-     * getExecutionOrderForTrigger Generate the execution order for the provided trigger
-     *
-     * @param  array $trigger
-     * @return array
-     */
-    public function getExecutionOrderForTrigger(array $trigger, $filterDisabled=false): array
-    {
-        if (empty($trigger)) {
-            return ['blocking' => [], 'non-blocking' => [] ];
-        }
-        $workflows = $this->fetchWorkflowsForTrigger($trigger['id'], $filterDisabled);
-        $ordered_workflow_ids = $this->__getOrderedWorkflowsPerTrigger($trigger['id']);
-        return $this->groupWorkflowsPerBlockingType($workflows, $trigger['id'], $ordered_workflow_ids);
-    }
-
-    /**
-     * groupWorkflowsPerBlockingType Group workflows together if they have a blocking path set or not. Also, sort the blocking list based on execution order
-     *
-     * @param  array $workflows
-     * @param  string $trigger_id The trigger for which we should decide if it's blocking or not
-     * @param  array $ordered_workflow_ids If provided, will sort the blocking workflows based on the workflow_id order in of the provided list
-     * @return array
-     */
-    public function groupWorkflowsPerBlockingType(array $workflows, $trigger_id, $ordered_workflow_ids=false): array
-    {
-        $groupedWorkflows = [
-            'blocking' => [],
-            'non-blocking' => [],
-        ];
-        foreach ($workflows as $workflow) {
-            foreach ($workflow['Workflow']['data'] as $block) {
-                if ($block['data']['id'] == $trigger_id) {
-                    if ($this->workflowGraphTool->triggerHasBlockingPath($block)) {
-                        $order_index = array_search($workflow['Workflow']['id'], $ordered_workflow_ids);
-                        $groupedWorkflows['blocking'][$order_index] = $workflow;
-                    }
-                    if ($this->workflowGraphTool->triggerHasNonBlockingPath($block)) {
-                        $groupedWorkflows['non-blocking'][] = $workflow;
-                    }
-                }
-            }
-        }
-        ksort($groupedWorkflows['blocking']);
-        return $groupedWorkflows;
     }
 
     /**
@@ -411,23 +271,16 @@ class Workflow extends AppModel
     }
 
     /**
-     * MoreThanOneTriggerInstance Return if the graph contain more than one instance of the same trigger
+     * hasOneTrigger Return if the graph contain more than one instance of the same trigger
      *
      * @param array $graphData
      * @return boolean
      */
-    public function MoreThanOneTriggerInstance(array $workflow): bool
+    public function hasOneTrigger(array $workflow): bool
     {
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $triggers = $this->workflowGraphTool->extractTriggersFromWorkflow($graphData, true);
-        $visitedTriggerIDs = [];
-        foreach ($triggers as $trigger) {
-            if (!empty($visitedTriggerIDs[$trigger['data']['id']])) {
-                return false;
-            }
-            $visitedTriggerIDs[$trigger['data']['id']] = true;
-        }
-        return true;
+        return count($triggers) == 1;
     }
 
     /**
@@ -452,24 +305,9 @@ class Workflow extends AppModel
         }
         
         $blockingPathExecutionSuccess = true;
-        $workflowExecutionOrder = $this->getExecutionOrderForTrigger($trigger, true);
-        $orderedBlockingWorkflows = $workflowExecutionOrder['blocking'];
-        $orderedDeferredWorkflows = $workflowExecutionOrder['non-blocking'];
-        foreach ($orderedBlockingWorkflows as $workflow) {
-            $walkResult = [];
-            $continueExecution = $this->walkGraph($workflow, $trigger_id, 'blocking', $data, $blockingErrors, $walkResult);
-            // $this->loadLog()->createLogEntry($this->User->getAuthUser($workflow['User']['id']), 'walkGraph', 'Workflow', $workflow['Workflow']['id'], __('Executed blocking path for trigger `%s`', $trigger_id), $this->digestExecutionResult($walkResult));
-            if (!$continueExecution) {
-                $blockingPathExecutionSuccess = false;
-                break;
-            }
-        }
-        foreach ($orderedDeferredWorkflows as $workflow) {
-            $deferredErrors = [];
-            $walkResult = [];
-            $this->walkGraph($workflow, $trigger_id, 'non-blocking',  $data, $deferredErrors, $walkResult);
-            // $this->loadLog()->createLogEntry($this->User->getAuthUser($workflow['User']['id']), 'walkGraph', 'Workflow', $workflow['Workflow']['id'], __('Executed non-blocking path for trigger `%s`', $trigger_id), $this->digestExecutionResult($walkResult));
-        }
+        $workflow = $this->fetchWorkflowByTrigger($trigger, true);
+        $walkResult = [];
+        $this->walkGraph($workflow, $trigger_id, 'all', $data, $blockingErrors, $walkResult);
         return $blockingPathExecutionSuccess;
     }
 

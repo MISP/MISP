@@ -244,16 +244,20 @@
     display: block;
 }
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output::after {
-    color: white;
+    color: black;
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
     position: absolute;
-    top: -4px;
-    width: 12px;
+    top: -3px;
+    width: 14px;
     font-size: x-small;
     text-align: center;
     transition-property: width,top,font-size;
     transition-duration: .1s
+}
+.drawflow .drawflow-node.block-type-trigger > .outputs > .output:hover {
+    width: 18px;
+    height: 18px;
 }
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output:hover::after {
     font-size: larger;
@@ -262,18 +266,20 @@
 }
 
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output_1 {
-    background-color: #73a2c9;
+    background-color: #fff;
+    height: 14px;
+    width: 14px;
 }
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output_1::before {
-    content: 'Listen';
+    content: 'Listen to this trigger';
     top: -26px;
 }
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output_1::after {
-    content: "\f025";
-    font-size: 9px;
+    content: "\f024";
+    font-size: 11px;
 }
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output_1:hover::after {
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .drawflow .drawflow-node.block-type-IF > .outputs > .output::before {

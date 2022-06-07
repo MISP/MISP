@@ -424,7 +424,7 @@
                     ),
                     array(
                         'text' => __('Workflows'),
-                        'url' => $baseurl . '/workflows/index',
+                        'url' => $baseurl . '/workflows/triggers',
                         'requirement' => $isSiteAdmin
                     ),
                     array(

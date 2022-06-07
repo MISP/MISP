@@ -9,9 +9,9 @@ $triggerModules = $modules['blocks_trigger'];
 <div class="root-container">
     <div class="main-container">
         <div class="side-panel">
-            <a href="<?= $baseurl . '/workflows/index' ?>">
+            <a href="<?= $baseurl . '/workflows/triggers' ?>">
                 <i class="fa-fw <?= $this->FontAwesome->getClass('caret-left') ?>"></i>
-                <?= __('Workflow index') ?>
+                <?= __('Trigger index') ?>
             </a>
             <h3>
                 <span style="font-weight:normal;"><?= __('Workflows:') ?></span>

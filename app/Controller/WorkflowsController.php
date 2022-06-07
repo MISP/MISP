@@ -253,37 +253,6 @@ class WorkflowsController extends AppController
         return $this->response;
     }
 
-    public function rearrangeExecutionOrder($trigger_id)
-    {
-        $trigger = $this->Workflow->getModuleByID($trigger_id);
-        if (empty($trigger)) {
-            throw new NotFoundException(__('Invalid trigger ID'));
-        }
-        $trigger = $this->Workflow->attachWorkflowToTriggers([$trigger])[0];
-        $workflow_order = [];
-        if (!empty($trigger['Workflows']['blocking'])) {
-            $workflow_order = Hash::extract($trigger['Workflows']['blocking'], '{n}.Workflow.id');
-        }
-        if ($this->request->is('post') || $this->request->is('put')) {
-            $workflow_order = array_unique(JsonTool::decode($this->request->data['Workflow']['workflow_order']));
-            $saved = $this->Workflow->saveBlockingWorkflowExecutionOrder($trigger['id'], $workflow_order);
-            $redirectTarget = ['action' => 'moduleView', $trigger_id];
-            if (empty($saved)) {
-                return $this->__getFailResponseBasedOnContext([__('Could not save workflow execution order.')], null, 'rearrangeExecutionOrder', $trigger_id, $redirectTarget);
-            } else {
-                $successMessage = __('Workflow execution order saved.');
-                return $this->__getSuccessResponseBasedOnContext($successMessage, $workflow_order, 'rearrangeExecutionOrder', false, $redirectTarget);
-            }
-        } else {
-            $this->request->data = [
-                'Workflow' => [
-                    'workflow_order' => JsonTool::encode($workflow_order),
-                ]
-            ];
-        }
-        $this->set('trigger', $trigger);
-    }
-
     private function __getSuccessResponseBasedOnContext($message, $data = null, $action = '', $id = false, $redirect = array())
     {
         if ($this->_isRest()) {
