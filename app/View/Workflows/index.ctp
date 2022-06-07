@@ -6,20 +6,9 @@
             'data_path' => 'Workflow.id',
         ],
         [
-            'name' => __('Owner Org'),
-            'sort' => 'Organisation',
-            'data_path' => 'Organisation',
-            'element' => 'org',
-        ],
-        [
             'name' => __('Name'),
             'sort' => 'Workflow.name',
             'data_path' => 'Workflow.name',
-        ],
-        [
-            'name' => __('Description'),
-            'sort' => 'Workflow.description',
-            'data_path' => 'Workflow.description',
         ],
         [
             'name' => __('Run counter'),

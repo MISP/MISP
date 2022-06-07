@@ -4,6 +4,7 @@ App::uses('WorkflowGraphTool', 'Tools');
 
 class WorkflowDuplicatedModuleIDException extends Exception {}
 class TriggerNotFoundException extends Exception {}
+class WorkflowNotFoundException extends Exception {}
 
 class Workflow extends AppModel
 {
@@ -304,22 +305,14 @@ class Workflow extends AppModel
             return true;
         }
         
-        $blockingPathExecutionSuccess = true;
         $workflow = $this->fetchWorkflowByTrigger($trigger, true);
+        if (empty($workflow)) {
+            throw new WorkflowNotFoundException(__('Could not get workflow for trigger `%s`', $trigger_id));
+        }
         $walkResult = [];
-        $this->walkGraph($workflow, $trigger_id, 'all', $data, $blockingErrors, $walkResult);
+        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $trigger_id, 'all', $data, $blockingErrors, $walkResult);
         return $blockingPathExecutionSuccess;
     }
-
-    // public function executeWorkflow($id, array $data=[])
-    // {
-    //     $user = ['Role' => ['perm_site_admin' => true]];
-    //     $workflow = $this->fetchWorkflow($user, $id);
-    //     $trigger_ids = $this->workflowGraphTool->extractTriggersFromWorkflow($workflow['Workflow']['data'], false);
-    //     foreach ($trigger_ids as $trigger_id) {
-    //         $this->walkGraph($workflow, $trigger_id, null, $data);
-    //     }
-    // }
 
     /**
      * walkGraph Walk the graph for the provided trigger and execute each nodes
