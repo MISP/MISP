@@ -118,14 +118,20 @@ class UsersController extends AppController
         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')), 'status'=>200, 'type' => 'json'));
     }
 
-    public function unsubscribe()
+    public function unsubscribe($code)
     {
         $user = $this->Auth->user();
+
+        if (!hash_equals($this->User->unsubscribeCode($user), rtrim($code, '.'))) {
+            $this->Flash->error(__('Invalid unsubscribe code.'));
+            $this->redirect(['action' => 'view', 'me']);
+        }
+
         if ($user['autoalert']) {
             $this->User->updateField($this->Auth->user(), 'autoalert', false);
-            $this->Flash->info('Already unsubscribed from event alert.');
+            $this->Flash->success(__('Successfully unsubscribed from event alert.'));
         } else {
-            $this->Flash->info('Successfully unsubscribed from event alert.');
+            $this->Flash->info(__('Already unsubscribed from event alert.'));
         }
         $this->redirect(['action' => 'view', 'me']);
     }
