@@ -37,34 +37,6 @@ class WorkflowsController extends AppController
         $this->Workflow->rebuildRedis();
     }
 
-    public function add()
-    {
-        $params = [
-            'beforeSave' => function ($data) {
-                if (empty($data['Workflow']['uuid'])) {
-                    $data['Workflow']['uuid'] = CakeText::uuid();
-                }
-                if (!isset($data['Workflow']['description'])) {
-                    $data['Workflow']['description'] = '';
-                }
-                if (!empty($data['Workflow']['data'])) {
-                    $data['Workflow']['data'] = JsonTool::decode($data['Workflow']['data']);
-                } else {
-                    $data['Workflow']['data'] = [];
-                }
-                return $data;
-            },
-            'redirect' => [
-                'action' => 'index',
-            ]
-        ];
-        $this->CRUD->add($params);
-        if ($this->restResponsePayload) {
-            return $this->restResponsePayload;
-        }
-        $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'add'));
-    }
-
     public function edit($id)
     {
         $this->set('id', $id);

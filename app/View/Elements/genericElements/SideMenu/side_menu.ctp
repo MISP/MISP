@@ -1623,18 +1623,6 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     'url' => '/workflows/moduleIndex',
                     'text' => __('List Modules')
                 ));
-                if ($isSiteAdmin) {
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'add',
-                        'text' => __('Add Workflow'),
-                        'url' => '/workflows/add',
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'import',
-                        'text' => __('Import Workflow'),
-                        'url' => '/workflows/import',
-                    ));
-                }
                 if ($menuItem === 'view' || $menuItem === 'edit') {
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'view',

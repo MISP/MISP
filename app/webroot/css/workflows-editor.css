@@ -196,6 +196,70 @@
 
 
 /* Custom input/output CSS */
+.drawflow .drawflow-node > .inputs > .input::before {
+    line-height: var(--dfInputHeight);
+    vertical-align: top;
+    text-align: end;
+    top: 0px;
+    right: 20px;
+    position: absolute;
+    white-space: nowrap;
+    width: fit-content;
+    transition-property: right, top;
+    transition-duration: .1s;
+}
+
+.drawflow .drawflow-node > .inputs > .input_1:hover::before {
+    top: 3px;
+    right: 23px;
+    font-weight: bold;
+}
+.drawflow .drawflow-node.block-type-default > .inputs > .input::before {
+    display: none;
+    transform: translateX(calc(50% - 8px));
+    right: 0;
+    padding: 0.25em 0.5em;
+    background-color: #fff;
+    border: 1px solid #cdcdcd;
+    border-radius: 3px;
+}
+
+.drawflow .drawflow-node.block-type-default > .inputs > .input:hover::before {
+    display: block;
+}
+.drawflow .drawflow-node.block-type-default > .inputs > .input::after {
+    color: black;
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    top: -4px;
+    width: 14px;
+    font-size: x-small;
+    text-align: center;
+    transition-property: width,top,font-size;
+    transition-duration: .1s
+}
+.drawflow .drawflow-node.block-type-default > .inputs > .input:hover::after {
+    font-size: larger;
+    width: 20px;
+    top: -1px;
+}
+.drawflow .drawflow-node.block-type-default > .inputs > .input_1 {
+    background-color: #fff;
+}
+.drawflow .drawflow-node.block-type-default > .inputs > .input_1::before {
+    content: 'Input';
+    top: -26px;
+}
+.drawflow .drawflow-node.block-type-default > .inputs > .input_1::after {
+    content: "\f061";
+    font-size: 9px;
+}
+.drawflow .drawflow-node.block-type-default > .inputs > .input_1:hover::after {
+    font-size: 14px;
+}
+
+
 .drawflow .drawflow-node > .outputs > .output::before {
     line-height: var(--dfOutputHeight);
     vertical-align: top;
@@ -219,9 +283,60 @@
     right: 23px;
     font-weight: bold;
 }
+.drawflow .drawflow-node > .outputs > .output_3:hover::before {
+    top: 3px;
+    right: 23px;
+    font-weight: bold;
+}
+.drawflow .drawflow-node > .outputs > .output_4:hover::before {
+    top: 3px;
+    right: 23px;
+    font-weight: bold;
+}
 
+.drawflow .drawflow-node.block-type-default > .outputs > .output::before {
+    display: none;
+    transform: translateX(calc(50% - 8px));
+    right: 0;
+    padding: 0.25em 0.5em;
+    background-color: #fff;
+    border: 1px solid #cdcdcd;
+    border-radius: 3px;
+}
+
+.drawflow .drawflow-node.block-type-default > .outputs > .output:hover::before {
+    display: block;
+}
+.drawflow .drawflow-node.block-type-default > .outputs > .output::after {
+    color: black;
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    top: -4px;
+    width: 14px;
+    font-size: x-small;
+    text-align: center;
+    transition-property: width,top,font-size;
+    transition-duration: .1s
+}
+.drawflow .drawflow-node.block-type-default > .outputs > .output:hover::after {
+    font-size: larger;
+    width: 20px;
+    top: -1px;
+}
 .drawflow .drawflow-node.block-type-default > .outputs > .output_1 {
-    /* No special format for default block types */
+    background-color: #fff;
+}
+.drawflow .drawflow-node.block-type-default > .outputs > .output_1::before {
+    content: 'Output';
+    top: -26px;
+}
+.drawflow .drawflow-node.block-type-default > .outputs > .output_1::after {
+    content: "\f061";
+    font-size: 9px;
+}
+.drawflow .drawflow-node.block-type-default > .outputs > .output_1:hover::after {
+    font-size: 14px;
 }
 
 .drawflow .drawflow-node.block-type-trigger {

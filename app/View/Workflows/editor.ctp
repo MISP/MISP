@@ -21,8 +21,8 @@ $triggerModules = $modules['blocks_trigger'];
                 <div class="btn-group" style="margin-left: 3px;">
                     <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#"><?= __('More Actions') ?> <span class="caret"></span></a>
                     <ul class="dropdown-menu">
-                        <li><a id="importWorkflow" href="<?= $baseurl . '/workflows/import/' ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow') ?></a></li>
-                        <li><a id="exportWorkflow" href="<?= $baseurl . '/workflows/export/' . h($selectedWorkflow['Workflow']['id']) ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-export') ?>"></i> <?= __('Export workflow') ?></a></li>
+                        <li class="disabled"><a id="importWorkflow" href="<?= $baseurl . '/workflowParts/import/' ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow parts') ?></a></li>
+                        <li class="disabled"><a id="exportWorkflow" href="<?= $baseurl . '/workflowParts/export/' . h($selectedWorkflow['Workflow']['id']) ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-export') ?>"></i> <?= __('Export workflow parts') ?></a></li>
                     </ul>
                 </div>
                 <button id="saveWorkflow" class="btn btn-primary" href="#">

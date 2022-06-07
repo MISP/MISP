@@ -61,23 +61,6 @@
                     'pull' => 'right',
                     'children' => [
                         [
-                            'type' => 'simple',
-                            'children' => [
-                                'data' => [
-                                    'type' => 'simple',
-                                    'text' => __('Add Workflow'),
-                                    'class' => 'btn btn-primary',
-                                    'onClick' => 'openGenericModal',
-                                    'onClickParams' => [
-                                        sprintf(
-                                            '%s/workflows/add',
-                                            $baseurl
-                                        )
-                                    ]
-                                ]
-                            ]
-                        ],
-                        [
                             'type' => 'search',
                             'button' => __('Filter'),
                             'placeholder' => __('Enter value to search'),
@@ -141,12 +124,6 @@
                         'url' => $baseurl . '/workflows/edit',
                         'url_params_data_paths' => ['Workflow.id'],
                         'icon' => 'edit',
-                    ],
-                    [
-                        'url' => $baseurl . '/workflows/export',
-                        'url_params_data_paths' => ['Workflow.id'],
-                        'title' => __('Export Workflow'),
-                        'icon' => 'file-upload',
                     ],
                     [
                         'onclick' => sprintf(

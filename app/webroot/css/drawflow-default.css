@@ -44,12 +44,12 @@
     --dfInputBorderColor: #5a5a5a;
     --dfInputBorderRadius: 50px;
     --dfInputLeft: -7px;
-    --dfInputHeight: 10px;
-    --dfInputWidth: 10px;
+    --dfInputHeight: 12px;
+    --dfInputWidth: 12px;
 
-    --dfInputHeightHover: 16px;
-    --dfInputWidthHover: 16px;
-    --dfInputLeftHover: -10px;
+    --dfInputHeightHover: 18px;
+    --dfInputWidthHover: 18px;
+    --dfInputLeftHover: -9px;
 
     --dfInputHoverBackgroundColor: #ffffff;
     --dfInputHoverBorderSize: 2px;
