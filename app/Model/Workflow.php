@@ -790,23 +790,6 @@ class Workflow extends AppModel
         return $errors;
     }
 
-    /**
-     * fetchWorkflow ACL-aware method. Basically find with ACL
-     *
-     * @param  int|string $id
-     * @param  bool $enable
-     * @param  bool $throwErrors
-     * @return array
-     */
-    public function toggleWorkflow($id, $enable=true, bool $throwErrors=true)
-    {
-        $errors = array();
-        $workflow = $this->fetchWorkflow($id, $throwErrors);
-        $workflow['Workflow']['enabled'] = $enable;
-        $errors = $this->__saveAndReturnErrors($workflow, ['fieldList' => ['enabled']], $errors);
-        return $errors;
-    }
-
     private function __saveAndReturnErrors($data, $saveOptions = [], $errors = [])
     {
         $saveSuccess = $this->save($data, $saveOptions);
