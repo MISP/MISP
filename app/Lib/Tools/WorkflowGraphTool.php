@@ -117,12 +117,10 @@ class GraphWalker
         return $triggers;
     }
 
-    private function _getPathType($node_id, $path_type, $output_id)
+    private function _getPathType($node_id, $path_type)
     {
         $node = $this->graph[$node_id];
-        if (!empty($this->triggersByNodeID[$node_id])) {
-            return $output_id == 'output_1' ? 'blocking' : 'non-blocking';
-        } elseif ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'parallel-task') {
+        if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'parallel-task') {
             return 'non-blocking';
         }
         return $path_type;
@@ -169,7 +167,7 @@ class GraphWalker
         }
         $allowedOutputs = $this->_evaluateOutputs($node, $roamingData);
         foreach ($allowedOutputs as $output_id => $outputs) {
-            $path_type = $this->_getPathType($node_id, $path_type, $output_id);
+            $path_type = $this->_getPathType($node_id, $path_type);
             if (is_null($this->for_path) || $path_type == $this->for_path) {
                 foreach ($outputs as $connections) {
                     foreach ($connections as $connection_id => $connection) {

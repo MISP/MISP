@@ -5984,7 +5984,7 @@ class Event extends AppModel
         }
         $this->Module = ClassRegistry::init('Module');
         $enabledModules = $this->Module->getEnabledModules($params['user']);
-        if (empty($enabledModules)) {
+        if (empty($enabledModules) || is_string($enabledModules)) {
             return true;
         }
         $options = array();

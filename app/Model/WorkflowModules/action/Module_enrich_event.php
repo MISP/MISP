@@ -42,7 +42,6 @@ class Module_enrich_event extends WorkflowBaseModule
             $errors[] = __('No enrichmnent module selected');
             return false;
         }
-
         $rData = $roamingData->getData();
         $event_id = $rData['Event']['id'];
         $options = [
@@ -50,16 +49,23 @@ class Module_enrich_event extends WorkflowBaseModule
             'event_id' => $event_id,
             'modules' => [$params['Modules']['value']]
         ];
-        if (!empty($rData['__conditionData']['Attribute.uuid'])) {
-            $options['attribute_uuids'] = $rData['__conditionData']['Attribute.uuid'];
-        }
+        // if (!empty($rData['__conditionData']['Attribute.uuid'])) {
+        //     $options['attribute_uuids'] = $rData['__conditionData']['Attribute.uuid'];
+        // }
 
         $this->Event = ClassRegistry::init('Event');
         $result = $this->Event->enrichment($options);
-        $this->push_zmq([
-            'Enriching event' => $event_id,
-            'Attribute added' => $result
-        ]);
+        if ($result === true) {
+            $this->push_zmq([
+                'Warning' => __('Error while trying to reach enrichment service or no module available'),
+                'Attribute added' => 0
+            ]);
+        } else {
+            $this->push_zmq([
+                'Enriching event' => $event_id,
+                'Attribute added' => $result
+            ]);
+        }
         return true;
     }
 }

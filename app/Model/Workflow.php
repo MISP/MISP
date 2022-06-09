@@ -310,7 +310,7 @@ class Workflow extends AppModel
             throw new WorkflowNotFoundException(__('Could not get workflow for trigger `%s`', $trigger_id));
         }
         $walkResult = [];
-        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $trigger_id, 'all', $data, $blockingErrors, $walkResult);
+        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $trigger_id, null, $data, $blockingErrors, $walkResult);
         return $blockingPathExecutionSuccess;
     }
 
@@ -327,15 +327,51 @@ class Workflow extends AppModel
     private function walkGraph(array $workflow, $trigger_id, $for_path=null, array $data=[], array &$errors=[], array &$walkResult=[]): bool
     {
         $walkResult = [
-            'Blocked paths' => [],
-            'Executed nodes' => [],
-            'Nodes that stopped execution' => [],
+            'blocking_nodes' => [],
+            'executed_nodes' => [],
+            'blocked_paths' => [],
         ];
-        // $workflowUser = $this->User->getAuthUser($workflow['Workflow']['user_id'], true);
-        $roamingData = $this->workflowGraphTool->getRoamingData($workflowUser, $data);
+        $this->Organisation = ClassRegistry::init('Organisation');
+        $hostOrg = $this->Organisation->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'id' => Configure::read('MISP.host_org_id')
+            ],
+        ]);
+        if (!empty($hostOrg)) {
+            $userForWorkflow = [
+                'email' => 'SYSTEM',
+                'id' => 0,
+                'org_id' => $hostOrg['Org']['id'],
+                'Role' => ['perm_site_admin' => 1],
+                'Organisation' => $hostOrg['Org']
+            ];
+        } else {
+            $this->User = ClassRegistry::init('User');
+            $userForWorkflow = $this->User->find('first', [
+                'recursive' => -1,
+                'conditions' => [
+                    'Role.perm_site_admin' => 1,
+                    'User.disabled' => 0
+                ],
+                'contain' => [
+                    'Organisation' => ['fields' => ['name']],
+                    'Role' => ['fields' => ['*']],
+                ],
+                'fields' => ['User.org_id', 'User.id', 'User.email'],
+            ]);
+            $userForWorkflow['Server'] = [];
+            $userForWorkflow = $this->User->rearrangeToAuthForm($userForWorkflow);
+        }
+        if (empty($userForWorkflow)) {
+            $errors[] = __('Could not find a valid user to run the workflow. Please set setting `MISP.host_org_id` or make sure a valid site_admin user exists.');
+            return false;
+        }
+        $roamingData = $this->workflowGraphTool->getRoamingData($userForWorkflow, $data);
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $startNode = $this->workflowGraphTool->getNodeIdForTrigger($graphData, $trigger_id);
         if ($startNode  == -1) {
+            $errors[] = __('Invalid start node `%s`', $startNode);
             return false;
         }
         $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $this, $startNode, $for_path, $roamingData);
@@ -344,15 +380,15 @@ class Workflow extends AppModel
             $node = $graphNode['node'];
             foreach ($preventExecutionForPaths as $path_to_block) {
                 if ($path_to_block == array_slice($graphNode['path_list'], 0, count($path_to_block))) {
-                    $walkResult['Blocked paths'][] = $graphNode['path_list'];
+                    $walkResult['blocked_paths'][] = $graphNode['path_list'];
                     continue 2;
                 }
             }
             $nodeError = [];
             $success = $this->__executeNode($node, $roamingData, $nodeError);
-            $walkResult['Executed nodes'][] = $node;
+            $walkResult['executed_nodes'][] = $node;
             if (empty($success)) {
-                $walkResult['Nodes that stopped execution'][] = $node;
+                $walkResult['blocking_nodes'][] = $node;
                 if ($graphNode['path_type'] == 'blocking') {
                     if (!empty($nodeError)) {
                         $errors[] = __(
