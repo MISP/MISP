@@ -200,7 +200,6 @@
     line-height: var(--dfInputHeight);
     vertical-align: top;
     text-align: end;
-    top: 0px;
     right: 20px;
     position: absolute;
     white-space: nowrap;
@@ -210,13 +209,13 @@
 }
 
 .drawflow .drawflow-node > .inputs > .input_1:hover::before {
-    top: 3px;
-    right: 23px;
+    right: 40px;
     font-weight: bold;
 }
-.drawflow .drawflow-node.block-type-default > .inputs > .input::before {
+.drawflow .drawflow-node > .inputs > .input::before {
     display: none;
     transform: translateX(calc(50% - 8px));
+    top: -1px;
     right: 0;
     padding: 0.25em 0.5em;
     background-color: #fff;
@@ -224,39 +223,42 @@
     border-radius: 3px;
 }
 
-.drawflow .drawflow-node.block-type-default > .inputs > .input:hover::before {
+.drawflow .drawflow-node > .inputs > .input:hover::before {
     display: block;
 }
-.drawflow .drawflow-node.block-type-default > .inputs > .input::after {
+.drawflow .drawflow-node > .inputs > .input::after {
     color: black;
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
     position: absolute;
     top: -4px;
-    width: 14px;
+    width: 13px;
     font-size: x-small;
     text-align: center;
     transition-property: width,top,font-size;
     transition-duration: .1s
 }
-.drawflow .drawflow-node.block-type-default > .inputs > .input:hover::after {
+.drawflow .drawflow-node > .inputs > .input:hover::after {
     font-size: larger;
     width: 20px;
     top: -1px;
 }
-.drawflow .drawflow-node.block-type-default > .inputs > .input_1 {
+.drawflow .drawflow-node > .inputs > .input_1 {
     background-color: #fff;
 }
-.drawflow .drawflow-node.block-type-default > .inputs > .input_1::before {
+.drawflow .drawflow-node > .inputs > .input_1::before {
     content: 'Input';
-    top: -26px;
 }
-.drawflow .drawflow-node.block-type-default > .inputs > .input_1::after {
+.drawflow .drawflow-node > .inputs > .input_1::after {
     content: "\f061";
     font-size: 9px;
 }
-.drawflow .drawflow-node.block-type-default > .inputs > .input_1:hover::after {
+.drawflow .drawflow-node > .inputs > .input_1:hover::after {
     font-size: 14px;
+}
+
+.drawflow .drawflow-node.block-type-if > .inputs > .input {
+    left: calc(var(--dfInputLeft) - 0.25em);
 }
 
 
@@ -343,6 +345,18 @@
     border-left-color: #73a2c9;
     border-left-width: 0.25rem;
     border-left-style: solid;
+    border-right-color: #73a2c9;
+    border-right-width: 0.25rem;
+    border-right-style: solid;
+}
+
+.drawflow .drawflow-node.block-type-if {
+    border-left-color: #74c973;
+    border-left-width: 0.25rem;
+    border-left-style: solid;
+    border-right-color: #74c973;
+    border-right-width: 0.25rem;
+    border-right-style: solid;
 }
 
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output::before {
@@ -397,7 +411,7 @@
     font-size: 15px;
 }
 
-.drawflow .drawflow-node.block-type-IF > .outputs > .output::before {
+.drawflow .drawflow-node.block-type-if > .outputs > .output::before {
     display: none;
     transform: translateX(calc(50% - 8px));
     right: 0;
@@ -406,10 +420,10 @@
     border: 1px solid #cdcdcd;
     border-radius: 3px;
 }
-.drawflow .drawflow-node.block-type-IF > .outputs > .output:hover::before {
+.drawflow .drawflow-node.block-type-if > .outputs > .output:hover::before {
     display: block;
 }
-.drawflow .drawflow-node.block-type-IF > .outputs > .output::after {
+.drawflow .drawflow-node.block-type-if > .outputs > .output::after {
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
     position: absolute;
@@ -420,30 +434,30 @@
     transition-property: width,top,font-size;
     transition-duration: .1s
 }
-.drawflow .drawflow-node.block-type-IF>.outputs>.output:hover::after {
+.drawflow .drawflow-node.block-type-if > .outputs > .output:hover::after {
     font-size: larger;
     width: 18px;
     top: -1px;
 }
 
-.drawflow .drawflow-node.block-type-IF > .outputs > .output_1 {
+.drawflow .drawflow-node.block-type-if > .outputs > .output_1 {
     background-color: #fff;
 }
-.drawflow .drawflow-node.block-type-IF > .outputs > .output_1::before {
-    content: 'then';
+.drawflow .drawflow-node.block-type-if > .outputs > .output_1::before {
+    content: 'Condition satisfied';
     top: -26px;
 }
-.drawflow .drawflow-node.block-type-IF > .outputs > .output_1::after {
+.drawflow .drawflow-node.block-type-if > .outputs > .output_1::after {
     content: "\f00c";
 }
-.drawflow .drawflow-node.block-type-IF > .outputs > .output_2 {
+.drawflow .drawflow-node.block-type-if > .outputs > .output_2 {
     background-color: #fff;
 }
-.drawflow .drawflow-node.block-type-IF > .outputs > .output_2::before {
-    content: 'else';
+.drawflow .drawflow-node.block-type-if > .outputs > .output_2::before {
+    content: 'Condition not satisfied';
     top: 26px;
 }
-.drawflow .drawflow-node.block-type-IF > .outputs > .output_2::after {
+.drawflow .drawflow-node.block-type-if > .outputs > .output_2::after {
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
     content: "\f00d"
