@@ -9,6 +9,13 @@ class WorkflowBaseModule
     public $icon_class = '';
     public $inputs = 0;
     public $outputs = 0;
+    public $support_filters = false;
+    public $saved_filters = [
+        ['text' => 'selector', 'value' => ''],
+        ['text' => 'value', 'value' => ''],
+        ['text' => 'operator', 'value' => ''],
+        ['text' => 'path', 'value' => ''],
+    ];
     public $params = [];
 
     /** @var PubSubTool */
@@ -31,7 +38,7 @@ class WorkflowBaseModule
         }
         return $indexedParam;
     }
-    
+
     protected function getParamsWithValues($node): array
     {
         $indexedParam = $this->getParams($node);
@@ -39,6 +46,20 @@ class WorkflowBaseModule
             $indexedParam[$label]['value'] = $param['value'] ?? ($param['default'] ?? '');
         }
         return $indexedParam;
+    }
+
+    protected function getFilters($node): array
+    {
+        $indexedFilters = [];
+        $nodeParam = [];
+        foreach ($node['data']['saved_filters'] as $name => $value) {
+            $nodeParam[$name] = $value;
+        }
+        foreach ($this->saved_filters as $filter) {
+            $filter['value'] = $nodeParam[$filter['text']];
+            $indexedFilters[$filter['text']] = $filter['value'];
+        }
+        return $indexedFilters;
     }
 
     public function getConfig(): array
@@ -63,7 +84,7 @@ class WorkflowBaseModule
         return true;
     }
 
-    public function push_zmq($message, $namespace='')
+    protected function push_zmq($message, $namespace='')
     {
         if (!self::$loadedPubSubTool) {
             App::uses('PubSubTool', 'Tools');
@@ -75,7 +96,7 @@ class WorkflowBaseModule
         $pubSubTool->workflow_push($message, $namespace);
     }
 
-    public function logError($message)
+    protected function logError($message)
     {
         $this->Log = ClassRegistry::init('Log');
         $this->Log->createLogEntry('SYSTEM', 'exec_module', 'Workflow', $this->id, $message);
@@ -84,5 +105,43 @@ class WorkflowBaseModule
     public function checkLoading()
     {
         return 'The Factory Must Grow';
+    }
+
+    protected function extractData($data, $path)
+    {
+        $extracted = $data;
+        if (!empty($path)) {
+            try {
+                $extracted = Hash::extract($data, $path);
+            } catch (Exception $e) {
+                return false;
+            }
+        }
+        return $extracted;
+    }
+
+    protected function evaluateCondition($item, $operator, $value): bool
+    {
+        if ($operator == 'in') {
+            return is_array($item) && in_array($value, $item);
+        } elseif ($operator == 'not_in') {
+            return is_array($item) && !in_array($value, $item);
+        } elseif ($operator == 'equals') {
+            return is_string($item) && $item == $value;
+        } elseif ($operator == 'not_equals') {
+            return is_string($item) &&  $item != $value;
+        }
+        return false;
+    }
+
+    protected function getItemsMatchingCondition($items, $value, $operator, $path)
+    {
+        foreach ($items as $i => $item) {
+            $subItem = $this->extractData($item, $path);
+            if (!$this->evaluateCondition($subItem, $operator, $value)) {
+                unset($items[$i]);
+            }
+        }
+        return $items;
     }
 }

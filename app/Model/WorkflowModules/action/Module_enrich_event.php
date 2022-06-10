@@ -9,6 +9,7 @@ class Module_enrich_event extends WorkflowBaseModule
     public $icon = 'asterisk';
     public $inputs = 1;
     public $outputs = 1;
+    public $support_filters = true;
     public $params = [];
 
     private $Module;
@@ -49,9 +50,19 @@ class Module_enrich_event extends WorkflowBaseModule
             'event_id' => $event_id,
             'modules' => [$params['Modules']['value']]
         ];
-        // if (!empty($rData['__conditionData']['Attribute.uuid'])) {
-        //     $options['attribute_uuids'] = $rData['__conditionData']['Attribute.uuid'];
-        // }
+        $filters = $this->getFilters($node);
+        $extracted = $this->extractData($rData, $filters['selector']);
+        if ($extracted === false) {
+            return false;
+        }
+        $matchingItems = $this->getItemsMatchingCondition($extracted, $filters['value'], $filters['operator'], $filters['path']);
+        if (!empty($matchingItems)) {
+            $extractedUUIDs = $this->extractData($matchingItems, '{n}.uuid');
+            if ($extractedUUIDs === false) {
+                return false;
+            }
+            $options['attribute_uuids'] = $extractedUUIDs;
+        }
 
         $this->Event = ClassRegistry::init('Event');
         $result = $this->Event->enrichment($options);

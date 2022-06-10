@@ -12,6 +12,7 @@ var dotBlock_default = doT.template(' \
                 </span> \
                 <span> \
                     <a href="#block-modal" role="button" class="btn btn-mini" data-toggle="modal"><i class="fas fa-ellipsis-h"></i></a> \
+                    {{=it._block_filter_html}} \
                 </span> \
             </span> \
         </div> \
@@ -281,6 +282,14 @@ function buildNotificationModalForBlock(node_id, block) {
     $blockNotificationModal.find('.modal-body').empty().append(html)
 }
 
+function buildFilteringModalForBlock(node_id, block) {
+    var html = genModalFilteringHtml(block)
+    $blockFilteringModal
+        .data('selected-block', block)
+        .data('selected-node-id', node_id)
+    $blockFilteringModal.find('.modal-body').empty().append(html)
+}
+
 function showNotificationModalForBlock(clicked) {
     var selectedBlock = getSelectedBlock()
     buildNotificationModalForBlock(selectedBlock.id, selectedBlock.data)
@@ -296,6 +305,12 @@ function showNotificationModalForSidebarModule(clicked) {
     var $block = $(clicked).closest('.sidebar-workflow-block')
     var blockID = $block.data('blockid')
     showNotificationModalForModule(blockID, all_blocks_by_id[blockID])
+}
+
+function showFilteringModalForBlock(clicked) {
+    var selectedBlock = getSelectedBlock()
+    buildFilteringModalForBlock(selectedBlock.id, selectedBlock.data)
+    $blockFilteringModal.modal('show')
 }
 
 function invalidateContentCache() {
@@ -340,6 +355,7 @@ function addNode(block, position) {
 
     block['_block_param_html'] = genBlockParamHtml(block)
     block['_block_notification_html'] = genBlockNotificationHtml(block)
+    block['_block_filter_html'] = genBlockFilteringHtml(block)
     var html = getTemplateForBlock(block)
     var blockClass = block.class === undefined ? [] : block.class
     blockClass = !Array.isArray(blockClass) ? [blockClass] : blockClass
@@ -413,13 +429,15 @@ function loadWorkflow(workflow) {
             console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
             return '';
         }
-        var module_data = all_blocks_by_id[block.data.id] || all_triggers_by_id[block.data.id]
+        var module_data = Object.assign({}, all_blocks_by_id[block.data.id] || all_triggers_by_id[block.data.id])
         module_data.params = block.data.params
+        module_data.saved_filters = block.data.saved_filters
         block.data = module_data
         var node_uid = uid() // only used for UI purposes
         block.data['node_uid'] = node_uid
         block.data['_block_param_html'] = genBlockParamHtml(block.data)
         block.data['_block_notification_html'] = genBlockNotificationHtml(block.data)
+        block.data['_block_filter_html'] = genBlockFilteringHtml(block.data)
         var blockClass = block.data.class === undefined ? [] : block.data.class
         blockClass = !Array.isArray(blockClass) ? [blockClass] : blockClass
         blockClass.push('block-type-' + (block.data.html_template !== undefined ? block.data.html_template : 'default'))
@@ -864,6 +882,28 @@ function handleSelectChange(changed) {
     invalidateContentCache()
 }
 
+function saveFilteringForModule() {
+    var selector = $blockFilteringModal.find('input#filtering-selector').val()
+    var value = $blockFilteringModal.find('input#filtering-value').val()
+    var operator = $blockFilteringModal.find('select#filtering-operator').val()
+    var path = $blockFilteringModal.find('input#filtering-path').val()
+    if (selector && value && operator && path) {
+        var node_id = $blockFilteringModal.data('selected-node-id')
+        var block = $blockFilteringModal.data('selected-block')
+        block.saved_filters = {
+            selector: selector,
+            value: value,
+            operator: operator,
+            path: path,
+        }
+        editor.updateNodeDataFromId(node_id, block)
+        invalidateContentCache()
+        $blockFilteringModal.modal('hide')
+    } else {
+        $blockFilteringModal.find('form')[0].reportValidity()
+    }
+}
+
 function getIDForBlockParameter(block, param) {
     if (param.id !== undefined) {
         return param.id + '-' + block.node_uid
@@ -945,7 +985,7 @@ function genBlockNotificationHtml(block) {
 }
 
 function genBlockNotificationForModalHtml(block) {
-    var module = all_blocks_by_id[block.id]
+    var module = all_blocks_by_id[block.id] || all_triggers_by_id[block.id]
     var html = ''
     var $notificationMainContainer = $('<div></div>')
     var reversedSeverities = [].concat(severities)
@@ -975,6 +1015,96 @@ function genBlockNotificationForModalHtml(block) {
     })
     html = $notificationMainContainer[0].outerHTML
     return html
+}
+
+function genBlockFilteringHtml(block) {
+    var module = all_blocks_by_id[block.id] || all_triggers_by_id[block.id]
+    var html = ''
+    if (module.support_filters) {
+        var $link = $('<a></a>')
+            .attr({
+                href: '#block-filtering-modal',
+                role: 'button',
+                class: 'btn btn-mini ' + (getFiltersFromNode(block).value ? 'btn-success' : ''),
+                onclick: 'showFilteringModalForBlock(this)',
+                title: 'Module filtering conditions'
+            })
+            .append($('<i></i>')
+            .addClass('fas fa-filter'))
+        html += $link[0].outerHTML
+    }
+    return html
+}
+
+function genModalFilteringHtml(block) {
+    var module = all_blocks_by_id[block.id] || all_triggers_by_id[block.id]
+    var html = ''
+    if (module.support_filters) {
+        html += genGenericBlockFilter(block)
+    }
+    return html
+}
+
+function getFiltersFromNode(block) {
+    return {
+        'selector': block.saved_filters.value ? block.saved_filters.selector : '',
+        'value': block.saved_filters.value ? block.saved_filters.value : '',
+        'operator': block.saved_filters.operator ? block.saved_filters.operator : '',
+        'path': block.saved_filters.path ? block.saved_filters.path : '',
+    }
+}
+
+function genGenericBlockFilter(block) {
+    var operatorOptions = [
+        {value: 'in', text: 'In'},
+        {value: 'not_in', text: 'Not in'},
+        {value: 'equals', text: 'Equals'},
+        {value: 'not_equals', text: 'Not equals'},
+    ]
+    var filters = getFiltersFromNode(block)
+    var $div = $('<div></div>').append($('<form></form>').append(
+        genGenericInput({ id: 'filtering-selector', label: 'Element selector', type: 'text', placeholder: 'Attribute.{n}', required: true, value: filters.selector}),
+        genGenericInput({id: 'filtering-value', label: 'Value', type: 'text', placeholder: 'tlp:white', required: true, value: filters.value}),
+        genGenericSelect({ id: 'filtering-operator', label: 'Operator', options: operatorOptions, value: filters.operator}),
+        genGenericInput({ id: 'filtering-path', label: 'Hash Path', type: 'text', placeholder: 'AttributeTag.{n}.Tag.name', required: true, value: filters.path}),
+    ))
+    return $div[0].outerHTML
+}
+
+function genGenericInput(options) {
+    var $label = $('<label></label>').append(
+        $('<span></span>').text(options.label).css({'display': 'block'}),
+        $('<input></input>')
+            .attr({
+                id: options.id,
+                type: options.type,
+                placeholder: options.placeholder,
+                value: options.value
+            })
+            .prop('required', options.required)
+            .css({'width': '100%', 'box-sizing': 'border-box', 'height': '30px'}),
+    )
+    return $label[0].outerHTML
+}
+
+function genGenericSelect(options) {
+    var $select = $('<select></select>')
+        .attr({id: options.id})
+        .css({'width': '100%', 'box-sizing': 'border-box'})
+    options.options.forEach(function(option) {
+        var $option = $('<option></option>')
+            .val(option.value)
+            .text(option.text)
+        if (options.value == option.value) {
+            $option.attr('selected', '')
+        }
+        $select.append($option)
+    })
+    var $label = $('<label></label>').append(
+        $('<span></span>').text(options.label).css({'display': 'block'}),
+        $select
+    )
+    return $label[0].outerHTML
 }
 
 function getPathForEdge(from_id, to_id) {

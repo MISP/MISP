@@ -305,7 +305,7 @@ class Workflow extends AppModel
             return true;
         }
         
-        $workflow = $this->fetchWorkflowByTrigger($trigger, true);
+        $workflow = $this->fetchWorkflowByTrigger($trigger_id, true);
         if (empty($workflow)) {
             throw new WorkflowNotFoundException(__('Could not get workflow for trigger `%s`', $trigger_id));
         }
@@ -779,16 +779,18 @@ class Workflow extends AppModel
     /**
      * fetchWorkflowByTrigger
      *
-     * @param  int|string $id
+     * @param  int|string $trigger_id
      * @param  bool $throwErrors
      * @throws NotFoundException
      * @return array
      */
     public function fetchWorkflowByTrigger($trigger_id, bool $throwErrors = true): array
     {
-        $options = ['conditions' => [
-            'Workflow.trigger_id' => $trigger_id,
-        ]];
+        $options = [
+            'conditions' => [
+                'Workflow.trigger_id' => $trigger_id,
+            ]
+        ];
         $workflow = $this->fetchWorkflows($options);
         if (empty($workflow)) {
             if ($throwErrors) {

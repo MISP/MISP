@@ -100,6 +100,20 @@ $triggerModules = $modules['blocks_trigger'];
     </div>
 </div>
 
+<div id="block-filtering-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="Module filtering modal" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3><?= __('Module Filtering') ?></h3>
+    </div>
+    <div class="modal-body">
+        <p>Block filtering</p>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-success" onclick="saveFilteringForModule(this)" aria-hidden="true">Save</button>
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    </div>
+</div>
+
 <?php
 echo $this->element('genericElements/assetLoader', [
     'css' => ['drawflow.min', 'drawflow-default'],
@@ -122,6 +136,7 @@ echo $this->element('genericElements/assetLoader', [
     var $blockModal = $('#block-modal')
     var $blockModalDeleteButton = $blockModal.find('#delete-selected-node')
     var $blockNotificationModal = $('#block-notifications-modal')
+    var $blockFilteringModal = $('#block-filtering-modal')
     var $importWorkflowButton = $('#importWorkflow')
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')

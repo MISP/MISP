@@ -359,6 +359,10 @@
     border-right-style: solid;
 }
 
+.drawflow .drawflow-node.block-type-if:hover {
+    box-shadow: var(--dfNodeHoverBoxShadowHL) var(--dfNodeHoverBoxShadowVL) var(--dfNodeHoverBoxShadowBR) var(--dfNodeHoverBoxShadowS) #74c97399;
+}
+
 .drawflow .drawflow-node.block-type-trigger > .outputs > .output::before {
     display: none;
     transform: translateX(calc(50% - 8px));
