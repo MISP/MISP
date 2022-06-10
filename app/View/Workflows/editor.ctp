@@ -14,7 +14,7 @@ $triggerModules = $modules['blocks_trigger'];
                 <?= __('Trigger index') ?>
             </a>
             <h3>
-                <span style="font-weight:normal;"><?= __('Workflows:') ?></span>
+                <span style="font-weight:normal;"><?= __('Workflow:') ?></span>
                 <strong><?= h($selectedWorkflow['Workflow']['trigger_id']) ?></strong>
             </h3>
             <div class="" style="margin-top: 0.5em;">

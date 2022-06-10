@@ -37,7 +37,7 @@ var dotBlock_trigger = doT.template(' \
     </div> \
 </div>')
 
-var dotBlock_IF = doT.template(' \
+var dotBlock_if = doT.template(' \
 <div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
@@ -397,7 +397,6 @@ function fetchAndLoadWorkflow() {
 function loadWorkflow(workflow) {
     editor.clear()
     if (workflow.data.length == 0) {
-        console.log('stop');
         var trigger_id = workflow['trigger_id'];
         if (all_triggers_by_id[trigger_id] === undefined) {
             console.error('Unknown trigger');
@@ -414,10 +413,16 @@ function loadWorkflow(workflow) {
             console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
             return '';
         }
+        var module_data = all_blocks_by_id[block.data.id] || all_triggers_by_id[block.data.id]
+        module_data.params = block.data.params
+        block.data = module_data
         var node_uid = uid() // only used for UI purposes
         block.data['node_uid'] = node_uid
         block.data['_block_param_html'] = genBlockParamHtml(block.data)
         block.data['_block_notification_html'] = genBlockNotificationHtml(block.data)
+        var blockClass = block.data.class === undefined ? [] : block.data.class
+        blockClass = !Array.isArray(blockClass) ? [blockClass] : blockClass
+        blockClass.push('block-type-' + (block.data.html_template !== undefined ? block.data.html_template : 'default'))
         var html = getTemplateForBlock(block.data)
         editor.nodeId = block.id // force the editor to use the saved id of the block instead of generating a new one
         editor.addNode(
@@ -426,7 +431,7 @@ function loadWorkflow(workflow) {
             Object.values(block.outputs).length,
             block.pos_x,
             block.pos_y,
-            block.class,
+            blockClass.join(' '),
             block.data,
             html
         );
