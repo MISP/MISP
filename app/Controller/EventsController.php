@@ -4283,20 +4283,20 @@ class EventsController extends AppController
             ),
             'suricata' => array(
                 'url' => $this->baseurl . '/events/restSearch/returnFormat:suricata/published:1||0/eventid:' . $id,
-                'text' => 'Download Suricata rules',
+                'text' => 'Suricata rules',
                 'requiresPublished' => false,
                 'checkbox' => false,
             ),
             'snort' => array(
                 'url' => $this->baseurl . '/events/restSearch/returnFormat:snort/published:1||0/eventid:' . $id,
-                'text' => 'Download Snort rules',
+                'text' => 'Snort rules',
                 'requiresPublished' => false,
                 'checkbox' => false,
             ),
             'bro' => array(
                 'url' => $this->baseurl . '/attributes/bro/download/all/false/' . $id,
                 // 'url' => '/attributes/restSearch/returnFormat:bro/published:1||0/eventid:' . $id,
-                'text' => 'Download Bro rules',
+                'text' => 'Bro rules',
                 'requiresPublished' => false,
                 'checkbox' => false
             ),

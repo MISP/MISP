@@ -35,6 +35,12 @@ class RestSearchComponent extends Component
         )
     );
 
+    /**
+     * @param array $filters
+     * @param string $scope
+     * @param string $responseType
+     * @return false|string
+     */
     public function getFilename($filters, $scope, $responseType)
     {
         $filename = false;

@@ -70,15 +70,16 @@ class Allowedlist extends AppModel
     public function getBlockedValues()
     {
         if ($this->allowedlistedItems === false) {
-            $Allowedlists = $this->find('all', array('fields' => array('name')));
-            $this->allowedlistedItems = array();
-            foreach ($Allowedlists as $item) {
-                $this->allowedlistedItems[] = $item['Allowedlist']['name'];
-            }
+            $this->allowedlistedItems = $this->find('column', array('fields' => array('name')));;
         }
         return $this->allowedlistedItems;
     }
 
+    /**
+     * @param array $data
+     * @param bool $isAttributeArray
+     * @return array
+     */
     public function removeAllowedlistedFromArray($data, $isAttributeArray)
     {
         // Let's get all of the values that will be blocked by the allowedlist

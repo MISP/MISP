@@ -1,14 +1,12 @@
 <?php
 
-class NidsExport
+abstract class NidsExport
 {
-    public $rules = array();
+    protected $rules = [];
 
     public $classtype = 'trojan-activity';
 
-    public $format = "";   // suricata (default), snort
-
-	public $checkWhitelist = true;
+    public $format = "";   // `suricata` or `snort`
 
 	public $additional_params = array(
 		'contain' => array(
@@ -16,37 +14,44 @@ class NidsExport
 				'fields' => array('threat_level_id')
 			)
 		),
+        'conditions' => [
+            'Attribute.type' => ['ip-dst', 'ip-dst|port', 'ip-src', 'ip-src|port', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'domain|ip', 'hostname', 'url', 'uri', 'user-agent', 'ja3-fingerprint-md5', 'ja3s-fingerprint-md5', 'snort'],
+        ],
 		'flatten' => 1
 	);
 
 	public function handler($data, $options = array())
 	{
-		$continue = empty($format);
-		$this->checkWhitelist = false;
+        $this->rules = [];
 		if ($options['scope'] === 'Attribute') {
 			$this->export(
 				array($data),
-				$options['user']['nids_sid'],
-				$options['returnFormat'],
-				$continue
+				$options['user']['nids_sid']
 			);
 		} else if ($options['scope'] === 'Event') {
 			if (!empty($data['EventTag'])) {
 				$data['Event']['EventTag'] = $data['EventTag'];
 			}
 			if (!empty($data['Attribute'])) {
-				$this->__convertFromEventFormat($data['Attribute'], $data, $options, $continue);
+				$this->__convertFromEventFormat($data['Attribute'], $data, $options);
 			}
 			if (!empty($data['Object'])) {
 				foreach ($data['Object'] as $object) {
-					$this->__convertFromEventFormat($object['Attribute'], $data, $options, $continue);
+					$this->__convertFromEventFormat($object['Attribute'], $data, $options);
 				}
 			}
 		}
-		return '';
+		return implode("\n", $this->rules);
 	}
 
-	private function __convertFromEventFormat($attributes, $event, $options = array(), $continue = false) {
+    /**
+     * @param array $attributes
+     * @param array $event
+     * @param array $options
+     * @return bool
+     */
+	private function __convertFromEventFormat($attributes, $event, $options = array())
+    {
 		$rearranged = array();
 		foreach ($attributes as $attribute) {
 			$attributeTag = array();
@@ -62,9 +67,7 @@ class NidsExport
 		}
 		$this->export(
 			$rearranged,
-			$options['user']['nids_sid'],
-			$options['returnFormat'],
-			$continue
+			$options['user']['nids_sid']
 		);
 		return true;
 
@@ -72,49 +75,39 @@ class NidsExport
 
 	public function header($options = array())
 	{
-		$this->explain();
-		return '';
+        $header = [
+            '# MISP export of IDS rules - optimized for ' . $this->format,
+            '#',
+            '# These NIDS rules contain some variables that need to exist in your configuration.',
+            '# Make sure you have set:',
+            '#',
+            '# $HOME_NET	- Your internal network range',
+            '# $EXTERNAL_NET - The network considered as outside',
+            '# $SMTP_SERVERS - All your internal SMTP servers',
+            '# $HTTP_PORTS   - The ports used to contain HTTP traffic (not required with suricata export)',
+            '#',
+        ];
+        return implode("\n", $header);
 	}
 
 	public function footer()
 	{
-		return implode ("\n", $this->rules);
+		return '';
 	}
 
 	public function separator()
 	{
-		return '';
+		return "\n";
 	}
 
-    public function explain()
+    /**
+     * @param array $items
+     * @param int $startSid
+     * @return array
+     */
+    protected function export($items, $startSid)
     {
-        $this->rules[] = '# MISP export of IDS rules - optimized for '.$this->format;
-        $this->rules[] = '#';
-        $this->rules[] = '# These NIDS rules contain some variables that need to exist in your configuration.';
-        $this->rules[] = '# Make sure you have set:';
-        $this->rules[] = '#';
-        $this->rules[] = '# $HOME_NET	- Your internal network range';
-        $this->rules[] = '# $EXTERNAL_NET - The network considered as outside';
-        $this->rules[] = '# $SMTP_SERVERS - All your internal SMTP servers';
-        $this->rules[] = '# $HTTP_PORTS   - The ports used to contain HTTP traffic (not required with suricata export)';
-        $this->rules[] = '# ';
-    }
-
-    private $whitelist = null;
-
-
-    public function export($items, $startSid, $format="suricata", $continue = false)
-    {
-        $this->format = $format;
-		if ($this->checkWhitelist && !isset($this->Whitelist)) {
-        	$this->Whitelist = ClassRegistry::init('Whitelist');
-        	$this->whitelist = $this->Whitelist->getBlockedValues();
-		}
-
         // output a short explanation
-        if (!$continue) {
-            $this->explain();
-        }
         // generate the rules
         foreach ($items as $item) {
             // retrieve all tags for this item to add them to the msg
@@ -122,14 +115,14 @@ class NidsExport
 			if (!empty($item['AttributeTag'])) {
 	            foreach ($item['AttributeTag'] as $tag_attr) {
 	                if (array_key_exists('name', $tag_attr['Tag'])) {
-	                    array_push($tagsArray, $tag_attr['Tag']['name']);
+	                    $tagsArray[] = $tag_attr['Tag']['name'];
 	                }
 	            }
 			}
 			if (!empty($item['Event']['EventTag'])) {
 				foreach ($item['Event']['EventTag'] as $tag_event) {
 	                if (array_key_exists('name', $tag_event['Tag'])) {
-	                    array_push($tagsArray, $tag_event['Tag']['name']);
+	                    $tagsArray[] = $tag_event['Tag']['name'];
 	                }
 	            }
 			}
@@ -138,7 +131,7 @@ class NidsExport
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
             $ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' [' . $ruleFormatMsgTags . '] %s"';
             $ruleFormatReference = 'reference:url,' . Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
-            $ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
+            $ruleFormat = 'alert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
 
             $sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
             $sid++;
@@ -147,14 +140,10 @@ class NidsExport
                 // LATER nids - add the tag keyword in the rules to capture network traffic
                 // LATER nids - sanitize every $attribute['value'] to not conflict with snort
                 case 'ip-dst':
-                    $this->ipDstRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
-                case 'ip-src':
-                    $this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
-                    break;
                 case 'ip-dst|port':
                     $this->ipDstRule($ruleFormat, $item['Attribute'], $sid);
                     break;
+                case 'ip-src':
                 case 'ip-src|port':
                     $this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
                     break;
@@ -184,6 +173,7 @@ class NidsExport
                     $this->hostnameRule($ruleFormat, $item['Attribute'], $sid);
                     break;
                 case 'url':
+                case 'uri':
                     $this->urlRule($ruleFormat, $item['Attribute'], $sid);
                     break;
                 case 'user-agent':
@@ -192,7 +182,7 @@ class NidsExport
                 case 'ja3-fingerprint-md5':
                     $this->ja3Rule($ruleFormat, $item['Attribute'], $sid);
                     break;
-                case 'ja3s-fingerprint-md5': // Atribute type doesn't exists yet (2020-12-10) but ready when created.
+                case 'ja3s-fingerprint-md5': // Attribute type doesn't exists yet (2020-12-10) but ready when created.
                     $this->ja3sRule($ruleFormat, $item['Attribute'], $sid);
                     break;
                 case 'snort':
@@ -220,11 +210,9 @@ class NidsExport
 
     public function ipDstRule($ruleFormat, $attribute, &$sid)
     {
-        $overruled = $this->checkWhitelist($attribute['value']);
         $ipport = NidsExport::getIpPort($attribute);
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'ip',							// proto
                 '$HOME_NET',					// src_ip
                 'any',							// src_port
@@ -241,11 +229,9 @@ class NidsExport
 
     public function ipSrcRule($ruleFormat, $attribute, &$sid)
     {
-        $overruled = $this->checkWhitelist($attribute['value']);
         $ipport = NidsExport::getIpPort($attribute);
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'ip',							// proto
                 $ipport[0],			// src_ip
                 $ipport[1],							// src_port
@@ -262,12 +248,10 @@ class NidsExport
 
     public function emailSrcRule($ruleFormat, $attribute, &$sid)
     {
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'flow:established,to_server; content:"MAIL FROM|3a|"; nocase; content:"' . $attribute['value'] . '"; fast_pattern; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',							// proto
                 '$EXTERNAL_NET',				// src_ip
                 'any',							// src_port
@@ -284,12 +268,10 @@ class NidsExport
 
     public function emailDstRule($ruleFormat, $attribute, &$sid)
     {
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'flow:established,to_server; content:"RCPT TO|3a|"; nocase; content:"' . $attribute['value'] . '"; fast_pattern; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',							// proto
                 '$EXTERNAL_NET',				// src_ip
                 'any',							// src_port
@@ -307,12 +289,10 @@ class NidsExport
     public function emailSubjectRule($ruleFormat, $attribute, &$sid)
     {
         // LATER nids - email-subject rule might not match because of line-wrapping
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'flow:established,to_server; content:"Subject|3a|"; nocase; content:"' . $attribute['value'] . '"; fast_pattern; nocase; content:"|0D 0A 0D 0A|"; within:8192;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',							// proto
                 '$EXTERNAL_NET',				// src_ip
                 'any',							// src_port
@@ -330,12 +310,10 @@ class NidsExport
     public function emailAttachmentRule($ruleFormat, $attribute, &$sid)
     {
         // LATER nids - email-attachment rule might not match because of line-wrapping
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'flow:established,to_server; content:"Content-Disposition|3a| attachment|3b| filename|3d 22|"; content:"' . $attribute['value'] . '|22|"; fast_pattern; content:"|0D 0A 0D 0A|"; within:8192;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',							// proto
                 '$EXTERNAL_NET',				// src_ip
                 'any',							// src_port
@@ -352,12 +330,10 @@ class NidsExport
 
     public function hostnameRule($ruleFormat, $attribute, &$sid)
     {
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'content:"|01 00 00 01 00 00 00 00 00 01|"; depth:10; offset:2; content:"' . NidsExport::dnsNameToRawFormat($attribute['value'], 'hostname') . '"; fast_pattern; nocase;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'udp',							// proto
                 'any',							// src_ip
                 'any',							// src_port
@@ -373,7 +349,6 @@ class NidsExport
         $sid++;
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',							// proto
                 'any',							// src_ip
                 'any',							// src_port
@@ -391,7 +366,6 @@ class NidsExport
         $content = 'flow:to_server,established; content: "Host|3a| ' . $attribute['value'] . '"; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-\.])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
         $this->rules[] = sprintf(
             $ruleFormat,
-            ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',						// proto
                 '$HOME_NET',					// src_ip
                 'any',							// src_port
@@ -408,12 +382,10 @@ class NidsExport
 
     public function domainRule($ruleFormat, $attribute, &$sid)
     {
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'content:"|01 00 00 01 00 00 00 00 00 01|"; depth:10; offset:2; content:"' . NidsExport::dnsNameToRawFormat($attribute['value']) . '"; fast_pattern; nocase;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'udp',							// proto
                 'any',							// src_ip
                 'any',							// src_port
@@ -429,7 +401,6 @@ class NidsExport
         $sid++;
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',							// proto
                 'any',							// src_ip
                 'any',							// src_port
@@ -447,7 +418,6 @@ class NidsExport
         $content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
         $this->rules[] = sprintf(
             $ruleFormat,
-            ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',						// proto
                 '$HOME_NET',					// src_ip
                 'any',							// src_port
@@ -467,12 +437,10 @@ class NidsExport
         // TODO in hindsight, an url should not be excluded given a host or domain name.
         //$hostpart = parse_url($attribute['value'], PHP_URL_HOST);
         //$overruled = $this->checkNames($hostpart);
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; nocase; http_uri;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',							// proto
                 '$HOME_NET',					// src_ip
                 'any',							// src_port
@@ -489,12 +457,10 @@ class NidsExport
 
     public function userAgentRule($ruleFormat, $attribute, &$sid)
     {
-        $overruled = $this->checkWhitelist($attribute['value']);
         $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
         $content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; http_header;';
         $this->rules[] = sprintf(
             $ruleFormat,
-                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
                 'tcp',						// proto
                 '$HOME_NET',					// src_ip
                 'any',							// src_port
@@ -604,7 +570,7 @@ class NidsExport
             // count the length of the part, and add |length| before
             $length = strlen($explodedName);
             if ($length > 255) {
-                log('WARNING: DNS name is too long for RFC: '.$name);
+                error_log('WARNING: DNS name is too long for RFC: '.$name);
             }
             $hexLength = dechex($length);
             if (1 == strlen($hexLength)) {
@@ -636,7 +602,7 @@ class NidsExport
             // count the length of the part, and add |length| before
             $length = strlen($explodedName);
             if ($length > 255) {
-                log('WARNING: DNS name is too long for RFC: '.$name);
+                error_log('WARNING: DNS name is too long for RFC: '.$name);
             }
             $hexLength = dechex($length);
             $rawName .= '(' . $hexLength . ')' . $explodedName;
@@ -650,31 +616,19 @@ class NidsExport
     /**
      * Replaces characters that are not allowed in a signature.
      *   example: " is converted to |22|
-     * @param unknown_type $value
+     * @param string $value
      */
     public static function replaceIllegalChars($value)
     {
         $replace_pairs = array(
-                '|' => '|7c|', // Needs to stay on top !
-                '"' => '|22|',
-                ';' => '|3b|',
-                ':' => '|3a|',
-                '\\' => '|5c|',
-                '0x' => '|30 78|'
-                );
+            '|' => '|7c|', // Needs to stay on top !
+            '"' => '|22|',
+            ';' => '|3b|',
+            ':' => '|3a|',
+            '\\' => '|5c|',
+            '0x' => '|30 78|'
+        );
         return strtr($value, $replace_pairs);
-    }
-
-    public function checkWhitelist($value)
-    {
-		if ($this->checkWhitelist && is_array($this->whitelist)) {
-	        foreach ($this->whitelist as $wlitem) {
-	            if (preg_match($wlitem, $value)) {
-	                return true;
-	            }
-	        }
-		}
-        return false;
     }
 
     public static function getProtocolPort($protocol, $customPort)
@@ -708,13 +662,10 @@ class NidsExport
 
     public static function getIpPort($attribute)
     {
-        $ipport = array();
         if (strpos($attribute['type'], 'port') !== false) {
-            $ipport = explode('|', $attribute['value']);
+            return explode('|', $attribute['value']);
         } else {
-            $ipport[0] = $attribute['value'];
-            $ipport[1] = 'any';
+            return [$attribute['value'], 'any'];
         }
-        return $ipport;
     }
 }

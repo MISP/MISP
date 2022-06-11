@@ -1259,17 +1259,17 @@ class AppController extends Controller
                 ]);
             }
         }
+        /** @var TmpFileTool $final */
         $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
         if (!empty($renderView) && !empty($final)) {
             $this->layout = false;
             $final = json_decode($final->intoString(), true);
-            foreach ($final as $key => $data) {
-                $this->set($key, $data);
-            }
+            $this->set($final);
             $this->render('/Events/module_views/' . $renderView);
         } else {
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
-            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
+            $headers = ['X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType];
+            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
         }
     }
 
