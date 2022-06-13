@@ -362,7 +362,7 @@ function addNode(block, position) {
     var blockClass = block.class === undefined ? [] : block.class
     blockClass = !Array.isArray(blockClass) ? [blockClass] : blockClass
     blockClass.push('block-type-' + (block.html_template !== undefined ? block.html_template : 'default'))
-    if (block.data.module_type == 'logic') {
+    if (block.module_type == 'logic') {
         blockClass.push('block-type-logic')
     }
     editor.addNode(

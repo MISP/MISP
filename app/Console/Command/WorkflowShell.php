@@ -19,7 +19,7 @@ class WorkflowShell extends AppShell {
         $workflow = $this->Workflow->fetchWorkflow($workflow_id);
         $node_id_to_exec = (int)$this->args[1];
         $roamingData = JsonTool::decode($this->args[2]);
-        $for_path = (bool)$this->args[3];
+        $for_path = $this->args[3];
         $jobId = $this->args[4];
 
         $parallelErrors = [];
@@ -39,7 +39,9 @@ class WorkflowShell extends AppShell {
         if ($executionSuccess) {
             $job['Job']['message'] = __('Workflow parallel task executed %s nodes starting from node %s.', count($walkResult['executed_nodes']), $node_id_to_exec);
         } else {
-            $job['Job']['message'] = __('Error while executing workflow parallel task. %s', PHP_EOL . implode(', ', $parallelErrors));
+            $message = __('Error while executing workflow parallel task. %s', PHP_EOL . implode(', ', $parallelErrors));
+            $this->Workflow->logExecutionError($workflow, $message);
+            $job['Job']['message'] = $message;
         }
         $this->Job->save($job);
     }

@@ -288,7 +288,7 @@ class Workflow extends AppModel
     }
 
     /**
-     * executeWorkflowsForTrigger
+     * executeWorkflowForTrigger
      *
      * @param string $trigger_id
      * @param array $data
@@ -296,7 +296,7 @@ class Workflow extends AppModel
      * @return boolean True if the execution for the blocking path was a success
      * @throws TriggerNotFoundException
      */
-    public function executeWorkflowsForTrigger($trigger_id, array $data, array &$blockingErrors=[]): bool
+    public function executeWorkflowForTrigger($trigger_id, array $data, array &$blockingErrors=[]): bool
     {
         $this->loadAllWorkflowModules();
 
@@ -318,9 +318,15 @@ class Workflow extends AppModel
             $blockingErrors[] = __('Invalid start node `%s`', $startNode);
             return false;
         }
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], __('Started executing workflow for trigger `%s` (%s)', $trigger_id, $workflow['Workflow']['id']));
         $workflow = $this->__incrementWorkflowExecutionCount($workflow);
         $walkResult = [];
         $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, Workflow::BLOCKING_PATH, $data, $blockingErrors, $walkResult);
+        if (empty($blockingPathExecutionSuccess)) {
+            $message = __('Error while executing blocking workflow. %s', PHP_EOL . implode(', ', $blockingErrors));
+            $this->Workflow->logExecutionError($workflow, $message);
+        }
         return $blockingPathExecutionSuccess;
     }
 
@@ -394,7 +400,7 @@ class Workflow extends AppModel
             $walkResult['executed_nodes'][] = $node;
             if (empty($success)) {
                 $walkResult['blocking_nodes'][] = $node;
-                debug($graphNode['path_type']);
+                // debug($graphNode['path_type']);
                 if ($graphNode['path_type'] == Workflow::BLOCKING_PATH) {
                     if (!empty($nodeError)) {
                         $errors[] = __(
@@ -618,6 +624,12 @@ class Workflow extends AppModel
             'classConfigs' => $classConfigs,
             'instancedClasses' => $instancedClasses,
         ];
+    }
+
+    public function logExecutionError($workflow, $message)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
     }
 
     private function __logError($id, $message)

@@ -3422,7 +3422,7 @@ class AppModel extends Model
             $this->Workflow->checkTriggerEnabled($trigger_id) &&
             $this->Workflow->checkTriggerListenedTo($trigger_id)
         ) {
-           return $this->Workflow->executeWorkflowsForTrigger($trigger_id, $data, $blockingErrors);
+           return $this->Workflow->executeWorkflowForTrigger($trigger_id, $data, $blockingErrors);
         }
         return true;
     }

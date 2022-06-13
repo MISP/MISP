@@ -39,6 +39,7 @@ class Log extends AppModel
                     'enrichment',
                     'error',
                     'execute_blueprint',
+                    'execute_workflow',
                     'exec_module',
                     'export',
                     'fetchEvent',
@@ -77,7 +78,6 @@ class Log extends AppModel
                     'validateSig',
                     'version_warning',
                     'warning',
-                    'walkGraph',
                     'wipe_default'
                 )
             ),
