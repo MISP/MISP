@@ -151,6 +151,7 @@ function initDrawflow() {
     editor.fitCanvas = function () {
         editor.translate_to(0, 0)
         editor.zoom = 1
+        editor.zoom_min = 0.3
         editor.zoom_refresh()
         var editor_bcr = editor.container.getBoundingClientRect()
         var offset_x = editor_bcr.width / 2
@@ -172,9 +173,9 @@ function initDrawflow() {
         var centroidY = sumY / nodes.length
         centroidX -= offset_block_x / 2
         centroidY += offset_block_y / 2
-        var calc_zoom = Math.min(Math.min(editor_bcr.width / maxX, editor_bcr.height / maxY), 1) // Zoom out if needed
+        var calc_zoom = Math.min(Math.min(editor_bcr.width / (maxX + offset_block_x + 200), editor_bcr.height / (maxY + offset_block_y)), 1) // Zoom out if needed
         editor.translate_to(
-            offset_x - centroidX + offset_block_x / 2 - 100, // Harcoded offset as it's more pleasant if it's slightly positioned top-left
+            offset_x - centroidX + offset_block_x / 2 - 200, // Harcoded offset as it's more pleasant if it's slightly positioned top-left
             offset_y - centroidY + offset_block_y / 2 - 200  // Harcoded offset as it's more pleasant if it's slightly positioned top-left
         )
         editor.zoom = calc_zoom
