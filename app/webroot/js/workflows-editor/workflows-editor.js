@@ -166,8 +166,8 @@ function initDrawflow() {
             offset_block_y = node_bcr.top > maxY ? node_bcr.height : offset_block_y
             sumX += node_bcr.left
             sumY += node_bcr.top
-            maxX = node_bcr.left > maxX ? node_bcr.left : maxX
-            maxY = node_bcr.top > maxY ? node_bcr.top : maxY
+            maxX = (node_bcr.left + node_bcr.width) > maxX ? (node_bcr.left + node_bcr.width) : maxX
+            maxY = (node_bcr.top + node_bcr.height) > maxY ? (node_bcr.top + node_bcr.height) : maxY
         });
         var centroidX = sumX / nodes.length
         var centroidY = sumY / nodes.length
@@ -175,9 +175,10 @@ function initDrawflow() {
         centroidY += offset_block_y / 2
         var calc_zoom = Math.min(Math.min(editor_bcr.width / (maxX + offset_block_x + 200), editor_bcr.height / (maxY + offset_block_y)), 1) // Zoom out if needed
         editor.translate_to(
-            offset_x - centroidX + offset_block_x / 2 - 200, // Harcoded offset as it's more pleasant if it's slightly positioned top-left
-            offset_y - centroidY + offset_block_y / 2 - 200  // Harcoded offset as it's more pleasant if it's slightly positioned top-left
+            offset_x - centroidX,
+            offset_y - centroidY - (offset_y*calc_zoom*0.5)
         )
+
         editor.zoom = calc_zoom
         editor.zoom_refresh()
     }
