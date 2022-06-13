@@ -62,6 +62,9 @@ class Workflow extends AppModel
     const REDIS_KEY_WORKFLOW_PER_TRIGGER = 'workflow:workflow_list:%s';
     const REDIS_KEY_TRIGGER_PER_WORKFLOW = 'workflow:trigger_list:%s';
 
+    const BLOCKING_PATH = 'blocking';
+    const NON_BLOCKING_PATH = 'non-blocking';
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -316,7 +319,7 @@ class Workflow extends AppModel
             return false;
         }
         $walkResult = [];
-        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, null, $data, $blockingErrors, $walkResult);
+        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, Workflow::BLOCKING_PATH, $data, $blockingErrors, $walkResult);
         return $blockingPathExecutionSuccess;
     }
 
@@ -325,7 +328,7 @@ class Workflow extends AppModel
      *
      * @param array $workflow The worflow to walk
      * @param int $startNode The ID of the trigger to start from
-     * @param bool|null $for_path If provided, execute the workflow for the provided path. If not provided, execute the worflow regardless of the path
+     * @param string|null $for_path If provided, execute the workflow for the provided path. If not provided, execute the worflow regardless of the path
      * @param array $data
      * @param array $errors
      * @return boolean If all module returned a successful response
@@ -390,7 +393,8 @@ class Workflow extends AppModel
             $walkResult['executed_nodes'][] = $node;
             if (empty($success)) {
                 $walkResult['blocking_nodes'][] = $node;
-                if ($graphNode['path_type'] == 'blocking') {
+                debug($graphNode['path_type']);
+                if ($graphNode['path_type'] == Workflow::BLOCKING_PATH) {
                     if (!empty($nodeError)) {
                         $errors[] = __(
                             'Node `%s` (%s) from Workflow `%s` (%s) returned the following error: %s',
@@ -403,7 +407,7 @@ class Workflow extends AppModel
                     }
                     return false; // Node stopped execution for blocking path
                 }
-                if ($graphNode['path_type'] == 'non-blocking') {
+                if ($graphNode['path_type'] == Workflow::NON_BLOCKING_PATH) {
                     $preventExecutionForPaths[] = $graphNode['path_list']; // Paths down the chain for this path should not be executed
                 }
             }

@@ -19,14 +19,15 @@ class WorkflowShell extends AppShell {
         $workflow = $this->Workflow->fetchWorkflow($workflow_id);
         $node_id_to_exec = (int)$this->args[1];
         $roamingData = JsonTool::decode($this->args[2]);
-        $jobId = $this->args[3];
+        $for_path = (bool)$this->args[3];
+        $jobId = $this->args[4];
 
         $parallelErrors = [];
         $walkResult = [];
         $executionSuccess = $this->Workflow->walkGraph(
             $workflow,
             $node_id_to_exec,
-            null,
+            $for_path,
             $roamingData,
             $parallelErrors,
             $walkResult,

@@ -44,6 +44,7 @@ class Module_parallel_task extends WorkflowBaseModule
                 $roamingData->getWorkflow()['Workflow']['id'],
                 $node_id_to_exec,
                 JsonTool::encode($roamingData->getData()),
+                Workflow::NON_BLOCKING_PATH,
                 $jobId
             ],
             true,

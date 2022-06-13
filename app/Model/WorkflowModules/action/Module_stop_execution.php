@@ -20,6 +20,7 @@ class Module_stop_execution extends WorkflowBaseModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
+        $errors[] = __('Execution stopped');
         return false;
     }
 }

@@ -79,8 +79,6 @@ class GraphWalker
     private $WorkflowModel;
     private $startNodeID;
     private $for_path;
-    private $triggersByNodeID;
-    private $triggersByModuleID;
     private $cursor;
 
     public function __construct(array $graphData, $WorkflowModel, $startNodeID, $for_path=null)
@@ -90,31 +88,16 @@ class GraphWalker
         $this->startNodeID = $startNodeID;
         $this->for_path = $for_path;
         $this->triggersByNodeID = [];
-        $this->triggersByModuleID = [];
-        $this->setTriggers();
         if (empty($this->graph[$startNodeID])) {
             throw new Exception(__('Could not find start node %s', $startNodeID));
         }
         $this->cursor = $startNodeID;
-        $this->path_type = null;
     }
 
     private function getModuleClass($node)
     {
         $moduleClass = $this->loaded_classes[$node['data']['module_type']][$node['data']['id']] ?? null;
         return $moduleClass;
-    }
-
-    private function setTriggers(): array
-    {
-        $triggers = [];
-        foreach ($this->graph as $node_id => $node) {
-            if ($node['data']['module_type'] == 'trigger') {
-                $this->triggersByNodeID[$node_id] = $node;
-                $this->triggersByModuleID[$node['data']['id']] = $node_id;
-            }
-        }
-        return $triggers;
     }
 
     private function _getPathType($node_id, $path_type)
@@ -197,7 +180,7 @@ class GraphWalker
 
     public function walk(WorkflowRoamingData $roamingData)
     {
-        return $this->_walk($this->cursor, null, [], $roamingData);
+        return $this->_walk($this->cursor, $this->for_path, [], $roamingData);
     }
 }
 
