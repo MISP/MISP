@@ -2472,7 +2472,7 @@ class Attribute extends AppModel
             }
             $temp = $this->Event->EventTag->find('all', array(
                 'recursive' => -1,
-                'contain' => array('Tag'),
+                'contain' => ['Tag' => ['fields' => ['id', 'name', 'colour', 'numerical_value']]],
                 'conditions' => $tagConditions,
             ));
             if (empty($temp)) {
@@ -2480,16 +2480,11 @@ class Attribute extends AppModel
             } else {
                 foreach ($temp as $tag) {
                     $tag['EventTag']['Tag'] = $tag['Tag'];
-                    unset($tag['Tag']);
                     $eventTags[$eventId][] = $tag['EventTag'];
                 }
             }
         }
-        if (!empty($eventTags)) {
-            foreach ($eventTags[$eventId] as $eventTag) {
-                $attribute['EventTag'][] = $eventTag;
-            }
-        }
+        $attribute['EventTag'] = $eventTags[$eventId];
         return $attribute;
     }
 
