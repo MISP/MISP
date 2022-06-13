@@ -318,6 +318,7 @@ class Workflow extends AppModel
             $blockingErrors[] = __('Invalid start node `%s`', $startNode);
             return false;
         }
+        $workflow = $this->__incrementWorkflowExecutionCount($workflow);
         $walkResult = [];
         $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, Workflow::BLOCKING_PATH, $data, $blockingErrors, $walkResult);
         return $blockingPathExecutionSuccess;
@@ -714,6 +715,13 @@ class Workflow extends AppModel
             return [];
         }
         return $returnAString ? $matchingModules[0] : $matchingModules;
+    }
+
+    private function __incrementWorkflowExecutionCount(array $workflow): array
+    {
+        $workflow['Workflow']['counter'] = intval($workflow['Workflow']['counter']) + 1;
+        $this->Workflow->save($workflow, ['fieldList' => ['counter']]);
+        return $this->fetchWorkflow($workflow['Workflow']['id']);
     }
 
     /**
