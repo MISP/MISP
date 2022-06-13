@@ -309,8 +309,14 @@ class Workflow extends AppModel
         if (empty($workflow)) {
             throw new WorkflowNotFoundException(__('Could not get workflow for trigger `%s`', $trigger_id));
         }
+        $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
+        $startNode = $this->workflowGraphTool->getNodeIdForTrigger($graphData, $trigger_id);
+        if ($startNode  == -1) {
+            $blockingErrors[] = __('Invalid start node `%s`', $startNode);
+            return false;
+        }
         $walkResult = [];
-        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $trigger_id, null, $data, $blockingErrors, $walkResult);
+        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, null, $data, $blockingErrors, $walkResult);
         return $blockingPathExecutionSuccess;
     }
 
@@ -318,13 +324,13 @@ class Workflow extends AppModel
      * walkGraph Walk the graph for the provided trigger and execute each nodes
      *
      * @param array $workflow The worflow to walk
-     * @param string $trigger_id The ID of the trigger to start from
+     * @param int $startNode The ID of the trigger to start from
      * @param bool|null $for_path If provided, execute the workflow for the provided path. If not provided, execute the worflow regardless of the path
      * @param array $data
      * @param array $errors
      * @return boolean If all module returned a successful response
      */
-    private function walkGraph(array $workflow, $trigger_id, $for_path=null, array $data=[], array &$errors=[], array &$walkResult=[]): bool
+    public function walkGraph(array $workflow, int $startNode, $for_path=null, array $data=[], array &$errors=[], array &$walkResult=[]): bool
     {
         $walkResult = [
             'blocking_nodes' => [],
@@ -367,13 +373,8 @@ class Workflow extends AppModel
             $errors[] = __('Could not find a valid user to run the workflow. Please set setting `MISP.host_org_id` or make sure a valid site_admin user exists.');
             return false;
         }
-        $roamingData = $this->workflowGraphTool->getRoamingData($userForWorkflow, $data);
+        $roamingData = $this->workflowGraphTool->getRoamingData($userForWorkflow, $data, $workflow, $startNode);
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
-        $startNode = $this->workflowGraphTool->getNodeIdForTrigger($graphData, $trigger_id);
-        if ($startNode  == -1) {
-            $errors[] = __('Invalid start node `%s`', $startNode);
-            return false;
-        }
         $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $this, $startNode, $for_path, $roamingData);
         $preventExecutionForPaths = [];
         foreach ($graphWalker as $graphNode) {
@@ -412,6 +413,7 @@ class Workflow extends AppModel
 
     public function __executeNode($node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
+        $roamingData->setCurrentNode($node['id']);
         $moduleClass = $this->getModuleClass($node);
         if (!is_null($moduleClass)) {
             try {

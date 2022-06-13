@@ -9,9 +9,13 @@ echo $this->element('/genericElements/SideMenu/side_menu', [
     <div class="alert alert-danger">
         <strong><?= __('Error while setting up Redis') ?></strong>
         <p>
-            <?=__('Redis is essential for the Workflow system to run.') ?>
+            <?=__('Some components are essential for the Workflow system to run.') ?>
         </p>
-        <?= __('Error:') ?>
-        <pre><?= h($error) ?></pre>
+        <?= __n('Error:', 'Errors:', count($requirementErrors)) ?>
+        <ul>
+            <?php foreach ($requirementErrors as $error): ?>
+                <li><?= h($error) ?></li>
+            <?php endforeach; ?>
+        </ul>
     </div>
 </div>

@@ -148,6 +148,9 @@ class GraphWalker
         if ($node['data']['id'] == 'if') {
             $useThenBranch = $this->_evaluateIFCondition($node, $roamingData);
             return $useThenBranch ? ['output_1' => $outputs['output_1']] : ['output_2' => $outputs['output_2']];
+        } else if ($node['data']['id'] == 'parallel-task') {
+            $this->_evaluateParallelTask($node, $roamingData, $outputs['output_1']);
+            return ['output_1' => []];
         }
         return $outputs;
     }
@@ -156,6 +159,17 @@ class GraphWalker
     {
         $result = $this->WorkflowModel->__executeNode($node, $roamingData);
         return $result;
+    }
+
+    private function _evaluateParallelTask($parallel_node, WorkflowRoamingData $roamingData, array $connections)
+    {
+        foreach ($connections['connections'] as $connection) {
+            $node_id_to_exec = (int)$connection['node'];
+            $data = $roamingData->getData();
+            $data['__node_id_to_exec'] = $node_id_to_exec;
+            $data = $roamingData->setData($data);
+            $this->WorkflowModel->__executeNode($parallel_node, $roamingData);
+        }
     }
 
     public function _walk($node_id, $path_type=null, array $path_list=[], WorkflowRoamingData $roamingData)
@@ -191,11 +205,15 @@ class WorkflowRoamingData
 {
     private $workflow_user;
     private $data;
+    private $workflow;
+    private $current_node;
 
-    public function __construct(array $workflow_user, array $data)
+    public function __construct(array $workflow_user, array $data, array $workflow, int $current_node)
     {
         $this->workflow_user = $workflow_user;
         $this->data = $data;
+        $this->workflow = $workflow;
+        $this->current_node = $current_node;
     }
 
     public function getUser(): array
@@ -208,9 +226,24 @@ class WorkflowRoamingData
         return $this->data;
     }
 
-    public function setData(array $data): array
+    public function getWorkflow(): array
     {
-        return $this->data = $data;
+        return $this->workflow;
+    }
+
+    public function getCurrentNode(): int
+    {
+        return $this->current_node;
+    }
+
+    public function setData(array $data)
+    {
+        $this->data = $data;
+    }
+
+    public function setCurrentNode(int $current_node)
+    {
+        $this->current_node = $current_node;
     }
 }
 
@@ -298,9 +331,9 @@ class WorkflowGraphTool
         return -1;
     }
 
-    public static function getRoamingData(array $user, array $data)
+    public static function getRoamingData(array $user, array $data, array $workflow, int $node_id)
     {
-        return new WorkflowRoamingData($user, $data);
+        return new WorkflowRoamingData($user, $data, $workflow, $node_id);
     }
 
     public static function getWalkerIterator(array $graphData, $WorkflowModel, $startNodeID, $path_type=null, WorkflowRoamingData $roamingData)

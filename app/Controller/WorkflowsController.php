@@ -11,10 +11,18 @@ class WorkflowsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'hasAcyclicGraph';
+        $requirementErrors = [];
+        if (empty(Configure::read('MISP.background_jobs'))) {
+            $requirementErrors[] = __('Background workers must be enabled to use workflows');
+            $this->render('error');
+        }
         try {
             $this->Workflow->setupRedisWithException();
         } catch (Exception $e) {
-            $this->set('error', $e->getMessage());
+            $requirementErrors[] = $e->getMessage();
+        }
+        if (!empty($requirementErrors)) {
+            $this->set('requirementErrors', $requirementErrors);
             $this->render('error');
         }
     }
