@@ -400,7 +400,6 @@ class Workflow extends AppModel
             $walkResult['executed_nodes'][] = $node;
             if (empty($success)) {
                 $walkResult['blocking_nodes'][] = $node;
-                // debug($graphNode['path_type']);
                 if ($graphNode['path_type'] == Workflow::BLOCKING_PATH) {
                     if (!empty($nodeError)) {
                         $errors[] = __(

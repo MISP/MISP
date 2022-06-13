@@ -137,6 +137,10 @@ function initDrawflow() {
         if (evt.keyCode == 67 && $drawflow.is(evt.target)) {
             editor.fitCanvas()
         }
+        if (evt.keyCode == 83 && evt.ctrlKey && $drawflow.is(evt.target)) {
+            saveWorkflow()
+            evt.preventDefault()
+        }
     })
     editor.translate_to = function (x, y) {
         this.canvas_x = x;
