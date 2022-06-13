@@ -361,6 +361,9 @@ function addNode(block, position) {
     var blockClass = block.class === undefined ? [] : block.class
     blockClass = !Array.isArray(blockClass) ? [blockClass] : blockClass
     blockClass.push('block-type-' + (block.html_template !== undefined ? block.html_template : 'default'))
+    if (block.data.module_type == 'logic') {
+        blockClass.push('block-type-logic')
+    }
     editor.addNode(
         block.name,
         block.inputs === undefined ? 1 : block.inputs,
@@ -442,6 +445,9 @@ function loadWorkflow(workflow) {
         var blockClass = block.data.class === undefined ? [] : block.data.class
         blockClass = !Array.isArray(blockClass) ? [blockClass] : blockClass
         blockClass.push('block-type-' + (block.data.html_template !== undefined ? block.data.html_template : 'default'))
+        if (block.data.module_type == 'logic') {
+            blockClass.push('block-type-logic')
+        }
         var html = getTemplateForBlock(block.data)
         editor.nodeId = block.id // force the editor to use the saved id of the block instead of generating a new one
         editor.addNode(

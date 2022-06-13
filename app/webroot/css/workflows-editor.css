@@ -342,15 +342,15 @@
 }
 
 .drawflow .drawflow-node.block-type-trigger {
-    border-left-color: #73a2c9;
+    border-left-color: #c97381;
     border-left-width: 0.25rem;
     border-left-style: solid;
-    border-right-color: #73a2c9;
+    border-right-color: #c97381;
     border-right-width: 0.25rem;
     border-right-style: solid;
 }
 
-.drawflow .drawflow-node.block-type-if {
+.drawflow .drawflow-node.block-type-logic {
     border-left-color: #74c973;
     border-left-width: 0.25rem;
     border-left-style: solid;
@@ -359,7 +359,11 @@
     border-right-style: solid;
 }
 
-.drawflow .drawflow-node.block-type-if:hover {
+.drawflow .drawflow-node.block-type-trigger:hover {
+    box-shadow: var(--dfNodeHoverBoxShadowHL) var(--dfNodeHoverBoxShadowVL) var(--dfNodeHoverBoxShadowBR) var(--dfNodeHoverBoxShadowS) #c9738199;
+}
+
+.drawflow .drawflow-node.block-type-logic:hover {
     box-shadow: var(--dfNodeHoverBoxShadowHL) var(--dfNodeHoverBoxShadowVL) var(--dfNodeHoverBoxShadowBR) var(--dfNodeHoverBoxShadowS) #74c97399;
 }
 
