@@ -23,6 +23,16 @@
                 echo __('Publish but do NOT send alert email? Only for minor changes!');
             }
         ?></p>
+        <?php if (!empty($servers)): ?>
+        <details>
+            <summary><?= __('Servers') ?></summary>
+            <ul>
+                <?php foreach ($servers as $serverName => $reason): ?>
+                <li><?= h($serverName) ?>: <?= $reason === true ? '<span style="color:green">' . __('Event will be pushed') . '</span>' : h($reason) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </details>
+        <?php endif; ?>
         <table>
             <tr>
                 <td style="vertical-align:top">
