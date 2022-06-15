@@ -40,6 +40,9 @@ class EventShell extends AppShell
                     'event_id' => ['help' => __('Event ID'), 'required' => true],
                     'user_id' => ['help' => __('User ID'), 'required' => true],
                 ],
+                'options' => [
+                    'send' => ['help' => __('Send email to given user'), 'boolean' => true],
+                ],
             ],
         ]);
         $parser->addSubcommand('duplicateTags', [
@@ -607,6 +610,7 @@ class EventShell extends AppShell
     public function testEventNotificationEmail()
     {
         list($eventId, $userId) = $this->args;
+        $send = $this->param('send');
 
         $user = $this->getUser($userId);
         $eventForUser = $this->Event->fetchEvent($user, [
@@ -626,10 +630,16 @@ class EventShell extends AppShell
         App::uses('SendEmail', 'Tools');
         App::uses('GpgTool', 'Tools');
         $sendEmail = new SendEmail(GpgTool::initializeGpg());
-        $sendEmail->setTransport('Debug');
+        if (!$send) {
+            $sendEmail->setTransport('Debug');
+        }
         $result = $sendEmail->sendToUser(['User' => $user], null, $emailTemplate);
 
-        echo $result['contents']['headers'] . "\n\n" . $result['contents']['message'] . "\n";
+        if ($send) {
+            var_dump($result);
+        } else {
+            echo $result['contents']['headers'] . "\n\n" . $result['contents']['message'] . "\n";
+        }
     }
 
     /**

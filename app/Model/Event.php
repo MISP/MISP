@@ -3131,8 +3131,8 @@ class Event extends AppModel
     {
         if (Configure::read('MISP.extended_alert_subject')) {
             $subject = preg_replace("/\r|\n/", "", $event['Event']['info']);
-            if (strlen($subject) > 58) {
-                $subject = substr($subject, 0, 55) . '... - ';
+            if (mb_strlen($subject) > 58) {
+                $subject = mb_substr($subject, 0, 55) . '... - ';
             } else {
                 $subject .= " - ";
             }
@@ -3159,6 +3159,10 @@ class Event extends AppModel
         $template->set('tlp', $subjMarkingString);
         $template->subject($subject);
         $template->referenceId("event-alert|{$event['Event']['id']}");
+
+        $unsubscribeLink = $this->__getAnnounceBaseurl() . '/users/unsubscribe/' . $this->User->unsubscribeCode($user);
+        $template->set('unsubscribe', $unsubscribeLink);
+        $template->listUnsubscribe($unsubscribeLink);
         return $template;
     }
 
