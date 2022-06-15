@@ -266,10 +266,90 @@ function initDrawflow() {
     $blockModalDeleteButton.click(function() {
         if (confirm('Are you sure you want to remove this block?')) {
             deleteSelectedNode()
-            $blockModal.modal('hide')
         }
+        $blockModal.modal('hide')
     })
 
+    $drawflow.on('mousedown', function (evt) {
+        if (evt.shiftKey) {
+            editor.editor_selected = false
+        }
+    })
+    editor.on('nodeCreated', function(node_id) {
+        $drawflow.find('#node-'+node_id).on('mousedown', function (evt) {
+            var selected_ids = selection.getSelection().map(function(e) { return e.id.slice(5) })
+            if (selected_ids.indexOf(this.id.slice(5)) !== -1) {
+                editor.node_selected = this // Allow moving multiple nodes from any nodes of the selection
+            }
+        })
+    })
+    editor.last_x = 0;
+    editor.last_y = 0;
+    editor.on('mouseMove', function(coordinates) {
+        // Credit: https://github.com/jerosoler/Drawflow/issues/322#issuecomment-1133036432
+        if (selection.getSelection() && editor.drag) {
+            selection.getSelection().forEach(function(node) {
+                var node_id = node.id.slice(5)
+                if (node_id != editor.node_selected.id.slice(5)) { // Drawflow default behavior will also move the node
+                    var xnew = (editor.last_x - coordinates.x) * editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)
+                    var ynew = (editor.last_y - coordinates.y) * editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)
+
+                    node.style.top = (node.offsetTop - ynew) + 'px'
+                    node.style.left = (node.offsetLeft - xnew) + 'px'
+
+                    editor.drawflow.drawflow[editor.module].data[node_id].pos_x = (node.offsetLeft - xnew)
+                    editor.drawflow.drawflow[editor.module].data[node_id].pos_y = (node.offsetTop - ynew)
+                    editor.updateConnectionNodes(node.id);
+                }
+            })
+        }
+        editor.last_x = coordinates.x
+        editor.last_y = coordinates.y 
+    })
+    editor.on('nodeUnselected', function() {
+        selection.getSelection().forEach(function (el) {
+            el.classList.remove('selected');
+        })
+        selection.clearSelection();
+    })
+    var selection = new SelectionArea({
+        selectables: ['#drawflow .drawflow-node'],
+        boundaries: ['#drawflow']
+    })
+        .on('beforestart', function (data) {
+            var evt = data.event
+            if (!evt.shiftKey) {
+                return false
+            }
+        })
+        .on('start', function(data) {
+            var store = data.store
+            var evt = data.event
+            if (!evt.ctrlKey && !evt.metaKey) {
+                store.stored.forEach(function(el) {
+                    el.classList.remove('selected');
+                })
+                selection.clearSelection();
+            }
+        })
+        .on('move', function(data) {
+            var store = data.store
+            var added = store.changed.added
+            var removed = store.changed.removed
+            added.forEach(function (el) {
+                el.classList.add('selected');
+            })
+            removed.forEach(function (el) {
+                el.classList.remove('selected');
+            })
+        })
+        .on('stop', function (data) {
+            var store = data.store
+            if (store.selected.length > 0) {
+                editor.node_selected = store.selected[0]
+            }
+        })
+    Window.selection = selection
 }
 
 function buildModalForBlock(node_id, block) {

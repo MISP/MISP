@@ -117,7 +117,7 @@ $triggerModules = $modules['blocks_trigger'];
 <?php
 echo $this->element('genericElements/assetLoader', [
     'css' => ['drawflow.min', 'drawflow-default'],
-    'js' => ['jquery-ui', 'drawflow.min', 'doT', 'moment.min'],
+    'js' => ['jquery-ui', 'drawflow.min', 'doT', 'moment.min', 'viselect.cjs'],
 ]);
 echo $this->element('genericElements/assetLoader', [
     'css' => ['workflows-editor'],
