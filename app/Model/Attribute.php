@@ -1725,8 +1725,13 @@ class Attribute extends AppModel
         return $result;
     }
 
-    // This method takes a string from an argument with several elements (separated by '&&' and negated by '!') and returns 2 arrays
-    // array 1 will have all of the non negated terms and array 2 all the negated terms
+    /**
+     * This method takes a string from an argument with several elements (separated by '&&' and negated by '!') and returns 2 arrays
+     * array 1 will have all of the non negated terms and array 2 all the negated terms
+     *
+     * @param string|array $args
+     * @return array[]
+     */
     public function dissectArgs($args)
     {
         $result = array(0 => array(), 1 => array(), 2 => array());
@@ -1748,7 +1753,7 @@ class Attribute extends AppModel
             }
         } else {
             foreach ($args as $arg) {
-                if ($arg[0] === '!') {
+                if (is_string($arg) && $arg[0] === '!') {
                     $result[1][] = substr($arg, 1);
                 } else {
                     $result[0][] = $arg;
