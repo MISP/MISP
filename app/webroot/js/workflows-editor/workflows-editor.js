@@ -6,6 +6,11 @@ var dotBlock_default = doT.template(' \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
+            {{? it.is_blocking }} \
+                <span style="margin-left: 2px;" class="text-error"> \
+                    <i title="This module can block execution" class="fa-fw fas fa-stop-circle"></i> \
+                </span> \
+            {{?}} \
             <span style="margin-left: auto;"> \
                 <span class="block-notification-container"> \
                     {{=it._block_notification_html}} \

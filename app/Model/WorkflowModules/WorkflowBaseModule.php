@@ -2,8 +2,10 @@
 class WorkflowBaseModule
 {
     public $is_misp_module = false;
+    public $is_blocking = false;
     public $id = 'to-override';
     public $name = 'to-override';
+    public $version = '0.1';
     public $description = 'to-override';
     public $icon = '';
     public $icon_class = '';

@@ -3,7 +3,7 @@ $classFromSeverity = [
     'info' => 'info',
     'warning' => 'warning',
     'error' => 'danger',
-]
+];
 ?>
 <div id="<?= h($block['id']) ?>" class="sidebar-workflow-block" style="user-select: none;" data-blockid="<?= h($block['id']) ?>">
     <div class="icon">
@@ -13,17 +13,25 @@ $classFromSeverity = [
     </div>
     <div>
         <div style="display: flex;">
-            <strong style="font-size: large;"><?= h($block['name']) ?></strong>
+            <strong style="font-size: large;">
+                <?= h($block['name']) ?>
+            </strong>
+            <small style="margin-left: 2px;">v<?= h($block['version']) ?></small>
+            <span style="margin-left: 2px;" class="text-error">
+                <?php if (!empty($block['is_blocking'])) : ?>
+                    <i title="<?= __('This module can block execution') ?>" class="fa-lg fa-fw <?= $this->FontAwesome->getClass('stop-circle') ?>"></i>
+                <?php endif; ?>
+            </span>
             <span class="block-notification-container">
                 <?php foreach (array_keys($classFromSeverity) as $severity) : ?>
                     <?php if (!empty($block['notifications'][$severity])) : ?>
                         <button class="btn btn-mini btn-<?= $classFromSeverity[$severity] ?>" type="button" title="<?= implode('&#013;', h(Hash::extract($block['notifications'][$severity], '{n}.text'))) ?>" onclick="showNotificationModalForSidebarModule(this)">
                             <?php if ($severity == 'danger') : ?>
-                                <i class="fas fa-times-circle"></i>
+                                <i class="<?= $this->FontAwesome->getClass('times-circle') ?>"></i>
                             <?php elseif ($severity == 'warning') : ?>
-                                <i class="fas fa-exclamation-triangle"></i>
+                                <i class="<?= $this->FontAwesome->getClass('exclamation-triangle') ?>"></i>
                             <?php else : ?>
-                                <i class="fas fa-exclamation-circle"></i>
+                                <i class="<?= $this->FontAwesome->getClass('exclamation-circle') ?>"></i>
                             <?php endif; ?>
                             <strong>
                                 <?= count($block['notifications'][$severity]) ?>
