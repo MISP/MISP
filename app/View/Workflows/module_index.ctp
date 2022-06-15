@@ -21,6 +21,13 @@
             'data_path' => 'module_type',
         ],
         [
+            'name' => __('Is blocking'),
+            'sort' => 'is_blocking',
+            'class' => 'short',
+            'data_path' => 'is_blocking',
+            'element' => 'boolean',
+        ],
+        [
             'name' => __('Is misp-module'),
             'sort' => 'is_misp_module',
             'class' => 'short',
