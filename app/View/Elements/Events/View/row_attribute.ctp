@@ -33,6 +33,12 @@ if (!empty($k)) {
 
 $objectId = (int) $object['id'];
 
+$isNonCorrelatingType = in_array($object['type'], Attribute::NON_CORRELATING_TYPES, true);
+$correlationDisabled = $object['disable_correlation'] || $isNonCorrelatingType;
+$correlationButtonEnabled = $mayChangeCorrelation &&
+    empty($event['Event']['disable_correlation']) &&
+    !$isNonCorrelatingType;
+
 $quickEdit = function($fieldName) use ($mayModify, $object) {
     if (!$mayModify) {
         return ''; // currently it is not supported to create proposals trough quick edit
@@ -40,7 +46,7 @@ $quickEdit = function($fieldName) use ($mayModify, $object) {
     if ($object['deleted']) {
         return ''; // deleted attributes are not editable
     }
-    if ($fieldName === 'value' && ($object['type'] === 'attachment' || $object['type'] === 'malware-sample')) {
+    if (($fieldName === 'value' || $fieldName === 'type') && ($object['type'] === 'attachment' || $object['type'] === 'malware-sample')) {
         return '';
     }
     return " data-edit-field=\"$fieldName\"";
@@ -173,8 +179,8 @@ $quickEdit = function($fieldName) use ($mayModify, $object) {
         title="<?php echo __('Toggle correlation');?>"
         type="checkbox"
         <?php
-          echo $object['disable_correlation'] ? '' : ' checked';
-          echo ($mayChangeCorrelation && empty($event['Event']['disable_correlation'])) ? '' : ' disabled';
+          echo $correlationDisabled ? '' : ' checked';
+          echo $correlationButtonEnabled ? '' : ' disabled';
         ?>
       >
     </td>

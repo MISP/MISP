@@ -359,7 +359,14 @@ class MispObject extends AppModel
         }
     }
 
-    public function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectID, &$duplicateObjectUuid)
+    /**
+     * @param array $object
+     * @param int $eventId
+     * @param int $duplicatedObjectId
+     * @param string $duplicateObjectUuid
+     * @return bool
+     */
+    private function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectId, &$duplicateObjectUuid)
     {
         $newObjectAttributes = array();
         if (isset($object['Object']['Attribute'])) {
@@ -383,7 +390,7 @@ class MispObject extends AppModel
             foreach ($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']] as $previousNewObject) {
                 if ($newObjectAttributeCount === count($previousNewObject)) {
                     if (empty(array_diff($previousNewObject, $newObjectAttributes))) {
-                        $duplicatedObjectID = $previousNewObject['Object']['id'];
+                        $duplicatedObjectId = $previousNewObject['Object']['id'];
                         $duplicateObjectUuid = $previousNewObject['Object']['uuid'];
                         return true;
                     }
@@ -412,7 +419,7 @@ class MispObject extends AppModel
                     $temp[] = sha1($existingAttribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value'], true);
                 }
                 if (empty(array_diff($temp, $newObjectAttributes))) {
-                    $duplicatedObjectID = $existingObject['Object']['id'];
+                    $duplicatedObjectId = $existingObject['Object']['id'];
                     return true;
                 }
             }
@@ -442,11 +449,11 @@ class MispObject extends AppModel
         }
         $object['Object']['event_id'] = $eventId;
         if ($breakOnDuplicate) {
-            $duplicatedObjectID = null;
+            $duplicatedObjectId = null;
             $duplicateObjectUuid = null;
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID, $dupicateObjectUuid);
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectId, $duplicateObjectUuid);
             if ($duplicate) {
-                return array('value' => array(__('Duplicate object found (id: %s, uuid: %s). Since breakOnDuplicate is set the object will not be added.', $duplicatedObjectID, $dupicateObjectUuid)));
+                return array('value' => array(__('Duplicate object found (id: %s, uuid: %s). Since breakOnDuplicate is set the object will not be added.', $duplicatedObjectId, $duplicateObjectUuid)));
             }
         }
         $this->create();
@@ -481,7 +488,7 @@ class MispObject extends AppModel
             return [];
         }
 
-        $sgids = $this->Event->cacheSgids($user, true);
+        $sgids = $this->SharingGroup->authorizedIds($user);
         return [
             'AND' => [
                 'OR' => [
@@ -536,7 +543,7 @@ class MispObject extends AppModel
     {
         $attributeConditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $attributeConditions = array(
                 'OR' => array(
                     array(
@@ -971,12 +978,12 @@ class MispObject extends AppModel
             $object = array('Object' => $object);
         }
         if (!empty($object['Object']['breakOnDuplicate']) || $breakOnDuplicate) {
-            $duplicatedObjectID = null;
+            $duplicatedObjectId = null;
             $duplicateObjectUuid = null;
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectID, $duplicateObjectUuid);
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectId, $duplicateObjectUuid);
             if ($duplicate) {
                 $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
-                    __('Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectID, $dupicateObjectUuid, $eventId),
+                    __('Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectId, $duplicateObjectUuid, $eventId),
                     'Duplicate object found.'
                 );
                 return true;

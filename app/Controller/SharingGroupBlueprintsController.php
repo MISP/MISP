@@ -151,7 +151,7 @@ class SharingGroupBlueprintsController extends AppController
            $this->set('title', __('Execute Sharing Group Blueprint'));
            $this->set('question', __('Are you sure you want to (re)create a sharing group based on the Sharing Group Blueprint?'));
            $this->set('actionName', __('Execute'));
-           $this->layout = 'ajax';
+           $this->layout = false;
            $this->render('/genericTemplates/confirm');
         }
     }
@@ -189,7 +189,7 @@ class SharingGroupBlueprintsController extends AppController
             $this->set('title', __('Detach Sharing Group Blueprint'));
             $this->set('question', __('Are you sure you want to detach the associated sharing group from this Sharing Group Blueprint? This action is irreversible.'));
             $this->set('actionName', __('Detach'));
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('/genericTemplates/confirm');
         }
     }

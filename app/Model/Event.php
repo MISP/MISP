@@ -491,10 +491,7 @@ class Event extends AppModel
      */
     public function attachCorrelationCountToEvents(array $user, array $events)
     {
-        $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-        if (!isset($sgids) || empty($sgids)) {
-            $sgids = array(-1);
-        }
+        $sgids = $this->SharingGroup->authorizedIds($user);
         $eventIds = array_column(array_column($events, 'Event'), 'id');
         $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventIds, $sgids);
         $this->Attribute->Correlation->virtualFields['count'] = 'count(distinct(Correlation.event_id))';
@@ -709,7 +706,7 @@ class Event extends AppModel
             $this->{$correlationModelName} = ClassRegistry::init($correlationModelName);
         }
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $conditionsCorrelation = array(
                 'AND' => array(
                     $correlationModelName . '.1_' . $scope . '_id' => $id,
@@ -1340,7 +1337,7 @@ class Event extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions['AND']['OR'] = [
                 'Event.org_id' => $user['org_id'],
@@ -1489,7 +1486,7 @@ class Event extends AppModel
             );
             foreach ($params as $param => $paramData) {
                 foreach ($simple_params as $scope => $simple_param_scoped) {
-                    if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
+                    if (isset($simple_param_scoped[$param]) && $paramData !== false) {
                         $options = array(
                             'filter' => $param,
                             'scope' => $scope,
@@ -1772,7 +1769,7 @@ class Event extends AppModel
         $flatten = (bool)$options['flatten'];
 
         // restricting to non-private or same org if the user is not a site-admin.
-        $sgids = $this->cacheSgids($user, $useCache);
+        $sgids = $this->SharingGroup->authorizedIds($user);
         if (!$isSiteAdmin) {
             // if delegations are enabled, check if there is an event that the current user might see because of the request itself
             if (Configure::read('MISP.delegation')) {
@@ -1782,7 +1779,7 @@ class Event extends AppModel
             $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
             $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
             $eventReportCondSelect = '(SELECT events.org_id FROM events WHERE events.id = EventReport.event_id)';
-            if ($this->getDataSource()->config['datasource'] === 'Database/Postgres') {
+            if (!$this->isMysql()) {
                 $schemaName = $this->getDataSource()->config['schema'];
                 $attributeCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Attribute"."event_id")', $schemaName, $schemaName, $schemaName);
                 $objectCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Object"."event_id")', $schemaName, $schemaName, $schemaName);
@@ -2831,14 +2828,14 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_value(&$params, $conditions, $options, $keys = array('Attribute.value1', 'Attribute.value2'))
+    public function set_filter_value(&$params, $conditions, $options)
     {
         if (!empty($params['value'])) {
-            $valueParts = explode('|', $params['value'], 2);
             $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
-            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], $keys);
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], ['Attribute.value1', 'Attribute.value2']);
             // Allows searching for ['value1' => [full, part1], 'value2' => [full, part2]]
-            if (count($valueParts) == 2) {
+            if (is_string($params['value']) && strpos('|', $params['value']) !== false) {
+                $valueParts = explode('|', $params['value'], 2);
                 $convertedFilterVal1 = $this->convert_filters($valueParts[0]);
                 $convertedFilterVal2 = $this->convert_filters($valueParts[1]);
                 $conditionVal1 = $this->generic_add_filter([], $convertedFilterVal1, ['Attribute.value1'])['AND'][0]['OR'];
@@ -3506,40 +3503,25 @@ class Event extends AppModel
             throw new Exception($exception);
         }
         $dataArray = $this->updateXMLArray($dataArray);
+        $eventsToAdd = isset($dataArray['response']['Event'][0]) ? $dataArray['response']['Event'] : [$dataArray['response']['Event']];
         $results = array();
         $validationIssues = array();
-        if (isset($dataArray['response']['Event'][0])) {
-            foreach ($dataArray['response']['Event'] as $event) {
-                $result = array('info' => $event['info']);
-                if ($takeOwnership) {
-                    $event['orgc_id'] = $user['org_id'];
-                    unset($event['Orgc']);
-                }
-                $event = array('Event' => $event);
-                $created_id = 0;
-                $event['Event']['locked'] = 1;
-                $event['Event']['published'] = $publish;
-                $result['result'] = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
-                $result['id'] = $created_id;
-                $result['validationIssues'] = $validationIssues;
-                $results[] = $result;
-            }
-        } else {
-            $temp['Event'] = $dataArray['response']['Event'];
+        foreach ($eventsToAdd as $event) {
             if ($takeOwnership) {
-                $temp['Event']['orgc_id'] = $user['org_id'];
-                unset($temp['Event']['Orgc']);
+                $event['orgc_id'] = $user['org_id'];
+                unset($event['Orgc']);
             }
+            $event = array('Event' => $event);
             $created_id = 0;
-            $temp['Event']['locked'] = 1;
-            $temp['Event']['published'] = $publish;
-            $result = $this->_add($temp, true, $user, '', null, false, null, $created_id, $validationIssues);
-            $results = array(array(
-                'info' => $temp['Event']['info'],
+            $event['Event']['locked'] = 1;
+            $event['Event']['published'] = $publish;
+            $result = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
+            $results[] = [
+                'info' => $event['Event']['info'],
                 'result' => $result,
                 'id' => $created_id,
                 'validationIssues' => $validationIssues,
-            ));
+            ];
         }
         return $results;
     }
@@ -3607,13 +3589,15 @@ class Event extends AppModel
             }
         }
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
-            $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
             if (!isset($data['Event']['Orgc']['uuid'])) {
-                $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $data['Event']['orgc_id']), 'fields' => array('Orgc.uuid'), 'recursive' => -1));
+                $orgc = $data['Event']['orgc_id'];
             } else {
-                $orgc = array('Orgc' => array('uuid' => $data['Event']['Orgc']['uuid']));
+                $orgc = $data['Event']['Orgc']['uuid'];
             }
-            if ($this->OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgc['Orgc']['uuid']))) {
+            if (!isset($this->OrgBlocklist)) {
+                $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
+            }
+            if ($this->OrgBlocklist->isBlocked($orgc)) {
                 return 'blocked';
             }
         }
@@ -3652,7 +3636,7 @@ class Event extends AppModel
             $existingEvent = $this->find('first', [
                 'conditions' => ['Event.uuid' => $data['Event']['uuid']],
                 'fields' => ['Event.id'],
-                'recursive' => -1.
+                'recursive' => -1,
             ]);
             if ($existingEvent) {
                 // RESTful, set response location header so client can find right URL to edit
@@ -4842,10 +4826,22 @@ class Event extends AppModel
             /* correlation */
             if ($filterType['correlation'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
-            } else if (in_array($attribute['id'], $correlatedAttributes)) { // `include only`
+            } else if (isset($correlatedAttributes[$attribute['id']])) { // `include only`
                 $include = $include && ($filterType['correlation'] == 1);
             } else { // `exclude`
                 $include = $include && ($filterType['correlation'] == 2);
+            }
+
+            if ($filterType['correlationId'] && $include) {
+                $include = false;
+                if (isset($correlatedAttributes[$attribute['id']])) {
+                    foreach ($correlatedAttributes[$attribute['id']] as $correlation) {
+                        if (in_array($correlation['id'], $filterType['correlationId'])) {
+                            $include = true;
+                            break;
+                        }
+                    }
+                }
             }
 
             /* feed */
@@ -4877,11 +4873,11 @@ class Event extends AppModel
 
             /* TypeGroupings */
             if (
-                $filterType['attributeFilter'] != 'all'
-                && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
-                && !in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
+                $filterType['attributeFilter'] !== 'all'
+                && isset(Attribute::TYPE_GROUPINGS[$filterType['attributeFilter']])
+                && !in_array($attribute['type'], Attribute::TYPE_GROUPINGS[$filterType['attributeFilter']], true)
             ) {
-                $include = false;
+                return null;
             }
 
             if ($filterType['warning'] == 0) { // `both`
@@ -4892,7 +4888,7 @@ class Event extends AppModel
                 $include = $include && ($filterType['warning'] == 2);
             }
 
-            if ($filterType['warninglistId']) {
+            if ($filterType['warninglistId'] && $include) {
                 $include = false;
                 if (isset($attribute['warnings'])) {
                     foreach ($attribute['warnings'] as $warning) {
@@ -4922,6 +4918,12 @@ class Event extends AppModel
         return $this->__prepareGenericForView($attribute);
     }
 
+    /**
+     * @param array $proposal
+     * @param array $correlatedShadowAttributes
+     * @param array $filterType
+     * @return array|null
+     */
     private function __prepareProposalForView($proposal, $correlatedShadowAttributes, $filterType = false)
     {
         if ($proposal['proposal_to_delete']) {
@@ -4937,10 +4939,22 @@ class Event extends AppModel
             /* correlation */
             if ($filterType['correlation'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
-            } else if (in_array($proposal['id'], $correlatedShadowAttributes)) { // `include only`
+            } else if (isset($correlatedShadowAttributes[$proposal['id']])) { // `include only`
                 $include = $include && ($filterType['correlation'] == 1);
             } else { // `exclude`
                 $include = $include && ($filterType['correlation'] == 2);
+            }
+
+            if ($filterType['correlationId'] && $include) {
+                $include = false;
+                if (isset($correlatedShadowAttributes[$proposal['id']])) {
+                    foreach ($correlatedShadowAttributes[$proposal['id']] as $correlation) {
+                        if (in_array($correlation['id'], $filterType['correlationId'])) {
+                            $include = true;
+                            break;
+                        }
+                    }
+                }
             }
 
             /* feed */
@@ -4963,11 +4977,11 @@ class Event extends AppModel
 
             /* TypeGroupings */
             if (
-                $filterType['attributeFilter'] != 'all'
-                && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
-                && !in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
+                $filterType['attributeFilter'] !== 'all'
+                && isset(Attribute::TYPE_GROUPINGS[$filterType['attributeFilter']])
+                && !in_array($proposal['type'], Attribute::TYPE_GROUPINGS[$filterType['attributeFilter']], true)
             ) {
-                $include = false;
+                return null;
             }
 
             /* warning */
@@ -4996,7 +5010,7 @@ class Event extends AppModel
     ) {
         $object['category'] = $object['meta-category'];
 
-        $include = empty($filterType['attributeFilter']) || $filterType['attributeFilter'] == 'object' || $filterType['attributeFilter'] == 'all' || $object['meta-category'] === $filterType['attributeFilter'];
+        $include = empty($filterType['attributeFilter']) || $filterType['attributeFilter'] === 'all' || $filterType['attributeFilter'] === 'object' || $object['meta-category'] === $filterType['attributeFilter'];
 
         if (!$include) {
             return null;
@@ -5028,6 +5042,7 @@ class Event extends AppModel
             || $filterType['feed'] != 0
             || $filterType['server'] != 0
             || $filterType['warninglistId'] !== null
+            || $filterType['correlationId'] !== null
         ) {
             $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData);
             if (!$include) {
@@ -5038,6 +5053,14 @@ class Event extends AppModel
         return $object;
     }
 
+    /**
+     * @param array $object
+     * @param array $filterType
+     * @param array $correlatedAttributes
+     * @param array $correlatedShadowAttributes
+     * @param array $sightingsData
+     * @return bool
+     */
     private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData)
     {
         if (empty($object['Attribute'])) { // reject empty object
@@ -5049,7 +5072,7 @@ class Event extends AppModel
             // pass, do not consider as `both` is selected
         } else if ($filterType['proposal'] == 1 || $filterType['proposal'] == 2) {
             $flagKeep = false;
-            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 proposal
+            foreach ($object['Attribute'] as $attribute) { // check if object contains at least 1 proposal
                 if (!empty($attribute['ShadowAttribute'])) {
                     $flagKeep = ($filterType['proposal'] == 1); // keep if proposal are included
                     break;
@@ -5096,7 +5119,37 @@ class Event extends AppModel
                     foreach ($attribute['warnings'] as $warning) {
                         if (in_array($warning['warninglist_id'], $filterType['warninglistId'])) {
                             $flagKeep = true;
-                            break;
+                            break 2;
+                        }
+                    }
+                }
+            }
+            if (!$flagKeep) {
+                return false;
+            }
+        }
+
+        if ($filterType['correlationId']) {
+            $flagKeep = false;
+            // check if object contains at least one attribute that is correlating with given event ID
+            foreach ($object['Attribute'] as $attribute) {
+                if (isset($correlatedAttributes[$attribute['id']])) {
+                    foreach ($correlatedAttributes[$attribute['id']] as $correlation) {
+                        if (in_array($correlation['id'], $filterType['correlationId'])) {
+                            $flagKeep = true;
+                            break 2;
+                        }
+                    }
+                }
+                if (!empty($attribute['ShadowAttribute'])) {
+                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
+                        if (isset($correlatedShadowAttributes[$shadowAttribute['id']])) {
+                            foreach ($correlatedShadowAttributes[$shadowAttribute['id']] as $correlation) {
+                                if (in_array($correlation['id'], $filterType['correlationId'])) {
+                                    $flagKeep = true;
+                                    break 2;
+                                }
+                            }
                         }
                     }
                 }
@@ -5112,14 +5165,14 @@ class Event extends AppModel
         } else if ($filterType['correlation'] == 1 || $filterType['correlation'] == 2) {
             $flagKeep = false;
             foreach ($object['Attribute'] as $attribute) { // check if object contains at least 1 warning
-                if (in_array($attribute['id'], $correlatedAttributes)) {
+                if (isset($correlatedAttributes[$attribute['id']])) {
                     $flagKeep = ($filterType['correlation'] == 1); // keep if correlations are included
                 } else {
                     $flagKeep = ($filterType['correlation'] == 2); // keep if correlations are excluded
                 }
                 if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
                     foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
-                        if (in_array($shadowAttribute['id'], $correlatedShadowAttributes)) {
+                        if (isset($correlatedShadowAttributes[$shadowAttribute['id']])) {
                             $flagKeep = ($filterType['correlation'] == 1); // keep if correlations are included
                             break;
                         }
@@ -5139,7 +5192,7 @@ class Event extends AppModel
             // pass, do not consider as `both` is selected
         } else if ($filterType['sighting'] == 1 || $filterType['sighting'] == 2) {
             $flagKeep = false;
-            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+            foreach ($object['Attribute'] as $attribute) { // check if object contains at least 1 warning
                 if (isset($sightingsData['data'][$attribute['id']])) {
                     $flagKeep = ($filterType['sighting'] == 1); // keep if server are included
                 } else {
@@ -5167,7 +5220,7 @@ class Event extends AppModel
             // pass, do not consider as `both` is selected
         } else if ($filterType['feed'] == 1 || $filterType['feed'] == 2) {
             $flagKeep = false;
-            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+            foreach ($object['Attribute'] as $attribute) { // check if object contains at least 1 warning
                 if (!empty($attribute['Feed'])) {
                     $flagKeep = ($filterType['feed'] == 1); // keep if feed are included
                 } else {
@@ -5195,7 +5248,7 @@ class Event extends AppModel
             // pass, do not consider as `both` is selected
         } else if ($filterType['server'] == 1 || $filterType['server'] == 2) {
             $flagKeep = false;
-            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+            foreach ($object['Attribute'] as $attribute) { // check if object contains at least 1 warning
                 if (!empty($attribute['Server'])) {
                     $flagKeep = ($filterType['server'] == 1); // keep if server are included
                 } else {
@@ -5220,6 +5273,10 @@ class Event extends AppModel
         return true;
     }
 
+    /**
+     * @param array $object
+     * @return array
+     */
     private function __prepareGenericForView($object)
     {
         if ($this->Attribute->isImage($object)) {
@@ -5271,14 +5328,15 @@ class Event extends AppModel
             'feed' => isset($passedArgs['feed']) ? $passedArgs['feed'] : 0,
             'server' => isset($passedArgs['server']) ? $passedArgs['server'] : 0,
             'warninglistId' => isset($passedArgs['warninglistId']) ? (is_array($passedArgs['warninglistId']) ? $passedArgs['warninglistId'] : [$passedArgs['warninglistId']]) : null,
+            'correlationId' => isset($passedArgs['correlationId']) ? (is_array($passedArgs['correlationId']) ? $passedArgs['correlationId'] : [$passedArgs['correlationId']]) : null,
         );
         // update proposal, correlation and warning accordingly
-        if (in_array($filterType['attributeFilter'], array('proposal', 'correlation', 'warning'))) {
+        if (in_array($filterType['attributeFilter'], array('proposal', 'correlation', 'warning'), true)) {
             $filterType[$filterType['attributeFilter']] = 1;
         }
 
-        $correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
-        $correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
+        $correlatedAttributes = isset($event['RelatedAttribute']) ? $event['RelatedAttribute'] : [];
+        $correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? $event['RelatedShadowAttribute'] : [];
         $objects = array();
 
         if (isset($event['Attribute'])) {
@@ -5580,7 +5638,7 @@ class Event extends AppModel
         } else {
             $attribute_type = $attribute['type'];
             if (empty($attribute['category'])) {
-                $attribute['category'] = $this->Attribute->typedefinitions[$attribute_type]['default_category'];
+                $attribute['category'] = $this->Attribute->typeDefinitions[$attribute_type]['default_category'];
             }
         }
         if (!isset($attribute['to_ids'])) {
@@ -5637,22 +5695,6 @@ class Event extends AppModel
             'extension' => $module['mispattributes']['outputFileExtension'],
             'response' => $module['mispattributes']['responseType']
         ];
-    }
-
-    public function cacheSgids($user, $useCache = false)
-    {
-        if ($useCache && isset($this->assetCache['sgids'])) {
-            return $this->assetCache['sgids'];
-        } else {
-            $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-            if (empty($sgids)) {
-                $sgids = array(-1);
-            }
-            if ($useCache) {
-                $this->assetCache['sgids'] = $sgids;
-            }
-            return $sgids;
-        }
     }
 
     public function __cacheSharingGroupData($user, $useCache = false)

@@ -1,7 +1,7 @@
-<?php
-    echo $this->Html->script('d3');
-    echo $this->Html->script('cal-heatmap');
-    echo $this->Html->css('cal-heatmap');
+<?= $this->element('genericElements/assetLoader', [
+    'css' => ['cal-heatmap'],
+    'js' => ['d3', 'cal-heatmap'],
+]);
 ?>
 <div class = "index">
 <h2><?php echo __('Statistics');?></h2>

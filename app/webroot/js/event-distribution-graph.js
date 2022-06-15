@@ -14,7 +14,7 @@ function clickHandlerGraph(evt) {
         var value = distribution_chart.data.datasets[firstPoint._datasetIndex].data[firstPoint._index];
         if (value == 0) {
             document.getElementById('attributesFilterField').value = "";
-            filterAttributes('all', scope_id);
+            filterAttributes('all');
         } else {
             distribution_id = distribution_chart.data.distribution[firstPoint._index].value;
             var value_to_set = String(distribution_id);

@@ -5,7 +5,7 @@
     $searchUrl = '/events/index/searchtag:';
     switch ($scope) {
         case 'event':
-            $id = h($event['Event']['id']);
+            $id = intval($event['Event']['id']);
             if (!empty($missingTaxonomies)) {
                 echo __(
                     'Missing taxonomies: <span class="red bold">%s</span><br>',
@@ -23,7 +23,6 @@
     }
     $full = $isAclTagger && $tagAccess && empty($static_tags_only);
     $fullLocal = $isAclTagger && $localTagAccess && empty($static_tags_only);
-    $host_org_editor = (int)$me['org_id'] === Configure::read('MISP.host_org_id') && $isAclTagger && empty($static_tags_only);
     $tagData = "";
     foreach ($tags as $tag) {
         if (empty($tag['Tag'])) {
@@ -32,12 +31,12 @@
         if (empty($tag['Tag']['colour'])) {
             $tag['Tag']['colour'] = '#0088cc';
         }
-        $aStyle = 'background-color:' . h($tag['Tag']['colour']) . ';color:' . $this->TextColour->getTextColour($tag['Tag']['colour']) . ';';
+        $aStyle = 'background-color:' . h($tag['Tag']['colour']) . ';color:' . $this->TextColour->getTextColour($tag['Tag']['colour']);
         $aClass = 'tag nowrap';
         $aText = trim($tag['Tag']['name']);
         $aTextModified = null;
         if (isset($tag_display_style)) {
-            if (!isset($tag_display_style) || $tag_display_style == 1) {
+            if ($tag_display_style == 1) {
                 // default behaviour, do nothing for now
             } else if ($tag_display_style == 2) {
                 $separator_pos = strpos($aText, ':');
@@ -65,16 +64,11 @@
         if (!empty($tag['Tag']['id'])) {
             $span_tag = sprintf(
                 '<a href="%s" style="%s" class="%s"%s data-tag-id="%s">%s</a>',
-                sprintf(
-                    '%s%s%s',
-                    $baseurl,
-                    $searchUrl,
-                    h($tag['Tag']['id'])
-                ),
+                $baseurl . $searchUrl . intval($tag['Tag']['id']),
                 $aStyle,
                 $aClass,
                 isset($aTextModified) ? ' title="' . $aText . '"' : '',
-                h($tag['Tag']['id']),
+                intval($tag['Tag']['id']),
                 isset($aTextModified) ? $aTextModified : $aText
             );
         } else {
@@ -95,10 +89,10 @@
                 "0",
                 __('Remove tag %s', h($tag['Tag']['name'])),
                 sprintf(
-                    "removeObjectTagPopup(this, '%s', '%s', '%s')",
+                    "removeObjectTagPopup(this, '%s', %s, %s)",
                      $scope,
                      $id,
-                     h($tag['Tag']['id'])
+                     intval($tag['Tag']['id'])
                 )
             );
         }
@@ -132,35 +126,33 @@
         '<span class="tag-list-container">%s</span>',
         $tagData
     );
-    $tagConflictData = '';
     if (!empty($tagConflicts['global'])) {
-        $tagConflictData .= '<div><div class="alert alert-error tag-conflict-notice">';
-        $tagConflictData .= '<i class="fas fa-globe-americas icon"></i>';
-        $tagConflictData .= '<div class="text-container">';
+        echo '<div><div class="alert alert-error tag-conflict-notice">';
+        echo '<i class="fas fa-globe-americas icon"></i>';
+        echo '<div class="text-container">';
         foreach ($tagConflicts['global'] as $tagConflict) {
-            $tagConflictData .= sprintf(
+            echo sprintf(
                 '<strong>%s</strong><br>',
                 h($tagConflict['conflict'])
             );
             foreach ($tagConflict['tags'] as $tag) {
-                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span><br>', h($tag));
+                echo sprintf('<span class="apply_css_arrow nowrap">%s</span><br>', h($tag));
             }
         }
-        $tagConflictData .= '</div></div></span>';
+        echo '</div></div></span>';
     }
     if (!empty($tagConflicts['local'])) {
-        $tagConflictData .= '<div><div class="alert alert-error tag-conflict-notice">';
-        $tagConflictData .= '<i class="fas fa-user icon"></i>';
-        $tagConflictData .= '<div class="text-container">';
+        echo '<div><div class="alert alert-error tag-conflict-notice">';
+        echo '<i class="fas fa-user icon"></i>';
+        echo '<div class="text-container">';
         foreach ($tagConflicts['local'] as $tagConflict) {
-            $tagConflictData .= sprintf(
+            echo sprintf(
                 '<strong>%s</strong><br>',
                 h($tagConflict['conflict'])
             );
             foreach ($tagConflict['tags'] as $tag) {
-                $tagConflictData .= sprintf('<span class="apply_css_arrow nowrap">%s</span><br>', h($tag));
+                echo sprintf('<span class="apply_css_arrow nowrap">%s</span><br>', h($tag));
             }
         }
-        $tagConflictData .= '</div></div></span>';
+        echo '</div></div></span>';
     }
-    echo $tagConflictData;

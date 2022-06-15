@@ -4,8 +4,10 @@ App::uses('TmpFileTool', 'Tools');
 
 /**
  * @property Tag $Tag
+ * @property Galaxy $Galaxy
  * @property GalaxyClusterRelation $GalaxyClusterRelation
  * @property GalaxyElement $GalaxyElement
+ * @property SharingGroup $SharingGroup
  */
 class GalaxyCluster extends AppModel
 {
@@ -1013,10 +1015,9 @@ class GalaxyCluster extends AppModel
 
     public function buildConditions($user)
     {
-        $this->Event = ClassRegistry::init('Event');
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
+            $sgids = $this->SharingGroup->authorizedIds($user);
             $alias = $this->alias;
             $conditions['AND']['OR'] = array(
                 "${alias}.org_id" => $user['org_id'],

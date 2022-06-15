@@ -187,11 +187,7 @@ class JSONConverterTool
             $resultArray = ': ' . $array . PHP_EOL;
         }
         if ($root) {
-            $text = '';
-            foreach ($resultArray as $r) {
-                $text .= $r;
-            }
-            return $text;
+            return implode('', $resultArray);
         } else {
             return $resultArray;
         }

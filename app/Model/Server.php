@@ -425,7 +425,7 @@ class Server extends AppModel
         $passAlong = $server['Server']['id'];
         if (!$existingEvent) {
             // add data for newly imported events
-            if ($event['Event']['protected']) {
+            if (isset($event['Event']['protected']) && $event['Event']['protected']) {
                 if (!$eventModel->CryptographicKey->validateProtectedEvent($body, $user, $headers['x-pgp-signature'], $event)) {
                     $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                     return false;
@@ -2002,12 +2002,12 @@ class Server extends AppModel
         if (!Configure::read('MISP.background_jobs')) {
             $this->Attribute = ClassRegistry::init('Attribute');
             if ($value) {
-                $k = $this->Attribute->purgeCorrelations();
+                $this->Attribute->purgeCorrelations();
             } else {
-                $k = $this->Attribute->generateCorrelation();
+                $this->Attribute->generateCorrelation();
             }
         } else {
-            if ($value == true) {
+            if ($value) {
                 $jobType = 'jobPurgeCorrelation';
                 $jobTypeText = 'purge correlations';
             } else {
@@ -2029,7 +2029,6 @@ class Server extends AppModel
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
                 [
-                    'updateAfterPull',
                     $jobType,
                     $jobId
                 ],
@@ -2599,8 +2598,7 @@ class Server extends AppModel
         };
 
         $result = [];
-        $dataSource = $this->getDataSource()->config['datasource'];
-        if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $sql = sprintf(
                 'select TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE from information_schema.tables where table_schema = %s group by TABLE_NAME, DATA_LENGTH, INDEX_LENGTH, DATA_FREE;',
                 "'" . $this->getDataSource()->config['database'] . "'"
@@ -2618,8 +2616,7 @@ class Server extends AppModel
                 ];
             }
 
-        }
-        else if ($dataSource === 'Database/Postgres') {
+        } else {
             $sql = sprintf(
                 'select TABLE_NAME as table, pg_total_relation_size(%s||%s||TABLE_NAME) as used from information_schema.tables where table_schema = %s group by TABLE_NAME;',
                 "'" . $this->getDataSource()->config['database'] . "'",
@@ -2677,7 +2674,7 @@ class Server extends AppModel
             'update_fail_number_reached' => $this->UpdateFailNumberReached(),
             'indexes' => array()
         );
-        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $dbActualSchema = $this->getActualDBSchema();
             $dbExpectedSchema = $this->getExpectedDBSchema();
             if ($dbExpectedSchema !== false) {
@@ -2838,8 +2835,7 @@ class Server extends AppModel
     ){
         $dbActualSchema = array();
         $dbActualIndexes = array();
-        $dataSource = $this->getDataSource()->config['datasource'];
-        if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $sqlGetTable = sprintf('SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = %s ORDER BY TABLE_NAME;', "'" . $this->getDataSource()->config['database'] . "'");
             $sqlResult = $this->query($sqlGetTable);
             $tables = Hash::extract($sqlResult, '{n}.tables.TABLE_NAME');
@@ -2856,7 +2852,7 @@ class Server extends AppModel
                 }
                 $dbActualIndexes[$table] = $this->getDatabaseIndexes($this->getDataSource()->config['database'], $table);
             }
-        } else if ($dataSource == 'Database/Postgres') {
+        } else {
             return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
         }
         return ['schema' => $dbActualSchema, 'column' => $tableColumnNames, 'indexes' => $dbActualIndexes];
@@ -3366,25 +3362,54 @@ class Server extends AppModel
         return $proxyStatus;
     }
 
-    public function sessionDiagnostics(&$diagnostic_errors = 0, &$sessionCount = '')
+    public function sessionDiagnostics(&$diagnostic_errors = 0)
     {
-        if (Configure::read('Session.defaults') !== 'database') {
-            $sessionCount = 'N/A';
-            return 2;
+        $sessionCount = null;
+        $sessionHandler = null;
+        $errorCode = 9;
+
+        switch (Configure::read('Session.defaults')) {
+            case 'php':
+                $sessionHandler = 'php_' .  ini_get('session.save_handler');
+                switch ($sessionHandler) {
+                    case 'php_files':
+                        $diagnostic_errors++;
+                        $errorCode = 2;
+                        break;
+                    case 'php_redis':
+                        $errorCode = 0;
+                        break;
+                    default:
+                        $diagnostic_errors++;
+                        $errorCode = 8;
+                        break;
+                }
+                break;
+            case 'database':
+                $sessionHandler = 'database';
+                $sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
+                $sqlResult = $this->query($sql);
+                if (isset($sqlResult[0][0])) {
+                    $sessionCount = $sqlResult[0][0]['session_count'];
+                } else {
+                    $errorCode = 9;
+                }
+                if ($sessionCount > 1000) {
+                    $diagnostic_errors++;
+                    $errorCode = 1;
+                }
+                break;
+            default:
+                $diagnostic_errors++;
+                $errorCode =  8;
+                break;
         }
-        $sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
-        $sqlResult = $this->query($sql);
-        if (isset($sqlResult[0][0])) {
-            $sessionCount = $sqlResult[0][0]['session_count'];
-        } else {
-            $sessionCount = 'Error';
-            return 3;
-        }
-        if ($sessionCount > 1000) {
-            $diagnostic_errors++;
-            return 1;
-        }
-        return 0;
+
+        return [
+            'handler' => $sessionHandler,
+            'expired_count' => $sessionCount,
+            'error_code' => $errorCode
+        ];
     }
 
     public function workerDiagnostics(&$workerIssueCount)
@@ -3407,18 +3432,18 @@ class Server extends AppModel
         $currentUser = ProcessTool::whoami();
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
-            $entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
-            $correct_user = ($currentUser === $worker['user']);
             if (!is_numeric($pid)) {
                 throw new MethodNotAllowedException('Non numeric PID found.');
             }
+            $entry = $worker['type'] === 'regular' ? $worker['queue'] : $worker['type'];
+            $correctUser = ($currentUser === $worker['user']);
             if ($procAccessible) {
-                $alive = $correct_user ? (file_exists('/proc/' . addslashes($pid))) : false;
+                $alive = $correctUser && file_exists("/proc/$pid");
             } else {
                 $alive = 'N/A';
             }
             $ok = true;
-            if (!$alive || !$correct_user) {
+            if (!$alive || !$correctUser) {
                 $ok = false;
                 $workerIssueCount++;
             }
@@ -3426,19 +3451,19 @@ class Server extends AppModel
                 'pid' => $pid,
                 'user' => $worker['user'],
                 'alive' => $alive,
-                'correct_user' => $correct_user,
+                'correct_user' => $correctUser,
                 'ok' => $ok
             );
         }
         foreach ($worker_array as $k => $queue) {
-            if (isset($worker_array[$k]['workers'])) {
-                foreach($worker_array[$k]['workers'] as $worker) {
+            if (isset($queue['workers'])) {
+                foreach ($queue['workers'] as $worker) {
                     if ($worker['ok']) {
                         $worker_array[$k]['ok'] = true; // If at least one worker is up, the queue can be considered working
                     }
                 }
             }
-            if ($k != 'scheduler') {
+            if ($k !== 'scheduler') {
                 $worker_array[$k]['jobCount'] = $this->getBackgroundJobsTool()->getQueueSize($k);
             }
             if (!isset($queue['workers'])) {
@@ -5145,6 +5170,14 @@ class Server extends AppModel
                     'type' => 'string',
                     'options' => array(0 => 'Minimal tags', 1 => 'Full tags', 2 => 'Shortened tags'),
                 ),
+                'disable_taxonomy_consistency_checks' => array(
+                    'level' => 0,
+                    'description' => __('*WARNING* This will disable taxonomy tags conflict checks when browsing attributes and objects, does not impact checks when adding tags. It can dramatically increase the performance when loading events with lots of tagged attributes or objects.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'welcome_text_top' => array(
                     'level' => 2,
                     'description' => __('Used on the login page, before the MISP logo'),
@@ -5696,6 +5729,22 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                     'cli_only' => true,
+                ],
+                'enable_clusters_mirroring_from_attributes_to_event' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Add a checkbox when attaching a cluster to an Attribute which, when checked, will also create the same clusters on the attribute\'s event.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
+                'thumbnail_in_redis' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Store image thumbnails in Redis insteadof file system.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
                 ],
             ),
             'GnuPG' => array(

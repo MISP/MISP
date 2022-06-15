@@ -4,6 +4,7 @@ import json
 import uuid
 import subprocess
 import unittest
+import requests
 from xml.etree import ElementTree as ET
 from io import BytesIO
 import urllib3  # type: ignore
@@ -689,6 +690,10 @@ class TestComprehensive(unittest.TestCase):
         wl = request(self.admin_misp_connector, 'POST', 'warninglists/add', data=warninglist)
         check_response(wl)
 
+        exported = request(self.admin_misp_connector, 'GET', f'warninglists/export/{wl["Warninglist"]["id"]}')
+        self.assertIn('name', exported)
+        self.assertEqual('Test', exported['name'])
+
         check_response(self.admin_misp_connector.enable_warninglist(wl["Warninglist"]["id"]))
 
         response = self.admin_misp_connector.values_in_warninglist("1.2.3.4")
@@ -716,7 +721,19 @@ class TestComprehensive(unittest.TestCase):
         response = self.admin_misp_connector.values_in_warninglist("2.3.4.5")
         self.assertEqual(0, len(response))
 
+        # Update by importing
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/import', exported)
+        check_response(response)
+
         response = request(self.admin_misp_connector, 'POST', f'warninglists/delete/{wl["Warninglist"]["id"]}')
+        check_response(response)
+
+        # Create new warninglist by importing under different name
+        exported["name"] = "Test2"
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/import', exported)
+        check_response(response)
+
+        response = request(self.admin_misp_connector, 'POST', f'warninglists/delete/{response["id"]}')
         check_response(response)
 
     def test_protected_event(self):
@@ -745,6 +762,40 @@ class TestComprehensive(unittest.TestCase):
         response = self.admin_misp_connector._prepare_request('GET', 'taxonomies/export/1')
         self.assertEqual(200, response.status_code, response)
         response.json()
+
+    def test_etag(self):
+        headers = {
+            'Authorization': self.admin_misp_connector.key,
+            'Accept': 'application/json',
+            'User-Agent': 'PyMISP',
+            'If-None-Match': '',
+        }
+        response = requests.get(self.admin_misp_connector.root_url + '/attributes/describeTypes.json', headers=headers)
+        self.assertEqual(200, response.status_code)
+        self.assertIn('Etag', response.headers)
+        self.assertTrue(len(response.headers['Etag']) > 0, response.headers['Etag'])
+
+        headers['If-None-Match'] = response.headers['Etag']
+        response = requests.get(self.admin_misp_connector.root_url + '/attributes/describeTypes.json', headers=headers)
+        self.assertEqual(304, response.status_code, response.headers)
+
+    def test_event_alert_default_enabled(self):
+        user = MISPUser()
+        user.email = 'testusr_alert_disabled@user.local'
+        user.org_id = self.test_org.id
+
+        created_user = check_response(self.admin_misp_connector.add_user(user))
+        self.assertFalse(created_user.autoalert, created_user)
+        self.admin_misp_connector.delete_user(created_user)
+
+        with MISPSetting(self.admin_misp_connector, {"MISP.default_publish_alert": True}):
+            user = MISPUser()
+            user.email = 'testusr_alert_enabled@user.local'
+            user.org_id = self.test_org.id
+
+            created_user = check_response(self.admin_misp_connector.add_user(user))
+            self.assertTrue(created_user.autoalert, created_user)
+            self.admin_misp_connector.delete_user(created_user)
 
     def _search(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)

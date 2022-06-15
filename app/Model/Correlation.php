@@ -33,11 +33,18 @@ class Correlation extends AppModel
     /** @var bool */
     private $deadlockAvoidance;
 
+    /** @var bool */
+    private $advancedCorrelationEnabled;
+
+    /** @var array */
+    private $cidrListCache;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
         $this->oldSchema = $this->schema('date') !== null;
         $this->deadlockAvoidance = Configure::read('MISP.deadlock_avoidance');
+        $this->advancedCorrelationEnabled = (bool)Configure::read('MISP.enable_advanced_correlations');
     }
 
     public function correlateValueRouter($value)
@@ -72,26 +79,30 @@ class Correlation extends AppModel
         }
     }
 
-    private function __buildAdvancedCorrelationConditions($a)
+    /**
+     * @param array $attribute Simple attribute array
+     * @return array|null
+     */
+    private function __buildAdvancedCorrelationConditions($attribute)
     {
-        if (isset($a['Attribute'])) {
-            $a = $a['Attribute'];
+        if (!$this->advancedCorrelationEnabled) {
+            return null;
         }
-        $extraConditions = null;
-        if (in_array($a['type'], ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'], true)) {
-            $extraConditions = $this->cidrCorrelation($a);
-        } else if ($a['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
-            $extraConditions = $this->ssdeepCorrelation($a);
+
+        if (in_array($attribute['type'], ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'], true)) {
+            return $this->cidrCorrelation($attribute);
+        } else if ($attribute['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
+            return $this->ssdeepCorrelation($attribute);
         }
-        return $extraConditions;
+        return null;
     }
 
     private function __addAdvancedCorrelations($correlatingAttribute)
     {
-        if (empty(Configure::read('MISP.enable_advanced_correlations'))) {
+        if (!$this->advancedCorrelationEnabled) {
             return [];
         }
-        $extraConditions = $this->__buildAdvancedCorrelationConditions($correlatingAttribute);
+        $extraConditions = $this->__buildAdvancedCorrelationConditions($correlatingAttribute['Attribute']);
         if (empty($extraConditions)) {
             return [];
         }
@@ -162,40 +173,41 @@ class Correlation extends AppModel
         return $correlatingAttributes;
     }
 
-    private function __addCorrelationEntry($value, $a, $b, $correlations)
+    /**
+     * @param string $value
+     * @param array $a Attribute A
+     * @param array $b Attribute B
+     * @return array
+     */
+    private function __addCorrelationEntry($value, $a, $b)
     {
-        if (
-            $a['Attribute']['event_id'] !== $b['Attribute']['event_id']
-        ) {
-            if ($this->deadlockAvoidance) {
-                $correlations[] = [
-                    'value' => $value,
-                    '1_event_id' => $a['Event']['id'],
-                    '1_attribute_id' => $a['Attribute']['id'],
-                    'event_id' => $b['Attribute']['event_id'],
-                    'attribute_id' => $b['Attribute']['id'],
-                    'org_id' => $b['Event']['org_id'],
-                    'distribution' => $b['Event']['distribution'],
-                    'a_distribution' => $b['Attribute']['distribution'],
-                    'sharing_group_id' => $b['Event']['sharing_group_id'],
-                    'a_sharing_group_id' => $b['Attribute']['sharing_group_id'],
-                ];
-            } else {
-                $correlations[] = [
-                    $value,
-                    $a['Event']['id'],
-                    $a['Attribute']['id'],
-                    $b['Attribute']['event_id'],
-                    $b['Attribute']['id'],
-                    $b['Event']['org_id'],
-                    $b['Event']['distribution'],
-                    $b['Attribute']['distribution'],
-                    $b['Event']['sharing_group_id'],
-                    $b['Attribute']['sharing_group_id'],
-                ];
-            }
+        if ($this->deadlockAvoidance) {
+            return [
+                'value' => $value,
+                '1_event_id' => $a['Event']['id'],
+                '1_attribute_id' => $a['Attribute']['id'],
+                'event_id' => $b['Event']['id'],
+                'attribute_id' => $b['Attribute']['id'],
+                'org_id' => $b['Event']['org_id'],
+                'distribution' => $b['Event']['distribution'],
+                'a_distribution' => $b['Attribute']['distribution'],
+                'sharing_group_id' => $b['Event']['sharing_group_id'],
+                'a_sharing_group_id' => $b['Attribute']['sharing_group_id'],
+            ];
+        } else {
+            return [
+                $value,
+                (int) $a['Event']['id'],
+                (int) $a['Attribute']['id'],
+                (int) $b['Event']['id'],
+                (int) $b['Attribute']['id'],
+                (int) $b['Event']['org_id'],
+                (int) $b['Event']['distribution'],
+                (int) $b['Attribute']['distribution'],
+                (int) $b['Event']['sharing_group_id'],
+                (int) $b['Attribute']['sharing_group_id'],
+            ];
         }
-        return $correlations;
     }
 
     public function correlateValue($value, $jobId = false)
@@ -217,12 +229,18 @@ class Correlation extends AppModel
         }
         foreach ($correlatingAttributes as $k => $correlatingAttribute) {
             foreach ($correlatingAttributes as $correlatingAttribute2) {
-                $correlations = $this->__addCorrelationEntry($value, $correlatingAttribute, $correlatingAttribute2, $correlations);
+                if ($correlatingAttribute['Attribute']['event_id'] === $correlatingAttribute2['Attribute']['event_id']) {
+                    continue;
+                }
+                $correlations[] = $this->__addCorrelationEntry($value, $correlatingAttribute, $correlatingAttribute2);
             }
             $extraCorrelations = $this->__addAdvancedCorrelations($correlatingAttribute);
             if (!empty($extraCorrelations)) {
                 foreach ($extraCorrelations as $extraCorrelation) {
-                    $correlations = $this->__addCorrelationEntry($value, $correlatingAttribute, $extraCorrelation, $correlations);
+                    if ($correlatingAttribute['Attribute']['event_id'] === $extraCorrelation['Attribute']['event_id']) {
+                        continue;
+                    }
+                    $correlations[] = $this->__addCorrelationEntry($value, $correlatingAttribute, $extraCorrelation);
                     //$correlations = $this->__addCorrelationEntry($value, $extraCorrelation, $correlatingAttribute, $correlations);
                 }
             }
@@ -230,14 +248,18 @@ class Correlation extends AppModel
                 $this->Job->saveProgress($jobId, __('Correlating Attributes based on value. %s attributes correlated out of %s.', $k, $count), floor(100 * $k / $count));
             }
         }
-        return $this->__saveCorrelations($correlations);
-    }
-
-    private function __saveCorrelations($correlations)
-    {
         if (empty($correlations)) {
             return true;
         }
+        return $this->__saveCorrelations($correlations);
+    }
+
+    /**
+     * @param array $correlations
+     * @return array|bool|bool[]|mixed
+     */
+    private function __saveCorrelations($correlations)
+    {
         $fields = [
             'value', '1_event_id', '1_attribute_id', 'event_id', 'attribute_id', 'org_id',
             'distribution', 'a_distribution', 'sharing_group_id', 'a_sharing_group_id',
@@ -276,7 +298,15 @@ class Correlation extends AppModel
                 }
             }
             $db = $this->getDataSource();
-            return $db->insertMulti('correlations', $fields, $correlations);
+            // Split to chunks datasource is is enabled
+            if (count($correlations) > 100) {
+                foreach (array_chunk($correlations, 100) as $chunk) {
+                    $db->insertMulti('correlations', $fields, $chunk);
+                }
+                return true;
+            } else {
+                return $db->insertMulti('correlations', $fields, $correlations);
+            }
         }
     }
 
@@ -299,6 +329,12 @@ class Correlation extends AppModel
         }
     }
 
+    /**
+     * @param array $a
+     * @param bool $full
+     * @param array|false $event
+     * @return array|bool|bool[]|mixed
+     */
     public function afterSaveCorrelation($a, $full = false, $event = false)
     {
         if (!empty($a['disable_correlation']) || Configure::read('MISP.completely_disable_correlation')) {
@@ -306,9 +342,6 @@ class Correlation extends AppModel
         }
         // Don't do any correlation if the type is a non correlating type
         if (in_array($a['type'], Attribute::NON_CORRELATING_TYPES, true)) {
-            return true;
-        }
-        if ($this->__preventExcludedCorrelations($a)) {
             return true;
         }
         if (!$event) {
@@ -320,25 +353,38 @@ class Correlation extends AppModel
             ));
         }
 
-        if (!empty($event['Event']['disable_correlation']) && $event['Event']['disable_correlation']) {
+        if (!empty($event['Event']['disable_correlation'])) {
             return true;
         }
         // generate additional correlating attribute list based on the advanced correlations
-        $extraConditions = $this->__buildAdvancedCorrelationConditions($a);
-        $correlatingValues = array($a['value1']);
-        if (!empty($a['value2']) && !in_array($a['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
+        if (!$this->__preventExcludedCorrelations($a['value1'])) {
+            $extraConditions = $this->__buildAdvancedCorrelationConditions($a);
+            $correlatingValues = [$a['value1']];
+        } else {
+            $extraConditions = null;
+            $correlatingValues = [null];
+        }
+        if (!empty($a['value2']) && !in_array($a['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true) && !$this->__preventExcludedCorrelations($a['value2'])) {
             $correlatingValues[] = $a['value2'];
         }
 
-        $correlatingAttributes = [];
+        if (empty($correlatingValues)) {
+            return true;
+        }
+
+        $attributeToProcess = ['Attribute' => $a, 'Event' => $event['Event']];
+        $correlations = [];
         foreach ($correlatingValues as $k => $cV) {
+            if ($cV === null) {
+                continue;
+            }
             $conditions = [
                 'OR' => [
                     'Attribute.value1' => $cV,
                     'AND' => [
                         'Attribute.value2' => $cV,
                         'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
-                    ]
+                    ],
                 ],
                 'NOT' => [
                     'Attribute.event_id' => $a['event_id'],
@@ -346,50 +392,50 @@ class Correlation extends AppModel
                 ],
                 'Attribute.disable_correlation' => 0,
                 'Event.disable_correlation' => 0,
-                'Attribute.deleted' => 0
+                'Attribute.deleted' => 0,
             ];
-            if (!empty($extraConditions)) {
+            $fields = ['Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id'];
+            if ($k === 0 && !empty($extraConditions)) {
                 $conditions['OR'][] = $extraConditions;
+                // Fetch value field just when fetching attributes also by extra conditions, because then it can be
+                // not exact match
+                $fields[] = 'Attribute.value1';
+                $fields[] = 'Attribute.value2';
             }
             if ($full) {
                 $conditions['Attribute.id > '] = $a['id'];
             }
-            $correlatingAttributes[$k] = $this->Attribute->find('all', array(
+            $correlatingAttributes = $this->Attribute->find('all', [
                 'conditions' => $conditions,
                 'recursive' => -1,
-                'fields' => [
-                    'Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id',
-                    'Attribute.value1', 'Attribute.value2'
-                ],
+                'fields' => $fields,
                 'contain' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'],
-                'order' => []
-            ));
-        }
-        $correlations = array();
-        foreach ($correlatingAttributes as $k => $cA) {
-            foreach ($cA as $corr) {
-                $correlations = $this->__addCorrelationEntry(
-                    $k === 0 ? $corr['Attribute']['value1'] : $corr['Attribute']['value2'],
-                    ['Attribute' => $a, 'Event' => $event['Event']],
-                    $corr,
-                    $correlations
-                );
-                $correlations = $this->__addCorrelationEntry(
-                    $correlatingValues[$k],
-                    $corr,
-                    ['Attribute' => $a, 'Event' => $event['Event']],
-                    $correlations
-                );
+                'order' => [],
+                'callbacks' => 'before', // memory leak fix
+            ]);
+
+            foreach ($correlatingAttributes as $corr) {
+                if (isset($corr['Attribute']['value1'])) {
+                    // TODO: Currently it is hard to check if value1 or value2 correlated, so we check value2 and if not, it is value1
+                    $value = $cV === $corr['Attribute']['value2'] ? $corr['Attribute']['value2'] : $corr['Attribute']['value1'];
+                } else {
+                    $value = $cV;
+                }
+                $correlations[] = $this->__addCorrelationEntry($value, $attributeToProcess, $corr);
+                $correlations[] = $this->__addCorrelationEntry($cV, $corr, $attributeToProcess);
             }
+        }
+        if (empty($correlations)) {
+            return true;
         }
         return $this->__saveCorrelations($correlations);
     }
 
     /**
-     * @param array $a
+     * @param string $value
      * @return bool True if attribute value is excluded
      */
-    private function __preventExcludedCorrelations($a)
+    private function __preventExcludedCorrelations($value)
     {
         if ($this->exclusions === null) {
             try {
@@ -402,10 +448,6 @@ class Correlation extends AppModel
             return false;
         }
 
-        $value = $a['value1'];
-        if (!empty($a['value2'])) {
-            $value .= '|' . $a['value2'];
-        }
         foreach ($this->exclusions as $exclusion) {
             if (!empty($exclusion)) {
                 $firstChar = $exclusion[0];
@@ -435,12 +477,17 @@ class Correlation extends AppModel
         return false;
     }
 
-    private function ssdeepCorrelation($a)
+    /**
+     * @param array $attribute Simple attribute array
+     * @return array[]|false
+     */
+    private function ssdeepCorrelation($attribute)
     {
         if (!isset($this->FuzzyCorrelateSsdeep)) {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
         }
-        $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($a['value1'], $a['id']);
+        $value = $attribute['value1'];
+        $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($value, $attribute['id']);
         if (!empty($fuzzyIds)) {
             $ssdeepIds = $this->Attribute->find('list', array(
                 'recursive' => -1,
@@ -451,10 +498,10 @@ class Correlation extends AppModel
                 'fields' => array('Attribute.id', 'Attribute.value1')
             ));
             $threshold = Configure::read('MISP.ssdeep_correlation_threshold') ?: 40;
-            $attributeIds = array();
+            $attributeIds = [];
             foreach ($ssdeepIds as $attributeId => $v) {
-                $ssdeep_value = ssdeep_fuzzy_compare($a['value1'], $v);
-                if ($ssdeep_value >= $threshold) {
+                $ssdeepValue = ssdeep_fuzzy_compare($value, $v);
+                if ($ssdeepValue >= $threshold) {
                     $attributeIds[] = $attributeId;
                 }
             }
@@ -463,10 +510,14 @@ class Correlation extends AppModel
         return false;
     }
 
-    private function cidrCorrelation($a)
+    /**
+     * @param array $attribute Simple attribute array
+     * @return array|array[][]
+     */
+    private function cidrCorrelation($attribute)
     {
         $ipValues = array();
-        $ip = $a['value1'];
+        $ip = $attribute['value1'];
         if (strpos($ip, '/') !== false) { // IP is CIDR
             list($networkIp, $mask) = explode('/', $ip);
             $ip_version = filter_var($networkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
@@ -478,7 +529,7 @@ class Correlation extends AppModel
                 'deleted' => 0,
             );
 
-            if (in_array($this->getDataSource()->config['datasource'], ['Database/Mysql', 'Database/MysqlObserver'])) {
+            if ($this->isMysql()) {
                 // Massive speed up for CIDR correlation. Instead of testing all in PHP, database can do that work much
                 // faster. But these methods are just supported by MySQL.
                 if ($ip_version === 4) {
@@ -507,12 +558,13 @@ class Correlation extends AppModel
                 }
             }
 
-            $ipList = $this->Attribute->find('column', array(
+            $ipList = $this->Attribute->find('column', [
                 'conditions' => $conditions,
                 'fields' => ['Attribute.value1'],
                 'unique' => true,
                 'order' => false,
-            ));
+                'callbacks' => false,
+            ]);
             foreach ($ipList as $ipToCheck) {
                 $ipToCheckVersion = filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
                 if ($ipToCheckVersion === $ip_version) {
@@ -529,7 +581,7 @@ class Correlation extends AppModel
             }
         } else {
             $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
-            $cidrList = $this->Attribute->getSetCIDRList();
+            $cidrList = $this->getCidrList();
             foreach ($cidrList as $cidr) {
                 if (strpos($cidr, '.') !== false) {
                     if ($ip_version === 4 && $this->__ipv4InCidr($ip, $cidr)) {
@@ -624,11 +676,11 @@ class Correlation extends AppModel
         } catch (Exception $e) {
             throw new NotFoundException(__('No redis connection found.'));
         }
-        $max_id = $this->find('first', [
+        $maxId = $this->find('first', [
             'fields' => ['MAX(id) AS max_id'],
-            'recursive' => -1
+            'recursive' => -1,
         ]);
-        if (empty($max_id)) {
+        if (empty($maxId)) {
             return false;
         }
         if ($jobId) {
@@ -643,30 +695,30 @@ class Correlation extends AppModel
                 $jobId = false;
             }
         }
-        $max_id = $max_id[0]['max_id'];
+        $maxId = $maxId[0]['max_id'];
 
         $redis->del(self::CACHE_NAME);
         $redis->set(self::CACHE_AGE, time());
-        $chunk_size = 1000000;
-        $max = ceil($max_id / $chunk_size);
-        for ($i = 0; $i < $max; $i++) {
+        $chunkSize = 1000000;
+        $maxPage = ceil($maxId / $chunkSize);
+        for ($page = 0; $page < $maxPage; $page++) {
             $correlations = $this->find('column', [
                 'fields' => ['value'],
                 'conditions' => [
-                    'id >' => $i * $chunk_size,
-                    'id <=' => (($i + 1) * $chunk_size)
-                ]
+                    'id >' => $page * $chunkSize,
+                    'id <=' => ($page + 1) * $chunkSize
+                ],
+                'callbacks' => false, // when callbacks are enabled, memory is leaked
             ]);
             $newElements = count($correlations);
             $correlations = array_count_values($correlations);
             $pipeline = $redis->pipeline();
             foreach ($correlations as $correlation => $count) {
-                $pipeline->zadd(self::CACHE_NAME, ['INCR'], $count, $correlation);
+                $pipeline->zIncrBy(self::CACHE_NAME, $count, $correlation);
             }
             $pipeline->exec();
             if ($jobId) {
-                $this->Job->saveProgress($jobId, __('Generating top correlations. Processed %s IDs.', ($i * $chunk_size) + $newElements), floor(100 * $i / $max));
-                return $jobId;
+                $this->Job->saveProgress($jobId, __('Generating top correlations. Processed %s IDs.', ($page * $chunkSize) + $newElements), floor(100 * $page / $maxPage));
             }
         }
         return true;
@@ -688,7 +740,7 @@ class Correlation extends AppModel
                 'Correlation' => [
                     'value' => $value,
                     'count' => $count,
-                    'excluded' => $this->__preventExcludedCorrelations(['value1' => $value]),
+                    'excluded' => $this->__preventExcludedCorrelations($value),
                 ]
             ];
         }
@@ -703,5 +755,80 @@ class Correlation extends AppModel
             return false;
         }
         return $redis->get(self::CACHE_AGE);
+    }
+
+    /**
+     * Get list of all CIDR for correlation from database
+     * @return array
+     */
+    private function getCidrListFromDatabase()
+    {
+        return $this->Attribute->find('column', [
+            'conditions' => [
+                'type' => ['ip-src', 'ip-dst'],
+                'disable_correlation' => 0,
+                'deleted' => 0,
+                'value1 LIKE' => '%/%',
+            ],
+            'fields' => ['Attribute.value1'],
+            'unique' => true,
+            'order' => false,
+        ]);
+    }
+
+    /**
+     * @return array
+     */
+    public function updateCidrList()
+    {
+        $redis = $this->setupRedis();
+        $cidrList = [];
+        $this->cidrListCache = null;
+        if ($redis) {
+            $cidrList = $this->getCidrListFromDatabase();
+
+            $redis->pipeline();
+            $redis->del('misp:cidr_cache_list');
+            if (method_exists($redis, 'saddArray')) {
+                $redis->sAddArray('misp:cidr_cache_list', $cidrList);
+            } else {
+                foreach ($cidrList as $cidr) {
+                    $redis->sadd('misp:cidr_cache_list', $cidr);
+                }
+            }
+            $redis->exec();
+        }
+        return $cidrList;
+    }
+
+    /**
+     * @return void
+     */
+    public function clearCidrCache()
+    {
+        $this->cidrListCache = null;
+    }
+
+    /**
+     * @return array
+     */
+    public function getCidrList()
+    {
+        if ($this->cidrListCache !== null) {
+            return $this->cidrListCache;
+        }
+
+        $redis = $this->setupRedis();
+        if ($redis) {
+            if (!$redis->exists('misp:cidr_cache_list')) {
+                $cidrList = $this->updateCidrList();
+            } else {
+                $cidrList = $redis->smembers('misp:cidr_cache_list');
+            }
+        } else {
+            $cidrList = $this->getCidrListFromDatabase();
+        }
+        $this->cidrListCache = $cidrList;
+        return $cidrList;
     }
 }

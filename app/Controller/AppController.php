@@ -34,8 +34,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '139';
-    public $pyMispVersion = '2.4.157';
+    private $__queryVersion = '141';
+    public $pyMispVersion = '2.4.159';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -810,8 +810,8 @@ class AppController extends Controller
             ConnectionManager::create('default', $db->config);
         }
         $dataSource = $dataSourceConfig['datasource'];
-        if (!in_array($dataSource, array('Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver'))) {
-            throw new Exception('datasource not supported: ' . $dataSource);
+        if (!in_array($dataSource, ['Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver', 'Database/MysqlExtended'], true)) {
+            throw new Exception('Datasource not supported: ' . $dataSource);
         }
     }
 
@@ -908,11 +908,11 @@ class AppController extends Controller
     /**
      * generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
      * @param array $options
-     * @param $exception
+     * @param CakeResponse $exception
      * @param array $data
-     * @return array|false|mixed
+     * @return array|false
      */
-    protected function _harvestParameters($options, &$exception = null, $data = array())
+    protected function _harvestParameters($options, &$exception = null, $data = [])
     {
         $request = $options['request'] ?? $this->request;
         if ($request->is('post')) {
@@ -958,14 +958,15 @@ class AppController extends Controller
                 }
             }
         }
-        foreach ($data as $k => $v) {
-            if (!is_array($data[$k])) {
-                $data[$k] = trim($data[$k]);
-                if (strpos($data[$k], '||')) {
-                    $data[$k] = explode('||', $data[$k]);
+        foreach ($data as &$v) {
+            if (is_string($v)) {
+                $v = trim($v);
+                if (strpos($v, '||')) {
+                    $v = explode('||', $v);
                 }
             }
         }
+        unset($v);
         if (!empty($options['additional_delimiters'])) {
             if (!is_array($options['additional_delimiters'])) {
                 $options['additional_delimiters'] = array($options['additional_delimiters']);
@@ -975,6 +976,7 @@ class AppController extends Controller
                 foreach ($options['additional_delimiters'] as $delim) {
                     if (strpos($v, $delim) !== false) {
                         $found = true;
+                        break;
                     }
                 }
                 if ($found) {
@@ -1293,21 +1295,24 @@ class AppController extends Controller
      * Returns true if user can modify given event.
      *
      * @param array $event
+     * @param array|null $user If empty, currently logged user will be used
      * @return bool
      */
-    protected function __canModifyEvent(array $event)
+    protected function __canModifyEvent(array $event, $user = null)
     {
         if (!isset($event['Event'])) {
             throw new InvalidArgumentException('Passed object does not contain an Event.');
         }
 
-        if ($this->userRole['perm_site_admin']) {
+        $user = $user ?: $this->Auth->user();
+
+        if ($user['Role']['perm_site_admin']) {
             return true;
         }
-        if ($this->userRole['perm_modify_org'] && $event['Event']['orgc_id'] == $this->Auth->user()['org_id']) {
+        if ($user['Role']['perm_modify_org'] && $event['Event']['orgc_id'] == $user['org_id']) {
             return true;
         }
-        if ($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user()['id']) {
+        if ($user['Role']['perm_modify'] && $event['Event']['user_id'] == $user['id']) {
             return true;
         }
         return false;
@@ -1436,6 +1441,17 @@ class AppController extends Controller
             return new AppView($this);
         }
         return parent::_getViewObject();
+    }
+
+    /**
+     * Close session without writing changes to them and return current user.
+     * @return array
+     */
+    protected function _closeSession()
+    {
+        $user = $this->Auth->user();
+        session_abort();
+        return $user;
     }
 
     /**

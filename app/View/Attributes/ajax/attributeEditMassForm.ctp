@@ -114,7 +114,6 @@
 // Generate tooltip information
 //
 var formInfoValues = new Array();
-var fieldsArrayAttribute = new Array('AttributeDistribution', 'AttributeComment', 'AttributeToIds');
 <?php
 foreach ($distributionDescriptions as $type => $def) {
     $info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];

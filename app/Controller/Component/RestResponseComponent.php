@@ -479,39 +479,70 @@ class RestResponseComponent extends Component
         return [];
     }
 
-    public function saveFailResponse($controller, $action, $id = false, $validationErrors, $format = false, $data = null)
+    /**
+     * @param string $controller
+     * @param string $action
+     * @param int|false $id
+     * @param mixed $validationErrors
+     * @param string|false $format
+     * @param mixed $data
+     * @return CakeResponse
+     * @throws Exception
+     */
+    public function saveFailResponse($controller, $action, $id, $validationErrors, $format = false, $data = null)
     {
-        $response = array();
         $action = $this->__dissectAdminRouting($action);
         $stringifiedAction = $action['action'];
-        if (isset(self::CONVERT_ACTION_TO_MESSAGE[$controller][$action['action']])) {
-            $stringifiedAction = self::CONVERT_ACTION_TO_MESSAGE[$controller][$action['action']];
+        if (isset(self::CONVERT_ACTION_TO_MESSAGE[$controller][$stringifiedAction])) {
+            $stringifiedAction = self::CONVERT_ACTION_TO_MESSAGE[$controller][$stringifiedAction];
         }
-        $response['saved'] = false;
-        $response['name'] = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
-        $response['message'] = $response['name'];
+        $message = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
+
+        $response = [
+            'saved' => false,
+            'name' => $message,
+            'message' => $message,
+            'url' => $this->__generateURL($action, $controller, $id),
+            'errors' => $validationErrors,
+        ];
         if ($data !== null) {
             $response['data'] = $data;
         }
-        $response['url'] = $this->__generateURL($action, $controller, $id);
-        $response['errors'] = $validationErrors;
+        if ($id) {
+            $response['id'] = $id;
+        }
         return $this->__sendResponse($response, 403, $format);
     }
 
+    /**
+     * @param string $controller
+     * @param string $action
+     * @param int|false $id
+     * @param string|false $format
+     * @param string|false $message
+     * @param mixed $data
+     * @return CakeResponse
+     * @throws Exception
+     */
     public function saveSuccessResponse($controller, $action, $id = false, $format = false, $message = false, $data = null)
     {
         $action = $this->__dissectAdminRouting($action);
         if (!$message) {
-            $message = Inflector::singularize($controller) . ' ' . $action['action'] . ((substr($action['action'], -1) == 'e') ? 'd' : 'ed');
+            $message = Inflector::singularize($controller) . ' ' . $action['action'] . ((substr($action['action'], -1) === 'e') ? 'd' : 'ed');
         }
-        $response['saved'] = true;
-        $response['success'] = true;
-        $response['name'] = $message;
-        $response['message'] = $response['name'];
+        $response = [
+            'saved' => true,
+            'success' => true,
+            'name' => $message,
+            'message' => $message,
+            'url' => $this->__generateURL($action, $controller, $id),
+        ];
         if ($data !== null) {
             $response['data'] = $data;
         }
-        $response['url'] = $this->__generateURL($action, $controller, $id);
+        if ($id) {
+            $response['id'] = $id;
+        }
         return $this->__sendResponse($response, 200, $format);
     }
 
@@ -527,7 +558,7 @@ class RestResponseComponent extends Component
      */
     private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
     {
-        $format = strtolower($format);
+        $format = !empty($format) ? strtolower($format) : 'json';
         if ($format === 'application/xml' || $format === 'xml') {
             if (!$raw) {
                 if (isset($response[0])) {
@@ -550,11 +581,7 @@ class RestResponseComponent extends Component
         } elseif ($format === 'csv' || $format === 'text/csv') {
             $type = 'csv';
         } else {
-            if (empty($format)) {
-                $type = 'json';
-            } else {
-                $type = $format;
-            }
+            $type = $format;
             $dumpSql = !empty($this->Controller->sql_dump) && Configure::read('debug') > 1;
             if (!$raw) {
                 if (is_string($response)) {
@@ -601,6 +628,13 @@ class RestResponseComponent extends Component
         }
 
         if ($response instanceof TmpFileTool) {
+            if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+                $etag = '"' . $response->hash('sha1') . '"';
+                if ($_SERVER['HTTP_IF_NONE_MATCH'] === $etag) {
+                    return new CakeResponse(['status' => 304]);
+                }
+                $headers['ETag'] = $etag;
+            }
             if ($this->signContents) {
                 $this->CryptographicKey = ClassRegistry::init('CryptographicKey');
                 $data = $response->intoString();
@@ -612,7 +646,16 @@ class RestResponseComponent extends Component
                 $cakeResponse->file($response);
             }
         } else {
-            $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+            // Check if resource was changed when `If-None-Match` header is send and return 304 Not Modified
+            if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+                $etag = '"' . sha1($response) . '"';
+                if ($_SERVER['HTTP_IF_NONE_MATCH'] === $etag) {
+                    return new CakeResponse(['status' => 304]);
+                }
+                // Generate etag just when HTTP_IF_NONE_MATCH is set
+                $headers['ETag'] = $etag;
+            }
+            $cakeResponse = new CakeResponse(['body' => $response, 'status' => $code, 'type' => $type]);
             if ($this->signContents) {
                 $headers['x-pgp-signature'] = base64_encode($this->CryptographicKey->signWithInstanceKey($response));
             }

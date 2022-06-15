@@ -14,8 +14,8 @@ class EventReportsController extends AppController
     public $paginate = array(
         'limit' => 60,
         'order' => array(
-                'EventReport.event_id' => 'ASC',
-                'EventReport.name' => 'ASC'
+            'EventReport.event_id' => 'ASC',
+            'EventReport.name' => 'ASC'
         ),
         'recursive' => -1,
         'contain' => array(
@@ -78,8 +78,9 @@ class EventReportsController extends AppController
         if (!$this->_isRest()) {
             throw new MethodNotAllowedException(__('This function can only be reached via the API.'));
         }
-        $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
-        $proxyMISPElements = $this->EventReport->getProxyMISPElements($this->Auth->user(), $report['EventReport']['event_id']);
+        $user = $this->_closeSession();
+        $report = $this->EventReport->simpleFetchById($user, $reportId);
+        $proxyMISPElements = $this->EventReport->getProxyMISPElements($user, $report['EventReport']['event_id']);
         return $this->RestResponse->viewData($proxyMISPElements, $this->response->type());
     }
 
@@ -139,7 +140,7 @@ class EventReportsController extends AppController
             if (!$this->request->is('ajax')) {
                 throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
             } else {
-                $this->layout = 'ajax';
+                $this->layout = false;
                 $this->set('report', $report);
                 $this->render('ajax/delete');
             }
@@ -163,7 +164,7 @@ class EventReportsController extends AppController
             if (!$this->request->is('ajax')) {
                 throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
             } else {
-                $this->layout = 'ajax';
+                $this->layout = false;
                 $this->set('report', $report);
             }
         }
@@ -178,7 +179,7 @@ class EventReportsController extends AppController
             $reports = $this->EventReport->find('all', [
                 'recursive' => -1,
                 'conditions' => $compiledConditions,
-                'contain' => $this->EventReport->defaultContain,
+                'contain' => EventReport::DEFAULT_CONTAIN,
             ]);
             return $this->RestResponse->viewData($reports, $this->response->type());
         } else {
@@ -201,6 +202,8 @@ class EventReportsController extends AppController
                 $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
                 $this->set('importModuleEnabled', is_array($fetcherModule));
                 $this->render('ajax/indexForEvent');
+            } else {
+                $this->set('title_for_layout', __('Event Reports'));
             }
         }
     }
@@ -230,7 +233,7 @@ class EventReportsController extends AppController
                 return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'applySuggestions', $reportId);
             }
         }
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->set('reportId', $reportId);
         $this->render('ajax/extractAllFromReport');
     }
@@ -286,7 +289,7 @@ class EventReportsController extends AppController
                     return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'applySuggestions', $reportId);
                 }
             }
-            $this->layout = 'ajax';
+            $this->layout = false;
             $this->render('ajax/replaceSuggestionInReport');
         }
     }
@@ -325,7 +328,7 @@ class EventReportsController extends AppController
         }
         $this->set('importModuleEnabled', is_array($fetcherModule));
         $this->set('event_id', $event_id);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/importReportFromUrl');
     }
 
@@ -367,7 +370,7 @@ class EventReportsController extends AppController
             }
         }
         $this->set('event_id', $eventId);
-        $this->layout = 'ajax';
+        $this->layout = false;
         $this->render('ajax/reportFromEvent');
     }
 

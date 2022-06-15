@@ -1,6 +1,5 @@
 openapi: 3.0.0
 info:
-  version: 2.4.148
   title: MISP Automation API
   description: |
 
@@ -4569,7 +4568,7 @@ components:
     FeedSettings:
       type: string
       nullable: true
-      example: '{"csv":{"value":"","delimiter":""},"common":{"excluderegex":""}}'
+      example: '{"csv":{"value":"","delimiter":""},"common":{"excluderegex":""},"disable_correlation":"1"}'
 
     FeedRules:
       description: "Stringified JSON filter rules."

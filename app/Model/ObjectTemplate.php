@@ -1,7 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('FileAccessTool', 'Tools');
-App::uses('JsonTool', 'Tools');
 
 /**
  * @property ObjectTemplateElement $ObjectTemplateElement
@@ -23,8 +22,8 @@ class ObjectTemplate extends AppModel
             'foreignKey' => 'user_id'
         ),
         'Organisation' => array(
-                'className' => 'Organisation',
-                'foreignKey' => 'org_id'
+            'className' => 'Organisation',
+            'foreignKey' => 'org_id'
         )
     );
     public $hasMany = array(
@@ -34,7 +33,7 @@ class ObjectTemplate extends AppModel
         )
     );
 
-    public $objectsDir = APP . 'files/misp-objects/objects';
+    const OBJECTS_DIR = APP . 'files/misp-objects/objects';
 
     public function afterFind($results, $primary = false)
     {
@@ -56,7 +55,7 @@ class ObjectTemplate extends AppModel
     {
         $directories = $this->getTemplateDirectoryPaths();
         foreach ($directories as $k => $dir) {
-            $dir = str_replace($this->objectsDir, '', $dir);
+            $dir = str_replace(self::OBJECTS_DIR, '', $dir);
             $directories[$k] = $dir;
         }
         $updated = array();
@@ -64,11 +63,10 @@ class ObjectTemplate extends AppModel
             if ($type && '/' . $type != $dir) {
                 continue;
             }
-            if (!file_exists($this->objectsDir . DS . $dir . DS . 'definition.json')) {
+            if (!file_exists(self::OBJECTS_DIR . DS . $dir . DS . 'definition.json')) {
                 continue;
             }
-            $file = FileAccessTool::readFromFile($this->objectsDir . DS . $dir . DS . 'definition.json');
-            $template = JsonTool::decode($file);
+            $template = FileAccessTool::readJsonFromFile(self::OBJECTS_DIR . DS . $dir . DS . 'definition.json');
             if (!isset($template['version'])) {
                 $template['version'] = 1;
             }
@@ -277,16 +275,11 @@ class ObjectTemplate extends AppModel
     }
 
     // simple test to see if there are any object templates - if not trigger update
-    public function populateIfEmpty($user)
+    public function populateIfEmpty(array $user)
     {
-        $result = $this->find('first', array(
-            'recursive' => -1,
-            'fields' => array('ObjectTemplate.id')
-        ));
-        if (empty($result)) {
+        if (!$this->hasAny()) {
             $this->update($user);
         }
-        return true;
     }
 
     public function setActive($id)
@@ -348,8 +341,7 @@ class ObjectTemplate extends AppModel
         if (!file_exists($path)) {
             return false;
         }
-        $content = FileAccessTool::readFromFile($path);
-        return JsonTool::decode($content);
+        return FileAccessTool::readJsonFromFile($path);
     }
 
     private function readTemplatesFromDisk()
@@ -365,12 +357,12 @@ class ObjectTemplate extends AppModel
 
     private function getTemplateDirectoryPaths($fullPath=true)
     {
-        $dir = new Folder($this->objectsDir, false);
+        $dir = new Folder(self::OBJECTS_DIR, false);
         return $dir->read(true, false, $fullPath)[0];
     }
 
     private function getFullPathFromTemplateName($templateName)
     {
-        return $this->objectsDir . DS . $templateName . DS . 'definition.json';
+        return self::OBJECTS_DIR . DS . $templateName . DS . 'definition.json';
     }
 }

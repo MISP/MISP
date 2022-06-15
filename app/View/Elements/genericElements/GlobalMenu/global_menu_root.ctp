@@ -37,13 +37,13 @@
         }
 
         echo (sprintf(
-            '<li %s><a href="%s" %s>%s%s</a>%s</li>',
-            (empty($data['children']) ? '' : 'class="dropdown"'),
+            '<li%s><a href="%s"%s>%s%s</a>%s</li>',
+            (empty($data['children']) ? '' : ' class="dropdown"'),
             (empty($data['url']) ? '#' : h($data['url'])),
-            (empty($data['children']) ? '' : 'class="dropdown-toggle" data-toggle="dropdown"'),
+            (empty($data['children']) ? '' : ' class="dropdown-toggle" data-toggle="dropdown"'),
             (empty($data['html']) ? '' : $data['html']),
             (empty($data['text']) ? '' : h($data['text'])),
             $child_data
         ));
     }
-?>
+

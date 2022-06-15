@@ -65,6 +65,18 @@ pre {
     overflow: hidden;
 }
 
+h2.overflow {
+    font-weight: normal;
+    line-height: 20px;
+    font-size: 12px;
+}
+
+h2.overflow::first-line {
+    font-weight: bold;
+    line-height: 40px;
+    font-size: 25px;
+}
+
 .nav-list {
     padding-right: 5px;
 }
@@ -864,7 +876,7 @@ a.proposal_link_red:hover {
     padding-top:100px;
 }
 
-.confirmation_box {
+#confirmation_box {
     display:none;
     width: 300px;
     top:calc(50% - 50px);
@@ -876,8 +888,8 @@ a.proposal_link_red:hover {
     z-index:5;
 }
 
-.confirmation_box legend, .confirmation .legend {
-    border-radius: 5px 5px 0px 0px;
+#confirmation_box legend, .confirmation .legend {
+    border-radius: 5px 5px 0 0;
     margin-bottom:5px;
     padding-left:5px;
     width:295px;
@@ -1025,7 +1037,7 @@ a.proposal_link_red:hover {
     z-index:5;
 }
 
-.screenshot_box {
+#screenshot_box {
     display:none;
     position: absolute;
     top: 100px;
@@ -1034,11 +1046,17 @@ a.proposal_link_red:hover {
     z-index:5;
     text-align: center;
 }
-.screenshot_box-content {
+
+#screenshot_box .screenshot_box-content {
   margin: auto;
   display: block;
   background-color:#f4f4f4;
   box-shadow: 4px 4px 4px #333;
+}
+
+.screenshot {
+    max-width: 200px;
+    max-height: 200px;
 }
 
 .ajax_popover_form legend, .ajax_popover_form .legend {
@@ -1094,6 +1112,21 @@ a.proposal_link_red:hover {
 .hover_enrichment_title {
     font-weight: bold;
     font-size: 125%;
+}
+
+#eventFilteringQBWrapper {
+    padding: 5px;
+    display: none;
+    border: 1px solid #dddddd;
+    border-bottom: 0;
+}
+
+#eventFilteringQB {
+    overflow-y: auto;
+    padding-right: 5px;
+    resize: vertical;
+    max-height: 750px;
+    height: 400px;
 }
 
 #eventFilteringQB .rules-group-container {
@@ -1177,11 +1210,17 @@ li .generic-picker-item-element-check {
     margin-right: 5px;
 }
 
+.generic-picker-item-element-info {
+    float:  right;
+    line-height: 13px;
+    margin-left: 5px;
+}
+
 .chosen-single .generic-picker-item-element-info {
     margin-top: 5px;
 }
 
-.chosen-single .apply_css_arrow{
+.chosen-single .apply_css_arrow {
     display: none !important;
 }
 
@@ -1211,7 +1250,7 @@ li .generic-picker-item-element-check {
     float: left;
 }
 
-.gray_out {
+#gray_out {
     display:none;
     width: 100%;
     height: 100%;
@@ -1582,9 +1621,9 @@ span.success {
 
 .attributehistogram-legend .col{float: left;margin: 0 0.4em 0 0;}
 
-.attributeListContainer{
-    position:relative;
-    margin-top:10px;
+#attributeListContainer {
+    position: relative;
+    margin-top: 10px;
 }
 
 .useCursorPointer {
@@ -1782,6 +1821,10 @@ span.success {
     color:white;
 }
 
+input.select, input.select_attribute {
+    margin-top: 0; /* remove top margin for checkboxes in index table */
+}
+
 .templateChoiceButtonLast {
     border-radius:0 0 10px 10px;
     color:white;
@@ -1968,6 +2011,10 @@ tr.deleted-attribute td {
     display:none;
 }
 
+.hidden-important {
+    display:none !important;
+}
+
 a.discrete {
     color:black;
     text-decoration:none;
@@ -2145,10 +2192,6 @@ table.table.table-striped tr.deleted_row td {
     padding-bottom: 1px;
     text-align:center;
     width:100%;
-}
-
-.screenshot-collapsed {
-    width:200px;
 }
 
 /*
@@ -2773,4 +2816,62 @@ Query builder
 .input-big-chungus {
     width: 700px;
     height: 800px;
+}
+
+#event-correlations select {
+    float: right;
+    width: 10em;
+    line-height: 25px;
+    height: 25px;
+    font-size: 12px;
+}
+
+#event-correlations .event-correlation {
+    display: inline-block;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 3px;
+    background-color: white;
+    line-height: 14px;
+}
+
+#event-correlations .event-correlation .org {
+    border-right: 1px solid #ddd;
+    padding-right: 2px;
+    min-width: 24px;
+    max-width: 24px;
+    overflow: hidden;
+    font-size: xx-small;
+    text-overflow: ellipsis;
+}
+
+#event-correlations .event-correlation .info {
+    padding-left: 2px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 410px;
+}
+
+#event-correlations .event-correlation b {
+    margin-left: 5px;
+    float: right;
+    cursor: pointer;
+}
+
+#event-correlations .event-correlation time {
+    font-style: italic;
+}
+
+.label-padding {
+    padding: 2px 10px;
+    margin-right: 5px
+}
+
+.warninglist-value {
+    font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+}
+
+.warninglist-comment {
+    color: gray;
 }

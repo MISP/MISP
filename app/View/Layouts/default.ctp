@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language')  ?>">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>">
 <head>
+    <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <?php echo $this->Html->charset(); ?>
     <meta name="viewport" content="width=device-width">
+    <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
     <title><?= $title_for_layout, ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php
-        $css_collection = array(
+        $css = [
             'bootstrap',
             //'bootstrap4',
             'bootstrap-datepicker',
@@ -14,23 +15,26 @@
             'font-awesome',
             'chosen.min',
             'main',
-            'jquery-ui',
-            array('print', array('media' => 'print'))
-        );
+            ['print', ['media' => 'print']],
+        ];
         if (Configure::read('MISP.custom_css')) {
-            $css_collection[] = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
+            $css[] = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
         }
-        $js_collection = array(
+        $js = [
             'jquery',
             'misp-touch',
             'chosen.jquery.min',
-            'jquery-ui'
-        );
-        echo $this->element('genericElements/assetLoader', array(
-            'css' => $css_collection,
-            'js' => $js_collection,
-            'meta' => 'icon'
-        ));
+        ];
+        if (!empty($additionalCss)) {
+            $css = array_merge($css, $additionalCss);
+        }
+        if (!empty($additionalJs)) {
+            $js = array_merge($js, $additionalJs);
+        }
+        echo $this->element('genericElements/assetLoader', [
+            'css' => $css,
+            'js' => $js,
+        ]);
     ?>
 </head>
 <body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
@@ -39,9 +43,8 @@
     <div id="popover_form_x_large" class="ajax_popover_form ajax_popover_form_x_large"></div>
     <div id="popover_matrix" class="ajax_popover_form ajax_popover_matrix"></div>
     <div id="popover_box" class="popover_box"></div>
-    <div id="screenshot_box" class="screenshot_box"></div>
-    <div id="confirmation_box" class="confirmation_box"></div>
-    <div id="gray_out" class="gray_out"></div>
+    <div id="confirmation_box"></div>
+    <div id="gray_out"></div>
     <div id="container">
         <?php
             echo $this->element('global_menu');
@@ -84,12 +87,11 @@
     <div id="ajax_fail_container" class="ajax_container">
         <div id="ajax_fail" class="ajax_result ajax_fail"></div>
     </div>
-    <div id="ajax_hidden_container" class="hidden"></div>
     <div class="loading">
         <div class="spinner"></div>
         <div class="loadingText"><?php echo __('Loading');?></div>
     </div>
-    <script type="text/javascript">
+    <script>
     <?php
         if (!isset($debugMode)):
     ?>

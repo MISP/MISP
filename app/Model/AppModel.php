@@ -89,7 +89,7 @@ class AppModel extends Model
         63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
-        81 => false, 82 => false, 83 => false, 84 => false, 85 => false,
+        81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false
     );
 
     public $advanced_updates_description = array(
@@ -106,17 +106,16 @@ class AppModel extends Model
         ),
     );
 
-    public function isAcceptedDatabaseError($errorMessage, $dataSource)
+    public function isAcceptedDatabaseError($errorMessage)
     {
-        $isAccepted = false;
-        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $errorDuplicateColumn = 'SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name';
             $errorDuplicateIndex = 'SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name';
             $errorDropIndex = "/SQLSTATE\[42000\]: Syntax error or access violation: 1091 Can't DROP '[\w]+'; check that column\/key exists/";
             $isAccepted = substr($errorMessage, 0, strlen($errorDuplicateColumn)) === $errorDuplicateColumn ||
                             substr($errorMessage, 0, strlen($errorDuplicateIndex)) === $errorDuplicateIndex ||
                             preg_match($errorDropIndex, $errorMessage) !== 0;
-        } elseif ($dataSource == 'Database/Postgres') {
+        } else {
             $errorDuplicateColumn = '/ERROR:  column "[\w]+" specified more than once/';
             $errorDuplicateIndex = '/ERROR: relation "[\w]+" already exists/';
             $errorDropIndex = '/ERROR: index "[\w]+" does not exist/';
@@ -280,8 +279,6 @@ class AppModel extends Model
             $exitOnError = isset($this->advanced_updates_description[$command]['exitOnError']) ? $this->advanced_updates_description[$command]['exitOnError'] : $exitOnError;
         }
 
-        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-        $dataSource = $dataSourceConfig['datasource'];
         $sqlArray = array();
         $indexArray = array();
         $clean = true;
@@ -708,7 +705,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE taxonomy_predicates ADD colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
                 break;
             case '2.4.60':
-                if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+                if ($this->isMysql()) {
                     $sqlArray[] = 'CREATE TABLE IF NOT EXISTS `attribute_tags` (
                                 `id` int(11) NOT NULL AUTO_INCREMENT,
                                 `attribute_id` int(11) NOT NULL,
@@ -719,7 +716,7 @@ class AppModel extends Model
                     $sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `attribute_id` (`attribute_id`);';
                     $sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `event_id` (`event_id`);';
                     $sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `tag_id` (`tag_id`);';
-                } elseif ($dataSource == 'Database/Postgres') {
+                } else {
                     $sqlArray[] = 'CREATE TABLE IF NOT EXISTS attribute_tags (
                                 id bigserial NOT NULL,
                                 attribute_id bigint NOT NULL,
@@ -1684,6 +1681,9 @@ class AppModel extends Model
                 $this->__addIndex('cryptographic_keys', 'parent_type');
                 $this->__addIndex('cryptographic_keys', 'fingerprint');
                 break;
+            case 86:
+                $this->__addIndex('attributes', 'timestamp');
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1819,8 +1819,8 @@ class AppModel extends Model
                         'title' => __('Issues executing the SQL query for %s', $command),
                         'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $errorMessage
                     );
-                    $this->__setUpdateResMessages($i, sprintf(__('Issues executing the SQL query for `%s`. The returned error is: ' . PHP_EOL . '%s'), $command, $errorMessage));
-                    if (!$this->isAcceptedDatabaseError($errorMessage, $dataSource)) {
+                    $this->__setUpdateResMessages($i, __('Issues executing the SQL query for `%s`. The returned error is: ' . PHP_EOL . '%s', $command, $errorMessage));
+                    if (!$this->isAcceptedDatabaseError($errorMessage)) {
                         $this->__setUpdateError($i);
                         $errorCount++;
                         if ($exitOnError) {
@@ -1921,21 +1921,19 @@ class AppModel extends Model
 
     private function __dropIndex($table, $field)
     {
-        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-        $dataSource = $dataSourceConfig['datasource'];
         $this->Log = ClassRegistry::init('Log');
         $indexCheckResult = array();
-        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%';";
             $indexCheckResult = $this->query($indexCheck);
-        } elseif ($dataSource == 'Database/Postgres') {
+        } else {
             $pgIndexName = 'idx_' . $table . '_' . $field;
             $indexCheckResult[] = array('STATISTICS' => array('INDEX_NAME' => $pgIndexName));
         }
         foreach ($indexCheckResult as $icr) {
-            if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
+            if ($this->isMysql()) {
                 $dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
-            } elseif ($dataSource == 'Database/Postgres') {
+            } else {
                 $dropIndex = 'DROP INDEX IF EXISTS ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
             }
             $result = true;
@@ -1960,11 +1958,9 @@ class AppModel extends Model
 
     private function __addIndex($table, $field, $length = null, $unique = false)
     {
-        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-        $dataSource = $dataSourceConfig['datasource'];
         $this->Log = ClassRegistry::init('Log');
         $index = $unique ? 'UNIQUE INDEX' : 'INDEX';
-        if ($dataSource == 'Database/Postgres') {
+        if (!$this->isMysql()) {
             $addIndex = "CREATE $index idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
         } else {
             if (!$length) {
@@ -2551,7 +2547,7 @@ class AppModel extends Model
         $pass = Configure::read('MISP.redis_password');
 
         $redis = new Redis();
-        if (!$redis->connect($host, $port)) {
+        if (!$redis->connect($host, (int) $port)) {
             throw new Exception("Could not connect to Redis: {$redis->getLastError()}");
         }
         if (!empty($pass)) {
@@ -3215,13 +3211,85 @@ class AppModel extends Model
      */
     public function hasAny($conditions = null)
     {
-        return (bool)$this->find('first', array(
+        return (bool)$this->find('first', [
             'fields' => [$this->alias . '.' . $this->primaryKey],
             'conditions' => $conditions,
             'recursive' => -1,
             'callbacks' => false,
             'order' => [], // disable order
-        ));
+        ]);
+    }
+
+    /**
+     * Faster version of original `isUnique` method
+     * {@inheritDoc}
+     */
+    public function isUnique($fields, $or = true)
+    {
+        if (is_array($or)) {
+            $isRule = (
+                array_key_exists('rule', $or) &&
+                array_key_exists('required', $or) &&
+                array_key_exists('message', $or)
+            );
+            if (!$isRule) {
+                $args = func_get_args();
+                $fields = $args[1];
+                $or = isset($args[2]) ? $args[2] : true;
+            }
+        }
+        if (!is_array($fields)) {
+            $fields = func_get_args();
+            $fieldCount = count($fields) - 1;
+            if (is_bool($fields[$fieldCount])) {
+                $or = $fields[$fieldCount];
+                unset($fields[$fieldCount]);
+            }
+        }
+
+        foreach ($fields as $field => $value) {
+            if (is_numeric($field)) {
+                unset($fields[$field]);
+
+                $field = $value;
+                $value = null;
+                if (isset($this->data[$this->alias][$field])) {
+                    $value = $this->data[$this->alias][$field];
+                }
+            }
+
+            if (strpos($field, '.') === false) {
+                unset($fields[$field]);
+                $fields[$this->alias . '.' . $field] = $value;
+            }
+        }
+
+        if ($or) {
+            $fields = array('or' => $fields);
+        }
+
+        if (!empty($this->id)) {
+            $fields[$this->alias . '.' . $this->primaryKey . ' !='] = $this->id;
+        }
+
+        return !$this->hasAny($fields);
+    }
+
+    /**
+     * Faster version of original `exists` method
+     * {@inheritDoc}
+     */
+    public function exists($id = null)
+    {
+        if ($id === null) {
+            $id = $this->getID();
+        }
+
+        if ($id === false || $this->useTable === false) {
+            return false;
+        }
+
+        return $this->hasAny([$this->alias . '.' . $this->primaryKey => $id]);
     }
 
     /**
@@ -3304,5 +3372,15 @@ class AppModel extends Model
             return Configure::read("Plugin.ZeroMQ_{$name}_notifications_enable");
         }
         return false;
+    }
+
+    /**
+     * @return bool Returns true if database is MySQL/Mariadb, false for PostgreSQL
+     */
+    protected function isMysql()
+    {
+        $dataSource = ConnectionManager::getDataSource('default');
+        $dataSourceName = $dataSource->config['datasource'];
+        return $dataSourceName === 'Database/Mysql' || $dataSourceName === 'Database/MysqlObserver' || $dataSourceName === 'Database/MysqlExtended' || $dataSource instanceof Mysql;
     }
 }

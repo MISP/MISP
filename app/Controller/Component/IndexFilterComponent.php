@@ -10,27 +10,29 @@ class IndexFilterComponent extends Component
     public $Controller;
     public $isRest = null;
 
-    public function initialize(Controller $controller) {
+    public function initialize(Controller $controller)
+    {
         $this->Controller = $controller;
     }
 
     // generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
-    public function harvestParameters($paramArray, &$exception = array())
+    public function harvestParameters($paramArray, &$exception = [])
     {
-        $data = array();
-        if (!empty($this->Controller->request->is('post'))) {
-            if (empty($this->Controller->request->data)) {
+        $request = $this->Controller->request;
+        $data = [];
+        if ($request->is('post')) {
+            if (empty($request->data)) {
                 $exception = $this->Controller->RestResponse->throwException(
                     400,
                     __('Either specify the search terms in the url, or POST a json with the filter parameters.'),
-                    '/' . $this->Controller->request->params['controller'] . '/' . $this->Controller->action
+                    '/' . $request->params['controller'] . '/' . $this->Controller->action
                 );
                 return false;
             } else {
-                if (isset($this->Controller->request->data['request'])) {
-                    $data = $this->Controller->request->data['request'];
+                if (isset($request->data['request'])) {
+                    $data = $request->data['request'];
                 } else {
-                    $data = $this->Controller->request->data;
+                    $data = $request->data;
                 }
             }
         }
@@ -43,19 +45,20 @@ class IndexFilterComponent extends Component
                     $data[$p] = $options['ordered_url_params'][$p];
                     $data[$p] = str_replace(';', ':', $data[$p]);
                 }
-                if (isset($this->Controller->params['named'][$p])) {
-                    $data[$p] = str_replace(';', ':', $this->Controller->params['named'][$p]);
+                if (isset($request->params['named'][$p])) {
+                    $data[$p] = str_replace(';', ':', $request->params['named'][$p]);
                 }
             }
         }
-        foreach ($data as $k => $v) {
-            if (!is_array($data[$k])) {
-                $data[$k] = trim($data[$k]);
-                if (strpos($data[$k], '||')) {
-                    $data[$k] = explode('||', $data[$k]);
+        foreach ($data as &$v) {
+            if (is_string($v)) {
+                $v = trim($v);
+                if (strpos($v, '||')) {
+                    $v = explode('||', $v);
                 }
             }
         }
+        unset($v);
         if (!empty($options['additional_delimiters'])) {
             if (!is_array($options['additional_delimiters'])) {
                 $options['additional_delimiters'] = array($options['additional_delimiters']);
@@ -65,6 +68,7 @@ class IndexFilterComponent extends Component
                 foreach ($options['additional_delimiters'] as $delim) {
                     if (strpos($v, $delim) !== false) {
                         $found = true;
+                        break;
                     }
                 }
                 if ($found) {

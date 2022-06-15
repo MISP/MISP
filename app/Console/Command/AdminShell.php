@@ -7,7 +7,12 @@ App::uses('JsonTool', 'Tools');
 /**
  * @property Server $Server
  * @property Feed $Feed
+ * @property Warninglist $warninglist
  * @property AdminSetting $AdminSetting
+ * @property Taxonomy $Taxonomy
+ * @property Warninglist $Warninglist
+ * @property Attribute $Attribute
+ * @property Job $Job
  */
 class AdminShell extends AppShell
 {
@@ -18,6 +23,12 @@ class AdminShell extends AppShell
         $parser = parent::getOptionParser();
         $parser->addSubcommand('updateJSON', array(
             'help' => __('Update the JSON definitions of MISP.'),
+        ));
+        $parser->addSubcommand('updateWarningLists', array(
+            'help' => __('Update the JSON definition of warninglists.'),
+        ));
+        $parser->addSubcommand('updateTaxonomies', array(
+            'help' => __('Update the JSON definition of taxonomies.'),
         ));
         $parser->addSubcommand('setSetting', [
             'help' => __('Set setting in PHP config file.'),
@@ -88,36 +99,23 @@ class AdminShell extends AppShell
 
     public function jobGenerateCorrelation()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate correlation'] . PHP_EOL);
         }
 
         $jobId = $this->args[0];
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('Attribute');
-        $this->Attribute->generateCorrelation($jobId, 0);
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done.');
-        $this->Job->saveField('status', 4);
+        $this->Attribute->generateCorrelation($jobId);
     }
 
     public function jobPurgeCorrelation()
     {
-        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Purge correlation'] . PHP_EOL);
         }
 
         $jobId = $this->args[0];
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('Attribute');
         $this->Attribute->purgeCorrelations();
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done.');
-        $this->Job->saveField('status', 4);
+        $this->Job->saveStatus($jobId);
     }
 
     public function jobGenerateShadowAttributeCorrelation()
@@ -278,22 +276,27 @@ class AdminShell extends AppShell
 
     public function updateTaxonomies()
     {
-        $this->ConfigLoad->execute();
         $result = $this->Taxonomy->update();
-        $successes = count(!empty($result['success']) ? $result['success'] : []);
-        $fails = count(!empty($result['fails']) ? $result['fails'] : []);
-        $message = '';
-        if ($successes == 0 && $fails == 0) {
-            $message = __('All taxonomies are up to date already.');
-        } elseif ($successes == 0 && $fails > 0) {
+        $successes = empty($result['success']) ? 0 : count($result['success']);
+        $fails = empty($result['fails']) ? 0 : count($result['fails']);
+
+        if ($successes === 0 && $fails === 0) {
+            $message =  __('All taxonomies are up to date already.');
+        } elseif ($successes === 0 && $fails > 0) {
             $message = __('Could not update any of the taxonomies.');
-        } elseif ($successes > 0 ) {
+        } else {
             $message = __('Successfully updated %s taxonomies.', $successes);
-            if ($fails != 0) {
+            if ($fails !== 0) {
                 $message .= __(' However, could not update %s taxonomies.', $fails);
             }
         }
-        echo $message . PHP_EOL;
+        $this->out($message);
+        if ($fails) {
+            $this->out(__('Fails:'));
+            foreach ($result['fails'] as $fail) {
+                $this->out("{$fail['namespace']}: {$fail['fail']}");
+            }
+        }
     }
 
     public function enableTaxonomyTags()
@@ -312,11 +315,16 @@ class AdminShell extends AppShell
 
     public function updateWarningLists()
     {
-        $this->ConfigLoad->execute();
         $result = $this->Warninglist->update();
         $success = count($result['success']);
         $fails = count($result['fails']);
-        echo "$success warninglists updated, $fails fails" . PHP_EOL;
+        $this->out("$success warninglists updated, $fails fails");
+        if ($fails) {
+            $this->out(__('Fails:'));
+            foreach ($result['fails'] as $fail) {
+                $this->out("{$fail['name']}: {$fail['fail']}");
+            }
+        }
     }
 
     public function updateNoticeLists()

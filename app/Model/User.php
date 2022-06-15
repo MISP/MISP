@@ -57,7 +57,6 @@ class User extends AppModel
                 //'on' => 'create', // Limit validation to 'create' or 'update' operations
             ),
         ),
-
         'org_id' => array(
             'valueNotEmpty' => array(
                 'rule' => array('valueNotEmpty'),
@@ -227,6 +226,9 @@ class User extends AppModel
         'Containable'
     );
 
+    /** @var CryptGpgExtended|null|false */
+    private $gpg;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -239,28 +241,23 @@ class User extends AppModel
         }
     }
 
-    /** @var CryptGpgExtended|null|false */
-    private $gpg;
-
     public function beforeValidate($options = array())
     {
-        if (!isset($this->data['User']['id'])) {
-            if ((isset($this->data['User']['enable_password']) && (!$this->data['User']['enable_password'])) || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password']))) {
-                $this->data['User']['password'] = $this->generateRandomPassword();
-                $this->data['User']['confirm_password'] = $this->data['User']['password'];
+        $user = &$this->data['User'];
+        if (!isset($user['id'])) {
+            if ((isset($user['enable_password']) && !$user['enable_password']) || (empty($user['password']) && empty($user['confirm_password']))) {
+                $user['password'] = $this->generateRandomPassword();
+                $user['confirm_password'] = $user['password'];
             }
         }
-        if (!isset($this->data['User']['certif_public']) || empty($this->data['User']['certif_public'])) {
-            $this->data['User']['certif_public'] = '';
+        if (empty($user['certif_public'])) {
+            $user['certif_public'] = '';
         }
-        if (!isset($this->data['User']['authkey']) || empty($this->data['User']['authkey'])) {
-            $this->data['User']['authkey'] = $this->generateAuthKey();
+        if (empty($user['authkey'])) {
+            $user['authkey'] = $this->generateAuthKey();
         }
-        if (!isset($this->data['User']['nids_sid']) || empty($this->data['User']['nids_sid'])) {
-            $this->data['User']['nids_sid'] = mt_rand(1000000, 9999999);
-        }
-        if (isset($this->data['User']['newsread']) && $this->data['User']['newsread'] === null) {
-            $this->data['User']['newsread'] = 0;
+        if (empty($user['nids_sid'])) {
+            $user['nids_sid'] = mt_rand(1000000, 9999999);
         }
         return true;
     }
@@ -414,21 +411,14 @@ class User extends AppModel
 
     public function identicalFieldValues($field = array(), $compareField = null)
     {
-        foreach ($field as $key => $value) {
-            $v1 = $value;
-            $v2 = $this->data[$this->name][$compareField];
-            if ($v1 !== $v2) {
-                return false;
-            } else {
-                continue;
-            }
-        }
-        return true;
+        $v1 = array_values($field)[0];
+        $v2 = $this->data[$this->name][$compareField];
+        return $v1 === $v2;
     }
 
     public function generateAuthKey()
     {
-        return (new RandomTool())->random_str(true, 40);
+        return RandomTool::random_str(true, 40);
     }
 
     /**
@@ -436,18 +426,18 @@ class User extends AppModel
      *
      * @param int $passwordLength
      * @return string
+     * @throws Exception
      */
     public function generateRandomPassword($passwordLength = 40)
     {
         // makes sure, the password policy isn't undermined by setting a manual passwordLength
-        $policyPasswordLength = Configure::read('Security.password_policy_length') ? Configure::read('Security.password_policy_length') : false;
+        $policyPasswordLength = Configure::read('Security.password_policy_length') ?: false;
         if (is_int($policyPasswordLength) && $policyPasswordLength > $passwordLength) {
             $passwordLength = $policyPasswordLength;
         }
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-+=!@#$%^&*()<>/?';
-        return (new RandomTool())->random_str(true, $passwordLength, $characters);
+        return RandomTool::random_str(true, $passwordLength, $characters);
     }
-
 
     public function checkAndCorrectPgps()
     {
@@ -460,15 +450,6 @@ class User extends AppModel
             }
         }
         return $fails;
-    }
-
-    public function getOrgs()
-    {
-        $orgs = $this->Organisation->find('list', array(
-            'recursive' => -1,
-            'fields' => array('name'),
-        ));
-        return $orgs;
     }
 
     public function getOrgMemberCount($org)
@@ -1303,20 +1284,21 @@ class User extends AppModel
         return $data;
     }
 
-    public function registerUser($added_by, $registration, $org_id, $role_id) {
+    public function registerUser($added_by, $registration, $org_id, $role_id)
+    {
         $user = array(
-                'email' => $registration['data']['email'],
-                'gpgkey' => empty($registration['data']['pgp']) ? '' : $registration['data']['pgp'],
-                'disabled' => 0,
-                'newsread' => 0,
-                'change_pw' => 1,
-                'authkey' => $this->generateAuthKey(),
-                'termsaccepted' => 0,
-                'org_id' => $org_id,
-                'role_id' => $role_id,
-                'invited_by' => $added_by['id'],
-                'contactalert' => 1,
-                'autoalert' => Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : 1
+            'email' => $registration['data']['email'],
+            'gpgkey' => empty($registration['data']['pgp']) ? '' : $registration['data']['pgp'],
+            'disabled' => 0,
+            'newsread' => 0,
+            'change_pw' => 1,
+            'authkey' => $this->generateAuthKey(),
+            'termsaccepted' => 0,
+            'org_id' => $org_id,
+            'role_id' => $role_id,
+            'invited_by' => $added_by['id'],
+            'contactalert' => 1,
+            'autoalert' => $this->defaultPublishAlert(),
         );
         $this->create();
         $this->Log = ClassRegistry::init('Log');
@@ -1526,6 +1508,14 @@ class User extends AppModel
         }
         $banStatus['message'] = __('User email notification ban setting is not enabled');
         return $banStatus;
+    }
+
+    /**
+     * @return bool
+     */
+    public function defaultPublishAlert()
+    {
+        return (bool)Configure::read('MISP.default_publish_alert');
     }
 
     /**

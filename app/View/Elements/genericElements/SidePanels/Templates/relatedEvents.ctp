@@ -1,36 +1,39 @@
 <?php
     $htmlElements = [];
     $count = 0;
-    $display_threshold = 10;
+    $displayThreshold = 10;
     $total = count($event['RelatedEvent']);
     foreach ($event['RelatedEvent'] as $relatedEvent) {
         $count++;
-        if ($count == $display_threshold+1 && $total > $display_threshold) {
-            $htmlElements[] = sprintf(
-                '<div class="%s">%s</div>',
-                'no-side-padding correlation-expand-button useCursorPointer linkButton blue',
-                __('Show (%s more)', $total - ($count-1))
-            );
-        }
-        $htmlElements[] = $this->element('/Events/View/related_event', array(
+        $htmlElements[] = $this->element('/Events/View/related_event', [
             'related' => $relatedEvent['Event'],
-            'color_red' => $relatedEvent['Event']['orgc_id'] == $me['org_id'],
-            'hide' => $count > $display_threshold,
+            'ownOrg' => $relatedEvent['Event']['orgc_id'] == $me['org_id'],
+            'hide' => $count > $displayThreshold,
             'relatedEventCorrelationCount' => $relatedEventCorrelationCount,
-            'from_id' => $event['Event']['id']
-        ));
+            'fromEventId' => $event['Event']['id']
+        ]);
     }
-    if ($total > $display_threshold) {
+    if ($total > $displayThreshold) {
         $htmlElements[] = sprintf(
-            '<div class="%s" style="display:none;">%s</div>',
-            'no-side-padding correlation-collapse-button useCursorPointer linkButton blue',
-            'display:none',
+            '<div class="%s">%s</div>',
+            'expand-link linkButton blue',
+            __('Show (%s more)', $total - $displayThreshold)
+        );
+        $htmlElements[] = sprintf(
+            '<div class="%s">%s</div>',
+            'collapse-link linkButton blue hidden',
             __('Collapse…')
         );
     }
 
+    $select = sprintf('<select><option value="date">%s</option><option value="count">%s</option></select>',
+        __("Order by date"),
+        __("Order by count")
+    );
+
     echo sprintf(
-        '<h3>%s</h3><div class="inline correlation-container">%s</div>',
+        '<div id="event-correlations">%s<h3>%s</h3><div class="clear correlation-container">%s</div></div>',
+        $select,
         __('Related Events'),
         implode(PHP_EOL, $htmlElements)
     );

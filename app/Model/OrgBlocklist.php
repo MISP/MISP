@@ -19,17 +19,19 @@ class OrgBlocklist extends AppModel
 
     public $blocklistTarget = 'org';
 
+    private $blockedCache = [];
+
     public $validate = array(
-            'org_uuid' => array(
-                    'unique' => array(
-                            'rule' => 'isUnique',
-                            'message' => 'Organisation already blocklisted.'
-                    ),
-                    'uuid' => array(
-                        'rule' => 'uuid',
-                        'message' => 'Please provide a valid RFC 4122 UUID'
-                    ),
-            )
+        'org_uuid' => array(
+            'unique' => array(
+                'rule' => 'isUnique',
+                'message' => 'Organisation already blocklisted.'
+            ),
+            'uuid' => array(
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ),
+        )
     );
 
     public function beforeValidate($options = array())
@@ -59,5 +61,35 @@ class OrgBlocklist extends AppModel
                 unset($eventArray[$k]);
             }
         }
+    }
+
+    /**
+     * @param int|string $orgIdOrUuid Organisation ID or UUID
+     * @return bool
+     */
+    public function isBlocked($orgIdOrUuid)
+    {
+        if (isset($this->blockedCache[$orgIdOrUuid])) {
+            return $this->blockedCache[$orgIdOrUuid];
+        }
+
+        if (is_numeric($orgIdOrUuid)) {
+            $this->Organisation = ClassRegistry::init('Organisation');
+            $orgUuid = $this->Organisation->find('first', [
+                'conditions' => ['Organisation.id' => $orgIdOrUuid],
+                'fields' => ['Organisation.uuid'],
+                'recursive' => -1,
+            ]);
+            if (empty($orgUuid)) {
+                return false; // org not found by ID, so it is not blocked
+            }
+            $orgUuid = $orgUuid['Organisation']['uuid'];
+        } else {
+            $orgUuid = $orgIdOrUuid;
+        }
+
+        $isBlocked = $this->hasAny(['OrgBlocklist.org_uuid' => $orgUuid]);
+        $this->blockedCache[$orgIdOrUuid] = $isBlocked;
+        return $isBlocked;
     }
 }
