@@ -2686,8 +2686,12 @@ class Attribute extends AppModel
     public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp', $returnRaw = false)
     {
         if (is_array($timestamp)) {
-            $timestamp[0] = intval($this->Event->resolveTimeDelta($timestamp[0]));
-            $timestamp[1] = intval($this->Event->resolveTimeDelta($timestamp[1]));
+            if (count($timestamp) !== 2) {
+                throw new InvalidArgumentException('Invalid date specification, must be string or array with two elements');
+            }
+
+            $timestamp[0] = intval($this->resolveTimeDelta($timestamp[0]));
+            $timestamp[1] = intval($this->resolveTimeDelta($timestamp[1]));
             if ($timestamp[0] > $timestamp[1]) {
                 $temp = $timestamp[0];
                 $timestamp[0] = $timestamp[1];
@@ -2696,7 +2700,7 @@ class Attribute extends AppModel
             $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
             $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
         } else {
-            $timestamp = intval($this->Event->resolveTimeDelta($timestamp));
+            $timestamp = intval($this->resolveTimeDelta($timestamp));
             $conditions['AND'][] = array($scope . ' >=' => $timestamp);
         }
         if ($returnRaw) {
@@ -2708,8 +2712,8 @@ class Attribute extends AppModel
     public function setTimestampSeenConditions($timestamp, $conditions, $scope = 'Attribute.first_seen', $returnRaw = false)
     {
         if (is_array($timestamp)) {
-            $timestamp[0] = intval($this->Event->resolveTimeDelta($timestamp[0])) * 1000000; // seen in stored in micro-seconds in the DB
-            $timestamp[1] = intval($this->Event->resolveTimeDelta($timestamp[1])) * 1000000; // seen in stored in micro-seconds in the DB
+            $timestamp[0] = intval($this->resolveTimeDelta($timestamp[0])) * 1000000; // seen in stored in micro-seconds in the DB
+            $timestamp[1] = intval($this->resolveTimeDelta($timestamp[1])) * 1000000; // seen in stored in micro-seconds in the DB
             if ($timestamp[0] > $timestamp[1]) {
                 $temp = $timestamp[0];
                 $timestamp[0] = $timestamp[1];
@@ -2718,7 +2722,7 @@ class Attribute extends AppModel
             $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
             $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
         } else {
-            $timestamp = intval($this->Event->resolveTimeDelta($timestamp)) * 1000000; // seen in stored in micro-seconds in the DB
+            $timestamp = intval($this->resolveTimeDelta($timestamp)) * 1000000; // seen in stored in micro-seconds in the DB
             if ($scope == 'Attribute.first_seen') {
                 $conditions['AND'][] = array($scope . ' >=' => $timestamp);
             } else {
