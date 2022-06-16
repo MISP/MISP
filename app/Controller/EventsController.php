@@ -3348,7 +3348,7 @@ class EventsController extends AppController
             $this->set('exportFormats', $exportFormats);
             $this->render('ajax/eventRestSearchExportConfirmationForm');
         } else {
-            $returnFormat = empty($this->Event->validFormats[$returnFormat]) ? 'json' : $returnFormat;
+            $returnFormat = !isset($this->Event->validFormats[$returnFormat]) ? 'json' : $returnFormat;
             $idList = $id;
             if (!is_array($idList)) {
                 if (is_numeric($idList) || Validation::uuid($idList)) {
@@ -3361,13 +3361,13 @@ class EventsController extends AppController
                 throw new NotFoundException(__('Invalid input.'));
             }
             $filters = [
-                'eventid' => $idList
+                'eventid' => $idList,
+                'published' => [true, false], // fetch published and unpublished events
             ];
 
             $elementCounter = 0;
             $renderView = false;
-            $validFormat = $this->Event->validFormats[$returnFormat];
-            $responseType = $validFormat[0];
+            $responseType = $this->Event->validFormats[$returnFormat][0];
             $final = $this->Event->restSearch($this->Auth->user(), $returnFormat, $filters, false, false, $elementCounter, $renderView);
             if ($renderView) {
                 $final = json_decode($final->intoString(), true);
