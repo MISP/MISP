@@ -687,6 +687,12 @@ class StixFromMISPParser(StixParser):
     def _parse_email_reply_to(observable):
         return observable['0'].additional_header_fields.get('Reply-To')
 
+    @staticmethod
+    def _parse_email_value(observables):
+        for observable in observables.values():
+            if observable.type == 'email-addr':
+                return observable.value
+
     def parse_file_observable(self, observable):
         file, references = self.filter_main_object(observable, 'File')
         references = {key: {'object': value, 'used': False} for key, value in references.items()}
@@ -751,6 +757,12 @@ class StixFromMISPParser(StixParser):
     def _parse_ip_value(observables):
         for observable in observables.values():
             if observable.type in ('ipv4-addr', 'ipv6-addr'):
+                return observable.value
+
+    @staticmethod
+    def _parse_mac_value(observables):
+        for observable in observables.values():
+            if observable.type == 'mac-addr':
                 return observable.value
 
     def _parse_malware_sample(self, observable):
@@ -899,6 +911,12 @@ class StixFromMISPParser(StixParser):
             attribute.update({'value': getattr(object, feature), 'to_ids': False})
             attributes.append(attribute)
         return attributes
+
+    @staticmethod
+    def parse_url_value(observables):
+        for observable in observables.items():
+            if observable.type == 'url':
+                return observable.value
 
     def parse_user_account_observable(self, observable):
         observable = observable['0']
