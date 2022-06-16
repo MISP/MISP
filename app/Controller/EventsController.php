@@ -3315,17 +3315,37 @@ class EventsController extends AppController
 
     public function restSearchExport($id = null, $returnFormat = null)
     {
-        if (is_null($returnFormat)) {
-            if (is_numeric($id)) {
-                $idList = [$id];
-            } else {
-                $idList = $this->_jsonDecode($id);
-            }
+        if ($returnFormat === null) {
+            $exportFormats = [
+                'attack' => __('Attack matrix'),
+                'attack-sightings' => __('Attack matrix by sightings'),
+                'context' => __('Aggregated context data'),
+                'context-markdown' => __('Aggregated context data as Markdown'),
+                'csv' => __('CSV'),
+                'hashes' => __('Hashes'),
+                'hosts' => __('Hosts file'),
+                'json' => __('MISP JSON'),
+                'netfilter' => __('Netfilter'),
+                'opendata' => __('Open data'),
+                'openioc' => __('OpenIOC'),
+                'rpz' => __('RPZ'),
+                'snort' => __('Snort rules'),
+                'stix' => __('STIX 1 XML'),
+                'stix-json' => __('STIX 1 JSON'),
+                'stix2' => __('STIX 2'),
+                'suricata' => __('Suricata rules'),
+                'text' => __('Text file'),
+                'xml' => __('MISP XML'),
+                'yara' => __('YARA rules'),
+                'yara-json' => __('YARA rules (JSON)'),
+            ];
+
+            $idList = is_numeric($id) ? [$id] : $this->_jsonDecode($id);
             if (empty($idList)) {
                 throw new NotFoundException(__('Invalid input.'));
             }
             $this->set('idList', $idList);
-            $this->set('exportFormats', array_keys($this->Event->validFormats));
+            $this->set('exportFormats', $exportFormats);
             $this->render('ajax/eventRestSearchExportConfirmationForm');
         } else {
             $returnFormat = empty($this->Event->validFormats[$returnFormat]) ? 'json' : $returnFormat;
@@ -3349,11 +3369,9 @@ class EventsController extends AppController
             $validFormat = $this->Event->validFormats[$returnFormat];
             $responseType = $validFormat[0];
             $final = $this->Event->restSearch($this->Auth->user(), $returnFormat, $filters, false, false, $elementCounter, $renderView);
-            if (!empty($renderView) && !empty($final)) {
+            if ($renderView) {
                 $final = json_decode($final->intoString(), true);
-                foreach ($final as $key => $data) {
-                    $this->set($key, $data);
-                }
+                $this->set($final);
                 $this->set('responseType', $responseType);
                 $this->set('returnFormat', $returnFormat);
                 $this->set('renderView', $renderView);
