@@ -162,8 +162,9 @@ function initDrawflow() {
         editor.zoom = 1
         editor.zoom_min = 0.3
         editor.zoom_refresh()
+        var sidebarWidth = 340
         var editor_bcr = editor.container.getBoundingClientRect()
-        var offset_x = editor_bcr.width / 2
+        var offset_x = editor_bcr.width / 2 + sidebarWidth
         var offset_y = editor_bcr.height / 2
 
         var sumX = 0, sumY = 0, maxX = 0, maxY = 0
@@ -182,7 +183,7 @@ function initDrawflow() {
         var centroidY = sumY / nodes.length
         centroidX -= offset_block_x / 2
         centroidY += offset_block_y / 2
-        var calc_zoom = Math.min(Math.min(editor_bcr.width / (maxX + offset_block_x + 200), editor_bcr.height / (maxY + offset_block_y)), 1) // Zoom out if needed
+        var calc_zoom = Math.min(Math.min((editor_bcr.width - sidebarWidth) / (maxX + offset_block_x + 200), editor_bcr.height / (maxY + offset_block_y)), 1) // Zoom out if needed
         editor.translate_to(
             offset_x - centroidX,
             offset_y - centroidY - (offset_y*calc_zoom*0.5)
