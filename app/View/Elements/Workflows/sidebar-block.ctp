@@ -5,7 +5,7 @@ $classFromSeverity = [
     'error' => 'danger',
 ];
 ?>
-<div id="<?= h($block['id']) ?>" class="sidebar-workflow-block" style="user-select: none;" data-blockid="<?= h($block['id']) ?>" title="<?= !empty($block['disabled']) ? __('This module is disabled') : '' ?>">
+<div id="<?= h($block['id']) ?>" class="sidebar-workflow-block" style="user-select: none;" data-blockid="<?= h($block['id']) ?>" title="<?= !empty($block['disabled']) ? __('This module is disabled') : '' ?>" data-block-disabled="<?= !empty($block['disabled']) ? '1' : '0' ?>" data-is-misp-module="<?= !empty($block['is_misp_module']) ?>">
     <div class="icon">
         <?php if (!empty($block['icon'])) : ?>
             <i class="<?= $this->FontAwesome->getClass($block['icon']) ?> fa-fw <?= $block['icon_class'] ?? '' ?>"></i>
@@ -25,9 +25,9 @@ $classFromSeverity = [
             <span class="block-notification-container">
                 <?php foreach (array_keys($classFromSeverity) as $severity) : ?>
                     <?php
-                        $visibleNotifications = array_filter($block['notifications'][$severity], function($notification) {
-                            return $notification['__show_in_sidebar'];
-                        });
+                    $visibleNotifications = array_filter($block['notifications'][$severity], function ($notification) {
+                        return $notification['__show_in_sidebar'];
+                    });
                     ?>
                     <?php if (!empty($visibleNotifications)) : ?>
                         <button class="btn btn-mini btn-<?= $classFromSeverity[$severity] ?>" type="button" title="<?= implode('&#013;', h(Hash::extract($visibleNotifications, '{n}.text'))) ?>" onclick="showNotificationModalForSidebarModule(this)">
@@ -48,4 +48,9 @@ $classFromSeverity = [
         </div>
         <div class="muted"><?= h($block['description']) ?></div>
     </div>
+    <?php if($block['is_misp_module']): ?>
+        <span class="misp-module-background">
+            <i class="<?= $this->FontAwesome->getClass('python') ?>"></i>
+        </span>
+    <?php endif; ?>
 </div>

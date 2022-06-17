@@ -6,6 +6,9 @@ var dotBlock_default = doT.template(' \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
+            {{? it.is_misp_module }} \
+                <sup class="fab fa-python" style="top: -0.3em;"></sup> \
+            {{?}} \
             {{? it.is_blocking }} \
                 <span style="margin-left: 2px;" class="text-error"> \
                     <i title="This module can block execution" class="fa-fw fas fa-stop-circle"></i> \
@@ -183,7 +186,7 @@ function initDrawflow() {
         var centroidY = sumY / nodes.length
         centroidX -= offset_block_x / 2
         centroidY += offset_block_y / 2
-        var calc_zoom = Math.min(Math.min((editor_bcr.width - sidebarWidth) / (maxX + offset_block_x + 200), editor_bcr.height / (maxY + offset_block_y)), 1) // Zoom out if needed
+        var calc_zoom = Math.min(Math.min((editor_bcr.width - sidebarWidth) / (maxX + offset_block_x + sidebarWidth), editor_bcr.height / (maxY + offset_block_y)), 1) // Zoom out if needed
         editor.translate_to(
             offset_x - centroidX,
             offset_y - centroidY - (offset_y*calc_zoom*0.5)
@@ -198,12 +201,7 @@ function initDrawflow() {
         $(this).tab('show');
     })
 
-    $chosenWorkflows.chosen()
-        .on('change', function (evt, param) {
-            var selection = param.selected
-            window.location = '/workflows/editor/' + selection
-        });
-    $chosenBlocks.chosen()
+    $chosenBlocks.chosen({width: '320px'})
         .on('change', function (evt, param) {
             var selection = param.selected
             var selected_module = all_blocks_by_id[selection]
@@ -250,6 +248,7 @@ function initDrawflow() {
         slowInterval: 60000,
     })
 
+    filterBlocks($blockFilterGroup.find('button.active')[0])
     fetchAndLoadWorkflow().then(function() {
         graphPooler.start(undefined)
         editor.fitCanvas()
@@ -406,25 +405,25 @@ function showFilteringModalForBlock(clicked) {
 }
 
 function invalidateContentCache() {
-    changeDetectedMessage1 = "[unsaved]"
-    changeDetectedMessage2 = " Last saved change: "
+    changeDetectedMessage = '  Last saved change: '
     contentTimestamp = true
     toggleSaveButton(true)
-    $lastModifiedField
-        .removeClass('label-success')
-        .addClass('label-important')
-        .text(changeDetectedMessage1 + changeDetectedMessage2 + moment(parseInt(lastModified)).fromNow())
+    $workflowSavedIconContainer.removeClass('text-success').addClass('text-error')
+    $workflowSavedIconText
+        .removeClass('text-success').addClass('text-error')
+        .text('not saved')
+    $workflowSavedIconTextDetails.text(changeDetectedMessage + moment(parseInt(lastModified)).fromNow())
 }
 
 function revalidateContentCache() {
-    changeDetectedMessage1 = "[saved]"
-    changeDetectedMessage2 = " Last saved change: "
+    changeDetectedMessage = '  Last saved change: '
     contentChanged = false
     toggleSaveButton(false)
-    $lastModifiedField
-        .removeClass('label-important')
-        .addClass('label-success')
-        .text(changeDetectedMessage1 + changeDetectedMessage2 + moment(parseInt(lastModified)).fromNow())
+    $workflowSavedIconContainer.removeClass('text-error').addClass('text-success')
+    $workflowSavedIconText
+        .removeClass('text-error').addClass('text-success')
+        .text('saved')
+    $workflowSavedIconTextDetails.text(changeDetectedMessage + moment(parseInt(lastModified)).fromNow())
 }
 
 
@@ -562,6 +561,31 @@ function loadWorkflow(workflow) {
             })
         }
     })
+}
+
+function filterBlocks(clicked) {
+    var $activeButton = $(clicked)
+    var selectedFilter
+    if ($activeButton.length > 0) {
+        selectedFilter = $activeButton.data('type')
+    } else {
+        selectedFilter = 'enabled'
+    }
+    var $blocksToShow = $('.sidebar .tab-pane.active').find('.sidebar-workflow-block')
+    $blocksToShow.show()
+    if (selectedFilter == 'enabled') {
+        $blocksToShow.filter(function() {
+            return $(this).data('block')['disabled']
+        }).hide()
+    } else if (selectedFilter == 'misp-module') {
+        $blocksToShow.filter(function () {
+            return !$(this).data('block')['is_misp_module']
+        }).hide()
+    } else if (selectedFilter == 'is-blocking') {
+        $blocksToShow.filter(function () {
+            return !$(this).data('block')['is_blocking']
+        }).hide()
+    }
 }
 
 

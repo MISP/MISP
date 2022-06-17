@@ -7,61 +7,91 @@ $allModules = array_merge($usableModules['blocks_action'], $usableModules['block
 $triggerModules = $modules['blocks_trigger'];
 ?>
 <div class="root-container">
-    <div class="main-container">
-        <div class="side-panel">
-            <a href="<?= $baseurl . '/workflows/triggers' ?>">
-                <i class="fa-fw <?= $this->FontAwesome->getClass('caret-left') ?>"></i>
-                <?= __('Trigger index') ?>
-            </a>
-            <h3>
+    <div class="topbar">
+        <a href="<?= $baseurl . '/workflows/triggers' ?>">
+            <i class="fa-fw <?= $this->FontAwesome->getClass('caret-left') ?>"></i><?= __('Trigger index') ?>
+        </a>
+        <span style="display: flex; align-items: center; min-width: 220px;">
+            <h3 style="display: inline-block;">
                 <span style="font-weight:normal;"><?= __('Workflow:') ?></span>
                 <strong><?= h($selectedWorkflow['Workflow']['trigger_id']) ?></strong>
             </h3>
-            <div class="" style="margin-top: 0.5em;">
-                <div class="btn-group" style="margin-left: 3px;">
-                    <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#"><?= __('More Actions') ?> <span class="caret"></span></a>
-                    <ul class="dropdown-menu">
-                        <li class="disabled"><a id="importWorkflow" href="<?= $baseurl . '/workflowParts/import/' ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow parts') ?></a></li>
-                        <li class="disabled"><a id="exportWorkflow" href="<?= $baseurl . '/workflowParts/export/' . h($selectedWorkflow['Workflow']['id']) ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-export') ?>"></i> <?= __('Export workflow parts') ?></a></li>
-                    </ul>
-                </div>
-                <button id="saveWorkflow" class="btn btn-primary" href="#">
-                    <i class="fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save') ?>
-                    <span class="fa fa-spin fa-spinner loading-span hidden"></span>
-                </button>
+        </span>
+        <span style="display: flex; align-items: center;">
+            <button id="saveWorkflow" class="btn btn-primary" href="#">
+                <i class="fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save') ?>
+                <span class="fa fa-spin fa-spinner loading-span hidden"></span>
+            </button>
+            <span id="workflow-saved-container" class="fa-stack small" style="margin-left: 0.75em;">
+                <i class=" fas fa-cloud fa-stack-2x"></i>
+                <i class="fas fa-save fa-stack-1x fa-inverse" style="top: 0.15em;"></i>
+            </span>
+            <span id="workflow-saved-text" style="margin-left: 5px;"></span>
+            <span id="workflow-saved-text-details" style="margin-left: 5px; font-size: 0.75em"></span>
+        </span>
+        <span style="margin-left: auto; margin-right: 5px;">
+            <div class="btn-group" style="margin-left: 3px;">
+                <a class="btn btn-primary dropdown-toggle disabled" data-toggle="dropdown" href="#"><?= __('More Actions') ?> <span class="caret"></span></a>
+                <ul class="dropdown-menu pull-right">
+                    <li class="disabled"><a id="importWorkflow" href="<?= $baseurl . '/workflowParts/import/' ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow parts') ?></a></li>
+                    <li class="disabled"><a id="exportWorkflow" href="<?= $baseurl . '/workflowParts/export/' . h($selectedWorkflow['Workflow']['id']) ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-export') ?>"></i> <?= __('Export workflow parts') ?></a></li>
+                </ul>
             </div>
-            <div class="" style="margin-top: 0.25em;">
-                <span id="lastModifiedField" title="<?= __('Last updated') ?>" class="last-modified label">2 days ago</span>
-            </div>
+        </span>
+    </div>
 
-            <h3>Blocks</h3>
-            <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off">
-                <?php foreach ($allModules as $block) : ?>
-                    <option value="<?= h($block['id']) ?>"><?= h($block['name']) ?></option>
-                <?php endforeach; ?>
-            </select>
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="side-panel">
+                <ul class="nav nav-tabs" id="block-tabs">
+                    <li class="active">
+                        <a href="#container-actions">
+                            <i class="<?= $this->FontAwesome->getClass('play') ?>"></i>
+                            Actions
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#container-logic">
+                            <i class="<?= $this->FontAwesome->getClass('code-branch') ?>"></i>
+                            Logic
+                        </a>
+                    </li>
+                </ul>
 
-            <ul class="nav nav-tabs" id="block-tabs">
-                <li class="active"><a href="#container-actions">
-                        <i class="<?= $this->FontAwesome->getClass('play') ?>"></i>
-                        Actions
-                    </a></li>
-                <li><a href="#container-logic">
-                        <i class="<?= $this->FontAwesome->getClass('code-branch') ?>"></i>
-                        Logic
-                    </a></li>
-            </ul>
-
-            <div class="tab-content">
-                <div class="tab-pane active" id="container-actions">
-                    <?php foreach ($modules['blocks_action'] as $block) : ?>
-                        <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
-                    <?php endforeach; ?>
-                </div>
-                <div class="tab-pane" id="container-logic">
-                    <?php foreach ($modules['blocks_logic'] as $block) : ?>
-                        <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
-                    <?php endforeach; ?>
+                <div class="tab-content">
+                    <div class="tab-pane active" id="container-actions">
+                        <div id="block-filter-group" class="btn-group" data-toggle="buttons-radio">
+                            <button type="button" class="btn btn-primary active" data-type="enabled" onclick="filterBlocks(this)">Enabled</button>
+                            <button type="button" class="btn btn-primary" data-type="misp-module" onclick="filterBlocks(this)">
+                                misp-module
+                                <sup class="fab fa-python"></sup>
+                            </button>
+                            <button type="button" class="btn btn-primary" data-type="is-blocking" onclick="filterBlocks(this)">blocking</button>
+                            <button type="button" class="btn btn-primary" data-type="all" onclick="filterBlocks(this)">All</button>
+                        </div>
+                        <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off">
+                            <?php foreach ($modules['blocks_action'] as $block) : ?>
+                                <option value="<?= h($block['id']) ?>"><?= h($block['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="block-container">
+                            <?php foreach ($modules['blocks_action'] as $block) : ?>
+                                <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="container-logic">
+                        <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off" style="width: 305px; margin: 0 0.5em;">
+                            <?php foreach ($modules['blocks_logic'] as $block) : ?>
+                                <option value="<?= h($block['id']) ?>"><?= h($block['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="block-container">
+                            <?php foreach ($modules['blocks_logic'] as $block) : ?>
+                                <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -130,8 +160,8 @@ echo $this->element('genericElements/assetLoader', [
     var $side_panel = $('.root-container .side-panel')
     var $canvas = $('.root-container .canvas')
     var $loadingBackdrop = $('.root-container .canvas #loadingBackdrop')
-    var $chosenWorkflows = $('.root-container .side-panel .chosen-container.workflows')
     var $chosenBlocks = $('.root-container .side-panel .chosen-container.blocks')
+    var $blockFilterGroup = $('.root-container .side-panel #block-filter-group')
     var $drawflow = $('#drawflow')
     var $blockModal = $('#block-modal')
     var $blockModalDeleteButton = $blockModal.find('#delete-selected-node')
@@ -141,6 +171,9 @@ echo $this->element('genericElements/assetLoader', [
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')
     var $lastModifiedField = $('#lastModifiedField')
+    var $workflowSavedIconContainer = $('#workflow-saved-container')
+    var $workflowSavedIconText = $('#workflow-saved-text')
+    var $workflowSavedIconTextDetails = $('#workflow-saved-text-details')
     var $blockContainerLogic = $('#container-logic')
     var $blockContainerAction = $('#container-actions')
     var editor = false
