@@ -40,9 +40,10 @@
                         'title' => __('Enable'),
                         'icon' => 'play',
                         'postLink' => true,
-                        'url' => $baseurl . '/workflows/enableModule',
+                        'url' => $baseurl . '/workflows/toggleModule',
                         'url_params_data_paths' => ['id'],
-                        'postLinkConfirm' => __('Are you sure you want to enable this module?'),
+                        'url_suffix' => '/1/1',
+                        'postLinkConfirm' => __('Are you sure you want to enable this trigger?'),
                         'complex_requirement' => array(
                             'function' => function ($row, $options) use ($isSiteAdmin) {
                                 return $isSiteAdmin && $options['datapath']['disabled'];
@@ -58,9 +59,10 @@
                         'title' => __('Disable'),
                         'icon' => 'stop',
                         'postLink' => true,
-                        'url' => $baseurl . '/workflows/disableModule',
+                        'url' => $baseurl . '/workflows/toggleModule',
                         'url_params_data_paths' => ['id'],
-                        'postLinkConfirm' => __('Are you sure you want to disable this module?'),
+                        'url_suffix' => '/0/1',
+                        'postLinkConfirm' => __('Are you sure you want to disable this trigger?'),
                         'complex_requirement' => array(
                             'function' => function ($row, $options) use ($isSiteAdmin) {
                                 return $isSiteAdmin && !$options['datapath']['disabled'];

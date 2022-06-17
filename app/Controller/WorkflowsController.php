@@ -181,17 +181,17 @@ class WorkflowsController extends AppController
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'view_module']);
     }
 
-    public function toggleModule($module_id, $enabled)
+    public function toggleModule($module_id, $enabled, $is_trigger=false)
     {
         $this->request->allowMethod(['post', 'put']);
-        $saved = $this->Workflow->toggleModule($module_id, $enabled);
+        $saved = $this->Workflow->toggleModule($module_id, $enabled, $is_trigger);
         if ($saved) {
             return $this->__getSuccessResponseBasedOnContext(
                 __('%s module %s', ($enabled ? 'Enabled' : 'Disabled'), $module_id),
                 null,
                 'toggle_module',
                 $module_id,
-                ['action' => 'moduleIndex']
+                ['action' => (!empty($is_trigger) ? 'triggers' : 'moduleIndex')]
             );
         } else {
             return $this->__getFailResponseBasedOnContext(
@@ -199,36 +199,10 @@ class WorkflowsController extends AppController
                 null,
                 'toggle_module',
                 $module_id,
-                ['action' => 'moduleIndex']
+                ['action' => (!empty($is_trigger) ? 'triggers' : 'moduleIndex')]
             );
         }
     }
-
-    // public function import()
-    // {
-    //     if ($this->request->is('post') || $this->request->is('put')) {
-    //         $data = $this->request->data['Workflow'];
-    //         $text = FileAccessTool::getTempUploadedFile($data['submittedjson'], $data['json']);
-    //         $workflow = JsonTool::decode($text);
-    //         if ($workflow === null) {
-    //             throw new MethodNotAllowedException(__('Error while decoding JSON'));
-    //         }
-    //         $workflow['Workflow']['enabled'] = false;
-    //         $workflow['Workflow']['data'] = JsonTool::encode($workflow['Workflow']['data']);
-    //         $this->request->data = $workflow;
-    //         $this->add();
-    //     }
-    // }
-
-    // public function export($id)
-    // {
-    //     $workflow = $this->Workflow->fetchWorkflow($id);
-    //     $content = JsonTool::encode($workflow, JSON_PRETTY_PRINT);
-    //     $this->response->body($content);
-    //     $this->response->type('json');
-    //     $this->response->download(sprintf('workflow_%s_%s.json', $workflow['Workflow']['name'], time()));
-    //     return $this->response;
-    // }
 
     private function __getSuccessResponseBasedOnContext($message, $data = null, $action = '', $id = false, $redirect = array())
     {

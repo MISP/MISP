@@ -137,7 +137,8 @@ class Workflow extends AppModel
     {
         $filename = sprintf('Module_%s.php', preg_replace('/[^a-zA-Z0-9_]/', '_', Inflector::underscore($trigger_id)));
         $module_config = $this->__getClassFromModuleFiles('trigger', [$filename])['classConfigs'];
-        $module_disabled = empty(Configure::read(sprintf('Plugin.WorkflowTriggers_%s', $trigger_id)));
+        $settingName = sprintf('Plugin.WorkflowTriggers_%s', $trigger_id);
+        $module_disabled = empty(Configure::read($settingName));
         return empty($module_config['disabled']) && !$module_disabled;
     }
 
@@ -152,17 +153,24 @@ class Workflow extends AppModel
         return !empty($list) ? $list : [];
     }
 
-    public function toggleModule($module_id, $enable): bool
+    public function toggleModule($module_id, $enable, $is_trigger=false): bool
     {
-        try {
-            $redis = $this->setupRedisWithException();
-        } catch (Exception $e) {
-            return false;
-        }
-        if ($enable) {
-            $list = $redis->sAdd(Workflow::REDIS_KEY_MODULES_ENABLED, $module_id);
+        if (!empty($is_trigger)) {
+            $settingName = sprintf('Plugin.WorkflowTriggers_%s', $module_id);
+            /** @var SystemSetting $systemSetting */
+            $server = ClassRegistry::init('Server');
+            return $server->serverSettingsSaveValue($settingName, !empty($enable), false);
         } else {
-            $list = $redis->sRem(Workflow::REDIS_KEY_MODULES_ENABLED, $module_id);
+            try {
+                $redis = $this->setupRedisWithException();
+            } catch (Exception $e) {
+                return false;
+            }
+            if ($enable) {
+                $redis->sAdd(Workflow::REDIS_KEY_MODULES_ENABLED, $module_id);
+            } else {
+                $redis->sRem(Workflow::REDIS_KEY_MODULES_ENABLED, $module_id);
+            }
         }
         return true;
     }
