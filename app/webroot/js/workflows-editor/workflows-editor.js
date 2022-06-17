@@ -538,6 +538,9 @@ function loadWorkflow(workflow) {
         if (block.data.module_type == 'logic') {
             blockClass.push('block-type-logic')
         }
+        if (block.data.disabled) {
+            blockClass.push('disabled')
+        }
         var html = getTemplateForBlock(block.data)
         editor.nodeId = block.id // force the editor to use the saved id of the block instead of generating a new one
         editor.addNode(
@@ -1056,8 +1059,10 @@ function genBlockNotificationHtml(block) {
     var html = ''
     var $notificationContainer = $('<span></span>')
     severities.forEach(function(severity) {
-        if (module.notifications[severity] && module.notifications[severity].length > 0) {
-            var notificationTitles = module.notifications[severity].map(function (notification) {
+        var visibleNotifications = module.notifications[severity].filter(function (notification) { return notification
+.__show_in_node})
+        if (visibleNotifications && visibleNotifications.length > 0) {
+            var notificationTitles = visibleNotifications.map(function (notification) {
                 return notification.text
             }).join('&#013;')
             var $notification = $('<button class="btn btn-mini" role="button" onclick="showNotificationModalForBlock(this)"></button>')
@@ -1072,7 +1077,7 @@ function genBlockNotificationHtml(block) {
                 })
                 .append(
                     $('<i class="fas"></i>').addClass(iconBySeverity[severity]),
-                    $('<strong></strong>').text(' '+module.notifications[severity].length)
+                    $('<strong></strong>').text(' '+visibleNotifications.length)
                 )
             $notificationContainer.append($notification)
         }

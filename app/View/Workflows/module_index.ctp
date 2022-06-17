@@ -98,8 +98,9 @@
                         'title' => __('Enable'),
                         'icon' => 'play',
                         'postLink' => true,
-                        'url' => $baseurl . '/workflows/enableModule',
+                        'url' => $baseurl . '/workflows/toggleModule',
                         'url_params_data_paths' => ['id'],
+                        'url_suffix' => '/1',
                         'postLinkConfirm' => __('Are you sure you want to enable this module?'),
                         'complex_requirement' => array(
                             'function' => function ($row, $options) use ($isSiteAdmin) {
@@ -116,8 +117,9 @@
                         'title' => __('Disable'),
                         'icon' => 'stop',
                         'postLink' => true,
-                        'url' => $baseurl . '/workflows/disableModule',
+                        'url' => $baseurl . '/workflows/toggleModule',
                         'url_params_data_paths' => ['id'],
+                        'url_suffix' => '/0',
                         'postLinkConfirm' => __('Are you sure you want to disable this module?'),
                         'complex_requirement' => array(
                             'function' => function ($row, $options) use ($isSiteAdmin) {

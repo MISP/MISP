@@ -13,6 +13,9 @@ class Module_parallel_task extends WorkflowBaseModule
     public $html_template = 'parallel';
     public $params = [];
 
+    private $Workflow;
+    private $Job;
+
     public function __construct()
     {
         parent::__construct();

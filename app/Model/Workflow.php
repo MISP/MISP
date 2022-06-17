@@ -61,6 +61,7 @@ class Workflow extends AppModel
     const REDIS_KEY_WORKFLOW_NAMESPACE = 'workflow';
     const REDIS_KEY_WORKFLOW_PER_TRIGGER = 'workflow:workflow_list:%s';
     const REDIS_KEY_TRIGGER_PER_WORKFLOW = 'workflow:trigger_list:%s';
+    const REDIS_KEY_MODULES_ENABLED = 'workflow:modules_enabled';
 
     const BLOCKING_PATH = 'blocking';
     const NON_BLOCKING_PATH = 'non-blocking';
@@ -136,8 +137,34 @@ class Workflow extends AppModel
     {
         $filename = sprintf('Module_%s.php', preg_replace('/[^a-zA-Z0-9_]/', '_', Inflector::underscore($trigger_id)));
         $module_config = $this->__getClassFromModuleFiles('trigger', [$filename])['classConfigs'];
-        // FIXME: Merge global configuration!
-        return empty($module_config['disabled']);
+        $module_disabled = empty(Configure::read(sprintf('Plugin.WorkflowTriggers_%s', $trigger_id)));
+        return empty($module_config['disabled']) && !$module_disabled;
+    }
+
+    protected function getEnabledModules(): array
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+        $list = $redis->sMembers(Workflow::REDIS_KEY_MODULES_ENABLED);
+        return !empty($list) ? $list : [];
+    }
+
+    public function toggleModule($module_id, $enable): bool
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+        if ($enable) {
+            $list = $redis->sAdd(Workflow::REDIS_KEY_MODULES_ENABLED, $module_id);
+        } else {
+            $list = $redis->sRem(Workflow::REDIS_KEY_MODULES_ENABLED, $module_id);
+        }
+        return true;
     }
 
     protected function checkTriggerListenedTo($trigger_id)
@@ -465,6 +492,17 @@ class Workflow extends AppModel
                     'warning' => [],
                     'info' => [],
                 ];
+                if ($module['disabled']) {
+                    $modules[$moduleType][$i]['notifications']['error'][] = [
+                        'text' => __('Module disabled'),
+                        'description' => __('This module is disabled and thus will not be executed.'),
+                        'details' => [
+                            __('Disabled modules that are blocking will also block the remaining of the execution')
+                        ],
+                        '__show_in_sidebar' => false,
+                        '__show_in_node' => true,
+                    ];
+                }
             }
         }
         return $modules;
@@ -500,24 +538,36 @@ class Workflow extends AppModel
     private function __mergeGlobalConfigIntoLoadedModules()
     {
         /* FIXME: Delete `disabled` entry. This is for testing while we wait for module settings */
-        array_walk($this->loaded_modules['trigger'], function (&$trigger) {
-            $module_enabled = !in_array($trigger['id'], ['publish', 'new-attribute']);
-            $trigger['html_template'] = !empty($trigger['html_template']) ? $trigger['html_template'] : 'trigger';
-            $trigger['disabled'] = $module_enabled;
-            $this->loaded_classes['trigger'][$trigger['id']]->disabled = $module_enabled;
-            $this->loaded_classes['trigger'][$trigger['id']]->html_template = !empty($trigger['html_template']) ? $trigger['html_template'] : 'trigger';
-        });
-        array_walk($this->loaded_modules['logic'], function (&$logic) {
-            $module_enabled = true;
-            $logic['disabled'] = !$module_enabled;
-            $this->loaded_classes['logic'][$logic['id']]->disabled = $module_enabled;
-        });
-        array_walk($this->loaded_modules['action'], function (&$action) {
-            $module_enabled = !in_array($action['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', 'writeactions', 'enrich-event', 'testaction', 'stop-execution', ]);
-            $action['disabled'] = $module_enabled;
-            $this->loaded_classes['action'][$action['id']]->disabled = $module_enabled;
-        });
+        // array_walk($this->loaded_modules['logic'], function (&$logic) {
+        //     $module_enabled = true;
+        //     $logic['disabled'] = !$module_enabled;
+        //     $this->loaded_classes['logic'][$logic['id']]->disabled = $module_enabled;
+        // });
+        // array_walk($this->loaded_modules['action'], function (&$action) {
+        //     $module_enabled = !in_array($action['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', 'writeactions', 'enrich-event', 'testaction', 'stop-execution', ]);
+        //     $action['disabled'] = $module_enabled;
+        //     $this->loaded_classes['action'][$action['id']]->disabled = $module_enabled;
+        // });
         /* FIXME: end */
+        foreach ($this->loaded_modules['trigger'] as &$trigger) {
+            $module_disabled = empty(Configure::read(sprintf('Plugin.WorkflowTriggers_%s', $trigger['id'])));
+            $trigger['html_template'] = !empty($trigger['html_template']) ? $trigger['html_template'] : 'trigger';
+            $trigger['disabled'] = $module_disabled;
+            $this->loaded_classes['trigger'][$trigger['id']]->disabled = $module_disabled;
+            $this->loaded_classes['trigger'][$trigger['id']]->html_template = !empty($trigger['html_template']) ? $trigger['html_template'] : 'trigger';
+        }
+        $enabledModules = $this->getEnabledModules();
+        array_walk($this->loaded_modules['logic'], function (&$logic) use ($enabledModules) {
+            $module_disabled = !in_array($logic['id'], $enabledModules);
+            $logic['disabled'] = $module_disabled;
+            $this->loaded_classes['logic'][$logic['id']]->disabled = $module_disabled;
+        });
+        array_walk($this->loaded_modules['action'], function (&$action) use ($enabledModules) {
+            $module_disabled = !in_array($action['id'], $enabledModules);
+            $action['disabled'] = $module_disabled;
+            $this->loaded_classes['action'][$action['id']]->disabled = $module_disabled;
+        });
+
     }
 
     private function __getEnabledModulesFromModuleService()
