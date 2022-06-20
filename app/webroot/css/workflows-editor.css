@@ -47,9 +47,9 @@
     box-shadow: 2px 0px 6px #cecece;
     position: relative;
     border-radius: 5px;
-    margin-top: 24px;
+    margin-top: 12px;
     padding: 2px;
-    height: calc(100% - 4em);
+    height: calc(100% - 28px);
 }
 
 .side-panel::after {
@@ -157,7 +157,7 @@
     height: 100%;
     margin-top: -5px;
     z-index: 0;
-    opacity: 0.15;
+    opacity: 0.07;
     font-size: 72px;
 }
 
@@ -172,6 +172,24 @@
 .sidebar-workflow-block .block-notification-container {
     margin-left: auto;
     vertical-align: middle;
+}
+
+.rightbar {
+    z-index: 18;
+    box-sizing: border-box;
+    max-width: var(--editor-sidepanel-width);
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: var(--topbar-height)px;
+    right: 0;
+}
+
+.right-panel {
+    box-shadow: 0px 3px 7px 0px #00000033;
+    position: relative;
+    margin-top: 12px;
+    margin-right: 6px;
 }
 
 .canvas {

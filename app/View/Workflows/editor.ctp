@@ -29,15 +29,6 @@ $triggerModules = $modules['blocks_trigger'];
             <span id="workflow-saved-text" style="margin-left: 5px;"></span>
             <span id="workflow-saved-text-details" style="margin-left: 5px; font-size: 0.75em"></span>
         </span>
-        <span style="margin-left: auto; margin-right: 5px;">
-            <div class="btn-group" style="margin-left: 3px;">
-                <a class="btn btn-primary dropdown-toggle disabled" data-toggle="dropdown" href="#"><?= __('More Actions') ?> <span class="caret"></span></a>
-                <ul class="dropdown-menu pull-right">
-                    <li class="disabled"><a id="importWorkflow" href="<?= $baseurl . '/workflowParts/import/' ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow parts') ?></a></li>
-                    <li class="disabled"><a id="exportWorkflow" href="<?= $baseurl . '/workflowParts/export/' . h($selectedWorkflow['Workflow']['id']) ?>"><i class="fa-fw <?= $this->FontAwesome->getClass('file-export') ?>"></i> <?= __('Export workflow parts') ?></a></li>
-                </ul>
-            </div>
-        </span>
     </div>
 
     <div class="main-container">
@@ -94,7 +85,25 @@ $triggerModules = $modules['blocks_trigger'];
                     </div>
                 </div>
             </div>
-
+        </div>
+        <div class="rightbar">
+            <div class="right-panel">
+                <div class="btn-group control-buttons">
+                    <button id="control-duplicate" class="btn btn-small btn-primary disabled" type="button" title="<?= __('Duplicate') ?>">
+                        <i class="fa-fw <?= $this->FontAwesome->getClass('clone') ?>"></i> <?= __('Duplicate') ?>
+                    </button>
+                    <button id="control-delete" class="btn btn-small btn-danger disabled" type="button" title="<?= __('Delete') ?>">
+                        <i class="fa-fw <?= $this->FontAwesome->getClass('trash') ?>"></i> <?= __('Delete') ?>
+                    </button>
+                    <a class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown" href="#">
+                        <i class="fa-fw <?= $this->FontAwesome->getClass('shapes') ?>"></i> <?= __('Workflow parts') ?> <span class="caret"></span>
+                    </a>
+                    <ul class="dropdown-menu pull-right">
+                        <li id="control-import-blocks" class=""><a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow parts') ?></a></li>
+                        <li id="control-export-blocks" class="disabled"><a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-export') ?>"></i> <?= __('Export workflow parts') ?></a></li>
+                    </ul>
+                </div>
+            </div>
         </div>
         <div class="canvas">
             <div id="drawflow" data-workflowid="<?= h($selectedWorkflow['Workflow']['id']) ?>"></div>
@@ -167,6 +176,9 @@ echo $this->element('genericElements/assetLoader', [
     var $blockModalDeleteButton = $blockModal.find('#delete-selected-node')
     var $blockNotificationModal = $('#block-notifications-modal')
     var $blockFilteringModal = $('#block-filtering-modal')
+    var $controlDuplicateButton = $('.control-buttons #control-duplicate')
+    var $controlDeleteButton = $('.control-buttons #control-delete')
+    var $controlExportBlocksLi = $('.control-buttons #control-export-blocks')
     var $importWorkflowButton = $('#importWorkflow')
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')

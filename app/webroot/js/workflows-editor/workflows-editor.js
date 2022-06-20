@@ -239,8 +239,10 @@ function initDrawflow() {
 
     $canvas.droppable({
         drop: function (event, ui) {
+            ui.position.top += 96 // take padding/marging/position into account
+            console.log(ui.draggable.data('block'));
             addNode(ui.draggable.data('block'), ui.position)
-        }
+        },
     });
 
     graphPooler = new TaskScheduler(checkGraphProperties, {
@@ -311,11 +313,20 @@ function initDrawflow() {
         editor.last_x = coordinates.x
         editor.last_y = coordinates.y 
     })
+    editor.on('nodeSelected', function(node_id) {
+        $controlDuplicateButton.removeClass('disabled')
+        $controlDeleteButton.removeClass('disabled')
+        $controlExportBlocksLi.removeClass('disabled')
+        selection.select([getNodeHtmlByID(node_id)])
+    })
     editor.on('nodeUnselected', function() {
         selection.getSelection().forEach(function (el) {
-            el.classList.remove('selected');
+            el.classList.remove('selected')
         })
-        selection.clearSelection();
+        selection.clearSelection()
+        $controlDuplicateButton.addClass('disabled')
+        $controlDeleteButton.addClass('disabled')
+        $controlExportBlocksLi.addClass('disabled')
     })
     var selection = new SelectionArea({
         selectables: ['#drawflow .drawflow-node'],
@@ -352,9 +363,53 @@ function initDrawflow() {
             var store = data.store
             if (store.selected.length > 0) {
                 editor.node_selected = store.selected[0]
+                editor.dispatch('nodeSelected', editor.node_selected.id.slice(5));
             }
         })
-    Window.selection = selection
+    
+    $controlDuplicateButton.click(function() {
+        var newNodes = []
+        var oldNewIDMapping = {}
+        var currentSelection = selection.getSelection()
+        var selectedNodeIDs = currentSelection.map(function(nodeHtml) {
+            return nodeHtml.id.slice(5)
+        })
+        currentSelection.forEach(function (nodeHtml) {
+            nodeHtml.classList.remove('selected');
+            var node_id = nodeHtml.id.slice(5)
+            var node = getEditorData()[node_id]
+            var position = {
+                top: nodeHtml.getBoundingClientRect().top - 100*editor.zoom,
+                left: nodeHtml.getBoundingClientRect().left + 100*editor.zoom,
+            }
+            var block = Object.assign({}, all_blocks_by_id[node.data.id])
+            addNode(block, position)
+            oldNewIDMapping[node_id] = editor.nodeId - 1
+            newNodes.push(getNodeHtmlByID(editor.nodeId-1)) // nodeId is incremented as soon as a new node is created
+        })
+        selectedNodeIDs.forEach(function(node_id) {
+            var node = getEditorData()[node_id]
+            Object.keys(node.outputs).forEach(function (outputName) {
+                node.outputs[outputName].connections.forEach(function (connection) {
+                    if (selectedNodeIDs.includes(connection.node)) {
+                        editor.addConnection(
+                            oldNewIDMapping[node_id],
+                            oldNewIDMapping[connection.node],
+                            outputName,
+                            connection.output
+                        )
+                    }
+                });
+            })
+        })
+        selection.clearSelection()
+        selection.select(newNodes)
+    })
+    $controlDeleteButton.click(function() {
+        selection.getSelection().forEach(function (node) {
+            editor.removeNodeId(node.id)
+        })
+    })
 }
 
 function buildModalForBlock(node_id, block) {
@@ -700,6 +755,10 @@ function getSelectedNodeID() {
 
 function getSelectedNodeIDInteger() {
     return parseInt(getSelectedNodeID().split('-')[1]) // Couldn't find a better way to get the selected node
+}
+
+function getNodeHtmlByID(node_id) {
+    return editor.precanvas.querySelector('#node-' + node_id)
 }
 
 function getSelectedBlock() {
