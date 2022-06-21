@@ -1,4 +1,10 @@
 <?php
+$append = [];
+if ($data['module_type'] == 'trigger') {
+    $append = [
+        ['element' => 'Workflows/executionPath', 'element_params' => ['workflow' => $data['Workflow']]],
+    ];
+}
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
@@ -14,8 +20,13 @@ echo $this->element(
                 'path' => 'name',
                 'class' => 'bold',
                 'type' => 'custom',
-                'function' => function ($row) {
-                    return sprintf('<i class="fa-fw %s"></i> %s', $this->FontAwesome->getClass($row['icon']), h($row['name']));
+                'function' => function ($row) use ($baseurl) {
+                    if (!empty($row['icon'])) {
+                        return sprintf('<i class="fa-fw %s"></i> %s', $this->FontAwesome->getClass($row['icon']), h($row['name']));
+                    } else if (!empty($row['icon_path'])) {
+                        return sprintf('<img src="%s" alt="Icon of %s" style="width: 12px; filter: grayscale(1);"> %s', sprintf('%s/%s/%s', $baseurl, 'img', h($row['icon_path'])), h($row['name']), h($row['name']));
+                    }
+                    return h($row['name']);
                 }
             ],
             [
@@ -50,6 +61,7 @@ echo $this->element(
                 'key' => __('Run counter'),
                 'path' => 'Workflow.counter',
                 'type' => 'custom',
+                'requirement' => $data['module_type'] == 'trigger',
                 'function' => function ($row) {
                     return h($row['Workflow']['counter']);
                 }
@@ -59,11 +71,10 @@ echo $this->element(
                 'class' => 'restrict-height',
                 'path' => 'Workflow.data',
                 'type' => 'json',
+                'requirement' => $data['module_type'] == 'trigger',
             ],
         ],
-        'append' => [
-            ['element' => 'Workflows/executionPath', 'element_params' => ['workflow' => $data['Workflow']]],
-        ]
+        'append' => $append,
     ]
 );
 

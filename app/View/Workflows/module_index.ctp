@@ -6,8 +6,13 @@
             'data_path' => 'name',
             'element' => 'custom',
             'class' => 'bold',
-            'function' => function ($row) {
-                return sprintf('<i class="fa-fw %s"></i> %s', $this->FontAwesome->getClass($row['icon']), h($row['name']));
+            'function' => function ($row) use ($baseurl) {
+                if (!empty($row['icon'])) {
+                    return sprintf('<i class="fa-fw %s"></i> %s', $this->FontAwesome->getClass($row['icon']), h($row['name']));
+                } else if (!empty($row['icon_path'])) {
+                    return sprintf('<img src="%s" alt="Icon of %s" style="width: 12px; filter: grayscale(1);"> %s', sprintf('%s/%s/%s', $baseurl, 'img', h($row['icon_path'])), h($row['name']), h($row['name']));
+                }
+                return h($row['name']);
             }
         ],
         [
