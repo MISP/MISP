@@ -257,7 +257,7 @@ class WorkflowsController extends AppController
     public function hasAcyclicGraph()
     {
         $this->request->allowMethod(['post']);
-        $graphData = $this->request->data;
+        $graphData = JsonTool::decode($this->request->data['graph']);
         $cycles = [];
         $isAcyclic = $this->Workflow->workflowGraphTool->isAcyclic($graphData, $cycles);
         $data = [

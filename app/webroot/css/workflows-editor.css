@@ -157,8 +157,10 @@
     height: 100%;
     margin-top: -5px;
     z-index: 0;
-    opacity: 0.07;
-    font-size: 72px;
+    width: 72px;
+    opacity: 0.15;
+    background: url('/img/misp-modules.png');
+    background-size: 72px;
 }
 
 .sidebar-workflow-block > .icon {
@@ -204,6 +206,17 @@
     border-radius: 5px;
     padding: 0.25em 0.75em;
     box-shadow: 0px 3px 6px 2px #33333333;
+}
+
+.canvas-workflow-block .is-misp-module {
+    content: ' ';
+    z-index: 0;
+    height: 24px;
+    width: 24px;
+    opacity: 0.75;
+    background: url(/img/misp-modules.png);
+    background-size: 24px;
+    background-repeat: no-repeat;
 }
 
 .canvas-workflow-block br {

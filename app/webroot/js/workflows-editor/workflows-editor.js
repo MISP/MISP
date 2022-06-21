@@ -1,13 +1,18 @@
 var dotBlock_default = doT.template(' \
-<div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
+<div class="canvas-workflow-block {{? it.is_blocking }} is-misp-module {{?}}" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
-            <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{? it.icon }} \
+                <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{?}} \
+            {{? it.icon_path }} \
+                <span style="display: flex;"><img src="/img/{{=it.icon_path}}" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0; filter: grayscale(1);"></span> \
+            {{?}} \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
             {{? it.is_misp_module }} \
-                <sup class="fab fa-python" style="top: -0.3em;"></sup> \
+                <sup class="is-misp-module"></sup> \
             {{?}} \
             {{? it.is_blocking }} \
                 <span style="margin-left: 2px;" class="text-error"> \
@@ -33,7 +38,12 @@ var dotBlock_trigger = doT.template(' \
 <div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container" style="border:none;"> \
-            <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{? it.icon }} \
+                <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{?}} \
+            {{? it.icon_path }} \
+                <span style="display: flex;"><img src="/img/{{=it.icon_path}}" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0;"></span> \
+            {{?}} \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
@@ -50,7 +60,12 @@ var dotBlock_if = doT.template(' \
 <div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
-            <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{? it.icon }} \
+                <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{?}} \
+            {{? it.icon_path }} \
+                <span style="display: flex;"><img src="/img/{{=it.icon_path}}" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0;"></span> \
+            {{?}} \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
@@ -71,7 +86,12 @@ var dotBlock_parallel = doT.template(' \
 <div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
-            <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{? it.icon }} \
+                <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{?}} \
+            {{? it.icon_path }} \
+                <span style="display: flex;"><img src="/img/{{=it.icon_path}}" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0;"></span> \
+            {{?}} \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
@@ -368,40 +388,8 @@ function initDrawflow() {
         })
     
     $controlDuplicateButton.click(function() {
-        var newNodes = []
-        var oldNewIDMapping = {}
         var currentSelection = selection.getSelection()
-        var selectedNodeIDs = currentSelection.map(function(nodeHtml) {
-            return nodeHtml.id.slice(5)
-        })
-        currentSelection.forEach(function (nodeHtml) {
-            nodeHtml.classList.remove('selected');
-            var node_id = nodeHtml.id.slice(5)
-            var node = getEditorData()[node_id]
-            var position = {
-                top: nodeHtml.getBoundingClientRect().top - 100*editor.zoom,
-                left: nodeHtml.getBoundingClientRect().left + 100*editor.zoom,
-            }
-            var block = Object.assign({}, all_blocks_by_id[node.data.id])
-            addNode(block, position)
-            oldNewIDMapping[node_id] = editor.nodeId - 1
-            newNodes.push(getNodeHtmlByID(editor.nodeId-1)) // nodeId is incremented as soon as a new node is created
-        })
-        selectedNodeIDs.forEach(function(node_id) {
-            var node = getEditorData()[node_id]
-            Object.keys(node.outputs).forEach(function (outputName) {
-                node.outputs[outputName].connections.forEach(function (connection) {
-                    if (selectedNodeIDs.includes(connection.node)) {
-                        editor.addConnection(
-                            oldNewIDMapping[node_id],
-                            oldNewIDMapping[connection.node],
-                            outputName,
-                            connection.output
-                        )
-                    }
-                });
-            })
-        })
+        var newNodes = duplicateNodes(currentSelection)
         selection.clearSelection()
         selection.select(newNodes)
     })
@@ -409,6 +397,12 @@ function initDrawflow() {
         selection.getSelection().forEach(function (node) {
             editor.removeNodeId(node.id)
         })
+    })
+
+    $(window).bind('beforeunload', function() {
+        if (contentChanged) {
+            return false;
+        }
     })
 }
 
@@ -461,7 +455,7 @@ function showFilteringModalForBlock(clicked) {
 
 function invalidateContentCache() {
     changeDetectedMessage = '  Last saved change: '
-    contentTimestamp = true
+    contentChanged = true
     toggleSaveButton(true)
     $workflowSavedIconContainer.removeClass('text-success').addClass('text-error')
     $workflowSavedIconText
@@ -643,6 +637,48 @@ function filterBlocks(clicked) {
     }
 }
 
+function duplicateNodes(currentSelection) {
+    var selectedNodeIDs = currentSelection.map(function (nodeHtml) {
+        return nodeHtml.id.slice(5)
+    })
+    var newNodes = []
+    var oldNewIDMapping = {}
+    currentSelection.forEach(function (nodeHtml) {
+        nodeHtml.classList.remove('selected');
+        var node_id = nodeHtml.id.slice(5)
+        var node = getEditorData()[node_id]
+        if (node.data.module_type == 'trigger') {
+            return
+        }
+        var position = {
+            top: nodeHtml.getBoundingClientRect().top - 100 * editor.zoom,
+            left: nodeHtml.getBoundingClientRect().left + 100 * editor.zoom,
+        }
+        var block = Object.assign({}, all_blocks_by_id[node.data.id])
+        block.params = node.data.params.slice()
+        block.saved_filters = Object.assign({}, node.data.saved_filters)
+        addNode(block, position)
+        oldNewIDMapping[node_id] = editor.nodeId - 1
+        newNodes.push(getNodeHtmlByID(editor.nodeId - 1)) // nodeId is incremented as soon as a new node is created
+    })
+    selectedNodeIDs.forEach(function (node_id) {
+        var node = getEditorData()[node_id]
+        Object.keys(node.outputs).forEach(function (outputName) {
+            node.outputs[outputName].connections.forEach(function (connection) {
+                if (selectedNodeIDs.includes(connection.node)) {
+                    editor.addConnection(
+                        oldNewIDMapping[node_id],
+                        oldNewIDMapping[connection.node],
+                        outputName,
+                        connection.output
+                    )
+                }
+            });
+        })
+    })
+    return newNodes
+}
+
 
 /* API */
 function fetchWorkflow(id, callback) {
@@ -725,7 +761,7 @@ function checkGraphProperties() {
     var url = baseurl + "/workflows/hasAcyclicGraph/"
     var graphData = getEditorData()
     $.ajax({
-        data: graphData,
+        data: {graph: JSON.stringify(graphData)},
         success: function (data, textStatus) {
             highlightGraphIssues(data);
             graphPooler.unthrottle()

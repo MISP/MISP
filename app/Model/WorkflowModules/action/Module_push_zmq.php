@@ -7,8 +7,7 @@ class Module_push_zmq extends WorkflowBaseModule
     public $id = 'push-zmq';
     public $name = 'Push to ZMQ';
     public $description = 'Push to the ZMQ channel';
-    public $icon = 'wifi';
-    public $icon_class = 'fas fa-rotate-90';
+    public $icon_path = 'zeromq.png';
     public $inputs = 1;
     public $outputs = 1;
     public $params = [];

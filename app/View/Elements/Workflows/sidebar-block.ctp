@@ -9,6 +9,8 @@ $classFromSeverity = [
     <div class="icon">
         <?php if (!empty($block['icon'])) : ?>
             <i class="<?= $this->FontAwesome->getClass($block['icon']) ?> fa-fw <?= $block['icon_class'] ?? '' ?>"></i>
+        <?php elseif (!empty($block['icon_path'])) : ?>
+            <img src="<?= sprintf('%s/%s/%s', $baseurl, 'img', h($block['icon_path'])) ?>" alt="Icon of <?= h($block['name']) ?>" style="width: 18px; filter: grayscale(1);">
         <?php endif; ?>
     </div>
     <div>
@@ -48,9 +50,8 @@ $classFromSeverity = [
         </div>
         <div class="muted"><?= h($block['description']) ?></div>
     </div>
-    <?php if($block['is_misp_module']): ?>
+    <?php if ($block['is_misp_module']) : ?>
         <span class="misp-module-background">
-            <i class="<?= $this->FontAwesome->getClass('python') ?>"></i>
         </span>
     <?php endif; ?>
 </div>
