@@ -72,12 +72,32 @@
                                 [
                                     'url' => $baseurl . '/workflows/moduleIndex/type:action',
                                     'text' => __('Action'),
-                                    'active' => $indexType === 'action',
+                                    'active' => $indexType === 'action' && $actionType === '',
                                 ],
                                 [
                                     'url' => $baseurl . '/workflows/moduleIndex/type:logic',
                                     'text' => __('Logic'),
                                     'active' => $indexType === 'logic',
+                                ],
+                                [
+                                    'url' => $baseurl . '/workflows/moduleIndex/actiontype:mispmodule',
+                                    'text' => __('misp-module'),
+                                    'active' => $indexType === 'action' && $actionType === 'mispmodule',
+                                ],
+                                [
+                                    'url' => $baseurl . '/workflows/moduleIndex/actiontype:blocking',
+                                    'text' => __('Blocking'),
+                                    'active' => $indexType === 'action' && $actionType === 'blocking',
+                                ],
+                                [
+                                    'url' => $baseurl . '/workflows/moduleIndex/type:all/enabled:1',
+                                    'text' => __('Enabled'),
+                                    'active' => $indexType === 'enabled',
+                                ],
+                                [
+                                    'url' => $baseurl . '/workflows/moduleIndex/type:all/enabled:0',
+                                    'text' => __('Disabled'),
+                                    'active' => $indexType === 'disabled',
                                 ],
                             ]
                         ],

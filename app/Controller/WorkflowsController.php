@@ -146,8 +146,10 @@ class WorkflowsController extends AppController
         $this->Module = ClassRegistry::init('Module');
         $mispModules = $this->Module->getModules('Action');
         $this->set('module_service_error', !is_array($mispModules));
-        $filters = $this->IndexFilter->harvestParameters(['type']);
+        $filters = $this->IndexFilter->harvestParameters(['type', 'actiontype', 'enabled']);
         $moduleType = $filters['type'] ?? 'action';
+        $actionType = $filters['actiontype'] ?? 'all';
+        $enabledState = $filters['enabled'] ?? false;
         if ($moduleType == 'all') {
             $data = array_merge(
                 $modules["blocks_action"],
@@ -156,11 +158,27 @@ class WorkflowsController extends AppController
         } else {
             $data = $modules["blocks_{$moduleType}"];
         }
+        if ($actionType == 'mispmodule') {
+            $data = array_filter($data, function($module) {
+                return !empty($module['is_misp_module']);
+            });
+        } else if ($actionType == 'blocking') {
+            $data = array_filter($data, function ($module) {
+                return !empty($module['is_blocking']);
+            });
+        }
+        if ($enabledState !== false) {
+            $moduleType = !empty($enabledState) ? 'enabled' : 'disabled';
+            $data = array_filter($data, function ($module) use ($enabledState) {
+                return !empty($enabledState) ? empty($module['disabled']) : !empty($module['disabled']);
+            });
+        }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($data, $this->response->type());
         }
         $this->set('data', $data);
         $this->set('indexType', $moduleType);
+        $this->set('actionType', $actionType);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_module']);
     }
 
