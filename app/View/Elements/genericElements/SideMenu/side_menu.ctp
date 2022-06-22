@@ -1612,6 +1612,37 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         }
                     break;
 
+            case 'workflowParts':
+                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                    'element_id' => 'index',
+                    'url' => '/workflowParts/index',
+                    'text' => __('List Workflow Parts')
+                ));
+                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                    'url' => $baseurl . '/workflowParts/import',
+                    'text' => __('Import Workflow Parts')
+                ));
+                if ($menuItem === 'view' || $menuItem === 'edit') {
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'view',
+                        'url' => '/workflowParts/view/' . h($id),
+                        'text' => __('View Workflow Part')
+                    ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'edit',
+                            'url' => '/workflows/edit/' . h($id),
+                            'text' => __('Edit Workflow Part')
+                        ));
+                    }
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/admin/audit_logs/index/model:WorkflowParts/model_id:' .  h($id),
+                        'text' => __('View worflow part history'),
+                        'requirement' => Configure::read('MISP.log_new_audit') && $canAccess('auditLogs', 'admin_index'),
+                    ));
+                }
+                break;
+
             case 'workflows':
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index_trigger',
@@ -1622,6 +1653,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     'element_id' => 'index_module',
                     'url' => '/workflows/moduleIndex',
                     'text' => __('List Modules')
+                ));
+                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                    'element_id' => 'index',
+                    'url' => '/workflowParts/index',
+                    'text' => __('List Workflow Parts')
                 ));
                 if ($menuItem === 'view' || $menuItem === 'edit') {
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(

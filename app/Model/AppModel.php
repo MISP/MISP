@@ -1704,6 +1704,18 @@ class AppModel extends Model
                       INDEX `user_id` (`user_id`),
                       INDEX `org_id` (`org_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflow_parts` (
+                      `id` int(11) NOT NULL AUTO_INCREMENT,
+                      `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+                      `name` varchar(191) NOT NULL,
+                      `description` varchar(191) NOT NULL,
+                      `timestamp` int(11) NOT NULL DEFAULT 0,
+                      `data` text,
+                      PRIMARY KEY (`id`),
+                      INDEX `uuid` (`uuid`),
+                      INDEX `name` (`name`),
+                      INDEX `timestamp` (`timestamp`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

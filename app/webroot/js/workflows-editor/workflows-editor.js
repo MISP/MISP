@@ -336,7 +336,7 @@ function initDrawflow() {
     editor.on('nodeSelected', function(node_id) {
         $controlDuplicateButton.removeClass('disabled')
         $controlDeleteButton.removeClass('disabled')
-        $controlExportBlocksLi.removeClass('disabled')
+        $controlSaveBlocksLi.removeClass('disabled')
         selection.select([getNodeHtmlByID(node_id)])
     })
     editor.on('nodeUnselected', function() {
@@ -346,7 +346,7 @@ function initDrawflow() {
         selection.clearSelection()
         $controlDuplicateButton.addClass('disabled')
         $controlDeleteButton.addClass('disabled')
-        $controlExportBlocksLi.addClass('disabled')
+        $controlSaveBlocksLi.addClass('disabled')
     })
     var selection = new SelectionArea({
         selectables: ['#drawflow .drawflow-node'],
@@ -396,6 +396,49 @@ function initDrawflow() {
     $controlDeleteButton.click(function() {
         selection.getSelection().forEach(function (node) {
             editor.removeNodeId(node.id)
+        })
+    })
+    $controlSaveBlocksLi.click(function(evt) {
+        var $link = $(this).find('a')
+        evt.preventDefault()
+        var selectedNodes = selection.getSelection()
+        var editorData = getEditorData()
+        openGenericModal($link.attr('href'), undefined, function() {
+            var nodes = selectedNodes.map(function (nodeHtml) { return editorData[nodeHtml.id.slice(5)] })
+            var $modal = $('#genericModal')
+            var $graphData = $modal.find('form #WorkflowPartData')
+            $graphData.val(JSON.stringify(nodes))
+            $modal.find('.modal-body').append(
+                $('<h3></h3>').append(
+                    $('<span></span').text('Workflow Part Content '),
+                    $('<a class="fas fa-copy" href="#"></a>')
+                        .attr('title', 'Copy Workflow Part to clipboard')
+                        .click(function() {
+                            var $clicked = $(this)
+                            navigator.clipboard.writeText(JSON.stringify(nodes)).then(function () {
+                                $clicked.removeClass('fa-copy').addClass('fa-check').addClass('text-success')
+                                setTimeout(function () {
+                                    $clicked.removeClass('fa-check').addClass('fa-copy').removeClass('text-success')
+                                }, 2000);
+                            }, function (err) {
+                                console.error('Async: Could not copy text: ', err);
+                            });
+                    }),
+                )
+            )
+            var $ul = $('<ul></ul>')
+            nodes.forEach(function(node) {
+                $ul.append(
+                    $('<li></li>').append(
+                        $('<strong></strong>').text(node.data.name),
+                        $('<ul></ul>').append(
+                            node.data.saved_filters.length > 0 ? $('<li></li>').text('Has filter') : null,
+                            node.data.params.length > 0 ? $('<li></li>').text('Has parameters') : null
+                        )
+                    )
+                )
+            })
+            $modal.find('.modal-body').append($ul)
         })
     })
 

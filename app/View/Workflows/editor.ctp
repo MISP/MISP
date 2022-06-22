@@ -100,7 +100,7 @@ $triggerModules = $modules['blocks_trigger'];
                     </a>
                     <ul class="dropdown-menu pull-right">
                         <li id="control-import-blocks" class=""><a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow parts') ?></a></li>
-                        <li id="control-export-blocks" class="disabled"><a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-export') ?>"></i> <?= __('Export workflow parts') ?></a></li>
+                        <li id="control-save-blocks" class="disabled"><a href="<?= $baseurl . '/workflowParts/add/1' ?>"><i class=" fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save workflow parts') ?></a></li>
                     </ul>
                 </div>
             </div>
@@ -179,6 +179,7 @@ echo $this->element('genericElements/assetLoader', [
     var $controlDuplicateButton = $('.control-buttons #control-duplicate')
     var $controlDeleteButton = $('.control-buttons #control-delete')
     var $controlExportBlocksLi = $('.control-buttons #control-export-blocks')
+    var $controlSaveBlocksLi = $('.control-buttons #control-save-blocks')
     var $importWorkflowButton = $('#importWorkflow')
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')
@@ -201,3 +202,9 @@ echo $this->element('genericElements/assetLoader', [
         initDrawflow()
     })
 </script>
+
+<style>
+    .dropdown-menu li.disabled a {
+        pointer-events: none;
+    }
+</style>
