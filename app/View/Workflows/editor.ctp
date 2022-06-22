@@ -99,7 +99,17 @@ $triggerModules = $modules['blocks_trigger'];
                         <i class="fa-fw <?= $this->FontAwesome->getClass('shapes') ?>"></i> <?= __('Workflow parts') ?> <span class="caret"></span>
                     </a>
                     <ul class="dropdown-menu pull-right">
-                        <li id="control-import-blocks" class=""><a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow parts') ?></a></li>
+                        <li id="control-import-blocks" class="dropdown-submenu submenu-right">
+                            <a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow parts') ?></a>
+                            <ul class="dropdown-menu pull-right">
+                                <?php if (empty($workflowParts)): ?>
+                                    <li><a href="#"><?= _('No workflow parts saved') ?></a></li>
+                                <?php endif; ?>
+                                <?php foreach ($workflowParts as $workflowPart) : ?>
+                                    <li><a href="#" title="<?= h($workflowPart['WorkflowPart']['description']) ?>" onclick="addWorkflowPart(<?= h($workflowPart['WorkflowPart']['id']) ?>)"><?= h($workflowPart['WorkflowPart']['name']) ?></a></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </li>
                         <li id="control-save-blocks" class="disabled"><a href="<?= $baseurl . '/workflowParts/add/1' ?>"><i class=" fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save workflow parts') ?></a></li>
                     </ul>
                 </div>
@@ -190,9 +200,11 @@ echo $this->element('genericElements/assetLoader', [
     var $blockContainerLogic = $('#container-logic')
     var $blockContainerAction = $('#container-actions')
     var editor = false
+    var selection = false
     var all_blocks = <?= json_encode($allModules) ?>;
     var all_blocks_by_id = <?= json_encode(Hash::combine($allModules, '{n}.id', '{n}')) ?>;
     var all_triggers_by_id = <?= json_encode(Hash::combine($triggerModules, '{n}.id', '{n}')) ?>;
+    var all_workflow_parts_by_id = <?= json_encode(Hash::combine($workflowParts, '{n}.WorkflowPart.id', '{n}')) ?>;
     var workflow = false
     <?php if (!empty($selectedWorkflow)) : ?>
         var workflow = <?= json_encode($selectedWorkflow) ?>;

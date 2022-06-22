@@ -64,7 +64,9 @@ class WorkflowPart extends AppModel
 
     public function beforeSave($options = [])
     {
-        $this->data['WorkflowPart']['data'] = JsonTool::encode($this->data['WorkflowPart']['data']);
+        if (is_array($this->data['WorkflowPart']['data'])) {
+            $this->data['WorkflowPart']['data'] = JsonTool::encode($this->data['WorkflowPart']['data']);
+        }
         return true;
     }
 

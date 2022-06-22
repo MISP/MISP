@@ -190,26 +190,17 @@ function initDrawflow() {
         var offset_x = editor_bcr.width / 2 + sidebarWidth
         var offset_y = editor_bcr.height / 2
 
-        var sumX = 0, sumY = 0, maxX = 0, maxY = 0
-        var offset_block_x = 0, offset_block_y = 0
-        var nodes = $(editor.precanvas).find('.drawflow-node')
-        nodes.each(function () {
-            var node_bcr = this.getBoundingClientRect()
-            offset_block_x = node_bcr.left > maxX ? node_bcr.width : offset_block_x
-            offset_block_y = node_bcr.top > maxY ? node_bcr.height : offset_block_y
-            sumX += node_bcr.left
-            sumY += node_bcr.top
-            maxX = (node_bcr.left + node_bcr.width) > maxX ? (node_bcr.left + node_bcr.width) : maxX
-            maxY = (node_bcr.top + node_bcr.height) > maxY ? (node_bcr.top + node_bcr.height) : maxY
-        });
-        var centroidX = sumX / nodes.length
-        var centroidY = sumY / nodes.length
-        centroidX -= offset_block_x / 2
-        centroidY += offset_block_y / 2
-        var calc_zoom = Math.min(Math.min((editor_bcr.width - sidebarWidth) / (maxX + offset_block_x + sidebarWidth), editor_bcr.height / (maxY + offset_block_y)), 1) // Zoom out if needed
+        var canvasCentroid = getCanvasCentroid()
+        var calc_zoom = Math.min(
+            1,
+            Math.min(
+                (editor_bcr.width - sidebarWidth) / (canvasCentroid.maxX + canvasCentroid.offset_block_x + sidebarWidth),
+                editor_bcr.height / (canvasCentroid.maxY + canvasCentroid.offset_block_y)
+            ),
+        ) // Zoom out if needed
         editor.translate_to(
-            offset_x - centroidX,
-            offset_y - centroidY - (offset_y*calc_zoom*0.5)
+            offset_x - canvasCentroid.centroidX,
+            offset_y - canvasCentroid.centroidY - (offset_y*calc_zoom*0.5)
         )
 
         editor.zoom = calc_zoom
@@ -300,6 +291,7 @@ function initDrawflow() {
     $drawflow.on('mousedown', function (evt) {
         if (evt.shiftKey) {
             editor.editor_selected = false
+            // evt.stopPropagation()
         }
     })
     editor.on('nodeCreated', function(node_id) {
@@ -348,7 +340,8 @@ function initDrawflow() {
         $controlDeleteButton.addClass('disabled')
         $controlSaveBlocksLi.addClass('disabled')
     })
-    var selection = new SelectionArea({
+
+    selection = new SelectionArea({
         selectables: ['#drawflow .drawflow-node'],
         boundaries: ['#drawflow']
     })
@@ -389,7 +382,7 @@ function initDrawflow() {
     
     $controlDuplicateButton.click(function() {
         var currentSelection = selection.getSelection()
-        var newNodes = duplicateNodes(currentSelection)
+        var newNodes = duplicateNodesFromHtml(currentSelection)
         selection.clearSelection()
         selection.select(newNodes)
     })
@@ -397,6 +390,7 @@ function initDrawflow() {
         selection.getSelection().forEach(function (node) {
             editor.removeNodeId(node.id)
         })
+        editor.dispatch('nodeUnselected')
     })
     $controlSaveBlocksLi.click(function(evt) {
         var $link = $(this).find('a')
@@ -680,7 +674,7 @@ function filterBlocks(clicked) {
     }
 }
 
-function duplicateNodes(currentSelection) {
+function duplicateNodesFromHtml(currentSelection) {
     var selectedNodeIDs = currentSelection.map(function (nodeHtml) {
         return nodeHtml.id.slice(5)
     })
@@ -722,6 +716,79 @@ function duplicateNodes(currentSelection) {
     return newNodes
 }
 
+function addNodesFromWorkflowPart(workflowPart) {
+    var newNodes = []
+    if (workflowPart.data.length == 0) {
+        return counterNodeAdded
+    }
+    var oldNewIDMapping = {}
+    // We need min position to position nodes relatively
+    var minX = workflowPart.data[0].pos_x
+    var minY = workflowPart.data[0].pos_y
+    workflowPart.data.forEach(function(node) {
+        minX = node.pos_x < minX ? node.pos_x : minX
+        minY = node.pos_y < minY ? node.pos_y : minY
+    })
+
+    var canvasCentroid = getCanvasCentroid()
+    workflowPart.data.forEach(function(node) {
+        if (node.data.module_type == 'trigger') {
+            return
+        }
+        var position = {
+            top: ((node.pos_y - Math.abs(minY)) * editor.zoom + canvasCentroid.centroidY),
+            left: ((node.pos_x - Math.abs(minX)) * editor.zoom + canvasCentroid.centroidX),
+        }
+        var block = Object.assign({}, all_blocks_by_id[node.data.id])
+        block.params = node.data.params.slice()
+        block.saved_filters = Object.assign({}, node.data.saved_filters)
+        addNode(block, position)
+        oldNewIDMapping[node.id] = editor.nodeId - 1
+        newNodes.push(getNodeHtmlByID(editor.nodeId - 1)) // nodeId is incremented as soon as a new node is created
+    })
+    workflowPart.data.forEach(function (node) {
+        Object.keys(node.outputs).forEach(function (outputName) {
+            node.outputs[outputName].connections.forEach(function (connection) {
+                if (oldNewIDMapping[connection.node] !== undefined) {
+                    editor.addConnection(
+                        oldNewIDMapping[node.id],
+                        oldNewIDMapping[connection.node],
+                        outputName,
+                        connection.output
+                    )
+                }
+            });
+        })
+    })
+    return newNodes
+}
+
+function getCanvasCentroid() {
+    var sumX = 0, sumY = 0, maxX = 0, maxY = 0
+    var offset_block_x = 0, offset_block_y = 0
+    var nodes = $(editor.precanvas).find('.drawflow-node')
+    nodes.each(function () {
+        var node_bcr = this.getBoundingClientRect()
+        offset_block_x = node_bcr.left > maxX ? node_bcr.width : offset_block_x
+        offset_block_y = node_bcr.top > maxY ? node_bcr.height : offset_block_y
+        sumX += node_bcr.left
+        sumY += node_bcr.top
+        maxX = (node_bcr.left + node_bcr.width) > maxX ? (node_bcr.left + node_bcr.width) : maxX
+        maxY = (node_bcr.top + node_bcr.height) > maxY ? (node_bcr.top + node_bcr.height) : maxY
+    });
+    var centroidX = sumX / nodes.length
+    var centroidY = sumY / nodes.length
+    centroidX -= offset_block_x / 2
+    centroidY += offset_block_y / 2
+    return {
+        centroidX: centroidX,
+        centroidY: centroidY,
+        maxX: maxX,
+        maxY: maxY,
+        offset_block_x: offset_block_x,
+        offset_block_y: offset_block_y,
+    }
+}
 
 /* API */
 function fetchWorkflow(id, callback) {
@@ -846,6 +913,20 @@ function getSelectedBlock() {
 
 function deleteSelectedNode() {
     editor.removeNodeId(getSelectedNodeID())
+}
+
+function addWorkflowPart(partId) {
+    var workflowPart = all_workflow_parts_by_id[partId]
+    if (!workflowPart) {
+        console.error('Tried to get workflow part ' + partId)
+        return '';
+    }
+    var newNodes = addNodesFromWorkflowPart(workflowPart.WorkflowPart);
+    if (newNodes.length > 0) {
+        selection.clearSelection()
+        selection.select(newNodes)
+        editor.dispatch('nodeSelected', newNodes[0].id);
+    }
 }
 
 /* UI Utils */

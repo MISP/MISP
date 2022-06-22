@@ -35,6 +35,27 @@ form button.btn[disabled] {
     border-bottom-right-radius: 4px;
 }
 
+.dropdown-submenu.submenu-right > .dropdown-menu {
+    left: auto;
+    right: 100%;
+    margin-top: -6px;
+    margin-right: -1px;
+    margin-left: 0;
+    -webkit-border-radius: 6px 0 6px 6px;
+    -moz-border-radius: 6px 0 6px 6px;
+    border-radius: 6px 0 6px 6px;
+}
+
+.dropdown-submenu.submenu-right > a:after {
+    float: left;
+    margin-right: 0;
+    margin-left: -10px;
+    border-left-color: transparent !important;
+    border-right-color: #cccccc;
+    border-style: solid;
+    border-width: 5px 5px 5px 0;
+}
+
 /*.close{
     float:none;
 }*/

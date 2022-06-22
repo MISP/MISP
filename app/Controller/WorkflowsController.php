@@ -124,6 +124,8 @@ class WorkflowsController extends AppController
             $workflow = $savedWorkflow;
         }
         $modules = $this->Workflow->attachNotificationToModules($modules, $workflow);
+        $this->loadModel('WorkflowPart');
+        $workflowParts = $this->WorkflowPart->find('all');
         $this->set('selectedWorkflow', $workflow);
         $this->set('modules', $modules);
     }

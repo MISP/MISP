@@ -106,7 +106,9 @@ class Workflow extends AppModel
 
     public function beforeSave($options = [])
     {
-        $this->data['Workflow']['data'] = JsonTool::encode($this->data['Workflow']['data']);
+        if (is_array($this->data['Workflow']['data'])) {
+            $this->data['Workflow']['data'] = JsonTool::encode($this->data['Workflow']['data']);
+        }
         return true;
     }
 
