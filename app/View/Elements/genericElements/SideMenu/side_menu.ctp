@@ -1622,6 +1622,16 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     'url' => $baseurl . '/workflowParts/import',
                     'text' => __('Import Workflow Parts')
                 ));
+                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                    'element_id' => 'index_trigger',
+                    'url' => '/workflows/triggers',
+                    'text' => __('List Triggers')
+                ));
+                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                    'element_id' => 'index_module',
+                    'url' => '/workflows/moduleIndex',
+                    'text' => __('List Modules')
+                ));
                 if ($menuItem === 'view' || $menuItem === 'edit') {
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'view',
