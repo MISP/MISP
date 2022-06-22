@@ -38,6 +38,7 @@ class WorkflowPartsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        $this->request->data['WorkflowPart']['data'] = JsonTool::encode($this->data['WorkflowPart']['data']);
         $this->set('menuData', ['menuList' => 'workflowParts', 'menuItem' => 'edit']);
         $this->set('id', $id);
         $this->render('add');

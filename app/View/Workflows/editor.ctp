@@ -106,7 +106,10 @@ $triggerModules = $modules['blocks_trigger'];
                                     <li><a href="#"><?= _('No workflow parts saved') ?></a></li>
                                 <?php endif; ?>
                                 <?php foreach ($workflowParts as $workflowPart) : ?>
-                                    <li><a href="#" title="<?= h($workflowPart['WorkflowPart']['description']) ?>" onclick="addWorkflowPart(<?= h($workflowPart['WorkflowPart']['id']) ?>)"><?= h($workflowPart['WorkflowPart']['name']) ?></a></li>
+                                    <li><a href="#" title="<?= h($workflowPart['WorkflowPart']['description']) ?>" onclick="addWorkflowPart(<?= h($workflowPart['WorkflowPart']['id']) ?>)">
+                                        <?= h($workflowPart['WorkflowPart']['name']) ?>
+                                        <small class="text-muted">[<?= h(substr($workflowPart['WorkflowPart']['uuid'], 0, 4)) ?>...]</small>
+                                    </a></li>
                                 <?php endforeach; ?>
                             </ul>
                         </li>
