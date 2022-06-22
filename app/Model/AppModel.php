@@ -2855,7 +2855,7 @@ class AppModel extends Model
      *
      * @return false|string
      */
-    protected function checkMIPSCommit()
+    public function checkMIPSCommit()
     {
         static $commit;
         if ($commit === null) {

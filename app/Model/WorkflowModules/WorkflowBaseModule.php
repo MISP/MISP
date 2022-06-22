@@ -58,7 +58,7 @@ class WorkflowBaseModule
             $nodeParam[$name] = $value;
         }
         foreach ($this->saved_filters as $filter) {
-            $filter['value'] = $nodeParam[$filter['text']];
+            $filter['value'] = $nodeParam[$filter['text']] ?? $filter['value'];
             $indexedFilters[$filter['text']] = $filter['value'];
         }
         return $indexedFilters;
@@ -120,6 +120,24 @@ class WorkflowBaseModule
             }
         }
         return $extracted;
+    }
+
+    protected function extractDataForFilters(array $node, WorkflowRoamingData $roamingData)
+    {
+        $rData = $roamingData->getData();
+        if (empty($this->support_filters)) {
+            return $rData;
+        }
+        $filters = $this->getFilters($node);
+        if (in_array(null, array_values($filters))) {
+            return $rData;
+        }
+        $extracted = $this->extractData($rData, $filters['selector']);
+        if ($extracted === false) {
+            return $rData;
+        }
+        $matchingItems = $this->getItemsMatchingCondition($extracted, $filters['value'], $filters['operator'], $filters['path']);
+        return $matchingItems;
     }
 
     protected function evaluateCondition($item, $operator, $value): bool
