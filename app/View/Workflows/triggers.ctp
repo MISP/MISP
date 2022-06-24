@@ -82,12 +82,25 @@
                         ),
                     ],
                     [
+                        'title' => __('Edit associated workflows'),
                         'url' => $baseurl . '/workflows/editor',
                         'url_params_data_paths' => ['id'],
                         'icon' => 'code',
                         'dbclickAction' => true,
                     ],
                     [
+                        'title' => __('View execution logs'),
+                        'url' => $baseurl . '/admin/logs/index/model:Workflow/action:execute_workflow',
+                        'url_named_params_data_paths' => ['model_id' => 'Workflow.id'],
+                        'icon' => 'list-alt',
+                        'complex_requirement' => [
+                            'function' => function ($row, $options) {
+                                return !empty($row['Workflow']);
+                            },
+                        ],
+                    ],
+                    [
+                        'title' => __('View trigger details'),
                         'url' => $baseurl . '/workflows/moduleView',
                         'url_params_data_paths' => ['id'],
                         'icon' => 'eye',
