@@ -423,7 +423,11 @@
                         'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
                     ),
                     array(
-                        'text' => __('Workflows'),
+                        'html' => sprintf(
+                            '<span style="display: flex;"><span>%s</span><span class="label label-info" style="margin-left: auto;">%s</span></span>',
+                            __('Workflows'),
+                            __('beta')
+                        ),
                         'url' => $baseurl . '/workflows/triggers',
                         'requirement' => $isSiteAdmin
                     ),
