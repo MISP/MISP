@@ -38,13 +38,19 @@ $triggerModules = $modules['blocks_trigger'];
                     <li class="active">
                         <a href="#container-actions">
                             <i class="<?= $this->FontAwesome->getClass('play') ?>"></i>
-                            Actions
+                            <?= __('Actions') ?>
                         </a>
                     </li>
                     <li>
                         <a href="#container-logic">
                             <i class="<?= $this->FontAwesome->getClass('code-branch') ?>"></i>
-                            Logic
+                            <?= __('Logic') ?>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#container-parts">
+                            <i class="<?= $this->FontAwesome->getClass('shapes') ?>"></i>
+                            <?= __('Workflow Parts') ?>
                         </a>
                     </li>
                 </ul>
@@ -52,13 +58,15 @@ $triggerModules = $modules['blocks_trigger'];
                 <div class="tab-content">
                     <div class="tab-pane active" id="container-actions">
                         <div id="block-filter-group" class="btn-group" data-toggle="buttons-radio">
-                            <button type="button" class="btn btn-primary active" data-type="enabled" onclick="filterBlocks(this)">Enabled</button>
+                            <button type="button" class="btn btn-primary active" data-type="enabled" onclick="filterBlocks(this)"><?= __('Enabled') ?></button>
                             <button type="button" class="btn btn-primary" data-type="misp-module" onclick="filterBlocks(this)">
                                 misp-module
-                                <sup class="fab fa-python"></sup>
+                                <sup class="<?= $this->FontAwesome->getClass('python') ?>"></sup>
                             </button>
-                            <button type="button" class="btn btn-primary" data-type="is-blocking" onclick="filterBlocks(this)">blocking</button>
-                            <button type="button" class="btn btn-primary" data-type="all" onclick="filterBlocks(this)">All</button>
+                            <button type="button" class="btn btn-primary" data-type="is-blocking" onclick="filterBlocks(this)">
+                                <?= __('Blocking') ?>
+                            </button>
+                            <button type="button" class="btn btn-primary" data-type="all" onclick="filterBlocks(this)"><?= __('All') ?></button>
                         </div>
                         <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off">
                             <?php foreach ($modules['blocks_action'] as $block) : ?>
@@ -83,6 +91,18 @@ $triggerModules = $modules['blocks_trigger'];
                             <?php endforeach; ?>
                         </div>
                     </div>
+                    <div class="tab-pane" id="container-parts">
+                        <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off" style="width: 305px; margin: 0 0.5em;">
+                            <?php foreach ($workflowParts as $workflowPart) : ?>
+                                <option value="<?= h($workflowPart['WorkflowPart']['id']) ?>"><?= h($workflowPart['WorkflowPart']['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="block-container">
+                            <?php foreach ($workflowParts as $workflowPart) : ?>
+                                <?= $this->element('Workflows/sidebar-block-workflow-part', ['workflowPart' => $workflowPart['WorkflowPart']]) ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -102,14 +122,14 @@ $triggerModules = $modules['blocks_trigger'];
                         <li id="control-import-blocks" class="dropdown-submenu submenu-right">
                             <a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow parts') ?></a>
                             <ul class="dropdown-menu pull-right">
-                                <?php if (empty($workflowParts)): ?>
+                                <?php if (empty($workflowParts)) : ?>
                                     <li><a href="#"><?= _('No workflow parts saved') ?></a></li>
                                 <?php endif; ?>
                                 <?php foreach ($workflowParts as $workflowPart) : ?>
                                     <li><a href="#" title="<?= h($workflowPart['WorkflowPart']['description']) ?>" onclick="addWorkflowPart(<?= h($workflowPart['WorkflowPart']['id']) ?>)">
-                                        <?= h($workflowPart['WorkflowPart']['name']) ?>
-                                        <small class="text-muted">[<?= h(substr($workflowPart['WorkflowPart']['uuid'], 0, 4)) ?>...]</small>
-                                    </a></li>
+                                            <?= h($workflowPart['WorkflowPart']['name']) ?>
+                                            <small class="text-muted">[<?= h(substr($workflowPart['WorkflowPart']['uuid'], 0, 4)) ?>...]</small>
+                                        </a></li>
                                 <?php endforeach; ?>
                             </ul>
                         </li>
