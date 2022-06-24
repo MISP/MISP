@@ -7,7 +7,7 @@ echo $this->element('/genericElements/SideMenu/side_menu', [
 
 <div class="index">
     <div class="alert alert-danger">
-        <strong><?= __('Error while setting up Redis') ?></strong>
+        <strong><?= __('Could not access Workflow system') ?></strong>
         <p>
             <?=__('Some components are essential for the Workflow system to run.') ?>
         </p>

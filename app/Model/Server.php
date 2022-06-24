@@ -1276,6 +1276,20 @@ class Server extends AppModel
                     }
                 }
             }
+            if (Configure::read('Plugin.Workflow_enable')) {
+                $this->Workflow = ClassRegistry::init('Workflow');
+                $triggerModules = $this->Workflow->getModulesByType('trigger');
+                foreach ($triggerModules as $triggerModule) {
+                    $setting = [
+                        'level' => 1,
+                        'description' => __('Enable/disable the `%s` trigger', $triggerModule['id']),
+                        'value' => false,
+                        'test' => 'testBool',
+                        'type' => 'boolean'
+                    ];
+                    $serverSettings['Plugin']['Workflow_triggers_' . $triggerModule['id']] = $setting;
+                }
+            }
         }
         return $serverSettings;
     }
@@ -2104,7 +2118,7 @@ class Server extends AppModel
         // This is just hack to reset opcache, so for next request cache will be reloaded.
         $this->opcacheResetConfig();
 
-        if (strpos($settingName, 'Plugin.Enrichment') !== false || strpos($settingName, 'Plugin.Import') !== false || strpos($settingName, 'Plugin.Export') !== false || strpos($settingName, 'Plugin.Cortex') !== false || strpos($settingName, 'Plugin.Action') !== false) {
+        if (strpos($settingName, 'Plugin.Enrichment') !== false || strpos($settingName, 'Plugin.Import') !== false || strpos($settingName, 'Plugin.Export') !== false || strpos($settingName, 'Plugin.Cortex') !== false || strpos($settingName, 'Plugin.Action') !== false || strpos($settingName, 'Plugin.Workflow') !== false) {
             $serverSettings = $this->getCurrentServerSettings();
         } else {
             $serverSettings = $this->serverSettings;
@@ -7045,13 +7059,20 @@ class Server extends AppModel
                     'test' => 'testForPortNumber',
                     'type' => 'numeric'
                 ),
-                'WorkflowTriggers_publish' => array(
+                'Workflow_enable' => array(
                     'level' => 1,
-                    'description' => __('Enable/disable the `publish` trigger'),
+                    'description' => __('Enable/disable workflow feature'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
+                // 'Workflow_triggers_publish' => array(
+                //     'level' => 1,
+                //     'description' => __('Enable/disable the `publish` trigger'),
+                //     'value' => false,
+                //     'test' => 'testBool',
+                //     'type' => 'boolean'
+                // ),
                 'Cortex_services_url' => array(
                     'level' => 1,
                     'description' => __('The url used to access Cortex. By default, it is accessible at http://cortex-url'),

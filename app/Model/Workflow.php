@@ -137,7 +137,7 @@ class Workflow extends AppModel
 
     protected function checkTriggerEnabled($trigger_id)
     {
-        $settingName = sprintf('Plugin.WorkflowTriggers_%s', $trigger_id);
+        $settingName = sprintf('Plugin.Workflow_triggers_%s', $trigger_id);
         $module_disabled = empty(Configure::read($settingName));
         if ($module_disabled) {
             return false;
@@ -162,7 +162,7 @@ class Workflow extends AppModel
     public function toggleModule($module_id, $enable, $is_trigger=false): bool
     {
         if (!empty($is_trigger)) {
-            $settingName = sprintf('Plugin.WorkflowTriggers_%s', $module_id);
+            $settingName = sprintf('Plugin.Workflow_triggers_%s', $module_id);
             /** @var SystemSetting $systemSetting */
             $server = ClassRegistry::init('Server');
             return $server->serverSettingsSaveValue($settingName, !empty($enable), false);
@@ -603,7 +603,7 @@ class Workflow extends AppModel
     private function __mergeGlobalConfigIntoLoadedModules()
     {
         foreach ($this->loaded_modules['trigger'] as &$trigger) {
-            $module_disabled = empty(Configure::read(sprintf('Plugin.WorkflowTriggers_%s', $trigger['id'])));
+            $module_disabled = empty(Configure::read(sprintf('Plugin.Workflow_triggers_%s', $trigger['id'])));
             $trigger['html_template'] = !empty($trigger['html_template']) ? $trigger['html_template'] : 'trigger';
             $trigger['disabled'] = $module_disabled;
             $this->loaded_classes['trigger'][$trigger['id']]->disabled = $module_disabled;

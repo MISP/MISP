@@ -953,7 +953,8 @@ class ServersController extends AppController
             strpos($setting, 'Plugin.Import') !== false ||
             strpos($setting, 'Plugin.Export') !== false ||
             strpos($setting, 'Plugin.Cortex') !== false ||
-            strpos($setting, 'Plugin.Action') !== false
+            strpos($setting, 'Plugin.Action') !== false ||
+            strpos($setting, 'Plugin.Workflow') !== false
         ) {
             $settingObject = $this->Server->getCurrentServerSettings();
         } else {
