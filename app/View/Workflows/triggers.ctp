@@ -15,6 +15,13 @@
             'data_path' => 'description',
         ],
         [
+            'name' => __('Can Abort Operation'),
+            'sort' => 'canAbort',
+            'class' => 'short',
+            'data_path' => 'canAbort',
+            'element' => 'boolean',
+        ],
+        [
             'name' => __('Trigger Enabled'),
             'sort' => 'disabled',
             'class' => 'short',

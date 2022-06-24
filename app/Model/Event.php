@@ -4514,7 +4514,7 @@ class Event extends AppModel
         $success = $this->executeTrigger('publish', $fullEvent[0], $errors);
         if (empty($success)) {
             $errorMessage = implode(', ', $errors);
-            $this->loadLog()->createLogEntry('SYSTEM', 'warning', 'Event', $id, __('Publishing stopped by a blocking workflow.'), __('Returned message: %s', $errorMessage));
+            $this->loadLog()->createLogEntry('SYSTEM', 'publish', 'Event', $id, __('Publishing stopped by a blocking workflow.'), __('Returned message: %s', $errorMessage));
             return $errorMessage;
         }
         if ($jobId) {

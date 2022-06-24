@@ -165,3 +165,8 @@ class WorkflowBaseModule
         return $items;
     }
 }
+
+class WorkflowBaseTriggerModule extends WorkflowBaseModule
+{
+    public $canAbort = false;
+}

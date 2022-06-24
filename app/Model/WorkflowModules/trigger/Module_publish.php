@@ -1,14 +1,15 @@
 <?php
 include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
-class Module_publish extends WorkflowBaseModule
+class Module_publish extends WorkflowBaseTriggerModule
 {
     public $id = 'publish';
     public $name = 'Publish';
-    public $description = 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.';
+    public $description = 'This trigger is called just before a MISP event starts the publishing process';
     public $icon = 'upload';
     public $inputs = 0;
     public $outputs = 1;
+    public $canAbort = true;
 
     public function __construct()
     {

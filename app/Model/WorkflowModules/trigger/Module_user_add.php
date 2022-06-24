@@ -1,10 +1,10 @@
 <?php
 include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
-class Module_new_user extends WorkflowBaseModule
+class Module_user_add extends WorkflowBaseTriggerModule
 {
-    public $id = 'new-user';
-    public $name = 'New User';
+    public $id = 'user-add';
+    public $name = 'User Add';
     public $description = 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.';
     public $icon = 'user-plus';
     public $inputs = 0;
