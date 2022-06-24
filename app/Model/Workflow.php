@@ -137,11 +137,15 @@ class Workflow extends AppModel
 
     protected function checkTriggerEnabled($trigger_id)
     {
-        $filename = sprintf('Module_%s.php', preg_replace('/[^a-zA-Z0-9_]/', '_', Inflector::underscore($trigger_id)));
-        $module_config = $this->__getClassFromModuleFiles('trigger', [$filename])['classConfigs'];
         $settingName = sprintf('Plugin.WorkflowTriggers_%s', $trigger_id);
         $module_disabled = empty(Configure::read($settingName));
-        return empty($module_config['disabled']) && !$module_disabled;
+        if ($module_disabled) {
+            return false;
+        }
+
+        $filename = sprintf('Module_%s.php', preg_replace('/[^a-zA-Z0-9_]/', '_', Inflector::underscore($trigger_id)));
+        $module_config = $this->__getClassFromModuleFiles('trigger', [$filename])['classConfigs'];
+        return empty($module_config['disabled']);
     }
 
     protected function getEnabledModules(): array
@@ -321,7 +325,7 @@ class Workflow extends AppModel
     {
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $triggers = $this->workflowGraphTool->extractTriggersFromWorkflow($graphData, true);
-        return count($triggers) == 1;
+        return count($triggers) <= 1;
     }
 
     /**
@@ -362,7 +366,7 @@ class Workflow extends AppModel
         $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, Workflow::BLOCKING_PATH, $data, $blockingErrors, $walkResult);
         if (empty($blockingPathExecutionSuccess)) {
             $message = __('Error while executing blocking workflow. %s', PHP_EOL . implode(', ', $blockingErrors));
-            $this->Workflow->logExecutionError($workflow, $message);
+            $this->logExecutionError($workflow, $message);
         }
         return $blockingPathExecutionSuccess;
     }
@@ -426,6 +430,7 @@ class Workflow extends AppModel
         $preventExecutionForPaths = [];
         foreach ($graphWalker as $graphNode) {
             $node = $graphNode['node'];
+            $moduleClass = $this->getModuleClass($node);
             foreach ($preventExecutionForPaths as $path_to_block) {
                 if ($path_to_block == array_slice($graphNode['path_list'], 0, count($path_to_block))) {
                     $walkResult['blocked_paths'][] = $graphNode['path_list'];
@@ -448,7 +453,9 @@ class Workflow extends AppModel
                             implode(', ', $nodeError)
                         );
                     }
-                    return false; // Node stopped execution for blocking path
+                    if (!empty($moduleClass->is_blocking)) {
+                        return false; // Node stopped execution for blocking path
+                    }
                 }
                 if ($graphNode['path_type'] == Workflow::NON_BLOCKING_PATH) {
                     $preventExecutionForPaths[] = $graphNode['path_list']; // Paths down the chain for this path should not be executed
@@ -547,18 +554,6 @@ class Workflow extends AppModel
 
     private function __mergeGlobalConfigIntoLoadedModules()
     {
-        /* FIXME: Delete `disabled` entry. This is for testing while we wait for module settings */
-        // array_walk($this->loaded_modules['logic'], function (&$logic) {
-        //     $module_enabled = true;
-        //     $logic['disabled'] = !$module_enabled;
-        //     $this->loaded_classes['logic'][$logic['id']]->disabled = $module_enabled;
-        // });
-        // array_walk($this->loaded_modules['action'], function (&$action) {
-        //     $module_enabled = !in_array($action['id'], ['push-zmq', 'slack-message', 'mattermost-message', 'add-tag', 'writeactions', 'enrich-event', 'testaction', 'stop-execution', ]);
-        //     $action['disabled'] = $module_enabled;
-        //     $this->loaded_classes['action'][$action['id']]->disabled = $module_enabled;
-        // });
-        /* FIXME: end */
         foreach ($this->loaded_modules['trigger'] as &$trigger) {
             $module_disabled = empty(Configure::read(sprintf('Plugin.WorkflowTriggers_%s', $trigger['id'])));
             $trigger['html_template'] = !empty($trigger['html_template']) ? $trigger['html_template'] : 'trigger';
@@ -670,8 +665,8 @@ class Workflow extends AppModel
             $filepath = sprintf('%s%s/%s', Workflow::MODULE_ROOT_PATH, $type, $filename);
             $instancedClass = $this->__getClassFromModuleFile($filepath);
             if (is_string($instancedClass)) {
-                $message = sprintf(__('Error while trying to load module: %s'), $instancedClass);
-                $this->__logError($filename, $message);
+                $this->__logLoadingError($filename, $instancedClass);
+                continue;
             }
             if (!empty($classConfigs[$instancedClass->id])) {
                 throw new WorkflowDuplicatedModuleIDException(__('Module %s has already been defined', $instancedClass->id));
@@ -691,11 +686,11 @@ class Workflow extends AppModel
         $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
     }
 
-    private function __logError($id, $message)
+    private function __logLoadingError($filename, $error)
     {
         $this->Log = ClassRegistry::init('Log');
-        $this->Log->createLogEntry('SYSTEM', 'load_module', 'Workflow', $id, $message);
-        return false;
+        $message = __('Could not load module for file `%s`.', $filename);
+        $this->Log->createLogEntry('SYSTEM', 'load_module', 'Workflow', 0, $message, $error);
     }
 
     /**
@@ -710,20 +705,26 @@ class Workflow extends AppModel
         $className = explode('/', $filepath);
         $className = str_replace('.php', '', $className[count($className)-1]);
         try {
-            require_once($filepath);
+            if (!@include_once($filepath)) {
+                $message = __('Could not load module for path %s. File does not exists.', $filepath);
+                $this->log($message, LOG_ERR);
+                return $message;
+            }
             try {
                 $reflection = new \ReflectionClass($className);
             } catch (\ReflectionException $e) {
-                $this->logException(__('Could not load module for path %s', $filepath), $e);
-                return false;
+                $message = __('Could not load module for path %s. Could not instanciate class', $filepath);
+                $this->logException($message, $e);
+                return $message;
             }
             $mainClass = $reflection->newInstance();
             if ($mainClass->checkLoading() === 'The Factory Must Grow') {
                 return $mainClass;
             }
         } catch (Exception $e) {
-            $this->logException(__('Could not load module for path %s', $filepath), $e);
-            return false;
+            $message = __('Could not load module for path %s', $filepath);
+            $this->logException($message, $filepath, $e);
+            return $message;
         }
     }
 
@@ -791,7 +792,7 @@ class Workflow extends AppModel
     private function __incrementWorkflowExecutionCount(array $workflow): array
     {
         $workflow['Workflow']['counter'] = intval($workflow['Workflow']['counter']) + 1;
-        $this->Workflow->save($workflow, ['fieldList' => ['counter']]);
+        $this->save($workflow, ['fieldList' => ['counter']]);
         return $this->fetchWorkflow($workflow['Workflow']['id']);
     }
 

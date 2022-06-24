@@ -389,6 +389,7 @@ class LogsController extends AppController
                 'Galaxy',
                 'GalaxyCluster',
                 'GalaxyClusterRelation',
+                'Workflow',
             ];
             sort($models);
             $models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);

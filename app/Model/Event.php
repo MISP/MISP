@@ -4510,11 +4510,16 @@ class Event extends AppModel
             'eventid' => $id,
             'includeAttachments' => 1
         ]);
-        $errors = [];
-        $success = $this->executeTrigger('publish', $fullEvent[0], $errors);
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'Event',
+            'action' => 'publish',
+            'id' => $id,
+            'message' => __('Publishing stopped by a blocking workflow.'),
+        ];
+        $success = $this->executeTrigger('publish', $fullEvent[0], $workflowErrors, $logging);
         if (empty($success)) {
-            $errorMessage = implode(', ', $errors);
-            $this->loadLog()->createLogEntry('SYSTEM', 'publish', 'Event', $id, __('Publishing stopped by a blocking workflow.'), __('Returned message: %s', $errorMessage));
+            $errorMessage = implode(', ', $workflowErrors);
             return $errorMessage;
         }
         if ($jobId) {

@@ -12,7 +12,6 @@ class Module_stop_execution extends WorkflowBaseModule
     public $outputs = 1;
     public $params = [];
 
-
     public function __construct()
     {
         parent::__construct();

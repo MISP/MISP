@@ -114,7 +114,7 @@ class WorkflowsController extends AppController
             ]);
             if (empty($savedWorkflow)) {
                 return $this->__getFailResponseBasedOnContext(
-                    [__('Could not create workflow for trigger %s', $trigger_id), $this->validationErrors],
+                    [__('Could not create workflow for trigger %s', $trigger_id), $this->Workflow->validationErrors],
                     null,
                     'add',
                     $trigger_id,

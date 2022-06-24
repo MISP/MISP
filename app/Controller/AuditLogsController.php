@@ -52,6 +52,7 @@ class AuditLogsController extends AppController
         'GalaxyClusterRelation',
         'News',
         'Warninglist',
+        'Workflow',
     ];
 
     public $paginate = [

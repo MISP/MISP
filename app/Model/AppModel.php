@@ -3422,10 +3422,11 @@ class AppModel extends Model
      *
      * @param string $trigger_id
      * @param array $data Data to be passed to the workflow
-     * @param array $errors
+     * @param array $blockingErrors Errors will be appened if any
+     * @param array $logging If the execution failure should be logged
      * @return boolean If the execution for the blocking path was a success
      */
-    public function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[]): bool
+    public function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
     {
         if ($this->Workflow === null) {
             $this->Workflow = ClassRegistry::init('Workflow');
@@ -3434,7 +3435,12 @@ class AppModel extends Model
             $this->Workflow->checkTriggerEnabled($trigger_id) &&
             $this->Workflow->checkTriggerListenedTo($trigger_id)
         ) {
-           return $this->Workflow->executeWorkflowForTrigger($trigger_id, $data, $blockingErrors);
+           $success = $this->Workflow->executeWorkflowForTrigger($trigger_id, $data, $blockingErrors);
+           if (!empty($logging)) {
+                $errorMessage = implode(', ', $blockingErrors);
+                $this->loadLog()->createLogEntry('SYSTEM', $logging['action'], $logging['model'], $logging['id'], $logging['message'], __('Returned message: %s', $errorMessage));
+           }
+           return $success;
         }
         return true;
     }
