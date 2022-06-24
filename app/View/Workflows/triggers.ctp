@@ -20,6 +20,7 @@
             'class' => 'short',
             'data_path' => 'canAbort',
             'element' => 'boolean',
+            'colors' => true,
         ],
         [
             'name' => __('Trigger Enabled'),
@@ -27,7 +28,8 @@
             'class' => 'short',
             'data_path' => 'disabled',
             'element' => 'booleanOrNA',
-            'boolean_reverse' => true
+            'boolean_reverse' => true,
+            'colors' => true,
         ],
     ];
 
