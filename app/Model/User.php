@@ -269,13 +269,36 @@ class User extends AppModel
             $passwordHasher = new BlowfishConstantPasswordHasher();
             $this->data[$this->alias]['password'] = $passwordHasher->hash($this->data[$this->alias]['password']);
         }
-        return true;
+        $user = $this->data;
+        $action = empty($this->id) ? 'add' : 'edit';
+        $user_id = $action == 'add' ? 0 : $user['User']['id'];
+        $trigger_id = 'user-before-save';
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'User',
+            'action' => $action,
+            'id' => $user_id,
+            'message' => __('The workflow `%s` prevented the saving of user %s', $trigger_id, $user_id),
+        ];
+        $success = $this->executeTrigger($trigger_id, $user['User'], $workflowErrors, $logging);
+        return !empty($success);
     }
 
     public function afterSave($created, $options = array())
     {
         $pubToZmq = $this->pubToZmq('user');
         $kafkaTopic = $this->kafkaTopic('user');
+        $action = empty($created) ? 'edit' : 'add';
+        $user = $this->data;
+        $user_id = $action == 'add' ? 0 : $user['User']['id'];
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'User',
+            'action' => $action,
+            'id' => $user_id,
+            'message' => __('Error while executing workflow.'),
+        ];
+        $this->executeTrigger('user-after-save', $user['User'], $workflowErrors, $logging);
         if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->data)) {
                 $user = $this->data;
