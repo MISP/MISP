@@ -3435,7 +3435,7 @@ class AppModel extends Model
             $this->Workflow->checkTriggerEnabled($trigger_id) &&
             $this->Workflow->checkTriggerListenedTo($trigger_id)
         ) {
-           $success = $this->Workflow->executeWorkflowForTrigger($trigger_id, $data, $blockingErrors);
+           $success = $this->Workflow->executeWorkflowForTriggerRouter($trigger_id, $data, $blockingErrors, $logging);
            if (!empty($logging)) {
                 $errorMessage = implode(', ', $blockingErrors);
                 $this->loadLog()->createLogEntry('SYSTEM', $logging['action'], $logging['model'], $logging['id'], $logging['message'], __('Returned message: %s', $errorMessage));

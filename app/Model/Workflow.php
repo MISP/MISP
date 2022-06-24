@@ -333,6 +333,54 @@ class Workflow extends AppModel
      *
      * @param string $trigger_id
      * @param array $data
+     * @throws TriggerNotFoundException
+     */
+    public function executeWorkflowForTriggerRouter($trigger_id, array $data, array &$blockingErrors=[], array $logging=[]): bool
+    {
+        $this->loadAllWorkflowModules();
+
+        if (empty($this->loaded_modules['trigger'][$trigger_id])) {
+            throw new TriggerNotFoundException(__('Unknown trigger `%s`', $trigger_id));
+        }
+        $trigger = $this->loaded_modules['trigger'][$trigger_id];
+        if (!empty($trigger['disabled'])) {
+            return true;
+        }
+
+        if (empty($trigger['canAbort'])) {
+            $this->Job = ClassRegistry::init('Job');
+            $jobId = $this->Job->createJob(
+                'SYSTEM',
+                Job::WORKER_PRIO,
+                'executeWorkflowForTrigger',
+                sprintf('Workflow for trigger `%s`', $trigger_id),
+                __('Executing non-blocking workflow for trigger `%s`', $trigger_id)
+            );
+            $this->Job->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::PRIO_QUEUE,
+                BackgroundJobsTool::CMD_WORKFLOW,
+                [
+                    'executeWorkflowForTrigger',
+                    $trigger_id,
+                    JsonTool::encode($data),
+                    JsonTool::encode($logging),
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
+            return true;
+        } else {
+            $blockingPathExecutionSuccess = $this->executeWorkflowForTrigger($trigger_id, $data, $blockingErrors);
+            return $blockingPathExecutionSuccess;
+        }
+    }
+
+    /**
+     * executeWorkflowForTrigger
+     *
+     * @param string $trigger_id
+     * @param array $data
      * @param array $errors
      * @return boolean True if the execution for the blocking path was a success
      * @throws TriggerNotFoundException
@@ -348,7 +396,7 @@ class Workflow extends AppModel
         if (!empty($trigger['disabled'])) {
             return true;
         }
-        
+
         $workflow = $this->fetchWorkflowByTrigger($trigger_id, true);
         if (empty($workflow)) {
             throw new WorkflowNotFoundException(__('Could not get workflow for trigger `%s`', $trigger_id));

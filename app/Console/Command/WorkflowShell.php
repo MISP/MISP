@@ -8,6 +8,35 @@ class WorkflowShell extends AppShell {
     public $uses = ['Job', 'Workflow'];
     public $tasks = ['ConfigLoad'];
 
+    public function executeWorkflowForTrigger()
+    {
+        $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
+            die(__('Invalid number of arguments.'));
+        }
+
+        $trigger_id = $this->args[0];
+        $data = JsonTool::decode($this->args[1]);
+        $logging = JsonTool::decode($this->args[2]);
+        $jobId = $this->args[3];
+
+        $blockingErrors = [];
+        $executionSuccess = $this->Workflow->executeWorkflowForTrigger($trigger_id, $data, $blockingErrors);
+
+        $job = $this->Job->read(null, $jobId);
+        $job['Job']['progress'] = 100;
+        $job['Job']['status'] = Job::STATUS_COMPLETED;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        if ($executionSuccess) {
+            $job['Job']['message'] = __('Workflow for trigger `%s` completed execution', $trigger_id);
+        } else {
+            $errorMessage = implode(', ', $blockingErrors);
+            $message = __('Error while executing workflow for trigger `%s`: %s. %s%s', $trigger_id, $logging['message'], PHP_EOL . __('Returned message: %s', $errorMessage));
+            $job['Job']['message'] = $message;
+        }
+        $this->Job->save($job);
+    }
+
     public function walkGraph()
     {
         $this->ConfigLoad->execute();
