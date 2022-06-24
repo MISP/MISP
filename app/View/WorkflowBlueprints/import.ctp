@@ -6,8 +6,8 @@ echo $this->element('genericElements/Form/genericForm', [
     ],
     'data' => [
         'model' => 'Workflow',
-        'title' => __('Import Workflow'),
-        'description' => __('Paste a JSON of a Workflow part to import it or provide a JSON file below.'),
+        'title' => __('Import Workflow Blueprint'),
+        'description' => __('Paste a JSON of a Workflow blueprint to import it or provide a JSON file below.'),
         'fields' => [
             [
                 'field' => 'json',
@@ -15,7 +15,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'class' => 'input span6',
                 'div' => 'input clear',
                 'label' => __('JSON'),
-                'placeholder' => __('Workflow Part JSON'),
+                'placeholder' => __('Workflow Blueprint JSON'),
                 'rows' => 18
             ],
             [
@@ -31,5 +31,5 @@ echo $this->element('genericElements/Form/genericForm', [
 ]);
 
 if (!$ajax) {
-    echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'workflowParts', 'menuItem' => 'import']);
+    echo $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'workflowBlueprints', 'menuItem' => 'import']);
 }

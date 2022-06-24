@@ -16,7 +16,7 @@ class Module_webhook extends WorkflowBaseModule
     public $params = [];
 
     private $timeout = false;
-    private $WorkflowPart;
+    private $Event;
 
     public function __construct()
     {
@@ -81,9 +81,9 @@ class Module_webhook extends WorkflowBaseModule
 
     private function doRequest($url, $contentType, array $data)
     {
-        $this->WorkflowPart = ClassRegistry::init('Event'); // We just need a small model to use AppModel functions
-        $version = implode('.', $this->WorkflowPart->checkMISPVersion());
-        $commit = $this->WorkflowPart->checkMIPSCommit();
+        $this->Event = ClassRegistry::init('Event'); // We just need a model to use AppModel functions
+        $version = implode('.', $this->Event->checkMISPVersion());
+        $commit = $this->Event->checkMIPSCommit();
 
         $request = [
             'header' => [

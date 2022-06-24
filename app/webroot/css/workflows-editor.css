@@ -137,7 +137,7 @@
     cursor: pointer;
 }
 
-.sidebar-workflow-parts {
+.sidebar-workflow-blueprints {
     display: flex;
     position: relative;
     width: 300px;
@@ -150,17 +150,18 @@
     box-shadow: 0px 3px 6px 2px #33333333;
 }
 
-.sidebar-workflow-parts:hover {
+.sidebar-workflow-blueprints:hover {
     box-shadow: 0px 3px 6px 2px #33333355;
     cursor: pointer;
 }
 
-.sidebar-workflow-parts .name {
+.sidebar-workflow-blueprints .name {
     font-size: large
 }
 
-.sidebar-workflow-parts .timestamp {
-    font-size: 80%
+.sidebar-workflow-blueprints .timestamp {
+    margin-left: 2px;
+    font-size: 80%;
 }
 
 .sidebar-workflow-block.disabled {

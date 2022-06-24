@@ -1704,7 +1704,7 @@ class AppModel extends Model
                       INDEX `user_id` (`user_id`),
                       INDEX `org_id` (`org_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflow_parts` (
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflow_blueprints` (
                       `id` int(11) NOT NULL AUTO_INCREMENT,
                       `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
                       `name` varchar(191) NOT NULL,

@@ -48,9 +48,9 @@ $triggerModules = $modules['blocks_trigger'];
                         </a>
                     </li>
                     <li>
-                        <a href="#container-parts">
+                        <a href="#container-blueprints">
                             <i class="<?= $this->FontAwesome->getClass('shapes') ?>"></i>
-                            <?= __('Workflow Parts') ?>
+                            <?= __('Blueprints') ?>
                         </a>
                     </li>
                 </ul>
@@ -91,15 +91,15 @@ $triggerModules = $modules['blocks_trigger'];
                             <?php endforeach; ?>
                         </div>
                     </div>
-                    <div class="tab-pane" id="container-parts">
+                    <div class="tab-pane" id="container-blueprints">
                         <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off" style="width: 305px; margin: 0 0.5em;">
-                            <?php foreach ($workflowParts as $workflowPart) : ?>
-                                <option value="<?= h($workflowPart['WorkflowPart']['id']) ?>"><?= h($workflowPart['WorkflowPart']['name']) ?></option>
+                            <?php foreach ($workflowBlueprints as $workflowBlueprint) : ?>
+                                <option value="<?= h($workflowBlueprint['WorkflowBlueprint']['id']) ?>"><?= h($workflowBlueprint['WorkflowBlueprint']['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                         <div class="block-container">
-                            <?php foreach ($workflowParts as $workflowPart) : ?>
-                                <?= $this->element('Workflows/sidebar-block-workflow-part', ['workflowPart' => $workflowPart['WorkflowPart']]) ?>
+                            <?php foreach ($workflowBlueprints as $workflowBlueprint) : ?>
+                                <?= $this->element('Workflows/sidebar-block-workflow-blueprint', ['workflowBlueprint' => $workflowBlueprint['WorkflowBlueprint']]) ?>
                             <?php endforeach; ?>
                         </div>
                     </div>
@@ -116,24 +116,24 @@ $triggerModules = $modules['blocks_trigger'];
                         <i class="fa-fw <?= $this->FontAwesome->getClass('trash') ?>"></i> <?= __('Delete') ?>
                     </button>
                     <a class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown" href="#">
-                        <i class="fa-fw <?= $this->FontAwesome->getClass('shapes') ?>"></i> <?= __('Workflow parts') ?> <span class="caret"></span>
+                        <i class="fa-fw <?= $this->FontAwesome->getClass('shapes') ?>"></i> <?= __('Blueprints') ?> <span class="caret"></span>
                     </a>
                     <ul class="dropdown-menu pull-right">
                         <li id="control-import-blocks" class="dropdown-submenu submenu-right">
-                            <a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow parts') ?></a>
+                            <a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow blueprints') ?></a>
                             <ul class="dropdown-menu pull-right">
-                                <?php if (empty($workflowParts)) : ?>
-                                    <li><a href="#"><?= _('No workflow parts saved') ?></a></li>
+                                <?php if (empty($workflowBlueprints)) : ?>
+                                    <li><a href="#"><?= _('No workflow blueprints saved') ?></a></li>
                                 <?php endif; ?>
-                                <?php foreach ($workflowParts as $workflowPart) : ?>
-                                    <li><a href="#" title="<?= h($workflowPart['WorkflowPart']['description']) ?>" onclick="addWorkflowPart(<?= h($workflowPart['WorkflowPart']['id']) ?>)">
-                                            <?= h($workflowPart['WorkflowPart']['name']) ?>
-                                            <small class="text-muted">[<?= h(substr($workflowPart['WorkflowPart']['uuid'], 0, 4)) ?>...]</small>
+                                <?php foreach ($workflowBlueprints as $workflowBlueprint) : ?>
+                                    <li><a href="#" title="<?= h($workflowBlueprint['WorkflowBlueprint']['description']) ?>" onclick="addWorkflowBlueprint(<?= h($workflowBlueprint['WorkflowBlueprint']['id']) ?>)">
+                                            <?= h($workflowBlueprint['WorkflowBlueprint']['name']) ?>
+                                            <small class="text-muted">[<?= h(substr($workflowBlueprint['WorkflowBlueprint']['uuid'], 0, 4)) ?>...]</small>
                                         </a></li>
                                 <?php endforeach; ?>
                             </ul>
+                        <li id="control-save-blocks" class="disabled"><a href="<?= $baseurl . '/workflowBlueprints/add/1' ?>"><i class=" fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save workflow blueprints') ?></a></li>
                         </li>
-                        <li id="control-save-blocks" class="disabled"><a href="<?= $baseurl . '/workflowParts/add/1' ?>"><i class=" fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save workflow parts') ?></a></li>
                     </ul>
                 </div>
             </div>
@@ -227,7 +227,7 @@ echo $this->element('genericElements/assetLoader', [
     var all_blocks = <?= json_encode($allModules) ?>;
     var all_blocks_by_id = <?= json_encode(Hash::combine($allModules, '{n}.id', '{n}')) ?>;
     var all_triggers_by_id = <?= json_encode(Hash::combine($triggerModules, '{n}.id', '{n}')) ?>;
-    var all_workflow_parts_by_id = <?= json_encode(Hash::combine($workflowParts, '{n}.WorkflowPart.id', '{n}')) ?>;
+    var all_workflow_blueprints_by_id = <?= json_encode(Hash::combine($workflowBlueprints, '{n}.WorkflowBlueprint.id', '{n}')) ?>;
     var workflow = false
     <?php if (!empty($selectedWorkflow)) : ?>
         var workflow = <?= json_encode($selectedWorkflow) ?>;

@@ -400,13 +400,13 @@ function initDrawflow() {
         openGenericModal($link.attr('href'), undefined, function() {
             var nodes = selectedNodes.map(function (nodeHtml) { return editorData[nodeHtml.id.slice(5)] })
             var $modal = $('#genericModal')
-            var $graphData = $modal.find('form #WorkflowPartData')
+            var $graphData = $modal.find('form #WorkflowBlueprintData')
             $graphData.val(JSON.stringify(nodes))
             $modal.find('.modal-body').append(
                 $('<h3></h3>').append(
-                    $('<span></span').text('Workflow Part Content '),
+                    $('<span></span').text('Workflow Blueprint Content '),
                     $('<a class="fas fa-copy" href="#"></a>')
-                        .attr('title', 'Copy Workflow Part to clipboard')
+                        .attr('title', 'Copy Workflow Blueprint to clipboard')
                         .click(function() {
                             var $clicked = $(this)
                             navigator.clipboard.writeText(JSON.stringify(nodes)).then(function () {
@@ -716,22 +716,22 @@ function duplicateNodesFromHtml(currentSelection) {
     return newNodes
 }
 
-function addNodesFromWorkflowPart(workflowPart) {
+function addNodesFromWorkflowBlueprint(workflowBlueprint) {
     var newNodes = []
-    if (workflowPart.data.length == 0) {
+    if (workflowBlueprint.data.length == 0) {
         return counterNodeAdded
     }
     var oldNewIDMapping = {}
     // We need min position to position nodes relatively
-    var minX = workflowPart.data[0].pos_x
-    var minY = workflowPart.data[0].pos_y
-    workflowPart.data.forEach(function(node) {
+    var minX = workflowBlueprint.data[0].pos_x
+    var minY = workflowBlueprint.data[0].pos_y
+    workflowBlueprint.data.forEach(function(node) {
         minX = node.pos_x < minX ? node.pos_x : minX
         minY = node.pos_y < minY ? node.pos_y : minY
     })
 
     var canvasCentroid = getCanvasCentroid()
-    workflowPart.data.forEach(function(node) {
+    workflowBlueprint.data.forEach(function(node) {
         if (node.data.module_type == 'trigger') {
             return
         }
@@ -746,7 +746,7 @@ function addNodesFromWorkflowPart(workflowPart) {
         oldNewIDMapping[node.id] = editor.nodeId - 1
         newNodes.push(getNodeHtmlByID(editor.nodeId - 1)) // nodeId is incremented as soon as a new node is created
     })
-    workflowPart.data.forEach(function (node) {
+    workflowBlueprint.data.forEach(function (node) {
         Object.keys(node.outputs).forEach(function (outputName) {
             node.outputs[outputName].connections.forEach(function (connection) {
                 if (oldNewIDMapping[connection.node] !== undefined) {
@@ -915,13 +915,13 @@ function deleteSelectedNode() {
     editor.removeNodeId(getSelectedNodeID())
 }
 
-function addWorkflowPart(partId) {
-    var workflowPart = all_workflow_parts_by_id[partId]
-    if (!workflowPart) {
-        console.error('Tried to get workflow part ' + partId)
+function addWorkflowBlueprint(blueprintId) {
+    var workflowBlueprint = all_workflow_blueprints_by_id[blueprintId]
+    if (!workflowBlueprint) {
+        console.error('Tried to get workflow blueprint ' + blueprintId)
         return '';
     }
-    var newNodes = addNodesFromWorkflowPart(workflowPart.WorkflowPart);
+    var newNodes = addNodesFromWorkflowBlueprint(workflowBlueprint.WorkflowBlueprint);
     if (newNodes.length > 0) {
         selection.clearSelection()
         selection.select(newNodes)

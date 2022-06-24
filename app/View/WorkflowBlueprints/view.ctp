@@ -7,28 +7,28 @@ echo $this->element(
         'fields' => [
             [
                 'key' => __('Name'),
-                'path' => 'WorkflowPart.name'
+                'path' => 'WorkflowBlueprint.name'
             ],
             [
                 'key' => __('ID'),
-                'path' => 'WorkflowPart.id'
+                'path' => 'WorkflowBlueprint.id'
             ],
             [
                 'key' => __('UUID'),
-                'path' => 'WorkflowPart.uuid'
+                'path' => 'WorkflowBlueprint.uuid'
             ],
             [
                 'key' => __('Timestamp'),
-                'path' => 'WorkflowPart.timestamp',
+                'path' => 'WorkflowBlueprint.timestamp',
             ],
             [
                 'key' => __('Description'),
-                'path' => 'WorkflowPart.description'
+                'path' => 'WorkflowBlueprint.description'
             ],
             [
                 'key' => __('Data'),
                 'class' => 'restrict-height',
-                'path' => 'WorkflowPart.data',
+                'path' => 'WorkflowBlueprint.data',
                 'type' => 'json',
             ],
         ],

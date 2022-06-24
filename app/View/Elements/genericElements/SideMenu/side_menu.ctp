@@ -1612,15 +1612,15 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         }
                     break;
 
-            case 'workflowParts':
+            case 'workflowBlueprints':
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index',
-                    'url' => '/workflowParts/index',
-                    'text' => __('List Workflow Parts')
+                    'url' => '/workflowBlueprints/index',
+                    'text' => __('List Workflow Blueprints')
                 ));
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                    'url' => $baseurl . '/workflowParts/import',
-                    'text' => __('Import Workflow Parts')
+                    'url' => $baseurl . '/workflowBlueprints/import',
+                    'text' => __('Import Workflow Blueprints')
                 ));
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index_trigger',
@@ -1635,19 +1635,19 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 if ($menuItem === 'view' || $menuItem === 'edit') {
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'view',
-                        'url' => '/workflowParts/view/' . h($id),
-                        'text' => __('View Workflow Part')
+                        'url' => '/workflowBlueprints/view/' . h($id),
+                        'text' => __('View Workflow Blueprint')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'edit',
                             'url' => '/workflows/edit/' . h($id),
-                            'text' => __('Edit Workflow Part')
+                            'text' => __('Edit Workflow Blueprint')
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/admin/audit_logs/index/model:WorkflowParts/model_id:' .  h($id),
-                        'text' => __('View worflow part history'),
+                        'url' => '/admin/audit_logs/index/model:WorkflowBlueprints/model_id:' .  h($id),
+                        'text' => __('View worflow blueprint history'),
                         'requirement' => Configure::read('MISP.log_new_audit') && $canAccess('auditLogs', 'admin_index'),
                     ));
                 }
@@ -1666,8 +1666,8 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 ));
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index',
-                    'url' => '/workflowParts/index',
-                    'text' => __('List Workflow Parts')
+                    'url' => '/workflowBlueprints/index',
+                    'text' => __('List Workflow Blueprints')
                 ));
                 if ($menuItem === 'view' || $menuItem === 'edit') {
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(

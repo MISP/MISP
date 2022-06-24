@@ -1,7 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 
-class WorkflowPart extends AppModel
+class WorkflowBlueprint extends AppModel
 {
     public $recursive = -1;
 
@@ -37,16 +37,16 @@ class WorkflowPart extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
-        if (empty($this->data['WorkflowPart']['uuid'])) {
-            $this->data['WorkflowPart']['uuid'] = CakeText::uuid();
+        if (empty($this->data['WorkflowBlueprint']['uuid'])) {
+            $this->data['WorkflowBlueprint']['uuid'] = CakeText::uuid();
         } else {
-            $this->data['WorkflowPart']['uuid'] = strtolower($this->data['WorkflowPart']['uuid']);
+            $this->data['WorkflowBlueprint']['uuid'] = strtolower($this->data['WorkflowBlueprint']['uuid']);
         }
-        if (empty($this->data['WorkflowPart']['data'])) {
-            $this->data['WorkflowPart']['data'] = [];
+        if (empty($this->data['WorkflowBlueprint']['data'])) {
+            $this->data['WorkflowBlueprint']['data'] = [];
         }
-        if (empty($this->data['WorkflowPart']['timestamp'])) {
-            $this->data['WorkflowPart']['timestamp'] = time();
+        if (empty($this->data['WorkflowBlueprint']['timestamp'])) {
+            $this->data['WorkflowBlueprint']['timestamp'] = time();
         }
         return true;
     }
@@ -54,18 +54,18 @@ class WorkflowPart extends AppModel
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $result) {
-            if (empty($result['WorkflowPart']['data'])) {
-                $result['WorkflowPart']['data'] = '{}';
+            if (empty($result['WorkflowBlueprint']['data'])) {
+                $result['WorkflowBlueprint']['data'] = '{}';
             }
-            $results[$k]['WorkflowPart']['data'] = JsonTool::decode($result['WorkflowPart']['data']);
+            $results[$k]['WorkflowBlueprint']['data'] = JsonTool::decode($result['WorkflowBlueprint']['data']);
         }
         return $results;
     }
 
     public function beforeSave($options = [])
     {
-        if (is_array($this->data['WorkflowPart']['data'])) {
-            $this->data['WorkflowPart']['data'] = JsonTool::encode($this->data['WorkflowPart']['data']);
+        if (is_array($this->data['WorkflowBlueprint']['data'])) {
+            $this->data['WorkflowBlueprint']['data'] = JsonTool::encode($this->data['WorkflowBlueprint']['data']);
         }
         return true;
     }

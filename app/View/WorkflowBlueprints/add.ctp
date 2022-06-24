@@ -4,13 +4,13 @@ $fields = [
     [
         'field' => 'name',
         'class' => 'span6',
-        'placeholder' => 'Name of the workflow part',
+        'placeholder' => 'Name of the workflow blueprint',
     ],
     [
         'field' => 'description',
         'type' => 'textarea',
         'class' => 'input span6',
-        'placeholder' => 'Concise description of the workflow part',
+        'placeholder' => 'Concise description of the workflow blueprint',
     ],
     [
         'field' => 'data',
@@ -22,8 +22,8 @@ $fields = [
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
         'description' => false,
-        'model' => 'WorkflowPart',
-        'title' => $edit ? __('Edit Workflow Part') : __('Add Workflow Part'),
+        'model' => 'WorkflowBlueprint',
+        'title' => $edit ? __('Edit Workflow Blueprint') : __('Add Workflow Blueprint'),
         'fields' => $fields,
         'submit' => [
             'action' => $this->request->params['action'],
