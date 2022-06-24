@@ -3,6 +3,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
 class Module_misp_module extends WorkflowBaseModule
 {
+    public $is_blocking = false;
     public $is_misp_module = true;
     public $id = 'misp-module';
     public $name = 'misp-module';
@@ -34,6 +35,9 @@ class Module_misp_module extends WorkflowBaseModule
         }
         if (!empty($misp_module_config['meta']['outputs'])) {
             $this->inputs = (int)$misp_module_config['meta']['outputs'];
+        }
+        if (!empty($misp_module_config['mispattributes']['blocking'])) {
+            $this->is_blocking = !empty($misp_module_config['mispattributes']['blocking']);
         }
         if (!empty($misp_module_config['meta']['config'])) {
             foreach ($misp_module_config['meta']['config'] as $paramName => $moduleParam) {
