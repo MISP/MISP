@@ -162,6 +162,7 @@
 .sidebar-workflow-blueprints .timestamp {
     margin-left: 2px;
     font-size: 80%;
+    margin-left: auto;
 }
 
 .sidebar-workflow-block.disabled {

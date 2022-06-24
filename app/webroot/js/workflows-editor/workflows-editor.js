@@ -224,16 +224,11 @@ function initDrawflow() {
             addNode(selected_module, position)
         });
 
-    $('.sidebar-workflow-block').each(function () {
-        var $block = $(this)
-        all_blocks.forEach(function (block) {
-            if ($block[0].id == block['id']) {
-                $block.data('block', block)
-            }
-        });
-    })
 
     $('.sidebar-workflow-block').each(function() {
+        var $block = $(this)
+        $block.data('block', all_blocks_by_id[$block[0].id])
+
         if ($(this).data('block').disabled) {
             $(this).addClass('disabled')
         }
@@ -248,11 +243,28 @@ function initDrawflow() {
         });
     })
 
+    $('.sidebar-workflow-blueprints').each(function () {
+        var $block = $(this)
+        $block.data('blueprint', all_workflow_blueprints_by_id[$block[0].id])
+
+        $(this).draggable({
+            helper: "clone",
+            scroll: false,
+            start: function (event, ui) {
+            },
+            stop: function (event, ui) {
+            }
+        });
+    })
+
     $canvas.droppable({
         drop: function (event, ui) {
             ui.position.top += 96 // take padding/marging/position into account
-            console.log(ui.draggable.data('block'));
-            addNode(ui.draggable.data('block'), ui.position)
+            if (ui.draggable.data('blueprint')) {
+                addWorkflowBlueprint(ui.draggable.data('blueprint').WorkflowBlueprint.id)
+            } else {
+                addNode(ui.draggable.data('block'), ui.position)
+            }
         },
     });
 
@@ -665,11 +677,11 @@ function filterBlocks(clicked) {
         }).hide()
     } else if (selectedFilter == 'misp-module') {
         $blocksToShow.filter(function () {
-            return !$(this).data('block')['is_misp_module']
+            return !$(this).data('block')['is_misp_module'] || $(this).data('block')['disabled']
         }).hide()
     } else if (selectedFilter == 'is-blocking') {
         $blocksToShow.filter(function () {
-            return !$(this).data('block')['is_blocking']
+            return !$(this).data('block')['is_blocking'] || $(this).data('block')['disabled']
         }).hide()
     }
 }

@@ -18,7 +18,7 @@ foreach ($workflowBlueprint['data'] as $node) {
 }
 ?>
 <div id="<?= h($workflowBlueprint['id']) ?>" class="sidebar-workflow-blueprints" style="user-select: none;" data-blueprintid="<?= h($workflowBlueprint['id']) ?>" title="<?= h($workflowBlueprint['description']) ?>">
-    <div>
+    <div style="width: 100%;">
         <div style="display: flex;">
             <strong class="name">
                 <?= h($workflowBlueprint['name']) ?>
@@ -26,8 +26,7 @@ foreach ($workflowBlueprint['data'] as $node) {
             <span class="timestamp">v<?= h($workflowBlueprint['timestamp']) ?></span>
         </div>
         <div><small class="muted"><?= h($workflowBlueprint['uuid']) ?></small></div>
-        <div><?= __n('%s node', '%s nodes', count($workflowBlueprint['data']), count($workflowBlueprint['data'])) ?></div>
-        <div><?= __('Blueprint Content:') ?></div>
+        <div><?= __('Blueprint Content: %s', __n('%s node', '%s nodes', count($workflowBlueprint['data']), count($workflowBlueprint['data']))) ?></div>
         <div>
             <?php foreach ($iconCount['icon'] as $icon => $data) : ?>
                 <span class="input-prepend input-append" title="<?= h($data['id']) ?>" style="margin-left: 3px; margin-bottom: 6px; ">
