@@ -300,6 +300,17 @@ class MispObject extends AppModel
 
     public function afterSave($created, $options = array())
     {
+        $action = $created ? 'add' : 'edit';
+        $object = $this->data;
+        $id = $action == 'add' ? 0 : $object['Object']['id'];
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'Object',
+            'action' => $action,
+            'id' => $id,
+            'message' => __('Error while executing workflow.'),
+        ];
+        $this->executeTrigger('object-after-save', $object, $workflowErrors, $logging);
         $pubToZmq = $this->pubToZmq('object') && empty($this->data['Object']['skip_zmq']);
         $kafkaTopic = $this->kafkaTopic('object');
         $pubToKafka = $kafkaTopic && empty($this->data['Object']['skip_kafka']);

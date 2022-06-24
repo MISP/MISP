@@ -486,6 +486,15 @@ class Attribute extends AppModel
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $attributeForPublish, $action);
                 }
+                $id = $action == 'add' ? 0 : $attributeForPublish['Attribute']['id'];
+                $workflowErrors = [];
+                $logging = [
+                        'model' => 'Attribute',
+                        'action' => $action,
+                        'id' => $id,
+                        'message' => __('Error while executing workflow.'),
+                    ];
+                $this->executeTrigger('attribute-after-save', $attributeForPublish, $workflowErrors, $logging);
             }
         }
         if (Configure::read('MISP.enable_advanced_correlations') && in_array($attribute['type'], ['ip-src', 'ip-dst'], true) && strpos($attribute['value'], '/')) {
