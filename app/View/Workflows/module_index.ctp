@@ -20,33 +20,35 @@
             'data_path' => 'description',
         ],
         [
-            'name' => __('Module Type'),
+            'name' => __('Type'),
             'sort' => 'module_type',
             'class' => 'short',
             'data_path' => 'module_type',
         ],
         [
-            'name' => __('Is blocking'),
+            'name' => __('Blocking'),
             'sort' => 'is_blocking',
             'class' => 'short',
             'data_path' => 'is_blocking',
             'element' => 'boolean',
+            'colors' => true,
         ],
         [
-            'name' => __('Is misp-module'),
+            'name' => __('misp-module'),
             'sort' => 'is_misp_module',
-            'class' => 'short',
             'data_path' => 'is_misp_module',
             'element' => 'boolean',
             'requirement' => $indexType == 'action',
+            'colors' => true,
         ],
         [
-            'name' => __('Module Enabled'),
+            'name' => __('Enabled'),
             'sort' => 'disabled',
             'class' => 'short',
             'data_path' => 'disabled',
             'element' => 'booleanOrNA',
-            'boolean_reverse' => true
+            'boolean_reverse' => true,
+            'colors' => true,
         ],
     ];
 

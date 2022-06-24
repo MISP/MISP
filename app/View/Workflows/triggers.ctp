@@ -17,13 +17,12 @@
         [
             'name' => __('Can Abort Operation'),
             'sort' => 'canAbort',
-            'class' => 'short',
             'data_path' => 'canAbort',
             'element' => 'boolean',
             'colors' => true,
         ],
         [
-            'name' => __('Trigger Enabled'),
+            'name' => __('Enabled'),
             'sort' => 'disabled',
             'class' => 'short',
             'data_path' => 'disabled',
