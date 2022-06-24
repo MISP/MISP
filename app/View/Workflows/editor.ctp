@@ -92,7 +92,7 @@ $triggerModules = $modules['blocks_trigger'];
                         </div>
                     </div>
                     <div class="tab-pane" id="container-blueprints">
-                        <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off" style="width: 305px; margin: 0 0.5em;">
+                        <select type="text" placeholder="Search for a block" class="chosen-container blocks blueprint-select" autocomplete="off" style="width: 305px; margin: 0 0.5em;">
                             <?php foreach ($workflowBlueprints as $workflowBlueprint) : ?>
                                 <option value="<?= h($workflowBlueprint['WorkflowBlueprint']['id']) ?>"><?= h($workflowBlueprint['WorkflowBlueprint']['name']) ?></option>
                             <?php endforeach; ?>

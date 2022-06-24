@@ -221,7 +221,12 @@ function initDrawflow() {
                 top: canvasBR.height / 2 - canvasBR.top,
                 left: canvasBR.left + canvasBR.width / 2
             }
-            addNode(selected_module, position)
+            
+            if ($(this).hasClass('blueprint-select')) {
+                addWorkflowBlueprint(selection)
+            } else {
+                addNode(selected_module, position)
+            }
         });
 
 
