@@ -22,7 +22,6 @@
         }
         $js = [
             ['jquery', ['preload' => true]],
-            'misp-touch',
             'chosen.jquery.min',
         ];
         if (!empty($additionalCss)) {
@@ -67,8 +66,9 @@
         ?>
     </div>
     <?php
-    echo $this->element('genericElements/assetLoader', array(
-        'js' => array(
+    echo $this->element('genericElements/assetLoader', [
+        'js' => [
+            'misp-touch',
             'bootstrap',
             'bootstrap-timepicker',
             'bootstrap-datepicker',
@@ -76,8 +76,8 @@
             'misp',
             'keyboard-shortcuts-definition',
             'keyboard-shortcuts',
-        )
-    ));
+        ],
+    ]);
     echo $this->element('footer');
     echo $this->element('sql_dump');
     ?>
