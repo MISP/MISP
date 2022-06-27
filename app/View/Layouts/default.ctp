@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>">
+<html lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -8,7 +8,7 @@
     <title><?= $title_for_layout, ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php
         $css = [
-            'bootstrap',
+            ['bootstrap', ['preload' => true]],
             //'bootstrap4',
             'bootstrap-datepicker',
             'bootstrap-colorpicker',
@@ -21,7 +21,7 @@
             $css[] = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
         }
         $js = [
-            'jquery',
+            ['jquery', ['preload' => true]],
             'misp-touch',
             'chosen.jquery.min',
         ];
