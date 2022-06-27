@@ -9,12 +9,11 @@
     <?php
         $css = [
             ['bootstrap', ['preload' => true]],
-            //'bootstrap4',
-            'bootstrap-datepicker',
-            'bootstrap-colorpicker',
-            'font-awesome',
-            'chosen.min',
-            'main',
+            ['bootstrap-datepicker', ['preload' => true]],
+            ['bootstrap-colorpicker', ['preload' => true]],
+            ['font-awesome', ['preload' => true]],
+            ['chosen.min', ['preload' => true]],
+            ['main', ['preload' => true]],
             ['print', ['media' => 'print']],
         ];
         if (Configure::read('MISP.custom_css')) {
@@ -22,7 +21,7 @@
         }
         $js = [
             ['jquery', ['preload' => true]],
-            'chosen.jquery.min',
+            ['chosen.jquery.min', ['preload' => true]],
         ];
         if (!empty($additionalCss)) {
             $css = array_merge($css, $additionalCss);
