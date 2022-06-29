@@ -5,6 +5,7 @@
      *  Valid parameters:
      *  - data: data-* fields
      *  - searchKey: data-search-key, specifying the key to be used (defaults to searchall)
+     *  - searchScopes: allow to search with different searchKey. Accept an array (searchKey => textKey)
      *  - fa-icon: an icon to use for the lookup $button
      *  - buttong: Text to use for the lookup button
      *  - cancel: Button for quickly removing the filters
@@ -34,9 +35,23 @@
             h($searchKey),
             empty($data['value']) ? '' : h($data['value'])
         );
+        $select = '';
+        if (!empty($data['searchScopes'])) {
+            $items = '';
+            foreach ($data['searchScopes'] as $key => $value) {
+                $selected = $searchKey === $key ? ' selected' : '';
+                $items .= sprintf('<option value="%s"%s>%s</option>', h($key), $selected, h($value));
+            }
+            $select = sprintf(
+                '<select id="quickFilterScopeSelector" style="%s">%s</select>',
+                'max-width:100px; height: 26px; border-radius: 0px;',
+                $items
+            );
+        }
         echo sprintf(
-            '<div class="btn-group pull-right"><div class="input-append" style="margin-bottom:0">%s%s</div></div>',
+            '<div class="btn-group pull-right"><div class="input-append" style="margin-bottom:0">%s%s%s</div></div>',
             $input,
+            $select,
             $button
         );
     }

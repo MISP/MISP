@@ -49,14 +49,15 @@ class Taxonomy extends AppModel
                 continue;
             }
 
-            $file = new File(APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json');
-            if (!$file->exists()) {
+            $machineTagPath = APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json';
+            if (!file_exists($machineTagPath)) {
                 continue;
             }
+
             try {
-                $vocab = $this->jsonDecode($file->read());
+                $vocab = FileAccessTool::readJsonFromFile($machineTagPath);
             } catch (Exception $e) {
-                $updated['fails'][] = array('namespace' => $dir, 'fail' => "File machinetag.json is not valid JSON.");
+                $updated['fails'][] = ['namespace' => $dir, 'fail' => $e->getMessage()];
                 continue;
             }
 
@@ -166,16 +167,26 @@ class Taxonomy extends AppModel
 
     /**
      * @param int|string $id Taxonomy ID or namespace
-     * @param string|null $filter
+     * @param string|null $options
      * @return array|false
      */
-    private function __getTaxonomy($id, $filter = null)
+    private function __getTaxonomy($id, $options = array('full' => false, 'filter' => false))
     {
-        $taxonomy = $this->find('first', [
+        $filter = false;
+        if (isset($options['filter'])) {
+            $filter = $options['filter'];
+        }
+        if (!is_numeric($id)) {
+            $conditions = ['Taxonomy.namespace' => trim(mb_strtolower($id))];
+        } else {
+            $conditions = ['Taxonomy.id' => $id];
+        }
+        $taxonomy_params = array(
             'recursive' => -1,
             'contain' => array('TaxonomyPredicate' => array('TaxonomyEntry')),
-            'conditions' => is_numeric($id) ? ['Taxonomy.id' => $id] : ['LOWER(Taxonomy.namespace)' => mb_strtolower($id)],
-        ]);
+            'conditions' => $conditions
+        );
+        $taxonomy = $this->find('first', $taxonomy_params);
         if (empty($taxonomy)) {
             return false;
         }
@@ -226,74 +237,83 @@ class Taxonomy extends AppModel
         return $taxonomy;
     }
 
-    // returns all tags associated to a taxonomy
-    // returns all tags not associated to a taxonomy if $inverse is true
-    public function getAllTaxonomyTags($inverse = false, $user = false, $full = false, $hideUnselectable = true)
+    /**
+     * Returns all tags associated to a taxonomy
+     * Returns all tags not associated to a taxonomy if $inverse is true
+     * @param bool $inverse
+     * @param false|array $user
+     * @param bool $full
+     * @param bool $hideUnselectable
+     * @param bool $local_tag
+     * @return array|int|null
+     */
+    public function getAllTaxonomyTags($inverse = false, $user = false, $full = false, $hideUnselectable = true, $local_tag = false)
     {
-        $this->Tag = ClassRegistry::init('Tag');
-        $taxonomyIdList = $this->find('column', array('fields' => array('Taxonomy.id')));
-        $allTaxonomyTags = array();
-        foreach ($taxonomyIdList as $taxonomy) {
-            $allTaxonomyTags = array_merge($allTaxonomyTags, array_keys($this->getTaxonomyTags($taxonomy, true)));
-        }
-        $conditions = array();
-        if ($user) {
-            if (!$user['Role']['perm_site_admin']) {
-                $conditions[] = array('Tag.org_id' => array(0, $user['org_id']));
-                $conditions[] = array('Tag.user_id' => array(0, $user['id']));
+        $taxonomies = $this->find('all', [
+            'fields' => ['namespace'],
+            'contain' => ['TaxonomyPredicate' => ['TaxonomyEntry']],
+        ]);
+        $allTaxonomyTags = [];
+        foreach ($taxonomies as $taxonomy) {
+            $namespace = $taxonomy['Taxonomy']['namespace'];
+            foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
+                if (isset($predicate['TaxonomyEntry']) && !empty($predicate['TaxonomyEntry'])) {
+                    foreach ($predicate['TaxonomyEntry'] as $entry) {
+                        $tag = $namespace . ':' . $predicate['value'] . '="' . $entry['value'] . '"';
+                        $allTaxonomyTags[mb_strtolower($tag)] = true;
+                    }
+                } else {
+                    $tag = $namespace . ':' . $predicate['value'];
+                    $allTaxonomyTags[mb_strtolower($tag)] = true;
+                }
             }
+        }
+
+        $this->Tag = ClassRegistry::init('Tag');
+
+        $conditions = ['Tag.is_galaxy' => 0];
+        if ($user && !$user['Role']['perm_site_admin']) {
+            $conditions[] = array('Tag.org_id' => array(0, $user['org_id']));
+            $conditions[] = array('Tag.user_id' => array(0, $user['id']));
         }
         if (Configure::read('MISP.incoming_tags_disabled_by_default') || $hideUnselectable) {
             $conditions['Tag.hide_tag'] = 0;
         }
+        // If the tag is to be added as global, we filter out the local_only tags
+        if (!$local_tag) {
+            $conditions['Tag.local_only'] = 0;
+        }
         if ($full) {
-            $allTags = $this->Tag->find(
-                'all',
-                array(
-                    'fields' => array('id', 'name', 'colour'),
-                    'order' => array('UPPER(Tag.name) ASC'),
-                    'conditions' => $conditions,
-                    'recursive' => -1
-                )
-            );
+            $allTags = $this->Tag->find('all', [
+                'fields' => array('id', 'name', 'colour'),
+                'order' => array('UPPER(Tag.name) ASC'),
+                'conditions' => $conditions,
+                'recursive' => -1
+            ]);
         } else {
-            $allTags = $this->Tag->find(
-                'list',
-                array(
-                    'fields' => array('name'),
-                    'order' => array('UPPER(Tag.name) ASC'),
-                    'conditions' => $conditions
-                )
-            );
+            $allTags = $this->Tag->find('list', [
+                'fields' => array('name'),
+                'order' => array('UPPER(Tag.name) ASC'),
+                'conditions' => $conditions
+            ]);
         }
         foreach ($allTags as $k => $tag) {
-            if ($full) {
-                $needle = $tag['Tag']['name'];
-            } else {
-                $needle = $tag;
-            }
+            $needle = $full ? $tag['Tag']['name'] : $tag;
             if ($inverse) {
-                if (in_array(strtoupper($needle), $allTaxonomyTags)) {
+                if (isset($allTaxonomyTags[mb_strtolower($needle)])) {
                     unset($allTags[$k]);
-                } else {
-                    $temp = explode(':', $needle);
-                    if (count($temp) > 1) {
-                        if ($temp[0] == 'misp-galaxy') {
-                            unset($allTags[$k]);
-                        }
-                    }
                 }
             }
-            if (!$inverse && !in_array(strtoupper($needle), $allTaxonomyTags)) {
+            if (!$inverse && !isset($allTaxonomyTags[mb_strtolower($needle)])) {
                 unset($allTags[$k]);
             }
         }
         return $allTags;
     }
 
-    public function getTaxonomyTags($id, $uc = false, $existingOnly = false)
+    public function getTaxonomyTags($id, $upperCase = false, $existingOnly = false)
     {
-        $taxonomy = $this->__getTaxonomy($id);
+        $taxonomy = $this->__getTaxonomy($id, array('full' => true, 'filter' => false));
         if ($existingOnly) {
             $this->Tag = ClassRegistry::init('Tag');
             $tags = $this->Tag->find('list', array('fields' => array('name'), 'order' => array('UPPER(Tag.name) ASC')));
@@ -304,7 +324,7 @@ class Taxonomy extends AppModel
         $entries = array();
         if ($taxonomy) {
             foreach ($taxonomy['entries'] as $entry) {
-                $searchTerm = $uc ? strtoupper($entry['tag']) : $entry['tag'];
+                $searchTerm = $upperCase ? strtoupper($entry['tag']) : $entry['tag'];
                 if ($existingOnly) {
                     if (in_array(strtoupper($entry['tag']), $tags)) {
                         $entries[$searchTerm] = $entry['expanded'];
@@ -319,30 +339,45 @@ class Taxonomy extends AppModel
 
     /**
      * @param int|string $id Taxonomy ID or namespace
-     * @param string|null $filter
+     * @param array|null $options
      * @return array|false
      */
-    public function getTaxonomy($id, $filter = null)
+    public function getTaxonomy($id, $options = array('full' => true))
     {
-        $taxonomy = $this->__getTaxonomy($id, $filter);
+        $taxonomy = $this->__getTaxonomy($id, $options);
         if (empty($taxonomy)) {
             return false;
         }
         $this->Tag = ClassRegistry::init('Tag');
-        $tagNames = array_column($taxonomy['entries'], 'tag');
-        $tags = $this->Tag->getTagsByName($tagNames, false);
-        if (isset($taxonomy['entries'])) {
-            foreach ($taxonomy['entries'] as $key => $temp) {
-                if (isset($tags[strtoupper($temp['tag'])])) {
-                    $existingTag = $tags[strtoupper($temp['tag'])];
-                    $taxonomy['entries'][$key]['existing_tag'] = $existingTag;
-                    // numerical_value is overridden at tag level. Propagate the override further up
-                    if (isset($existingTag['Tag']['original_numerical_value'])) {
-                        $taxonomy['entries'][$key]['original_numerical_value'] = $existingTag['Tag']['original_numerical_value'];
-                        $taxonomy['entries'][$key]['numerical_value'] = $existingTag['Tag']['numerical_value'];
+        if (isset($options['full']) && $options['full']) {
+            $tagNames = array_column($taxonomy['entries'], 'tag');
+            $tags = $this->Tag->getTagsByName($tagNames, false);
+            $filterActive = false;
+            if (isset($options['enabled'])) {
+                $filterActive = true;
+                $enabledTag = isset($options['enabled']) ? $options['enabled'] : null;
+            }
+            if (isset($taxonomy['entries'])) {
+                foreach ($taxonomy['entries'] as $key => $temp) {
+                    if (isset($tags[strtoupper($temp['tag'])])) {
+                        $existingTag = $tags[strtoupper($temp['tag'])];
+                        if ($filterActive && $options['enabled'] == $existingTag['Tag']['hide_tag']) {
+                            unset($taxonomy['entries'][$key]);
+                            continue;
+                        }
+                        $taxonomy['entries'][$key]['existing_tag'] = $existingTag;
+                        // numerical_value is overridden at tag level. Propagate the override further up
+                        if (isset($existingTag['Tag']['original_numerical_value'])) {
+                            $taxonomy['entries'][$key]['original_numerical_value'] = $existingTag['Tag']['original_numerical_value'];
+                            $taxonomy['entries'][$key]['numerical_value'] = $existingTag['Tag']['numerical_value'];
+                        }
+                    } else {
+                        if ($filterActive) {
+                            unset($taxonomy['entries'][$key]);
+                        } else {
+                            $taxonomy['entries'][$key]['existing_tag'] = false;
+                        }
                     }
-                } else {
-                    $taxonomy['entries'][$key]['existing_tag'] = false;
                 }
             }
         }
@@ -353,7 +388,7 @@ class Taxonomy extends AppModel
     {
         App::uses('ColourPaletteTool', 'Tools');
         $paletteTool = new ColourPaletteTool();
-        $taxonomy = $this->__getTaxonomy($id);
+        $taxonomy = $this->__getTaxonomy($id, array('full' => true));
         $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
         $this->Tag = ClassRegistry::init('Tag');
         $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace'], false);
@@ -392,7 +427,7 @@ class Taxonomy extends AppModel
         $this->Tag = ClassRegistry::init('Tag');
         App::uses('ColourPaletteTool', 'Tools');
         $paletteTool = new ColourPaletteTool();
-        $taxonomy = $this->__getTaxonomy($id);
+        $taxonomy = $this->__getTaxonomy($id, array('full' => true));
         if (empty($taxonomy)) {
             return false;
         }
@@ -438,7 +473,7 @@ class Taxonomy extends AppModel
         if ($tagList) {
             $tags = $tagList;
         } else {
-            $taxonomy = $this->__getTaxonomy($id);
+            $taxonomy = $this->__getTaxonomy($id, array('full' => true));
             foreach ($taxonomy['entries'] as $entry) {
                 $tags[] = $entry['tag'];
             }
@@ -465,7 +500,7 @@ class Taxonomy extends AppModel
         $this->Tag = ClassRegistry::init('Tag');
         App::uses('ColourPaletteTool', 'Tools');
         $paletteTool = new ColourPaletteTool();
-        $taxonomy = $this->__getTaxonomy($id);
+        $taxonomy = $this->__getTaxonomy($id, array('full' => true));
         $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
         $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
         foreach ($taxonomy['entries'] as $k => $entry) {
@@ -498,7 +533,7 @@ class Taxonomy extends AppModel
         $this->Tag = ClassRegistry::init('Tag');
         App::uses('ColourPaletteTool', 'Tools');
         $paletteTool = new ColourPaletteTool();
-        $taxonomy = $this->__getTaxonomy($id);
+        $taxonomy = $this->__getTaxonomy($id, array('full' => true));
         $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
         $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
         foreach ($taxonomy['entries'] as $k => $entry) {
@@ -533,7 +568,7 @@ class Taxonomy extends AppModel
         if (isset($options['enabled']) && $options['enabled']) {
             $conditions[] = array('Taxonomy.enabled' => 1);
         }
-        $temp =  $this->find('all', array(
+        $temp = $this->find('all', array(
             'recursive' => $recursive,
             'conditions' => $conditions
         ));
@@ -554,46 +589,56 @@ class Taxonomy extends AppModel
             return false; // not taxonomy tag
         }
 
-        if (isset($splits['value'])) {
-            $contain = array(
-                'TaxonomyPredicate' => array(
-                    'TaxonomyEntry' => array()
-                )
-            );
-            if (!$fullTaxonomy) {
-                $contain['TaxonomyPredicate']['conditions'] = array(
-                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate']),
+        $key = 'taxonomies_cache:tagName=' . $tagName . "&" . "metaOnly=$metaOnly" . "&" . "fullTaxonomy=$fullTaxonomy";
+        $redis = $this->setupRedis();
+        $taxonomy = $redis ? json_decode($redis->get($key), true) : null;
+
+        if (!$taxonomy) {
+            if (isset($splits['value'])) {
+                $contain = array(
+                    'TaxonomyPredicate' => array(
+                        'TaxonomyEntry' => array()
+                    )
                 );
-                $contain['TaxonomyPredicate']['TaxonomyEntry']['conditions'] = array(
-                    'LOWER(TaxonomyEntry.value)' => mb_strtolower($splits['value']),
-                );
+                if (!$fullTaxonomy) {
+                    $contain['TaxonomyPredicate']['conditions'] = array(
+                        'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate']),
+                    );
+                    $contain['TaxonomyPredicate']['TaxonomyEntry']['conditions'] = array(
+                        'LOWER(TaxonomyEntry.value)' => mb_strtolower($splits['value']),
+                    );
+                }
+                $taxonomy = $this->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
+                    'contain' => $contain
+                ));
+                if ($metaOnly && !empty($taxonomy)) {
+                    $taxonomy = array('Taxonomy' => $taxonomy['Taxonomy']);
+                }
+            } else {
+                $contain = array('TaxonomyPredicate' => array());
+                if (!$fullTaxonomy) {
+                    $contain['TaxonomyPredicate']['conditions'] = array(
+                        'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate'])
+                    );
+                }
+                $taxonomy = $this->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
+                    'contain' => $contain
+                ));
+                if ($metaOnly && !empty($taxonomy)) {
+                    $taxonomy = array('Taxonomy' => $taxonomy['Taxonomy']);
+                }
             }
-            $taxonomy = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
-                'contain' => $contain
-            ));
-            if ($metaOnly && !empty($taxonomy)) {
-                return array('Taxonomy' => $taxonomy['Taxonomy']);
+
+            if ($redis) {
+                $redis->setex($key, 1800, json_encode($taxonomy));
             }
-            return $taxonomy;
-        } else {
-            $contain = array('TaxonomyPredicate' => array());
-            if (!$fullTaxonomy) {
-                $contain['TaxonomyPredicate']['conditions'] = array(
-                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate'])
-                );
-            }
-            $taxonomy = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
-                'contain' => $contain
-            ));
-            if ($metaOnly && !empty($taxonomy)) {
-                return array('Taxonomy' => $taxonomy['Taxonomy']);
-            }
-            return $taxonomy;
         }
+
+        return $taxonomy;
     }
 
     /**
@@ -619,7 +664,7 @@ class Taxonomy extends AppModel
         $prefixIsFree = true;
         foreach ($tagNameList as $tagName) {
             $tagShortened = $this->stripLastTagComponent($tagName);
-            if ($newTagShortened == $tagShortened) {
+            if ($newTagShortened === $tagShortened) {
                 $prefixIsFree = false;
                 break;
             }
@@ -636,11 +681,22 @@ class Taxonomy extends AppModel
         return true;
     }
 
+    /**
+     * @param array $tagList
+     * @return array[]
+     */
     public function checkIfTagInconsistencies($tagList)
     {
+        if (Configure::read('MISP.disable_taxonomy_consistency_checks')) {
+            return [
+                'global' => [],
+                'local' => []
+            ];
+        }
+
         $eventTags = array();
         $localEventTags = array();
-        foreach($tagList as $tag) {
+        foreach ($tagList as $tag) {
             if ($tag['local'] == 0) {
                 $eventTags[] = $tag['Tag']['name'];
             } else {

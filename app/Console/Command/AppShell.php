@@ -26,12 +26,54 @@ App::uses('AppModel', 'Model');
  *
  * @package       app.Console.Command
  */
-class AppShell extends Shell {
-
+class AppShell extends Shell
+{
     public $tasks = array('ConfigLoad');
-    
-    public function perform() {
+
+    public function initialize()
+    {
+        parent::initialize();
+        $this->ConfigLoad = $this->Tasks->load('ConfigLoad');
+        $this->ConfigLoad->execute();
+    }
+
+    public function perform()
+    {
         $this->initialize();
         $this->{array_shift($this->args)}();
+    }
+
+    protected function _welcome()
+    {
+        // disable welcome message
+    }
+
+    /**
+     * @param mixed $data
+     * @return string
+     * @throws JsonException
+     */
+    protected function json($data)
+    {
+        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param mixed $value
+     * @return bool
+     */
+    protected function toBoolean($value)
+    {
+        $value = strtolower($value);
+        switch ($value) {
+            case 'true':
+            case '1':
+                return true;
+            case 'false':
+            case '0':
+                return false;
+            default:
+                $this->error("Invalid state value `$value`, it must be `true`, `false`, `1`, or `0`.");
+        }
     }
 }

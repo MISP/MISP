@@ -17,9 +17,11 @@ $config = array(
         'user_monitoring_enabled'           => false,
         'authkey_keep_session'              => false,
         'disable_local_feed_access'         => false,
+        'enable_svg_logos'                  => false,
         //'auth'                            => array('CertAuth.Certificate'), // additional authentication methods
         //'auth'                            => array('ShibbAuth.ApacheShibb'),
         //'auth'                            => array('AadAuth.AadAuthenticate'),
+        //'auth'                            => array('LinOTPAuth.LinOTP'),
     ),
     'MISP' => array(
         'baseurl'                        => '',
@@ -32,7 +34,6 @@ $config = array(
         'email_subject_tag'              => 'tlp',
         'email_subject_include_tag_name' => true,
         'background_jobs'                => true,
-        'cached_attachments'             => true,
         'osuser'                         => 'www-data',
         'email'                          => 'email@example.com',
         'contact'                        => 'email@example.com',
@@ -50,9 +51,9 @@ $config = array(
         'unpublishedprivate'             => false,
         'disable_emailing'               => false,
         'manage_workers'                 => true,
-        'Attributes_Values_Filter_In_Event' => 'id, uuid, value, comment, type, category, Tag.name',
         'python_bin'                     => null,
         'external_baseurl'               => '',
+        'forceHTTPSforPreLoginRequestedURL' => false,
         'showCorrelationsOnIndex'        => true,
         'default_event_tag_collection'   => 0,
         'language'                       => 'eng',
@@ -100,7 +101,12 @@ $config = array(
         'event_alert_republish_ban'      => true,
         'event_alert_republish_ban_threshold' => 120,
         'event_alert_republish_ban_refresh_on_retry' => true,
+        'user_email_notification_ban'      => true,
+        'user_email_notification_ban_time_threshold' => 120,
+        'user_email_notification_ban_amount_threshold' => 10,
+        'user_email_notification_ban_refresh_on_retry' => true,
         'warning_for_all'                => true,
+        'enable_synchronisation_filtering_on_type' => false,
     ),
     'GnuPG' => array(
         'onlyencrypted'     => false,
@@ -129,6 +135,19 @@ $config = array(
     'SecureAuth' => array(
         'amount' => 5,
         'expire' => 300,
+    ),
+    'SimpleBackgroundJobs' => array(
+        'enabled' => false,
+        'redis_host' => 'localhost',
+        'redis_port' => 6379,
+        'redis_password' => '',
+        'redis_database' => 1,
+        'redis_namespace' => 'background_jobs',
+        'max_job_history_ttl' => 86400,
+        'supervisor_host' => 'localhost',
+        'supervisor_port' => 9001,
+        'supervisor_user' => 'supervisor',
+        'supervisor_password' => '',
     ),
     // Uncomment the following to enable client SSL certificate authentication
     /*
@@ -186,6 +205,8 @@ $config = array(
         'realm' => 'lino', // the (default) realm of all the users logging in through this system
         'userModel' => 'User', // name of the User class (MISP class) to check if the user exists
         'userModelKey' => 'email', // User field that will be used for querying.
+        'verifyssl' => true, // Verify TLS Certificate or not
+        'mixedauth' => false, // false=>Query only LinOTP or true=>OTP from LinOTP, Password from MISP
     ),
     */
     // Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.

@@ -114,7 +114,7 @@ class CakeEmailExtended extends CakeEmail
             throw new InvalidArgumentException("Expected instance of CakeEmailBody, " . gettype($this->body) . " given.");
         }
 
-        $this->_boundary = md5(uniqid());
+        $this->_boundary = md5(mt_rand());
 
         $rendered = [];
         if (!empty($this->body->text)) {
@@ -191,7 +191,7 @@ class MimeMultipart
     public function __construct($subtype = 'mixed', $additionalTypes = array())
     {
         $this->subtype = $subtype;
-        $this->boundary = md5(uniqid());
+        $this->boundary = md5(mt_rand());
         $this->additionalTypes = $additionalTypes;
     }
 
@@ -440,9 +440,14 @@ class SendEmail
             throw new InvalidArgumentException("Invalid user model provided.");
         }
 
+        // Intentional `array_key_exists` instead of `isset`
+        if (!array_key_exists('gpgkey', $user['User']) || !array_key_exists('certif_public', $user['User'])) {
+            throw new InvalidArgumentException("User without `gpgkey` or `certif_public` field provided.");
+        }
+
         // Check if the e-mail can be encrypted
-        $canEncryptGpg = isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey']);
-        $canEncryptSmime = isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
+        $canEncryptGpg = !empty($user['User']['gpgkey']);
+        $canEncryptSmime = !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
 
         if (Configure::read('GnuPG.onlyencrypted') && !$canEncryptGpg && !$canEncryptSmime) {
             throw new SendEmailException('Encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.');
@@ -477,6 +482,10 @@ class SendEmail
                 'In-Reply-To' => $reference,
                 'References' => $reference,
             ]);
+        }
+
+        if ($body instanceof SendEmailTemplate && $body->listUnsubscribe()) {
+            $email->addHeaders(['List-Unsubscribe' => "<{$body->listUnsubscribe()}>"]);
         }
 
         $signed = false;
@@ -880,7 +889,7 @@ class SendEmail
      * @param string $content
      * @return File[]
      * @throws SendEmailException
-     * @throws MethodNotAllowedException
+     * @throws Exception
      */
     private function createInputOutputFiles($content)
     {
@@ -892,11 +901,10 @@ class SendEmail
         }
 
         App::uses('FileAccessTool', 'Tools');
-        $fileAccessTool = new FileAccessTool();
-        $inputFile = $fileAccessTool->createTempFile($dir, 'SMIME');
-        $fileAccessTool->writeToFile($inputFile, $content);
+        $inputFile = FileAccessTool::createTempFile($dir, 'SMIME');
+        FileAccessTool::writeToFile($inputFile, $content);
 
-        $outputFile = $fileAccessTool->createTempFile($dir, 'SMIME');
+        $outputFile = FileAccessTool::createTempFile($dir, 'SMIME');
         return array(new File($inputFile), new File($outputFile));
     }
 
@@ -970,6 +978,7 @@ class SendEmail
             $parts[] = 'prefer-encrypt=mutual';
         }
         $parts[] = 'keydata=' . base64_encode($keyData);
-        return implode('; ', $parts);
+        // Use the PHP wordwrap function to wrap the Autocrypt header to 74 (+ CRLF) to meet RFC 5322 - 2.1.1 line length limits 
+        return wordwrap(implode('; ', $parts), 74, "\r\n\t", true);
     }
 }

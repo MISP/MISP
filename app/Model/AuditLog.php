@@ -41,6 +41,15 @@ class AuditLog extends AppModel
     /** @var bool */
     private $compressionEnabled;
 
+    /** @var bool */
+    private $pubToZmq;
+
+    /** @var bool */
+    private $elasticLogging;
+
+    /** @var bool */
+    private $logClientIp;
+
     /**
      * Null when not defined, false when not enabled
      * @var Syslog|null|false
@@ -72,19 +81,22 @@ class AuditLog extends AppModel
     {
         parent::__construct($id, $table, $ds);
         $this->compressionEnabled = Configure::read('MISP.log_new_audit_compress') && function_exists('brotli_compress');
+        $this->pubToZmq = $this->pubToZmq('audit');
+        $this->elasticLogging = Configure::read('Plugin.ElasticSearch_logging_enable');
+        $this->logClientIp = Configure::read('MISP.log_client_ip');
     }
 
     public function afterFind($results, $primary = false)
     {
-        foreach ($results as $key => $result) {
+        foreach ($results as &$result) {
             if (isset($result['AuditLog']['ip'])) {
-                $results[$key]['AuditLog']['ip'] = inet_ntop($result['AuditLog']['ip']);
+                $result['AuditLog']['ip'] = inet_ntop($result['AuditLog']['ip']);
             }
             if (isset($result['AuditLog']['change']) && $result['AuditLog']['change']) {
-                $results[$key]['AuditLog']['change'] = $this->decodeChange($result['AuditLog']['change']);
+                $result['AuditLog']['change'] = $this->decodeChange($result['AuditLog']['change']);
             }
             if (isset($result['AuditLog']['action']) && isset($result['AuditLog']['model']) && isset($result['AuditLog']['model_id'])) {
-                $results[$key]['AuditLog']['title'] = $this->generateUserFriendlyTitle($result['AuditLog']);
+                $result['AuditLog']['title'] = $this->generateUserFriendlyTitle($result['AuditLog']);
             }
         }
         return $results;
@@ -119,13 +131,17 @@ class AuditLog extends AppModel
         if (in_array($auditLog['model'], ['Attribute', 'Object', 'ShadowAttribute'], true)) {
             $modelName = $auditLog['model'] === 'ShadowAttribute' ? 'Proposal' : $auditLog['model'];
             $title = __('%s from Event #%s', $modelName, $auditLog['event_id']);
-        } else {
-            $title = "{$auditLog['model']} #{$auditLog['model_id']}";
         }
+
         if (isset($auditLog['model_title']) && $auditLog['model_title']) {
-            $title .= ": {$auditLog['model_title']}";
+            if (isset($title)) {
+                $title .= ": {$auditLog['model_title']}";
+                return $title;
+            } else {
+                return $auditLog['model_title'];
+            }
         }
-        return $title;
+        return '';
     }
 
     /**
@@ -160,51 +176,56 @@ class AuditLog extends AppModel
 
     public function beforeSave($options = array())
     {
-        if (!isset($this->data['AuditLog']['ip']) && Configure::read('MISP.log_client_ip')) {
+        $auditLog = &$this->data['AuditLog'];
+        if (!isset($auditLog['ip']) && $this->logClientIp) {
             $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
             if (isset($_SERVER[$ipHeader])) {
-                $this->data['AuditLog']['ip'] = inet_pton($_SERVER[$ipHeader]);
+                $auditLog['ip'] = $_SERVER[$ipHeader];
             }
         }
 
-        if (!isset($this->data['AuditLog']['user_id'])) {
-            $this->data['AuditLog']['user_id'] = $this->userInfo()['id'];
+        if (!isset($auditLog['user_id'])) {
+            $auditLog['user_id'] = $this->userInfo()['id'];
         }
 
-        if (!isset($this->data['AuditLog']['org_id'])) {
-            $this->data['AuditLog']['org_id'] = $this->userInfo()['org_id'];
+        if (!isset($auditLog['org_id'])) {
+            $auditLog['org_id'] = $this->userInfo()['org_id'];
         }
 
-        if (!isset($this->data['AuditLog']['request_type'])) {
-            $this->data['AuditLog']['request_type'] = $this->userInfo()['request_type'];
+        if (!isset($auditLog['request_type'])) {
+            $auditLog['request_type'] = $this->userInfo()['request_type'];
         }
 
-        if (!isset($this->data['AuditLog']['authkey_id'])) {
-            $this->data['AuditLog']['authkey_id'] = $this->userInfo()['authkey_id'];
+        if (!isset($auditLog['authkey_id'])) {
+            $auditLog['authkey_id'] = $this->userInfo()['authkey_id'];
         }
 
-        if (!isset($this->data['AuditLog']['request_id'] ) && isset($_SERVER['HTTP_X_REQUEST_ID'])) {
-            $this->data['AuditLog']['request_id'] = $_SERVER['HTTP_X_REQUEST_ID'];
+        if (!isset($auditLog['request_id'] ) && isset($_SERVER['HTTP_X_REQUEST_ID'])) {
+            $auditLog['request_id'] = $_SERVER['HTTP_X_REQUEST_ID'];
         }
 
         // Truncate request_id
-        if (isset($this->data['AuditLog']['request_id']) && strlen($this->data['AuditLog']['request_id']) > 255) {
-            $this->data['AuditLog']['request_id'] = substr($this->data['AuditLog']['request_id'], 0, 255);
+        if (isset($auditLog['request_id']) && strlen($auditLog['request_id']) > 255) {
+            $auditLog['request_id'] = substr($auditLog['request_id'], 0, 255);
         }
 
         // Truncate model title
-        if (isset($this->data['AuditLog']['model_title']) && mb_strlen($this->data['AuditLog']['model_title']) > 255) {
-            $this->data['AuditLog']['model_title'] = mb_substr($this->data['AuditLog']['model_title'], 0, 252) . '...';
+        if (isset($auditLog['model_title']) && mb_strlen($auditLog['model_title']) > 255) {
+            $auditLog['model_title'] = mb_substr($auditLog['model_title'], 0, 252) . '...';
         }
 
         $this->logData($this->data);
 
-        if (isset($this->data['AuditLog']['change'])) {
-            $change = json_encode($this->data['AuditLog']['change'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (isset($auditLog['ip'])) {
+            $auditLog['ip'] = inet_pton($auditLog['ip']); // convert to binary form to save into database
+        }
+
+        if (isset($auditLog['change'])) {
+            $change = JsonTool::encode($auditLog['change']);
             if ($this->compressionEnabled && strlen($change) >= self::BROTLI_MIN_LENGTH) {
                 $change = self::BROTLI_HEADER . brotli_compress($change, 4, BROTLI_TEXT);
             }
-            $this->data['AuditLog']['change'] = $change;
+            $auditLog['change'] = $change;
         }
     }
 
@@ -214,14 +235,14 @@ class AuditLog extends AppModel
      */
     private function logData(array $data)
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_audit_notifications_enable')) {
+        if ($this->pubToZmq) {
             $pubSubTool = $this->getPubSubTool();
             $pubSubTool->publish($data, 'audit', 'log');
         }
 
         $this->publishKafkaNotification('audit', $data, 'log');
 
-        if (Configure::read('Plugin.ElasticSearch_logging_enable')) {
+        if ($this->elasticLogging) {
             // send off our logs to distributed /dev/null
             $logIndex = Configure::read("Plugin.ElasticSearch_log_index");
             $elasticSearchClient = $this->getElasticSearchTool();
@@ -251,7 +272,7 @@ class AuditLog extends AppModel
             if ($title) {
                 $entry .= " -- $title";
             }
-            $this->syslog->write('info', $entry);
+            $this->syslog->write(LOG_INFO, $entry);
         }
         return true;
     }
@@ -297,6 +318,9 @@ class AuditLog extends AppModel
         return $this->user;
     }
 
+    /**
+     * @throws Exception
+     */
     public function insert(array $data)
     {
         try {
@@ -304,7 +328,7 @@ class AuditLog extends AppModel
         } catch (Exception $e) {
             return; // Table is missing when updating, so this is intentional
         }
-        if ($this->save($data) === false) {
+        if ($this->save(['AuditLog' => $data], ['atomic' => false]) === false) {
             throw new Exception($this->validationErrors);
         }
     }
@@ -336,18 +360,18 @@ class AuditLog extends AppModel
             $conditions['org_id'] = $org['id'];
         }
 
-        $dataSource = ConnectionManager::getDataSource('default')->config['datasource'];
-        if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
+        if ($this->isMysql()) {
             $validDates = $this->find('all', [
                 'recursive' => -1,
                 'fields' => ['DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'],
                 'conditions' => $conditions,
                 'group' => ['Date'],
                 'order' => ['Date'],
+                'callbacks' => false,
             ]);
-        } elseif ($dataSource === 'Database/Postgres') {
+        } else {
             if (!empty($conditions['org_id'])) {
-                $condOrg = 'WHERE org_id = "' . $conditions['org_id'] . '"';
+                $condOrg = sprintf('WHERE org_id = %s', intval($conditions['org_id']));
             } else {
                 $condOrg = '';
             }
@@ -358,7 +382,7 @@ class AuditLog extends AppModel
             $validDates = $this->query($sql);
         }
         $data = [];
-        foreach ($validDates as $k => $date) {
+        foreach ($validDates as $date) {
             $data[(int)$date[0]['Date']] = (int)$date[0]['count'];
         }
         return $data;

@@ -1,12 +1,12 @@
 <?php
-    $api_key = empty(Configure::read('Security.advanced_authkeys')) ? $me['authkey'] : 'YOUR_API_KEY';
+    $api_key = empty(Configure::read('Security.advanced_authkeys')) ? $authkey : 'YOUR_API_KEY';
 ?>
 <div class="event index">
     <h2><?php echo __('Automation');?></h2>
     <p class="bold"><?php echo __('Check out the OpenAPI spec of the MISP Automation API <a href="%s">here</a>.', $baseurl . '/servers/openapi');?></p>
     <p><?php echo __('Automation functionality is designed to automatically feed other tools and systems with the data in your MISP repository.
     To to make this functionality available for automated tools an authentication key is used.');?>
-    <br /><?php echo __('You can use the <a href="' . $baseurl . '/servers/rest">REST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.');?>
+    <br /><?php echo __('You can use the <a href="' . $baseurl . '/api/rest">REST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.');?>
     <strong><?php echo __('Make sure you keep your API key secret as it gives access to the all of the data that you normally have access to in MISP.');?></strong>
     <?php echo __('To view the old MISP automation page, click <a href="' . $baseurl . '/automation/1">here</a>.');?>
     </p>
@@ -15,7 +15,7 @@
             if (empty(Configure::read('Security.advanced_authkeys'))) {
                 echo __(
                     'Your current key is: <code>%s</code>. You can %s this key.',
-                    $me['authkey'],
+                    $api_key,
                     $this->Form->postLink(
                         __('reset'),
                         array('controller' => 'users', 'action' => 'resetauthkey', 'me'),

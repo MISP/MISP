@@ -23,13 +23,17 @@
             continue;
         }
         if (isset($action['complex_requirement'])) {
-            if (isset($action['complex_requirement']['options']['datapath'])) {
-                foreach ($action['complex_requirement']['options']['datapath'] as $name => $path) {
-                    $action['complex_requirement']['options']['datapath'][$name] = empty(Hash::extract($row, $path)[0]) ? null : Hash::extract($row, $path)[0];
+            if ($action['complex_requirement'] instanceof Closure) {
+                $requirementMet = $action['complex_requirement']($row);
+            } else {
+                if (isset($action['complex_requirement']['options']['datapath'])) {
+                    foreach ($action['complex_requirement']['options']['datapath'] as $name => $path) {
+                        $action['complex_requirement']['options']['datapath'][$name] = empty(Hash::extract($row, $path)[0]) ? null : Hash::extract($row, $path)[0];
+                    }
                 }
+                $options = isset($action['complex_requirement']['options']) ? $action['complex_requirement']['options'] : [];
+                $requirementMet = $action['complex_requirement']['function']($row, $options);
             }
-            $options = isset($action['complex_requirement']['options']) ? $action['complex_requirement']['options'] : array();
-            $requirementMet = $action['complex_requirement']['function']($row, $options);
             if (!$requirementMet) {
                 continue;
             }
@@ -39,8 +43,15 @@
         if (!empty($action['url_params_data_paths'])) {
             if (is_array($action['url_params_data_paths'])) {
                 $temp = array();
-                foreach ($action['url_params_data_paths'] as $path) {
-                    $temp[] = h(Hash::extract($row, $path)[0]);
+                foreach ($action['url_params_data_paths'] as $k => $path) {
+                    $extracted_value = Hash::extract($row, $path);
+                    if (!empty($extracted_value)) {
+                        if (is_string($k)) { // associative array, use cake's parameter
+                            $temp[] = h($k) . ':' . h($extracted_value[0]);
+                        } else {
+                            $temp[] = h($extracted_value[0]);
+                        }
+                    }
                 }
                 $url_param_data_paths = implode('/', $temp);
             } else {
@@ -85,19 +96,44 @@
             ) . ' ';
         } else {
             if (!empty($action['onclick']) && !empty($action['onclick_params_data_path'])) {
+                if (is_array($action['onclick_params_data_path'])) {
+                    $temp = array();
+                    foreach ($action['onclick_params_data_path'] as $k => $path) {
+                        $extracted_value = Hash::extract($row, $path);
+                        if (!empty($extracted_value)) {
+                            if (is_string($k)) { // associative array, use cake's parameter
+                                $temp[] = h($k) . ':' . h($extracted_value[0]);
+                            } else {
+                                $temp[] = h($extracted_value[0]);
+                            }
+                        }
+                    }
+                    $onclick_params_data_path = implode('/', $temp);
+                } else {
+                    $onclick_params_data_path = h(Hash::extract($row, $action['onclick_params_data_path'])[0]);
+                }
                 $action['onclick'] = str_replace(
                     '[onclick_params_data_path]',
-                    h(Hash::extract($row, $action['onclick_params_data_path'])[0]),
+                    $onclick_params_data_path,
                     $action['onclick']
                 );
             }
+            $title = empty($action['title']) ? '' : h($action['title']);
+
+            $classes = [];
+            if (!empty($action['class'])) {
+                $classes[] = h($action['class']);
+            }
+            if (!empty($action['dbclickAction'])) {
+                $classes[] = 'dblclickActionElement';
+            }
             echo sprintf(
-                '<a href="%s" title="%s" aria-label="%s" %s %s><i class="black %s"></i></a> ',
+                '<a href="%s" title="%s" aria-label="%s"%s%s><i class="black %s"></i></a> ',
                 $url,
-                empty($action['title']) ? '' : h($action['title']),
-                empty($action['title']) ? '' : h($action['title']),
-                empty($action['dbclickAction']) ? '' : 'class="dblclickActionElement"',
-                empty($action['onclick']) ? '' : sprintf('onclick="event.preventDefault();%s"', $action['onclick']),
+                $title,
+                $title,
+                empty($classes) ? '' : ' class="' . implode(' ', $classes) . '"',
+                empty($action['onclick']) ? '' : sprintf(' onclick="event.preventDefault();%s"', $action['onclick']),
                 $this->FontAwesome->getClass($action['icon'])
             );
         }

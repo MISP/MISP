@@ -10,7 +10,7 @@
         "ext-simplexml": "*",
         "ext-pcre": "*",
         "kamisama/cake-resque": "4.1.2",
-        "pear/crypt_gpg": "1.6.5",
+        "pear/crypt_gpg": "1.6.7",
         "monolog/monolog": "1.24.0"
     },
     "require-dev": {
@@ -19,6 +19,7 @@
         "cakephp/debug_kit": "^2.2.0"
     },
     "suggest": {
+        "ext-posix": "For process info fetching",
         "ext-gd": "For creating image thumbnails",
         "ext-openssl": "Enabling the openssl extension allows you to access HTTPS URLs",
         "ext-redis": "For working background jobs and feed and warninglist caches",
@@ -29,9 +30,14 @@
         "ext-ssdeep": "For ssdeep hashes correlation",
         "ext-bcmath": "For faster validating IBAN numbers",
         "ext-rdkafka": "Required for publishing events to Kafka broker",
+        "ext-apcu": "To cache data in memory instead of file system",
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
         "aws/aws-sdk-php": "To upload samples to S3",
-        "jumbojett/openid-connect-php": "For OIDC authentication"
+        "jakub-onderka/openid-connect-php": "For OIDC authentication",
+        "supervisorphp/supervisor": "For managing background jobs",
+        "lstrojny/fxmlrpc": "Required for supervisorphp/supervisor XML-RPC requests",
+        "guzzlehttp/guzzle": "Required for supervisorphp/supervisor XML-RPC requests",
+        "php-http/message": "Required for supervisorphp/supervisor XML-RPC requests"
     },
     "config": {
         "vendor-dir": "Vendor",

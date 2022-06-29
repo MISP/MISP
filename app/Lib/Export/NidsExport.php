@@ -183,7 +183,7 @@ class NidsExport
 
             $sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
             $sid++;
-            
+
             if(!empty($item['Attribute']['type'])) { // item is an 'Attribute'
             
                 switch ($item['Attribute']['type']) {

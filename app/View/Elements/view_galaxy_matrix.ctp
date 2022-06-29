@@ -36,23 +36,24 @@
 *
 *
 */
-echo $this->Html->script('attack_matrix');
-echo $this->Html->css('attack_matrix');
-?>
-<?php
-    $clusetersNamesMapping = array(); // used to map name with id for the chosen select
-    if (isset($interpolation) && !empty($interpolation)) {
-        foreach ($interpolation as $k => $colArr) {
-            $col = str_pad(dechex($colArr[0]), 2, '0', STR_PAD_LEFT) . str_pad(dechex($colArr[1]), 2, '0', STR_PAD_LEFT) . str_pad(dechex($colArr[2]), 2, '0', STR_PAD_LEFT);
-            $interpolation[$k] = '#' . $col;
-            if ($k == 0) { // force small area on white
-                $interpolation[$k] .= ' 3%';
-            }
+echo $this->element('genericElements/assetLoader', [
+    'css' => ['attack_matrix'],
+    'js' => ['attack_matrix'],
+]);
+
+$clustersNamesMapping = array(); // used to map name with id for the chosen select
+if (isset($interpolation) && !empty($interpolation)) {
+    foreach ($interpolation as $k => $colArr) {
+        $col = str_pad(dechex($colArr[0]), 2, '0', STR_PAD_LEFT) . str_pad(dechex($colArr[1]), 2, '0', STR_PAD_LEFT) . str_pad(dechex($colArr[2]), 2, '0', STR_PAD_LEFT);
+        $interpolation[$k] = '#' . $col;
+        if ($k == 0) { // force small area on white
+            $interpolation[$k] .= ' 3%';
         }
-        $colorScale = implode($interpolation, ', ');
-    } else {
-        $colorScale = 'black';
     }
+    $colorScale = implode($interpolation, ', ');
+} else {
+    $colorScale = 'black';
+}
 ?>
 <div class="attack-matrix-options" style="right: initial; background: transparent;">
 <ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
@@ -99,9 +100,9 @@ foreach($tabs as $tabName => $column):
             empty($local) ? '0' : '1'
         );
 
-        echo $this->Form->create('Galaxy', array('url' => $url, 'style' => 'margin:0px;'));
-        echo $this->Form->input('target_ids', array('type' => 'text'));
-        echo $this->Form->input('attribute_ids', array('style' => 'display:none;', 'label' => false));
+        echo $this->Form->create('Galaxy', array('url' => $url));
+        echo $this->Form->input('target_ids', array('label' => false));
+        echo $this->Form->input('attribute_ids', array('label' => false));
         echo $this->Form->end();
     ?>
 </div>
@@ -124,7 +125,7 @@ foreach($tabs as $tabName => $column):
                 <?php echo h(ucfirst($name)); ?>
                 <div class="th-inner" style="flex-direction: column; align-items: flex-start; padding-top: 3px;">
                     <span><?php echo h(ucfirst($name)); ?></span>
-                    <i style="font-size: smaller;"><?php echo sprintf(__('(%s items)'), isset($column[$co]) ? count($column[$co]) : 0); ?></i>
+                    <i style="font-size: smaller;"><?php echo __('(%s items)', isset($column[$co]) ? count($column[$co]) : 0); ?></i>
                 </div>
             </th>
 
@@ -133,13 +134,12 @@ foreach($tabs as $tabName => $column):
         </thead>
         <tbody style="overflow-y: scroll;">
             <?php
-                $body = '';
                 $added = false;
                 $i = 0;
                 do {
                     $tr = '<tr>';
                     $added = false;
-                    foreach($columnOrders[$tabName] as $co) {
+                    foreach ($columnOrders[$tabName] as $co) {
                         if (isset($column[$co][$i])) {
                             $added = true;
                             $td = '<td';
@@ -158,12 +158,20 @@ foreach($tabs as $tabName => $column):
                             $score = empty($scores[$tagName]) ? 0 : $scores[$tagName];
                             $clusterId = isset($cell['id']) ? $cell['id'] : $name;
                             $externalId = isset($cell['external_id']) ? $cell['external_id'] : '';
-                            $shortDescription = isset($cell['description']) ? $cell['description'] : '';
-                            $shortDescription = strlen($shortDescription) > 1000 ? substr($shortDescription, 0, 1000) . '[...]' : $shortDescription;
-                            $clusetersNamesMapping[$clusterId] = $name . ($externalId !== '' ? ' (' . $externalId. ')' : '');
+
+                            $title = h($externalId);
+                            if (!empty($cell['description'])) {
+                                $shortDescription = $this->Markdown->toText($cell['description']);
+                                if (strlen($shortDescription) > 1000) {
+                                    $shortDescription = mb_substr($shortDescription, 0, 1000) . '[...]';
+                                }
+                                $title .= ': &#10;' . h($shortDescription);
+                            }
+
+                            $clustersNamesMapping[$clusterId] = $name . ($externalId !== '' ? ' (' . $externalId. ')' : '');
 
                             $td .= ' class="heatCell matrix-interaction ' . ($pickingMode ? 'cell-picking"' : '"');
-                            $td .= isset($colours[$tagName]) ? ' style="background: ' . h($colours[$tagName]) . '; color: ' . h($this->TextColour->getTextColour($colours[$tagName])) . '"' : '' ;
+                            $td .= isset($colours[$tagName]) ? ' style="background: ' . h($colours[$tagName]) . '; color: ' . $this->TextColour->getTextColour($colours[$tagName]) . '"' : '' ;
                             $td .= ' data-score="'.h($score).'"';
                             $td .= ' data-tag_name="'.h($tagName).'"';
                             $td .= ' data-cluster-id="'.h($clusterId).'"';
@@ -171,8 +179,8 @@ foreach($tabs as $tabName => $column):
                                 $td .= ' data-target-type="attribute"';
                                 $td .= ' data-target-id="'.h($target_id).'"';
                             }
-                            $td .= ' title="' . h($externalId) . (strlen($shortDescription) > 0 ? ': &#10;' . h($shortDescription) : '') . '"';
-			    $td .= ' tabindex="0" aria-label="' . h($externalId) . '"';
+                            $td .= ' title="' . $title . '"';
+			                $td .= ' tabindex="0" aria-label="' . h($externalId) . '"';
                             $td .= '>' . h($name);
 
                         } else { // empty cell
@@ -182,10 +190,9 @@ foreach($tabs as $tabName => $column):
                         $tr .= $td;
                     }
                     $tr .= '</tr>';
-                    $body .= $tr;
+                    echo $tr;
                     $i++;
                 } while($added);
-                echo $body;
             ?>
         </tbody>
         </table>
@@ -194,18 +201,16 @@ foreach($tabs as $tabName => $column):
     <?php endforeach; ?>
     </div>
 </div>
-
-
-<?php if($pickingMode): ?>
+<?php if ($pickingMode): ?>
 <div style="padding: 5px;">
     <select id="attack-matrix-chosen-select" style="width: 100%; margin: 0px;" multiple>
         <?php
-        foreach ($clusetersNamesMapping as $clusterId => $clusterName) {
+        foreach ($clustersNamesMapping as $clusterId => $clusterName) {
             echo '<option value=' . h($clusterId) .'>' . h($clusterName) . '</option>';
         }
         ?>
     </select>
 </div>
 <div class="templateChoiceButton btn-matrix-submit submit-container hide"><?php echo __('Submit'); ?></div>
-<div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_matrix');"><?php echo __('Cancel'); ?></div>
+<div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onclick="cancelPopoverForm('#popover_matrix');"><?php echo __('Cancel'); ?></div>
 <?php endif; ?>

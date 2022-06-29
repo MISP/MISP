@@ -29,7 +29,13 @@ class Dashboard extends AppModel
         )
     );
 
-    public function loadWidget($user, $name, $returnOnException = false)
+    /**
+     * @param array $user
+     * @param string $name
+     * @param bool $returnOnException
+     * @return false|mixed
+     */
+    public function loadWidget(array $user, $name, $returnOnException = false)
     {
         $name = str_replace('/', '', $name);
         if (file_exists(APP . 'Lib/Dashboard/' . $name . '.php')) {
@@ -37,15 +43,17 @@ class Dashboard extends AppModel
         } else if (file_exists(APP . 'Lib/Dashboard/Custom/' . $name . '.php')) {
             App::uses($name, 'Dashboard/Custom');
         } else {
-            $customdir = new Folder(APP . 'Lib/Dashboard/Custom');
-            $subDirectories = $customdir->read();
             $found = false;
-            foreach ($subDirectories[0] as $subDir) {
-                $currentDir = new Folder(APP . 'Lib/Dashboard/' . $subDir);
-                if (file_exists(APP . 'Lib/Dashboard/Custom/' . $subDir . '/' . $name . '.php')) {
-                    App::uses($name, 'Dashboard/Custom/' . $subDir);
-                    $found = true;
-                    break;
+            if (file_exists(APP . 'Lib/Dashboard/Custom')) {
+                App::uses('Folder', 'Utility');
+                $customdir = new Folder(APP . 'Lib/Dashboard/Custom');
+                $subDirectories = $customdir->read();
+                foreach ($subDirectories[0] as $subDir) {
+                    if (file_exists(APP . 'Lib/Dashboard/Custom/' . $subDir . '/' . $name . '.php')) {
+                        App::uses($name, 'Dashboard/Custom/' . $subDir);
+                        $found = true;
+                        break;
+                    }
                 }
             }
             if (!$found) {
@@ -56,13 +64,11 @@ class Dashboard extends AppModel
             }
         }
         $widget = new $name();
-        if (method_exists($widget, 'checkPermissions')) {
-            if (!$widget->checkPermissions($user)) {
-                if ($returnOnException) {
-                    return false;
-                }
-                throw new NotFoundException(__('Invalid widget or widget not found.'));
+        if (method_exists($widget, 'checkPermissions') && !$widget->checkPermissions($user)) {
+            if ($returnOnException) {
+                return false;
             }
+            throw new NotFoundException(__('Invalid widget or widget not found.'));
         }
         return $widget;
     }
@@ -73,12 +79,12 @@ class Dashboard extends AppModel
             '/',
             '/Custom'
         );
+        App::uses('Folder', 'Utility');
         $customdir = new Folder(APP . 'Lib/Dashboard/Custom');
         $subDirectories = $customdir->read();
         foreach ($subDirectories[0] as $subDir) {
             $paths[] = '/Custom/' . $subDir;
         }
-        $widgetMeta = array();
         $widgets = array();
         foreach ($paths as $path) {
             $currentDir = new Folder(APP . 'Lib/Dashboard' . $path);

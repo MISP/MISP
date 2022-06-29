@@ -84,12 +84,12 @@
     if (!empty($user['User']['gpgkey'])) {
         $table_data[] = array(
             'key' => __('PGP key fingerprint'),
-            'class_value' => "quickSelect bold " . $user['User']['gpgkey'] ? 'green' : 'bold red',
+            'value_class' => 'quickSelect',
             'value' => $user['User']['fingerprint'] ? chunk_split($user['User']['fingerprint'], 4, ' ') : 'N/A'
         );
         $table_data[] = array(
             'key' => __('PGP key status'),
-            'class_value' => "bold" . (empty($user['User']['pgp_status']) || $user['User']['pgp_status'] != 'OK') ? 'red': 'green',
+            'value_class' => (empty($user['User']['pgp_status']) || $user['User']['pgp_status'] !== 'OK') ? 'red': '',
             'value' => !empty($user['User']['pgp_status']) ? $user['User']['pgp_status'] : 'N/A'
         );
     }
@@ -117,7 +117,7 @@
     }
     echo $this->element('genericElements/assetLoader', array(
         'css' => array('vis', 'distribution-graph'),
-        'js' => array('vis', 'network-distribution-graph')
+        'js' => array('vis', 'jquery-ui.min', 'network-distribution-graph')
     ));
     echo sprintf(
         '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s<div style="margin-top:20px;">%s%s</div></div>',

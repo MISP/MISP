@@ -7,11 +7,11 @@
         if (file_exists(ROOT . '/app/View/Elements/genericElements/Form/Fields/' . $fieldData['type'] . 'Field.ctp')) {
             $fieldTemplate = $fieldData['type'] . 'Field';
         }
-        if (empty($fieldData['label'])) {
+        if (!isset($fieldData['label'])) {
             $fieldData['label'] = Inflector::humanize($fieldData['field']);
         }
-        
-        if (!empty($fieldDesc[$fieldData['field']])) {
+
+        if (!empty($fieldData['field']) && !empty($fieldDesc[$fieldData['field']])) {
             $fieldData['label'] .= $this->element(
                 'genericElements/Form/formInfo', array(
                     'field' => $fieldData,
@@ -47,7 +47,7 @@
         }
         //$params['class'] = sprintf('form-control %s', $params['class']);
         foreach ($fieldData as $k => $fd) {
-            if (!isset($simpleFieldAllowlist) || in_array($k, $simpleFieldAllowlist) || strpos($k, 'data-') === 0) {
+            if (!isset($simpleFieldAllowlist) || in_array($k, $simpleFieldAllowlist, true) || strpos($k, 'data-') === 0) {
                 $params[$k] = $fd;
             }
         }

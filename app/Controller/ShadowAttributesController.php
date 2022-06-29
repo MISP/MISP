@@ -9,7 +9,7 @@ App::uses('AttachmentTool', 'Tools');
  */
 class ShadowAttributesController extends AppController
 {
-    public $components = array('Acl', 'Security', 'RequestHandler', 'Email');
+    public $components = array('RequestHandler');
 
     public $paginate = array(
             'limit' => 60,
@@ -20,7 +20,6 @@ class ShadowAttributesController extends AppController
     {
         parent::beforeFilter();
         $this->set('title_for_layout', 'Proposals');
-        $this->Security->validatePost = true;
 
         // convert uuid to id if present in the url, and overwrite id field
         if (isset($this->params->query['uuid'])) {
@@ -255,7 +254,7 @@ class ShadowAttributesController extends AppController
     {
         if ($this->request->is('ajax')) {
             $this->set('ajax', true);
-            $this->layout = 'ajax';
+            $this->layout = false;
         } else {
             $this->set('ajax', false);
         }
@@ -407,27 +406,14 @@ class ShadowAttributesController extends AppController
         }
         $this->set('event_id', $event['Event']['id']);
         // combobox for types
-        $types = array_keys($this->ShadowAttribute->typeDefinitions);
-        foreach ($types as $key => $value) {
-            if (in_array($value, array('malware-sample', 'attachment'))) {
-                unset($types[$key]);
-            }
-        }
+        $types = $this->ShadowAttribute->Attribute->getNonAttachmentTypes();
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
         // combobox for categories
-        $categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
+        $categories = array_keys($this->ShadowAttribute->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
         $this->set('categories', $categories);
-
-        $fieldDesc = ['category' => [], 'type' => []];
-        foreach ($this->ShadowAttribute->categoryDefinitions as $key => $value) {
-            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
-        }
-        foreach ($this->ShadowAttribute->typeDefinitions as $key => $value) {
-            $fieldDesc['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
-        }
-        $this->set('fieldDesc', $fieldDesc);
+        $this->__common();
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
     }
 
@@ -594,17 +580,13 @@ class ShadowAttributesController extends AppController
 
         $categories = $this->_arrayToValuesIndexArray($selectedCategories);
         $this->set('categories', $categories);
-        foreach ($this->ShadowAttribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($this->ShadowAttribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        $this->set('info', $info);
+        $this->__common();
         $this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
         $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
+        $this->set('event', $event);
+        $this->set('title_for_layout', __('Propose attachment'));
     }
 
     // Propose an edit to an attribute
@@ -624,7 +606,7 @@ class ShadowAttributesController extends AppController
         $existingAttribute = $existingAttribute[0];
 
         // Check if the attribute is an attachment, if yes, block the type and the value fields from being edited.
-        if ('attachment' == $existingAttribute['Attribute']['type'] || 'malware-sample' == $existingAttribute['Attribute']['type']) {
+        if ($this->ShadowAttribute->Attribute->typeIsAttachment($existingAttribute['Attribute']['type'])) {
             $this->set('attachment', true);
             $attachment = true;
         } else {
@@ -708,7 +690,7 @@ class ShadowAttributesController extends AppController
                     }
                     throw new InternalErrorException(__('Could not save the proposal. Errors: %s', $message));
                 } else {
-                    $this->Flash->error(__('The ShadowAttribute could not be saved. Please, try again.'));
+                    $this->Flash->error(__('The proposed Attribute could not be saved. Please, try again.'));
                 }
             }
         } else {
@@ -719,12 +701,7 @@ class ShadowAttributesController extends AppController
         }
 
         // combobox for types
-        $types = array_keys($this->ShadowAttribute->typeDefinitions);
-        foreach ($types as $key => $value) {
-            if (in_array($value, array('malware-sample', 'attachment'))) {
-                unset($types[$key]);
-            }
-        }
+        $types = $this->ShadowAttribute->Attribute->getNonAttachmentTypes();
         if ($existingAttribute['Attribute']['object_id']) {
             $this->set('objectAttribute', true);
         } else {
@@ -733,15 +710,10 @@ class ShadowAttributesController extends AppController
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
         // combobox for categories
-        $categories = $this->_arrayToValuesIndexArray(array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions));
+        $categories = $this->_arrayToValuesIndexArray(array_keys($this->ShadowAttribute->Attribute->categoryDefinitions));
         $categories = $this->_arrayToValuesIndexArray($categories);
-        foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
-        }
-        $categoryDefinitions = $this->ShadowAttribute->Event->Attribute->categoryDefinitions;
+
+        $categoryDefinitions = $this->ShadowAttribute->Attribute->categoryDefinitions;
         if ($existingAttribute['Attribute']['object_id']) {
             foreach ($categoryDefinitions as $k => $v) {
                 if (!in_array($existingAttribute['Attribute']['type'], $v['types'])) {
@@ -755,10 +727,22 @@ class ShadowAttributesController extends AppController
             }
         }
         $this->set('categories', $categories);
-        $this->set('info', $info);
+        $this->__common();
         $this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
-        $this->set('categoryDefinitions', $this->ShadowAttribute->Event->Attribute->categoryDefinitions);
+        $this->set('categoryDefinitions', $this->ShadowAttribute->Attribute->categoryDefinitions);
+    }
+
+    private function __common()
+    {
+        $fieldDesc = ['category' => [], 'type' => []];
+        foreach ($this->ShadowAttribute->categoryDefinitions as $key => $value) {
+            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
+        }
+        foreach ($this->ShadowAttribute->typeDefinitions as $key => $value) {
+            $fieldDesc['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
+        }
+        $this->set('fieldDesc', $fieldDesc);
     }
 
     public function delete($id)
@@ -832,17 +816,10 @@ class ShadowAttributesController extends AppController
 
     public function viewPicture($id, $thumbnail=false)
     {
+        $conditions = $this->ShadowAttribute->buildConditions($this->Auth->user());
         $conditions['ShadowAttribute.id'] = $id;
         $conditions['ShadowAttribute.type'] = 'attachment';
-        $options = array(
-            'conditions' => $conditions,
-            'includeAllTags' => false,
-            'includeAttributeUuid' => true,
-            'flatten' => true,
-            'deleted' => [0, 1]
-        );
 
-        
         $sa = $this->ShadowAttribute->find('first', array(
             'recursive' => -1,
             'contain' => ['Event', 'Attribute'], // required because of conditions
@@ -1081,25 +1058,27 @@ class ShadowAttributesController extends AppController
             $this->Flash->success(__('All done. ' . $k . ' proposals processed.'));
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         } else {
+            /** @var Job $job */
             $job = ClassRegistry::init('Job');
-            $job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'generate proposal correlation',
-                    'job_input' => 'All attributes',
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => 'ADMIN',
-                    'message' => 'Job created.',
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate proposal correlation',
+                'All attributes',
+                'Job created.'
             );
-            $job->save($data);
-            $jobId = $job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'AdminShell',
-                    array('jobGenerateShadowAttributeCorrelation', $jobId)
+
+            $this->Attribute->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateShadowAttributeCorrelation',
+                    $jobId
+                ],
+                true,
+                $jobId
             );
-            $job->saveField('process_id', $process_id);
+
             $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
             $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         }

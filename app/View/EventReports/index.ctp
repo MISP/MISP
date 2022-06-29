@@ -41,7 +41,7 @@
                     )
                 )
             ),
-            'title' => sprintf(__('Event Reports %s'), !empty($event_id) ?__('for Event %s', h($event_id)) : ''),
+            'title' => __('Event Reports %s', !empty($event_id) ?__('for Event %s', h($event_id)) : ''),
             'primary_id_path' => 'EventReport.id',
             'fields' => array(
                 array(
@@ -58,6 +58,7 @@
                 ),
                 array(
                     'name' => __('Event ID'),
+                    'sort' => 'event_id',
                     'class' => 'short',
                     'element' => 'links',
                     'data_path' => 'EventReport.event_id',
@@ -91,25 +92,19 @@
                     'url_params_data_paths' => array(
                         'EventReport.id'
                     ),
-                    'icon' => 'edit'
+                    'icon' => 'edit',
+                    'complex_requirement' => function (array $row) use ($me) {
+                        return $me['Role']['perm_site_admin'] || $me['org_id'] == $row['Event']['orgc_id'];
+                    }
                 ),
                 array(
                     'title' => __('Delete'),
                     'icon' => 'trash',
                     'onclick' => 'simplePopup(\'' . $baseurl . '/event_reports/delete/[onclick_params_data_path]\');',
                     'onclick_params_data_path' => 'EventReport.id',
-                    'complex_requirement' => array(
-                        'function' => function ($row, $options) {
-                            return ($options['me']['Role']['perm_site_admin'] || $options['me']['org_id'] == $options['datapath']['orgc']) && !$options['datapath']['deleted'];
-                        },
-                        'options' => array(
-                            'me' => $me,
-                            'datapath' => array(
-                                'orgc' => 'Event.orgc_id',
-                                'deleted' => 'EventReport.deleted'
-                            )
-                        )
-                    ),
+                    'complex_requirement' => function (array $row) use ($me) {
+                        return ($me['Role']['perm_site_admin'] || $me['org_id'] == $row['Event']['orgc_id']) && !$row['EventReport']['deleted'];
+                    }
                 ),
                 array(
                     'title' => __('Restore report'),
@@ -118,23 +113,14 @@
                     'icon' => 'trash-restore',
                     'postLink' => true,
                     'postLinkConfirm' => __('Are you sure you want to restore the Report?'),
-                    'complex_requirement' => array(
-                        'function' => function ($row, $options) {
-                            return ($options['me']['Role']['perm_site_admin'] || $options['me']['org_id'] == $options['datapath']['orgc']) && $options['datapath']['deleted'];
-                        },
-                        'options' => array(
-                            'me' => $me,
-                            'datapath' => array(
-                                'orgc' => 'Event.orgc_id',
-                                'deleted' => 'EventReport.deleted'
-                            )
-                        )
-                    ),
+                    'complex_requirement' => function (array $row) use ($me) {
+                        return ($me['Role']['perm_site_admin'] || $me['org_id'] == $row['Event']['orgc_id']) && $row['EventReport']['deleted'];
+                    }
                 ),
             )
         )
     ));
-    if(!$embedded_view) {
+    if (!$embedded_view) {
         echo '</div>';
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'eventReports', 'menuItem' => 'index'));
     }

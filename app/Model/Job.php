@@ -8,6 +8,11 @@ class Job extends AppModel
         STATUS_FAILED = 3,
         STATUS_COMPLETED = 4;
 
+    const WORKER_EMAIL = 'email',
+        WORKER_PRIO = 'prio',
+        WORKER_DEFAULT = 'default',
+        WORKER_CACHE = 'cache';
+
     public $belongsTo = array(
         'Org' => array(
             'className' => 'Organisation',
@@ -19,7 +24,6 @@ class Job extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
         $date = date('Y-m-d H:i:s');
         if (empty($this->data['Job']['id'])) {
             $this->data['Job']['date_created'] = $date;
@@ -29,42 +33,76 @@ class Job extends AppModel
 
     public function cache($type, $user)
     {
-        $extra = null;
-        $extra2 = null;
-        $shell = 'Event';
-        $this->create();
-        $data = array(
-                'worker' => 'cache',
-                'job_type' => 'cache_' . $type,
-                'job_input' => $user['Role']['perm_site_admin'] ? 'All events.' : 'Events visible to: ' . $user['Organisation']['name'],
-                'status' => 0,
-                'retries' => 0,
-                'org_id' => $user['Role']['perm_site_admin'] ? 0 : $user['org_id'],
-                'message' => 'Fetching events.',
+        $jobId = $this->createJob(
+            $user,
+            Job::WORKER_CACHE,
+            'cache_' . $type,
+            $user['Role']['perm_site_admin'] ? 'All events.' : 'Events visible to: ' . $user['Organisation']['name'],
+            'Fetching events.'
         );
-        $this->save($data);
-        $id = $this->id;
+
         $this->Event = ClassRegistry::init('Event');
-        if (in_array($type, array_keys($this->Event->export_types)) && $type !== 'bro') {
-            $process_id = CakeResque::enqueue(
+
+        if (in_array($type, array_keys($this->Event->exportTypes())) && $type !== 'bro') {
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::CACHE_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                [
                     'cache',
-                    $shell . 'Shell',
-                    array('cache', $user['id'], $id, $type),
-                    true
+                    $user['id'],
+                    $jobId,
+                    $type
+                ],
+                true,
+                $jobId
             );
         } elseif ($type === 'bro') {
-            $type = 'bro';
-            $process_id = CakeResque::enqueue(
-                    'cache',
-                    $shell . 'Shell',
-                    array('cachebro', $user['id'], $id),
-                    true
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::CACHE_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                [
+                    'cachebro',
+                    $user['id'],
+                    $jobId,
+                    $type
+                ],
+                true,
+                $jobId
             );
         } else {
             throw new MethodNotAllowedException('Invalid export type.');
         }
-        $this->saveField('process_id', $process_id);
-        return $id;
+
+        return $jobId;
+    }
+
+    /**
+     * @param array|string $user
+     * @param string $worker
+     * @param string $jobType
+     * @param string$jobInput
+     * @param string $message
+     * @return int Job ID
+     * @throws Exception
+     */
+    public function createJob($user, $worker, $jobType, $jobInput, $message = '')
+    {
+        $job = [
+            'worker' => $worker,
+            'status' => 0,
+            'retries' => 0,
+            'org_id' => $user === 'SYSTEM' ? 0 : $user['org_id'],
+            'job_type' => $jobType,
+            'job_input' => $jobInput,
+            'message' => $message,
+        ];
+        $this->create();
+        if (!$this->save($job, ['atomic' => false])) { // no need to start transaction for single insert
+            throw new Exception("Could not save job.");
+        }
+        return (int)$this->id;
     }
 
     /**

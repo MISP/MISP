@@ -1,6 +1,8 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
+App::uses('ServerSyncTool', 'Tools');
+App::uses('ProcessTool', 'Tools');
 
 /**
  * @property Attribute $Attribute
@@ -48,7 +50,7 @@ class Sighting extends AppModel
             ),
     );
 
-    public $type = array(
+    const TYPE = array(
         0 => 'sighting',
         1 => 'false-positive',
         2 => 'expiration'
@@ -62,7 +64,6 @@ class Sighting extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
         if (empty($this->data['Sighting']['id']) && empty($this->data['Sighting']['date_sighting'])) {
             $this->data['Sighting']['date_sighting'] = date('Y-m-d H:i:s');
         }
@@ -76,11 +77,9 @@ class Sighting extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        parent::afterSave($created, $options = array());
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_sighting_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_sighting_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $pubToZmq = $this->pubToZmq('sighting');
+        $kafkaTopic = $this->kafkaTopic('sighting');
+        if ($pubToZmq || $kafkaTopic) {
             $user = array(
                 'org_id' => -1,
                 'Role' => array(
@@ -92,7 +91,7 @@ class Sighting extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->sighting_save($sighting, 'add');
             }
-            if ($pubToKafka) {
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $sighting, 'add');
             }
@@ -102,11 +101,9 @@ class Sighting extends AppModel
 
     public function beforeDelete($cascade = true)
     {
-        parent::beforeDelete();
-        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_sighting_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_sighting_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $pubToZmq = $this->pubToZmq('sighting');
+        $kafkaTopic = $this->kafkaTopic('sighting');
+        if ($pubToZmq || $kafkaTopic) {
             $user = array(
                 'org_id' => -1,
                 'Role' => array(
@@ -118,7 +115,7 @@ class Sighting extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->sighting_save($sighting, 'delete');
             }
-            if ($pubToKafka) {
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $sighting, 'delete');
             }
@@ -443,7 +440,7 @@ class Sighting extends AppModel
         $sparklineData = [];
         $range = $this->getMaximumRange();
         foreach ($groupedSightings as $sighting) {
-            $type = $this->type[$sighting['type']];
+            $type = self::TYPE[$sighting['type']];
             $orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : __('Others');
             $count = (int)$sighting['sighting_count'];
             $inRange = strtotime($sighting['date']) >= $range;
@@ -643,7 +640,7 @@ class Sighting extends AppModel
         return $this->attachOrgToSightings($sightings, $user, $forSync);
     }
 
-    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false)
+    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false, $filters=[])
     {
         if (!in_array($type, array(0, 1, 2))) {
             return 'Invalid type, please change it before you POST 1000000 sightings.';
@@ -677,18 +674,27 @@ class Sighting extends AppModel
             if (!is_array($values)) {
                 $values = array($values);
             }
-            foreach ($values as $value) {
-                foreach (array('value1', 'value2') as $field) {
-                    $conditions['OR'][] = array(
-                        'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value)
-                    );
+            if (empty($filters)) {
+                foreach ($values as $value) {
+                    foreach (array('value1', 'value2') as $field) {
+                        $conditions['OR'][] = array(
+                            'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value)
+                        );
+                    }
                 }
             }
         }
-        $attributes = $this->Attribute->fetchAttributesSimple($user, [
-            'conditions' => $conditions,
-            'fields' => ['Attribute.id', 'Attribute.event_id'],
-        ]);
+        $attributes = [];
+        if (empty($filters)) {
+            $attributes = $this->Attribute->fetchAttributesSimple($user, [
+                'conditions' => $conditions,
+                'fields' => ['Attribute.id', 'Attribute.event_id'],
+            ]);
+        } else {
+            $filters['value'] = $values;
+            $params = $this->Attribute->restSearch($user, 'json', $filters, true);
+            $attributes = $this->Attribute->fetchAttributes($user, $params);
+        }
         if (empty($attributes)) {
             return 'No valid attributes found that match the criteria.';
         }
@@ -739,7 +745,7 @@ class Sighting extends AppModel
         $tempFile->close();
         $scriptFile = APP . "files" . DS . "scripts" . DS . "stixsighting2misp.py";
         // Execute the python script and point it to the temporary filename
-        $result = shell_exec($this->getPythonVersion() . ' ' . $scriptFile . ' ' . $randomFileName);
+        $result = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile, $randomFileName]);
         // The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
         // If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
         $result = json_decode($result, true);
@@ -1101,36 +1107,170 @@ class Sighting extends AppModel
         }
     }
 
-    public function pullSightings($user, $server)
+    /**
+     * Push sightings to remote server.
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @return array
+     * @throws Exception
+     */
+    public function pushSightings(array $user, ServerSyncTool $serverSync)
     {
-        $HttpSocket = $this->setupHttpSocket($server);
+        $server = $serverSync->server();
+
+        if (!$serverSync->server()['Server']['push_sightings']) {
+            return [];
+        }
         $this->Server = ClassRegistry::init('Server');
+
         try {
-            $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, 'sightings');
+            $eventArray = $this->Server->getEventIndexFromServer($serverSync);
         } catch (Exception $e) {
             $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
-            return 0;
+            return [];
         }
-        $saved = 0;
-        // now process the $eventIds to pull each of the events sequentially
-        // download each event and save sightings
-        foreach ($eventIds as $k => $eventId) {
-            try {
-                $event = $this->Event->downloadEventFromServer($eventId, $server);
-            } catch (Exception $e) {
-                $this->logException("Failed downloading the event $eventId from {$server['Server']['name']}.", $e);
+
+        // Fetch local events that has sightings
+        $localEvents = $this->Event->find('list', [
+            'fields' => ['Event.uuid', 'Event.sighting_timestamp'],
+            'conditions' => [
+                'Event.uuid' => array_column($eventArray, 'uuid'),
+                'Event.sighting_timestamp >' => 0,
+            ],
+        ]);
+
+        // Filter just local events that has sighting_timestamp newer than remote event
+        $eventUuids = [];
+        foreach ($eventArray as $event) {
+            if (isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
+                $eventUuids[] = $event['uuid'];
+            }
+        }
+        unset($localEvents, $eventArray);
+
+        $fakeSyncUser = [
+            'org_id' => $server['Server']['remote_org_id'],
+            'Role' => [
+                'perm_site_admin' => 0,
+            ],
+        ];
+
+        $successes = [];
+        // now process the $eventUuids to push each of the events sequentially
+        // check each event and push sightings when needed
+        foreach ($eventUuids as $eventUuid) {
+            $event = $this->Event->fetchEvent($user, ['event_uuid' => $eventUuid, 'metadata' => true]);
+            if (empty($event)) {
                 continue;
             }
-            $sightings = array();
-            if (!empty($event) && !empty($event['Event']['Attribute'])) {
+            $event = $event[0];
+
+            if (empty($this->Server->eventFilterPushableServers($event, [$server]))) {
+                continue;
+            }
+            if (!$this->Event->checkDistributionForPush($event, $server)) {
+                continue;
+            }
+
+            // Process sightings in batch to keep memory requirements low
+            foreach ($this->fetchUuidsForEventToPush($event, $fakeSyncUser) as $batch) {
+                // Filter out sightings that already exists on remote server
+                $existingSightings = $serverSync->filterSightingUuidsForPush($event, $batch);
+                $newSightings = array_diff($batch, $existingSightings);
+                if (empty($newSightings)) {
+                    continue;
+                }
+
+                $conditions = ['Sighting.uuid' => $newSightings];
+                $sightings = $this->attachToEvent($event, $fakeSyncUser, null, $conditions, true);
+                $serverSync->uploadSightings($sightings, $event['Event']['uuid']);
+            }
+
+            $successes[] = 'Sightings for event ' .  $event['Event']['id'];
+        }
+        return $successes;
+    }
+
+    /**
+     * @param array $user
+     * @param ServerSyncTool $serverSync
+     * @return int Number of saved sighting.
+     * @throws Exception
+     */
+    public function pullSightings(array $user, ServerSyncTool $serverSync)
+    {
+        $this->Server = ClassRegistry::init('Server');
+        try {
+            $remoteEvents = $this->Server->getEventIndexFromServer($serverSync);
+        } catch (Exception $e) {
+            $this->logException("Could not fetch event IDs from server {$serverSync->server()['Server']['name']}", $e);
+            return 0;
+        }
+
+        // Remove events from list that do not have published sightings.
+        foreach ($remoteEvents as $k => $remoteEvent) {
+            if ($remoteEvent['sighting_timestamp'] == 0) {
+                unset($remoteEvents[$k]);
+            }
+        }
+
+        // Downloads sightings just from events that exists locally and remote sighting_timestamp is newer than local.
+        $localEvents = $this->Event->find('list', [
+            'fields' => ['Event.uuid', 'Event.sighting_timestamp'],
+            'conditions' => (count($remoteEvents) > 10000) ? [] : ['Event.uuid' => array_column($remoteEvents, 'uuid')],
+        ]);
+
+        $eventUuids = [];
+        foreach ($remoteEvents as $remoteEvent) {
+            if (isset($localEvents[$remoteEvent['uuid']]) && $localEvents[$remoteEvent['uuid']] < $remoteEvent['sighting_timestamp']) {
+                $eventUuids[] = $remoteEvent['uuid'];
+            }
+        }
+        unset($remoteEvents, $localEvents);
+
+        $saved = 0;
+        // We don't need some of the event data, like correlations and event reports
+        $params = [
+            'deleted' => [0, 1],
+            'excludeGalaxy' => 1,
+            'excludeLocalTags' => 1,
+            'includeAttachments' => 0,
+            'includeEventCorrelations' => 0,
+            'includeFeedCorrelations' => 0,
+            'includeWarninglistHits' => 0,
+            'noEventReports' => 1,
+            'noShadowAttributes' => 1,
+        ];
+        // now process the $eventUuids to pull each of the events sequentially
+        // download each event and save sightings
+        foreach ($eventUuids as $eventUuid) {
+            try {
+                $event = $serverSync->fetchEvent($eventUuid, $params)->json();
+            } catch (Exception $e) {
+                $this->logException("Failed downloading the event $eventUuid from {$serverSync->server()['Server']['name']}.", $e);
+                continue;
+            }
+            $sightings = [];
+            if (!empty($event['Event']['Attribute'])) {
                 foreach ($event['Event']['Attribute'] as $attribute) {
                     if (!empty($attribute['Sighting'])) {
                         $sightings = array_merge($sightings, $attribute['Sighting']);
                     }
                 }
             }
-            if (!empty($event) && !empty($sightings)) {
-                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
+            if (!empty($event['Event']['Object'])) {
+                foreach ($event['Event']['Object'] as $object) {
+                    if (!empty($object['Attribute'])) {
+                        foreach ($object['Attribute'] as $attribute) {
+                            if (!empty($attribute['Sighting'])) {
+                                $sightings = array_merge($sightings, $attribute['Sighting']);
+                            }
+                        }
+                    }
+                }
+            }
+            if (!empty($sightings)) {
+                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $serverSync->serverId());
                 if (is_numeric($result)) {
                     $saved += $result;
                 }
@@ -1239,7 +1379,7 @@ class Sighting extends AppModel
 
     private function dateVirtualColumn()
     {
-        if (in_array($this->getDataSource()->config['datasource'], ['Database/Mysql', 'Database/MysqlObserver'], true)) {
+        if ($this->isMysql()) {
             return 'DATE(FROM_UNIXTIME(Sighting.date_sighting))';
         } else {
             return "to_char(date(to_timestamp(Sighting.date_sighting)), 'YYYY-MM-DD')"; // PostgreSQL

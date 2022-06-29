@@ -1,6 +1,6 @@
 [submodule "app/Lib/cakephp"]
 	path = app/Lib/cakephp
-	url = https://github.com/cakephp/cakephp.git
+    url = https://github.com/MISP/cakephp.git
 	branch = 2.x
 [submodule "PyMISP"]
 	path = PyMISP
@@ -11,10 +11,6 @@
 [submodule "app/files/warninglists"]
 	path = app/files/warninglists
 	url = https://github.com/MISP/misp-warninglists.git
-[submodule "app/Lib/random_compat"]
-	path = app/Lib/random_compat
-	url = https://github.com/paragonie/random_compat
-	branch = master
 [submodule "app/files/misp-galaxy"]
 	path = app/files/misp-galaxy
 	url = https://github.com/MISP/misp-galaxy
@@ -25,7 +21,7 @@
 	path = misp-vagrant
 	url = https://github.com/MISP/misp-vagrant.git
 [submodule "cti-python-stix2"]
-	path = cti-python-stix2
+	path = app/files/scripts/cti-python-stix2
 	url = https://github.com/MISP/cti-python-stix2
 [submodule "app/files/noticelists"]
 	path = app/files/noticelists
@@ -36,3 +32,19 @@
 [submodule "app/files/scripts/misp-opendata"]
 	path = app/files/scripts/misp-opendata
 	url = https://github.com/MISP/misp-opendata
+[submodule "app/files/scripts/misp-stix"]
+	path = app/files/scripts/misp-stix
+    url = https://github.com/misp/misp-stix.git
+    branch = main
+[submodule "app/files/scripts/python-stix"]
+	path = app/files/scripts/python-stix
+	url = https://github.com/STIXProject/python-stix
+[submodule "app/files/scripts/python-cybox"]
+	path = app/files/scripts/python-cybox
+	url = https://github.com/CybOXProject/python-cybox
+[submodule "app/files/scripts/mixbox"]
+	path = app/files/scripts/mixbox
+	url = https://github.com/CybOXProject/mixbox
+[submodule "app/files/scripts/python-maec"]
+	path = app/files/scripts/python-maec
+	url = https://github.com/MAECProject/python-maec

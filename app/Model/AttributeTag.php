@@ -9,18 +9,20 @@ class AttributeTag extends AppModel
 {
     public $actsAs = array('AuditLog', 'Containable');
 
-    public $validate = array(
-        'attribute_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-        ),
-        'tag_id' => array(
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
-        ),
-    );
+    public $validate = [
+        'attribute_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+        ],
+        'event_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+        ],
+        'tag_id' => [
+            'rule' => 'numeric',
+            'required' => true,
+        ],
+    ];
 
     public $belongsTo = array(
         'Attribute' => array(
@@ -33,11 +35,9 @@ class AttributeTag extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        parent::afterSave($created, $options);
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('tag');
+        if ($pubToZmq || $kafkaTopic) {
             $tag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('AttributeTag.id' => $this->id),
@@ -50,7 +50,7 @@ class AttributeTag extends AppModel
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->tag_save($tag, 'attached to attribute');
             }
-            if ($pubToKafka) {
+            if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $tag, 'attached to attribute');
             }
@@ -60,9 +60,8 @@ class AttributeTag extends AppModel
     public function beforeDelete($cascade = true)
     {
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
-        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
-        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
-        if ($pubToZmq || $pubToKafka) {
+        $kafkaTopic = $this->kafkaTopic('tag');
+        if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->id)) {
                 $tag = $this->find('first', array(
                     'recursive' => -1,
@@ -76,7 +75,7 @@ class AttributeTag extends AppModel
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->tag_save($tag, 'detached from attribute');
                 }
-                if ($pubToKafka) {
+                if ($kafkaTopic) {
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $tag, 'detached from attribute');
                 }
@@ -138,15 +137,11 @@ class AttributeTag extends AppModel
      */
     public function attachTagToAttribute($attribute_id, $event_id, $tag_id, $local = false)
     {
-        $existingAssociation = $this->find('first', array(
-            'recursive' => -1,
-            'fields' => ['id'],
-            'conditions' => array(
-                'tag_id' => $tag_id,
-                'attribute_id' => $attribute_id
-            )
-        ));
-        if (empty($existingAssociation)) {
+        $existingAssociation = $this->hasAny([
+            'tag_id' => $tag_id,
+            'attribute_id' => $attribute_id,
+        ]);
+        if (!$existingAssociation) {
             $data = [
                 'attribute_id' => $attribute_id,
                 'event_id' => $event_id,
@@ -279,16 +274,15 @@ class AttributeTag extends AppModel
             return array();
         }
 
-        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        $cluster_names = $this->GalaxyCluster->find('list', array(
-                'recursive' => -1,
-                'fields' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id'),
-        ));
+        $clusterTagIds = array_flip($this->Tag->find('column', array(
+            'conditions' => ['Tag.is_galaxy' => 1],
+            'fields' => ['Tag.id'],
+        )));
         $allTags = array();
         foreach ($attributes as $attribute) {
             $attributeTags = $attribute['AttributeTag'];
             foreach ($attributeTags as $attributeTag) {
-                if ($includeGalaxies || !isset($cluster_names[$attributeTag['Tag']['name']])) {
+                if ($includeGalaxies || !isset($clusterTagIds[$attributeTag['Tag']['id']])) {
                     $allTags[$attributeTag['Tag']['id']] = $attributeTag['Tag'];
                 }
             }
@@ -308,38 +302,38 @@ class AttributeTag extends AppModel
             return array();
         }
 
+        $clusterTagIds = array_flip($this->Tag->find('column', array(
+            'conditions' => ['Tag.is_galaxy' => 1],
+            'fields' => ['Tag.id'],
+        )));
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        $cluster_names = $this->GalaxyCluster->find('list', array(
-                'recursive' => -1,
-                'fields' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id'),
-        ));
 
         $allClusters = array();
         foreach ($attributes as $attribute) {
             $attributeTags = $attribute['AttributeTag'];
 
             foreach ($attributeTags as $attributeTag) {
-                if (isset($cluster_names[$attributeTag['Tag']['name']])) {
+                if (isset($clusterTagIds[$attributeTag['Tag']['id']])) {
                     $cluster = $this->GalaxyCluster->fetchGalaxyClusters($user, array(
-                            'conditions' => array('GalaxyCluster.tag_name' => $attributeTag['Tag']['name']),
-                            'fields' => array('value', 'description', 'type'),
-                            'contain' => array(
-                                'GalaxyElement' => array(
-                                    'conditions' => array('GalaxyElement.key' => 'synonyms')
-                                )
-                            ),
-                            'first' => true
+                        'conditions' => array('GalaxyCluster.tag_name' => $attributeTag['Tag']['name']),
+                        'fields' => array('value', 'description', 'type'),
+                        'contain' => array(
+                            'GalaxyElement' => array(
+                                'conditions' => array('GalaxyElement.key' => 'synonyms')
+                            )
+                        ),
+                        'first' => true
                     ));
                     if (empty($cluster)) {
                         continue;
                     }
                     // create synonym string
                     $cluster['GalaxyCluster']['synonyms_string'] = array();
-                    foreach ($cluster['GalaxyElement'] as $element) {
+                    foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $element) {
                         $cluster['GalaxyCluster']['synonyms_string'][] = $element['value'];
                     }
                     $cluster['GalaxyCluster']['synonyms_string'] = implode(', ', $cluster['GalaxyCluster']['synonyms_string']);
-                    unset($cluster['GalaxyElement']);
+                    unset($cluster['GalaxyCluster']['GalaxyElement']);
                     $allClusters[$cluster['GalaxyCluster']['id']] = $cluster['GalaxyCluster'];
                 }
             }
@@ -347,43 +341,40 @@ class AttributeTag extends AppModel
         return $allClusters;
     }
 
-    public function extractAttributeTagsNameFromEvent(&$event, $to_extract='both')
+    /**
+     * @param array $event
+     * @return array|array[]
+     */
+    public function extractAttributeTagsNameFromEvent(array $event)
     {
-        $attribute_tags_name = array('tags' => array(), 'clusters' => array());
-        foreach ($event['Attribute'] as $i => $attribute) {
-            if ($to_extract == 'tags' || $to_extract == 'both') {
-                foreach ($attribute['AttributeTag'] as $tag) {
-                    $attribute_tags_name['tags'][] = $tag['Tag']['name'];
-                }
-            }
-            if ($to_extract == 'clusters' || $to_extract == 'both') {
-                foreach ($attribute['Galaxy'] as $galaxy) {
-                    foreach ($galaxy['GalaxyCluster'] as $cluster) {
-                        $attribute_tags_name['clusters'][] = $cluster['tag_name'];
-                    }
-                }
-            }
-        }
-        foreach ($event['Object'] as $i => $object) {
-            if (!empty($object['Attribute'])) {
-                foreach ($object['Attribute'] as $j => $object_attribute) {
-                    if ($to_extract == 'tags' || $to_extract == 'both') {
-                        foreach ($object_attribute['AttributeTag'] as $tag) {
-                            $attribute_tags_name['tags'][] = $tag['Tag']['name'];
-                        }
-                    }
-                    if ($to_extract == 'clusters' || $to_extract == 'both') {
-                        foreach ($object_attribute['Galaxy'] as $galaxy) {
-                            foreach ($galaxy['GalaxyCluster'] as $cluster) {
-                                $attribute_tags_name['clusters'][] = $cluster['tag_name'];
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        $attribute_tags_name['tags'] = array_diff_key($attribute_tags_name['tags'], $attribute_tags_name['clusters']); // de-dup if needed.
-        return $attribute_tags_name;
-    }
+        $extractedTags = [];
+        $extractedClusters = [];
 
+        foreach ($event['Attribute'] as $attribute) {
+            foreach ($attribute['AttributeTag'] as $tag) {
+                $extractedTags[$tag['Tag']['id']] = $tag['Tag']['name'];
+            }
+            foreach ($attribute['Galaxy'] as $galaxy) {
+                foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                    $extractedClusters[$cluster['tag_id']] = $cluster['tag_name'];
+                }
+            }
+        }
+        foreach ($event['Object'] as $object) {
+            if (!empty($object['Attribute'])) {
+                foreach ($object['Attribute'] as $object_attribute) {
+                    foreach ($object_attribute['AttributeTag'] as $tag) {
+                        $extractedTags[$tag['Tag']['id']] = $tag['Tag']['name'];
+                    }
+                    foreach ($object_attribute['Galaxy'] as $galaxy) {
+                        foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                            $extractedClusters[$cluster['tag_id']] = $cluster['tag_name'];
+                        }
+                    }
+                }
+            }
+        }
+        $extractedTags = array_diff_key($extractedTags, $extractedClusters); // de-dup if needed.
+        return ['tags' => $extractedTags, 'clusters' => $extractedClusters];
+    }
 }

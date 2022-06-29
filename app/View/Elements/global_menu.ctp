@@ -57,13 +57,13 @@
                         'url' => $baseurl . '/tags/index'
                     ),
                     array(
-                        'text' => __('List Tag Collections'),
-                        'url' => $baseurl . '/tag_collections/index'
-                    ),
-                    array(
                         'text' => __('Add Tag'),
                         'url' => $baseurl . '/tags/add',
                         'requirement' => $isAclTagEditor
+                    ),
+                    array(
+                        'text' => __('List Tag Collections'),
+                        'url' => $baseurl . '/tag_collections/index'
                     ),
                     array(
                         'text' => __('List Taxonomies'),
@@ -72,11 +72,6 @@
                     array(
                         'text' => __('List Templates'),
                         'url' => $baseurl . '/templates/index'
-                    ),
-                    array(
-                        'text' => __('Add Template'),
-                        'url' => $baseurl . '/templates/add',
-                        'requirement' => $isAclTemplate
                     ),
                     array(
                         'type' => 'separator'
@@ -218,6 +213,16 @@
                     array(
                         'text' => __('Add Sharing Group'),
                         'url' => $baseurl . '/sharing_groups/add',
+                        'requirement' => $isAclSharingGroup
+                    ),
+                    array(
+                        'text' => __('List Sharing Groups Blueprints'),
+                        'url' => $baseurl . '/sharing_group_blueprints/index',
+                        'requirement' => $isAclSharingGroup
+                    ),
+                    array(
+                        'text' => __('Add Sharing Group Blueprint'),
+                        'url' => $baseurl . '/sharing_group_blueprints/add',
                         'requirement' => $isAclSharingGroup
                     ),
                     array(
@@ -478,12 +483,12 @@
                 'children' => array(
                     array(
                         'text' => __('OpenAPI'),
-                        'url' => $baseurl . '/servers/openapi'
+                        'url' => $baseurl . '/api/openapi'
                     ),
                     array(
                         'text' => __('REST client'),
-                        'url' => $baseurl . '/servers/rest',
-                        'requirement' => $canAccess('servers', 'rest')
+                        'url' => $baseurl . '/api/rest',
+                        'requirement' => $canAccess('api', 'rest')
                     )
                 )
             )
@@ -495,8 +500,8 @@
                 'html' => sprintf(
                     '<span class="fas fa-star %s" id="setHomePage" title="%s" role="img" aria-label="%s" data-current-page="%s"></span>',
                     (!empty($homepage['path']) && $homepage['path'] === $this->here) ? 'orange' : '',
-		    __('Set the current page as your home page in MISP'),
-		    __('Set the current page as your home page in MISP'),
+		            __('Set the current page as your home page in MISP'),
+		            __('Set the current page as your home page in MISP'),
                     h($this->here)
                 )
             ),
@@ -505,6 +510,12 @@
                 'url' => empty($homepage['path']) ? $baseurl : $baseurl . h($homepage['path']),
                 'html' => '<span class="logoBlueStatic bold" id="smallLogo">MISP</span>'
             ),
+            [
+                'type' => 'root',
+                'url' => Configure::read('MISP.menu_custom_right_link'),
+                'html' => Configure::read('MISP.menu_custom_right_link_html'),
+                'requirement' => !empty(Configure::read('MISP.menu_custom_right_link')),
+            ],
             array(
                 'type' => 'root',
                 'url' => $baseurl . '/dashboards',
@@ -512,11 +523,11 @@
                     '<span class="white" title="%s">%s%s&nbsp;&nbsp;&nbsp;%s</span>',
                     h($me['email']),
                     $this->UserName->prepend($me['email']),
-                    h($loggedInUserName),
-                    isset($notifications) ? sprintf(
+                    h($this->UserName->convertEmailToName($me['email'])),
+                    isset($hasNotifications) ? sprintf(
                         '<i class="fa fa-envelope %s" role="img" aria-label="%s"></i>',
-                        (($notifications['total'] == 0) ? 'white' : 'red'),
-                        __('Notifications') . ': ' . $notifications['total']
+                        $hasNotifications ? 'red' : 'white',
+                        __('Notifications')
                     ) : ''
                 )
             ),
@@ -528,7 +539,7 @@
         );
     }
 ?>
-<div id="topBar" class="navbar navbar-inverse <?php echo $debugMode;?>">
+<div id="topBar" class="navbar navbar-inverse <?= isset($debugMode) ? $debugMode : 'debugOff' ?>">
   <div class="navbar-inner">
     <ul class="nav">
         <?php

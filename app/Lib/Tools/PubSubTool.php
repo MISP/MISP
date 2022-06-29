@@ -1,4 +1,8 @@
 <?php
+App::uses('FileAccessTool', 'Tools');
+App::uses('JsonTool', 'Tools');
+App::uses('ProcessTool', 'Tools');
+
 class PubSubTool
 {
     const SCRIPTS_TMP = APP . 'files' . DS . 'scripts' . DS . 'tmp' . DS;
@@ -9,18 +13,12 @@ class PubSubTool
      */
     private $redis;
 
-    /**
-     * @var array
-     */
-    private $settings;
-
     public function initTool()
     {
         if (!$this->redis) {
             $settings = $this->getSetSettings();
             $this->setupPubServer($settings);
             $this->redis = $this->createRedisConnection($settings);
-            $this->settings = $settings;
         }
     }
 
@@ -35,17 +33,19 @@ class PubSubTool
      */
     public function checkIfRunning($pidFilePath = null)
     {
-        $pidFile = new File($pidFilePath ?: self::SCRIPTS_TMP . 'mispzmq.pid');
-        if (!$pidFile->exists()) {
+        $pidFile = $pidFilePath ?: self::SCRIPTS_TMP . 'mispzmq.pid';
+        clearstatcache(false, $pidFile);
+        if (!file_exists($pidFile)) {
             return false;
         }
-        $pid = $pidFile->read();
+        $pid = file_get_contents($pidFile);
         if ($pid === false || $pid === '') {
             return false;
         }
         if (!is_numeric($pid)) {
             throw new Exception('Internal error (invalid PID file for the MISP zmq script)');
         }
+        clearstatcache(false, "/proc/$pid");
         $result = file_exists("/proc/$pid");
         if ($result === false) {
             return false;
@@ -57,8 +57,8 @@ class PubSubTool
     {
         $settings = $this->getSetSettings();
         $redis = $this->createRedisConnection($settings);
-        $redis->rPush($settings['redis_namespace'] . ':command', 'status');
-        $response = $redis->blPop($settings['redis_namespace'] . ':status', 5);
+        $redis->rPush( 'command', 'status');
+        $response = $redis->blPop('status', 5);
         if ($response === null) {
             throw new Exception("No response from status command returned after 5 seconds.");
         }
@@ -67,9 +67,9 @@ class PubSubTool
 
     public function checkIfPythonLibInstalled()
     {
-        $my_server = ClassRegistry::init('Server');
-        $result = trim(shell_exec($my_server->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmqtest.py'));
-        if ($result === "OK") {
+        $script = APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmqtest.py';
+        $result = ProcessTool::execute([ProcessTool::pythonBin(), $script]);
+        if (trim($result) === "OK") {
             return true;
         }
         return false;
@@ -78,9 +78,8 @@ class PubSubTool
     public function publishEvent($event)
     {
         App::uses('JSONConverterTool', 'Tools');
-        $jsonTool = new JSONConverterTool();
-        $json = $jsonTool->convert($event);
-        return $this->pushToRedis(':data:misp_json', $json);
+        $json = JSONConverterTool::convert($event, false, true);
+        return $this->pushToRedis('data:misp_json', $json);
     }
 
     public function event_save(array $event, $action)
@@ -88,7 +87,7 @@ class PubSubTool
         if (!empty($action)) {
             $event['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_event', $event);
+        return $this->pushToRedis('data:misp_json_event', $event);
     }
 
     public function object_save(array $object, $action)
@@ -96,7 +95,7 @@ class PubSubTool
         if (!empty($action)) {
             $object['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_object', $object);
+        return $this->pushToRedis('data:misp_json_object', $object);
     }
 
     public function object_reference_save(array $object_reference, $action)
@@ -104,12 +103,12 @@ class PubSubTool
         if (!empty($action)) {
             $object_reference['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_object_reference', $object_reference);
+        return $this->pushToRedis('data:misp_json_object_reference', $object_reference);
     }
 
     public function publishConversation(array $message)
     {
-        return $this->pushToRedis(':data:misp_json_conversation', $message);
+        return $this->pushToRedis('data:misp_json_conversation', $message);
     }
 
     public function attribute_save(array $attribute, $action = false)
@@ -117,7 +116,7 @@ class PubSubTool
         if (!empty($action)) {
             $attribute['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_attribute', $attribute);
+        return $this->pushToRedis('data:misp_json_attribute', $attribute);
     }
 
     public function tag_save(array $tag, $action = false)
@@ -125,7 +124,7 @@ class PubSubTool
         if (!empty($action)) {
             $tag['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_tag', $tag);
+        return $this->pushToRedis('data:misp_json_tag', $tag);
     }
 
     public function sighting_save(array $sighting, $action = false)
@@ -133,7 +132,7 @@ class PubSubTool
         if (!empty($action)) {
             $sighting['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_sighting', $sighting);
+        return $this->pushToRedis('data:misp_json_sighting', $sighting);
     }
 
     public function warninglist_save(array $warninglist, $action = false)
@@ -141,7 +140,7 @@ class PubSubTool
         if (!empty($action)) {
             $warninglist['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_warninglist', $warninglist);
+        return $this->pushToRedis('data:misp_json_warninglist', $warninglist);
     }
 
     /**
@@ -149,13 +148,14 @@ class PubSubTool
      * @param string $type
      * @param string|false $action
      * @return bool
+     * @throws JsonException
      */
     public function modified($data, $type, $action = false)
     {
         if (!empty($action)) {
             $data['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_' . $type, $data);
+        return $this->pushToRedis('data:misp_json_' . $type, $data);
     }
 
     public function publish($data, $type, $action = false)
@@ -163,7 +163,7 @@ class PubSubTool
         if (!empty($action)) {
             $data['action'] = $action;
         }
-        return $this->pushToRedis(':data:misp_json_' . $type, $data);
+        return $this->pushToRedis('data:misp_json_' . $type, $data);
     }
 
     public function killService()
@@ -171,7 +171,7 @@ class PubSubTool
         if ($this->checkIfRunning()) {
             $settings = $this->getSetSettings();
             $redis = $this->createRedisConnection($settings);
-            $redis->rPush($settings['redis_namespace'] . ':command', 'kill');
+            $redis->rPush('command', 'kill');
             sleep(1);
             if ($this->checkIfRunning()) {
                 // Still running.
@@ -194,7 +194,7 @@ class PubSubTool
 
         if ($this->checkIfRunning()) {
             $redis = $this->createRedisConnection($settings);
-            $redis->rPush($settings['redis_namespace'] . ':command', 'reload');
+            $redis->rPush( 'command', 'reload');
         } else {
             return 'Setting saved, but something is wrong with the ZeroMQ server. Please check the diagnostics page for more information.';
         }
@@ -226,13 +226,12 @@ class PubSubTool
             if ($this->checkIfRunning(self::OLD_PID_LOCATION)) {
                 // Old version is running, kill it and start again new one.
                 $redis = $this->createRedisConnection($settings);
-                $redis->rPush($settings['redis_namespace'] . ':command', 'kill');
+                $redis->rPush('command', 'kill');
                 sleep(1);
             }
 
             $this->saveSettingToFile($settings);
-            $server = ClassRegistry::init('Server');
-            shell_exec($server->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmq.py >> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.log 2>> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.error.log &');
+            shell_exec(ProcessTool::pythonBin() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmq.py >> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.log 2>> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.error.log &');
         }
     }
 
@@ -240,23 +239,26 @@ class PubSubTool
      * @param string $ns
      * @param string|array $data
      * @return bool
+     * @throws JsonException
      */
     private function pushToRedis($ns, $data)
     {
-        if (is_array($data)) {
-            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
-        }
-
-        $this->redis->rPush($this->settings['redis_namespace'] . $ns, $data);
+        $data = JsonTool::encode($data);
+        $this->redis->rPush($ns, $data);
         return true;
     }
 
     /**
      * @param array $settings
      * @return Redis
+     * @throws Exception
      */
     private function createRedisConnection(array $settings)
     {
+        if (!class_exists('Redis')) {
+            throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
+        }
+
         $redis = new Redis();
         $redis->connect($settings['redis_host'], $settings['redis_port']);
         $redisPassword = $settings['redis_password'];
@@ -264,6 +266,7 @@ class PubSubTool
             $redis->auth($redisPassword);
         }
         $redis->select($settings['redis_database']);
+        $redis->setOption(Redis::OPT_PREFIX, $settings['redis_namespace'] . ':');
         return $redis;
     }
 
@@ -274,27 +277,21 @@ class PubSubTool
     private function saveSettingToFile(array $settings)
     {
         $settingFilePath = self::SCRIPTS_TMP . 'mispzmq_settings.json';
-        $settingsFile = new File($settingFilePath, true, 0644);
-        if (!$settingsFile->exists()) {
-            throw new Exception("Could not create zmq config file '$settingFilePath'.");
-        }
+
         // Because setting file contains secrets, it should be readable just by owner. But because in Travis test,
         // config file is created under one user and then changed under other user, file must be readable and writable
         // also by group.
-        @chmod($settingsFile->pwd(), 0660); // hide error if current user is not file owner
-        if (!$settingsFile->write(json_encode($settings))) {
-            throw new Exception("Could not write zmq config file '$settingFilePath'.");
-        }
-        $settingsFile->close();
+        FileAccessTool::createFile($settingFilePath, 0660);
+        FileAccessTool::writeToFile($settingFilePath, JsonTool::encode($settings));
     }
 
     private function getSetSettings()
     {
         $settings = array(
             'redis_host' => 'localhost',
-            'redis_port' => '6379',
+            'redis_port' => 6379,
             'redis_password' => '',
-            'redis_database' => '1',
+            'redis_database' => 1,
             'redis_namespace' => 'mispq',
             'host' => '127.0.0.1',
             'port' => '50000',
@@ -302,8 +299,9 @@ class PubSubTool
             'password' => null,
         );
 
+        $pluginConfig = Configure::read('Plugin');
         foreach ($settings as $key => $setting) {
-            $temp = Configure::read('Plugin.ZeroMQ_' . $key);
+            $temp = isset($pluginConfig['ZeroMQ_' . $key]) ? $pluginConfig['ZeroMQ_' . $key] : null;
             if ($temp) {
                 $settings[$key] = $temp;
             }

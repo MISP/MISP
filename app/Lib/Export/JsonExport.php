@@ -2,7 +2,6 @@
 
 class JsonExport
 {
-	private $__converter = false;
 	public $non_restrictive_export = true;
 
     /**
@@ -32,19 +31,13 @@ class JsonExport
      */
 	private function __eventHandler($event, $options = array())
     {
-		if ($this->__converter === false) {
-			App::uses('JSONConverterTool', 'Tools');
-			$this->__converter = new JSONConverterTool();
-		}
-		return $this->__converter->streamConvert($event);
+        App::uses('JSONConverterTool', 'Tools');
+		return JSONConverterTool::streamConvert($event);
 	}
 
     private function __objectHandler($object, $options = array()) {
-        if ($this->__converter === false) {
-            App::uses('JSONConverterTool', 'Tools');
-            $this->__converter = new JSONConverterTool();
-        }
-        return json_encode($this->__converter->convertObject($object, false, true));
+        App::uses('JSONConverterTool', 'Tools');
+        return json_encode(JSONConverterTool::convertObject($object, false, true));
     }
 
 	private function __attributeHandler($attribute, $options = array())

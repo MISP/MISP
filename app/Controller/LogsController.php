@@ -5,7 +5,6 @@ App::uses('AppController', 'Controller');
 class LogsController extends AppController
 {
     public $components = array(
-        'Security',
         'RequestHandler',
         'AdminCrud' => array(
             'crud' => array('index')
@@ -127,7 +126,7 @@ class LogsController extends AppController
         $event = $event[0];
         $attribute_ids = array();
         $object_ids = array();
-        $proposal_ids = array_column($event['ShadowAttribute'], 'id');;
+        $proposal_ids = array_column($event['ShadowAttribute'], 'id');
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $aa) {
                 $attribute_ids[] = $aa['id'];

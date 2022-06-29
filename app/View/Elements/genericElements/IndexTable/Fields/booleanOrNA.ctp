@@ -2,6 +2,9 @@
 $flag = Hash::extract($row, $field['data_path']);
 $flag = empty($flag) ? null : $flag[0];
 $icon = $text = $aria = '';
+if (!is_null($flag)) {
+    $flag = empty($field['boolean_reverse']) ? $flag : !$flag;
+}
 if (is_null($flag)) {
     $text = __('N/A');
     $aria = __('Not applicable');

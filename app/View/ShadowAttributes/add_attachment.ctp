@@ -4,9 +4,16 @@
             <legend><?php echo __('Propose Attachment'); ?></legend>
     <?php
         echo $this->Form->hidden('event_id');
+        $categoryFormInfo = $this->element('genericElements/Form/formInfo', [
+            'field' => [
+                'field' => 'category'
+            ],
+            'modelForForm' => 'ShadowAttribute',
+            'fieldDesc' => $fieldDesc['category'],
+        ]);
         echo $this->Form->input('category', array(
             'default' => 'Payload delivery',
-            'label' => __('Category ') . $this->element('formInfo', array('type' => 'category'))
+            'label' => __('Category ') . $categoryFormInfo,
         ));
         echo $this->Form->input('comment', array(
                 'type' => 'text',
@@ -38,31 +45,16 @@
 ?>
 </div>
 <?php
-    $event['Event']['id'] = $this->request->data['ShadowAttribute']['event_id'];
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttachment', 'event' => $event));
 ?>
 
-<script type="text/javascript">
-<?php
-    $formInfoTypes = array('category' => 'Category');
-    echo 'var formInfoFields = ' . json_encode($formInfoTypes) . PHP_EOL;
-    foreach ($formInfoTypes as $formInfoType => $humanisedName) {
-        echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
-        foreach ($info[$formInfoType] as $key => $formInfoData) {
-            echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
-        }
-        echo '}' . PHP_EOL;
-    }
-?>
-
+<script>
 var formZipTypeValues = <?= json_encode($isMalwareSampleCategory) ?>;
 
 $(function() {
-    initPopoverContent('ShadowAttribute');
     $('#ShadowAttributeCategory').change(function() {
         malwareCheckboxSetter('ShadowAttribute');
     });
 });
-
 </script>
 

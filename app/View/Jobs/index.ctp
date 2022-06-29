@@ -1,7 +1,7 @@
 <div class="jobs index">
     <h2><?php echo __('Jobs');?></h2>
-    <h4><?php echo __('Purge job entries:');?></h4>
     <span>
+        <span style="float: left;margin-right: 10px;font-size: 120%;"><?= __('Purge job entries:') ?></span>
         <?php
             echo $this->Form->postLink(
                 __('Completed'),
@@ -17,7 +17,7 @@
             );
         ?>
     </span>
-    <br />
+    <br>
     <div class="pagination">
         <ul>
         <?php
@@ -27,30 +27,6 @@
         ?>
         </ul>
     </div>
-    <script type="text/javascript">
-        var intervalArray = [];
-
-        function queueInterval(k, id) {
-            intervalArray[k] = setInterval(function() {
-                if (!document.hidden) {
-                    $.getJSON('<?php echo $baseurl; ?>/jobs/getGenerateCorrelationProgress/' + id, function(data) {
-                        var x = document.getElementById("bar" + id);
-                        if (data.progress == 0) {
-                            x.innerText = data.job_status;
-                        } else if (data.progress > 0 && data.progress < 100) {
-                            x.style.width = data.progress + "%";
-                            x.innerText = data.progress + "%";
-                        } else if (data.progress == 100) {
-                            x.style.width = "100%";
-                            x.innerText = "<?php echo __('Completed.');?>";
-                            x.parentElement.className = "progress";
-                            clearInterval(intervalArray[k]);
-                        }
-                    });
-                }
-            }, 3000);
-        }
-    </script>
     <?php
         $data = array(
             'children' => array(
@@ -134,8 +110,8 @@
             }
         }
 ?>
-        <tr>
-            <td class="short"><?php echo h($item['Job']['id']); ?></td>
+        <tr data-primary-id="<?= intval($item['Job']['id']) ?>" data-refresh="<?= $startRefreshing ? 'true' : 'false' ?>">
+            <td class="short"><?= intval($item['Job']['id']) ?></td>
             <td class="short"><?= $this->Time->time($item['Job']['date_created']) ?></td>
             <td class="short"><?= $this->Time->time($item['Job']['date_modified']) ?></td>
             <td class="short"><?php echo h($item['Job']['process_id']); ?></td>
@@ -149,26 +125,17 @@
                 echo h($item['Job']['job_status']);
                 if ($item['Job']['failed']):
             ?>
-                <div class="fa fa-search useCursorPointer queryPopover" title="<?php echo __('View stacktrace');?>" role="button" tabindex="0" aria-label="<?php echo __('View stacktrace');?>" data-url="<?php echo $baseurl; ?>/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
+                <div class="fa fa-search useCursorPointer queryPopover" title="<?php echo __('View stacktrace');?>" role="button" tabindex="0" aria-label="<?php echo __('View stacktrace');?>" data-url="<?php echo $baseurl; ?>/jobs/getError/<?= h($item['Job']['process_id']) ?>"></div>
             <?php
                 endif;
             ?>
             </td>
             <td style="width:200px;">
-                <div class="<?php echo $progress_bar_type; ?>" style="margin-bottom: 0px;">
-                  <div id="bar<?php echo h($item['Job']['id']); ?>" class="bar" style="width: <?php echo $progress; ?>%;">
+                <div class="<?php echo $progress_bar_type; ?>" style="margin-bottom: 0">
+                  <div class="bar" style="width: <?php echo $progress; ?>%;">
                     <?= h($progress_message); ?>
                   </div>
                 </div>
-                    <?php
-                        if ($startRefreshing):
-                    ?>
-                            <script type="text/javascript">
-                                queueInterval("<?php echo $k; ?>", "<?php echo h($item['Job']['id']); ?>");
-                            </script>
-                    <?php
-                        endif;
-                    ?>
             </td>
         </tr><?php
     endforeach; ?>
@@ -191,4 +158,40 @@
         </ul>
     </div>
 </div>
+<script>
+    $(function () {
+        var refreshIds = [];
+        $("[data-refresh=true]").each(function () {
+           refreshIds.push($(this).data("primary-id"));
+        });
+
+        var interval = setInterval(function() {
+            if (!document.hidden) {
+                if (refreshIds.length === 0) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                var url = baseurl + '/jobs/getGenerateCorrelationProgress/' + refreshIds.join(",");
+                $.getJSON(url, function(allData) {
+                    $.each(allData, function (index, data) {
+                        var $tr = $("[data-primary-id=" + index + "]");
+                        var bar = $tr.find(".bar")[0];
+                        if (data.progress == 0) {
+                            bar.innerText = data.job_status;
+                        } else if (data.progress > 0 && data.progress < 100) {
+                            bar.style.width = data.progress + "%";
+                            bar.innerText = data.progress + "%";
+                        } else if (data.progress == 100) {
+                            bar.style.width = "100%";
+                            bar.innerText = data.job_status;
+                            bar.parentElement.className = "progress";
+                            refreshIds = refreshIds.filter(function(e) { return e != index })
+                        }
+                    });
+                });
+            }
+        }, 3000);
+    });
+</script>
 <?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'jobs'));

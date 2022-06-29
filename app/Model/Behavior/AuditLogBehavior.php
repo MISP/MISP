@@ -3,11 +3,11 @@ App::uses('AuditLog', 'Model');
 
 class AuditLogBehavior extends ModelBehavior
 {
-    /** @var array */
-    private $config;
-
     /** @var array|null */
-    private $old;
+    private $beforeSave;
+
+    /** @var array */
+    private $beforeDelete = [];
 
     /** @var AuditLog|null */
     private $AuditLog;
@@ -16,7 +16,7 @@ class AuditLogBehavior extends ModelBehavior
     private $enabled;
 
     // Hash is faster that in_array
-    private $skipFields = [
+    const SKIP_FIELDS = [
         'id' => true,
         'lastpushedid' => true,
         'timestamp' => true,
@@ -27,6 +27,8 @@ class AuditLogBehavior extends ModelBehavior
         'last_login' => true, // User
         'newsread' => true, // User
         'proposal_email_lock' => true, // Event
+        'enable_password' => true,
+        'confirm_password' => true
     ];
 
     private $modelInfo = [
@@ -42,6 +44,7 @@ class AuditLogBehavior extends ModelBehavior
         'TagCollection' => 'name',
         'Taxonomy' => 'namespace',
         'Organisation' => 'name',
+        'SystemSetting' => 'setting',
         'AdminSetting' => 'setting',
         'UserSetting' => 'setting',
         'Galaxy' => 'name',
@@ -57,7 +60,6 @@ class AuditLogBehavior extends ModelBehavior
 
     public function setup(Model $model, $config = [])
     {
-        $this->config = $config;
         // Generate model info for attribute and proposals
         $attributeInfo = function (array $new, array $old) {
             $category = isset($new['category']) ? $new['category'] : $old['category'];
@@ -81,14 +83,45 @@ class AuditLogBehavior extends ModelBehavior
         if (!$this->enabled) {
             return true;
         }
+
+        if (isset($options['skipAuditLog']) && $options['skipAuditLog']) {
+            return true;
+        }
+
+        // Do not fetch old version when just few fields will be fetched
+        $fieldToFetch = [];
+        if (!empty($options['fieldList'])) {
+            foreach ($options['fieldList'] as $field) {
+                if (!isset(self::SKIP_FIELDS[$field])) {
+                    $fieldToFetch[] = $field;
+                }
+            }
+
+            // For objects, that are assigned to event, we need to know event ID. So if data to save doesn't contain
+            // that ID, we need to fetch it from database.
+            if (isset($model->schema()['event_id']) && empty($model->data[$model->alias]['event_id']) && !in_array('event_id', $fieldToFetch, true)) {
+                $fieldToFetch[] = 'event_id';
+            }
+
+            // Fetch fields that are necessary to fill object title
+            if (isset($this->modelInfo[$model->name]) && is_string($this->modelInfo[$model->name]) && !in_array($this->modelInfo[$model->name], $fieldToFetch, true)) {
+                $fieldToFetch[] = $this->modelInfo[$model->name];
+            }
+
+            if (empty($fieldToFetch))  {
+                $this->beforeSave = null;
+                return true;
+            }
+        }
         if ($model->id) {
-            $this->old = $model->find('first', [
+            $this->beforeSave = $model->find('first', [
                 'conditions' => [$model->alias . '.' . $model->primaryKey => $model->id],
                 'recursive' => -1,
                 'callbacks' => false,
+                'fields' => $fieldToFetch,
             ]);
         } else {
-            $this->old = null;
+            $this->beforeSave = null;
         }
         return true;
     }
@@ -99,38 +132,37 @@ class AuditLogBehavior extends ModelBehavior
             return;
         }
 
-        if ($model->id) {
-            $id = $model->id;
-        } else if ($model->insertId) {
-            $id = $model->insertId;
-        } else {
-            $id = null;
+        if (isset($options['skipAuditLog']) && $options['skipAuditLog']) {
+            return;
         }
+
+        $id = $model->id ?: 0;
+        $data = $model->data[$model->alias];
 
         if ($created) {
             $action = AuditLog::ACTION_ADD;
         } else {
             $action = AuditLog::ACTION_EDIT;
-            if (isset($model->data[$model->alias]['deleted'])) {
-                if ($model->data[$model->alias]['deleted']) {
+            if (isset($data['deleted'])) {
+                if ($data['deleted']) {
                     $action = AuditLog::ACTION_SOFT_DELETE;
-                } else if (!$model->data[$model->alias]['deleted'] && $this->old[$model->alias]['deleted']) {
+                } else if (isset($this->beforeSave[$model->alias]['deleted']) && $this->beforeSave[$model->alias]['deleted']) {
                     $action = AuditLog::ACTION_UNDELETE;
                 }
             }
         }
 
-        $changedFields = $this->changedFields($model, isset($options['fieldList']) ? $options['fieldList'] : null);
+        $changedFields = $this->changedFields($model, $this->beforeSave, $options['fieldList']);
         if (empty($changedFields)) {
             return;
         }
 
         if ($model->name === 'Event') {
             $eventId = $id;
-        } else if (isset($model->data[$model->alias]['event_id'])) {
-            $eventId = $model->data[$model->alias]['event_id'];
-        } else if (isset($this->old[$model->alias]['event_id'])) {
-            $eventId = $this->old[$model->alias]['event_id'];
+        } else if (isset($data['event_id'])) {
+            $eventId = $data['event_id'];
+        } else if (isset($this->beforeSave[$model->alias]['event_id'])) {
+            $eventId = $this->beforeSave[$model->alias]['event_id'];
         } else {
             $eventId = null;
         }
@@ -139,38 +171,39 @@ class AuditLogBehavior extends ModelBehavior
         if (isset($this->modelInfo[$model->name])) {
             $modelTitleField = $this->modelInfo[$model->name];
             if (is_callable($modelTitleField)) {
-                $modelTitle = $modelTitleField($model->data[$model->alias], isset($this->old[$model->alias]) ? $this->old[$model->alias] : []);
-            } else if (isset($model->data[$model->alias][$modelTitleField])) {
-                $modelTitle = $model->data[$model->alias][$modelTitleField];
-            } else if ($this->old[$model->alias][$modelTitleField]) {
-                $modelTitle = $this->old[$model->alias][$modelTitleField];
+                $modelTitle = $modelTitleField($data, isset($this->beforeSave[$model->alias]) ? $this->beforeSave[$model->alias] : []);
+            } else if (isset($data[$modelTitleField])) {
+                $modelTitle = $data[$modelTitleField];
+            } else if ($this->beforeSave[$model->alias][$modelTitleField]) {
+                $modelTitle = $this->beforeSave[$model->alias][$modelTitleField];
             }
         }
 
         $modelName = $model->name === 'MispObject' ? 'Object' : $model->name;
 
         if ($modelName === 'AttributeTag' || $modelName === 'EventTag') {
-            $action = $model->data[$model->alias]['local'] ? AuditLog::ACTION_TAG_LOCAL : AuditLog::ACTION_TAG;
-            $tagInfo = $this->getTagInfo($model, $model->data[$model->alias]['tag_id']);
+            $isLocal = isset($data['local']) ? $data['local'] : false;
+            $action = $isLocal ? AuditLog::ACTION_TAG_LOCAL : AuditLog::ACTION_TAG;
+            $tagInfo = $this->getTagInfo($model, $data['tag_id']);
             if ($tagInfo) {
                 $modelTitle = $tagInfo['tag_name'];
                 if ($tagInfo['is_galaxy']) {
-                    $action = $model->data[$model->alias]['local'] ? AuditLog::ACTION_GALAXY_LOCAL : AuditLog::ACTION_GALAXY;
+                    $action = $isLocal ? AuditLog::ACTION_GALAXY_LOCAL : AuditLog::ACTION_GALAXY;
                     if ($tagInfo['galaxy_cluster_name']) {
                         $modelTitle = $tagInfo['galaxy_cluster_name'];
                     }
                 }
             }
-            $id = $modelName === 'AttributeTag' ? $model->data[$model->alias]['attribute_id'] : $model->data[$model->alias]['event_id'];
+            $id = $modelName === 'AttributeTag' ? $data['attribute_id'] : $data['event_id'];
             $modelName = $modelName === 'AttributeTag' ? 'Attribute' : 'Event';
-        }
-
-        if ($modelName === 'Event') {
+        } else if ($modelName === 'Event') {
             if (isset($changedFields['published'][1]) && $changedFields['published'][1]) {
                 $action = AuditLog::ACTION_PUBLISH;
             } else if (isset($changedFields['sighting_timestamp'][1]) && $changedFields['sighting_timestamp'][1]) {
                 $action = AuditLog::ACTION_PUBLISH_SIGHTINGS;
             }
+        } else if ($modelName === 'SystemSetting') {
+            $id = 0;
         }
 
         $this->auditLog()->insert([
@@ -181,6 +214,8 @@ class AuditLogBehavior extends ModelBehavior
             'event_id' => $eventId,
             'change' => $changedFields,
         ]);
+
+        $this->beforeSave = null; // cleanup
     }
 
     public function beforeDelete(Model $model, $cascade = true)
@@ -188,8 +223,12 @@ class AuditLogBehavior extends ModelBehavior
         if (!$this->enabled) {
             return true;
         }
-        $model->recursive = -1;
-        $model->read();
+
+        $this->beforeDelete[$model->name] = $model->find('first', [
+            'conditions' => array($model->alias . '.' . $model->primaryKey => $model->id),
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
         return true;
     }
 
@@ -198,6 +237,8 @@ class AuditLogBehavior extends ModelBehavior
         if (!$this->enabled) {
             return;
         }
+        $model->data = $this->beforeDelete[$model->name];
+        unset($this->beforeDelete[$model->name]);
         if ($model->name === 'Event') {
             $eventId = $model->id;
         } else {
@@ -219,12 +260,13 @@ class AuditLogBehavior extends ModelBehavior
         $id = $model->id;
 
         if ($modelName === 'AttributeTag' || $modelName === 'EventTag') {
-            $action = $model->data[$model->alias]['local'] ? AuditLog::ACTION_REMOVE_TAG_LOCAL : AuditLog::ACTION_REMOVE_TAG;
+            $isLocal = isset($model->data[$model->alias]['local']) ? $model->data[$model->alias]['local'] : false;
+            $action = $isLocal ? AuditLog::ACTION_REMOVE_TAG_LOCAL : AuditLog::ACTION_REMOVE_TAG;
             $tagInfo = $this->getTagInfo($model, $model->data[$model->alias]['tag_id']);
             if ($tagInfo) {
                 $modelTitle = $tagInfo['tag_name'];
                 if ($tagInfo['is_galaxy']) {
-                    $action = $model->data[$model->alias]['local'] ? AuditLog::ACTION_REMOVE_GALAXY_LOCAL : AuditLog::ACTION_REMOVE_GALAXY;
+                    $action = $isLocal ? AuditLog::ACTION_REMOVE_GALAXY_LOCAL : AuditLog::ACTION_REMOVE_GALAXY;
                     if ($tagInfo['galaxy_cluster_name']) {
                         $modelTitle = $tagInfo['galaxy_cluster_name'];
                     }
@@ -232,6 +274,8 @@ class AuditLogBehavior extends ModelBehavior
             }
             $id = $modelName === 'AttributeTag' ? $model->data[$model->alias]['attribute_id'] : $model->data[$model->alias]['event_id'];
             $modelName = $modelName === 'AttributeTag' ? 'Attribute' : 'Event';
+        } else if ($modelName === 'SystemSetting') {
+            $id = 0;
         }
 
         $this->auditLog()->insert([
@@ -240,7 +284,7 @@ class AuditLogBehavior extends ModelBehavior
             'model_id' => $id,
             'model_title' => $modelTitle,
             'event_id' => $eventId,
-            'change' => $this->changedFields($model),
+            'change' => $this->changedFields($model, null),
         ]);
     }
 
@@ -255,6 +299,7 @@ class AuditLogBehavior extends ModelBehavior
             'conditions' => ['Tag.id' => $tagId],
             'recursive' => -1,
             'fields' => ['Tag.name', 'Tag.is_galaxy'],
+            'callbacks' => false, // disable Tag::afterFind callback
         ]);
         if (empty($tag)) {
             return null;
@@ -284,15 +329,17 @@ class AuditLogBehavior extends ModelBehavior
 
     /**
      * @param Model $model
+     * @param array|null $oldData Array with alias
      * @param array|null $fieldsToSave
      * @return array
      */
-    private function changedFields(Model $model, $fieldsToSave = null)
+    private function changedFields(Model $model, $oldData, $fieldsToSave = null)
     {
         $dbFields = $model->schema();
         $changedFields = [];
+        $hasPrimaryField = isset($model->data[$model->alias][$model->primaryKey]);
         foreach ($model->data[$model->alias] as $key => $value) {
-            if (isset($this->skipFields[$key])) {
+            if (isset(self::SKIP_FIELDS[$key])) {
                 continue;
             }
             if (!isset($dbFields[$key])) {
@@ -302,8 +349,8 @@ class AuditLogBehavior extends ModelBehavior
                 continue;
             }
 
-            if (isset($model->data[$model->alias][$model->primaryKey]) && isset($this->old[$model->alias][$key])) {
-                $old = $this->old[$model->alias][$key];
+            if ($hasPrimaryField && isset($oldData[$model->alias][$key])) {
+                $old = $oldData[$model->alias][$key];
             } else {
                 $old = null;
             }
@@ -327,7 +374,7 @@ class AuditLogBehavior extends ModelBehavior
                 continue;
             }
 
-            if ($key === 'password' || $key === 'authkey') {
+            if ($key === 'password' || $key === 'authkey' || ($key === 'value' && $model->name === 'SystemSetting' && SystemSetting::isSensitive($model->data[$model->alias]['setting']))) {
                 $value = '*****';
                 if ($old !== null) {
                     $old = $value;

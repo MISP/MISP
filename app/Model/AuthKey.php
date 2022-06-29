@@ -1,7 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
-App::uses('RandomTool', 'Tools');
 App::uses('CidrTool', 'Tools');
+App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 
 /**
  * @property User $User
@@ -13,9 +13,10 @@ class AuthKey extends AppModel
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
-                'userModel' => 'User',
-                'userKey' => 'user_id',
-                'change' => 'full'),
+            'userModel' => 'User',
+            'userKey' => 'user_id',
+            'change' => 'full'
+        ),
         'Containable',
     );
 
@@ -23,9 +24,20 @@ class AuthKey extends AppModel
         'User'
     );
 
-    public $authkey_raw = false;
+    public $validate = [
+        'uuid' => [
+            'rule' => 'uuid',
+            'message' => 'Please provide a valid RFC 4122 UUID',
+        ],
+        'user_id' => [
+            'rule' => 'userExists',
+            'message' => 'User doesn\'t exists',
+        ],
+        'read_only' => [
+            'rule' => 'boolean',
+        ],
+    ];
 
-    // massage the data before we send it off for validation before saving anything
     public function beforeValidate($options = array())
     {
         if (empty($this->data['AuthKey']['id'])) {
@@ -33,32 +45,32 @@ class AuthKey extends AppModel
                 $this->data['AuthKey']['uuid'] = CakeText::uuid();
             }
             if (empty($this->data['AuthKey']['authkey'])) {
-                $authkey = (new RandomTool())->random_str(true, 40);
+                $authkey = RandomTool::random_str(true, 40);
             } else {
                 $authkey = $this->data['AuthKey']['authkey'];
             }
-            $passwordHasher = $this->getHasher();
-            $this->data['AuthKey']['authkey'] = $passwordHasher->hash($authkey);
+            $this->data['AuthKey']['authkey'] = $this->getHasher()->hash($authkey);
             $this->data['AuthKey']['authkey_start'] = substr($authkey, 0, 4);
             $this->data['AuthKey']['authkey_end'] = substr($authkey, -4);
             $this->data['AuthKey']['authkey_raw'] = $authkey;
-            $this->authkey_raw = $authkey;
         }
 
         if (!empty($this->data['AuthKey']['allowed_ips'])) {
-            if (is_string($this->data['AuthKey']['allowed_ips'])) {
-                $this->data['AuthKey']['allowed_ips'] = trim($this->data['AuthKey']['allowed_ips']);
-                if (empty($this->data['AuthKey']['allowed_ips'])) {
-                    $this->data['AuthKey']['allowed_ips'] = [];
+            $allowedIps = &$this->data['AuthKey']['allowed_ips'];
+            if (is_string($allowedIps)) {
+                $allowedIps = trim($allowedIps);
+                if (empty($allowedIps)) {
+                    $allowedIps = [];
                 } else {
-                    $this->data['AuthKey']['allowed_ips'] = explode("\n", $this->data['AuthKey']['allowed_ips']);
-                    $this->data['AuthKey']['allowed_ips'] = array_map('trim', $this->data['AuthKey']['allowed_ips']);
+                    // Split by new line char or by comma
+                    $allowedIps = preg_split('/([\n,])/', $allowedIps);
+                    $allowedIps = array_map('trim', $allowedIps);
                 }
             }
-            if (!is_array($this->data['AuthKey']['allowed_ips'])) {
+            if (!is_array($allowedIps)) {
                 $this->invalidate('allowed_ips', 'Allowed IPs must be array');
             }
-            foreach ($this->data['AuthKey']['allowed_ips'] as $cidr) {
+            foreach ($allowedIps as $cidr) {
                 if (!CidrTool::validate($cidr)) {
                     $this->invalidate('allowed_ips', "$cidr is not valid IP range");
                 }
@@ -90,7 +102,7 @@ class AuthKey extends AppModel
     {
         foreach ($results as $key => $val) {
             if (isset($val['AuthKey']['allowed_ips'])) {
-                $results[$key]['AuthKey']['allowed_ips'] = $this->jsonDecode($val['AuthKey']['allowed_ips']);
+                $results[$key]['AuthKey']['allowed_ips'] = JsonTool::decode($val['AuthKey']['allowed_ips']);
             }
         }
         return $results;
@@ -102,7 +114,7 @@ class AuthKey extends AppModel
             if (empty($this->data['AuthKey']['allowed_ips'])) {
                 $this->data['AuthKey']['allowed_ips'] = null;
             } else {
-                $this->data['AuthKey']['allowed_ips'] = json_encode($this->data['AuthKey']['allowed_ips']);
+                $this->data['AuthKey']['allowed_ips'] = JsonTool::encode($this->data['AuthKey']['allowed_ips']);
             }
         }
         return true;
@@ -128,23 +140,30 @@ class AuthKey extends AppModel
 
     /**
      * @param string $authkey
+     * @param bool $includeExpired
      * @return array|false
      */
-    public function getAuthUserByAuthKey($authkey)
+    public function getAuthUserByAuthKey($authkey, $includeExpired = false)
     {
         $start = substr($authkey, 0, 4);
         $end = substr($authkey, -4);
+
+        $conditions = [
+            'authkey_start' => $start,
+            'authkey_end' => $end,
+        ];
+
+        if (!$includeExpired) {
+            $conditions['OR'] = [
+                'expiration >' => time(),
+                'expiration' => 0
+            ];
+        }
+
         $possibleAuthkeys = $this->find('all', [
             'recursive' => -1,
             'fields' => ['id', 'authkey', 'user_id', 'expiration', 'allowed_ips', 'read_only'],
-            'conditions' => [
-                'OR' => [
-                    'expiration >' => time(),
-                    'expiration' => 0
-                ],
-                'authkey_start' => $start,
-                'authkey_end' => $end,
-            ]
+            'conditions' => $conditions,
         ]);
         $passwordHasher = $this->getHasher();
         foreach ($possibleAuthkeys as $possibleAuthkey) {
@@ -327,10 +346,20 @@ class AuthKey extends AppModel
     }
 
     /**
+     * Validation
+     * @param array $check
+     * @return bool
+     */
+    public function userExists(array $check)
+    {
+        return $this->User->hasAny(['id' => $check['user_id']]);
+    }
+
+    /**
      * @return AbstractPasswordHasher
      */
     private function getHasher()
     {
-        return new BlowfishPasswordHasher();
+        return new BlowfishConstantPasswordHasher();
     }
 }

@@ -618,6 +618,16 @@ kaliUpgrade () {
   sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
 }
 
+# Kali 2022.x has only php81
+installDepsKaliPhp74 () {
+    sudo apt -y install lsb-release apt-transport-https ca-certificates 
+    sudo wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+    echo "deb https://packages.sury.org/php/ bullseye main" | sudo tee /etc/apt/sources.list.d/php.list
+    sudo apt update
+    wget http://ftp.us.debian.org/debian/pool/main/libf/libffi/libffi7_3.3-6_amd64.deb
+    sudo dpkg -i libffi7_3.3-6_amd64.deb
+}
+
 # Disables sleep
 disableSleep () {
   debug "Disabling sleep etc if run from a Laptop as the install might take some time…" > /dev/tty
@@ -730,7 +740,7 @@ installDeps () {
   [[ -n $KALI ]] || [[ -n $UNATTENDED ]] && sudo DEBIAN_FRONTEND=noninteractive apt install -qy postfix || sudo apt install -qy postfix
 
   sudo apt install -qy \
-  curl gcc git gnupg-agent make openssl redis-server neovim unzip zip libyara-dev python3-yara python3-redis python3-zmq sqlite3 \
+  curl gcc git gnupg-agent make openssl redis-server neovim unzip zip libyara-dev python3-yara python3-redis python3-zmq sqlite3 python3-virtualenv \
   mariadb-client \
   mariadb-server \
   apache2 apache2-doc apache2-utils \
@@ -738,74 +748,6 @@ installDeps () {
   libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools
 
   installRNG
-}
-
-# On Kali, the redis start-up script is broken. This tries to fix it.
-fixRedis () {
-  # As of 20190124 redis-server init.d scripts are broken and need to be replaced
-  sudo mv /etc/init.d/redis-server /etc/init.d/redis-server_`date +%Y%m%d`
-
-  echo '#! /bin/sh
-### BEGIN INIT INFO
-# Provides:		redis-server
-# Required-Start:	$syslog
-# Required-Stop:	$syslog
-# Should-Start:		$local_fs
-# Should-Stop:		$local_fs
-# Default-Start:	2 3 4 5
-# Default-Stop:		0 1 6
-# Short-Description:	redis-server - Persistent key-value db
-# Description:		redis-server - Persistent key-value db
-### END INIT INFO
-
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=/usr/bin/redis-server
-DAEMON_ARGS=/etc/redis/redis.conf
-NAME=redis-server
-DESC=redis-server
-PIDFILE=/var/run/redis.pid
-
-test -x $DAEMON || exit 0
-test -x $DAEMONBOOTSTRAP || exit 0
-
-set -e
-
-case "$1" in
-  start)
-	echo -n "Starting $DESC: "
-	touch $PIDFILE
-	chown redis:redis $PIDFILE
-	if start-stop-daemon --start --quiet --umask 007 --pidfile $PIDFILE --chuid redis:redis --exec $DAEMON -- $DAEMON_ARGS
-	then
-		echo "$NAME."
-	else
-		echo "failed"
-	fi
-	;;
-  stop)
-	echo -n "Stopping $DESC: "
-	if start-stop-daemon --stop --retry 10 --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON
-	then
-		echo "$NAME."
-	else
-		echo "failed"
-	fi
-	rm -f $PIDFILE
-	;;
-
-  restart|force-reload)
-	${0} stop
-	${0} start
-	;;
-  *)
-	echo "Usage: /etc/init.d/$NAME {start|stop|restart|force-reload}" >&2
-	exit 1
-	;;
-esac
-
-exit 0' | sudo tee /etc/init.d/redis-server
-  sudo chmod 755 /etc/init.d/redis-server
-  sudo /etc/init.d/redis-server start
 }
 
 # generate MISP apache conf
@@ -862,9 +804,14 @@ gitPullAllRCLOCAL () {
 # Main composer function
 composer () {
   sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
-  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install"
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install --no-dev"
 }
 
+# Legacy composer function
+composer74 () {
+  sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php7.4 composer.phar install --no-dev"
+}
 
 # TODO: FIX somehow the alias of the function does not work
 # Composer on php 7.0 does not need any special treatment the provided phar works well

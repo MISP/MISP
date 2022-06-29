@@ -112,6 +112,7 @@ cybox_to_misp_object = {
     "EmailMessage": "email",
     "NetworkConnection": "network-connection",
     "NetworkSocket": "network-socket",
+    "Observable": "obsevrable",
     "Process": "process",
     "UnixUserAccount": "user-account",
     "UserAccount": "user-account",

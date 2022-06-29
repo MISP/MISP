@@ -9,7 +9,6 @@ App::uses('AppController', 'Controller');
 class PostsController extends AppController
 {
     public $components = array(
-        'Security',
         'Session',
         'RequestHandler'
     );
@@ -40,7 +39,7 @@ class PostsController extends AppController
         $event_id = 0;
         $post_id = 0;
         if ($this->request->is('ajax')) {
-            $this->layout = 'ajax';
+            $this->layout = false;
         }
         // we have a target type and a target id. The target id defines what type of object we want to attach this event to (is it a reply to another post,
         // did someone add a post to a thread, does a thread for the event exist already, etc.

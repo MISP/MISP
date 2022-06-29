@@ -1,11 +1,11 @@
 <?php
-
 class CRUDComponent extends Component
 {
     /** @var AppController */
-    public $Controller = null;
+    public $Controller;
 
-    public function initialize(Controller $controller, $settings=array()) {
+    public function initialize(Controller $controller, $settings=array())
+    {
         $this->Controller = $controller;
     }
 
@@ -39,12 +39,12 @@ class CRUDComponent extends Component
             if (!empty($this->Controller->paginate['fields'])) {
                 $query['fields'] = $this->Controller->paginate['fields'];
             }
-            $data = $this->Controller->{$this->Controller->defaultModel}->find('all', $query);
+            $data = $this->Controller->{$this->Controller->modelClass}->find('all', $query);
             if (isset($options['afterFind'])) {
                 if (is_callable($options['afterFind'])) {
                     $data = $options['afterFind']($data);
                 } else {
-                    $data = $this->Controller->{$this->Controller->defaultModel}->{$options['afterFind']}($data);
+                    $data = $this->Controller->{$this->Controller->modelClass}->{$options['afterFind']}($data);
                 }
             }
             $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
@@ -64,7 +64,7 @@ class CRUDComponent extends Component
 
     public function add(array $params = [])
     {
-        $modelName = $this->Controller->defaultModel;
+        $modelName = $this->Controller->modelClass;
         $data = [];
         if ($this->Controller->request->is('post')) {
             $input = $this->Controller->request->data;
@@ -90,7 +90,8 @@ class CRUDComponent extends Component
             }
             /** @var Model $model */
             $model = $this->Controller->{$modelName};
-            if ($model->save($data)) {
+            $savedData = $model->save($data);
+            if ($savedData) {
                 if (isset($params['afterSave'])) {
                     $params['afterSave']($data);
                 }
@@ -100,15 +101,11 @@ class CRUDComponent extends Component
                         'id' => $model->id
                     ]
                 ]);
-                if (!empty($params['saveModelVariable'])) {
-                    foreach ($params['saveModelVariable'] as $var) {
-                        if (isset($model->$var)) {
-                            $data[$modelName][$var] = $model->$var;
-                        }
-                    }
+                if (empty($data)) {
+                    throw new Exception("Something went wrong, saved data not found in database.");
                 }
                 if (isset($params['afterFind'])) {
-                    $data = $params['afterFind']($data);
+                    $data = $params['afterFind']($data, $savedData);
                 }
                 $message = __('%s added.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
@@ -154,7 +151,7 @@ class CRUDComponent extends Component
 
     public function edit(int $id, array $params = [])
     {
-        $modelName = $this->Controller->defaultModel;
+        $modelName = $this->Controller->modelClass;
         if (empty($id)) {
             throw new NotFoundException(__('Invalid %s.', $modelName));
         }
@@ -230,7 +227,7 @@ class CRUDComponent extends Component
 
     public function view(int $id, array $params = [])
     {
-        $modelName = $this->Controller->defaultModel;
+        $modelName = $this->Controller->modelClass;
         if (empty($id)) {
             throw new NotFoundException(__('Invalid %s.', $modelName));
         }
@@ -259,7 +256,7 @@ class CRUDComponent extends Component
     public function delete(int $id, array $params = [])
     {
         $this->prepareResponse();
-        $modelName = $this->Controller->defaultModel;
+        $modelName = $this->Controller->modelClass;
         if (empty($id)) {
             throw new NotFoundException(__('Invalid %s.', $modelName));
         }
@@ -285,6 +282,12 @@ class CRUDComponent extends Component
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveFailResponse($modelName, 'delete', $id, $validationError);
                 }
+            }
+        }
+        if (isset($params['beforeDelete'])) {
+            $data = $params['beforeDelete']($data);
+            if (empty($data)) {
+                throw new MethodNotAllowedException('Something went wrong, delete action failed.');
             }
         }
         if ($validationError === null && $this->Controller->request->is('post') || $this->Controller->request->is('delete')) {
@@ -367,7 +370,7 @@ class CRUDComponent extends Component
             foreach ($params as $param => $paramValue) {
                 if (strpos($param, '.') !== false) {
                     $param = explode('.', $param);
-                    if ($param[0] === $this->Controller->{$this->Controller->defaultModel}) {
+                    if ($param[0] === $this->Controller->{$this->Controller->modelClass}) {
                         $massagedFilters['simpleFilters'][implode('.', $param)] = $paramValue;
                     } else {
                         $massagedFilters['relatedFilters'][implode('.', $param)] = $paramValue;

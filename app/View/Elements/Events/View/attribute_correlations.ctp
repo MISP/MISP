@@ -1,16 +1,16 @@
 <?php
 $i = 0;
 $linkColour = ($scope == 'Attribute') ? 'red' : 'white';
+$withPivot = isset($withPivot) ? $withPivot : false;
 // remove duplicates
 $relatedEvents = array();
 foreach ($event['Related' . $scope][$object['id']] as $k => $relatedAttribute) {
-    if (isset($relatedEvents[$relatedAttribute['id']])) {
-        unset($event['Related' . $scope][$object['id']][$k]);
-    } else {
-        $relatedEvents[$relatedAttribute['id']] = true;
-    }
+  if (isset($relatedEvents[$relatedAttribute['id']])) {
+    unset($event['Related' . $scope][$object['id']][$k]);
+  } else {
+    $relatedEvents[$relatedAttribute['id']] = true;
+  }
 }
-$event['Related' . $scope][$object['id']] = array_values($event['Related' . $scope][$object['id']]);
 $count = count($event['Related' . $scope][$object['id']]);
 foreach ($event['Related' . $scope][$object['id']] as $relatedAttribute) {
   if ($i == 4 && $count > 5) {
@@ -33,8 +33,10 @@ foreach ($event['Related' . $scope][$object['id']] as $relatedAttribute) {
   }
   $link = $this->Html->link(
     $relatedAttribute['id'],
-    array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']),
-    array('class' => ($relatedAttribute['org_id'] == $me['org_id']) ? $linkColour : 'blue')
+      $withPivot ?
+          ['controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']] :
+          ['controller' => 'events', 'action' => 'view', $relatedAttribute['id']],
+    ['class' => ($relatedAttribute['org_id'] == $me['org_id']) ? $linkColour : 'blue']
   );
   echo sprintf(
     '<li class="no-side-padding %s" %s data-toggle="popover" data-content="%s" data-trigger="hover">%s&nbsp;</li>',

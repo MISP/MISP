@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `admin_settings` (
   `setting` varchar(255) COLLATE utf8_bin NOT NULL,
   `value` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
-  INDEX `setting` (`setting`)
+  UNIQUE INDEX `setting` (`setting`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `allowedlist` (
@@ -150,8 +150,6 @@ CREATE TABLE IF NOT EXISTS `correlations` (
   `a_distribution` tinyint(4) NOT NULL,
   `sharing_group_id` int(11) NOT NULL,
   `a_sharing_group_id` int(11) NOT NULL,
-  `date` date NOT NULL,
-  `info` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `1_event_id` (`1_event_id`),
@@ -299,7 +297,7 @@ CREATE TABLE IF NOT EXISTS `event_blocklists` (
   `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
-  INDEX `event_uuid` (`event_uuid`),
+  UNIQUE INDEX `event_uuid` (`event_uuid`),
   INDEX `event_orgc` (`event_orgc`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
@@ -440,7 +438,7 @@ CREATE TABLE IF NOT EXISTS `galaxies` (
   `kill_chain_order` text,
   PRIMARY KEY (id),
   INDEX `name` (`name`),
-  INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `uuid` (`uuid`),
   INDEX `type` (`type`),
   INDEX `namespace` (`namespace`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -550,7 +548,7 @@ CREATE TABLE IF NOT EXISTS `jobs` (
   `message` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `progress` int(11) NOT NULL DEFAULT 0,
   `org_id` int(11) NOT NULL DEFAULT 0,
-  `process_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
+  `process_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   `date_created` datetime NOT NULL,
   `date_modified` datetime NOT NULL,
   PRIMARY KEY (`id`)
@@ -692,6 +690,7 @@ CREATE TABLE IF NOT EXISTS `object_references` (
   `comment` text COLLATE utf8_bin NOT NULL,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
+  UNIQUE INDEX `uuid` (`uuid`),
   INDEX `source_uuid` (`source_uuid`),
   INDEX `referenced_uuid` (`referenced_uuid`),
   INDEX `timestamp` (`timestamp`),
@@ -788,7 +787,7 @@ CREATE TABLE IF NOT EXISTS `organisations` (
   `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `uuid` (`uuid`),
-  INDEX `name` (`name`(255))
+  UNIQUE INDEX `name` (`name`(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 CREATE TABLE IF NOT EXISTS `org_blocklists` (
@@ -1058,6 +1057,7 @@ CREATE TABLE IF NOT EXISTS `sharing_groups` (
   INDEX `org_id` (`org_id`),
   INDEX `sync_user_id` (`sync_user_id`),
   UNIQUE INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `name` (`name`),
   INDEX `organisation_uuid` (`organisation_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
@@ -1109,7 +1109,7 @@ CREATE TABLE IF NOT EXISTS `sightings` (
   INDEX `attribute_id` (`attribute_id`),
   INDEX `event_id` (`event_id`),
   INDEX `org_id` (`org_id`),
-  INDEX `uuid` (`uuid`),
+  UNIQUE INDEX `uuid` (`uuid`),
   INDEX `source` (`source`),
   INDEX `type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -1153,7 +1153,7 @@ CREATE TABLE IF NOT EXISTS `tags` (
   `hide_tag` tinyint(1) NOT NULL DEFAULT 0,
   `numerical_value` int(11) NULL,
   PRIMARY KEY (`id`),
-  INDEX `name` (`name`(255)),
+  UNIQUE INDEX `name` (`name`(255)),
   INDEX `org_id` (`org_id`),
   INDEX `user_id` (`user_id`),
   INDEX `numerical_value` (`numerical_value`)
@@ -1409,7 +1409,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `date_created` bigint(20),
   `date_modified` bigint(20),
   PRIMARY KEY (`id`),
-  INDEX `email` (`email`),
+  UNIQUE INDEX `email` (`email`),
   INDEX `org_id` (`org_id`),
   INDEX `server_id` (`server_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;

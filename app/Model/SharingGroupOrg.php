@@ -1,29 +1,41 @@
 <?php
 App::uses('AppModel', 'Model');
+
 class SharingGroupOrg extends AppModel
 {
     public $actsAs = array('AuditLog', 'Containable');
 
     public $belongsTo = array(
-            'SharingGroup' => array(
-                    'className' => 'SharingGroup',
-                    'foreignKey' => 'sharing_group_id'
-            ),
-            'Organisation' => array(
-                    'className' => 'Organisation',
-                    'foreignKey' => 'org_id',
-                    //'conditions' => array('SharingGroupElement.organisation_uuid' => 'Organisation.uuid')
-            )
+        'SharingGroup' => array(
+                'className' => 'SharingGroup',
+                'foreignKey' => 'sharing_group_id'
+        ),
+        'Organisation' => array(
+                'className' => 'Organisation',
+                'foreignKey' => 'org_id',
+                //'conditions' => array('SharingGroupElement.organisation_uuid' => 'Organisation.uuid')
+        )
     );
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
+        $data = $this->data[$this->alias];
+        $conditions = [
+            'sharing_group_id' => $data['sharing_group_id'],
+            'org_id' => $data['org_id'],
+        ];
+        if (isset($data['id'])) {
+            $conditions['id !='] = $data['id'];
+        }
+        if ($this->hasAny($conditions)) {
+            $this->log("Trying to save duplicate organisation `{$data['org_id']}` for sharing group `{$data['sharing_group_id']}. This should never happened.");
+            $this->invalidate('org_id', 'The same organisation is already assigned to this sharing group.');
+            return false;
+        }
     }
 
     public function updateOrgsForSG($id, $new_orgs, $old_orgs, $user)
     {
-        $log = ClassRegistry::init('Log');
         // Loop through all of the organisations we want to add.
         foreach ($new_orgs as $org) {
             $SgO = array(
@@ -54,16 +66,16 @@ class SharingGroupOrg extends AppModel
             }
             if ($this->save($SgO)) {
                 if ($isChange) {
-                    $log->createLogEntry($user, 'edit', 'SharingGroupOrg', $this->id, 'Sharing group (' . $id . '): Modified right to alter sharing group for organisation (' . $org['id'] . ').', ($org['extend'] ? 'Organisation (' . $org['id'] . ') can now extend the sharing group.' : 'Organisation (' . $org['id'] . ') can no longer extend the sharing group.'));
+                    $this->loadLog()->createLogEntry($user, 'edit', 'SharingGroupOrg', $this->id, 'Sharing group (' . $id . '): Modified right to alter sharing group for organisation (' . $org['id'] . ').', ($org['extend'] ? 'Organisation (' . $org['id'] . ') can now extend the sharing group.' : 'Organisation (' . $org['id'] . ') can no longer extend the sharing group.'));
                 } else {
-                    $log->createLogEntry($user, 'add', 'SharingGroupOrg', $this->id, 'Sharing group (' . $id . '): Added organisation (' . $org['id'] . ').', 'Organisation (' . $org['id'] . ') added to Sharing group.' . ($org['extend'] ? ' Organisation (' . $org['id'] . ') can extend the sharing group.' : ''));
+                    $this->loadLog()->createLogEntry($user, 'add', 'SharingGroupOrg', $this->id, 'Sharing group (' . $id . '): Added organisation (' . $org['id'] . ').', 'Organisation (' . $org['id'] . ') added to Sharing group.' . ($org['extend'] ? ' Organisation (' . $org['id'] . ') can extend the sharing group.' : ''));
                 }
             }
         }
         // We are left with some "old orgs" that are not in the new list. This means that they can be safely deleted.
         foreach ($old_orgs as $old_org) {
             if ($this->delete($old_org['id'])) {
-                $log->createLogEntry($user, 'delete', 'SharingGroupOrg', $old_org['id'], 'Sharing group (' . $id . '): Removed organisation (' . $old_org['id'] . ').', 'Organisation (' . $org['id'] . ') removed from Sharing group.');
+                $this->loadLog()->createLogEntry($user, 'delete', 'SharingGroupOrg', $old_org['id'], 'Sharing group (' . $id . '): Removed organisation (' . $old_org['id'] . ').', 'Organisation (' . $org['id'] . ') removed from Sharing group.');
             }
         }
     }
@@ -83,17 +95,17 @@ class SharingGroupOrg extends AppModel
         return $sgs;
     }
 
-    // pass a sharing group ID and an organisation ID, returns true if it has a matching attached organisation object
+    /**
+     * Pass a sharing group ID and an organisation ID, returns true if it has a matching attached organisation object
+     * @param int $id
+     * @param int $org_id
+     * @return bool
+     */
     public function checkIfAuthorised($id, $org_id)
     {
-        $sg = $this->find('first', array(
-                'conditions' => array('sharing_group_id' => $id, 'org_id' => $org_id),
-                'recursive' => -1,
-                'fields' => array('id'),
-        ));
-        if (!empty($sg)) {
-            return true;
-        }
-        return false;
+        return $this->hasAny([
+            'sharing_group_id' => $id,
+            'org_id' => $org_id,
+        ]);
     }
 }

@@ -146,7 +146,7 @@ Thank you in advance!',
             if (!empty(Configure::read('MISP.disable_emailing'))) {
                 $params['mock'] = 1;
             }
-            $result = $this->User->sendEmailExternal($this->Auth->user(), $params);
+            $result = $this->User->sendEmailExternal($params);
             $message = $result ? __('Request sent.') : __('Something went wrong and the request could not be sent.');
             if ($this->_isRest()) {
                 if ($result === true) {

@@ -49,10 +49,10 @@ class Role extends AppModel
     );
 
     public $virtualFields = array(
-        'permission' => "CASE WHEN (Role.perm_add + Role.perm_modify + Role.perm_publish = 3) THEN '3' WHEN (Role.perm_add + Role.perm_modify_org = 2) THEN '2' WHEN (Role.perm_add = 1) THEN '1' ELSE '0' END",
+        'permission' => "CASE WHEN (Role.perm_add AND Role.perm_modify AND Role.perm_publish) THEN '3' WHEN (Role.perm_add AND Role.perm_modify_org) THEN '2' WHEN (Role.perm_add) THEN '1' ELSE '0' END",
     );
 
-    public $permissionConstants = array(
+    const PERMISSION_CONSTANTS = array(
         'read_only' => 0,
         'manage_own' => 1,
         'manage_org' => 2,
@@ -69,8 +69,8 @@ class Role extends AppModel
         } elseif (!is_numeric($this->data['Role']['permission'])) {
             // If a constant was passed via the API, convert it to the numeric value
             // For invalid entries, choose permission level 0
-            if (isset($this->permissionConstants[$this->data['Role']['permission']])) {
-                $this->data['Role']['permission'] = $this->permissionConstants[$this->data['Role']['permission']];
+            if (isset(self::PERMISSION_CONSTANTS[$this->data['Role']['permission']])) {
+                $this->data['Role']['permission'] = self::PERMISSION_CONSTANTS[$this->data['Role']['permission']];
             } else {
                 $this->data['Role']['permission'] = 0;
             }
@@ -149,7 +149,7 @@ class Role extends AppModel
                 unset($results[$key]['Role']['perm_full']);
                 if (isset($results[$key]['Role']['permission'])) {
                     $results[$key]['Role']['permission_description'] =
-                    array_flip($this->permissionConstants)[$results[$key]['Role']['permission']];
+                    array_flip(self::PERMISSION_CONSTANTS)[$results[$key]['Role']['permission']];
                 }
             }
         }

@@ -6,9 +6,9 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ 2.4, develop ]
+    branches: [ 2.4, develop, misp-stix ]
   pull_request:
-    branches: [ 2.4, develop ]
+    branches: [ 2.4, develop, misp-stix ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -30,10 +30,6 @@ jobs:
         with:
           submodules: 'recursive'
 
-      # Stop mysql
-      - name: Shutdown Ubuntu MySQL (SUDO)
-        run: sudo service mysql stop
-
       # Run mariadb
       - uses: getong/mariadb-action@v1.1
         with:
@@ -54,25 +50,29 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mysql, mbstring, json, xml, opcache, readline, redis, gd
+          extensions: mysql, mbstring, json, xml, opcache, readline, redis, gd, apcu
 
       - name: Initialize variables
         run: |
           echo "USER=`id -u -n`" >> $GITHUB_ENV
           echo "HOST=localhost" >> $GITHUB_ENV
 
-      # Runs a set of commands using the runners shell
-      - name: Install deps
+      - name: Install system deps
         env:
           php_version: ${{ matrix.php }}
         run: |
-              sudo apt-get -y update
-              # Repo is missing for unknown reason
-              LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
-              sudo apt-get -y install curl python3 python3-zmq python3-requests python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version libfuzzy-dev
-              sudo pip3 install virtualenv # virtualenv must be instaled from pip and not from ubuntu pacckages
-              sudo pip3 install --upgrade -r requirements.txt
-              curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+          sudo apt-get -y update
+          # Repo is missing for unknown reason
+          LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
+          if [[ $php_version == "7.2" ]]; then
+            # hotfix due to: https://bugs.php.net/bug.php?id=81640 TODO: remove after libpcre2-8-0:10.36 gets to stable channel
+            sudo apt-get --fix-broken install
+          fi
+          sudo apt-get -y install curl python3 python3-pip python3-virtualenv apache2 libapache2-mod-php$php_version
+
+      # Runs a set of commands using the runners shell
+      - name: Install deps
+        run: |
               sudo chown $USER:www-data $HOME/.composer
               pushd app
               sudo -H -u $USER php composer.phar install --no-progress
@@ -127,9 +127,16 @@ jobs:
               sudo gpg --list-secret-keys --homedir `pwd`/.gnupg
               # change perms
               sudo chown -R $USER:www-data `pwd`
-              sudo chmod -R 770 `pwd`/.gnupg
-              # Get authkey
+              sudo chown -R www-data:www-data `pwd`/.gnupg
+              sudo chmod -R 700 `pwd`/.gnupg
               sudo usermod -a -G www-data $USER
+              sudo chmod -R 777 `pwd`/app/Plugin/CakeResque/tmp/
+              # Ensure the perms of config files
+              sudo chown -R $USER:www-data `pwd`/app/Config
+              sudo chmod -R 777 `pwd`/app/Config
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.server_settings_skip_backup_rotate" 1'
+              sudo chown -R $USER:www-data `pwd`/app/Config
+              sudo chmod -R 777 `pwd`/app/Config
 
       - name: DB Update
         run: |
@@ -139,40 +146,46 @@ jobs:
 
       - name: Configure MISP
         run: |
-              sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
+              sudo -u $USER app/Console/cake userInit -q | sudo tee ./key.txt
               echo "AUTH=`cat key.txt`" >> $GITHUB_ENV
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.timeout" 600'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.cookieTimeout" 3600'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.host_org_id" 1'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.email" "info@admin.test"'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.disable_emailing" false'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting --force "debug" true'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_port" 6379'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_database" 13'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_password" ""'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.email" "info@admin.test"'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.homedir" "`pwd`/.gnupg"'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.password" "travistest"'
+              sudo -u $USER app/Console/cake Admin setSetting "Session.autoRegenerate" 0
+              sudo -u $USER app/Console/cake Admin setSetting "Session.timeout" 600
+              sudo -u $USER app/Console/cake Admin setSetting "Session.cookieTimeout" 3600
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.host_org_id" 1
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.email" "info@admin.test"
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.disable_emailing" false
+              sudo -u $USER app/Console/cake Admin setSetting --force "debug" true
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.redis_port" 6379
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.redis_database" 13
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.redis_password" ""
+              sudo -u $USER app/Console/cake Admin setSetting "GnuPG.email" "info@admin.test"
+              sudo -u $USER app/Console/cake Admin setSetting "GnuPG.homedir" "`pwd`/.gnupg"
+              sudo -u $USER app/Console/cake Admin setSetting "GnuPG.password" "travistest"
+              sudo -u $USER app/Console/cake Admin setSetting "MISP.download_gpg_from_homedir" 1
 
       - name: Configure ZMQ
         run: |
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "127.0.0.1"'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1'
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "127.0.0.1"
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1
+              sudo -u $USER app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1
 
       - name: Update Galaxies
         run: sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'
+
       - name: Update Taxonomies
         run: sudo -E su $USER -c 'app/Console/cake Admin updateTaxonomies'
+
       - name: Update Warninglists
         run: sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'
+
       - name: Update Noticelists
         run: sudo -E su $USER -c 'app/Console/cake Admin updateNoticeLists'
+
       - name: Update Object Templates
         run: sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates 1'
 
@@ -182,7 +195,7 @@ jobs:
       - name: Start workers
         run: |
               sudo chmod +x app/Console/worker/start.sh
-              sudo -E su $USER -c 'app/Console/worker/start.sh'
+              sudo -u www-data 'app/Console/worker/start.sh'
 
       - name: Python setup
         run: |
@@ -193,13 +206,8 @@ jobs:
               python3 -m virtualenv -p python3 ./venv
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
-              pushd cti-python-stix2
-              pip install .
-              popd
-              pushd PyMISP
-              pip install .[fileobjects,email]
-              popd
-              pip install stix zmq redis plyara
+              export PYTHONPATH=$PYTHONPATH:./app/files/scripts
+              pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 pyzmq redis plyara
               deactivate
 
       - name: Test if apache is working
@@ -214,44 +222,45 @@ jobs:
               cat tests/keys.py
               popd
 
+      - name: Build test
+        run: |
+              . ./venv/bin/activate
+              pushd tests
+              ./build-test.sh
+
       - name: Run PHP tests
         run: |
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
-              ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
-              ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
-              ./app/Vendor/bin/phpunit app/Test/CidrToolTest.php
+              sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
 
       - name: Run tests
         run: |
-              source $HOME/.poetry/env # enable poetry binary
-
-              # Ensure the perms of config files
-              sudo chown -R $USER:www-data `pwd`/app/Config
-              sudo chmod -R 777 `pwd`/app/Config
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.server_settings_skip_backup_rotate" 1'
-              sudo chown -R $USER:www-data `pwd`/app/Config
-              sudo chmod -R 777 `pwd`/app/Config
-
               pushd tests
               ./curl_tests_GH.sh $AUTH $HOST
               popd
 
               sudo chmod -R g+ws `pwd`/app/tmp/logs
+          
+              . ./venv/bin/activate
               pushd PyMISP
-              poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport -E email
-              poetry run python tests/testlive_comprehensive.py
-              poetry add lxml
-              poetry run python ../tests/testlive_security.py -v
-              poetry run python tests/test_mispevent.py
+              python tests/testlive_comprehensive.py
+              popd
+              python tests/testlive_security.py -v
+              python tests/testlive_sync.py
+              python tests/testlive_comprehensive_local.py -v
+              pushd PyMISP
+              python tests/test_mispevent.py
               popd
               cp PyMISP/tests/keys.py PyMISP/examples/events/
               pushd PyMISP/examples/events/
-              poetry run python ./create_massive_dummy_events.py -l 5 -a 30
+              python ./create_massive_dummy_events.py -l 5 -a 30
               popd
-              python3 tools/misp-feed/validate.py
+              python tools/misp-feed/validate.py
+              deactivate
 
       - name: Logs
         if: ${{ always() }}
         run: |
               tail -n +1 `pwd`/app/tmp/logs/*
               tail -n +1 /var/log/apache2/*.log
+

@@ -22,6 +22,11 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'checkbox'
             ],
             [
+                'field' => 'Feed.settings.disable_correlation',
+                'label' => __('Disable correlation'),
+                'type' => 'checkbox'
+            ],
+            [
                 'field' => 'name',
                 'label' => __('Name'),
                 'placeholder' => __('Feed name'),
@@ -107,7 +112,6 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'Feed.settings.common.excluderegex',
                 'label' => __('Exclusion Regex'),
-                'placeholder' => __('Leave blank unless you want to reuse an existing event.'),
                 'div' => ['id' => 'settingsCommonExcluderegexDiv', 'style' => 'display:none', 'class' => 'optionalField'],
                 'placeholder' => __('Regex pattern, for example: "/^https://myfeedurl/i'),
                 'class' => 'form-control span6'
@@ -138,6 +142,13 @@ echo $this->element('genericElements/Form/genericForm', [
                 'label' => __('Distribution'),
                 'options' => $dropdownData['distributionLevels'],
                 'selected' => isset($entity['Feed']['distribution']) ? $entity['Feed']['distribution'] : 3,
+                'type' => 'dropdown'
+            ],
+            [
+                'field' => 'sharing_group_id',
+                'label' => __('Sharing Group'),
+                'div' => ['id' => 'SGContainer', 'style' => 'display:none', 'class' => 'optionalField'],
+                'options' => $dropdownData['sharingGroups'],
                 'type' => 'dropdown'
             ],
             [
@@ -174,7 +185,7 @@ if (!$ajax) {
 <script type="text/javascript">
     $(document).ready(function() {
         feedFormUpdate();
-        $("#FeedSourceFormat, #FeedFixedEvent, #FeedInputSource").change(function() {
+        $("#FeedSourceFormat, #FeedFixedEvent, #FeedInputSource, #FeedDistribution").change(function() {
             feedFormUpdate();
         });
     });

@@ -372,19 +372,15 @@ class OrganisationsController extends AppController
         }
         $idList = json_decode($idList, true);
         $id_exclusion_list = array_merge($idList, array($this->Auth->user('Organisation')['id']));
-        $temp = $this->Organisation->find('all', array(
-                'conditions' => array(
-                        'local' => $local,
-                        'id !=' => $id_exclusion_list,
-                ),
-                'recursive' => -1,
-                'fields' => array('id', 'name'),
-                'order' => array('lower(name) ASC')
+        $orgs = $this->Organisation->find('list', array(
+            'conditions' => array(
+                'local' => $local,
+                'id !=' => $id_exclusion_list,
+            ),
+            'recursive' => -1,
+            'fields' => array('id', 'name'),
+            'order' => array('lower(name) ASC')
         ));
-        $orgs = array();
-        foreach ($temp as $org) {
-            $orgs[] = array('id' => $org['Organisation']['id'], 'name' => $org['Organisation']['name']);
-        }
         $this->set('local', $local);
         $this->layout = false;
         $this->autoRender = false;
@@ -396,16 +392,19 @@ class OrganisationsController extends AppController
     {
         $this->layout = false;
         $this->autoRender = false;
-        $this->set('id', $id);
+        $this->set('id', (int)$id);
         $this->set('removable', $removable);
         $this->set('extend', $extend);
         $this->render('ajax/sg_org_row_empty');
     }
 
+    /**
+     * @deprecated Probably not used anywhere.
+     */
     public function getUUIDs()
     {
-        if (!$this->Auth->user('Role')['perm_sync']) {
-            throw new MethodNotAllowedException(__('This action is restricted to sync users'));
+        if (Configure::read('Security.hide_organisation_index_from_users')) {
+            throw new MethodNotAllowedException(__('This action is not enabled on this instance.'));
         }
         $temp = $this->Organisation->find('all', array(
                 'recursive' => -1,
@@ -484,6 +483,12 @@ class OrganisationsController extends AppController
         if ($logo['size'] > 0 && $logo['error'] == 0) {
             $extension = pathinfo($logo['name'], PATHINFO_EXTENSION);
             $filename = $orgId . '.' . ($extension === 'svg' ? 'svg' : 'png');
+
+            if ($extension === 'svg' && !Configure::read('Security.enable_svg_logos')) {
+                $this->Flash->error(__('Invalid file extension, SVG images are not allowed.'));
+                return false;
+            }
+
             if (!empty($logo['tmp_name']) && is_uploaded_file($logo['tmp_name'])) {
                 return move_uploaded_file($logo['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
             }

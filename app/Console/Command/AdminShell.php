@@ -1,44 +1,130 @@
 <?php
 App::uses('AppShell', 'Console/Command');
+App::uses('ProcessTool', 'Tools');
+App::uses('FileAccessTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 /**
  * @property Server $Server
+ * @property Feed $Feed
+ * @property Warninglist $warninglist
+ * @property AdminSetting $AdminSetting
+ * @property Taxonomy $Taxonomy
+ * @property Warninglist $Warninglist
+ * @property Attribute $Attribute
+ * @property Job $Job
  */
 class AdminShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed', 'SharingGroupBlueprint');
 
-    public $tasks = array('ConfigLoad');
+    public function getOptionParser()
+    {
+        $parser = parent::getOptionParser();
+        $parser->addSubcommand('updateJSON', array(
+            'help' => __('Update the JSON definitions of MISP.'),
+        ));
+        $parser->addSubcommand('updateWarningLists', array(
+            'help' => __('Update the JSON definition of warninglists.'),
+        ));
+        $parser->addSubcommand('updateTaxonomies', array(
+            'help' => __('Update the JSON definition of taxonomies.'),
+        ));
+        $parser->addSubcommand('setSetting', [
+            'help' => __('Set setting in PHP config file.'),
+            'parser' => [
+                'arguments' => [
+                    'name' => ['help' => __('Setting name'), 'required' => true],
+                    'value' => ['help' => __('Setting value'), 'required' => true],
+                ],
+                'options' => [
+                    'force' => [
+                        'short' => 'f',
+                        'help' => 'Force the command.',
+                        'default' => false,
+                        'boolean' => true
+                    ],
+                    'null' => [
+                        'short' => 'n',
+                        'help' => 'Set the value to null.',
+                        'default' => false,
+                        'boolean' => true
+                    ],
+                ]
+            ],
+        ]);
+        $parser->addSubcommand('live', [
+            'help' => __('Set if MISP instance is live and accessible for users.'),
+            'parser' => [
+                'arguments' => [
+                    'state' => ['help' => __('Set Live state')],
+                ],
+            ],
+        ]);
+        $parser->addSubcommand('reencrypt', [
+            'help' => __('Reencrypt encrypted values in database (authkeys and sensitive system settings).'),
+            'parser' => [
+                'options' => [
+                    'old' => ['help' => __('Old key. If not provided, current key will be used.')],
+                    'new' => ['help' => __('New key. If not provided, new key will be generated.')],
+                ],
+            ],
+        ]);
+        $parser->addSubcommand('dumpCurrentDatabaseSchema', [
+            'help' => __('Dump current database schema to JSON file.'),
+        ]);
+        $parser->addSubcommand('removeOrphanedCorrelations', [
+            'help' => __('Remove orphaned correlations.'),
+        ]);
+        $parser->addSubcommand('optimiseTables', [
+            'help' => __('Optimise database tables.'),
+        ]);
+        $parser->addSubcommand('redisMemoryUsage', [
+            'help' => __('Get detailed information about Redis memory usage.'),
+        ]);
+        $parser->addSubcommand('redisReady', [
+            'help' => __('Check if it is possible connect to Redis.'),
+        ]);
+        $parser->addSubcommand('securityAudit', [
+            'help' => __('Run security audit.'),
+        ]);
+        $parser->addSubcommand('securityAuditTls', [
+            'help' => __('Run security audit to test enabled/disabled ciphers and protocols in TLS connections.'),
+        ]);
+        $parser->addSubcommand('configLint', [
+            'help' => __('Check if settings has correct value.'),
+        ]);
+        return $parser;
+    }
 
     public function jobGenerateCorrelation()
     {
-        $this->ConfigLoad->execute();
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate correlation'] . PHP_EOL);
+        }
+
         $jobId = $this->args[0];
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('Attribute');
-        $this->Attribute->generateCorrelation($jobId, 0);
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done.');
-        $this->Job->saveField('status', 4);
+        $this->Attribute->generateCorrelation($jobId);
     }
 
     public function jobPurgeCorrelation()
     {
-        $this->ConfigLoad->execute();
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Purge correlation'] . PHP_EOL);
+        }
+
         $jobId = $this->args[0];
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('Attribute');
         $this->Attribute->purgeCorrelations();
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done.');
-        $this->Job->saveField('status', 4);
+        $this->Job->saveStatus($jobId);
     }
 
     public function jobGenerateShadowAttributeCorrelation()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate shadow attribute correlation'] . PHP_EOL);
+        }
+
         $jobId = $this->args[0];
         $this->loadModel('Job');
         $this->Job->id = $jobId;
@@ -53,16 +139,13 @@ class AdminShell extends AppShell
         echo $this->Server->update($status) . PHP_EOL;
     }
 
-    public function restartWorkers()
-    {
-        $this->ConfigLoad->execute();
-        $this->Server->restartWorkers();
-        echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
-    }
-
     public function updateAfterPull()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Update after pull'] . PHP_EOL);
+        }
+
         $this->loadModel('Job');
         $this->loadModel('Server');
         $submodule_name = $this->args[0];
@@ -79,12 +162,28 @@ class AdminShell extends AppShell
         }
     }
 
+    public function restartWorkers()
+    {
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            $this->error('This method does nothing when SimpleBackgroundJobs are enabled.');
+        }
+
+        $this->ConfigLoad->execute();
+        $this->Server->restartWorkers();
+        echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
+    }
+
     public function restartWorker()
     {
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            $this->error('This method does nothing when SimpleBackgroundJobs are enabled.');
+        }
+
         $this->ConfigLoad->execute();
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin restartWorker [PID]' . PHP_EOL;
+            die('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Restart a worker'] . PHP_EOL);
         }
+
         $pid = $this->args[0];
         $result = $this->Server->restartWorker($pid);
         if ($result === true) {
@@ -102,11 +201,15 @@ class AdminShell extends AppShell
 
     public function killWorker()
     {
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            $this->error('This method does nothing when SimpleBackgroundJobs are enabled.');
+        }
+
         $this->ConfigLoad->execute();
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin killWorker [PID]' . PHP_EOL;
-            die();
+            die('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Kill a worker'] . PHP_EOL);
         }
+
         $pid = $this->args[0];
         $result = $this->Server->killWorker($pid, false);
         echo sprintf(
@@ -119,11 +222,15 @@ class AdminShell extends AppShell
 
     public function startWorker()
     {
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            $this->error('This method does nothing when SimpleBackgroundJobs are enabled.');
+        }
+
         $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin startWorker [queue]' . PHP_EOL;
-            die();
+            die('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Start a worker'] . PHP_EOL);
         }
+
         $queue = $this->args[0];
         $this->Server->startWorker($queue);
         echo sprintf(
@@ -136,23 +243,17 @@ class AdminShell extends AppShell
 
     public function updateJSON()
     {
-        $this->ConfigLoad->execute();
-        echo 'Updating all JSON structures.' . PHP_EOL;
+        $this->out('Updating all JSON structures.');
         $results = $this->Server->updateJSON();
         foreach ($results as $type => $result) {
+            $type = Inflector::pluralize(Inflector::humanize($type));
             if ($result !== false) {
-                echo sprintf(
-                    __('%s updated.') . PHP_EOL,
-                    Inflector::pluralize(Inflector::humanize($type))
-                );
+                $this->out(__('%s updated.', $type));
             } else {
-                echo sprintf(
-                    __('Could not update %s.') . PHP_EOL,
-                    Inflector::pluralize(Inflector::humanize($type))
-                );
+                $this->out(__('Could not update %s.', $type));
             }
         }
-        echo 'All JSON structures updated. Thank you and have a very safe and productive day.' . PHP_EOL;
+        $this->out('All JSON structures updated. Thank you and have a very safe and productive day.');
     }
 
     public function updateGalaxies()
@@ -175,22 +276,27 @@ class AdminShell extends AppShell
 
     public function updateTaxonomies()
     {
-        $this->ConfigLoad->execute();
         $result = $this->Taxonomy->update();
-        $successes = count(!empty($result['success']) ? $result['success'] : []);
-        $fails = count(!empty($result['fails']) ? $result['fails'] : []);
-        $message = '';
-        if ($successes == 0 && $fails == 0) {
-            $message = __('All taxonomies are up to date already.');
-        } elseif ($successes == 0 && $fails > 0) {
+        $successes = empty($result['success']) ? 0 : count($result['success']);
+        $fails = empty($result['fails']) ? 0 : count($result['fails']);
+
+        if ($successes === 0 && $fails === 0) {
+            $message =  __('All taxonomies are up to date already.');
+        } elseif ($successes === 0 && $fails > 0) {
             $message = __('Could not update any of the taxonomies.');
-        } elseif ($successes > 0 ) {
+        } else {
             $message = __('Successfully updated %s taxonomies.', $successes);
-            if ($fails != 0) {
+            if ($fails !== 0) {
                 $message .= __(' However, could not update %s taxonomies.', $fails);
             }
         }
-        echo $message . PHP_EOL;
+        $this->out($message);
+        if ($fails) {
+            $this->out(__('Fails:'));
+            foreach ($result['fails'] as $fail) {
+                $this->out("{$fail['namespace']}: {$fail['fail']}");
+            }
+        }
     }
 
     public function enableTaxonomyTags()
@@ -209,11 +315,16 @@ class AdminShell extends AppShell
 
     public function updateWarningLists()
     {
-        $this->ConfigLoad->execute();
         $result = $this->Warninglist->update();
         $success = count($result['success']);
         $fails = count($result['fails']);
-        echo "$success warninglists updated, $fails fails" . PHP_EOL;
+        $this->out("$success warninglists updated, $fails fails");
+        if ($fails) {
+            $this->out(__('Fails:'));
+            foreach ($result['fails'] as $fail) {
+                $this->out("{$fail['name']}: {$fail['fail']}");
+            }
+        }
     }
 
     public function updateNoticeLists()
@@ -232,7 +343,7 @@ class AdminShell extends AppShell
     {
         $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin updateObjectTemplates [user_id]' . PHP_EOL;
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Update object templates'] . PHP_EOL);
         } else {
             $userId = $this->args[0];
             $user = $this->User->getAuthUser($userId);
@@ -264,6 +375,10 @@ class AdminShell extends AppShell
     public function jobUpgrade24()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Job upgrade'] . PHP_EOL);
+        }
+
         $jobId = $this->args[0];
         $user_id = $this->args[1];
         $this->loadModel('Job');
@@ -278,6 +393,10 @@ class AdminShell extends AppShell
     public function prune_update_logs()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Prune update logs'] . PHP_EOL);
+        }
+
         $jobId = $this->args[0];
         $user_id = $this->args[1];
         $user = $this->User->getAuthUser($user_id);
@@ -318,14 +437,13 @@ class AdminShell extends AppShell
 
     public function getSetting()
     {
-        $this->ConfigLoad->execute();
         $param = empty($this->args[0]) ? 'all' : $this->args[0];
         $settings = $this->Server->serverSettingsRead();
         $result = $settings;
-        if ($param != 'all') {
+        if ($param !== 'all') {
             $result = 'No valid setting found for ' . $param;
             foreach ($settings as $setting) {
-                if ($setting['setting'] == $param) {
+                if ($setting['setting'] === $param) {
                     $result = $setting;
                     break;
                 }
@@ -336,39 +454,39 @@ class AdminShell extends AppShell
 
     public function setSetting()
     {
-        $this->ConfigLoad->execute();
-        $setting_name = !isset($this->args[0]) ? null : $this->args[0];
-        $value = !isset($this->args[1]) ? null : $this->args[1];
+        list($setting_name, $value) = $this->args;
         if ($value === 'false') {
             $value = 0;
         } elseif ($value === 'true') {
             $value = 1;
         }
-        $cli_user = array('id' => 0, 'email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'));
-        if (empty($setting_name) || $value === null) {
-            echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin setSetting [setting_name] [setting_value]' . PHP_EOL;
-        } else {
-            $setting = $this->Server->getSettingData($setting_name);
-            if (empty($setting)) {
-                $message =  'Invalid setting "' . $setting_name . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
-                $this->error(__('Setting change rejected.'), $message);
-            }
-            $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value, $this->params['force']);
-            if ($result === true) {
-                echo 'Setting "' . $setting_name . '" changed to ' . $value . PHP_EOL;
-            } else {
-                $message = __("The setting change was rejected. MISP considers the requested setting value as invalid and would lead to the following error:\n\n\"%s\"\n\nIf you still want to force this change, please supply the --force argument.\n", $result);
-                $this->error(__('Setting change rejected.'), $message);
-            }
+        if ($this->params['null']) {
+            $value = null;
         }
-        echo PHP_EOL;
+        $cli_user = array('id' => 0, 'email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'));
+        if (empty($setting_name) || ($value === null && !$this->params['null'])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Set setting'] . PHP_EOL);
+        }
+        $setting = $this->Server->getSettingData($setting_name);
+        if (empty($setting)) {
+            $message =  'Invalid setting "' . $setting_name . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
+            $this->error(__('Setting change rejected.'), $message);
+        }
+        $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value, $this->params['force']);
+        if ($result === true) {
+            $this->out(__('Setting "%s" changed to %s', $setting_name, is_string($value) ? '"' . $value . '"' : (string)$value));
+        } else {
+            $message = __("The setting change was rejected. MISP considers the requested setting value as invalid and would lead to the following error:\n\n\"%s\"\n\nIf you still want to force this change, please supply the --force argument.\n", $result);
+            $this->error(__('Setting change rejected.'), $message);
+        }
     }
 
     public function setDatabaseVersion()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0])) echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin setDatabaseVersion [db_version]' . PHP_EOL;
-        else {
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Set database version'] . PHP_EOL);
+        } else {
             $db_version = $this->AdminSetting->find('first', array(
                 'conditions' => array('setting' => 'db_version')
             ));
@@ -384,24 +502,24 @@ class AdminShell extends AppShell
 
     public function runUpdates()
     {
-        $this->ConfigLoad->execute();
-        $whoami = exec('whoami');
-        $osuser = Configure::read('MISP.osuser');
-        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache' || $whoami === 'wwwrun' || $whoami === 'travis' || $whoami === 'www' || $whoami === $osuser) {
-            echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
+        $whoami = ProcessTool::whoami();
+        if (in_array($whoami, ['httpd', 'www-data', 'apache', 'wwwrun', 'travis', 'www'], true) || $whoami === Configure::read('MISP.osuser')) {
+            $this->out('Executing all updates to bring the database up to date with the current version.');
             $processId = empty($this->args[0]) ? false : $this->args[0];
             $this->Server->runUpdates(true, false, $processId);
-            echo 'All updates completed.' . PHP_EOL;
+            $this->out('All updates completed.');
         } else {
-            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd` or `apache` or `wwwrun` or set MISP.osuser in the configuration.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
+            $this->error('This OS user is not allowed to run this command.', 'Run it under `www-data` or `httpd` or `apache` or `wwwrun` or set MISP.osuser in the configuration.' . PHP_EOL . 'You tried to run this command as: ' . $whoami);
         }
     }
 
     public function getAuthkey()
     {
-        $this->ConfigLoad->execute();
+        if (Configure::read("Security.advanced_authkeys")) {
+            $this->error('Advanced autkeys enabled, it is not possible to get user authkey.');
+        }
         if (empty($this->args[0])) {
-            echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin getAuthkey [user_email]' . PHP_EOL;
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get authkey'] . PHP_EOL);
         } else {
             $user = $this->User->find('first', array(
                 'recursive' => -1,
@@ -416,9 +534,19 @@ class AdminShell extends AppShell
         }
     }
 
+    public function redisReady()
+    {
+        try {
+            $redis = $this->Server->setupRedisWithException();
+            $redis->ping();
+            $this->out('Successfully connected to Redis.');
+        } catch (Exception $e) {
+            $this->error('Redis connection is not available', $e->getMessage());
+        }
+    }
+
     public function clearBruteforce()
     {
-        $this->ConfigLoad->execute();
         $conditions = array('Bruteforce.username !=' => '');
         if (!empty($this->args[0])) {
             $conditions = array('Bruteforce.username' => $this->args[0]);
@@ -426,7 +554,7 @@ class AdminShell extends AppShell
         $result = $this->Bruteforce->deleteAll($conditions, false, false);
         $target = empty($this->args[0]) ? 'all users' : $this->args[0];
         if ($result) {
-            echo 'Brutefoce entries for ' . $target . ' deleted.' . PHP_EOL;
+            echo 'Bruteforce entries for ' . $target . ' deleted.' . PHP_EOL;
         } else {
             echo 'Something went wrong, could not delete bruteforce entries for ' . $target . '.' . PHP_EOL;
         }
@@ -444,7 +572,7 @@ class AdminShell extends AppShell
             }
             $roles = implode(PHP_EOL, $roles);
             echo "Roles:\n" . $roles . $this->separator();
-            echo 'Usage: ' . APP . 'cake ' . 'Admin setDefaultRole [role_id]' . PHP_EOL;
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Set default role'] . PHP_EOL);
         } else {
             $role = $this->Role->find('first', array(
                 'recursive' => -1,
@@ -464,13 +592,17 @@ class AdminShell extends AppShell
         return PHP_EOL . '---------------------------------------------------------------' . PHP_EOL;
     }
 
+    /**
+     * @deprecated Use UserShell instead
+     */
     public function change_authkey()
     {
         $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
-            echo 'MISP apikey command line tool.' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake change_authkey [email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake change_authkey [email] [authkey]' . PHP_EOL;
+            echo 'MISP apikey command line tool' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Admin change_authkey [user_email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Admin change_authkey [user_email] [authkey]' . PHP_EOL;
             die();
         }
+
         if (!empty($this->args[1])) {
             $authKey = $this->args[1];
         } else {
@@ -492,30 +624,6 @@ class AdminShell extends AppShell
             die();
         }
         echo 'Updated, new key:' . PHP_EOL . $authKey . PHP_EOL;
-    }
-
-    public function getOptionParser()
-    {
-        $this->ConfigLoad->execute();
-        $parser = parent::getOptionParser();
-
-        $parser->addSubcommand('updateJSON', array(
-            'help' => __('Update the JSON definitions of MISP.'),
-            'parser' => array(
-                'arguments' => array(
-                    'update' => array('help' => __('Update the submodules before ingestion.'), 'short' => 'u', 'boolean' => 1)
-                )
-            )
-        ));
-
-        $parser->addOption('force', array(
-            'short' => 'f',
-            'help' => 'Force the command.',
-            'default' => false,
-            'boolean' => true
-        ));
-
-        return $parser;
     }
 
     public function recoverSinceLastSuccessfulUpdate()
@@ -570,8 +678,7 @@ class AdminShell extends AppShell
         $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             echo sprintf(
-                __("MISP mass sync authkey reset command line tool.\n\nUsage: %sConsole/cake resetSyncAuthkeys [user_id]") . "\n\n",
-                APP
+                __("MISP mass sync authkey reset command line tool" . PHP_EOL . "Usage: %sConsole/cake Admin resetSyncAuthkeys [user_id]" . PHP_EOL), APP
             );
             die();
         } else {
@@ -599,7 +706,7 @@ class AdminShell extends AppShell
             (empty($this->args[0]) || !is_numeric($this->args[0])) ||
             (empty($this->args[1]) || !is_numeric($this->args[1]))
         ) {
-            echo 'Usage: ' . APP . '/cake ' . 'Admin purgeFeedEvents [user_id] [feed_id]' . PHP_EOL;
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Purge feed events'] . PHP_EOL);
         } else {
             $user_id = $this->args[0];
             $feed_id = $this->args[1];
@@ -614,34 +721,31 @@ class AdminShell extends AppShell
 
     public function dumpCurrentDatabaseSchema()
     {
-        $this->ConfigLoad->execute();
         $dbActualSchema = $this->Server->getActualDBSchema();
-        $dbVersion = $this->AdminSetting->find('first', array(
-            'conditions' => array('setting' => 'db_version')
-        ));
+        $dbVersion = $this->AdminSetting->getSetting('db_version');
         if (!empty($dbVersion) && !empty($dbActualSchema['schema'])) {
-            $dbVersion = $dbVersion['AdminSetting']['value'];
-            $data = array(
+            $data = [
                 'schema' => $dbActualSchema['schema'],
                 'indexes' => $dbActualSchema['indexes'],
-                'db_version' => $dbVersion
-            );
-            $file = new File(ROOT . DS . 'db_schema.json', true);
-            $file->write(json_encode($data, JSON_PRETTY_PRINT) . "\n");
-            $file->close();
-            echo __("> Database schema dumped on disk") . PHP_EOL;
+                'db_version' => $dbVersion,
+            ];
+            FileAccessTool::writeToFile(ROOT . DS . 'db_schema.json', JsonTool::encode($data, true));
+            $this->out(__("> Database schema dumped on disk"));
         } else {
-            echo __("Something went wrong. Could not find the existing db version or fetch the current database schema.") . PHP_EOL;
+            $this->error(__('Something went wrong.'), __('Could not find the existing db version or fetch the current database schema.'));
         }
     }
 
+    /**
+     * @deprecated Use UserShell instead
+     */
     public function UserIP()
     {
         $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get IPs for user ID'] . PHP_EOL);
-            die();
         }
+
         $user_id = trim($this->args[0]);
         $redis = $this->Server->setupRedis();
         $user = $this->User->find('first', array(
@@ -649,7 +753,7 @@ class AdminShell extends AppShell
             'conditions' => array('User.id' => $user_id)
         ));
         if (empty($user)) {
-            echo PHP_EOL . 'Invalid user ID.';
+            echo PHP_EOL . 'Invalid user ID.' . PHP_EOL;
             die();
         }
         $ips = $redis->smembers('misp:user_ip:' . $user_id);
@@ -660,13 +764,16 @@ class AdminShell extends AppShell
         );
     }
 
+    /**
+     * @deprecated Use UserShell instead
+     */
     public function IPUser()
     {
         $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get user ID for user IP'] . PHP_EOL);
-            die();
         }
+
         $ip = trim($this->args[0]);
         $redis = $this->Server->setupRedis();
         $user_id = $redis->get('misp:ip_user:' . $ip);
@@ -709,6 +816,33 @@ class AdminShell extends AppShell
         $this->Job->saveField('progress', 100);
         $this->Job->saveField('message', 'Job done.');
         $this->Job->saveField('status', 4);
+    }
+
+    public function removeOrphanedCorrelations()
+    {
+        $count = $this->Server->removeOrphanedCorrelations();
+        $this->out(__('%s orphaned correlation removed', $count));
+    }
+
+    public function optimiseTables()
+    {
+        $dataSource = $this->Server->getDataSource();
+        $tables = $dataSource->listSources();
+
+        /** @var ProgressShellHelper $progress */
+        $progress = $this->helper('progress');
+        $progress->init([
+            'total' => count($tables),
+            'width' => 50,
+        ]);
+
+        foreach ($tables as $table) {
+            $dataSource->query('OPTIMISE TABLE ' . $dataSource->name($table));
+            $progress->increment();
+            $progress->draw();
+        }
+
+        $this->out('Optimised.');
     }
 
     public function updatesDone()
@@ -765,5 +899,291 @@ class AdminShell extends AppShell
                 $this->out(' - ' . $info['message']);
             }
         }
+    }
+
+    public function live()
+    {
+        if (isset($this->args[0])) {
+            $newStatus = $this->toBoolean($this->args[0]);
+            $overallSuccess = false;
+            try {
+                $redis = $this->Server->setupRedisWithException();
+                if ($newStatus) {
+                    $redis->del('misp:live');
+                    $this->out('Set live status to True in Redis.');
+                } else {
+                    $redis->set('misp:live', '0');
+                    $this->out('Set live status to False in Redis.');
+                }
+                $overallSuccess = true;
+            } catch (Exception $e) {
+                $this->out('<warning>Redis is not reachable.</warning>');
+            }
+
+            $success = $this->Server->serverSettingsSaveValue('MISP.live', $newStatus);
+            if ($success) {
+                $this->out('Set live status in PHP config file.');
+                $overallSuccess = true;
+            } else {
+                $this->out('<warning>Could not set MISP.live in PHP config file.</warning>');
+            }
+
+            if ($overallSuccess) {
+                $this->out($newStatus ? 'MISP is now live. Users can now log in.' : 'MISP is now disabled. Only site admins can log in.');
+            } else {
+                $this->error('Could not save live status in Redis or PHP config file.');
+            }
+        } else {
+            $this->out('Current status:');
+            $this->out('PHP Config file: ' . (Configure::read('MISP.live') ? 'True' : 'False'));
+            $newStatus = $this->Server->setupRedisWithException()->get('misp:live');
+            $this->out('Redis: ' . ($newStatus !== '0' ? 'True' : 'False'));
+        }
+    }
+
+    public function reencrypt()
+    {
+        $old = $this->params['old'] ?? null;
+        $new = $this->params['new'] ?? null;
+
+        if ($new !== null && strlen($new) < 32) {
+            $this->error('New key must be at least 32 chars long.');
+        }
+
+        if ($old === null) {
+            $old = Configure::read('Security.encryption_key');
+        }
+
+        if ($new === null) {
+            // Generate random new key
+            $new = rtrim(base64_encode(random_bytes(32)), "=");
+        }
+
+        $this->Server->getDataSource()->begin();
+
+        try {
+            /** @var SystemSetting $systemSetting */
+            $systemSetting = ClassRegistry::init('SystemSetting');
+            $systemSetting->reencrypt($old, $new);
+
+            $this->Server->reencryptAuthKeys($old, $new);
+
+            /** @var Cerebrate $cerebrate */
+            $cerebrate = ClassRegistry::init('Cerebrate');
+            $cerebrate->reencryptAuthKeys($old, $new);
+
+            $result = $this->Server->serverSettingsSaveValue('Security.encryption_key', $new, true);
+
+            $this->Server->getDataSource()->commit();
+
+            if (!$result) {
+                $this->error('Encrypt key was changed, but it is not possible to save key to config file', __('Please insert new key "%s" to config file manually.', $new));
+            }
+        } catch (Exception $e) {
+            $this->Server->getDataSource()->rollback();
+            throw $e;
+        }
+
+        $this->out(__('New encryption key "%s" saved into config file.', $new));
+    }
+
+    /**
+     * @param Redis $redis
+     * @param string $prefix
+     * @return array[int, int]
+     */
+    private function redisSize($redis, $prefix)
+    {
+        $keyCount = 0;
+        $size = 0;
+        $it = null;
+        while ($keys = $redis->scan($it, $prefix, 1000)) {
+            $redis->pipeline();
+            foreach ($keys as $key) {
+                $redis->rawCommand("memory", "usage", $key);
+            }
+            $result = $redis->exec();
+            $keyCount += count($keys);
+            $size += array_sum($result);
+        }
+        return [$keyCount, $size];
+    }
+
+    public function redisMemoryUsage()
+    {
+        $redis = $this->Server->setupRedisWithException();
+        $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
+
+        $output = [];
+
+        list($count, $size) = $this->redisSize($redis, 'misp:feed_cache:*');
+        $output['feed_cache_count'] = $count;
+        $output['feed_cache_size'] = $size;
+
+        // Size of different feeds
+        $feedIds = $this->Feed->find('column', [
+            'fields' => ['id'],
+        ]);
+
+        $redis->pipeline();
+        foreach ($feedIds as $feedId) {
+            $redis->rawCommand("memory", "usage", 'misp:feed_cache:' . $feedId);
+        }
+        $feedSizes = $redis->exec();
+
+        foreach ($feedIds as $k => $feedId) {
+            if ($feedSizes[$k]) {
+                $output['feed_cache_size_' . $feedId] = $feedSizes[$k];
+            }
+        }
+
+        list($count, $size) = $this->redisSize($redis, 'misp:server_cache:*');
+        $output['server_cache_count'] = $count;
+        $output['server_cache_size'] = $size;
+
+        // Size of different server
+        $serverIds = $this->Server->find('column', [
+            'fields' => ['id'],
+        ]);
+
+        $redis->pipeline();
+        foreach ($serverIds as $serverId) {
+            $redis->rawCommand("memory", "usage", 'misp:server_cache:' . $serverId);
+        }
+        $serverSizes = $redis->exec();
+
+        foreach ($serverIds as $k => $serverId) {
+            if ($serverSizes[$k]) {
+                $output['server_cache_size_' . $serverId] = $serverSizes[$k];
+            }
+        }
+
+        list($count, $size) = $this->redisSize($redis, 'misp:wlc:*');
+        $output['warninglist_cache_count'] = $count;
+        $output['warninglist_cache_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:warninglist_entries_cache:*');
+        $output['warninglist_entries_count'] = $count;
+        $output['warninglist_entries_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:top_correlation');
+        $output['top_correlation_count'] = $count;
+        $output['top_correlation_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:correlation_exclusions');
+        $output['correlation_exclusions_count'] = $count;
+        $output['correlation_exclusions_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:event_lock:*');
+        $output['event_lock_count'] = $count;
+        $output['event_lock_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:user_ip:*');
+        $output['user_ip_count'] = $count;
+        $output['user_ip_size'] = $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:ip_user:*');
+        $output['user_ip_count'] += $count;
+        $output['user_ip_size'] += $size;
+
+        list($count, $size) = $this->redisSize($redis, 'misp:authkey_usage:*');
+        $output['authkey_usage_count'] = $count;
+        $output['authkey_usage_size'] = $size;
+
+        $this->out($this->json($output));
+    }
+
+    public function securityAudit()
+    {
+        // Start session to initialize ini setting for session cookies
+        CakeSession::start();
+        CakeSession::destroy();
+
+        $formatFindings = function (array $findings) {
+            $value = '';
+            foreach ($findings as $finding) {
+                if ($finding[0] === 'error') {
+                    $value .= '<error>Error:</error>';
+                } else if ($finding[0] === 'warning') {
+                    $value .= '<warning>Warning:</warning>';
+                } else if ($finding[0] === 'hint') {
+                    continue; // Ignore hints
+                }
+
+                $value .= ' ' . $finding[1] . PHP_EOL;
+            }
+            return $value;
+        };
+
+        App::uses('SecurityAudit', 'Tools');
+        $securityAudit = (new SecurityAudit())->run($this->Server, true);
+        foreach ($securityAudit as $field => $findings) {
+            $value = $formatFindings($findings);
+            if (!empty($value)) {
+                $this->out($field);
+                $this->out('==============================');
+                $this->out($value);
+            }
+        }
+    }
+
+    public function securityAuditTls()
+    {
+        App::uses('SecurityAudit', 'Tools');
+        $securityAudit = (new SecurityAudit())->tlsConnections();
+        foreach ($securityAudit as $type => $details) {
+            $result = $details['success'] ? 'True' : 'False';
+            if (isset($details['expected']) && $details['expected'] !== $details['success']) {
+                $result = "<error>$result</error>";
+            }
+            $this->out("$type: $result");
+        }
+    }
+
+    public function configLint()
+    {
+        $serverSettings = $this->Server->serverSettingsRead();
+        foreach ($serverSettings as $setting) {
+            if (!isset($setting['error'])) {
+                continue;
+            }
+            if ($setting['errorMessage'] === 'Value not set.') {
+                continue; // Skip not set values.
+            }
+            $this->out($setting['setting'] . ': ' . $setting['errorMessage']);
+        }
+    }
+
+    public function executeSGBlueprint()
+    {
+        $id = false;
+        $target = 'all';
+        if (!empty($this->args[0])) {
+            $target = trim($this->args[0]);
+        }
+        if (!is_numeric($target) && !in_array($target, ['all', 'attached', 'deteached'])) {
+            $this->error(__('Invalid target. Either pass a blueprint ID or one of the following filters: all, attached, detached.'));
+        }
+        $conditions = [];
+        if (is_numeric($target)) {
+            $conditions['SharingGroupBlueprint']['id'] = $target;
+        } else if ($target === 'attached') {
+            $conditions['SharingGroupBlueprint']['sharing_group_id >'] = 0;
+        } else if ($target === 'detached') {
+            $conditions['SharingGroupBlueprint']['sharing_group_id'] = 0;
+        }
+        $sharingGroupBlueprints = $this->SharingGroupBlueprint->find('all', ['conditions' => $conditions, 'recursive' => 0]);
+        if (empty($sharingGroupBlueprints)) {
+            $this->error(__('No valid blueprints found.'));
+        }
+        $stats = $this->SharingGroupBlueprint->execute($sharingGroupBlueprints);
+        $message = __(
+            'Done, %s sharing group blueprint(s) matched. Sharing group changes: Created: %s. Updated: %s. Failed to create: %s.',
+            count($sharingGroupBlueprints),
+            $stats['created'],
+            $stats['changed'],
+            $stats['failed']
+        );
+        $this->out($message);
     }
 }

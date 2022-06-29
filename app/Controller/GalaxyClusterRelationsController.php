@@ -72,8 +72,6 @@ class GalaxyClusterRelationsController extends AppController
             $this->paginate['contain'] = array('SharingGroup', 'SourceCluster' => ['Org', 'Orgc'], 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag'));
             $relations = $this->paginate();
             $relations = $this->GalaxyClusterRelation->removeNonAccessibleTargetCluster($this->Auth->user(), $relations);
-            $this->loadModel('SharingGroup');
-            $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
             $this->loadModel('Attribute');
             $distributionLevels = $this->Attribute->distributionLevels;
             unset($distributionLevels[5]);

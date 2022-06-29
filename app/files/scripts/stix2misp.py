@@ -23,11 +23,18 @@ import uuid
 import base64
 import pymisp
 import stix2misp_mapping
+from operator import attrgetter
+from collections import defaultdict
+from pathlib import Path
+
+_current_path = Path(__file__).resolve().parent
+sys.path.insert(0, str(_current_path / 'python-stix'))
+sys.path.insert(1, str(_current_path / 'python-cybox'))
+sys.path.insert(2, str(_current_path / 'mixbox'))
+sys.path.insert(3, str(_current_path / 'python-maec'))
 import stix.extensions.marking.ais
 from mixbox.namespaces import NamespaceNotFoundError
-from operator import attrgetter
 from stix.core import STIXPackage
-from collections import defaultdict
 try:
     import stix_edh
 except ImportError:
@@ -35,6 +42,8 @@ except ImportError:
 
 _MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-3]])
 _MISP_objects_path = '{_MISP_dir}/app/files/misp-objects/objects'.format(_MISP_dir=_MISP_dir)
+_RFC_UUID_VERSIONS = (1, 3, 4, 5)
+_UUIDv4 = uuid.UUID('76beed5f-7251-457e-8c2a-b45f7b589d3d')
 
 from pymisp.mispevent import MISPEvent, MISPObject, MISPAttribute
 
@@ -87,9 +96,30 @@ class StixParser():
     # Convert the MISP event we create from the STIX document into json format
     # and write it in the output file
     def saveFile(self):
+        for attribute in self.misp_event.attributes:
+            attribute_uuid = uuid.UUID(attribute.uuid) if isinstance(attribute.uuid, str) else attribute.uuid
+            if attribute_uuid.version not in _RFC_UUID_VERSIONS:
+                attribute.uuid = self._sanitize_uuid(attribute)
+        for misp_object in self.misp_event.objects:
+            object_uuid = uuid.UUID(misp_object.uuid) if isinstance(misp_object.uuid, str) else misp_object.uuid
+            if object_uuid.version not in _RFC_UUID_VERSIONS:
+                misp_object.uuid = self._sanitize_uuid(misp_object)
+                for reference in misp_object.references:
+                    reference.object_uuid = misp_object.uuid
+                    if reference.referenced_uuid.version not in _RFC_UUID_VERSIONS:
+                        reference.referenced_uuid = uuid.uuid5(_UUIDv4, str(reference.referenced_uuid))
+                for attribute in misp_object.attributes:
+                    if attribute.uuid.version not in _RFC_UUID_VERSIONS:
+                        attribute.uuid = self._sanitize_uuid(attribute)
         eventDict = self.misp_event.to_json()
         with open(self.outputname, 'wt', encoding='utf-8') as f:
             f.write(eventDict)
+
+    @staticmethod
+    def _sanitize_uuid(misp_feature):
+        comment = f'Original UUID was: {misp_feature.uuid}'
+        misp_feature.comment = f'{misp_feature.comment} - {comment}' if hasattr(misp_feature, 'comment') else comment
+        return uuid.uuid5(_UUIDv4, str(misp_feature.uuid))
 
     def parse_marking(self, handling):
         tags = []
@@ -423,6 +453,7 @@ class StixParser():
                 misp_object.uuid = object_uuid
                 for attribute in object_attributes:
                     misp_object.add_attribute(**attribute)
+                self.misp_event.add_object(**misp_object)
                 references.append(object_uuid)
             return "process", self.return_attributes(attributes), {"process_uuid": references}
         return "process", self.return_attributes(attributes), ""
@@ -636,6 +667,8 @@ class StixParser():
     def parse_pe_section(self, section):
         section_object = MISPObject('pe-section', misp_objects_path_custom=_MISP_objects_path)
         header_hashes = section.header_hashes
+        if header_hashes is None:
+            header_hashes = section.data_hashes
         for h in header_hashes:
             hash_type, hash_value, hash_relation = self.handle_hashes_attribute(h)
             section_object.add_attribute(**{"type": hash_type, "value": hash_value, "object_relation": hash_relation})
@@ -736,10 +769,15 @@ class StixParser():
         for course_of_action in courses_of_action:
             self.parse_galaxy(course_of_action, 'title', 'mitre-course-of-action')
 
-    def _resolve_galaxy(self, name, default_value):
-        if name in self.synonyms_to_tag_names:
-            return self.synonyms_to_tag_names[name]
-        return [f'misp-galaxy:{default_value}="{name}"']
+    def _resolve_galaxy(self, galaxy_name, default_value):
+        if galaxy_name in self.synonyms_to_tag_names:
+            return self.synonyms_to_tag_names[galaxy_name]
+        for identifier in galaxy_name.split(' - '):
+            if identifier[0].isalpha() and any(character.isdecimal() for character in identifier[1:]):
+                for name, tag_names in self.synonyms_to_tag_names.items():
+                    if identifier in name:
+                        return tag_names
+        return [f'misp-galaxy:{default_value}="{galaxy_name}"']
 
     ################################################################################
     ##              UTILITY FUNCTIONS USED BY PARSING FUNCTION ABOVE              ##
@@ -1524,14 +1562,14 @@ def generate_event(filename, tries=0):
 
 def is_from_misp(event):
     try:
-        title = event.header.title
+        title = event.stix_header.title
     except AttributeError:
         return False
     return ('Export from ' in title and 'MISP' in title)
 
 
 def main(args):
-    filename = '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
+    filename = args[1] if args[1][0] == '/' else '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
     event = generate_event(filename)
     from_misp = is_from_misp(event)
     stix_parser = StixFromMISPParser() if from_misp else ExternalStixParser()

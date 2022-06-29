@@ -158,8 +158,7 @@ ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-maec
 $SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
-# install STIX2.0 library to support STIX 2.0 export:
-cd ${PATH_TO_MISP}/cti-python-stix2
+cd ${PATH_TO_MISP}/app/files/scripts/misp-stix
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP
@@ -218,7 +217,7 @@ sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.com
 #${SUDO_WWW} php -r "if (hash_file('SHA384', 'composer-setup.php') === 'baf1608c33254d00611ac1705c1d9958c817a1a33bce370c0595974b342601bd80b92a3f46067da89e3b06bff421f182') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 #${SUDO_WWW} php composer-setup.php
 #${SUDO_WWW} php -r "unlink('composer-setup.php');"
-${SUDO_WWW} php composer.phar install
+${SUDO_WWW} php composer.phar install --no-dev
 # The following is potentially not needed, but just here in case of Keyboard/Chair failures
 ${SUDO_WWW} php composer.phar update
 

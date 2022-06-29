@@ -335,7 +335,9 @@
     <?php else: ?>
 
     <b><?= __('Current libraries status') ?>:</b>
-    <?php if ($stix['operational'] === 0): ?>
+    <?php if ($stix['test_run'] === false): ?>
+    <b class="red bold"><?= __('Failed to run STIX diagnostics tool.') ?></b>
+    <?php elseif ($stix['operational'] === 0): ?>
     <b class="red bold"><?= __('Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.') ?></b>
     <?php elseif ($stix['invalid_version']): ?>
     <span class="orange"><?= __('Some versions should be updated.') ?></span>
@@ -369,10 +371,14 @@
     <div class="diagnostics-box">
         <?php
             $colour = 'green';
-            $message = __('OK');
-            if ($yaraStatus['operational'] == 0) {
+            if ($yaraStatus['test_run'] === false) {
+                $colour = 'red';
+                $message = __('Failed to run yara diagnostics tool.');
+            }elseif ($yaraStatus['operational'] == 0) {
                 $colour = 'red';
                 $message = __('Invalid plyara version / plyara not installed. Please run pip3 install plyara');
+            }else{
+                $message = __('OK');
             }
             echo __('plyara library installed') . '…<span style="color:' . $colour . ';">' . $message . '</span>';
         ?>
@@ -439,24 +445,21 @@
     ?>
     </div>
 
-    <h3><?php echo __('Session table');?></h3>
-    <p><?php echo __('This tool checks how large your database\'s session table is. <br />Sessions in CakePHP rely on PHP\'s garbage collection for clean-up and in certain distributions this can be disabled by default resulting in an ever growing cake session table. <br />If you are affected by this, just click the clean session table button below.');?></p>
+    <h3><?php echo __('PHP Sessions');?></h3>
     <div class="diagnostics-box">
-        <?php
-            $colour = 'green';
-            $message = $sessionErrors[$sessionStatus];
-            $sessionColours = array(0 => 'green', 1 => 'red', 2 => 'orange', 3 => 'red');
-            $colour = $sessionColours[$sessionStatus];
-            echo __('Expired sessions') . '…<span style="color:' . $colour . ';">' . $sessionCount . ' (' . $message . ')' . '</span>';
-        ?>
+    <?php
+        $sessionColours = array(0 => 'green', 1 => 'red', 2 => 'orange', 3 => 'red', 9 => 'red');
+        $colour = $sessionColours[$sessionStatus['error_code']];
+        echo sprintf('<p><b>%s:</b> %s</p>', __('Session handler'), $sessionStatus['handler']);
+        echo sprintf('<span style="color:%s;">%s</span>', $colour, __($sessionErrors[$sessionStatus['error_code']]));
+        if($sessionStatus['handler'] === 'database'){
+            echo sprintf('<br><span style="color:%s;">%s: %s</span>',$colour, __('Expired sessions'), $sessionStatus['expired_count']);
+            if ($sessionStatus['error_code'] === 1){
+                echo sprintf('<br><a href="<?php echo $baseurl;?>/servers/purgeSessions"><span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">%s</span></a>', __('Purge sessions'));
+            }
+        }
+    ?>
     </div>
-    <?php
-        if ($sessionStatus < 2):
-    ?>
-    <a href="<?php echo $baseurl;?>/servers/purgeSessions"><span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;"><?php echo __('Purge sessions');?></span></a>
-    <?php
-        endif;
-    ?>
     <h3><?php echo __('Upgrade authkeys keys to the advanced keys format'); ?><a id="advanced_authkey_update">&nbsp</a></h3>
     <p>
         <?php
@@ -466,7 +469,7 @@
     </p>
     <h3><?php echo __('Clean model cache');?></h3>
     <p><?php echo __('If you ever run into issues with missing database fields / tables, please run the following script to clean the model cache.');?></p>
-    <?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">' . __('Clean cache') . '</span>', $baseurl . '/events/cleanModelCaches', array('escape' => false));?>
+    <?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">' . __('Clean cache') . '</span>', $baseurl . '/servers/cleanModelCaches', array('escape' => false));?>
     <?php
         echo sprintf(
             '<h3>%s</h3><p>%s</p><div id="deprecationResults"></div>%s',

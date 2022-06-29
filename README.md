@@ -108,16 +108,16 @@ License
 
 This software is licensed under [GNU Affero General Public License version 3](http://www.gnu.org/licenses/agpl-3.0.html)
 
-* Copyright (C) 2012-2020 Christophe Vandeplas
+* Copyright (C) 2012-2022 Christophe Vandeplas
 * Copyright (C) 2012 Belgian Defence
 * Copyright (C) 2012 NATO / NCIRC
-* Copyright (C) 2013-2020 Andras Iklody
-* Copyright (C) 2015-2020 CIRCL - Computer Incident Response Center Luxembourg
+* Copyright (C) 2013-2022 Andras Iklody
+* Copyright (C) 2015-2022 CIRCL - Computer Incident Response Center Luxembourg
 * Copyright (C) 2016 Andreas Ziegler
-* Copyright (C) 2018-2020 Sami Mokaddem
-* Copyright (C) 2018-2020 Christian Studer
-* Copyright (C) 2015-2020 Alexandre Dulaunoy
-* Copyright (C) 2018-2020 Steve Clement
-* Copyright (C) 2020 Jakub Onderka
+* Copyright (C) 2018-2022 Sami Mokaddem
+* Copyright (C) 2018-2022 Christian Studer
+* Copyright (C) 2015-2022 Alexandre Dulaunoy
+* Copyright (C) 2018-2022 Steve Clement
+* Copyright (C) 2020-2022 Jakub Onderka
 
 For more information, [the list of authors and contributors](AUTHORS) is available.

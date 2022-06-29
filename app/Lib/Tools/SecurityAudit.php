@@ -1,5 +1,6 @@
 <?php
 App::uses('SyncTool', 'Tools');
+App::uses('ProcessTool', 'Tools');
 
 class SecurityAudit
 {
@@ -7,15 +8,20 @@ class SecurityAudit
 
     /**
      * @param Server $server
+     * @param bool $systemOnly Run only system checks
      * @return array
      */
-    public function run(Server $server)
+    public function run(Server $server, $systemOnly = false)
     {
         $output = [];
 
         foreach (['config.php', 'config.php.bk', 'database.php', 'email.php'] as $configFile) {
-            $perms = @fileperms(CONFIG . $configFile);
-            if ($perms !== false && $perms & 0x0004) {
+            if (!file_exists(CONFIG . $configFile)) {
+                continue;
+            }
+
+            $perms = fileperms(CONFIG . $configFile);
+            if ($perms & 0x0004) {
                 $output['File permissions'][] = ['error', __('%s config file is readable for any user.', $configFile)];
             }
         }
@@ -36,6 +42,10 @@ class SecurityAudit
             $output['Database'][] = ['error', __('Database password not set.')];
         } else if (strlen($databasePassword) < self::STRONG_PASSWORD_LENGTH) {
             $output['Database'][] = ['warning', __('Database password is too short, should be at least %s chars long.', self::STRONG_PASSWORD_LENGTH)];
+        }
+
+        if (!Configure::read('Security.encryption_key')) {
+            $output['Database'][] = ['warning', __('Sensitive information like keys to remote server are stored in database unencrypted. Set `Security.encryption_key` to encrypt these values.')];
         }
 
         $passwordPolicyLength = Configure::read('Security.password_policy_length') ?: $server->serverSettings['Security']['password_policy_length']['value'];
@@ -194,8 +204,10 @@ class SecurityAudit
         }
         */
 
-        $this->feeds($output);
-        $this->remoteServers($output);
+        if (!$systemOnly) {
+            $this->feeds($output);
+            $this->remoteServers($output);
+        }
 
         try {
             $cakeVersion = $this->getCakeVersion();
@@ -204,19 +216,28 @@ class SecurityAudit
             }
         } catch (RuntimeException $e) {}
 
-        if (version_compare(PHP_VERSION, '7.3.0', '<')) {
+        if (version_compare(PHP_VERSION, '7.4.0', '<')) {
             $output['PHP'][] = [
                 'warning',
-                __('PHP version %s is not supported anymore. It can be still supported by your distribution. ', PHP_VERSION),
-                'https://www.php.net/supported-versions.php'
-            ];
-        } else if (version_compare(PHP_VERSION, '7.4.0', '<')) {
-            $output['PHP'][] = [
-                'hint',
-                __('PHP version 7.3 will not be supported after 6 Dec 2021. Even beyond that date, it can be still supported by your distribution.'),
+                __('PHP version %s is not supported anymore. It can be still supported by your distribution.', PHP_VERSION),
                 'https://www.php.net/supported-versions.php'
             ];
         }
+
+        if (ini_get('expose_php')) {
+            $output['PHP'][] = [
+                'hint',
+                __('PHP `expose_php` setting is enabled. That means that PHP version will be send in `X-Powered-By` header. This can help attackers.'),
+            ];
+        }
+
+        if (extension_loaded('xdebug')) {
+            $output['PHP'][] = [
+                'error',
+                __('The xdebug extension can reveal code and data to an attacker.'),
+            ];
+        }
+
         if (ini_get('session.use_strict_mode') != 1) {
             $output['PHP'][] = [
                 'warning',
@@ -251,9 +272,64 @@ class SecurityAudit
             ];
         }
 
-        $this->system($server, $output);
+        $this->system($output);
 
         return $output;
+    }
+
+    /**
+     * @return array|string[][]
+     * @throws Exception
+     */
+    public function tlsConnections()
+    {
+        $urls = [
+            'TLSv1.0' => ['url' => 'https://tls-v1-0.badssl.com:1010/'],
+            'TLSv1.1' => ['url' => 'https://tls-v1-1.badssl.com:1011/'],
+            'TLSv1.2' => ['url' => 'https://tls-v1-2.badssl.com:1012/', 'expected' => true],
+            'TLSv1.3' => [
+                'url' => 'https://check-tls.akamai.io/v1/tlsinfo.json',
+                'expected' => true,
+                'process' => function (HttpSocketResponseExtended $response) {
+                    return $response->json()['tls_version'] === 'tls1.3';
+                }
+            ],
+            'DH480' => ['url' => 'https://dh480.badssl.com/', 'expected' => false],
+            'DH512' => ['url' => 'https://dh512.badssl.com/', 'expected' => false],
+            'DH1024' => ['url' => 'https://dh1024.badssl.com/', 'expected' => false],
+            'DH2048' => ['url' => 'https://dh2048.badssl.com/'],
+            'RC4-MD5' => ['url' => 'https://rc4-md5.badssl.com/', 'expected' => false],
+            'RC4' => ['url' => 'https://rc4.badssl.com/', 'expected' => false],
+            '3DES' => ['url' => 'https://3des.badssl.com/', 'expected' => false],
+            'NULL' => ['url' => 'https://null.badssl.com/', 'expected' => false],
+            'SHA1 2016' => ['url' => 'https://sha1-2016.badssl.com/', 'expected' => false],
+            'SHA1 2017' => ['url' => 'https://sha1-2017.badssl.com/', 'expected' => false],
+            'SHA1 intermediate' => ['url' => 'https://sha1-intermediate.badssl.com/', 'expected' => false],
+            'Invalid expected sct' => ['url' => 'https://invalid-expected-sct.badssl.com/', 'expected' => false],
+            'Expired' => ['url' => 'https://expired.badssl.com/', 'expected' => false],
+            'Wrong host' => ['url' => 'https://wrong.host.badssl.com/', 'expect' => false],
+            'Self-signed' => ['url' => 'https://self-signed.badssl.com/', 'expected' => false],
+            'Untrusted-root' => ['url' => 'https://untrusted-root.badssl.com/', 'expected' => false],
+            'Revoked' => ['url' => 'https://revoked.badssl.com/'],
+            'Pinning test' => ['url' => 'https://pinning-test.badssl.com/'],
+            'Bad DNSSEC' => ['url' => 'http://rhybar.cz', 'expected' => false],
+        ];
+        $syncTool = new SyncTool();
+        foreach ($urls as &$details) {
+            $httpSocket = $syncTool->createHttpSocket();
+            try {
+                $response = $httpSocket->get($details['url']);
+                if (isset($details['process'])) {
+                    $details['success'] = $details['process']($response);
+                } else {
+                    $details['success'] = true;
+                }
+            } catch (Exception $e) {
+                $details['success'] = false;
+                $details['exception'] = $e;
+            }
+        }
+        return $urls;
     }
 
     private function feeds(array &$output)
@@ -364,7 +440,7 @@ class SecurityAudit
         }
     }
 
-    private function system(Server $server, array &$output)
+    private function system(array &$output)
     {
         $kernelBuildTime = $this->getKernelBuild();
         if ($kernelBuildTime) {
@@ -380,7 +456,7 @@ class SecurityAudit
 
         // uptime
         try {
-            $since = $this->execute(['uptime', '-s']);
+            $since = ProcessTool::execute(['uptime', '-s']);
             $since = new DateTime($since);
             $diff = (new DateTime())->diff($since);
             $diffDays = $diff->format('a');
@@ -395,7 +471,7 @@ class SecurityAudit
 
         // Python version
         try {
-            $pythonVersion = $this->execute([$server->getPythonVersion(), '-V']);
+            $pythonVersion = ProcessTool::execute([ProcessTool::pythonBin(), '-V']);
             $parts = explode(' ', $pythonVersion);
             if ($parts[0] !== 'Python') {
                 throw new Exception("Invalid python version response: $pythonVersion");
@@ -417,41 +493,52 @@ class SecurityAudit
         } catch (Exception $e) {
         }
 
-        $ubuntuVersion = $this->getUbuntuVersion();
-        if ($ubuntuVersion) {
-            if (in_array($ubuntuVersion, ['14.04', '19.10'])) {
+        $linuxVersion = $this->getLinuxVersion();
+        if ($linuxVersion) {
+            list($name, $version) = $linuxVersion;
+            if ($name === 'Ubuntu') {
+                if (in_array($version, ['14.04', '16.04', '19.10', '20.10', '21.04'], true)) {
+                    $output['System'][] = [
+                        'warning',
+                        __('You are using Ubuntu %s. This version doesn\'t receive security support anymore.', $version),
+                        'https://endoflife.date/ubuntu',
+                    ];
+                }
+            } else if ($name === 'CentOS Linux' && $version == 8) {
                 $output['System'][] = [
                     'warning',
-                    __('You are using Ubuntu %s. This version doesn\'t receive security support anymore.', $ubuntuVersion),
-                    'https://endoflife.date/ubuntu',
-                ];
-            } else if (in_array($ubuntuVersion, ['16.04'])) {
-                $output['System'][] = [
-                    'hint',
-                    __('You are using Ubuntu %s. This version will be not supported after 02 Apr 2021.', $ubuntuVersion),
-                    'https://endoflife.date/ubuntu',
+                    __('You are using CentOS 8. This version doesn\'t receive security support anymore. Please migrate to CentOS 8 Stream.'),
+                    'https://endoflife.date/centos',
                 ];
             }
         }
     }
 
+    /**
+     * @return DateTime|false
+     */
     private function getKernelBuild()
     {
-        if (!php_uname('s') !== 'Linux') {
+        if (PHP_OS !== 'Linux') {
             return false;
         }
-
         $version = php_uname('v');
         if (substr($version, 0, 7) !== '#1 SMP ') {
             return false;
         }
-        $buildTime = substr($version, 7);
-        return new DateTime($buildTime);
+        try {
+            return new DateTime('@' . substr($version, 7));
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
-    private function getUbuntuVersion()
+    /**
+     * @return array|false
+     */
+    private function getLinuxVersion()
     {
-        if (!php_uname('s') !== 'Linux') {
+        if (PHP_OS !== 'Linux') {
             return false;
         }
         if (!is_readable('/etc/os-release')) {
@@ -465,16 +552,10 @@ class SecurityAudit
         if ($parsed === false) {
             return false;
         }
-        if (!isset($parsed['NAME'])) {
+        if (!isset($parsed['NAME']) || !isset($parsed['VERSION_ID'])) {
             return false;
         }
-        if ($parsed['NAME'] !== 'Ubuntu') {
-            return false;
-        }
-        if (!isset($parsed['VERSION_ID'])) {
-            return false;
-        }
-        return $parsed['VERSION_ID'];
+        return [$parsed['NAME'], $parsed['VERSION_ID']];
     }
 
     /**
@@ -494,35 +575,5 @@ class SecurityAudit
             return trim($line);
         }
         throw new RuntimeException("CakePHP version not found in file '$filePath'.");
-    }
-
-    private function execute(array $command)
-    {
-        $descriptorspec = [
-            1 => ["pipe", "w"], // stdout
-            2 => ["pipe", "w"], // stderr
-        ];
-
-        $command = implode(' ', $command);
-        $process = proc_open($command, $descriptorspec, $pipes);
-        if (!$process) {
-            throw new Exception("Command '$command' could not be started.");
-        }
-
-        $stdout = stream_get_contents($pipes[1]);
-        if ($stdout === false) {
-            throw new Exception("Could not get STDOUT of command.");
-        }
-        fclose($pipes[1]);
-
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[2]);
-
-        $returnCode = proc_close($process);
-        if ($returnCode !== 0) {
-            throw new Exception("Command '$command' return error code $returnCode. STDERR: '$stderr', STDOUT: '$stdout'");
-        }
-
-        return $stdout;
     }
 }

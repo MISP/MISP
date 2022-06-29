@@ -13,7 +13,7 @@
                 $password = false;
             } else {
                 $userType = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-                echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'label' => $userType . ' user'));
+                echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'label' => h($userType) . ' user'));
             }
             echo sprintf(
                 '<div class="clear"></div><div %s>%s</div>',
@@ -53,13 +53,18 @@
                     'empty' => __('Choose organisation'),
             ));
         }
-        $roleOptions = array('label' => __('Role'));
+        $roleOptions = array(
+            'label' => __('Role'),
+            'div' => empty(Configure::read('Security.advanced_authkeys')) ? null : 'input clear'
+        );
         // We need to make sure that the default role is actually available to the admin (for an org admin it might not be)
         if (!empty($default_role_id) && isset($roles[intval($default_role_id)])) {
             $roleOptions['default'] = $default_role_id;
         }
         echo $this->Form->input('role_id', $roleOptions);
-        echo $this->Form->input('authkey', array('value' => $authkey, 'readonly' => 'readonly', 'div' => 'input clear'));
+        if (empty(Configure::read('Security.advanced_authkeys'))) {
+            echo $this->Form->input('authkey', array('value' => $authkey, 'readonly' => 'readonly', 'div' => 'input clear'));
+        }
         echo $this->Form->input('nids_sid', ['label' => __('NIDS SID')]);
     ?>
         <div id="syncServers" class="hidden">
@@ -76,7 +81,7 @@
     ?>
     <div class="user-edit-checkboxes" style="margin-bottom: 1em">
     <?php
-        $default_publish_alert = Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : true;
+        $default_publish_alert = Configure::read('MISP.default_publish_alert') ?: true;
         echo $this->Form->input('autoalert', array(
             'label' => __('Receive email alerts when events are published'),
             'type' => 'checkbox',

@@ -31,7 +31,7 @@ sudo dpkg-reconfigure locales
 
 To install MISP on Tsurugi copy paste this in your r00t shell:
 ```bash
-wget -O /tmp/misp-tsurugi.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/xINSTALL.tsurugi.txt && bash /tmp/misp-tsurugi.sh
+wget --no-cache -O /tmp/misp-tsurugi.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/xINSTALL.tsurugi.txt && bash /tmp/misp-tsurugi.sh
 ```
 
 !!! warning
@@ -231,7 +231,7 @@ function installMISPonTsurugi() {
 
   cd ${PATH_TO_MISP}/app
   mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
-  ${SUDO_WWW} php composer.phar install
+  ${SUDO_WWW} php composer.phar install --no-dev
 
   ${SUDO_WWW} cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 

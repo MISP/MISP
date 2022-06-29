@@ -41,9 +41,8 @@ class SharingGroupsController extends AppController
 
     public function add()
     {
-        if (!$this->userRole['perm_sharing_group']) {
-            throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
-        }
+        $canModifyUuid = $this->Auth->user()['Role']['perm_site_admin'];
+
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
                 if (isset($this->request->data['SharingGroup'])) {
@@ -53,13 +52,13 @@ class SharingGroupsController extends AppController
                 $id = $this->SharingGroup->captureSG($this->request->data, $this->Auth->user());
                 if ($id) {
                     if (empty($sg['roaming']) && empty($sg['SharingGroupServer'])) {
-                       $this->SharingGroup->SharingGroupServer->create();
-                       $this->SharingGroup->SharingGroupServer->save(array(
-                               'sharing_group_id' => $this->SharingGroup->id,
-                               'server_id' => 0,
-                               'all_orgs' => 0
-                       ));
-                   }
+                        $this->SharingGroup->SharingGroupServer->create();
+                        $this->SharingGroup->SharingGroupServer->save(array(
+                            'sharing_group_id' => $this->SharingGroup->id,
+                            'server_id' => 0,
+                            'all_orgs' => 0
+                        ));
+                    }
                     $sg = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'simplified', false, $id);
                     if (!empty($sg)) {
                         $sg = empty($sg) ? array() : $sg[0];
@@ -79,6 +78,9 @@ class SharingGroupsController extends AppController
                 }
             }
             $this->SharingGroup->create();
+            if (!$canModifyUuid) {
+                unset($sg['uuid']);
+            }
             $sg['active'] = $sg['active'] ? 1: 0;
             $sg['roaming'] = $sg['roaming'] ? 1: 0;
             $sg['organisation_uuid'] = $this->Auth->user('Organisation')['uuid'];
@@ -90,9 +92,9 @@ class SharingGroupsController extends AppController
                     foreach ($sg['Organisation'] as $org) {
                         $this->SharingGroup->SharingGroupOrg->create();
                         $this->SharingGroup->SharingGroupOrg->save(array(
-                                'sharing_group_id' => $this->SharingGroup->id,
-                                'org_id' => $org['id'],
-                                'extend' => $org['extend']
+                            'sharing_group_id' => $this->SharingGroup->id,
+                            'org_id' => $org['id'],
+                            'extend' => $org['extend']
                         ));
                     }
                 }
@@ -100,9 +102,9 @@ class SharingGroupsController extends AppController
                     foreach ($sg['Server'] as $server) {
                         $this->SharingGroup->SharingGroupServer->create();
                         $this->SharingGroup->SharingGroupServer->save(array(
-                                'sharing_group_id' => $this->SharingGroup->id,
-                                'server_id' => $server['id'],
-                                'all_orgs' => $server['all_orgs']
+                            'sharing_group_id' => $this->SharingGroup->id,
+                            'server_id' => $server['id'],
+                            'all_orgs' => $server['all_orgs']
                         ));
                     }
                 }
@@ -125,26 +127,18 @@ class SharingGroupsController extends AppController
             return $this->RestResponse->describe('SharingGroup', 'add', false, $this->response->type());
         }
 
-        $orgs = $this->SharingGroup->Organisation->find('all', array(
-            'conditions' => array('local' => 1),
-            'recursive' => -1,
-            'fields' => array('id', 'name', 'uuid')
-        ));
-        $this->set('orgs', $orgs);
         $this->set('localInstance', empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'));
         // We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
         $this->set('user', $this->Auth->user());
+        $this->set('canModifyUuid', $canModifyUuid);
     }
-
+    
     public function edit($id = false)
     {
-        if (!$this->userRole['perm_sharing_group']) {
-            throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
-        }
         if (empty($id)) {
             throw new NotFoundException('Invalid sharing group.');
         }
-
+        
         // check if the user is eligible to edit the SG (original creator or extend)
         $sharingGroup = $this->SharingGroup->find('first', array(
             'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
@@ -163,6 +157,10 @@ class SharingGroupsController extends AppController
                 ),
             ),
         ));
+        if (empty($sharingGroup)) {
+            throw new NotFoundException('Invalid sharing group.');
+        }
+
         if (!$this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $sharingGroup['SharingGroup']['id'])) {
             throw new MethodNotAllowedException('Action not allowed.');
         }
@@ -262,7 +260,7 @@ class SharingGroupsController extends AppController
     public function index($passive = false)
     {
         $passive = $passive === 'true';
-        $authorizedSgIds = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
+        $authorizedSgIds = $this->SharingGroup->authorizedIds($this->Auth->user());
         $this->paginate['conditions'][] = array('SharingGroup.id' => $authorizedSgIds);
         $this->paginate['conditions'][] = array('SharingGroup.active' => $passive === true ? 0 : 1);
 
@@ -441,7 +439,7 @@ class SharingGroupsController extends AppController
         $this->set('mayModify', $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $sg['SharingGroup']['id']));
         $this->set('id', $sg['SharingGroup']['id']);
         $this->set('sg', $sg);
-        $this->set('title_for_layout', __('Sharing Group %s', $sg['SharingGroup']['name']));
+        $this->set('menuData', ['menuList' => 'globalActions', 'menuItem' => 'viewSG']);
     }
 
     private function __initialiseSGQuickEdit($id, $request)
