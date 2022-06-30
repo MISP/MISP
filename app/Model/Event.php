@@ -2753,7 +2753,7 @@ class Event extends AppModel
 
     public function set_filter_published(&$params, $conditions, $options)
     {
-        if (isset($params['published'])) {
+        if (isset($params['published']) && $params['published'] !== [true, false]) {
             $conditions['AND']['Event.published'] = $params['published'];
         }
         return $conditions;
