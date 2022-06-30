@@ -143,6 +143,8 @@ class StixParser():
             for attribute in self.misp_event.attributes:
                 if attribute.uuid in self.marking_refs:
                     for marking_uuid in self.marking_refs[attribute.uuid]:
+                        if marking_uuid not in self.marking_definition:
+                            continue
                         attribute.add_tag(self.marking_definition[marking_uuid]['object'])
                         self.marking_definition[marking_uuid]['used'] = True
         if self.marking_definition:
