@@ -4,6 +4,7 @@ App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
+App::uses('BetterCakeEventManager', 'Tools');
 
 /**
  * Application Controller
@@ -1443,6 +1444,16 @@ class AppController extends Controller
         return parent::_getViewObject();
     }
 
+    public function getEventManager()
+    {
+        if (empty($this->_eventManager)) {
+            $this->_eventManager = new BetterCakeEventManager();
+            $this->_eventManager->attach($this->Components);
+            $this->_eventManager->attach($this);
+        }
+        return $this->_eventManager;
+    }
+
     /**
      * Close session without writing changes to them and return current user.
      * @return array
@@ -1462,16 +1473,7 @@ class AppController extends Controller
     protected function _jsonDecode($dataToDecode)
     {
         try {
-            if (defined('JSON_THROW_ON_ERROR')) {
-                // JSON_THROW_ON_ERROR is supported since PHP 7.3
-                return json_decode($dataToDecode, true, 512, JSON_THROW_ON_ERROR);
-            } else {
-                $decoded = json_decode($dataToDecode, true);
-                if ($decoded === null) {
-                    throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
-                }
-                return $decoded;
-            }
+            return JsonTool::decode($dataToDecode);
         } catch (Exception $e) {
             throw new HttpException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.', 405, $e);
         }

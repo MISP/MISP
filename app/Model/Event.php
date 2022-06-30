@@ -769,7 +769,7 @@ class Event extends AppModel
         }
 
         $correlations = array_column($correlations, $correlationModelName);
-        $eventIds = array_unique(array_column($correlations, 'event_id'));
+        $eventIds = array_unique(array_column($correlations, 'event_id'), SORT_REGULAR);
 
         $conditions = $this->createEventConditions($user);
         $conditions['Event.id'] = $eventIds;
@@ -2753,7 +2753,7 @@ class Event extends AppModel
 
     public function set_filter_published(&$params, $conditions, $options)
     {
-        if (isset($params['published'])) {
+        if (isset($params['published']) && $params['published'] !== [true, false]) {
             $conditions['AND']['Event.published'] = $params['published'];
         }
         return $conditions;
