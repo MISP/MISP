@@ -4831,7 +4831,9 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
     xhr({
         dataType: "html",
         success: function (data) {
-            $(paginatorTarget).html(data);
+            var $target = $(paginatorTarget);
+            destroyPopovers($target);
+            $target.html(data);
         },
         url: $(this).attr('href'),
     });
@@ -4848,6 +4850,12 @@ $(document.body).on('click', '[data-popover-popup]', function (e) {
     var url = $(this).data('popover-popup');
     popoverPopupNew(this, url);
 });
+
+function destroyPopovers($element) {
+    $element.find('[data-dismissid]').each(function() {
+        $(this).popover('destroy');
+    });
+}
 
 function queryEventLock(event_id, timestamp) {
     var interval = null;
