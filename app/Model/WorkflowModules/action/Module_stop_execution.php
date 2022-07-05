@@ -9,7 +9,7 @@ class Module_stop_execution extends WorkflowBaseModule
     public $description = 'Essentially stops the execution for blocking paths. Do nothing for non-blocking paths';
     public $icon = 'ban';
     public $inputs = 1;
-    public $outputs = 1;
+    public $outputs = 0;
     public $params = [];
 
     public function __construct()

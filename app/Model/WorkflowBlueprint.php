@@ -8,6 +8,11 @@ class WorkflowBlueprint extends AppModel
     public $actsAs = [
         'AuditLog',
         'Containable',
+        'SysLogLogable.SysLogLogable' => [
+            'userModel' => 'WorkflowBlueprint',
+            'userKey' => 'id',
+            'change' => 'full',
+        ],
     ];
 
     public $belongsTo = [

@@ -281,8 +281,11 @@ class User extends AppModel
             'message' => __('The workflow `%s` prevented the saving of user %s', $trigger_id, $user_id),
         ];
         if (
-            $user['User']['action'] != 'logout' &&
-            $user['User']['action'] != 'login'
+            empty($user['User']['action']) ||
+            (
+                $user['User']['action'] != 'logout' &&
+                $user['User']['action'] != 'login'
+            )
         ) {
             $success = $this->executeTrigger($trigger_id, $user['User'], $workflowErrors, $logging);
             return !empty($success);

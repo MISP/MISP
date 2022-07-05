@@ -6025,7 +6025,7 @@ class Event extends AppModel
                         } else {
                             $data[$attribute['type']] = $attribute['value'];
                         }
-                        $result = $this->Module->queryModuleServer($data, false, 'Enrichment');
+                        $result = $this->Module->queryModuleServer($data, false, 'Enrichment', false, $event);
                         if (!$result) {
                             throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
                         }

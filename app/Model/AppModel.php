@@ -3431,17 +3431,30 @@ class AppModel extends Model
         if ($this->Workflow === null) {
             $this->Workflow = ClassRegistry::init('Workflow');
         }
-        if (
-            $this->Workflow->checkTriggerEnabled($trigger_id) &&
-            $this->Workflow->checkTriggerListenedTo($trigger_id)
-        ) {
+        if ($this->isTriggerCallable($trigger_id)) {
            $success = $this->Workflow->executeWorkflowForTriggerRouter($trigger_id, $data, $blockingErrors, $logging);
-           if (!empty($logging)) {
+           if (!empty($logging) && empty($success)) {
                 $errorMessage = implode(', ', $blockingErrors);
                 $this->loadLog()->createLogEntry('SYSTEM', $logging['action'], $logging['model'], $logging['id'], $logging['message'], __('Returned message: %s', $errorMessage));
            }
            return $success;
         }
         return true;
+    }
+
+    public function isTriggerCallable($trigger_id): bool
+    {
+        if ($this->Workflow === null) {
+            $this->Workflow = ClassRegistry::init('Workflow');
+        }
+        return $this->Workflow->checkTriggerEnabled($trigger_id) &&
+            $this->Workflow->checkTriggerListenedTo($trigger_id);
+    }
+
+    public function addPendingLogEntry($logEntry)
+    {
+        $logEntries = Configure::read('pendingLogEntries');
+        $logEntries[] = $logEntry;
+        Configure::write('pendingLogEntries', $logEntries);
     }
 }

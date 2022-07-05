@@ -13,6 +13,11 @@ class Workflow extends AppModel
     public $actsAs = [
         'AuditLog',
         'Containable',
+        'SysLogLogable.SysLogLogable' => [
+            'userModel' => 'Workflow',
+            'userKey' => 'id',
+            'change' => 'full',
+        ],
     ];
 
     public $belongsTo = [
@@ -521,10 +526,13 @@ class Workflow extends AppModel
             try {
                 $success = $moduleClass->exec($node, $roamingData, $errors);
             } catch (Exception $e) {
-                $message = sprintf(__('Error while executing module: %s'), $e->getMessage());
                 $this->logException(__('Error while executing module %s', $node['data']['id']), $e);
                 return false;
             }
+        } else {
+            $message = sprintf(__('Could not execute module: %s'), $node['data']['id']);
+            $this->logExecutionError($roamingData->getWorkflow(), $message);
+            return false;
         }
         return $success;
     }

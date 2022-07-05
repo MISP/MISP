@@ -203,6 +203,42 @@ class Module extends AppModel
         return "$url:$port";
     }
 
+    private function __prepareAndExectureForTrigger($postData, $triggerData): bool
+    {
+        $this->Workflow = ClassRegistry::init('Workflow');
+        $trigger_id = 'enrichment-before-query';
+        $workflowErrors = [];
+        $logging = [
+            'model' => 'Module',
+            'action' => 'queryModuleServer',
+            'id' => $postData['event_id'],
+            'message' => __('The workflow `%s` prevented event `%s` to query the module `%s`', $trigger_id, $postData['event_id'], $postData['module']),
+        ];
+        if (empty($triggerData) && $this->Workflow->isTriggerCallable($trigger_id) && !empty($postData['attribute_uuid'])) {
+            $this->User = ClassRegistry::init('User');
+            $this->Attribute = ClassRegistry::init('Attribute');
+            $user = $this->User->getAuthUser(Configure::read('CurrentUserId'), true);
+            $options = [
+                'conditions' => [
+                    'Attribute.uuid' => $postData['attribute_uuid'],
+                ],
+                'includeAllTags' => true,
+                'includeAttributeUuid' => true,
+                'flatten' => true,
+                'deleted' => [0, 1],
+                'withAttachments' => true,
+            ];
+            $attributes = $this->Attribute->fetchAttributes($user, $options);
+            $triggerData = !empty($attributes) ? $attributes[0] : [];
+            $logging['message'] = __('The workflow `%s` prevented attribute `%s` to query the module `%s`', $trigger_id, $postData['attribute_uuid'], $postData['module']);
+        }
+        if (empty($triggerData)) {
+            return false;
+        }
+        $success = $this->executeTrigger($trigger_id, $triggerData, $workflowErrors, $logging);
+        return !empty($success);
+    }
+
     /**
      * Send request to `/query` module endpoint.
      *
@@ -213,8 +249,14 @@ class Module extends AppModel
      * @return array|false
      * @throws JsonException
      */
-    public function queryModuleServer(array $postData, $hover = false, $moduleFamily = 'Enrichment', $throwException = false)
+    public function queryModuleServer(array $postData, $hover = false, $moduleFamily = 'Enrichment', $throwException = false, $triggerData=[])
     {
+        if ($moduleFamily == 'Enrichment') {
+            $success = $this->__prepareAndExectureForTrigger($postData, $triggerData);
+            if (!$success) {
+                return false;
+            }
+        }
         if ($hover) {
             $timeout = Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ?: 5;
         } else {
