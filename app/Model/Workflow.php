@@ -14,9 +14,9 @@ class Workflow extends AppModel
         'AuditLog',
         'Containable',
         'SysLogLogable.SysLogLogable' => [
-            'userModel' => 'Workflow',
-            'userKey' => 'id',
-            'change' => 'full',
+            'roleModel' => 'Role',
+            'roleKey' => 'role_id',
+            'change' => 'full'
         ],
     ];
 

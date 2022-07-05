@@ -43,11 +43,17 @@ class WorkflowBaseModule
 
     protected function getParamsWithValues($node): array
     {
-        $indexedParam = $this->getParams($node);
-        foreach ($indexedParam as $label => $param) {
-            $indexedParam[$label]['value'] = $param['value'] ?? ($param['default'] ?? '');
+        $indexedParams = $this->getParams($node);
+        foreach ($indexedParams as $label => $param) {
+            $indexedParams[$label]['value'] = $param['value'] ?? ($param['default'] ?? '');
         }
-        return $indexedParam;
+        return $indexedParams;
+    }
+
+    protected function getIndexedParamsWithValues($node): array
+    {
+        $indexedParams = $this->getParamsWithValues($node);
+        return Hash::combine($indexedParams, '{s}.label', '{s}.value');
     }
 
     protected function getFilters($node): array

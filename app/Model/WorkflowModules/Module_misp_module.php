@@ -11,7 +11,8 @@ class Module_misp_module extends WorkflowBaseModule
     public $icon = 'python';
     public $icon_class = 'fab';
     public $inputs = 1;
-    public $outputs = 0;
+    public $outputs = 1;
+    public $support_filters = false;
     public $params = [];
 
     /** @var Module */
@@ -39,6 +40,9 @@ class Module_misp_module extends WorkflowBaseModule
         if (!empty($misp_module_config['mispattributes']['blocking'])) {
             $this->is_blocking = !empty($misp_module_config['mispattributes']['blocking']);
         }
+        if (!empty($misp_module_config['mispattributes']['support_filters'])) {
+            $this->support_filters = !empty($misp_module_config['mispattributes']['support_filters']);
+        }
         if (!empty($misp_module_config['meta']['config'])) {
             foreach ($misp_module_config['meta']['config'] as $paramName => $moduleParam) {
                 $this->params[] = $this->translateParams($paramName, $moduleParam);
@@ -51,7 +55,30 @@ class Module_misp_module extends WorkflowBaseModule
     {
         parent::exec($node, $roamingData);
         $postData = ['module' => $this->name];
-        $postData['data'] = $roamingData->getData();
+        $rData = $roamingData->getData();
+        $postData['data'] = $rData;
+        if ($this->support_filters) {
+            $filters = $this->getFilters($node);
+            $extracted = $this->extractData($rData, $filters['selector']);
+            if ($extracted === false) {
+                return false;
+            }
+            $filteredItems = $this->getItemsMatchingCondition($extracted, $filters['value'], $filters['operator'], $filters['path']);
+            $postData['filteredItems'] = !empty($filteredItems) ? $filteredItems : $rData;
+        }
+
+        $postData['params'] = $this->getIndexedParamsWithValues($node);
+        $params = $this->getParamsWithValues($node);
+        $matchingData = [];
+        foreach ($params as $param) {
+            if (!empty($param['_isHashPath'])) {
+                $matchingData[$param['label']] = !empty($param['value']) ? $this->extractData($rData, $param['value']) : $rData;
+            }
+        }
+        if (!empty($matchingData)) {
+            $postData['matchingData'] = $matchingData;
+        }
+
         $query = $this->Module->queryModuleServer($postData, false, 'Action', false, $postData['data']);
         if (!empty($query['error'])) {
             $errors[] = $query['error'];
@@ -69,8 +96,13 @@ class Module_misp_module extends WorkflowBaseModule
     {
         $param = [];
         $param['label'] = $paramName;
-        $param['placeholder'] = $moduleParam['value'];
-        $param['type'] = 'input';
+        $param['placeholder'] = $moduleParam['value'] ?? '';
+        if ($moduleParam['type'] == 'hash_path') {
+            $param['type'] = 'input';
+            $param['_isHashPath'] = true;
+        } else {
+            $param['type'] = 'input';
+        }
         return $param;
     }
 }

@@ -9,9 +9,9 @@ class WorkflowBlueprint extends AppModel
         'AuditLog',
         'Containable',
         'SysLogLogable.SysLogLogable' => [
-            'userModel' => 'WorkflowBlueprint',
-            'userKey' => 'id',
-            'change' => 'full',
+            'roleModel' => 'Role',
+            'roleKey' => 'role_id',
+            'change' => 'full'
         ],
     ];
 

@@ -342,45 +342,36 @@ class Module extends AppModel
                             'description' => empty($module['meta']['description']) ? '' : $module['meta']['description']
                         ]
                     ];
-                    if ($moduleFamily === 'Action') {
-                        $moduleSettings[] = [
-                            'name' => 'weight',
-                            'type' => 'numeric',
-                            'value' => 0,
-                            'description' => __('Set a weight (via an integer) for the module, determining its position in the order of executed modules. Higher values are taken first.'),
-                            'test' => 'testForNumeric',
-                            'null' => true
-                        ];
-                    } else {
+                    if ($moduleFamily !== 'Action') {
                         $moduleSettings[] = [
                             'name' => 'restrict',
                             'type' => 'orgs',
                             'description' => __('Restrict the use of this module to an organisation.')
                         ];
-                    }
-                    if (isset($module['meta']['config'])) {
-                        foreach ($module['meta']['config'] as $key => $value) {
-                            if (is_array($value)) {
-                                $name = is_string($key) ? $key : $value['name'];
-                                $moduleSettings[] = [
-                                    'name' => $name,
-                                    'type' => isset($value['type']) ? $value['type'] : 'string',
-                                    'test' => isset($value['test']) ? $value['test'] : null,
-                                    'description' => isset($value['description']) ? $value['description'] : null,
-                                    'null' => isset($value['null']) ? $value['null'] : null,
-                                    'test' => isset($value['test']) ? $value['test'] : null,
-                                    'bigField' => isset($value['bigField']) ? $value['bigField'] : false,
-                                    'cli_only' => isset($value['cli_only']) ? $value['cli_only'] : false,
-                                    'redacted' => isset($value['redacted']) ? $value['redacted'] : false
-                                ];
-                            } else if (is_string($key)) {
-                                $moduleSettings[] = [
-                                    'name' => $key,
-                                    'type' => 'string',
-                                    'description' => $value
-                                ];
-                            } else {
-                                $moduleSettings[] = array('name' => $value, 'type' => 'string');
+                        if (isset($module['meta']['config'])) {
+                            foreach ($module['meta']['config'] as $key => $value) {
+                                if (is_array($value)) {
+                                    $name = is_string($key) ? $key : $value['name'];
+                                    $moduleSettings[] = [
+                                        'name' => $name,
+                                        'type' => isset($value['type']) ? $value['type'] : 'string',
+                                        'test' => isset($value['test']) ? $value['test'] : null,
+                                        'description' => isset($value['description']) ? $value['description'] : null,
+                                        'null' => isset($value['null']) ? $value['null'] : null,
+                                        'test' => isset($value['test']) ? $value['test'] : null,
+                                        'bigField' => isset($value['bigField']) ? $value['bigField'] : false,
+                                        'cli_only' => isset($value['cli_only']) ? $value['cli_only'] : false,
+                                        'redacted' => isset($value['redacted']) ? $value['redacted'] : false
+                                    ];
+                                } else if (is_string($key)) {
+                                    $moduleSettings[] = [
+                                        'name' => $key,
+                                        'type' => 'string',
+                                        'description' => $value
+                                    ];
+                                } else {
+                                    $moduleSettings[] = array('name' => $value, 'type' => 'string');
+                                }
                             }
                         }
                     }
