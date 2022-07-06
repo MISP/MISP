@@ -9,7 +9,7 @@ class Module_user_after_save extends WorkflowBaseTriggerModule
     public $icon = 'user-edit';
     public $inputs = 0;
     public $outputs = 1;
-    public $canAbort = false;
+    public $blocking = false;
 
     public function __construct()
     {

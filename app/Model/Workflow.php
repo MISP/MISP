@@ -352,7 +352,7 @@ class Workflow extends AppModel
             return true;
         }
 
-        if (empty($trigger['canAbort'])) {
+        if (empty($trigger['blocking'])) {
             $this->Job = ClassRegistry::init('Job');
             $jobId = $this->Job->createJob(
                 'SYSTEM',

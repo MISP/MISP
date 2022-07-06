@@ -9,7 +9,7 @@ class Module_publish extends WorkflowBaseTriggerModule
     public $icon = 'upload';
     public $inputs = 0;
     public $outputs = 1;
-    public $canAbort = true;
+    public $blocking = true;
 
     public function __construct()
     {

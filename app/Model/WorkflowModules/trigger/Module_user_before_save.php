@@ -9,7 +9,7 @@ class Module_user_before_save extends WorkflowBaseTriggerModule
     public $icon = 'user-plus';
     public $inputs = 0;
     public $outputs = 1;
-    public $canAbort = true;
+    public $blocking = true;
 
     public function __construct()
     {

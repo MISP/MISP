@@ -174,5 +174,5 @@ class WorkflowBaseModule
 
 class WorkflowBaseTriggerModule extends WorkflowBaseModule
 {
-    public $canAbort = false;
+    public $blocking = false;
 }

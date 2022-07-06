@@ -9,7 +9,7 @@ class Module_email_before_send extends WorkflowBaseTriggerModule
     public $icon = 'envelope';
     public $inputs = 0;
     public $outputs = 1;
-    public $canAbort = true;
+    public $blocking = true;
 
     public function __construct()
     {

@@ -9,7 +9,7 @@ class Module_enrichment_before_query extends WorkflowBaseTriggerModule
     public $icon = 'asterisk';
     public $inputs = 0;
     public $outputs = 1;
-    public $canAbort = true;
+    public $blocking = true;
 
     public function __construct()
     {

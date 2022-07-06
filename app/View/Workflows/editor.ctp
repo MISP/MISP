@@ -60,8 +60,7 @@ $triggerModules = $modules['blocks_trigger'];
                         <div id="block-filter-group" class="btn-group" data-toggle="buttons-radio">
                             <button type="button" class="btn btn-primary active" data-type="enabled" onclick="filterBlocks(this)"><?= __('Enabled') ?></button>
                             <button type="button" class="btn btn-primary" data-type="misp-module" onclick="filterBlocks(this)">
-                                misp-module
-                                <sup class="<?= $this->FontAwesome->getClass('python') ?>"></sup>
+                                misp-module<span class="is-misp-module"></span>
                             </button>
                             <button type="button" class="btn btn-primary" data-type="is-blocking" onclick="filterBlocks(this)">
                                 <?= __('Blocking') ?>
@@ -92,6 +91,11 @@ $triggerModules = $modules['blocks_trigger'];
                         </div>
                     </div>
                     <div class="tab-pane" id="container-blueprints">
+                        <div style="margin-left: 0.75em; margin-bottom: 0.5em;">
+                            <a id="saveBlueprint" class="btn btn-primary" href="<?= $baseurl . '/workflowBlueprints/add/1' ?>">
+                                <i class="<?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save blueprint') ?>
+                            </a>
+                        </div>
                         <select type="text" placeholder="Search for a block" class="chosen-container blocks blueprint-select" autocomplete="off" style="width: 305px; margin: 0 0.5em;">
                             <?php foreach ($workflowBlueprints as $workflowBlueprint) : ?>
                                 <option value="<?= h($workflowBlueprint['WorkflowBlueprint']['id']) ?>"><?= h($workflowBlueprint['WorkflowBlueprint']['name']) ?></option>

@@ -15,9 +15,9 @@
             'data_path' => 'description',
         ],
         [
-            'name' => __('Can Abort Operation'),
-            'sort' => 'canAbort',
-            'data_path' => 'canAbort',
+            'name' => __('Blocking Workflow'),
+            'sort' => 'blocking',
+            'data_path' => 'blocking',
             'element' => 'boolean',
             'colors' => true,
         ],

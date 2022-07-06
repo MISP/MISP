@@ -9,7 +9,7 @@ class Module_attribute_after_save extends WorkflowBaseTriggerModule
     public $icon = 'cube';
     public $inputs = 0;
     public $outputs = 1;
-    public $canAbort = false;
+    public $blocking = false;
 
     public function __construct()
     {
