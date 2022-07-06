@@ -195,8 +195,8 @@ function initDrawflow() {
         var calc_zoom = Math.min(
             1,
             Math.min(
-                (editor_bcr.width - sidebarWidth) / (canvasCentroid.maxX + sidebarWidth),
-                editor_bcr.height / (canvasCentroid.maxY - parentOffsetY)
+                (editor_bcr.width - sidebarWidth) / ((canvasCentroid.maxX - canvasCentroid.minX) + sidebarWidth),
+                editor_bcr.height / ((canvasCentroid.maxY - canvasCentroid.minY) - parentOffsetY)
             ),
         ) // Zoom out if needed
         calc_zoom = calc_zoom * 0.95
@@ -600,6 +600,12 @@ function getEditorData(cleanInvalidParams) {
                 node.data.params = deleteInvalidParams(node.data.params)
             }
             delete node.html
+            delete node.data.notifications
+            Object.keys(node.data).forEach(function (k) {
+                if (k.startsWith('_')) {
+                    delete node.data[k]
+                }
+            })
             data[node.id] = node
         }
     })
