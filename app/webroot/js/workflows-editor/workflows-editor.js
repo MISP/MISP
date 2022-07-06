@@ -415,7 +415,16 @@ function initDrawflow() {
         var selectedNodes = selection.getSelection()
         var editorData = getEditorData()
         openGenericModal($link.attr('href'), undefined, function() {
-            var nodes = selectedNodes.map(function (nodeHtml) { return editorData[nodeHtml.id.slice(5)] })
+            var nodes = selectedNodes.map(function (nodeHtml) {
+                var node = editorData[nodeHtml.id.slice(5)]
+                delete node.html
+                Object.keys(node.data).forEach(function(k) {
+                    if (k.startsWith('_')) {
+                        delete node.data[k]
+                    }
+                })
+                return node
+            })
             var $modal = $('#genericModal')
             var $graphData = $modal.find('form #WorkflowBlueprintData')
             $graphData.val(JSON.stringify(nodes))
@@ -578,6 +587,7 @@ function getEditorData(cleanInvalidParams) {
             if (cleanInvalidParams && node.data.params !== undefined) {
                 node.data.params = deleteInvalidParams(node.data.params)
             }
+            delete node.html
             data[node.id] = node
         }
     })
