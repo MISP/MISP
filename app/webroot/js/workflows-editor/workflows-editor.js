@@ -186,21 +186,25 @@ function initDrawflow() {
         editor.zoom_min = 0.3
         editor.zoom_refresh()
         var sidebarWidth = 340
+        var parentOffsetY = editor.precanvas.parentElement.getBoundingClientRect().top
         var editor_bcr = editor.container.getBoundingClientRect()
-        var offset_x = editor_bcr.width / 2 + sidebarWidth
-        var offset_y = editor_bcr.height / 2
+        var offset_x = (editor_bcr.width + sidebarWidth) / 2
+        var offset_y = (editor_bcr.height - parentOffsetY) / 2
 
         var canvasCentroid = getCanvasCentroid()
         var calc_zoom = Math.min(
             1,
             Math.min(
-                (editor_bcr.width - sidebarWidth) / (canvasCentroid.maxX + canvasCentroid.offset_block_x + sidebarWidth),
-                editor_bcr.height / (canvasCentroid.maxY + canvasCentroid.offset_block_y)
+                (editor_bcr.width - sidebarWidth) / (canvasCentroid.maxX + sidebarWidth),
+                editor_bcr.height / (canvasCentroid.maxY - parentOffsetY)
             ),
         ) // Zoom out if needed
+        calc_zoom = calc_zoom * 0.95
+        offset_x += 100 * (1 / calc_zoom) // dirty fix to offset the position relative to the sidebar
+        offset_y -= 100 * (1 / calc_zoom) // dirty fix to slightly move the graph up
         editor.translate_to(
             offset_x - canvasCentroid.centroidX,
-            offset_y - canvasCentroid.centroidY - (offset_y*calc_zoom*0.5)
+            offset_y - canvasCentroid.centroidY 
         )
 
         editor.zoom = calc_zoom
@@ -794,29 +798,26 @@ function addNodesFromWorkflowBlueprint(workflowBlueprint) {
 }
 
 function getCanvasCentroid() {
-    var sumX = 0, sumY = 0, maxX = 0, maxY = 0
-    var offset_block_x = 0, offset_block_y = 0
+    var parentOffsetY = editor.precanvas.parentElement.getBoundingClientRect().top
+    var maxX = 0, maxY = 0, minX = 9999999, minY = 9999999
     var nodes = $(editor.precanvas).find('.drawflow-node')
     nodes.each(function () {
-        var node_bcr = this.getBoundingClientRect()
-        offset_block_x = node_bcr.left > maxX ? node_bcr.width : offset_block_x
-        offset_block_y = node_bcr.top > maxY ? node_bcr.height : offset_block_y
-        sumX += node_bcr.left
-        sumY += node_bcr.top
+        var node_bcr = JSON.parse(JSON.stringify(this.getBoundingClientRect()))
+        node_bcr.top = node_bcr.top - parentOffsetY // Make bcr relative
         maxX = (node_bcr.left + node_bcr.width) > maxX ? (node_bcr.left + node_bcr.width) : maxX
         maxY = (node_bcr.top + node_bcr.height) > maxY ? (node_bcr.top + node_bcr.height) : maxY
+        minX = node_bcr.left < minX ? node_bcr.left : minX
+        minY = node_bcr.top < minY ? node_bcr.top : minY
     });
-    var centroidX = sumX / nodes.length
-    var centroidY = sumY / nodes.length
-    centroidX -= offset_block_x / 2
-    centroidY += offset_block_y / 2
+    var centroidX = (Math.abs(maxX) - Math.abs(minX)) / 2
+    var centroidY = (Math.abs(maxY) - Math.abs(minY)) / 2
     return {
         centroidX: centroidX,
         centroidY: centroidY,
+        minX: minX,
+        minY: minY,
         maxX: maxX,
         maxY: maxY,
-        offset_block_x: offset_block_x,
-        offset_block_y: offset_block_y,
     }
 }
 
