@@ -413,7 +413,9 @@ class Workflow extends AppModel
             return false;
         }
         $this->Log = ClassRegistry::init('Log');
-        $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], __('Started executing workflow for trigger `%s` (%s)', $trigger_id, $workflow['Workflow']['id']));
+        $message =  __('Started executing workflow for trigger `%s` (%s)', $trigger_id, $workflow['Workflow']['id']);
+        $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
+        $this->__logToFile($workflow, $message);
         $workflow = $this->__incrementWorkflowExecutionCount($workflow);
         $walkResult = [];
         $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, Workflow::BLOCKING_PATH, $data, $blockingErrors, $walkResult);
@@ -740,6 +742,21 @@ class Workflow extends AppModel
     {
         $this->Log = ClassRegistry::init('Log');
         $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
+        $this->__logToFile($workflow, $message);
+    }
+
+    /**
+     * __logToFile Log to file
+     *
+     * @param array $workflow
+     * @param string $message
+     * @return void
+     */
+    private function __logToFile($workflow, $message)
+    {
+        $logEntry = sprintf('[%s] Workflow(%s:%s). %s' . PHP_EOL, date('Y-m-d H:i:s'), $workflow['Workflow']['trigger_id'], $workflow['Workflow']['id'], $message);
+        // file_put_contents(APP . 'tmp/logs/workflow-execution.log', $logEntry, FILE_APPEND | LOCK_EX);
+        FileAccessTool::writeToFile(APP . 'tmp/logs/workflow-execution.log', $logEntry, false, true);
     }
 
     private function __logLoadingError($filename, $error)
