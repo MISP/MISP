@@ -29,6 +29,11 @@ $triggerModules = $modules['blocks_trigger'];
             <span id="workflow-saved-text" style="margin-left: 5px;"></span>
             <span id="workflow-saved-text-details" style="margin-left: 5px; font-size: 0.75em"></span>
         </span>
+        <span style="display: flex; align-items: center; margin-left: auto; margin-right: 1em;">
+            <button class="btn btn-info btn-mini" href="#workflow-info-modal" data-toggle="modal">
+                <i class="<?= $this->FontAwesome->getClass('info') ?>"></i>
+            </button>
+        </span>
     </div>
 
     <div class="main-container">
@@ -187,6 +192,75 @@ $triggerModules = $modules['blocks_trigger'];
     <div class="modal-footer">
         <button class="btn btn-success" onclick="saveFilteringForModule(this)" aria-hidden="true">Save</button>
         <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    </div>
+</div>
+
+<div id="workflow-info-modal" class="modal modal-lg hide fade">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3><?= __('Workflow information') ?></h3>
+    </div>
+    <div class="modal-body modal-body-xl">
+        <ul class="nav nav-tabs">
+            <li class="active"><a href=" #modal-info-concept" data-toggle="tab">Concept</a></li>
+            <li><a href="#modal-info-usage" data-toggle="tab">Usage</a></li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane active" id="modal-info-concept">
+                <h4><?= __('Hash path') ?></h4>
+                <p><?= __('Some modules have the possibility to filter or check conditions using %s', sprintf('<a href="%s">%s</a>', 'https://book.cakephp.org/2/en/core-utility-libraries/hash.html', __('CakePHP\'s path expression.'))) ?></p>
+                <p><strong><?= __('Example:') ?></strong></p>
+                <pre>
+$users = [
+     ['id' => 123, 'name'=> 'fred', 'surname' => 'bloggs'],
+     ['id' => 245, 'name' => 'fred', 'surname' => 'smith'],
+     ['id' => 356, 'name' => 'joe', 'surname' => 'smith'],
+];
+$path_expression = '{n}[name=fred].id'
+$ids = Hash::extract($users, $$path_expression);
+// $ids will be [123, 245]</pre>
+                <h3><?= __('Module filtering with hash path') ?></h3>
+                <p><?= __('Some modules can further filter incoming data based on the provided Hash path expression and associated condition.') ?></p>
+                <p><i class="fa-fw <?= $this->FontAwesome->getClass('exclamation-triangle') ?>"></i> <?= __('Using filters will not modify the data being passed on from module to module.') ?></p>
+                <h3><?= __('Conditional Switch') ?></h3>
+                <p><?= __('The conditional switch allow to direct the execution path based on the provided condition. If the encoded condition is satisfied, the execution path will take the `then` path. Otherwise, the `else` path will be used. Note that the condition is only evaluated once.') ?></p>
+                <p><strong><?= __('Example:') ?></strong></p>
+                <pre>
+$value_passed_to_switch = 'fred'
+$operator_passed_to_switch = In'
+$path_expression_passed_to_switch = '{n}.name'
+$data_passed_to_switch = [
+     ['id' => 123, 'name'=> 'fred', 'surname' => 'bloggs'],
+     ['id' => 245, 'name' => 'fred', 'surname' => 'smith'],
+     ['id' => 356, 'name' => 'joe', 'surname' => 'smith'],
+];
+// The condition is satisfied as `fred` is contained in the extracted data.
+// Then `then` branch will be used by the execution path</pre>
+                <h3><?= __('Blocking module') ?></h3>
+                <p><?= __('A blocking module can block the execution of a workflow, potentially blocking the operation that triggered the worflow at the first place.') ?></p>
+                <p><strong><?= __('Example:') ?></strong></p>
+                <ol>
+                    <li><?= __('An Event gets published') ?></li>
+                    <li><?= __('The `publish` workflow is called (this workflow is a `blocking` workflow)') ?></li>
+                    <li><?= __('If a blocking module cancels the execution, the event will not be published') ?></li>
+                </ol>
+                <h3><?= __('Parallel Task') ?></h3>
+                <p><?= __('Allowing breaking the execution flow into a parallel tasks to be executed later on by a background worker, thus preventing blocking module to cancel the ongoing operation.') ?></p>
+            </div>
+            <div class="tab-pane" id="modal-info-usage">
+                <h3><?= __('Shortcuts') ?></h3>
+                <ul>
+                    <li><code>Ctrl + Mouse_wheel</code>: <?= __('Zoom in / out') ?></li>
+                    <li><code>Shift + Click</code>: <?= __('Multi-select tool') ?></li>
+                    <li><code>c</code>: <?= __('Center canvas in viewport') ?></li>
+                </ul>
+                <h3><?= __('Blueprints') ?></h3>
+                <p><?= __('To save a blueprint, select the nodes to be saved using the multi-select tool, then click the `Save blueprint` button') ?></p>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <a href="#" class="btn" data-dismiss="modal">Close</a>
     </div>
 </div>
 
