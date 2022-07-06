@@ -416,60 +416,68 @@ function initDrawflow() {
     $controlSaveBlocksLi.click(function(evt) {
         var $link = $(this).find('a')
         evt.preventDefault()
-        var selectedNodes = selection.getSelection()
-        var editorData = getEditorData()
-        openGenericModal($link.attr('href'), undefined, function() {
-            var nodes = selectedNodes.map(function (nodeHtml) {
-                var node = editorData[nodeHtml.id.slice(5)]
-                delete node.html
-                Object.keys(node.data).forEach(function(k) {
-                    if (k.startsWith('_')) {
-                        delete node.data[k]
-                    }
-                })
-                return node
-            })
-            var $modal = $('#genericModal')
-            var $graphData = $modal.find('form #WorkflowBlueprintData')
-            $graphData.val(JSON.stringify(nodes))
-            $modal.find('.modal-body').append(
-                $('<h3></h3>').append(
-                    $('<span></span').text('Workflow Blueprint Content '),
-                    $('<a class="fas fa-copy" href="#"></a>')
-                        .attr('title', 'Copy Workflow Blueprint to clipboard')
-                        .click(function() {
-                            var $clicked = $(this)
-                            navigator.clipboard.writeText(JSON.stringify(nodes)).then(function () {
-                                $clicked.removeClass('fa-copy').addClass('fa-check').addClass('text-success')
-                                setTimeout(function () {
-                                    $clicked.removeClass('fa-check').addClass('fa-copy').removeClass('text-success')
-                                }, 2000);
-                            }, function (err) {
-                                console.error('Async: Could not copy text: ', err);
-                            });
-                    }),
-                )
-            )
-            var $ul = $('<ul></ul>')
-            nodes.forEach(function(node) {
-                $ul.append(
-                    $('<li></li>').append(
-                        $('<strong></strong>').text(node.data.name),
-                        $('<ul></ul>').append(
-                            node.data.saved_filters.length > 0 ? $('<li></li>').text('Has filter') : null,
-                            node.data.params.length > 0 ? $('<li></li>').text('Has parameters') : null
-                        )
-                    )
-                )
-            })
-            $modal.find('.modal-body').append($ul)
-        })
+        saveBlueprint($link.attr('href'))
+    })
+    $saveBlueprintButton.click(function(evt) {
+        evt.preventDefault()
+        saveBlueprint($(this).attr('href'))
     })
 
     $(window).bind('beforeunload', function() {
         if (contentChanged) {
             return false;
         }
+    })
+}
+
+function saveBlueprint(href) {
+    var selectedNodes = selection.getSelection()
+    var editorData = getEditorData()
+    openGenericModal(href, undefined, function () {
+        var nodes = selectedNodes.map(function (nodeHtml) {
+            var node = editorData[nodeHtml.id.slice(5)]
+            delete node.html
+            Object.keys(node.data).forEach(function (k) {
+                if (k.startsWith('_')) {
+                    delete node.data[k]
+                }
+            })
+            return node
+        })
+        var $modal = $('#genericModal')
+        var $graphData = $modal.find('form #WorkflowBlueprintData')
+        $graphData.val(JSON.stringify(nodes))
+        $modal.find('.modal-body').append(
+            $('<h3></h3>').append(
+                $('<span></span').text('Workflow Blueprint Content '),
+                $('<a class="fas fa-copy" href="#"></a>')
+                    .attr('title', 'Copy Workflow Blueprint to clipboard')
+                    .click(function () {
+                        var $clicked = $(this)
+                        navigator.clipboard.writeText(JSON.stringify(nodes)).then(function () {
+                            $clicked.removeClass('fa-copy').addClass('fa-check').addClass('text-success')
+                            setTimeout(function () {
+                                $clicked.removeClass('fa-check').addClass('fa-copy').removeClass('text-success')
+                            }, 2000);
+                        }, function (err) {
+                            console.error('Async: Could not copy text: ', err);
+                        });
+                    }),
+            )
+        )
+        var $ul = $('<ul></ul>')
+        nodes.forEach(function (node) {
+            $ul.append(
+                $('<li></li>').append(
+                    $('<strong></strong>').text(node.data.name),
+                    $('<ul></ul>').append(
+                        node.data.saved_filters.length > 0 ? $('<li></li>').text('Has filter') : null,
+                        node.data.params.length > 0 ? $('<li></li>').text('Has parameters') : null
+                    )
+                )
+            )
+        })
+        $modal.find('.modal-body').append($ul)
     })
 }
 

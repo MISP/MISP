@@ -124,7 +124,7 @@ $triggerModules = $modules['blocks_trigger'];
                     </a>
                     <ul class="dropdown-menu pull-right">
                         <li id="control-import-blocks" class="dropdown-submenu submenu-right">
-                            <a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import workflow blueprints') ?></a>
+                            <a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('file-import') ?>"></i> <?= __('Import blueprint') ?></a>
                             <ul class="dropdown-menu pull-right">
                                 <?php if (empty($workflowBlueprints)) : ?>
                                     <li><a href="#"><?= _('No workflow blueprints saved') ?></a></li>
@@ -136,7 +136,7 @@ $triggerModules = $modules['blocks_trigger'];
                                         </a></li>
                                 <?php endforeach; ?>
                             </ul>
-                        <li id="control-save-blocks" class="disabled"><a href="<?= $baseurl . '/workflowBlueprints/add/1' ?>"><i class=" fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save workflow blueprints') ?></a></li>
+                        <li id="control-save-blocks" class="disabled"><a href="<?= $baseurl . '/workflowBlueprints/add/1' ?>"><i class=" fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save blueprint') ?></a></li>
                         </li>
                     </ul>
                 </div>
@@ -220,6 +220,7 @@ echo $this->element('genericElements/assetLoader', [
     var $importWorkflowButton = $('#importWorkflow')
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')
+    var $saveBlueprintButton = $('#saveBlueprint')
     var $lastModifiedField = $('#lastModifiedField')
     var $workflowSavedIconContainer = $('#workflow-saved-container')
     var $workflowSavedIconText = $('#workflow-saved-text')
