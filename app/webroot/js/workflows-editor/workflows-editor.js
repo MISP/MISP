@@ -765,16 +765,19 @@ function addNodesFromWorkflowBlueprint(workflowBlueprint) {
     })
     workflowBlueprint.data.forEach(function (node) {
         Object.keys(node.outputs).forEach(function (outputName) {
-            node.outputs[outputName].connections.forEach(function (connection) {
-                if (oldNewIDMapping[connection.node] !== undefined) {
-                    editor.addConnection(
-                        oldNewIDMapping[node.id],
-                        oldNewIDMapping[connection.node],
-                        outputName,
-                        connection.output
-                    )
-                }
-            });
+            var block = Object.assign({}, all_blocks_by_id[node.data.id])
+            if (block.outputs > 0) { // make sure the module configuration didn't change in regards of the outputs
+                node.outputs[outputName].connections.forEach(function (connection) {
+                    if (oldNewIDMapping[connection.node] !== undefined) {
+                        editor.addConnection(
+                            oldNewIDMapping[node.id],
+                            oldNewIDMapping[connection.node],
+                            outputName,
+                            connection.output
+                        )
+                    }
+                });
+            }
         })
     })
     return newNodes
