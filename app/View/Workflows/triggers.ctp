@@ -1,7 +1,7 @@
 <?php
     $fields = [
         [
-            'name' => __('Module name'),
+            'name' => __('Trigger name'),
             'sort' => 'name',
             'data_path' => 'name',
             'element' => 'custom',
@@ -20,6 +20,14 @@
             'data_path' => 'blocking',
             'element' => 'boolean',
             'colors' => true,
+        ],
+        [
+            'name' => __('Workflow ID'),
+            'sort' => 'Workflow.id',
+            'data_path' => 'Workflow.id',
+            'element' => 'links',
+            'class' => 'short',
+            'url' => $baseurl . '/workflows/view/%s'
         ],
         [
             'name' => __('Enabled'),
@@ -42,7 +50,8 @@
                 'fields' => $fields,
                 'icon' => 'flag',
                 'title' => __('Triggers'),
-                'description' => __('List the available triggers that can be listened to by workflows'),
+                'description' => __('List the available triggers that can be listened to by workflows.'),
+                'html' => __('Missing a trigger? Feel free to open a %s!', sprintf('<a href="%s">%s</a>', 'https://github.com/MISP/MISP/issues/new?assignees=&labels=feature+request%2Cneeds+triage&template=feature-request-form.yml&title=Feature+Request%3A+', __('Github issue'))),
                 'actions' => [
                     [
                         'title' => __('Enable'),
