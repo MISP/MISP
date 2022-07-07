@@ -399,7 +399,7 @@ class Tag extends AppModel
         if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name || $hide !== false || $tag['Tag']['numerical_value'] !== $numerical_value || ($tag['Tag']['local_only'] !== $local_only && $local_only !== -1)) {
             $tag['Tag']['name'] = $name;
             $tag['Tag']['colour'] = $colour;
-            if ($tag['Tag']['local_only'] !== -1) {
+            if ($local_only !== -1) {
                 $tag['Tag']['local_only'] = $local_only;
             }
             if ($hide !== false) {
