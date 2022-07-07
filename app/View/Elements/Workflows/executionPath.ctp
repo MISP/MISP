@@ -29,19 +29,27 @@ echo $this->element('genericElements/assetLoader', [
 <div class="canvas-workflow-block""> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
-            <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{? it.icon }} \
+                <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{?}} \
+            {{? it.icon_path }} \
+                <span><img src="/img/{{=it.icon_path}}" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0; filter: grayscale(1);"></span> \
+            {{?}} \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
+            {{? it.is_misp_module }} \
+                <sup class="is-misp-module"></sup> \
+            {{?}} \
         </div> \
     </div> \
 </div>')
         var dotBlock_trigger = dotBlock_default
-        var dotBlock_IF = dotBlock_default
+        var dotBlock_if = dotBlock_default
         var allTemplates = {
             'dotBlock_default': dotBlock_default,
             'dotBlock_trigger': dotBlock_trigger,
-            'dotBlock_IF': dotBlock_IF,
+            'dotBlock_if': dotBlock_if,
         }
 
         $(document).ready(function() {
@@ -75,7 +83,10 @@ echo $this->element('genericElements/assetLoader', [
             var offset_block_y = 40 / 2 // 40 is the max-height of the block defined in --dfNodeMinHeight
             var offset_block_x = 160 / 5 // 160 is the max-width of the block defined in --dfNodeMinWidth;
 
-            var sumX = 0, sumY = 0, maxX = 0, maxY = 0
+            var sumX = 0,
+                sumY = 0,
+                maxX = 0,
+                maxY = 0
             var nodes = Object.values(editor.drawflow.drawflow.Home.data)
             nodes.forEach(function(node) {
                 sumX += node.pos_x
