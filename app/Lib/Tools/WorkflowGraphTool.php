@@ -129,16 +129,25 @@ class GraphWalker
     {
         $outputs = ($node['outputs'] ?? []);
         if ($node['data']['id'] == 'if') {
-            $useThenBranch = $this->_evaluateIFCondition($node, $roamingData);
-            return $useThenBranch ? ['output_1' => $outputs['output_1']] : ['output_2' => $outputs['output_2']];
+            $useFirstOutput = $this->_evaluateIFCondition($node, $roamingData);
+            return $useFirstOutput ? ['output_1' => $outputs['output_1']] : ['output_2' => $outputs['output_2']];
         } else if ($node['data']['id'] == 'parallel-task') {
             $this->_evaluateParallelTask($node, $roamingData, $outputs['output_1']);
             return ['output_1' => []];
+        } else {
+            $useFirstOutput = $this->_evaluateCustomLogicCondition($node, $roamingData);
+            return $useFirstOutput ? ['output_1' => $outputs['output_1']] : ['output_2' => $outputs['output_2']];
         }
         return $outputs;
     }
 
     private function _evaluateIFCondition($node, WorkflowRoamingData $roamingData): bool
+    {
+        $result = $this->WorkflowModel->__executeNode($node, $roamingData);
+        return $result;
+    }
+
+    private function _evaluateCustomLogicCondition($node, WorkflowRoamingData $roamingData): bool
     {
         $result = $this->WorkflowModel->__executeNode($node, $roamingData);
         return $result;

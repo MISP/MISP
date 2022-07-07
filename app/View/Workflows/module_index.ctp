@@ -38,8 +38,16 @@
             'sort' => 'is_misp_module',
             'data_path' => 'is_misp_module',
             'element' => 'boolean',
-            'requirement' => $indexType == 'action',
             'colors' => true,
+            'class' => 'short',
+        ],
+        [
+            'name' => __('Custom'),
+            'sort' => 'is_custom',
+            'data_path' => 'is_custom',
+            'element' => 'boolean',
+            'colors' => true,
+            'class' => 'short',
         ],
         [
             'name' => __('Enabled'),
@@ -87,10 +95,25 @@
                                     'active' => $indexType === 'action' && $actionType === 'mispmodule',
                                 ],
                                 [
+                                    'url' => $baseurl . '/workflows/moduleIndex/type:custom',
+                                    'text' => __('Custom'),
+                                    'active' => $indexType === 'custom',
+                                ],
+                            ]
+                        ],
+                        [
+                            'type' => 'simple',
+                            'children' => [
+                                [
                                     'url' => $baseurl . '/workflows/moduleIndex/actiontype:blocking',
                                     'text' => __('Blocking'),
                                     'active' => $indexType === 'action' && $actionType === 'blocking',
                                 ],
+                            ]
+                        ],
+                        [
+                            'type' => 'simple',
+                            'children' => [
                                 [
                                     'url' => $baseurl . '/workflows/moduleIndex/type:all/enabled:1',
                                     'text' => __('Enabled'),

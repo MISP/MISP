@@ -63,6 +63,7 @@ class Workflow extends AppModel
     const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'data'];
 
     const MODULE_ROOT_PATH = APP . 'Model/WorkflowModules/';
+    const CUSTOM_MODULE_ROOT_PATH = APP . 'Lib/WorkflowModules/';
     const REDIS_KEY_WORKFLOW_NAMESPACE = 'workflow';
     const REDIS_KEY_WORKFLOW_PER_TRIGGER = 'workflow:workflow_list:%s';
     const REDIS_KEY_TRIGGER_PER_WORKFLOW = 'workflow:trigger_list:%s';
@@ -149,7 +150,7 @@ class Workflow extends AppModel
         }
 
         $filename = sprintf('Module_%s.php', preg_replace('/[^a-zA-Z0-9_]/', '_', Inflector::underscore($trigger_id)));
-        $module_config = $this->__getClassFromModuleFiles('trigger', [$filename])['classConfigs'];
+        $module_config = $this->__getClassFromModuleFiles('trigger', [$filename], false)['classConfigs'];
         return empty($module_config['disabled']);
     }
 
@@ -590,13 +591,26 @@ class Workflow extends AppModel
         }
         $phpModuleFiles = Workflow::__listPHPModuleFiles();
         foreach ($phpModuleFiles as $type => $files) {
-            $classModuleFromFiles = $this->__getClassFromModuleFiles($type, $files);
+            if ($type == 'custom') {
+                continue;
+            }
+            $classModuleFromFiles = $this->__getClassFromModuleFiles($type, $files, false);
             foreach ($classModuleFromFiles['classConfigs'] as $i => $config) {
                 $classModuleFromFiles['classConfigs'][$i]['module_type'] = $type;
             }
             $this->loaded_modules[$type] = $classModuleFromFiles['classConfigs'];
             $this->loaded_classes[$type] = $classModuleFromFiles['instancedClasses'];
         }
+        // Load custom PHP modules from Lib
+        foreach ($phpModuleFiles['custom'] as $type => $files) {
+            $classModuleFromFiles = $this->__getClassFromModuleFiles($type, $files, true);
+            foreach ($classModuleFromFiles['classConfigs'] as $i => $config) {
+                $classModuleFromFiles['classConfigs'][$i]['module_type'] = $type;
+            }
+            $this->loaded_modules[$type] = array_merge($this->loaded_modules[$type], $classModuleFromFiles['classConfigs']);
+            $this->loaded_classes[$type] = array_merge($this->loaded_classes[$type], $classModuleFromFiles['instancedClasses']);
+        }
+        // Load module from misp-module service
         $modules_from_service = $this->__getModulesFromModuleService() ?? [];
         $misp_module_class = $this->__getClassForMispModule($modules_from_service);
         $misp_module_configs = [];
@@ -703,24 +717,21 @@ class Workflow extends AppModel
             $folder = new Folder(Workflow::MODULE_ROOT_PATH . $dir);
             $filesInFolder = $folder->find('.*\.php', true);
             $files[$dir] = array_diff($filesInFolder, ['..', '.']);
-            if ($dir == 'action') { // No custom module for the triggers
-                $customFolder = new Folder(Workflow::MODULE_ROOT_PATH . $dir . '/Custom');
+            if ($dir == 'action' || $dir == 'logic') { // No custom module for the triggers
+                $customFolder = new Folder(Workflow::CUSTOM_MODULE_ROOT_PATH . $dir);
                 $filesInCustomFolder = $customFolder->find('.*\.php', true);
-                $filesInCustomFolder = array_map(function($file) {
-                    return 'Custom/' . $file;
-                }, $filesInCustomFolder);
-                $files[$dir] = array_merge($filesInFolder, array_diff($filesInCustomFolder, ['..', '.']));
+                $files['custom'][$dir] = array_diff($filesInCustomFolder, ['..', '.']);
             }
         }
         return $files;
     }
 
-    private function __getClassFromModuleFiles($type, $files)
+    private function __getClassFromModuleFiles($type, $files, $isCustom=false)
     {
         $instancedClasses = [];
         $classConfigs = [];
         foreach ($files as $filename) {
-            $filepath = sprintf('%s%s/%s', Workflow::MODULE_ROOT_PATH, $type, $filename);
+            $filepath = sprintf('%s%s/%s', (!empty($isCustom) ? Workflow::CUSTOM_MODULE_ROOT_PATH : Workflow::MODULE_ROOT_PATH), $type, $filename);
             $instancedClass = $this->__getClassFromModuleFile($filepath);
             if (is_string($instancedClass)) {
                 $this->__logLoadingError($filename, $instancedClass);
@@ -731,6 +742,10 @@ class Workflow extends AppModel
             }
             $classConfigs[$instancedClass->id] = $instancedClass->getConfig();
             $instancedClasses[$instancedClass->id] = $instancedClass;
+            if (!empty($isCustom)) {
+                $classConfigs[$instancedClass->id]['is_custom'] = true;
+                $instancedClasses[$instancedClass->id]->is_custom = true;
+            }
         }
         return [
             'classConfigs' => $classConfigs,

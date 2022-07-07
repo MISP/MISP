@@ -157,7 +157,7 @@ class WorkflowsController extends AppController
         $moduleType = $filters['type'] ?? 'action';
         $actionType = $filters['actiontype'] ?? 'all';
         $enabledState = $filters['enabled'] ?? false;
-        if ($moduleType == 'all') {
+        if ($moduleType == 'all' || $moduleType == 'custom') {
             $data = array_merge(
                 $modules["blocks_action"],
                 $modules["blocks_logic"]
@@ -172,6 +172,10 @@ class WorkflowsController extends AppController
         } else if ($actionType == 'blocking') {
             $data = array_filter($data, function ($module) {
                 return !empty($module['is_blocking']);
+            });
+        } else if ($moduleType == 'custom') {
+            $data = array_filter($data, function ($module) {
+                return !empty($module['is_custom']);
             });
         }
         if ($enabledState !== false) {

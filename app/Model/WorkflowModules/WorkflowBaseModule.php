@@ -3,6 +3,7 @@ class WorkflowBaseModule
 {
     public $is_misp_module = false;
     public $is_blocking = false;
+    public $is_custom = false;
     public $id = 'to-override';
     public $name = 'to-override';
     public $version = '0.1';
@@ -175,4 +176,13 @@ class WorkflowBaseModule
 class WorkflowBaseTriggerModule extends WorkflowBaseModule
 {
     public $blocking = false;
+    public $inputs = 0;
+    public $outputs = 1;
+}
+
+class WorkflowBaseLogicModule extends WorkflowBaseModule
+{
+    public $blocking = false;
+    public $inputs = 1;
+    public $outputs = 2;
 }
