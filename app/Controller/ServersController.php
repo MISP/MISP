@@ -1922,7 +1922,7 @@ class ServersController extends AppController
         $dbVersion = $this->AdminSetting->getSetting('db_version');
         $updateProgress = $this->Server->getUpdateProgress();
         $updateProgress['db_version'] = $dbVersion;
-        $maxUpdateNumber = max(array_keys($this->Server->db_changes));
+        $maxUpdateNumber = max(array_keys(Server::DB_CHANGES));
         $updateProgress['complete_update_remaining'] = max($maxUpdateNumber - $dbVersion, 0);
         $updateProgress['update_locked'] = $this->Server->isUpdateLocked();
         $updateProgress['lock_remaining_time'] = $this->Server->getLockRemainingTime();

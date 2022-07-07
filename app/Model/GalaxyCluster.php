@@ -1124,7 +1124,7 @@ class GalaxyCluster extends AppModel
 
             if (!empty($tagsToFetch)) {
                 $tags = $this->GalaxyClusterRelation->GalaxyClusterRelationTag->Tag->find('all', [
-                    'conditions' => ['id' => array_unique($tagsToFetch)],
+                    'conditions' => ['id' => array_unique($tagsToFetch, SORT_REGULAR)],
                     'recursive' => -1,
                 ]);
                 $tags = array_column(array_column($tags, 'Tag'), null, 'id');

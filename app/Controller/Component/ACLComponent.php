@@ -738,6 +738,7 @@ class ACLComponent extends Component
                 'verifyGPG' => array(),
                 'view' => array('*'),
                 'getGpgPublicKey' => array('*'),
+                'unsubscribe' => ['*'],
             ),
             'userSettings' => array(
                 'index' => array('*'),
@@ -1001,6 +1002,8 @@ class ACLComponent extends Component
 
     private function __findAllFunctions()
     {
+        $functionsToIgnore = ['beforeFilter', 'afterFilter', 'beforeRender',  'getEventManager'];
+
         $functionFinder = '/function[\s\n]+(\S+)[\s\n]*\(/';
         $dir = new Folder(APP . 'Controller');
         $files = $dir->find('.*\.php');
@@ -1011,11 +1014,11 @@ class ACLComponent extends Component
                 $controllerName = '*';
             }
             $functionArray = array();
-            $fileContents = file_get_contents(APP . 'Controller' . DS . $file);
+            $fileContents = FileAccessTool::readFromFile(APP . 'Controller' . DS . $file);
             $fileContents = preg_replace('/\/\*[^\*]+?\*\//', '', $fileContents);
             preg_match_all($functionFinder, $fileContents, $functionArray);
             foreach ($functionArray[1] as $function) {
-                if ($function[0] !== '_' && $function !== 'beforeFilter' && $function !== 'afterFilter' && $function !== 'beforeRender') {
+                if ($function[0] !== '_' && !in_array($function, $functionsToIgnore, true)) {
                     $results[$controllerName][] = $function;
                 }
             }
@@ -1036,8 +1039,7 @@ class ACLComponent extends Component
         $missing = array();
         foreach ($results as $controller => $functions) {
             foreach ($functions as $function) {
-                if (!isset(self::ACL_LIST[$controller])
-                || !in_array($function, array_keys(self::ACL_LIST[$controller]))) {
+                if (!isset(self::ACL_LIST[$controller]) || !in_array($function, array_keys(self::ACL_LIST[$controller]))) {
                     $missing[$controller][] = $function;
                 }
             }
