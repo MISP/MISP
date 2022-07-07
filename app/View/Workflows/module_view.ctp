@@ -67,6 +67,12 @@ echo $this->element(
                 }
             ],
             [
+                'key' => __('Listening Workflows'),
+                'type' => 'json',
+                'path' => 'listening_workflows',
+                'requirement' => $data['module_type'] == 'trigger',
+            ],
+            [
                 'key' => __('Workflow Data'),
                 'class' => 'restrict-height',
                 'path' => 'Workflow.data',

@@ -284,6 +284,13 @@ class Workflow extends AppModel
         return $redis->sMembers(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow_id));
     }
 
+    public function getListeningWorkflowForTrigger(array $trigger): array
+    {
+        return array_map(function($id) {
+            return intval($id);
+        }, $this->__getWorkflowsIDPerTrigger($trigger['id']));
+    }
+
     /**
      * attachWorkflowToTriggers Collect the workflows listening to this trigger
      *

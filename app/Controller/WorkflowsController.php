@@ -202,6 +202,7 @@ class WorkflowsController extends AppController
         $is_trigger = $module['module_type'] == 'trigger';
         if ($is_trigger) {
             $module = $this->Workflow->attachWorkflowToTriggers([$module])[0];
+            $module['listening_workflows'] = $this->Workflow->getListeningWorkflowForTrigger($module);
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($module, $this->response->type());
