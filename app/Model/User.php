@@ -1581,4 +1581,14 @@ class User extends AppModel
             'conditions' => array('EventDelegation.org_id' => $user['org_id'])
         ));
     }
+
+    /**
+     * Generate code that is used in event alert unsubscribe link.
+     * @return string
+     */
+    public function unsubscribeCode(array $user)
+    {
+        $salt = Configure::read('Security.salt');
+        return substr(hash('sha256', "{$user['id']}|$salt"), 0, 8);
+    }
 }

@@ -10,6 +10,9 @@ class SendEmailTemplate
     /** @var string|null */
     private $referenceId;
 
+    /** @var string */
+    private $listUnsubscribe;
+
     /** @var string|null */
     private $subject;
 
@@ -29,6 +32,18 @@ class SendEmailTemplate
             return $this->referenceId;
         }
         $this->referenceId = $referenceId;
+    }
+
+    /**
+     * @param string|null $listUnsubscribe
+     * @return string|void
+     */
+    public function listUnsubscribe($listUnsubscribe = null)
+    {
+        if ($listUnsubscribe === null) {
+            return $this->listUnsubscribe;
+        }
+        $this->listUnsubscribe = $listUnsubscribe;
     }
 
     /**

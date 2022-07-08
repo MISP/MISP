@@ -25,6 +25,7 @@ App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('RandomTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('BetterCakeEventManager', 'Tools');
 
 class AppModel extends Model
 {
@@ -46,15 +47,6 @@ class AppModel extends Model
 
     /** @var AttachmentTool|null */
     private $attachmentTool;
-
-    public function __construct($id = false, $table = null, $ds = null)
-    {
-        parent::__construct($id, $table, $ds);
-        $this->findMethods['column'] = true;
-        if (in_array('phar', stream_get_wrappers())) {
-            stream_wrapper_unregister('phar');
-        }
-    }
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
@@ -92,7 +84,7 @@ class AppModel extends Model
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false
     );
 
-    public $advanced_updates_description = array(
+    const ADVANCED_UPDATES_DESCRIPTION = array(
         'seenOnAttributeAndObject' => array(
             'title' => 'First seen/Last seen Attribute table',
             'description' => 'Update the Attribute table to support first_seen and last_seen feature, with a microsecond resolution.',
@@ -105,6 +97,15 @@ class AppModel extends Model
             'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
         ),
     );
+
+    public function __construct($id = false, $table = null, $ds = null)
+    {
+        parent::__construct($id, $table, $ds);
+        $this->findMethods['column'] = true;
+        if (in_array('phar', stream_get_wrappers(), true)) {
+            stream_wrapper_unregister('phar');
+        }
+    }
 
     public function isAcceptedDatabaseError($errorMessage)
     {
@@ -274,9 +275,9 @@ class AppModel extends Model
 
         $liveOff = false;
         $exitOnError = false;
-        if (isset($this->advanced_updates_description[$command])) {
-            $liveOff = isset($this->advanced_updates_description[$command]['liveOff']) ? $this->advanced_updates_description[$command]['liveOff'] : $liveOff;
-            $exitOnError = isset($this->advanced_updates_description[$command]['exitOnError']) ? $this->advanced_updates_description[$command]['exitOnError'] : $exitOnError;
+        if (isset(self::ADVANCED_UPDATES_DESCRIPTION[$command])) {
+            $liveOff = isset(self::ADVANCED_UPDATES_DESCRIPTION[$command]['liveOff']) ? self::ADVANCED_UPDATES_DESCRIPTION[$command]['liveOff'] : $liveOff;
+            $exitOnError = isset(self::ADVANCED_UPDATES_DESCRIPTION[$command]['exitOnError']) ? self::ADVANCED_UPDATES_DESCRIPTION[$command]['exitOnError'] : $exitOnError;
         }
 
         $sqlArray = array();
@@ -1765,7 +1766,7 @@ class AppModel extends Model
         $total_update_count = $sql_update_count + $index_update_count;
         $this->__setUpdateProgress(0, $total_update_count, $command);
         $str_index_array = array();
-        foreach($indexArray as $toIndex) {
+        foreach ($indexArray as $toIndex) {
             $str_index_array[] = __('Indexing %s -> %s', $toIndex[0], $toIndex[1]);
         }
         $this->__setUpdateCmdMessages(array_merge($sqlArray, $str_index_array));
@@ -1773,8 +1774,8 @@ class AppModel extends Model
         $errorCount = 0;
 
         // execute test before update. Exit if it fails
-        if (isset($this->advanced_updates_description[$command]['preUpdate'])) {
-            $function_name = $this->advanced_updates_description[$command]['preUpdate'];
+        if (isset(self::ADVANCED_UPDATES_DESCRIPTION[$command]['preUpdate'])) {
+            $function_name = self::ADVANCED_UPDATES_DESCRIPTION[$command]['preUpdate'];
             try {
                 $this->{$function_name}();
             } catch (Exception $e) {
@@ -1910,10 +1911,15 @@ class AppModel extends Model
         $this->Server->serverSettingsSaveValue('MISP.live', $isLive);
     }
 
-    // check whether the adminSetting should be updated after the update
-    private function __postUpdate($command) {
-        if (isset($this->advanced_updates_description[$command]['record'])) {
-            if($this->advanced_updates_description[$command]['record']) {
+    /**
+     * Check whether the adminSetting should be updated after the update.
+     * @param string $command
+     * @return void
+     */
+    private function __postUpdate($command)
+    {
+        if (isset(self::ADVANCED_UPDATES_DESCRIPTION[$command]['record'])) {
+            if (self::ADVANCED_UPDATES_DESCRIPTION[$command]['record']) {
                 $this->AdminSetting->changeSetting($command, 1);
             }
         }
@@ -3382,5 +3388,20 @@ class AppModel extends Model
         $dataSource = ConnectionManager::getDataSource('default');
         $dataSourceName = $dataSource->config['datasource'];
         return $dataSourceName === 'Database/Mysql' || $dataSourceName === 'Database/MysqlObserver' || $dataSourceName === 'Database/MysqlExtended' || $dataSource instanceof Mysql;
+    }
+
+    /**
+     * Use different CakeEventManager to fix memory leak
+     * @return CakeEventManager
+     */
+    public function getEventManager()
+    {
+        if (empty($this->_eventManager)) {
+            $this->_eventManager = new BetterCakeEventManager();
+            $this->_eventManager->attach($this->Behaviors);
+            $this->_eventManager->attach($this);
+        }
+
+        return $this->_eventManager;
     }
 }
