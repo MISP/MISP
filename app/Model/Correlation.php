@@ -758,6 +758,17 @@ class Correlation extends AppModel
     }
 
     /**
+     * @param array $attribute
+     * @return void
+     */
+    public function advancedCorrelationsUpdate(array $attribute)
+    {
+        if ($this->advancedCorrelationEnabled && in_array($attribute['type'], ['ip-src', 'ip-dst'], true) && strpos($attribute['value'], '/')) {
+            $this->updateCidrList();
+        }
+    }
+
+    /**
      * Get list of all CIDR for correlation from database
      * @return array
      */
