@@ -222,25 +222,14 @@ class Server extends AppModel
         throw new InvalidArgumentException("Invalid pull technique `$technique`.");
     }
 
-    private function __checkIfEventIsBlockedBeforePull($event)
-    {
-        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-            if (!isset($this->EventBlocklist)) {
-                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-            }
-            if ($this->EventBlocklist->isBlocked($event['Event']['uuid'])) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * @param array $event
      * @param array $server
      * @param array $user
+     * @param array $pullRules
+     * @param bool $pullRulesEmptiedEvent
      */
-    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules, bool &$pullRulesEmptiedEvent=false)
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules, bool &$pullRulesEmptiedEvent = false)
     {
         // we have an Event array
         // The event came from a pull, so it should be locked.
@@ -269,14 +258,12 @@ class Server extends AppModel
                 }
             }
 
+            $typeFilteringEnabled = !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                !empty($pullRules['type_attributes']['NOT']);
             if (isset($event['Event']['Attribute'])) {
                 $originalCount = count($event['Event']['Attribute']);
                 foreach ($event['Event']['Attribute'] as $key => $attribute) {
-                    if (
-                        !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
-                        !empty($pullRules['type_attributes']['NOT']) &&
-                        in_array($attribute['type'], $pullRules['type_attributes']['NOT'])
-                    ) {
+                    if ($typeFilteringEnabled && in_array($attribute['type'], $pullRules['type_attributes']['NOT'])) {
                         unset($event['Event']['Attribute'][$key]);
                         continue;
                     }
@@ -297,7 +284,7 @@ class Server extends AppModel
                         }
                     }
                 }
-                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalCount > 0 && count($event['Event']['Attribute']) == 0) {
+                if ($typeFilteringEnabled && $originalCount > 0 && empty($event['Event']['Attribute'])) {
                     $pullRulesEmptiedEvent = true;
                 }
             }
@@ -323,11 +310,7 @@ class Server extends AppModel
                     if (isset($object['Attribute'])) {
                         $originalAttributeCount = count($object['Attribute']);
                         foreach ($object['Attribute'] as $j => $a) {
-                            if (
-                                !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
-                                !empty($pullRules['type_attributes']['NOT']) &&
-                                in_array($a['type'], $pullRules['type_attributes']['NOT'])
-                            ) {
+                            if ($typeFilteringEnabled && in_array($a['type'], $pullRules['type_attributes']['NOT'])) {
                                 unset($event['Event']['Object'][$i]['Attribute'][$j]);
                                 continue;
                             }
@@ -348,13 +331,13 @@ class Server extends AppModel
                                 }
                             }
                         }
-                        if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
+                        if ($typeFilteringEnabled && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
                             unset($event['Event']['Object'][$i]); // Object is empty, get rid of it
                             $pullRulesEmptiedEvent = true;
                         }
                     }
                 }
-                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalObjectCount > 0 && count($event['Event']['Object']) == 0) {
+                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && $originalObjectCount > 0 && empty($event['Event']['Object'])) {
                     $pullRulesEmptiedEvent = true;
                 }
             }
@@ -466,7 +449,18 @@ class Server extends AppModel
         }
     }
 
-    private function __pullEvent($eventId, &$successes, &$fails, Event $eventModel, ServerSyncTool $serverSync, $user, $jobId, $force = false)
+    /**
+     * @param int|string $eventId Event ID or UUID
+     * @param array $successes
+     * @param array $fails
+     * @param Event $eventModel
+     * @param ServerSyncTool $serverSync
+     * @param array $user
+     * @param int $jobId
+     * @param bool $force
+     * @return bool
+     */
+    private function __pullEvent($eventId, array &$successes, array &$fails, Event $eventModel, ServerSyncTool $serverSync, $user, $jobId, $force = false)
     {
         $params = [
             'deleted' => [0, 1],
@@ -489,23 +483,16 @@ class Server extends AppModel
             return false;
         }
 
-        if (!empty($event)) {
-            if ($this->__checkIfEventIsBlockedBeforePull($event)) {
-                return false;
+        $pullRulesEmptiedEvent = false;
+        $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules(), $pullRulesEmptiedEvent);
+
+        if (!$this->__checkIfEventSaveAble($event)) {
+            if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
+                $fails[$eventId] = __('Empty event detected.');
             }
-            $pullRulesEmptiedEvent = false;
-            $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules(), $pullRulesEmptiedEvent);
-            if (!$this->__checkIfEventSaveAble($event)) {
-                if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
-                    $fails[$eventId] = __('Empty event detected.');
-                }
-            } else {
-                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $headers, $body);
-            }
-        } else {
-            // error
-            $fails[$eventId] = __('failed downloading the event');
+            return false;
         }
+        $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $headers, $body);
         return true;
     }
 
@@ -551,7 +538,7 @@ class Server extends AppModel
             if ($jobId) {
                 $job->saveProgress($jobId, $technique === 'pull_relevant_clusters' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
             }
-            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
+            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $serverSync, $technique);
             if ($technique === 'pull_relevant_clusters') {
                 if ($jobId) {
                     $job->saveStatus($jobId, true, 'Pulling complete.');
@@ -579,8 +566,8 @@ class Server extends AppModel
 
         /** @var Event $eventModel */
         $eventModel = ClassRegistry::init('Event');
-        $successes = array();
-        $fails = array();
+        $successes = [];
+        $fails = [];
         // now process the $eventIds to pull each of the events sequentially
         if (!empty($eventIds)) {
             // download each event
@@ -622,7 +609,7 @@ class Server extends AppModel
             count($fails)
         );
         $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email, $change);
-        return array($successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters);
+        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters];
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -662,30 +649,20 @@ class Server extends AppModel
     /**
      * fetchCustomClusterIdsFromServer Fetch custom-published remote clusters' UUIDs and versions
      *
-     * @param array $server
-     * @param HttpSocketExtended|null $HttpSocket
+     * @param ServerSyncTool $serverSync
      * @param array $conditions
      * @return array The list of clusters
      * @throws JsonException|HttpSocketHttpException|HttpSocketJsonException
      */
-    private function fetchCustomClusterIdsFromServer(array $server, HttpSocketExtended $HttpSocket=null, array $conditions=array())
+    private function fetchCustomClusterIdsFromServer(ServerSyncTool $serverSync, array $conditions = [])
     {
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $uri = $url . '/galaxy_clusters/restSearch';
         $filterRules = [
             'published' => 1,
             'minimal' => 1,
             'custom' => 1,
         ];
         $filterRules = array_merge($filterRules, $conditions);
-        $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
-        if (!$response->isOk()) {
-            throw new HttpSocketHttpException($response);
-        }
-
-        $clusterArray = $response->json();
+        $clusterArray = $serverSync->galaxyClusterSearch($filterRules)->json();
         if (isset($clusterArray['response'])) {
             $clusterArray = $clusterArray['response'];
         }
@@ -705,9 +682,9 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPull(array $server, $HttpSocket=null, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
+    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSyncTool, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket, $conditions=$conditions);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSyncTool, $conditions=$conditions);
         if (!empty($clusterArray)) {
             foreach ($clusterArray as $cluster) {
                 if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
@@ -730,8 +707,7 @@ class Server extends AppModel
 
     /**
      * Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed.
-     * @param array $server
-     * @param HttpSocket|null $HttpSocket
+     * @param ServerSyncTool $serverSync
      * @param array $localClusters
      * @param array $conditions
      * @return array
@@ -739,9 +715,9 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPush(array $server, $HttpSocket=null, $localClusters=array(), $conditions=array())
+    private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
     {
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket, $conditions=$conditions);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
         $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
         if (!empty($localClusters)) {
             foreach ($localClusters as $k => $localCluster) {
@@ -785,12 +761,34 @@ class Server extends AppModel
     }
 
     /**
+     * @param array $events
+     * @return void
+     */
+    private function removeOlderEvents(array &$events)
+    {
+        $conditions = (count($events) > 10000) ? [] : ['Event.uuid' => array_column($events, 'uuid')];
+        $this->Event = ClassRegistry::init('Event');
+        $localEvents = $this->Event->find('all', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => ['Event.uuid', 'Event.timestamp', 'Event.locked'],
+        ]);
+        $localEvents = array_column(array_column($localEvents, 'Event'), null, 'uuid');
+        foreach ($events as $k => $event) {
+            $uuid = $event['uuid'];
+            if (isset($localEvents[$uuid]) && ($localEvents[$uuid]['timestamp'] >= $event['timestamp'] || !$localEvents[$uuid]['locked'])) {
+                unset($events[$k]);
+            }
+        }
+    }
+
+    /**
      * Get an array of event UUIDs that are present on the remote server.
      *
      * @param ServerSyncTool $serverSync
      * @param bool $all
-     * @param bool $ignoreFilterRules
-     * @param bool $force
+     * @param bool $ignoreFilterRules Ignore defined server pull rules
+     * @param bool $force If true, returns all events regardless their update timestamp
      * @return array Array of event UUIDs.
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
@@ -820,8 +818,7 @@ class Server extends AppModel
             }
         }
         if (!$force) {
-            $this->Event = ClassRegistry::init('Event');
-            $this->Event->removeOlder($eventArray);
+            $this->removeOlderEvents($eventArray);
         }
         return array_column($eventArray, 'uuid');
     }
@@ -940,7 +937,7 @@ class Server extends AppModel
 
             // sync custom galaxy clusters if user is capable
             if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" == $technique) {
-                $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user, $technique='full');
+                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique='full');
             } else {
                 $clustersSuccesses = array();
             }
@@ -989,7 +986,7 @@ class Server extends AppModel
                     'fields' => array('Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
             );
             $eventIds = $this->Event->find('all', $findParams);
-            $eventUUIDsFiltered = $this->getEventIdsForPush($server, $HttpSocket, $eventIds);
+            $eventUUIDsFiltered = $this->getEventIdsForPush($server, $serverSync, $eventIds);
             if (!empty($eventUUIDsFiltered)) {
                 $eventCount = count($eventUUIDsFiltered);
                 // now process the $eventIds to push each of the events sequentially
@@ -1018,11 +1015,11 @@ class Server extends AppModel
                     $event = $event[0];
                     $event['Event']['locked'] = 1;
                     if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" != $technique) {
-                        $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
+                        $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
                     } else {
                         $clustersSuccesses = array();
                     }
-                    $result = $this->Event->uploadEventToServer($event, $server, $HttpSocket);
+                    $result = $this->Event->uploadEventToServer($event, $server, $serverSync);
                     if ('Success' === $result) {
                         $successes[] = $event['Event']['id'];
                     } else {
@@ -1049,7 +1046,7 @@ class Server extends AppModel
 
         if ($push['canPush'] || $push['canSight']) {
             $this->Sighting = ClassRegistry::init('Sighting');
-            $sightingSuccesses =$this->Sighting->pushSightings($user, $serverSync);
+            $sightingSuccesses = $this->Sighting->pushSightings($user, $serverSync);
         } else {
             $sightingSuccesses = array();
         }
@@ -1083,23 +1080,35 @@ class Server extends AppModel
         return true;
     }
 
-    public function getEventIdsForPush(array $server, HttpSocket $HttpSocket, array $eventIds)
+    /**
+     * @param array $server
+     * @param ServerSyncTool $serverSync
+     * @param array $events
+     * @return array|false
+     */
+    private function getEventIdsForPush(array $server, ServerSyncTool $serverSync, array $events)
     {
-        foreach ($eventIds as $k => $event) {
-            if (empty($this->eventFilterPushableServers($event, array($server)))) {
-                unset($eventIds[$k]);
+        $request = [];
+        foreach ($events as $event) {
+            if (empty($this->eventFilterPushableServers($event, [$server]))) {
                 continue;
             }
-            unset($eventIds[$k]['Event']['id']);
+            $request[] = ['Event' => [
+                'uuid' => $event['Event']['uuid'],
+                'timestamp' => $event['Event']['timestamp'],
+            ]];
         }
-        $request = $this->setupSyncRequest($server);
-        $data = json_encode($eventIds);
-        $uri = $server['Server']['url'] . '/events/filterEventIdsForPush';
-        $response = $HttpSocket->post($uri, $data, $request);
-        if ($response->code == '200') {
-            return $this->jsonDecode($response->body());
+
+        if (empty($request)) {
+            return [];
         }
-        return false;
+
+        try {
+            return $serverSync->filterEventIdsForPush($request)->json();
+        } catch (Exception $e) {
+            $this->logException("Could not filter events for push when pushing to server {$serverSync->serverId()}", $e);
+            return false;
+        }
     }
 
     /**
@@ -1112,7 +1121,7 @@ class Server extends AppModel
      * @param  array|bool  $event
      * @return array List of successfully pushed clusters
      */
-    public function syncGalaxyClusters($HttpSocket, array $server, array $user, $technique='full', $event=false)
+    public function syncGalaxyClusters(ServerSyncTool $serverSync, array $server, array $user, $technique='full', $event=false)
     {
         $successes = array();
         if (!$server['Server']['push_galaxy_clusters']) {
@@ -1120,7 +1129,6 @@ class Server extends AppModel
         }
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $this->Event = ClassRegistry::init('Event');
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $clusters = array();
         if ($technique == 'full') {
             $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
@@ -1135,13 +1143,13 @@ class Server extends AppModel
         }
         $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
         try {
-            $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($server, $HttpSocket = $HttpSocket, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
+            $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($serverSync, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
         } catch (Exception $e) {
             $this->logException("Could not get eligible cluster IDs from server #{$server['Server']['id']} for push.", $e);
             return [];
         }
         foreach ($clustersToPush as $cluster) {
-            $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $HttpSocket, $user);
+            $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $serverSync, $user);
             if ($result === 'Success') {
                 $successes[] = __('GalaxyCluster %s', $cluster['GalaxyCluster']['uuid']);
             }
@@ -1153,10 +1161,10 @@ class Server extends AppModel
     {
         $saModel = ClassRegistry::init('ShadowAttribute');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         if ($sa_id == null) {
             if ($event_id == null) {
                 // event_id is null when we are doing a push
+                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
                 try {
                     $ids = $this->getEventIdsFromServer($serverSync, true, true);
                 } catch (Exception $e) {
@@ -2503,7 +2511,6 @@ class Server extends AppModel
 
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
-        $supportEditOfGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']);
         $canEditGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']) ? $remoteVersion['perm_galaxy_editor'] : false;
         $remoteVersionString = $remoteVersion['version'];
         $remoteVersion = explode('.', $remoteVersion['version']);
@@ -2555,7 +2562,6 @@ class Server extends AppModel
             'canPush' => $canPush,
             'canSight' => $canSight,
             'canEditGalaxyCluster' => $canEditGalaxyCluster,
-            'supportEditOfGalaxyCluster' => $supportEditOfGalaxyCluster,
             'version' => $remoteVersion,
             'protectedMode' => $protectedMode,
         ];
@@ -3770,8 +3776,7 @@ class Server extends AppModel
     public function extensionDiagnostics()
     {
         try {
-            $file = new File(APP . DS . 'composer.json');
-            $composer = $this->jsonDecode($file->read());
+            $composer = FileAccessTool::readJsonFromFile(APP . DS . 'composer.json');
             $extensions = [];
             foreach ($composer['require'] as $require => $foo) {
                 if (substr($require, 0, 4) === 'ext-') {

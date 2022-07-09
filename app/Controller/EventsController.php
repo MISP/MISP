@@ -4115,29 +4115,31 @@ class EventsController extends AppController
 
     public function filterEventIdsForPush()
     {
-        if ($this->request->is('post')) {
-            $incomingIDs = array();
-            $incomingEvents = array();
-            foreach ($this->request->data as $event) {
-                $incomingIDs[] = $event['Event']['uuid'];
-                $incomingEvents[$event['Event']['uuid']] = $event['Event']['timestamp'];
-            }
-            $events = $this->Event->find('all', array(
-                'conditions' => array('Event.uuid' => $incomingIDs),
-                'recursive' => -1,
-                'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked'),
-            ));
-            foreach ($events as $event) {
-                if ($event['Event']['timestamp'] >= $incomingEvents[$event['Event']['uuid']]) {
-                    unset($incomingEvents[$event['Event']['uuid']]);
-                    continue;
-                }
-                if ($event['Event']['locked'] == 0) {
-                    unset($incomingEvents[$event['Event']['uuid']]);
-                }
-            }
-            return $this->RestResponse->viewData(array_keys($incomingEvents), $this->response->type());
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint requires a POST request.'));
         }
+
+        $incomingUuids = [];
+        $incomingEvents = [];
+        foreach ($this->request->data as $event) {
+            $incomingUuids[] = $event['Event']['uuid'];
+            $incomingEvents[$event['Event']['uuid']] = $event['Event']['timestamp'];
+        }
+        $events = $this->Event->find('all', [
+            'conditions' => ['Event.uuid' => $incomingUuids],
+            'recursive' => -1,
+            'fields' => ['Event.uuid', 'Event.timestamp', 'Event.locked'],
+        ]);
+        foreach ($events as $event) {
+            if ($event['Event']['timestamp'] >= $incomingEvents[$event['Event']['uuid']]) {
+                unset($incomingEvents[$event['Event']['uuid']]);
+                continue;
+            }
+            if ($event['Event']['locked'] == 0) {
+                unset($incomingEvents[$event['Event']['uuid']]);
+            }
+        }
+        return $this->RestResponse->viewData(array_keys($incomingEvents), $this->response->type());
     }
 
     public function checkuuid($uuid)
