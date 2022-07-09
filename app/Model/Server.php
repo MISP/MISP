@@ -3309,7 +3309,15 @@ class Server extends AppModel
             return 1;
         }
         $pubSubTool = $this->getPubSubTool();
-        if (!$pubSubTool->checkIfPythonLibInstalled()) {
+        try {
+            $isInstalled = $pubSubTool->checkIfPythonLibInstalled();
+        } catch (Exception $e) {
+            $this->logException('ZMQ is not properly installed.', $e, LOG_NOTICE);
+            $diagnostic_errors++;
+            return 2;
+        }
+
+        if (!$isInstalled) {
             $diagnostic_errors++;
             return 2;
         }
