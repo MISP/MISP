@@ -636,9 +636,8 @@ class RestResponseComponent extends Component
                 $headers['ETag'] = $etag;
             }
             if ($this->signContents) {
-                $this->CryptographicKey = ClassRegistry::init('CryptographicKey');
                 $data = $response->intoString();
-                $headers['x-pgp-signature'] = base64_encode($this->CryptographicKey->signWithInstanceKey($data));
+                $headers['x-pgp-signature'] = $this->sign($data);
                 $cakeResponse = new CakeResponse(['body' => $data, 'status' => $code, 'type' => $type]);
             } else {
                 App::uses('CakeResponseFile', 'Tools');
@@ -657,7 +656,7 @@ class RestResponseComponent extends Component
             }
             $cakeResponse = new CakeResponse(['body' => $response, 'status' => $code, 'type' => $type]);
             if ($this->signContents) {
-                $headers['x-pgp-signature'] = base64_encode($this->CryptographicKey->signWithInstanceKey($response));
+                $headers['x-pgp-signature'] = $this->sign($response);
             }
         }
 
@@ -680,6 +679,25 @@ class RestResponseComponent extends Component
             $cakeResponse->download($download);
         }
         return $cakeResponse;
+    }
+
+    /**
+     * @param string $response
+     * @return string Signature as base64 encoded string
+     * @throws Crypt_GPG_BadPassphraseException
+     * @throws Crypt_GPG_Exception
+     * @throws Crypt_GPG_KeyNotFoundException
+     * @throws Exception
+     */
+    private function sign($response)
+    {
+        /** @var CryptographicKey $cryptographicKey */
+        $cryptographicKey = ClassRegistry::init('CryptographicKey');
+        $signature = $cryptographicKey->signWithInstanceKey($response);
+        if (!$signature) {
+            throw new Exception('Could not sign data.');
+        }
+        return base64_encode($signature);
     }
 
     /**
