@@ -659,7 +659,7 @@ class Server extends AppModel
         }
 
         $change = sprintf(
-            '%s events, %s proposals, %s sightings and %s galaxyClusters pulled or updated. %s events failed or didn\'t need an update.',
+            '%s events, %s proposals, %s sightings and %s galaxy clusters pulled or updated. %s events failed or didn\'t need an update.',
             count($successes),
             $pulledProposals,
             $pulledSightings,
@@ -796,6 +796,7 @@ class Server extends AppModel
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
+     * @throws JsonException
      */
     public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false)
     {
@@ -809,12 +810,37 @@ class Server extends AppModel
         }
         $filterRules['minimal'] = 1;
         $filterRules['published'] = 1;
-        $eventIndex = $serverSync->eventIndex($filterRules)->json();
+
+        // Fetch event index from cache if exists and is not modified
+        $redis = $this->setupRedisWithException();
+        $indexFromCache = $redis->get("misp:event_index:{$serverSync->serverId()}");
+        if ($indexFromCache) {
+            list($etag, $eventIndex) = JsonTool::decode($indexFromCache);
+        } else {
+            $etag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
+        }
+
+        $response = $serverSync->eventIndex($filterRules, $etag);
+
+        if ($response->isNotModified() && $indexFromCache) {
+            return $eventIndex;
+        }
+
+        $eventIndex = $response->json();
 
         // correct $eventArray if just one event, probably this response returns old MISP
         if (isset($eventIndex['id'])) {
             $eventIndex = [$eventIndex];
         }
+
+        // Save to cache for 24 hours if ETag provided
+        if (isset($response->headers["ETag"])) {
+            $data = JsonTool::encode([$response->headers["ETag"], $eventIndex]);
+            $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
+        } else if ($indexFromCache) {
+            $redis->del("misp:event_index:{$serverSync->serverId()}");
+        }
+
         return $eventIndex;
     }
 
