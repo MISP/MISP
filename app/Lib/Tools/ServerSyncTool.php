@@ -532,7 +532,7 @@ class ServerSyncTool
     }
 
     /**
-     * @param float $start
+     * @param float $start Microtime when request was send
      * @param string $method HTTP method
      * @param string $url
      * @param HttpSocketResponse $response
@@ -542,7 +542,7 @@ class ServerSyncTool
         $duration = round(microtime(true) - $start, 3);
         $responseSize = strlen($response->body);
         $ce = $response->getHeader('Content-Encoding');
-        $logEntry = '[' . date("Y-m-d H:i:s") . "] \"$method $url\" {$response->code} $responseSize $duration $ce\n";
+        $logEntry = '[' . date('Y-m-d H:i:s', intval($start)) . "] \"$method $url\" {$response->code} $responseSize $duration $ce\n";
         file_put_contents(APP . 'tmp/logs/server-sync.log', $logEntry, FILE_APPEND | LOCK_EX);
     }
 }
