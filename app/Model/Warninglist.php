@@ -115,7 +115,7 @@ class Warninglist extends AppModel
         }
 
         try {
-            $redis = $this->setupRedisWithException();
+            $redis = RedisTool::init();
         } catch (Exception $e) {
             // fallback to default implementation when redis is not available
             $eventWarnings = [];
@@ -182,10 +182,10 @@ class Warninglist extends AppModel
                 }
 
                 $attributeKey = $keysToGet[$pos];
-                $saveToCache[$attributeKey] = empty($store) ? '' : json_encode($store);
+                $saveToCache[$attributeKey] = empty($store) ? '' : RedisTool::serialize($store);
 
             } elseif (!empty($result)) { // skip empty string that means no warning list match
-                $matchedWarningList = json_decode($result, true);
+                $matchedWarningList = RedisTool::deserialize($result);
                 foreach ($matchedWarningList as $warninglistId => $matched) {
                     $attributes[$redisResultToAttributePos[$pos]]['warnings'][] = [
                         'value' => $matched[0],

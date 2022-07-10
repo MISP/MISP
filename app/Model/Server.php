@@ -812,10 +812,10 @@ class Server extends AppModel
         $filterRules['published'] = 1;
 
         // Fetch event index from cache if exists and is not modified
-        $redis = $this->setupRedisWithException();
+        $redis = RedisTool::init();
         $indexFromCache = $redis->get("misp:event_index:{$serverSync->serverId()}");
         if ($indexFromCache) {
-            list($etag, $eventIndex) = JsonTool::decode($indexFromCache);
+            list($etag, $eventIndex) = RedisTool::deserialize($indexFromCache);
         } else {
             $etag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
         }
@@ -835,7 +835,7 @@ class Server extends AppModel
 
         // Save to cache for 24 hours if ETag provided
         if (isset($response->headers["ETag"])) {
-            $data = JsonTool::encode([$response->headers["ETag"], $eventIndex]);
+            $data = RedisTool::serialize([$response->headers["ETag"], $eventIndex]);
             $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
         } else if ($indexFromCache) {
             $redis->del("misp:event_index:{$serverSync->serverId()}");
