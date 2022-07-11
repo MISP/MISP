@@ -5734,7 +5734,7 @@ class Server extends AppModel
                 ),
                 'custom_css' => array(
                     'level' => 2,
-                    'description' => __('If you would like to customise the css, simply drop a css file in the /var/www/MISP/app/webroot/css directory and enter the name here.'),
+                    'description' => __('If you would like to customise the CSS, simply drop a css file in the /var/www/MISP/app/webroot/css directory and enter the name here.'),
                     'value' => '',
                     'test' => 'testForStyleFile',
                     'type' => 'string',
@@ -5802,6 +5802,18 @@ class Server extends AppModel
                     'type' => 'string',
                     'redacted' => true
                 ),
+                'redis_serializer' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Redis serializer method. WARNING: Changing this setting will drop all cached data.'),
+                    'value' => 'JSON',
+                    'test' => null,
+                    'type' => 'string',
+                    'null' => true,
+                    'afterHook' => function () {
+                        RedisTool::init()->flushDB();
+                        return true;
+                    },
+                ],
                 'event_view_filter_fields' => array(
                     'level' => 2,
                     'description' => __('Specify which fields to filter on when you search on the event view. Default values are : "id, uuid, value, comment, type, category, Tag.name"'),
