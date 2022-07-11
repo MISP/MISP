@@ -5804,13 +5804,17 @@ class Server extends AppModel
                 ),
                 'redis_serializer' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Redis serializer method. WARNING: Changing this setting will drop all cached data.'),
+                    'description' => __('Redis serializer method. WARNING: Changing this setting will drop some cached data.'),
                     'value' => 'JSON',
                     'test' => null,
                     'type' => 'string',
                     'null' => true,
                     'afterHook' => function () {
-                        RedisTool::init()->flushDB();
+                        $keysToDelete = ['taxonomies_cache:*', 'misp:warninglist_cache', 'misp:event_lock:*', 'misp:event_index:*'];
+                        $redis = RedisTool::init();
+                        foreach ($keysToDelete as $key) {
+                            $redis->unlink($redis->keys($key));
+                        }
                         return true;
                     },
                 ],
