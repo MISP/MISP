@@ -1013,4 +1013,11 @@ class Workflow extends AppModel
         return $errors;
     }
     
+    public function getDotNotation($id)
+    {
+        App::uses('GraphvizDOTTool', 'Tools');
+        $workflow = $this->fetchWorkflow($id);
+        $dot = GraphvizDOTTool::dot($workflow['Workflow']['data']);
+        return $dot;
+    }
 }

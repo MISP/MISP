@@ -96,6 +96,12 @@ class WorkflowsController extends AppController
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'view'));
     }
 
+    public function getDotNotation($id)
+    {
+        $dot = $this->Workflow->getDotNotation($id);
+        return $this->RestResponse->viewData($dot, $this->response->type());
+    }
+
     public function editor($trigger_id)
     {
         $modules = $this->Workflow->getModulesByType();
