@@ -1622,16 +1622,6 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     'url' => $baseurl . '/workflowBlueprints/import',
                     'text' => __('Import Workflow Blueprints')
                 ));
-                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                    'element_id' => 'index_trigger',
-                    'url' => '/workflows/triggers',
-                    'text' => __('List Triggers')
-                ));
-                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                    'element_id' => 'index_module',
-                    'url' => '/workflows/moduleIndex',
-                    'text' => __('List Modules')
-                ));
                 if ($menuItem === 'view' || $menuItem === 'edit') {
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'view',
@@ -1651,6 +1641,17 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'requirement' => Configure::read('MISP.log_new_audit') && $canAccess('auditLogs', 'admin_index'),
                     ));
                 }
+                echo $divider;
+                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                    'element_id' => 'index_trigger',
+                    'url' => '/workflows/triggers',
+                    'text' => __('List Triggers')
+                ));
+                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                    'element_id' => 'index_module',
+                    'url' => '/workflows/moduleIndex',
+                    'text' => __('List Modules')
+                ));
                 break;
 
             case 'workflows':
