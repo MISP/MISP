@@ -669,6 +669,7 @@ class ACLComponent extends Component
                 'view' => array('*'),
                 'unhideTag' => array('perm_tagger'),
                 'hideTag' => array('perm_tagger'),
+                'normalizeCustomTagsToTaxonomyFormat' => [],
             ),
             'templateElements' => array(
                 'add' => array('perm_template'),

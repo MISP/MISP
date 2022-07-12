@@ -161,7 +161,12 @@ class Server extends AppModel
             'description' => 'If your your database is locked and is not updating, unlock it here.',
             'ignore_disabled' => true,
             'url' => '/servers/releaseUpdateLock/'
-        )
+        ),
+        'normalizeCustomTagsToTaxonomyFormat' => array(
+            'title' => 'Normalize custom tags to taxonomy format',
+            'description' => 'Transform all custom tags existing in a taxonomy into the taxonomy version',
+            'url' => '/taxonomies/normalizeCustomTagsToTaxonomyFormat/'
+        ),
     );
 
     public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
