@@ -770,4 +770,77 @@ class Taxonomy extends AppModel
         }
         return $splits;
     }
+
+    private function __craftTaxonomiesTags()
+    {
+        $taxonomies = $this->find('all', [
+            'fields' => ['namespace'],
+            'contain' => ['TaxonomyPredicate' => ['TaxonomyEntry']],
+        ]);
+        $allTaxonomyTags = [];
+        foreach ($taxonomies as $taxonomy) {
+            $namespace = $taxonomy['Taxonomy']['namespace'];
+            foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
+                if (isset($predicate['TaxonomyEntry']) && !empty($predicate['TaxonomyEntry'])) {
+                    foreach ($predicate['TaxonomyEntry'] as $entry) {
+                        $tag = $namespace . ':' . $predicate['value'] . '="' . $entry['value'] . '"';
+                        $allTaxonomyTags[$tag] = true;
+                    }
+                } else {
+                    $tag = $namespace . ':' . $predicate['value'];
+                    $allTaxonomyTags[$tag] = true;
+                }
+            }
+        }
+        return $allTaxonomyTags;
+    }
+
+    /**
+     * normalizeCustomTagsToTaxonomyFormat Transform all custom tags into their taxonomy version.
+     *
+     * @return int The number of converted tag
+     */
+    public function normalizeCustomTagsToTaxonomyFormat(): array
+    {
+        $tagConverted = 0;
+        $rowUpdated = 0;
+        $craftedTags = $this->__craftTaxonomiesTags();
+        $allTaxonomyTagsByName = Hash::combine($this->getAllTaxonomyTags(false, false, true, false, true), '{n}.Tag.name', '{n}.Tag.id');
+        $tagsToMigrate = array_diff_key($allTaxonomyTagsByName, $craftedTags);
+        foreach ($tagsToMigrate as $tagToMigrate_name => $tagToMigrate_id) {
+            foreach (array_keys($craftedTags) as $craftedTag) {
+                if (strcasecmp($craftedTag, $tagToMigrate_name) == 0) {
+                    $result = $this->__updateTagToNormalized(intval($tagToMigrate_id), intval($allTaxonomyTagsByName[$craftedTag]));
+                    $tagConverted += 1;
+                    $rowUpdated += $result['changed'];
+                }
+            }
+        }
+        return [
+            'tag_converted' => $tagConverted,
+            'row_updated' => $rowUpdated,
+        ];
+    }
+
+    /**
+     * __updateTagToNormalized Change the link of element having $source_id tag attached to them for the $target_id one.
+     * Updated:
+     * - event_tags
+     * - attribute_tags
+     * - galaxy_cluster_relation_tags
+     *
+     * Ignored: As this is defined by users, let them do the migration themselves
+     * - tag_collection_tags
+     * - template_tags
+     * - favorite_tags
+     *
+     * @param int $source_id
+     * @param int $target_id
+     * @return array
+     * @throws Exception
+     */
+    private function __updateTagToNormalized($source_id, $target_id): array
+    {
+        return $this->Tag->mergeTag($source_id, $target_id);
+    }
 }

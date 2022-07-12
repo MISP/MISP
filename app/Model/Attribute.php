@@ -416,6 +416,7 @@ class Attribute extends AppModel
         // update correlation...
         if (isset($attribute['deleted']) && $attribute['deleted']) {
             $this->Correlation->beforeSaveCorrelation($attribute);
+            $this->Correlation->advancedCorrelationsUpdate($attribute);
             if (isset($attribute['event_id'])) {
                 $this->__alterAttributeCount($attribute['event_id'], false);
             }
@@ -438,9 +439,11 @@ class Attribute extends AppModel
                 ) {
                     $this->Correlation->beforeSaveCorrelation($attribute);
                     $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
+                    $this->Correlation->advancedCorrelationsUpdate($attribute);
                 }
             } else {
                 $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
+                $this->Correlation->advancedCorrelationsUpdate($attribute);
             }
         }
         $result = true;
@@ -496,9 +499,6 @@ class Attribute extends AppModel
                     ];
                 $this->executeTrigger('attribute-after-save', $attributeForPublish, $workflowErrors, $logging);
             }
-        }
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($attribute['type'], ['ip-src', 'ip-dst'], true) && strpos($attribute['value'], '/')) {
-            $this->Correlation->updateCidrList();
         }
         if ($created && isset($attribute['event_id']) && empty($attribute['skip_auto_increment'])) {
             $this->__alterAttributeCount($attribute['event_id']);
@@ -2053,7 +2053,6 @@ class Attribute extends AppModel
         $params = array(
             'conditions' => $this->buildConditions($user),
             'fields' => array(),
-            'recursive' => -1,
             'contain' => ['Event', 'Object'], // by default include Event and Object, because it is required for conditions
         );
         if (isset($options['conditions'])) {
