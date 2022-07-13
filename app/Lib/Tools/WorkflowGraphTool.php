@@ -71,6 +71,23 @@ class GraphUtil
         }
         return [false, []];
     }
+
+    public function hasMultipleOutputConnection(): array
+    {
+        $edges = [];
+        foreach ($this->graph as $node) {
+            foreach (($node['outputs'] ?? []) as $output_id => $outputs) {
+                foreach ($outputs as $connections) {
+                    if (count($connections) > 1 && empty($node['data']['multiple_output_connection'])) {
+                        $edges[$node['id']] = array_map(function ($connection) {
+                            return intval($connection['node']);
+                        }, $connections);
+                    }
+                }
+            }
+        }
+        return [!empty($edges), $edges];
+    }
 }
 
 class GraphWalker
@@ -290,7 +307,7 @@ class WorkflowGraphTool
     }
 
     /**
-     * hisCyclic Return if the graph contains a cycle
+     * isAcyclic Return if the graph contains a cycle
      *
      * @param array $graphData
      * @param array $cycles Get a list of cycle
@@ -303,6 +320,22 @@ class WorkflowGraphTool
         $isCyclic = $result[0];
         $cycles = $result[1];
         return !$isCyclic;
+    }
+
+    /**
+     * hasMultipleOutputConnection Return if the graph has multiple connection from a node output
+     *
+     * @param array $graphData
+     * @param array $edges Get a list of edges from the same output
+     * @return boolean
+     */
+    public static function hasMultipleOutputConnection(array $graphData, array &$edges=[]): bool
+    {
+        $graphUtil = new GraphUtil($graphData);
+        $result = $graphUtil->hasMultipleOutputConnection();
+        $hasMultipleOutputConnection = $result[0];
+        $edges = $result[1];
+        return $hasMultipleOutputConnection;
     }
 
     /**

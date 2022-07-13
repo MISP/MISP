@@ -10,7 +10,7 @@ class WorkflowsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        $this->Security->unlockedActions[] = 'hasAcyclicGraph';
+        $this->Security->unlockedActions[] = 'checkGraph';
         $requirementErrors = [];
         if (empty(Configure::read('MISP.background_jobs'))) {
             $requirementErrors[] = __('Background workers must be enabled to use workflows');
@@ -294,15 +294,23 @@ class WorkflowsController extends AppController
         return $savedWorkflow;
     }
 
-    public function hasAcyclicGraph()
+    public function checkGraph()
     {
         $this->request->allowMethod(['post']);
         $graphData = JsonTool::decode($this->request->data['graph']);
         $cycles = [];
         $isAcyclic = $this->Workflow->workflowGraphTool->isAcyclic($graphData, $cycles);
+        $edges = [];
+        $hasMultipleOutputConnection = $this->Workflow->workflowGraphTool->hasMultipleOutputConnection($graphData, $edges);
         $data = [
-            'is_acyclic' => $isAcyclic,
-            'cycles' => $cycles,
+            'is_acyclic' => [
+                'is_acyclic' => $isAcyclic,
+                'cycles' => $cycles,
+            ],
+            'multiple_output_connection' => [
+                'has_multiple_output_connection' => $hasMultipleOutputConnection,
+                'edges' => $edges,
+            ]
         ];
         return $this->RestResponse->viewData($data, 'json');
     }

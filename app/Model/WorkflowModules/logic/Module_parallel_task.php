@@ -10,6 +10,7 @@ class Module_parallel_task extends WorkflowBaseModule
     public $icon = 'random';
     public $inputs = 1;
     public $outputs = 1;
+    public $multiple_output_connection = true;
     public $html_template = 'parallel';
     public $params = [];
 

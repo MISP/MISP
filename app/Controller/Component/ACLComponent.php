@@ -775,7 +775,7 @@ class ACLComponent extends Component
                 'moduleIndex'=> [],
                 'moduleView'=> [],
                 'toggleModule'=> [],
-                'hasAcyclicGraph'=> [],
+                'checkGraph'=> [],
             ],
             'workflowBlueprints' => [
                 'index' => [],

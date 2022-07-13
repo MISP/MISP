@@ -48,6 +48,10 @@ class Workflow extends AppModel
             'hasOneTrigger' => [
                 'rule' => ['hasOneTrigger'],
                 'message' => 'Cannot save a workflow containing more than one trigger',
+            ],
+            'satisfiesMultipleConnectionCondition' => [
+                'rule' => ['satisfiesMultipleConnectionCondition'],
+                'message' => 'Cannot save a workflow having more than one connection per output',
             ]
         ]
     ];
@@ -315,7 +319,7 @@ class Workflow extends AppModel
     }
 
     /**
-     * isGraphAcyclic Return if the graph is acyclic or not
+     * hasAcyclicGraph Return if the graph is acyclic or not
      *
      * @param array $graphData
      * @return boolean
@@ -323,8 +327,7 @@ class Workflow extends AppModel
     public function hasAcyclicGraph(array $workflow): bool
     {
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
-        $cycles = [];
-        $isAcyclic = $this->workflowGraphTool->isAcyclic($graphData, $cycles);
+        $isAcyclic = $this->workflowGraphTool->isAcyclic($graphData);
         return $isAcyclic;
     }
 
@@ -339,6 +342,19 @@ class Workflow extends AppModel
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $triggers = $this->workflowGraphTool->extractTriggersFromWorkflow($graphData, true);
         return count($triggers) <= 1;
+    }
+
+    /**
+     * satisfiesMultipleConnectionCondition Return if the graph contain more than one instance of the same trigger
+     *
+     * @param array $graphData
+     * @return boolean
+     */
+    public function satisfiesMultipleConnectionCondition(array $workflow): bool
+    {
+        $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
+        $hasMultipleOutputConnection = $this->workflowGraphTool->hasMultipleOutputConnection($graphData);
+        return !$hasMultipleOutputConnection;
     }
 
     /**

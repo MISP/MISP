@@ -913,7 +913,7 @@ function saveWorkflow(confirmSave, callback) {
 }
 
 function checkGraphProperties() {
-    var url = baseurl + "/workflows/hasAcyclicGraph/"
+    var url = baseurl + "/workflows/checkGraph/"
     var graphData = getEditorData()
     $.ajax({
         data: {graph: JSON.stringify(graphData)},
@@ -1509,17 +1509,35 @@ function uid() {
     return (performance.now().toString(36) + Math.random().toString(36)).replace(/\./g, "")
 }
 
-function highlightGraphIssues(graphProperties) {
-    if (!graphProperties.is_acyclic) {
-        graphProperties.cycles.forEach(function(cycle) {
+function highlightAcyclick(acyclicData) {
+    if (!acyclicData.is_acyclic) {
+        acyclicData.cycles.forEach(function (cycle) {
             getPathForEdge(cycle[0], cycle[1])
                 .addClass('connection-danger')
                 .empty()
                 .append($(document.createElementNS('http://www.w3.org/2000/svg', 'title')).text(cycle[2]))
         })
-    } else {
-        $drawflow.find('svg.connection > path.main-path')
-            .removeClass('connection-danger')
-            .empty()
     }
+}
+
+function highlightMultipleOutputConnection(connectionData) {
+    if (connectionData.has_multiple_output_connection) {
+        Object.keys(connectionData.edges).forEach(function (from_id) {
+            connectionData.edges[from_id].forEach(function (target_id) {
+                getPathForEdge(from_id, target_id)
+                    .addClass('connection-danger')
+                    .empty()
+                    .append($(document.createElementNS('http://www.w3.org/2000/svg', 'title')).text('Multiple connections'))
+            })
+        })
+    }
+}
+
+function highlightGraphIssues(graphProperties) {
+    $drawflow.find('svg.connection > path.main-path')
+        .removeClass('connection-danger')
+        .empty()
+    highlightAcyclick(graphProperties.is_acyclic)
+    highlightMultipleOutputConnection(graphProperties.multiple_output_connection)
+    
 }

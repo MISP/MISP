@@ -12,6 +12,7 @@ class WorkflowBaseModule
     public $icon_class = '';
     public $inputs = 0;
     public $outputs = 0;
+    public $multiple_output_connection = false;
     public $support_filters = false;
     public $saved_filters = [
         ['text' => 'selector', 'value' => ''],
