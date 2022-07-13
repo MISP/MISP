@@ -140,6 +140,7 @@ function initMarkdownIt() {
     // patch md.fence to support mermaid
     md.mermaid = mermaid
     const fenceBackup = md.renderer.rules.fence.bind(md.renderer.rules)
+    // https://github.com/tylingsoft/markdown-it-mermaid/blob/master/src/index.js
     md.renderer.rules.fence = function (tokens, idx, options, env, slf) {
         const token = tokens[idx]
         const code = token.content.trim()

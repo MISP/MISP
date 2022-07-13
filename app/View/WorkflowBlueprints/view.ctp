@@ -26,6 +26,24 @@ echo $this->element(
                 'path' => 'WorkflowBlueprint.description'
             ],
             [
+                'key' => __('Preview'),
+                'path' => 'WorkflowBlueprint.mermaid',
+                'type' => 'custom',
+                'function' => function(array $data) {
+                    $mermaid = [
+                        'markdown' => sprintf('```mermaid%s%s```', PHP_EOL, $data['WorkflowBlueprint']['mermaid'], PHP_EOL)
+                    ];
+                    $data['WorkflowBlueprint']['markdown'] = sprintf('```mermaid%s%s```', PHP_EOL, $data['WorkflowBlueprint']['mermaid'], PHP_EOL);
+                    return $this->element('genericElements/SingleViews/Fields/markdownField', [
+                        'data' => $data,
+                        'field' => [
+                            'path' => 'WorkflowBlueprint.markdown',
+                            'path_id' => 'WorkflowBlueprint.id'
+                        ]
+                    ]);
+                }
+            ],
+            [
                 'key' => __('Data'),
                 'class' => 'restrict-height',
                 'path' => 'WorkflowBlueprint.data',

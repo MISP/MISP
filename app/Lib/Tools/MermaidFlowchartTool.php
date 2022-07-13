@@ -1,5 +1,6 @@
 <?php
 App::uses('FontAwesomeHelper', 'View/Helper');
+require_once APP . 'Lib/Tools/WorkflowGraphTool.php';
 
 class MermaidFlowchartTool
 {
@@ -26,7 +27,7 @@ class MermaidFlowchartTool
     private static function __parseGraph($graph_data)
     {
         $graphUtil = new GraphUtil($graph_data);
-        $nodes = $graphUtil->graph;
+        $nodes = Hash::combine($graphUtil->graph, '{n}.id', '{n}');
         $edges = $graphUtil->edgeList;
         return [
             'nodes' => $nodes,
@@ -57,6 +58,9 @@ class MermaidFlowchartTool
     {
         $str = '';
         foreach ($edges as $target_id) {
+            if (empty($all_nodes[$target_id])) {
+                continue;
+            }
             $target_node = $all_nodes[$target_id];
             $sourceNode = self::__singleNode($node);
             $targetNode = self::__singleNode($target_node);

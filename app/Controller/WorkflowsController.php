@@ -94,7 +94,6 @@ class WorkflowsController extends AppController
                 return $this->RestResponse->viewData($dot, $this->response->type());
             } else if ($filters['format'] == 'mermaid') {
                 $mermaid = $this->Workflow->getMermaid($id);
-                debug($mermaid);
                 return $this->RestResponse->viewData($mermaid, $this->response->type());
             }
         }

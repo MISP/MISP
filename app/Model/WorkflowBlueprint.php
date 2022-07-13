@@ -63,6 +63,9 @@ class WorkflowBlueprint extends AppModel
                 $result['WorkflowBlueprint']['data'] = '{}';
             }
             $results[$k]['WorkflowBlueprint']['data'] = JsonTool::decode($result['WorkflowBlueprint']['data']);
+            if (!empty($results[$k]['WorkflowBlueprint']['data'])) {
+                $results[$k]['WorkflowBlueprint']['mermaid'] = $this->getMermaid($results[$k]['WorkflowBlueprint']['data']);
+            }
         }
         return $results;
     }
@@ -100,4 +103,10 @@ class WorkflowBlueprint extends AppModel
         return $errors;
     }
     
+    public function getMermaid($workflowBlueprintData)
+    {
+        App::uses('MermaidFlowchartTool', 'Tools');
+        $mermaid = MermaidFlowchartTool::mermaid($workflowBlueprintData);
+        return $mermaid;
+    }
 }
