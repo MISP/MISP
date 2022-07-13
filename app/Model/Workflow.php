@@ -1020,4 +1020,12 @@ class Workflow extends AppModel
         $dot = GraphvizDOTTool::dot($workflow['Workflow']['data']);
         return $dot;
     }
+    
+    public function getMermaid($id)
+    {
+        App::uses('MermaidFlowchartTool', 'Tools');
+        $workflow = $this->fetchWorkflow($id);
+        $mermaid = MermaidFlowchartTool::mermaid($workflow['Workflow']['data']);
+        return $mermaid;
+    }
 }

@@ -25,11 +25,11 @@ class GraphvizDOTTool
      */
     public static function dot(array $graph_data)
     {
-        $parsedGraph = GraphvizDOTTool::__parseGraph($graph_data);
-        $str = GraphvizDOTTool::__header();
-        $str .= GraphvizDOTTool::__nodes($parsedGraph['nodes']);
-        $str .= GraphvizDOTTool::__edges($parsedGraph['edges']);
-        $str .= GraphvizDOTTool::__footer();
+        $parsedGraph = self::__parseGraph($graph_data);
+        $str = self::__header();
+        $str .= self::__nodes($parsedGraph['nodes']);
+        $str .= self::__edges($parsedGraph['edges']);
+        $str .= self::__footer();
         return $str;
     }
 
@@ -58,7 +58,7 @@ class GraphvizDOTTool
     {
         $str = '  {' . PHP_EOL;
         foreach ($nodes as $node) {
-            $str .= '    ' . GraphvizDOTTool::__node($node);
+            $str .= '    ' . self::__node($node);
         }
         $str .= '  }' . PHP_EOL;
         return $str;
@@ -66,9 +66,9 @@ class GraphvizDOTTool
 
     private static function __node(array $node)
     {
-        $node_attributes = GraphvizDOTTool::NODE_STYLE[$node['data']['module_type']];
+        $node_attributes = self::NODE_STYLE[$node['data']['module_type']];
         $node_attributes['label'] = $node['data']['name'];
-        $node_attributes_text = GraphvizDOTTool::__arrayToAttributes($node_attributes);
+        $node_attributes_text = self::__arrayToAttributes($node_attributes);
         return sprintf('%s [%s]' . PHP_EOL, $node['id'], $node_attributes_text);
     }
 
@@ -77,7 +77,7 @@ class GraphvizDOTTool
         $str = '';
         foreach ($edges as $source_id => $target_ids) {
             foreach ($target_ids as $target_id) {
-                $str .= '    ' . GraphvizDOTTool::__edge($source_id, $target_id);
+                $str .= '    ' . self::__edge($source_id, $target_id);
             }
         }
         return $str;
@@ -85,7 +85,7 @@ class GraphvizDOTTool
 
     private static function __edge($source_id, $target_id)
     {
-        return sprintf('%s -> %s [%s]' . PHP_EOL, $source_id, $target_id, GraphvizDOTTool::__arrayToAttributes(GraphvizDOTTool::EDGE_STYLE));
+        return sprintf('%s -> %s [%s]' . PHP_EOL, $source_id, $target_id, self::__arrayToAttributes(self::EDGE_STYLE));
     }
 
     private static function __arrayToAttributes(array $list)

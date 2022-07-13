@@ -87,6 +87,17 @@ class WorkflowsController extends AppController
 
     public function view($id)
     {
+        $filters = $this->IndexFilter->harvestParameters(['format']);
+        if (!empty($filters['format'])) {
+            if ($filters['format'] == 'dot') {
+                $dot = $this->Workflow->getDotNotation($id);
+                return $this->RestResponse->viewData($dot, $this->response->type());
+            } else if ($filters['format'] == 'mermaid') {
+                $mermaid = $this->Workflow->getMermaid($id);
+                debug($mermaid);
+                return $this->RestResponse->viewData($mermaid, $this->response->type());
+            }
+        }
         $this->CRUD->view($id, [
         ]);
         if ($this->IndexFilter->isRest()) {
@@ -94,12 +105,6 @@ class WorkflowsController extends AppController
         }
         $this->set('id', $id);
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'view'));
-    }
-
-    public function getDotNotation($id)
-    {
-        $dot = $this->Workflow->getDotNotation($id);
-        return $this->RestResponse->viewData($dot, $this->response->type());
     }
 
     public function editor($trigger_id)
