@@ -192,6 +192,7 @@
             'jquery-ui.min',
             'doT',
             'markdown-it',
+            'mermaid',
             'highlight.min',
             'FileSaver',
         ),
