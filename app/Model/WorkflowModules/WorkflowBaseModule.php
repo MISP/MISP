@@ -3,6 +3,7 @@ class WorkflowBaseModule
 {
     public $is_misp_module = false;
     public $is_blocking = false;
+    public $can_stop_workflow = false;
     public $is_custom = false;
     public $id = 'to-override';
     public $name = 'to-override';
