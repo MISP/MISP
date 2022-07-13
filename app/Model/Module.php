@@ -209,9 +209,9 @@ class Module extends AppModel
         $trigger_id = 'enrichment-before-query';
         $workflowErrors = [];
         $logging = [
-            'model' => 'Module',
-            'action' => 'queryModuleServer',
-            'id' => $postData['event_id'],
+            'model' => 'Workflow',
+            'action' => 'execute_workflow',
+            'id' => 0,
             'message' => __('The workflow `%s` prevented event `%s` to query the module `%s`', $trigger_id, $postData['event_id'], $postData['module']),
         ];
         if (empty($triggerData) && $this->Workflow->isTriggerCallable($trigger_id) && !empty($postData['attribute_uuid'])) {
@@ -230,7 +230,7 @@ class Module extends AppModel
             ];
             $attributes = $this->Attribute->fetchAttributes($user, $options);
             $triggerData = !empty($attributes) ? $attributes[0] : [];
-            $logging['message'] = __('The workflow `%s` prevented attribute `%s` to query the module `%s`', $trigger_id, $postData['attribute_uuid'], $postData['module']);
+            $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`', $trigger_id, $postData['attribute_uuid'], $postData['event_id'], $postData['module']);
         }
         if (empty($triggerData)) {
             return false;
