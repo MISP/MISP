@@ -1691,19 +1691,16 @@ class AppModel extends Model
                       `id` int(11) NOT NULL AUTO_INCREMENT,
                       `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
                       `name` varchar(191) NOT NULL,
-                      `description` varchar(191) NOT NULL,
                       `timestamp` int(11) NOT NULL DEFAULT 0,
-                      `user_id` int(11) NOT NULL,
-                      `org_id` int(11) NOT NULL,
                       `enabled` tinyint(1) NOT NULL DEFAULT 0,
                       `counter` int(11) NOT NULL DEFAULT 0,
+                      `trigger_id` varchar(191) COLLATE utf8_bin NOT NULL,
                       `data` text,
                       PRIMARY KEY (`id`),
                       INDEX `uuid` (`uuid`),
                       INDEX `name` (`name`),
                       INDEX `timestamp` (`timestamp`),
-                      INDEX `user_id` (`user_id`),
-                      INDEX `org_id` (`org_id`)
+                      INDEX `trigger_id` (`trigger_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflow_blueprints` (
                       `id` int(11) NOT NULL AUTO_INCREMENT,
