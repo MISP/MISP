@@ -28,17 +28,21 @@ class GraphUtil
         return $list;
     }
 
-    private function _DFSUtil($node_id, &$color, $depth=0): bool
+    private function _DFSUtil($node_id, &$color): bool
     {
         $color[$node_id] = 'GRAY';
         foreach ($this->edgeList[$node_id] as $i) {
             if ($color[$i] == 'GRAY') {
+                $this->loopNode = $i;
                 $this->properties[] = [$node_id, $i, __('Cycle')];
                 return true;
             }
-            if ($color[$i] == 'WHITE' && $this->_DFSUtil($i, $color, $depth+1)) {
-                if ($depth > 0) {
+            if ($color[$i] == 'WHITE' && $this->_DFSUtil($i, $color)) {
+                if (!is_null($this->loopNode)) {
                     $this->properties[] = [$node_id, $i, __('Cycle')];
+                    if ($this->loopNode == $node_id) {
+                        $this->loopNode = null;
+                    }
                 }
                 return true;
             }
@@ -62,6 +66,8 @@ class GraphUtil
         foreach (array_keys($this->edgeList) as $node_id) {
             $color[$node_id] = 'WHITE';
         }
+
+        $this->loopNode = null;
         foreach (array_keys($this->edgeList) as $node_id) {
             if ($color[$node_id] == 'WHITE') {
                 if ($this->_DFSUtil($node_id, $color)) {

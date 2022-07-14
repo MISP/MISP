@@ -1509,7 +1509,7 @@ function uid() {
     return (performance.now().toString(36) + Math.random().toString(36)).replace(/\./g, "")
 }
 
-function highlightAcyclick(acyclicData) {
+function highlightAcyclic(acyclicData) {
     if (!acyclicData.is_acyclic) {
         acyclicData.cycles.forEach(function (cycle) {
             getPathForEdge(cycle[0], cycle[1])
@@ -1537,7 +1537,7 @@ function highlightGraphIssues(graphProperties) {
     $drawflow.find('svg.connection > path.main-path')
         .removeClass('connection-danger')
         .empty()
-    highlightAcyclick(graphProperties.is_acyclic)
+    highlightAcyclic(graphProperties.is_acyclic)
     highlightMultipleOutputConnection(graphProperties.multiple_output_connection)
     
 }
