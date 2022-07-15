@@ -231,7 +231,11 @@ class Module extends AppModel
             $triggerData = !empty($attributes) ? $attributes[0] : [];
             $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`', $trigger_id, $postData['attribute_uuid'], $triggerData['Attribute']['event_id'], $postData['module']);
         } else {
-            $logging['message'] = __('The workflow `%s` prevented event `%s` to query the module `%s`', $trigger_id, $triggerData['Attribute']['event_id'], $postData['module']);
+            if (isset($triggerData['Attribute'])) {
+                $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`', $trigger_id, $triggerData['Attribute']['id'], $triggerData['Attribute']['event_id'], $postData['module']);
+            } else {
+                $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`', $trigger_id, $triggerData['Event']['Attribute'][0]['id'], $triggerData['Event']['id'], $postData['module']);
+            }
         }
         if (empty($triggerData)) {
             return false;
@@ -255,7 +259,8 @@ class Module extends AppModel
         if ($moduleFamily == 'Enrichment') {
             $success = $this->__prepareAndExectureForTrigger($postData, $triggerData);
             if (!$success) {
-                return false;
+                $trigger_id = 'enrichment-before-query';
+                return __('Trigger `%s` blocked enrichment', $trigger_id);
             }
         }
         if ($hover) {

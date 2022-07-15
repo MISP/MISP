@@ -44,6 +44,7 @@ class Module_tag_if extends WorkflowBaseLogicModule
                 'options' => [
                     'event' => __('Event'),
                     'attribute' => __('Attribute'),
+                    'event_attribute' => __('Both Event & Attribute'),
                 ],
                 'default' => 'event',
                 'label' => 'Scope',
@@ -92,9 +93,15 @@ class Module_tag_if extends WorkflowBaseLogicModule
         $context = $this->__deduceContextFromData($data);
         if ($scope == 'attribute') {
             if ($context == self::CONTEXT_ATTRIBUTE) {
+                $path = 'Attribute.Tag.{n}[inherited=0].id';
+            } elseif ($context == self::CONTEXT_EVENT) {
+                $path = 'Event.Attribute.{n}.Tag.{n}[inherited=0].id';
+            }
+        } elseif ($scope == 'event_attribute') {
+            if ($context == self::CONTEXT_ATTRIBUTE) {
                 $path = 'Attribute.Tag.{n}.id';
             } elseif ($context == self::CONTEXT_EVENT) {
-                $path = 'Event.Attribute.Tag.{n}.id';
+                $path = 'Event.Attribute.{n}.Tag.{n}.id';
             }
         } else {
             $scope = 'event';

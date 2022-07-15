@@ -2378,8 +2378,10 @@ class Attribute extends AppModel
      */
     public function convertToCoreFormat(array $attribute): array
     {
-        $attribute = array_merge($attribute['Attribute'], $attribute);
-        unset($attribute['Attribute']);
+        if (isset($attribute['Attribute'])) {
+            $attribute = array_merge($attribute['Attribute'], $attribute);
+            unset($attribute['Attribute']);
+        }
         if (isset($attribute['Object']) && empty($attribute['Object']['id'])) {
             unset($attribute['Object']);
         }
@@ -2387,9 +2389,7 @@ class Attribute extends AppModel
         foreach ($tagTypes as $tagType) {
             if (isset($attribute[$tagType])) {
                 foreach ($attribute[$tagType] as $tag) {
-                    if ($tagType === 'EventTag') {
-                        $tag['Tag']['inherited'] = 1;
-                    }
+                    $tag['Tag']['inherited'] = $tagType === 'EventTag' ? 1 : 0;
                     $attribute['Tag'][] = $tag['Tag'];
                 }
                 unset($attribute[$tagType]);
