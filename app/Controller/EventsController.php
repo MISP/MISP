@@ -5138,7 +5138,13 @@ class EventsController extends AppController
         if (!Configure::read('Plugin.' . $type . '_services_enable')) {
             throw new MethodNotAllowedException(__('%s services are not enabled.', $type));
         }
-        $attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id), 'flatten' => 1));
+        $attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), [
+            'conditions' => [
+                'Attribute.id' => $attribute_id
+            ],
+            'flatten' => 1,
+            'includeEventTags' => 1,
+        ]);
         if (empty($attribute)) {
             throw new MethodNotAllowedException(__('Attribute not found or you are not authorised to see it.'));
         }
@@ -5199,7 +5205,7 @@ class EventsController extends AppController
         if (!empty($options)) {
             $data['config'] = $options;
         }
-        $result = $this->Module->queryModuleServer($data, false, $type);
+        $result = $this->Module->queryModuleServer($data, false, $type, false, $this->Event->Attribute->convertToCoreFormat($attribute[0]));
         if (!$result) {
             throw new InternalErrorException(__('%s service not reachable.', $type));
         }
@@ -5245,7 +5251,7 @@ class EventsController extends AppController
         if (!empty($options)) {
             $data['config'] = $options;
         }
-        $result = $this->Module->queryModuleServer($data, false, $type);
+        $result = $this->Module->queryModuleServer($data, false, $type, false, $this->Event->Attribute->convertToCoreFormat($attribute[0]));
         if (!$result) {
             throw new InternalErrorException(__('%s service not reachable.', $type));
         }

@@ -2,7 +2,7 @@
 include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 App::uses('BackgroundJobsTool', 'Tools');
 
-class Module_parallel_task extends WorkflowBaseModule
+class Module_parallel_task extends WorkflowBaseLogicModule
 {
     public $id = 'parallel-task';
     public $name = 'Parallel Task';

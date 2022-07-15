@@ -2353,6 +2353,9 @@ class Attribute extends AppModel
                     $massaged_attribute['Galaxy'] = array_merge_recursive($massaged_attribute['Galaxy'], $massaged_event['Galaxy']);
                     $attribute = $massaged_attribute;
                 }
+                if (!empty($options['convertToCoreFormat'])) {
+                    $attribute = $this->convertToCoreFormat($attribute);
+                }
                 $attributes[] = $attribute;
             }
             unset($attribute);
@@ -2365,6 +2368,36 @@ class Attribute extends AppModel
             }
         } while ($loop);
         return $attributes;
+    }
+
+    /**
+     * convertToCoreFormat Convert the given attribute into the core format described in the RFC. Perform conversion such as getting rid of value1/value2 and AttributeTag
+     *
+     * @param array $attribute
+     * @return array
+     */
+    public function convertToCoreFormat(array $attribute): array
+    {
+        $attribute = array_merge($attribute['Attribute'], $attribute);
+        unset($attribute['Attribute']);
+        if (isset($attribute['Object']) && empty($attribute['Object']['id'])) {
+            unset($attribute['Object']);
+        }
+        $tagTypes = ['AttributeTag', 'EventTag'];
+        foreach ($tagTypes as $tagType) {
+            if (isset($attribute[$tagType])) {
+                foreach ($attribute[$tagType] as $tag) {
+                    if ($tagType === 'EventTag') {
+                        $tag['Tag']['inherited'] = 1;
+                    }
+                    $attribute['Tag'][] = $tag['Tag'];
+                }
+                unset($attribute[$tagType]);
+            }
+        }
+        unset($attribute['value1']);
+        unset($attribute['value2']);
+        return ['Attribute' => $attribute];
     }
 
     /**
@@ -2487,6 +2520,7 @@ class Attribute extends AppModel
                 $eventTags[$eventId] = [];
             } else {
                 foreach ($temp as $tag) {
+                    $tag['Tag']['inherited'] = true;
                     $tag['EventTag']['Tag'] = $tag['Tag'];
                     $eventTags[$eventId][] = $tag['EventTag'];
                 }

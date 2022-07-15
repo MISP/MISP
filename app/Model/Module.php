@@ -212,7 +212,6 @@ class Module extends AppModel
             'model' => 'Workflow',
             'action' => 'execute_workflow',
             'id' => 0,
-            'message' => __('The workflow `%s` prevented event `%s` to query the module `%s`', $trigger_id, $postData['event_id'], $postData['module']),
         ];
         if (empty($triggerData) && $this->Workflow->isTriggerCallable($trigger_id) && !empty($postData['attribute_uuid'])) {
             $this->User = ClassRegistry::init('User');
@@ -230,7 +229,9 @@ class Module extends AppModel
             ];
             $attributes = $this->Attribute->fetchAttributes($user, $options);
             $triggerData = !empty($attributes) ? $attributes[0] : [];
-            $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`', $trigger_id, $postData['attribute_uuid'], $postData['event_id'], $postData['module']);
+            $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`', $trigger_id, $postData['attribute_uuid'], $triggerData['Attribute']['event_id'], $postData['module']);
+        } else {
+            $logging['message'] = __('The workflow `%s` prevented event `%s` to query the module `%s`', $trigger_id, $triggerData['Attribute']['event_id'], $postData['module']);
         }
         if (empty($triggerData)) {
             return false;

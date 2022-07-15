@@ -1,10 +1,10 @@
 <?php
 include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
-class Module_if extends WorkflowBaseModule
+class Module_generic_if extends WorkflowBaseLogicModule
 {
-    public $id = 'if';
-    public $name = 'Conditional Switch';
+    public $id = 'generic-if';
+    public $name = 'Generic IF';
     public $description = 'Simple IF / ELSE condition block. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
     public $icon = 'code-branch';
     public $inputs = 1;

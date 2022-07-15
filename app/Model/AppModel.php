@@ -1691,6 +1691,7 @@ class AppModel extends Model
                       `id` int(11) NOT NULL AUTO_INCREMENT,
                       `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
                       `name` varchar(191) NOT NULL,
+                      `description` varchar(191) NOT NULL,
                       `timestamp` int(11) NOT NULL DEFAULT 0,
                       `enabled` tinyint(1) NOT NULL DEFAULT 0,
                       `counter` int(11) NOT NULL DEFAULT 0,

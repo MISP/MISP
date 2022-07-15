@@ -87,11 +87,6 @@ class WorkflowBaseModule
 
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
-        // $this->push_zmq([
-        //     'module' => $this->name,
-        //     'data' => json_encode($roamingData->getData(), true),
-        //     'timestamp' => time(),
-        // ]);
         return true;
     }
 
@@ -149,16 +144,32 @@ class WorkflowBaseModule
         return $matchingItems;
     }
 
-    protected function evaluateCondition($item, $operator, $value): bool
+    protected function evaluateCondition($data, $operator, $value): bool
     {
         if ($operator == 'in') {
-            return is_array($item) && in_array($value, $item);
+            return is_array($data) && in_array($value, $data);
         } elseif ($operator == 'not_in') {
-            return is_array($item) && !in_array($value, $item);
+            return is_array($data) && !in_array($value, $data);
         } elseif ($operator == 'equals') {
-            return is_string($item) && $item == $value;
+            return is_string($data) && $data == $value;
         } elseif ($operator == 'not_equals') {
-            return is_string($item) &&  $item != $value;
+            return is_string($data) &&  $data != $value;
+        } elseif ($operator == 'in_or' || $operator == 'in_and' || $operator == 'not_in_or' || $operator == 'not_in_and') {
+            if (!is_array($data) || !is_array($value)) {
+                return false;
+            }
+            $matching = array_filter($data, function($item) use ($value) {
+                return in_array($item, $value);
+            });
+            if ($operator == 'in_or') {
+                return !empty($matching);
+            } elseif ($operator == 'in_and') {
+                return $matching == $value;
+            } elseif ($operator == 'not_in_or') {
+                return empty($matching);
+            } elseif ($operator == 'not_in_and') {
+                return $matching != $value;
+            }
         }
         return false;
     }

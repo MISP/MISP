@@ -1,5 +1,5 @@
 var dotBlock_default = doT.template(' \
-<div class="canvas-workflow-block {{? it.is_blocking }} is-misp-module {{?}}" data-nodeuid="{{=it.node_uid}}"> \
+<div class="canvas-workflow-block {{? it.is_misp_module }} is-misp-module {{?}}" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
             {{? it.icon }} \
@@ -106,6 +106,15 @@ var dotBlock_parallel = doT.template(' \
         </div> \
         {{=it._block_param_html}} \
         <div class="muted" class="description" style="margin-bottom: 0.5em;">{{=it.description}}</div> \
+    </div> \
+</div>')
+
+var dotBlock_error = doT.template(' \
+<div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
+    <div style="width: 100%;"> \
+        <div class="alert alert-danger">{{=it.error}}</div> \
+        <div>Data:</div> \
+        <textarea rows=6 style="width: 95%;">{{=it.data}}</textarea> \
     </div> \
 </div>')
 
@@ -487,6 +496,7 @@ function buildModalForBlock(node_id, block) {
         .data('selected-block', block)
         .data('selected-node-id', node_id)
     $blockModal.find('.modal-body').empty().append(html)
+    afterNodeDrawCallback()
 }
 
 function buildNotificationModalForBlock(node_id, block) {
@@ -587,7 +597,8 @@ function addNode(block, position) {
         blockClass.join(' '),
         block,
         html
-    );
+    )
+    afterNodeDrawCallback()
 }
 
 function getEditorData(cleanInvalidParams) {
@@ -652,6 +663,24 @@ function loadWorkflow(workflow) {
         var module = all_blocks_by_id[block.data.id] || all_triggers_by_id[block.data.id]
         if (!module) {
             console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
+            var userFriendlyParams = {}
+            block.data.params.forEach(function (param) {
+                userFriendlyParams[param.label] = (param.value ?? param.default)
+            })
+            var html = window['dotBlock_error']({
+                error: 'Invalid module type `' + block.data.id + '` (' + block.id + ')',
+                data: JSON.stringify(userFriendlyParams, null, 2)
+            })
+            editor.addNode(
+                block.name,
+                Object.values(block.inputs).length,
+                Object.values(block.outputs).length,
+                block.pos_x,
+                block.pos_y,
+                '',
+                block.data,
+                html
+            )
             return '';
         }
         var module_data = Object.assign({}, all_blocks_by_id[block.data.id] || all_triggers_by_id[block.data.id])
@@ -683,7 +712,7 @@ function loadWorkflow(workflow) {
             blockClass.join(' '),
             block.data,
             html
-        );
+        )
     })
     Object.values(workflow.data).forEach(function (block) {
         for (var input_name in block.inputs) {
@@ -692,6 +721,7 @@ function loadWorkflow(workflow) {
             })
         }
     })
+    afterNodeDrawCallback()
 }
 
 function filterBlocks(clicked) {
@@ -1059,6 +1089,9 @@ function genBlockParamHtml(block) {
             case 'select':
                 paramHtml = genSelect(param)[0].outerHTML
                 break;
+            case 'picker':
+                paramHtml = genPicker(param)[0].outerHTML
+                break;
             case 'checkbox':
                 paramHtml = genCheckbox(param)[0].outerHTML
                 break;
@@ -1072,6 +1105,11 @@ function genBlockParamHtml(block) {
         html += paramHtml
     })
     return html
+}
+
+function afterNodeDrawCallback() {
+    var $nodes = $drawflow.find('.drawflow-node')
+    $nodes.find('.start-chosen').chosen()
 }
 
 function genParameterWarning(options) {
@@ -1099,6 +1137,9 @@ function genSelect(options) {
     var $select = $('<select>').css({
         width: '100%',
     })
+    if (options.multiple) {
+        $select.prop('multiple', true)
+    }
     var selectOptions = options.options
     if (!Array.isArray(selectOptions)) {
         selectOptions = Object.keys(options.options).map((k) => { return { name: options.options[k], value: k } })
@@ -1120,11 +1161,19 @@ function genSelect(options) {
     })
     if (options.value !== undefined) {
         $select.find('option').filter(function() {
-            return this.value == options.value
+            if (options.multiple) {
+                return options.value.includes(this.value)
+            } else {
+                return this.value == options.value
+            }
         }).attr('selected', 'selected')
     } else {
         $select.find('option').filter(function() {
-            return this.value == options.default
+            if (options.multiple && Array.isArray(options.default)) {
+                return options.default.includes(this.value)
+            } else {
+                return this.value == options.default
+            }
         }).attr('selected', 'selected')
     }
     $select
@@ -1132,6 +1181,13 @@ function genSelect(options) {
         .attr('onchange', 'handleSelectChange(this)')
     $label.append($select)
     $container.append($label)
+    return $container
+}
+
+function genPicker(options) {
+    var $container = genSelect(options)
+    var $select = $container.find('select')
+    $select.addClass('start-chosen')
     return $container
 }
 
