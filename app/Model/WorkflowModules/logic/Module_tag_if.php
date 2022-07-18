@@ -20,10 +20,6 @@ class Module_tag_if extends WorkflowBaseLogicModule
         'not_in_and' => 'Is not tagged with all (AND)',
     ];
 
-    private const CONTEXT_EVENT = 'event';
-    private const CONTEXT_ATTRIBUTE = 'attribute';
-    private const CONTEXT_UNKOWN = 'unkown';
-
     public function __construct()
     {
         parent::__construct();
@@ -44,7 +40,7 @@ class Module_tag_if extends WorkflowBaseLogicModule
                 'options' => [
                     'event' => __('Event'),
                     'attribute' => __('Attribute'),
-                    'event_attribute' => __('Both Event & Attribute'),
+                    'event_attribute' => __('Inherited Attribute'),
                 ],
                 'default' => 'event',
                 'label' => 'Scope',
@@ -74,60 +70,21 @@ class Module_tag_if extends WorkflowBaseLogicModule
         $operator = $params['Condition']['value'];
         $scope = $params['Scope']['value'];
         $data = $roamingData->getData();
-        $path = $this->__getPath($scope, $data);
-        $extracted = Hash::extract($data, $path);
+        $extracted = $this->__getTagFromScope($scope, $data);
         $eval = $this->evaluateCondition($extracted, $operator, $value);
         return !empty($eval);
     }
 
-    /**
-     * __getPath
-     *
-     * @param string $scope
-     * @param array $data Data in the MISP core format. Can be coming from multiple context such as Event, Attribute, ..
-     * @return false|string
-     */
-    private function __getPath($scope, array $data)
+    private function __getTagFromScope($scope, array $data): array
     {
-        $path = false;
-        $context = $this->__deduceContextFromData($data);
+        $path = '';
         if ($scope == 'attribute') {
-            if ($context == self::CONTEXT_ATTRIBUTE) {
-                $path = 'Attribute.Tag.{n}[inherited=0].id';
-            } elseif ($context == self::CONTEXT_EVENT) {
-                $path = 'Event.Attribute.{n}.Tag.{n}[inherited=0].id';
-            }
+            $path = 'Event.Attribute.0.Tag.{n}[inherited=0].id';
         } elseif ($scope == 'event_attribute') {
-            if ($context == self::CONTEXT_ATTRIBUTE) {
-                $path = 'Attribute.Tag.{n}.id';
-            } elseif ($context == self::CONTEXT_EVENT) {
-                $path = 'Event.Attribute.{n}.Tag.{n}.id';
-            }
+            $path = 'Event.Attribute.0.Tag.{n}.id';
         } else {
-            $scope = 'event';
-            if ($context == self::CONTEXT_ATTRIBUTE) {
-                $path = 'Attribute.Tag.{n}[inherited=1].id';
-            } elseif ($context == self::CONTEXT_EVENT) {
-                $path = 'Event.Tag.{n}.id';
-            }
+            $path = 'Event.Attribute.0.Tag.{n}[inherited=1].id';
         }
-        return $path;
-    }
-
-    /**
-     * __deduceContextFromData
-     *
-     * @param array $data
-     * @return string
-     */
-    private function __deduceContextFromData(array $data)
-    {
-        if (!empty($data['Event'])) {
-            return self::CONTEXT_EVENT;
-        } elseif (!empty($data['Attribute'])) {
-            return self::CONTEXT_ATTRIBUTE;
-        } else {
-            self::CONTEXT_UNKOWN;
-        }
+        return Hash::extract($data, $path) ?? [];
     }
 }

@@ -425,6 +425,7 @@ class Workflow extends AppModel
         if (!empty($trigger['disabled'])) {
             return true;
         }
+        $triggerModule = $this->loaded_classes['trigger'][$trigger_id];
 
         $workflow = $this->fetchWorkflowByTrigger($trigger_id, true);
         if (empty($workflow)) {
@@ -442,6 +443,7 @@ class Workflow extends AppModel
         $this->__logToFile($workflow, $message);
         $workflow = $this->__incrementWorkflowExecutionCount($workflow);
         $walkResult = [];
+        $data = $this->__normalizeDataForTrigger($triggerModule, $data);
         $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, Workflow::BLOCKING_PATH, $data, $blockingErrors, $walkResult);
         if (empty($blockingPathExecutionSuccess)) {
             $message = __('Error while executing blocking workflow. %s', PHP_EOL . implode(', ', $blockingErrors));
@@ -562,6 +564,14 @@ class Workflow extends AppModel
             return false;
         }
         return $success;
+    }
+
+    private function __normalizeDataForTrigger($triggerClass, array $data): array
+    {
+        if (method_exists($triggerClass, 'normalizeData')) {
+            return $triggerClass->normalizeData($data);
+        }
+        return $data;
     }
 
     private function digestExecutionResult(array $walkResult)

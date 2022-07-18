@@ -23,6 +23,8 @@ class WorkflowBaseModule
     ];
     public $params = [];
 
+    private $Event;
+
     /** @var PubSubTool */
     private static $loadedPubSubTool;
 
@@ -164,11 +166,11 @@ class WorkflowBaseModule
             if ($operator == 'in_or') {
                 return !empty($matching);
             } elseif ($operator == 'in_and') {
-                return $matching == $value;
+                return array_values($matching) == array_values($value);
             } elseif ($operator == 'not_in_or') {
                 return empty($matching);
             } elseif ($operator == 'not_in_and') {
-                return $matching != $value;
+                return array_values($matching) != array_values($value);
             }
         }
         return false;
@@ -184,6 +186,35 @@ class WorkflowBaseModule
         }
         return $items;
     }
+
+    /**
+     * convertToMISPCoreFormat Convert data passed to the trigger into the MISP Core format
+     *
+     * @param array $data
+     * @return array|false
+     */
+    protected function convertToMISPCoreFormat(array $data)
+    {
+        $this->Event = ClassRegistry::init('Event');
+
+        $converted = $data;
+        if (!empty($data['Attribute'])) {
+            $event = [];
+            if (!empty($data['Attribute']['Event'])) {
+                $event = $data['Attribute']['Event'];
+            } else {
+                $fakeSiteAdminUser = ['Role' => ['perm_site_admin' => true]];
+                $event = $this->Event->fetchSimpleEvent($fakeSiteAdminUser, $data['Attribute']['event_id']);
+                if (empty($event)) {
+                    return false;
+                }
+                $event = $event['Event'];
+            }
+            $converted = ['Event' => $event];
+            $converted['Event']['Attribute'][] = $data['Attribute'];
+        }
+        return $converted;
+    }
 }
 
 class WorkflowBaseTriggerModule extends WorkflowBaseModule
@@ -191,6 +222,17 @@ class WorkflowBaseTriggerModule extends WorkflowBaseModule
     public $blocking = false;
     public $inputs = 0;
     public $outputs = 1;
+
+    /**
+     * normalizeData Massage the data before entering the workflow
+     *
+     * @param array $data
+     * @return array|false
+     */
+    public function normalizeData(array $data)
+    {
+        return $data;
+    }
 }
 
 class WorkflowBaseLogicModule extends WorkflowBaseModule

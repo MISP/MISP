@@ -20,10 +20,6 @@ class Module_distribution_if extends WorkflowBaseLogicModule
         'more_permisive_or_equal_than' => 'More permisive or equal than',
     ];
 
-    private const CONTEXT_EVENT = 'event';
-    private const CONTEXT_ATTRIBUTE = 'attribute';
-    private const CONTEXT_UNKOWN = 'unkown';
-
     public function __construct()
     {
         parent::__construct();
@@ -69,12 +65,12 @@ class Module_distribution_if extends WorkflowBaseLogicModule
         $operator = $params['Condition']['value'];
         $value = $params['Distribution']['value'];
         $data = $roamingData->getData();
-        $finalDistribution = $this->__getPropagatedDistribution(
-            $this->__extractData('event', $data),
-            $this->__extractData('object', $data),
-            $this->__extractData('attribute', $data)
+        $final_distribution = $this->__getPropagatedDistribution(
+            $data['Event'],
+            $data['Event']['Attribute'][0]['Object'] ?? [],
+            $data['Event']['Attribute'][0]
         );
-        if ($finalDistribution == -1) {
+        if ($final_distribution == -1) {
             return false; // distribution  not supported
         }
         if ($operator == 'more_restrictive_or_equal_than') {
@@ -89,66 +85,8 @@ class Module_distribution_if extends WorkflowBaseLogicModule
         if ($operator == 'more_restrictive_or_equal_than' || $operator == 'more_permisive_or_equal_than') {
             $distribution_range = array_diff($value, [4]); // ignore sharing_group for now
         }
-        $eval = $this->evaluateCondition($distribution_range, $operator, $finalDistribution);
+        $eval = $this->evaluateCondition($distribution_range, $operator, $final_distribution);
         return !empty($eval);
-    }
-
-    /**
-     * __getPath
-     *
-     * @param string $scope
-     * @param array $data Data in the MISP core format. Can be coming from multiple context such as Event, Attribute, ..
-     * @return false|string
-     */
-    private function __getPath($scope, array $data)
-    {
-        $path = false;
-        $context = $this->__deduceContextFromData($data);
-        if ($scope == 'attribute') {
-            if ($context == self::CONTEXT_ATTRIBUTE) {
-                $path = 'Attribute';
-            } elseif ($context == self::CONTEXT_EVENT) {
-                $path = 'Event.Attribute.0';
-            }
-        } else if ($scope == 'object') {
-            if ($context == self::CONTEXT_ATTRIBUTE) {
-                $path = 'Attribute.Object';
-            } elseif ($context == self::CONTEXT_EVENT) {
-                $path = 'Event.Attribute.0.Object';
-            }
-        } else {
-            $scope = 'event';
-            if ($context == self::CONTEXT_ATTRIBUTE) {
-                $path = 'Attribute.Event';
-            } elseif ($context == self::CONTEXT_EVENT) {
-                $path = 'Event';
-            }
-        }
-        return $path;
-    }
-
-    private function __extractData($scope, array $data): array
-    {
-        $path = $this->__getPath($scope, $data);
-        $extracted = Hash::get($data, $path);
-        return is_null($extracted) ? [] : $extracted;
-    }
-
-    /**
-     * __deduceContextFromData
-     *
-     * @param array $data
-     * @return string
-     */
-    private function __deduceContextFromData(array $data)
-    {
-        if (!empty($data['Event'])) {
-            return self::CONTEXT_EVENT;
-        } elseif (!empty($data['Attribute'])) {
-            return self::CONTEXT_ATTRIBUTE;
-        } else {
-            self::CONTEXT_UNKOWN;
-        }
     }
 
     /**
@@ -167,7 +105,7 @@ class Module_distribution_if extends WorkflowBaseLogicModule
         }
         $finalDistribution = min($finalDistribution, intval($event['distribution']));
         if ($attribute['distribution'] == 5) {
-            $attribute['distribution'] = $event['distribution'];
+            $attribute['distribution'] = intval($event['distribution']);
         }
         if ($finalDistribution == 4) {
             $finalDistribution = -1; // ignore sharing group for now

@@ -5443,7 +5443,7 @@ class Event extends AppModel
                                   'Object.event_id' => $event_id,
                                   'Object.deleted' => 0),
             'recursive' => -1,
-            'fields' => array('Object.id', 'Object.uuid', 'Object.name')
+            'fields' => array('Object.id', 'Object.uuid', 'Object.name', 'Object.distribution', 'Object.sharing_group_id')
         ));
         if (!empty($initial_object)) {
             $initial_attributes = $this->Attribute->find('all', array(
@@ -5907,6 +5907,8 @@ class Event extends AppModel
 
     public function enrichmentRouter($options)
     {
+        $result = $this->enrichment($options);
+        return __('#' . $result . ' attributes have been created during the enrichment process.');
         if (Configure::read('MISP.background_jobs')) {
 
             /** @var Job $job */
@@ -5992,6 +5994,9 @@ class Event extends AppModel
         $event_id = $event[0]['Event']['id'];
         foreach ($event[0]['Attribute'] as $attribute) {
             $object_id = $attribute['object_id'];
+            if ($object_id != '0' && empty($initial_objects[$object_id])) {
+                $initial_objects[$object_id] = $this->fetchInitialObject($event_id, $object_id);
+            }
             foreach ($enabledModules['modules'] as $module) {
                 if (in_array($module['name'], $params['modules'])) {
                     if (in_array($attribute['type'], $module['mispattributes']['input'])) {
@@ -6001,11 +6006,11 @@ class Event extends AppModel
                         }
                         if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] == 'misp_standard') {
                             $data['attribute'] = $attribute;
-                            if ($object_id != '0' && empty($initial_objects[$object_id])) {
-                                $initial_objects[$object_id] = $this->fetchInitialObject($event_id, $object_id);
-                            }
                         } else {
                             $data[$attribute['type']] = $attribute['value'];
+                        }
+                        if ($object_id != '0' && !empty($initial_objects[$object_id])) {
+                            $attribute['Object'] = $initial_objects[$object_id]['Object'];
                         }
                         $triggerData = $event[0];
                         $triggerData['Attribute'] = [$attribute];

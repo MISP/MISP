@@ -15,4 +15,13 @@ class Module_enrichment_before_query extends WorkflowBaseTriggerModule
     {
         parent::__construct();
     }
+
+    public function normalizeData(array $data)
+    {
+        $converted = $this->convertToMISPCoreFormat($data);
+        if ($converted === false) {
+            return false;
+        }
+        return $converted;
+    }
 }
