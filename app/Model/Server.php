@@ -3410,6 +3410,7 @@ class Server extends AppModel
                 $sqlResult = $this->query($sql);
                 if (isset($sqlResult[0][0])) {
                     $sessionCount = $sqlResult[0][0]['session_count'];
+                    $errorCode = 0;
                 } else {
                     $errorCode = 9;
                 }
