@@ -166,13 +166,13 @@ class GraphWalker
 
     private function _evaluateIFCondition($node, WorkflowRoamingData $roamingData): bool
     {
-        $result = $this->WorkflowModel->__executeNode($node, $roamingData);
+        $result = $this->WorkflowModel->executeNode($node, $roamingData);
         return $result;
     }
 
     private function _evaluateCustomLogicCondition($node, WorkflowRoamingData $roamingData): bool
     {
-        $result = $this->WorkflowModel->__executeNode($node, $roamingData);
+        $result = $this->WorkflowModel->executeNode($node, $roamingData);
         return $result;
     }
 
@@ -183,7 +183,7 @@ class GraphWalker
             $data = $roamingData->getData();
             $data['__node_id_to_exec'] = $node_id_to_exec;
             $data = $roamingData->setData($data);
-            $this->WorkflowModel->__executeNode($parallel_node, $roamingData);
+            $this->WorkflowModel->executeNode($parallel_node, $roamingData);
         }
     }
 

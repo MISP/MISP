@@ -517,7 +517,7 @@ class Workflow extends AppModel
                 }
             }
             $nodeError = [];
-            $success = $this->__executeNode($node, $roamingData, $nodeError);
+            $success = $this->executeNode($node, $roamingData, $nodeError);
             $walkResult['executed_nodes'][] = $node;
             if (empty($success)) {
                 $walkResult['blocking_nodes'][] = $node;
@@ -545,7 +545,7 @@ class Workflow extends AppModel
         return true;
     }
 
-    public function __executeNode($node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
+    public function executeNode(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
     {
         $roamingData->setCurrentNode($node['id']);
         $moduleClass = $this->getModuleClass($node);
