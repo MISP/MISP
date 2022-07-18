@@ -226,6 +226,7 @@ class Module extends AppModel
                 'flatten' => true,
                 'deleted' => [0, 1],
                 'withAttachments' => true,
+                'contain' => ['Event' => ['fields' => ['distribution', 'sharing_group_id']]],
             ];
             $attributes = $this->Attribute->fetchAttributes($user, $options);
             $triggerData = !empty($attributes) ? $attributes[0] : [];

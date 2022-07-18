@@ -5144,6 +5144,7 @@ class EventsController extends AppController
             ],
             'flatten' => 1,
             'includeEventTags' => 1,
+            'contain' => ['Event' => ['fields' => ['distribution', 'sharing_group_id']]],
         ]);
         if (empty($attribute)) {
             throw new MethodNotAllowedException(__('Attribute not found or you are not authorised to see it.'));
