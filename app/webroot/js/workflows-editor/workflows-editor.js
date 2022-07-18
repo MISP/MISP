@@ -1062,22 +1062,27 @@ function genBlockParamHtml(block) {
     var blockParams = block.params !== undefined ? block.params : []
     var module = all_blocks_by_id[block.id]
     var moduleParams = (module === undefined || module.params === undefined) ? [] : module.params
-    var ModuleParamsByFormattedName = {}
+    var moduleParamsByFormattedName = {}
+    var blockParamsByFormattedName = {}
     moduleParams.forEach(function(param) {
-        ModuleParamsByFormattedName[param.label.toLowerCase().replace(' ', '-')] = param
+        moduleParamsByFormattedName[param.label.toLowerCase().replace(' ', '-')] = param
+    })
+    blockParams.forEach(function(param) {
+        blockParamsByFormattedName[param.label.toLowerCase().replace(' ', '-')] = param
     })
     var processedParam = {};
     var html = ''
-    var savedAndModuleParams = blockParams.concat(moduleParams)
-    savedAndModuleParams.forEach(function (param) {
+    var blockAndModuleParams = blockParams.concat(moduleParams)
+    blockAndModuleParams.forEach(function (param) {
         var formattedName = param.label.toLowerCase().replace(' ', '-')
         if (processedParam[formattedName]) { // param has already been processed
             return;
         }
-        if (ModuleParamsByFormattedName[formattedName] === undefined) { // Param do not exist in the module (anymore or never did)
+        if (moduleParamsByFormattedName[formattedName] === undefined) { // Param do not exist in the module (anymore or never did)
             param.is_invalid = true
         }
-        param['param_id'] = getIDForBlockParameter(block, param)
+        param = Object.assign({}, blockParamsByFormattedName[formattedName], moduleParamsByFormattedName[formattedName])
+        param['param_id'] = param['param_id'] ?? getIDForBlockParameter(block, param)
         paramHtml = ''
         switch (param.type) {
             case 'input':
