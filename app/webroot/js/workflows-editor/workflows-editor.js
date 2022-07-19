@@ -1082,7 +1082,15 @@ function genBlockParamHtml(block) {
             param.is_invalid = true
         }
         param = Object.assign({}, blockParamsByFormattedName[formattedName], moduleParamsByFormattedName[formattedName])
-        param['param_id'] = param['param_id'] ?? getIDForBlockParameter(block, param)
+        if (!param['param_id']) {
+            param['param_id'] = getIDForBlockParameter(block, param)
+            block.params.map(function(blockParam) { // We also need to update the block config
+                if (blockParam.label == param.label) {
+                    blockParam['param_id'] = param['param_id']
+                }
+                return blockParam
+            })
+        }
         paramHtml = ''
         switch (param.type) {
             case 'input':
