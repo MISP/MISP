@@ -3,8 +3,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
 class Module_stop_execution extends WorkflowBaseModule
 {
-    public $is_blocking = true;
-    public $can_stop_workflow = true;
+    public $blocking = true;
     public $id = 'stop-execution';
     public $name = 'Stop execution';
     public $description = 'Essentially stops the execution for blocking paths. Do nothing for non-blocking paths';

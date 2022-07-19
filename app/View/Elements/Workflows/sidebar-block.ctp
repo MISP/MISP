@@ -20,7 +20,7 @@ $classFromSeverity = [
             </strong>
             <small style="margin-left: 2px;">v<?= h($block['version']) ?></small>
             <span style="margin-left: 2px;" class="text-error">
-                <?php if (!empty($block['is_blocking'])) : ?>
+                <?php if (!empty($block['blocking'])) : ?>
                     <i title="<?= __('This module can block execution') ?>" class="fa-lg fa-fw <?= $this->FontAwesome->getClass('stop-circle') ?>"></i>
                 <?php endif; ?>
             </span>

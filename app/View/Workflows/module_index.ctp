@@ -27,9 +27,9 @@
         ],
         [
             'name' => __('Blocking'),
-            'sort' => 'is_blocking',
+            'sort' => 'blocking',
             'class' => 'short',
-            'data_path' => 'is_blocking',
+            'data_path' => 'blocking',
             'element' => 'boolean',
             'colors' => true,
         ],

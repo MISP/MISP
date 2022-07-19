@@ -3,7 +3,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
 class Module_blueprint_action_module extends WorkflowBaseModule
 {
-    public $is_blocking = false;
+    public $blocking = false;
     public $disabled = true;
     public $id = 'blueprint-action-module';
     public $name = 'Blueprint action module';
@@ -16,7 +16,7 @@ class Module_blueprint_action_module extends WorkflowBaseModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
-        // If $this->is_blocking == true, returning `false` will stop the execution.
+        // If $this->blocking == true, returning `false` will stop the execution.
         $errors[] = __('Execution stopped');
         return false;
     }

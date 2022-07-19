@@ -5,17 +5,30 @@ $usableModules = [
 ];
 $allModules = array_merge($usableModules['blocks_action'], $usableModules['blocks_logic']);
 $triggerModules = $modules['blocks_trigger'];
+$selectedTrigger = Hash::get($selectedWorkflow, 'Workflow.listening_triggers.0', []);
+$isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
 ?>
 <div class="root-container">
     <div class="topbar">
         <a href="<?= $baseurl . '/workflows/triggers' ?>">
             <i class="fa-fw <?= $this->FontAwesome->getClass('caret-left') ?>"></i><?= __('Trigger index') ?>
         </a>
-        <span style="display: flex; align-items: center; min-width: 220px;">
+        <span style="display: flex; align-items: center; min-width: 220px; gap: 5px;">
             <h3 style="display: inline-block;">
                 <span style="font-weight:normal;"><?= __('Workflow:') ?></span>
                 <strong><?= h($selectedWorkflow['Workflow']['trigger_id']) ?></strong>
             </h3>
+            <?php if (!empty($isBlockingTrigger)) : ?>
+                <span class="label label-important" style="line-height: 20px;" title="<?= __('This workflow is a blocking worklow and can prevent the default MISP behavior to execute') ?>">
+                    <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('stop-circle') ?>"></i>
+                    <?= __('Blocking') ?>
+                </span>
+                <?php else: ?>
+                    <span class="label label-success" style="line-height: 20px;" title="<?= __('This workflow is a not blocking worklow. The default MISP behavior will or has already happened') ?>">
+                        <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('check-circle') ?>"></i>
+                        <?= __('Not blocking') ?>
+                    </span>
+            <?php endif; ?>
         </span>
         <span style="display: flex; align-items: center;">
             <button id="saveWorkflow" class="btn btn-primary" href="#">

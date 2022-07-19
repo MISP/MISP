@@ -182,7 +182,7 @@ class WorkflowsController extends AppController
             });
         } else if ($actionType == 'blocking') {
             $data = array_filter($data, function ($module) {
-                return !empty($module['is_blocking']);
+                return !empty($module['blocking']);
             });
         } else if ($moduleType == 'custom') {
             $data = array_filter($data, function ($module) {

@@ -3,7 +3,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
 class Module_push_zmq extends WorkflowBaseModule
 {
-    public $is_blocking = false;
+    public $blocking = false;
     public $id = 'push-zmq';
     public $name = 'Push to ZMQ';
     public $description = 'Push to the ZMQ channel';

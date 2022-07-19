@@ -14,7 +14,7 @@ var dotBlock_default = doT.template(' \
             {{? it.is_misp_module }} \
                 <sup class="is-misp-module"></sup> \
             {{?}} \
-            {{? it.is_blocking }} \
+            {{? it.blocking }} \
                 <span style="margin-left: 2px;" class="text-error"> \
                     <i title="This module can block execution" class="fa-fw fas fa-stop-circle"></i> \
                 </span> \
@@ -744,7 +744,7 @@ function filterBlocks(clicked) {
         }).hide()
     } else if (selectedFilter == 'is-blocking') {
         $blocksToShow.filter(function () {
-            return !$(this).data('block')['is_blocking'] || $(this).data('block')['disabled']
+            return !$(this).data('block')['blocking'] || $(this).data('block')['disabled']
         }).hide()
     }
 }
