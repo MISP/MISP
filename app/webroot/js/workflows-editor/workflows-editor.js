@@ -668,7 +668,7 @@ function loadWorkflow(workflow) {
                 userFriendlyParams[param.label] = (param.value ?? param.default)
             })
             var html = window['dotBlock_error']({
-                error: 'Invalid module type `' + block.data.id + '` (' + block.id + ')',
+                error: 'Invalid module id`' + block.data.id + '` (' + block.id + ')',
                 data: JSON.stringify(userFriendlyParams, null, 2)
             })
             editor.addNode(
@@ -813,6 +813,28 @@ function addNodesFromWorkflowBlueprint(workflowBlueprint) {
         var position = {
             top: ((node.pos_y - Math.abs(minY)) * editor.zoom + canvasCentroid.centroidY),
             left: ((node.pos_x - Math.abs(minX)) * editor.zoom + canvasCentroid.centroidX),
+        }
+        if (all_blocks_by_id[node.data.id] === undefined) {
+            var userFriendlyParams = {}
+            node.data.params.forEach(function (param) {
+                userFriendlyParams[param.label] = (param.value ?? param.default)
+            })
+            var errorMessage = 'Invalid ' + node.data.module_type + ' module id `' + node.data.id + '` (' + node.id + ')'
+            var html = window['dotBlock_error']({
+                error: errorMessage,
+                data: JSON.stringify(userFriendlyParams, null, 2)
+            })
+            editor.addNode(
+                node.name,
+                Object.values(node.inputs).length,
+                Object.values(node.outputs).length,
+                node.pos_x,
+                node.pos_y,
+                '',
+                node.data,
+                html
+            )
+            return
         }
         var block = Object.assign({}, all_blocks_by_id[node.data.id])
         block.params = node.data.params.slice()
