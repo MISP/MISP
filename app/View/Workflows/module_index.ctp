@@ -63,6 +63,12 @@
     if (!empty($module_service_error)) {
         echo sprintf('<div class="alert alert-error"><strong>%s</strong> %s</div>', __('MISP Modules Action Services is not reachable!'), __('Some modules will not be available.'));
     }
+    if (!empty($errorWhileLoading)) {
+        $loadingErrorHtml = sprintf('<ul>%s</ul>', implode('', array_map(function ($filepath, $message) {
+            return sprintf('<li><strong>%s</strong>: %s</li>', h($filepath), h($message));
+        }, array_keys($errorWhileLoading), $errorWhileLoading)));
+        echo sprintf('<div class="alert alert-error"><strong>%s</strong><div>%s%s</div></div>', __('Error while trying to load modules!'), __('The following module(s) failed to load:'), $loadingErrorHtml);
+    }
 
     echo $this->element('genericElements/IndexTable/scaffold', [
         'scaffold_data' => [

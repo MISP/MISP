@@ -61,6 +61,7 @@ class Workflow extends AppModel
 
     private $loaded_modules = [];
     private $loaded_classes = [];
+    private $error_while_loading = [];
 
     private $module_initialized = false;
 
@@ -769,6 +770,7 @@ class Workflow extends AppModel
             $instancedClass = $this->__getClassFromModuleFile($filepath);
             if (is_string($instancedClass)) {
                 $this->__logLoadingError($filename, $instancedClass);
+                $this->error_while_loading[$filename] = $instancedClass;
                 continue;
             }
             if (!empty($classConfigs[$instancedClass->id])) {
@@ -845,9 +847,14 @@ class Workflow extends AppModel
             }
         } catch (Exception $e) {
             $message = __('Could not load module for path %s', $filepath);
-            $this->logException($message, $filepath, $e);
+            $this->logException($message, $e);
             return $message;
         }
+    }
+
+    public function getModuleLoadingError(): array
+    {
+        return $this->error_while_loading;
     }
 
     public function getModulesByType($module_type=false): array

@@ -160,6 +160,7 @@ class WorkflowsController extends AppController
     public function moduleIndex()
     {
         $modules = $this->Workflow->getModulesByType();
+        $errorWhileLoading = $this->Workflow->getModuleLoadingError();
         $this->Module = ClassRegistry::init('Module');
         $mispModules = $this->Module->getModules('Action');
         $this->set('module_service_error', !is_array($mispModules));
@@ -200,6 +201,7 @@ class WorkflowsController extends AppController
         $this->set('data', $data);
         $this->set('indexType', $moduleType);
         $this->set('actionType', $actionType);
+        $this->set('errorWhileLoading', $errorWhileLoading);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_module']);
     }
 
