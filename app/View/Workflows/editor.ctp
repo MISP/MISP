@@ -23,11 +23,11 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
                     <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('stop-circle') ?>"></i>
                     <?= __('Blocking') ?>
                 </span>
-                <?php else: ?>
-                    <span class="label label-success" style="line-height: 20px;" title="<?= __('This workflow is a not blocking worklow. The default MISP behavior will or has already happened') ?>">
-                        <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('check-circle') ?>"></i>
-                        <?= __('Not blocking') ?>
-                    </span>
+            <?php else : ?>
+                <span class="label label-success" style="line-height: 20px;" title="<?= __('This workflow is a not blocking worklow. The default MISP behavior will or has already happened') ?>">
+                    <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('check-circle') ?>"></i>
+                    <?= __('Not blocking') ?>
+                </span>
             <?php endif; ?>
         </span>
         <span style="display: flex; align-items: center;">
@@ -94,6 +94,11 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
                             <?php foreach ($modules['blocks_action'] as $block) : ?>
                                 <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
                             <?php endforeach; ?>
+                            <?php if (empty($modules['blocks_action'])) : ?>
+                                <div class="alert alert-danger" style="margin: 10px 5px;">
+                                    <?= __('There are no modules available. They can be enabled %s.', sprintf('<a href="%s">%s</a>', $baseurl . '/workflows/moduleIndex', __('here'))) ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="tab-pane" id="container-logic">
@@ -107,6 +112,11 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
                                 <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
                             <?php endforeach; ?>
                         </div>
+                        <?php if (empty($modules['blocks_logic'])) : ?>
+                            <div class="alert alert-danger" style="margin-top: 10px;">
+                                <?= __('There are no modules available. They can be enabled %s.', sprintf('<a href="%s">%s</a>', $baseurl . '/workflows/moduleIndex/type:logic', __('here'))) ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <div class="tab-pane" id="container-blueprints">
                         <div style="margin-left: 0.75em; margin-bottom: 0.5em;">
@@ -123,6 +133,12 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
                             <?php foreach ($workflowBlueprints as $workflowBlueprint) : ?>
                                 <?= $this->element('Workflows/sidebar-block-workflow-blueprint', ['workflowBlueprint' => $workflowBlueprint['WorkflowBlueprint']]) ?>
                             <?php endforeach; ?>
+                            <?php if (empty($workflowBlueprints)) : ?>
+                                <div class="alert alert-info" style="margin-top: 10px;">
+                                    <?= __('There are no blueprint available. You can create some by multi-selecting nodes and then saving the blueprint.') ?>
+                                    <?= __('Alternatively, Blueprints can be imported on the %s', sprintf('<a href="%s">%s</a>', $baseurl . '/workflowBlueprints/index', __('blueprint index'))) ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
