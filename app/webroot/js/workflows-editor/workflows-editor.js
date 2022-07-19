@@ -931,7 +931,7 @@ function saveWorkflow(confirmSave, callback) {
             },
             complete: function () {
                 $('#temp').remove();
-                toggleLoadingInSaveButton(false)
+                toggleLoadingInSaveButton(false, true)
                 if (callback !== undefined) {
                     callback()
                 }
@@ -1010,9 +1010,11 @@ function toggleSaveButton(enabled) {
         .prop('disabled', !enabled)
 }
 
-function toggleLoadingInSaveButton(saving) {
+function toggleLoadingInSaveButton(saving, ignoreDisabledState) {
     // TODO: Use I18n strings instead
-    toggleSaveButton(!saving)
+    if (!ignoreDisabledState) {
+        toggleSaveButton(!saving)
+    }
     if (saving) {
         $saveWorkflowButton.find('.loading-span').show();
         toggleEditorLoading(true, 'Saving workflow')
