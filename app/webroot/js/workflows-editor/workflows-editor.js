@@ -178,6 +178,9 @@ function initDrawflow() {
             saveWorkflow()
             evt.preventDefault()
         }
+        if (evt.keyCode == 46 && $drawflow.is(evt.target)) {
+            deleteSelectedNodes()
+        }
     })
     editor.translate_to = function (x, y) {
         this.canvas_x = x;
@@ -417,10 +420,7 @@ function initDrawflow() {
         selection.select(newNodes)
     })
     $controlDeleteButton.click(function() {
-        selection.getSelection().forEach(function (node) {
-            editor.removeNodeId(node.id)
-        })
-        editor.dispatch('nodeUnselected')
+        deleteSelectedNodes()
     })
     $controlSaveBlocksLi.click(function(evt) {
         var $link = $(this).find('a')
@@ -990,6 +990,16 @@ function deleteSelectedNode() {
     editor.removeNodeId(getSelectedNodeID())
 }
 
+function deleteSelectedNodes() {
+    selection.getSelection().forEach(function(node) {
+        if (getSelectedNodeID() == node.id) {
+            return // This node will be removed by drawflow delete callback
+        }
+        editor.removeNodeId(node.id)
+    })
+    editor.dispatch('nodeUnselected')
+}
+
 function addWorkflowBlueprint(blueprintId) {
     var workflowBlueprint = all_workflow_blueprints_by_id[blueprintId]
     if (!workflowBlueprint) {
@@ -1002,6 +1012,7 @@ function addWorkflowBlueprint(blueprintId) {
         selection.select(newNodes)
         editor.dispatch('nodeSelected', newNodes[0].id);
     }
+    editor.fitCanvas()
 }
 
 /* UI Utils */
