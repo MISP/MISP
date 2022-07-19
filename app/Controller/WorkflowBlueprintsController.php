@@ -7,6 +7,19 @@ class WorkflowBlueprintsController extends AppController
         'RequestHandler'
     );
 
+    public function update($force = false)
+    {
+        $this->request->allowMethod(['post', 'put']);
+        $this->WorkflowBlueprint->update($force);
+        $message = __('Default workflow blueprints updated');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('WorkflowBlueprint', 'update', false, $this->response->type(), $message);
+        } else {
+            $this->Flash->success($message);
+            $this->redirect(array('controller' => 'workflowBlueprints', 'action' => 'index'));
+        }
+    }
+
     public function index()
     {
         $params = [

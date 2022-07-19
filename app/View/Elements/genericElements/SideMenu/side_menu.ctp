@@ -1622,6 +1622,16 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     'url' => $baseurl . '/workflowBlueprints/import',
                     'text' => __('Import Workflow Blueprints')
                 ));
+                if ($isSiteAdmin && ($menuItem === 'view' || $menuItem === 'index')) {
+                    echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                        'url' => $baseurl . '/workflowBlueprints/update',
+                        'text' => __('Update Default Blueprints')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                        'url' => $baseurl . '/workflowBlueprints/update/true',
+                        'text' => __('Force Update Default Blueprints')
+                    ));
+                }
                 if ($menuItem === 'view' || $menuItem === 'edit') {
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'view',

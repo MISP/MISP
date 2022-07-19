@@ -1,8 +1,11 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('Folder', 'Utility');
+App::uses('File', 'Utility');
 
 class WorkflowBlueprint extends AppModel
 {
+    const REPOSITORY_PATH = APP . 'files' . DS . 'misp-workflow-blueprints' . DS . 'blueprints';
     public $recursive = -1;
 
     public $actsAs = [
@@ -79,30 +82,58 @@ class WorkflowBlueprint extends AppModel
     }
 
 
-    public function logExecutionError($workflow, $message)
+    /**
+     * __readBlueprintsFromRepo Reads blueprints from the misp-workflow-blueprints repository
+     *
+     * @return array
+     */
+    private function __readBlueprintsFromRepo(): array
     {
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
+        $dir = new Folder(self::REPOSITORY_PATH);
+        $files = $dir->find('.*\.json');
+        $blueprints = [];
+        foreach ($files as $file) {
+            $file = new File($dir->pwd() . DS . $file);
+            $blueprints[] = JsonTool::decode($file->read());
+            $file->close();
+        }
+        return $blueprints;
     }
 
-    private function __logError($id, $message)
+    /**
+     * update Update the blueprint using the default repository
+     *
+     * @param boolean $force
+     * @return void
+     */
+    public function update($force=false)
     {
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->createLogEntry('SYSTEM', 'load_module', 'Workflow', $id, $message);
-        return false;
-    }
-
-    private function __saveAndReturnErrors($data, $saveOptions = [], $errors = [])
-    {
-        $saveSuccess = $this->save($data, $saveOptions);
-        if (!$saveSuccess) {
-            foreach ($this->validationErrors as $validationError) {
-                $errors[] = $validationError[0];
+        $blueprints_from_repo = $this->__readBlueprintsFromRepo();
+        if (empty($blueprints_from_repo)) {
+            throw new NotFoundException(__('Default blueprints could not be loaded or `%s` folder is empty', self::REPOSITORY_PATH));
+        }
+        $existing_blueprints = $this->find('all', array(
+            'recursive' => -1
+        ));
+        $existing_blueprints_by_uuid = Hash::combine($existing_blueprints, '{n}.WorkflowBlueprint.uuid', '{n}.WorkflowBlueprint');
+        foreach ($blueprints_from_repo as $blueprint_from_repo) {
+            $blueprint_from_repo = $blueprint_from_repo['WorkflowBlueprint'];
+            if (!empty($existing_blueprints_by_uuid[$blueprint_from_repo['uuid']])) {
+                $existing_blueprint = $existing_blueprints_by_uuid[$blueprint_from_repo['uuid']];
+                if ($force || $blueprint_from_repo['timestamp'] > $existing_blueprint['timestamp']) {
+                    $blueprint_from_repo['id'] = $existing_blueprint['id'];
+                    $blueprint_from_repo['default'] = true;
+                    $this->save($blueprint_from_repo);
+                    continue;
+                }
+            } else {
+                $this->create();
+                $blueprint_from_repo['default'] = true;
+                $this->save($blueprint_from_repo);
             }
         }
-        return $errors;
     }
-    
+
     public function getMermaid($workflowBlueprintData)
     {
         App::uses('MermaidFlowchartTool', 'Tools');
