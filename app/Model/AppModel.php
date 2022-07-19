@@ -1709,6 +1709,7 @@ class AppModel extends Model
                       `name` varchar(191) NOT NULL,
                       `description` varchar(191) NOT NULL,
                       `timestamp` int(11) NOT NULL DEFAULT 0,
+                      `default` tinyint(1) NOT NULL DEFAULT 0;
                       `data` text,
                       PRIMARY KEY (`id`),
                       INDEX `uuid` (`uuid`),

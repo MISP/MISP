@@ -16,6 +16,14 @@
             'data_path' => 'WorkflowBlueprint.name',
         ],
         [
+            'name' => __('Default'),
+            'sort' => 'WorkflowBlueprint.default',
+            'data_path' => 'WorkflowBlueprint.default',
+            'element' => 'boolean',
+            'colors' => true,
+            'class' => 'short',
+        ],
+        [
             'name' => __('Description'),
             'sort' => 'WorkflowBlueprint.description',
             'data_path' => 'WorkflowBlueprint.description',

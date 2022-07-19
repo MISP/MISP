@@ -22,7 +22,12 @@ class WorkflowBlueprintsController extends AppController
 
     public function add($fromEditor = false)
     {
-        $params = [];
+        $params = [
+            'beforeSave' => function(array $blueprint) {
+                $blueprint['WorkflowBlueprint']['default'] = false;
+                return $blueprint;
+            }
+        ];
         $this->CRUD->add($params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -33,7 +38,12 @@ class WorkflowBlueprintsController extends AppController
 
     public function edit($id)
     {
-        $params = [];
+        $params = [
+            'beforeSave' => function (array $blueprint) {
+                $blueprint['WorkflowBlueprint']['default'] = false;
+                return $blueprint;
+            }
+        ];
         $this->CRUD->edit($id, $params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;

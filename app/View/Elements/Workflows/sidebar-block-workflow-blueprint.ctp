@@ -26,6 +26,7 @@ foreach ($workflowBlueprint['data'] as $node) {
             <span class="timestamp">v<?= h($workflowBlueprint['timestamp']) ?></span>
         </div>
         <div><small class="muted"><?= h($workflowBlueprint['uuid']) ?></small></div>
+        <div><?= __('Default: %s', sprintf('<i class="%s"></i>', $this->FontAwesome->getClass(!empty($workflowBlueprint['default']) ? 'check' : 'times'))) ?></div>
         <div><?= __('Blueprint Content: %s', sprintf('<strong>%s</strong>', __n('%s node', '%s nodes', count($workflowBlueprint['data']), count($workflowBlueprint['data'])))) ?></div>
         <div>
             <?php foreach ($iconCount['icon'] as $icon => $data) : ?>
