@@ -4,8 +4,8 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 class Module_generic_if extends WorkflowBaseLogicModule
 {
     public $id = 'generic-if';
-    public $name = 'Generic IF';
-    public $description = 'Simple IF / ELSE condition block. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
+    public $name = 'IF :: Generic';
+    public $description = 'Generic IF / ELSE condition block. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
     public $icon = 'code-branch';
     public $inputs = 1;
     public $outputs = 2;
