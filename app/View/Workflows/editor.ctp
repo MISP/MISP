@@ -87,7 +87,9 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
                         </div>
                         <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off">
                             <?php foreach ($modules['blocks_action'] as $block) : ?>
-                                <option value="<?= h($block['id']) ?>"><?= h($block['name']) ?></option>
+                                <?php if (empty($block['disabled'])) : ?>
+                                    <option value="<?= h($block['id']) ?>"><?= h($block['name']) ?></option>
+                                <?php endif; ?>
                             <?php endforeach; ?>
                         </select>
                         <div class="block-container">
@@ -104,7 +106,9 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
                     <div class="tab-pane" id="container-logic">
                         <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off" style="width: 305px; margin: 0 0.5em;">
                             <?php foreach ($modules['blocks_logic'] as $block) : ?>
-                                <option value="<?= h($block['id']) ?>"><?= h($block['name']) ?></option>
+                                <?php if (empty($block['disabled'])) : ?>
+                                    <option value="<?= h($block['id']) ?>"><?= h($block['name']) ?></option>
+                                <?php endif; ?>
                             <?php endforeach; ?>
                         </select>
                         <div class="block-container">
