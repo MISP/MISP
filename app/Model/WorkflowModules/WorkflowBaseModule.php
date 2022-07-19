@@ -199,17 +199,12 @@ class WorkflowBaseModule
 
         $converted = $data;
         if (!empty($data['Attribute'])) {
-            $event = [];
-            if (!empty($data['Attribute']['Event'])) {
-                $event = $data['Attribute']['Event'];
-            } else {
-                $fakeSiteAdminUser = ['Role' => ['perm_site_admin' => true]];
-                $event = $this->Event->fetchSimpleEvent($fakeSiteAdminUser, $data['Attribute']['event_id']);
-                if (empty($event)) {
-                    return false;
-                }
-                $event = $event['Event'];
+            $fakeSiteAdminUser = ['Role' => ['perm_site_admin' => true]];
+            $event = $this->Event->fetchSimpleEvent($fakeSiteAdminUser, $data['Attribute']['event_id']);
+            if (empty($event)) {
+                return false;
             }
+            $event = $event['Event'];
             $converted = ['Event' => $event];
             $converted['Event']['Attribute'][] = $data['Attribute'];
         }
