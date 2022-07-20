@@ -269,7 +269,24 @@ class WorkflowGraphTool
     const GRAPH_NON_BLOCKING_CONNECTION_NAME = 'output_2';
 
     /**
-     * extractTriggersFromWorkflow Return the list of trigger names (or full node) that are specified in the workflow
+     * extractTriggerFromWorkflow Return the trigger id (or full module) that are specified in the workflow
+     *
+     * @param  array $workflow
+     * @param  bool $fullNode
+     * @return int|array|null
+     */
+    public static function extractTriggerFromWorkflow(array $graphData, bool $fullNode = false)
+    {
+        $triggers = self::extractTriggersFromWorkflow($graphData, $fullNode);
+        if (empty($triggers)) {
+            return null;
+        }
+        $node = $triggers[0];
+        return $node;
+    }
+
+    /**
+     * extractTriggersFromWorkflow Return the list of triggers id (or full module) that are specified in the workflow
      *
      * @param  array $workflow
      * @param  bool $fullNode
@@ -353,11 +370,9 @@ class WorkflowGraphTool
      */
     public static function getNodeIdForTrigger(array $graphData, $trigger_id): int
     {
-        $triggers = WorkflowGraphTool::extractTriggersFromWorkflow($graphData, true);
-        foreach ($triggers as $node) {
-            if ($node['data']['id'] == $trigger_id) {
-                return $node['id'];
-            }
+        $trigger_node = WorkflowGraphTool::extractTriggerFromWorkflow($graphData, true);
+        if ($trigger_node['data']['id'] == $trigger_id) {
+            return $trigger_node['id'];
         }
         return -1;
     }

@@ -597,9 +597,9 @@ class Workflow extends AppModel
     public function attachNotificationToModules(array $modules, array $workflow): array
     {
         $trigger_is_misp_core_format = false;
-        $triggers_id = $this->workflowGraphTool->extractTriggersFromWorkflow($workflow['Workflow']['data'], false);
-        if (!empty($triggers_id)) {
-            $triggerClass = $this->loaded_classes['trigger'][$triggers_id[0]];
+        $trigger_id = $this->workflowGraphTool->extractTriggerFromWorkflow($workflow['Workflow']['data'], false);
+        if (!empty($trigger_id)) {
+            $triggerClass = $this->loaded_classes['trigger'][$trigger_id];
             $trigger_is_misp_core_format = !empty($triggerClass->misp_core_format);
         }
         foreach ($modules as $moduleType => $modulesByType) {
