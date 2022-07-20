@@ -38,7 +38,7 @@ class Module_webhook extends WorkflowBaseActionModule
             ],
             [
                 'type' => 'input',
-                'label' => 'Match Condition',
+                'label' => 'Data extraction path',
                 'default' => '',
                 'placeholder' => 'Attribute.{n}.AttributeTag.{n}.Tag.name',
             ],
@@ -55,8 +55,8 @@ class Module_webhook extends WorkflowBaseActionModule
         }
 
         $rData = $roamingData->getData();
-        $path = $params['Match Condition']['value'];
-        $extracted = !empty($params['Match Condition']['value']) ? $this->extractData($rData, $path) : $rData;
+        $path = $params['Data extraction path']['value'];
+        $extracted = !empty($params['Data extraction path']['value']) ? $this->extractData($rData, $path) : $rData;
         try {
             $response = $this->doRequest($params['Payload URL']['value'], $params['Content type']['value'], $extracted);
             if ($response->isOk()) {
