@@ -40,6 +40,9 @@ class Module_misp_module extends WorkflowBaseActionModule
         if (!empty($misp_module_config['mispattributes']['blocking'])) {
             $this->blocking = !empty($misp_module_config['mispattributes']['blocking']);
         }
+        if (!empty($misp_module_config['mispattributes']['expect_misp_core_format'])) {
+            $this->expect_misp_core_format = !empty($misp_module_config['mispattributes']['expect_misp_core_format']);
+        }
         if (!empty($misp_module_config['mispattributes']['support_filters'])) {
             $this->support_filters = !empty($misp_module_config['mispattributes']['support_filters']);
         }

@@ -16,10 +16,21 @@
         ],
         [
             'name' => __('Blocking Workflow'),
+            'class' => 'short',
             'sort' => 'blocking',
             'data_path' => 'blocking',
             'element' => 'boolean',
             'colors' => true,
+            'title' => __('Can the workflow block the execution of the operation calling the trigger')
+        ],
+        [
+            'name' => __('MISP Core format'),
+            'class' => 'short',
+            'sort' => 'misp_core_format',
+            'data_path' => 'misp_core_format',
+            'element' => 'boolean',
+            'colors' => true,
+            'title' => __('Is the data compliant with the MISP Core format.')
         ],
         [
             'name' => __('Workflow ID'),
@@ -37,6 +48,7 @@
             'element' => 'booleanOrNA',
             'boolean_reverse' => true,
             'colors' => true,
+            'title' => __('Only enabled workflows will be executed when their trigger is called')
         ],
     ];
 

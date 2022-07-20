@@ -10,6 +10,7 @@ class Module_attribute_after_save extends WorkflowBaseTriggerModule
     public $inputs = 0;
     public $outputs = 1;
     public $blocking = false;
+    public $misp_core_format = true;
 
     public function __construct()
     {

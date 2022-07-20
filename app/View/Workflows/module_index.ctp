@@ -34,6 +34,15 @@
             'colors' => true,
         ],
         [
+            'name' => __('MISP Core format'),
+            'sort' => 'expect_misp_core_format',
+            'class' => 'short',
+            'data_path' => 'expect_misp_core_format',
+            'element' => 'boolean',
+            'colors' => true,
+            'title' => __('Does this module expect data compliant with the MISP core format'),
+        ],
+        [
             'name' => __('misp-module'),
             'sort' => 'is_misp_module',
             'data_path' => 'is_misp_module',

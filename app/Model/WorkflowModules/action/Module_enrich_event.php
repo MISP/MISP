@@ -10,6 +10,7 @@ class Module_enrich_event extends WorkflowBaseActionModule
     public $inputs = 1;
     public $outputs = 1;
     public $support_filters = true;
+    public $expect_misp_core_format = true;
     public $params = [];
 
     private $Module;

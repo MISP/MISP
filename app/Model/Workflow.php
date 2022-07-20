@@ -596,6 +596,12 @@ class Workflow extends AppModel
 
     public function attachNotificationToModules(array $modules, array $workflow): array
     {
+        $trigger_is_misp_core_format = false;
+        $triggers_id = $this->workflowGraphTool->extractTriggersFromWorkflow($workflow['Workflow']['data'], false);
+        if (!empty($triggers_id)) {
+            $triggerClass = $this->loaded_classes['trigger'][$triggers_id[0]];
+            $trigger_is_misp_core_format = !empty($triggerClass->misp_core_format);
+        }
         foreach ($modules as $moduleType => $modulesByType) {
             foreach ($modulesByType as $i => $module) {
                 $modules[$moduleType][$i]['notifications'] = !empty($module['notifications']) ? $module['notifications'] : [
@@ -613,6 +619,19 @@ class Workflow extends AppModel
                         '__show_in_sidebar' => false,
                         '__show_in_node' => true,
                     ];
+                }
+                if ($moduleType != 'blocks_trigger') {
+                    if (!$trigger_is_misp_core_format && !empty($module['expect_misp_core_format'])) {
+                        $modules[$moduleType][$i]['notifications']['warning'][] = [
+                            'text' => __('Potential data format issue'),
+                            'description' => __('This module might not work properly as it expect data compliant with the MISP core format.'),
+                            'details' => [
+                                __('This module expect data to be compliant with the MISP core format, however the data passed by the trigger might not be under this format.')
+                            ],
+                            '__show_in_sidebar' => true,
+                            '__show_in_node' => true,
+                        ];
+                    }
                 }
             }
         }

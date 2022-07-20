@@ -47,7 +47,10 @@ var dotBlock_trigger = doT.template(' \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.name}} \
             </strong> \
-            <span style="margin-left: auto;"> \
+            <span style="margin-left: auto; display: flex; align-items: center;"> \
+                {{? it.misp_core_format }} \
+                    <img src="/img/misp-logo-no-text.png" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0;" title="The data passed by this trigger is compliant with the MISP core format"> \
+                {{?}} \
                 <span class="block-notification-container"> \
                     {{=it._block_notification_html}} \
                 </span> \

@@ -4,6 +4,7 @@ class WorkflowBaseModule
     public $is_misp_module = false;
     public $blocking = false;
     public $is_custom = false;
+    public $expect_misp_core_format = false;
     public $id = 'to-override';
     public $name = 'to-override';
     public $version = '0.1';
@@ -214,6 +215,7 @@ class WorkflowBaseModule
 class WorkflowBaseTriggerModule extends WorkflowBaseModule
 {
     public $blocking = false;
+    public $misp_core_format = false;
     public $inputs = 0;
     public $outputs = 1;
 

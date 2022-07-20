@@ -10,6 +10,7 @@ class Module_tag_if extends WorkflowBaseLogicModule
     public $inputs = 1;
     public $outputs = 2;
     public $html_template = 'if';
+    public $expect_misp_core_format = true;
     public $params = [];
 
     private $Tag;
