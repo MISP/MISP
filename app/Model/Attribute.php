@@ -460,7 +460,8 @@ class Attribute extends AppModel
         }
         $pubToZmq = $this->pubToZmq('attribute');
         $kafkaTopic = $this->kafkaTopic('attribute');
-        if ($pubToZmq || $kafkaTopic) {
+        $isTriggerCallable = $this->isTriggerCallable('attribute-after-save');
+        if ($pubToZmq || $kafkaTopic || $isTriggerCallable) {
             $attributeForPublish = $this->fetchAttribute($this->id);
             if (!empty($attributeForPublish)) {
                 $user = array(
@@ -497,7 +498,8 @@ class Attribute extends AppModel
                         'id' => $id,
                         'message' => __('Error while executing workflow.'),
                     ];
-                $this->executeTrigger('attribute-after-save', $attributeForPublish, $workflowErrors, $logging);
+                $triggerData = $attributeForPublish;
+                $this->executeTrigger('attribute-after-save', $triggerData, $workflowErrors, $logging);
             }
         }
         if ($created && isset($attribute['event_id']) && empty($attribute['skip_auto_increment'])) {

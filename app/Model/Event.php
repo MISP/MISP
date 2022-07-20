@@ -4523,7 +4523,7 @@ class Event extends AppModel
             'id' => $id,
             'message' => __('Publishing stopped by a blocking workflow.'),
         ];
-        $success = $this->executeTrigger('publish', $fullEvent[0], $workflowErrors, $logging);
+        $success = $this->executeTrigger('publish', $this->convertToCoreFormat($fullEvent[0]), $workflowErrors, $logging);
         if (empty($success)) {
             $errorMessage = implode(', ', $workflowErrors);
             return $errorMessage;
