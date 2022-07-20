@@ -556,7 +556,7 @@ class Workflow extends AppModel
             try {
                 $success = $moduleClass->exec($node, $roamingData, $errors);
             } catch (Exception $e) {
-                $this->logException(__('Error while executing module %s', $node['data']['id']), $e);
+                $this->logExecutionError($roamingData->getWorkflow(), __('Error while executing module %s. Error: %s', $node['data']['id'], $e->getMessage()));
                 return false;
             }
         } else {
