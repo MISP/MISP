@@ -1,7 +1,7 @@
 <?php
 include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
-class Module_enrich_event extends WorkflowBaseModule
+class Module_enrich_event extends WorkflowBaseActionModule
 {
     public $id = 'enrich-event';
     public $name = 'Enrich Event';

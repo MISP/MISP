@@ -1,7 +1,7 @@
 <?php
 include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
-class Module_stop_execution extends WorkflowBaseModule
+class Module_stop_execution extends WorkflowBaseActionModule
 {
     public $blocking = true;
     public $id = 'stop-execution';

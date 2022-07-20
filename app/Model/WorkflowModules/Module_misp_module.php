@@ -1,7 +1,7 @@
 <?php
 include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
-class Module_misp_module extends WorkflowBaseModule
+class Module_misp_module extends WorkflowBaseActionModule
 {
     public $blocking = false;
     public $is_misp_module = true;

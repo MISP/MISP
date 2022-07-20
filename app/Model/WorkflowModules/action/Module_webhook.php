@@ -4,7 +4,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 App::uses('SyncTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 
-class Module_webhook extends WorkflowBaseModule
+class Module_webhook extends WorkflowBaseActionModule
 {
     public $id = 'webhook';
     public $name = 'Webhook';

@@ -235,3 +235,7 @@ class WorkflowBaseLogicModule extends WorkflowBaseModule
     public $inputs = 1;
     public $outputs = 2;
 }
+
+class WorkflowBaseActionModule extends WorkflowBaseModule
+{
+}

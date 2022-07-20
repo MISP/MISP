@@ -1,7 +1,7 @@
 <?php
 include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
-class Module_push_zmq extends WorkflowBaseModule
+class Module_push_zmq extends WorkflowBaseActionModule
 {
     public $blocking = false;
     public $id = 'push-zmq';

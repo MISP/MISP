@@ -1,7 +1,7 @@
 <?php
 include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
-class Module_blueprint_action_module extends WorkflowBaseModule
+class Module_blueprint_action_module extends WorkflowBaseActionModule
 {
     public $blocking = false;
     public $disabled = true;
