@@ -44,6 +44,9 @@ class CorrelationsController extends AppController
                     }
                 }
             }
+
+            $this->__setPagingParams($query['page'], $query['limit'], count($data), 'named');
+
             $this->set('age', $age);
             $this->set('age_unit', $unit);
             $this->set('data', $data);
@@ -71,5 +74,22 @@ class CorrelationsController extends AppController
             $this->Flash->success($message);
             $this->redirect(['controller' => 'correlations', 'action' => 'top']);
         }
+    }
+
+    // This method mimics what PaginateComponent::paginate() would do
+    private function __setPagingParams(int $page, int $limit, int $current, string $type = 'named')
+    {
+        $this->request->params['paging'] = [
+            'Correlation' => [
+                'page' => $page,
+                'limit' => $limit,
+                'current' => $current,
+                'pageCount' => 0,
+                'prevPage' => $page > 1,
+                'nextPage' => $current >= $limit,
+                'options' => [],
+                'paramType' => $type
+            ]
+        ];
     }
 }

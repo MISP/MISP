@@ -104,6 +104,8 @@ class Log extends AppModel
         'email' => array('values' => array('admin_email'))
     );
 
+    public $actsAs = ['LightPaginator'];
+
     /**
      * Null when not defined, false when not enabled
      * @var Syslog|null|false

@@ -149,7 +149,7 @@ $actions = [
 
 echo $this->element('/genericElements/IndexTable/scaffold', ['scaffold_data' => ['data' => [
     'data' => $entries,
-    'stupid_pagination' => 1,
+    'light_paginator' => 1,
     'top_bar' => [
         'children' => [
             [
