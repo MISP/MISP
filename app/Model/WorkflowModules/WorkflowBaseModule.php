@@ -198,13 +198,19 @@ class WorkflowBaseModule
         $this->Event = ClassRegistry::init('Event');
 
         $converted = $data;
-        if (!empty($data['Attribute'])) {
+        $event = [];
+        if (!empty($data['Attribute']) || !empty($data['Object'])) {
             $fakeSiteAdminUser = ['Role' => ['perm_site_admin' => true]];
-            $event = $this->Event->fetchSimpleEvent($fakeSiteAdminUser, $data['Attribute']['event_id']);
+            $event = $this->Event->fetchSimpleEvent($fakeSiteAdminUser, $data['Attribute']['event_id'] ?? $data['Object']['event_id']);
             if (empty($event)) {
                 return false;
             }
             $event = $event['Event'];
+        }
+        if (!empty($data['Object']) && empty($data['Attribute'])) {
+            $converted = ['Event' => $event];
+            $converted['Event']['Object'][] = $data['Object'];
+        } else if (!empty($data['Attribute'])) {
             $converted = ['Event' => $event];
             $converted['Event']['Attribute'][] = $data['Attribute'];
         }
@@ -227,6 +233,13 @@ class WorkflowBaseTriggerModule extends WorkflowBaseModule
      */
     public function normalizeData(array $data)
     {
+        if (!empty($this->misp_core_format)) {
+            $converted = $this->convertToMISPCoreFormat($data);
+            if ($converted === false) {
+                return false;
+            }
+            return $converted;
+        }
         return $data;
     }
 }
