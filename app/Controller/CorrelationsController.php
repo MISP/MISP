@@ -75,21 +75,4 @@ class CorrelationsController extends AppController
             $this->redirect(['controller' => 'correlations', 'action' => 'top']);
         }
     }
-
-    // This method mimics what PaginateComponent::paginate() would do
-    private function __setPagingParams(int $page, int $limit, int $current, string $type = 'named')
-    {
-        $this->request->params['paging'] = [
-            'Correlation' => [
-                'page' => $page,
-                'limit' => $limit,
-                'current' => $current,
-                'pageCount' => 0,
-                'prevPage' => $page > 1,
-                'nextPage' => $current >= $limit,
-                'options' => [],
-                'paramType' => $type
-            ]
-        ];
-    }
 }

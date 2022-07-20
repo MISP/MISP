@@ -1478,4 +1478,29 @@ class AppController extends Controller
             throw new HttpException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.', 405, $e);
         }
     }
+
+    /**
+     * Mimics what PaginateComponent::paginate() would do, when Model::paginate() is not called
+     *
+     * @param integer $page
+     * @param integer $limit
+     * @param integer $current
+     * @param string $type
+     * @return void
+     */
+    protected function __setPagingParams(int $page, int $limit, int $current, string $type = 'named')
+    {
+        $this->request->params['paging'] = [
+            'Correlation' => [
+                'page' => $page,
+                'limit' => $limit,
+                'current' => $current,
+                'pageCount' => 0,
+                'prevPage' => $page > 1,
+                'nextPage' => $current >= $limit,
+                'options' => [],
+                'paramType' => $type
+            ]
+        ];
+    }
 }
