@@ -37,7 +37,8 @@ class Module_distribution_if extends WorkflowBaseLogicModule
                 'label' => 'Scope',
                 'type' => 'select',
                 'options' => [
-                    'attribute' => __('Final Distribution of Attribute'),
+                    'attribute' => __('Final distribution of the Attribute'),
+                    'event' => __('Distribution of the Event'),
                 ],
                 'default' => 'attribute',
             ],
@@ -66,11 +67,14 @@ class Module_distribution_if extends WorkflowBaseLogicModule
         $operator = $params['Condition']['value'];
         $value = $params['Distribution']['value'];
         $data = $roamingData->getData();
-        $final_distribution = $this->__getPropagatedDistribution(
-            $data['Event'],
-            $data['Event']['Attribute'][0]['Object'] ?? [],
-            $data['Event']['Attribute'][0]
-        );
+        $final_distribution = $this->__getPropagatedDistribution($data['Event']);
+        if ($scope == 'attribute') {
+            $final_distribution = $this->__getPropagatedDistribution(
+                $data['Event'],
+                $data['Event']['Attribute'][0]['Object'] ?? [],
+                $data['Event']['Attribute'][0]
+            );
+        }
         if ($final_distribution == -1) {
             return false; // distribution  not supported
         }
@@ -98,18 +102,23 @@ class Module_distribution_if extends WorkflowBaseLogicModule
      * @param array $attribute
      * @return integer
      */
-    private function __getPropagatedDistribution(array $event, array $object, array $attribute): int
+    private function __getPropagatedDistribution(array $event, array $object=[], array $attribute=[]): int
     {
-        $finalDistribution = intval($attribute['distribution']);
-        if (!empty($object)) {
+        $finalDistribution = 5;
+        if (!empty($attribute)) {
+            $finalDistribution = intval($attribute['distribution']);
+        }
+        if (!empty($object)) { // downgrade based on the object distribution
             $finalDistribution = min($finalDistribution, intval($object['distribution']));
         }
-        $finalDistribution = min($finalDistribution, intval($event['distribution']));
-        if ($attribute['distribution'] == 5) {
-            $attribute['distribution'] = intval($event['distribution']);
+        $finalDistribution = min($finalDistribution, intval($event['distribution'])); // downgrade based on the event distribution
+        if (!empty($attribute)) {
+            if ($attribute['distribution'] == 5) { // mirror distribution for the one of the event
+                $attribute['distribution'] = intval($event['distribution']);
+            }
         }
-        if ($finalDistribution == 4) {
-            $finalDistribution = -1; // ignore sharing group for now
+        if ($finalDistribution == 4) {  // ignore sharing group for now
+            $finalDistribution = -1;
         }
         return $finalDistribution;
     }
