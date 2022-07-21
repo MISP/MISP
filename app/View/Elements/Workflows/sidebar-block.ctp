@@ -5,7 +5,7 @@ $classFromSeverity = [
     'error' => 'danger',
 ];
 ?>
-<div id="<?= h($block['id']) ?>" class="sidebar-workflow-block" style="user-select: none;" data-blockid="<?= h($block['id']) ?>" title="<?= !empty($block['disabled']) ? __('This module is disabled') : '' ?>" data-block-disabled="<?= !empty($block['disabled']) ? '1' : '0' ?>" data-is-misp-module="<?= !empty($block['is_misp_module']) ?>">
+<div id="<?= h($block['id']) ?>" class="sidebar-workflow-block block-type-<?= h($block['module_type'] ?? 'action') ?>" style="user-select: none;" data-blockid="<?= h($block['id']) ?>" title="<?= !empty($block['disabled']) ? __('This module is disabled') : '' ?>" data-block-disabled="<?= !empty($block['disabled']) ? '1' : '0' ?>" data-is-misp-module="<?= !empty($block['is_misp_module']) ?>">
     <div class="icon">
         <?php if (!empty($block['icon'])) : ?>
             <i class="<?= $this->FontAwesome->getClass($block['icon']) ?> fa-fw <?= $block['icon_class'] ?? '' ?>"></i>

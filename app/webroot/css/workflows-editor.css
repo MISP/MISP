@@ -484,7 +484,8 @@
     border-right-style: solid;
 }
 
-.drawflow .drawflow-node.block-type-logic {
+.drawflow .drawflow-node.block-type-logic,
+.sidebar-workflow-block.block-type-logic {
     border-left-color: #74c973;
     border-left-width: 0.25rem;
     border-left-style: solid;
