@@ -39,20 +39,21 @@
             }
         }
     }
+    $Paginator = $this->Paginator;
+    if (!empty($data['light_paginator'])) {
+        $Paginator = $this->LightPaginator;
+    }
     $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : [];
     if ($ajax && isset($containerId)) {
         $paginationData['data-paginator'] = "#{$containerId}_content";
     }
-    $this->Paginator->options($paginationData);
-    $skipPagination = !empty($data['skip_pagination']) || !empty($data['stupid_pagination']);
+    $Paginator->options($paginationData);
+    $skipPagination = !empty($data['skip_pagination']);
     if (!$skipPagination) {
-        $paginatonLinks = $this->element('/genericElements/IndexTable/pagination_links');
+        $paginatonLinks = $this->element('/genericElements/IndexTable/pagination_links', ['options' => ['paginator' => $Paginator]]);
         echo $paginatonLinks;
     }
 
-    if (!empty($data['stupid_pagination'])) {
-        echo $this->element('/genericElements/IndexTable/stupid_pagination_links');
-    }
     $hasSearch = false;
     if (!empty($data['top_bar'])) {
         foreach ($data['top_bar']['children'] as $child) {
@@ -101,7 +102,7 @@
     );
     echo '</div>';
     if (!$skipPagination) {
-        echo $this->element('/genericElements/IndexTable/pagination_counter', $paginationData);
+        echo $this->element('/genericElements/IndexTable/pagination_counter', ['options' => ['paginator' => $Paginator]]);
         echo $paginatonLinks;
     }
     $url = $baseurl . '/' . $this->params['controller'] . '/' . $this->params['action'];

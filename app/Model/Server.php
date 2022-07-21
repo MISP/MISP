@@ -132,6 +132,59 @@ class Server extends AppModel
 
     public $syncTestErrorCodes = array();
 
+    const MYSQL_RECOMMENDED_SETTINGS = [
+        'INNODB_BUFFER_POOL_SIZE' => [
+            'default' => '134217728',
+            'recommended' => '2147483648',
+            'explanation' => 'The InnoDB buffer pool is the memory area where caches table and index data reside. It is the most important MySQL setting, in a dedicated server it should be around 3/4 of all the available RAM. In a shared server it should be around 1/2 of the available RAM.',
+        ],
+        'INNODB_DEDICATED_SERVER' => [
+            'default' => '0',
+            'recommended' => '',
+            'explanation' => 'Set to `1` if the database is running in a dedicated server. The database engine will examine the available memory and dynamically set `innodb_buffer_pool_size`, `innodb_log_file_size`, `innodb_log_files_in_group` and `innodb_flush_method`. It is particularly useful in cloud enviroments that can be auto-scaled.',
+        ],
+        'INNODB_LOG_FILE_SIZE' => [
+            'default' => '100663296',
+            'recommended' => '629145600',
+            'explanation' => 'This parameter determines the fixed size for MySQLs redo logs. Tuning this value affects the crash recovery time and also overall system performance.',
+        ],
+        'INNODB_LOG_FILES_IN_GROUP' => [
+            'default' => '2',
+            'recommended' => '2',
+            'explanation' => 'Defines the number of log files in the log group.',
+        ],
+        'INNODB_CHANGE_BUFFERING' => [
+            'default' => 'none',
+            'recommended' => 'none',
+            'explanation' => 'Whether InnoDB performs change buffering, an optimization that delays write operations to secondary indexes so that the I/O operations can be performed sequentially, enabling it causes extremely long shutdown times for upgrades.',
+        ],
+        'INNODB_IO_CAPACITY' => [
+            'default' => '200',
+            'recommended' => '1000',
+            'explanation' => 'Defines the number of I/O operations per second (IOPS) available to InnoDB background tasks, such as flushing pages from the buffer pool and merging data from the change buffer.',
+        ],
+        'INNODB_IO_CAPACITY_MAX' => [
+            'default' => '2000',
+            'recommended' => '2000',
+            'explanation' => 'If flushing activity falls behind, InnoDB can flush more aggressively, at a higher rate of I/O operations per second (IOPS) than defined by the `innodb_io_capacity variable`.',
+        ],
+        'INNODB_STATS_PERSISTENT' => [
+            'default' => 'ON',
+            'recommended' => 'ON',
+            'explanation' => 'Specifies whether InnoDB index statistics are persisted to disk. Otherwise, statistics may be recalculated frequently which can lead to variations in query execution plans.',
+        ],
+        'INNODB_READ_IO_THREADS' => [
+            'default' => '4',
+            'recommended' => '16',
+            'explanation' => 'The number of I/O threads for read operations in InnoDB.',
+        ],
+        'INNODB_WRITE_IO_THREADS' => [
+            'default' => '4',
+            'recommended' => '4',
+            'explanation' => 'The number of I/O threads for write operations in InnoDB.',
+        ],
+    ];
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -2741,6 +2794,35 @@ class Server extends AppModel
     }
 
     /*
+     * Get RDBMS configuration values
+     */
+    public function dbConfiguration(): array
+    {
+        if ($this->isMysql()) {
+            $configuration = [];
+
+            $dbVariables = $this->query("SELECT VARIABLE_NAME, VARIABLE_VALUE FROM INFORMATION_SCHEMA.GLOBAL_VARIABLES;");
+            $settings = array_keys(self::MYSQL_RECOMMENDED_SETTINGS);
+
+            foreach ($dbVariables as $dbVariable) {
+                if (in_array($dbVariable['GLOBAL_VARIABLES']['VARIABLE_NAME'], $settings)) {
+                    $configuration[] = [
+                        'name' => $dbVariable['GLOBAL_VARIABLES']['VARIABLE_NAME'],
+                        'value' => $dbVariable['GLOBAL_VARIABLES']['VARIABLE_VALUE'],
+                        'default' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['GLOBAL_VARIABLES']['VARIABLE_NAME']]['default'],
+                        'recommended' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['GLOBAL_VARIABLES']['VARIABLE_NAME']]['recommended'],
+                        'explanation' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['GLOBAL_VARIABLES']['VARIABLE_NAME']]['explanation'],
+                    ];
+                }
+            }
+
+            return $configuration;
+        } else {
+            return [];
+        }
+    }
+
+    /*
      * Work in progress, still needs DEFAULT in the schema for it to work correctly
      * Currently only works for missing_column and column_different
      * Only currently supported field types are: int, tinyint, varchar, text
@@ -3433,6 +3515,7 @@ class Server extends AppModel
                 $sqlResult = $this->query($sql);
                 if (isset($sqlResult[0][0])) {
                     $sessionCount = $sqlResult[0][0]['session_count'];
+                    $errorCode = 0;
                 } else {
                     $errorCode = 9;
                 }

@@ -44,6 +44,9 @@ class CorrelationsController extends AppController
                     }
                 }
             }
+
+            $this->__setPagingParams($query['page'], $query['limit'], count($data), 'named');
+
             $this->set('age', $age);
             $this->set('age_unit', $unit);
             $this->set('data', $data);

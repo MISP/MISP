@@ -518,19 +518,19 @@ class ShadowAttributesController extends AppController
                 }
             } else {
                 $shadowAttribute = array(
-                        'ShadowAttribute' => array(
-                                'value' => $filename,
-                                'category' => $this->request->data['ShadowAttribute']['category'],
-                                'type' => 'attachment',
-                                'event_id' => $this->request->data['ShadowAttribute']['event_id'],
-                                'comment' => $this->request->data['ShadowAttribute']['comment'],
-                                'data' => base64_encode($tmpfile->read()),
-                                'to_ids' => 0,
-                                'email' => $this->Auth->user('email'),
-                                'org_id' => $this->Auth->user('org_id'),
-                                'event_uuid' => $event['Event']['uuid'],
-                                'event_org_id' => $event['Event']['orgc_id'],
-                        )
+                    'ShadowAttribute' => array(
+                        'value' => $filename,
+                        'category' => $this->request->data['ShadowAttribute']['category'],
+                        'type' => 'attachment',
+                        'event_id' => $this->request->data['ShadowAttribute']['event_id'],
+                        'comment' => $this->request->data['ShadowAttribute']['comment'],
+                        'data' => base64_encode($tmpfile->read()),
+                        'to_ids' => 0,
+                        'email' => $this->Auth->user('email'),
+                        'org_id' => $this->Auth->user('org_id'),
+                        'event_uuid' => $event['Event']['uuid'],
+                        'event_org_id' => $event['Event']['orgc_id'],
+                    )
                 );
                 $this->ShadowAttribute->create();
                 $r = $this->ShadowAttribute->save($shadowAttribute);
@@ -585,6 +585,7 @@ class ShadowAttributesController extends AppController
         $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
         $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
+        $this->set('mayModify', $this->__canModifyEvent($event));
         $this->set('event', $event);
         $this->set('title_for_layout', __('Propose attachment'));
     }
