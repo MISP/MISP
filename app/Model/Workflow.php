@@ -884,9 +884,9 @@ class Workflow extends AppModel
         $blocks_logic = $this->loaded_modules['logic'];
         $blocks_action = $this->loaded_modules['action'];
 
-        ksort($blocks_trigger);
-        ksort($blocks_logic);
-        ksort($blocks_action);
+        $this->__sortBlocksByName($blocks_trigger);
+        $this->__sortBlocksByName($blocks_logic);
+        $this->__sortBlocksByName($blocks_action);
         $blocks_trigger = array_values($blocks_trigger);
         $blocks_logic = array_values($blocks_logic);
         $blocks_action = array_values($blocks_action);
@@ -903,6 +903,16 @@ class Workflow extends AppModel
             }
         }
         return $modules;
+    }
+
+    private function __sortBlocksByName(&$blocks)
+    {
+        uasort($blocks, function ($module1, $module2) {
+            if ($module1['name'] == $module2['name']) {
+                return 0;
+            }
+            return ($module1['name'] < $module2['name']) ? -1 : 1;
+        });
     }
 
     public function getModules(): array
