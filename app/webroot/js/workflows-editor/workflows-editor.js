@@ -182,7 +182,7 @@ function initDrawflow() {
             evt.preventDefault()
         }
         if (evt.keyCode == 46 && $drawflow.is(evt.target)) {
-            deleteSelectedNodes()
+            deleteSelectedNodes(true)
         }
     })
     editor.translate_to = function (x, y) {
@@ -423,7 +423,7 @@ function initDrawflow() {
         selection.select(newNodes)
     })
     $controlDeleteButton.click(function() {
-        deleteSelectedNodes()
+        deleteSelectedNodes(false)
     })
     $controlSaveBlocksLi.click(function(evt) {
         var $link = $(this).find('a')
@@ -1015,9 +1015,9 @@ function deleteSelectedNode() {
     editor.removeNodeId(getSelectedNodeID())
 }
 
-function deleteSelectedNodes() {
+function deleteSelectedNodes(fromDelKey) {
     selection.getSelection().forEach(function(node) {
-        if (getSelectedNodeID() !== null && getSelectedNodeID() == node.id) {
+        if (fromDelKey && getSelectedNodeID() !== null && getSelectedNodeID() == node.id) {
             return // This node will be removed by drawflow delete callback
         }
         editor.removeNodeId(node.id)
