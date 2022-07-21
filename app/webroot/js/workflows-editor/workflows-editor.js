@@ -996,7 +996,7 @@ function exportWorkflow() {
 }
 
 function getSelectedNodeID() {
-    return editor.node_selected.id // Couldn't find a better way to get the selected node
+    return editor.node_selected !== null ? editor.node_selected.id : null // Couldn't find a better way to get the selected node
 }
 
 function getSelectedNodeIDInteger() {
@@ -1017,7 +1017,7 @@ function deleteSelectedNode() {
 
 function deleteSelectedNodes() {
     selection.getSelection().forEach(function(node) {
-        if (getSelectedNodeID() == node.id) {
+        if (getSelectedNodeID() !== null && getSelectedNodeID() == node.id) {
             return // This node will be removed by drawflow delete callback
         }
         editor.removeNodeId(node.id)
