@@ -717,6 +717,7 @@ function loadWorkflow(workflow) {
             html
         )
     })
+    afterNodeDrawCallback()
     Object.values(workflow.data).forEach(function (block) {
         for (var input_name in block.inputs) {
             block.inputs[input_name].connections.forEach(function (connection) {
@@ -724,7 +725,6 @@ function loadWorkflow(workflow) {
             })
         }
     })
-    afterNodeDrawCallback()
 }
 
 function filterBlocks(clicked) {
@@ -1190,6 +1190,7 @@ function genSelect(options) {
     })
     if (options.multiple) {
         $select.prop('multiple', true)
+        $select.attr('size', 1)
     }
     var selectOptions = options.options
     if (!Array.isArray(selectOptions)) {
