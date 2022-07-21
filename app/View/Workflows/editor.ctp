@@ -300,7 +300,7 @@ $data_passed_to_switch = [
 <?php
 echo $this->element('genericElements/assetLoader', [
     'css' => ['drawflow.min', 'drawflow-default'],
-    'js' => ['jquery-ui', 'drawflow.min', 'doT', 'moment.min', 'viselect.cjs'],
+    'js' => ['jquery-ui.min', 'drawflow.min', 'doT', 'moment.min', 'viselect.cjs'],
 ]);
 echo $this->element('genericElements/assetLoader', [
     'css' => ['workflows-editor'],
