@@ -4523,7 +4523,7 @@ class Event extends AppModel
             'id' => $id,
             'message' => __('Publishing stopped by a blocking workflow.'),
         ];
-        $success = $this->executeTrigger('publish', $this->convertToCoreFormat($fullEvent[0]), $workflowErrors, $logging);
+        $success = $this->executeTrigger('publish', $fullEvent[0], $workflowErrors, $logging);
         if (empty($success)) {
             $errorMessage = implode(', ', $workflowErrors);
             return $errorMessage;
@@ -6014,7 +6014,7 @@ class Event extends AppModel
                         }
                         $triggerData = $event[0];
                         $triggerData['Attribute'] = [$attribute];
-                        $result = $this->Module->queryModuleServer($data, false, 'Enrichment', false,  $this->convertToCoreFormat($triggerData));
+                        $result = $this->Module->queryModuleServer($data, false, 'Enrichment', false, $triggerData);
                         if ($result === false) {
                             throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
                         } else if (!is_array($result)) {
@@ -6054,29 +6054,6 @@ class Event extends AppModel
             }
         }
         return $attributes_added;
-    }
-
-    /**
-     * convertToCoreFormat Convert the given event into the core format described in the RFC. Perform conversion such as getting rid of EventTag
-     *
-     * @param array $event
-     * @return array
-     */
-    public function convertToCoreFormat(array $event) {
-        $event = array_merge($event['Event'], $event);
-        unset($event['Event']);
-        foreach ($event['Attribute'] as $i => $attribute) {
-            $attribute['EventTag'] = $event['EventTag'];
-            $event['Attribute'][$i] = $this->Attribute->convertToCoreFormat($attribute)['Attribute'];
-        }
-        if (isset($event['EventTag'])) {
-            foreach ($event['EventTag'] as $tag) {
-                $tag['Tag']['inherited'] = 0;
-                $event['Tag'][] = $tag['Tag'];
-            }
-            unset($event['EventTag']);
-        }
-        return ['Event' => $event];
     }
 
     public function massageTags($user, $data, $dataType = 'Event', $excludeGalaxy = false, $cullGalaxyTags = false)

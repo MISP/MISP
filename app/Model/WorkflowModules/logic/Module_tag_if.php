@@ -80,11 +80,11 @@ class Module_tag_if extends WorkflowBaseLogicModule
     {
         $path = '';
         if ($scope == 'attribute') {
-            $path = 'Event.Attribute.0.Tag.{n}[inherited=0].id';
-        } elseif ($scope == 'event_attribute') {
             $path = 'Event.Attribute.0.Tag.{n}.id';
+        } elseif ($scope == 'event_attribute') {
+            $path = 'Event.Attribute.0._allTags.{n}.id';
         } else {
-            $path = 'Event.Attribute.0.Tag.{n}[inherited=1].id';
+            $path = 'Event.Tag.{n}.id';
         }
         return Hash::extract($data, $path) ?? [];
     }

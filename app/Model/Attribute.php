@@ -2355,9 +2355,6 @@ class Attribute extends AppModel
                     $massaged_attribute['Galaxy'] = array_merge_recursive($massaged_attribute['Galaxy'], $massaged_event['Galaxy']);
                     $attribute = $massaged_attribute;
                 }
-                if (!empty($options['convertToCoreFormat'])) {
-                    $attribute = $this->convertToCoreFormat($attribute);
-                }
                 $attributes[] = $attribute;
             }
             unset($attribute);
@@ -2370,36 +2367,6 @@ class Attribute extends AppModel
             }
         } while ($loop);
         return $attributes;
-    }
-
-    /**
-     * convertToCoreFormat Convert the given attribute into the core format described in the RFC. Perform conversion such as getting rid of value1/value2 and AttributeTag
-     *
-     * @param array $attribute
-     * @return array
-     */
-    public function convertToCoreFormat(array $attribute): array
-    {
-        if (isset($attribute['Attribute'])) {
-            $attribute = array_merge($attribute['Attribute'], $attribute);
-            unset($attribute['Attribute']);
-        }
-        if (isset($attribute['Object']) && empty($attribute['Object']['id'])) {
-            unset($attribute['Object']);
-        }
-        $tagTypes = ['AttributeTag', 'EventTag'];
-        foreach ($tagTypes as $tagType) {
-            if (isset($attribute[$tagType])) {
-                foreach ($attribute[$tagType] as $tag) {
-                    $tag['Tag']['inherited'] = $tagType === 'EventTag' ? 1 : 0;
-                    $attribute['Tag'][] = $tag['Tag'];
-                }
-                unset($attribute[$tagType]);
-            }
-        }
-        unset($attribute['value1']);
-        unset($attribute['value2']);
-        return ['Attribute' => $attribute];
     }
 
     /**

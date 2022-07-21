@@ -186,36 +186,6 @@ class WorkflowBaseModule
         }
         return $items;
     }
-
-    /**
-     * convertToMISPCoreFormat Convert data passed to the trigger into the MISP Core format
-     *
-     * @param array $data
-     * @return array|false
-     */
-    protected function convertToMISPCoreFormat(array $data)
-    {
-        $this->Event = ClassRegistry::init('Event');
-
-        $converted = $data;
-        $event = [];
-        if (!empty($data['Attribute']) || !empty($data['Object'])) {
-            $fakeSiteAdminUser = ['Role' => ['perm_site_admin' => true]];
-            $event = $this->Event->fetchSimpleEvent($fakeSiteAdminUser, $data['Attribute']['event_id'] ?? $data['Object']['event_id']);
-            if (empty($event)) {
-                return false;
-            }
-            $event = $event['Event'];
-        }
-        if (!empty($data['Object']) && empty($data['Attribute'])) {
-            $converted = ['Event' => $event];
-            $converted['Event']['Object'][] = $data['Object'];
-        } else if (!empty($data['Attribute'])) {
-            $converted = ['Event' => $event];
-            $converted['Event']['Attribute'][] = $data['Attribute'];
-        }
-        return $converted;
-    }
 }
 
 class WorkflowBaseTriggerModule extends WorkflowBaseModule
@@ -234,13 +204,25 @@ class WorkflowBaseTriggerModule extends WorkflowBaseModule
     public function normalizeData(array $data)
     {
         if (!empty($this->misp_core_format)) {
-            $converted = $this->convertToMISPCoreFormat($data);
-            if ($converted === false) {
+            $converted = $this->convertData($data);
+            if (empty($converted)) {
                 return false;
             }
             return $converted;
         }
         return $data;
+    }
+
+    /**
+     * convertData function
+     *
+     * @param array $data
+     * @return array
+     */
+    protected function convertData(array $data): array
+    {
+        App::uses('WorkflowFormatConverterTool', 'Tools');
+        return WorkflowFormatConverterTool::convert($data);   
     }
 }
 

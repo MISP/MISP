@@ -203,7 +203,7 @@ class Module extends AppModel
         return "$url:$port";
     }
 
-    private function __prepareAndExectureForTrigger($postData, $triggerData): bool
+    private function __prepareAndExectureForTrigger($postData, $triggerData=[]): bool
     {
         $this->Workflow = ClassRegistry::init('Workflow');
         $trigger_id = 'enrichment-before-query';
@@ -233,7 +233,12 @@ class Module extends AppModel
             $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`', $trigger_id, $postData['attribute_uuid'], $triggerData['Attribute']['event_id'], $postData['module']);
         } else {
             if (isset($triggerData['Attribute'])) {
-                $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`', $trigger_id, $triggerData['Attribute']['id'], $triggerData['Attribute']['event_id'], $postData['module']);
+                $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`',
+                    $trigger_id,
+                    $triggerData['Attribute']['id'] ?? $triggerData['Attribute'][0]['id'],
+                    $triggerData['Attribute']['event_id'] ?? $triggerData['Attribute'][0]['event_id'],
+                    $postData['module']
+                );
             } else {
                 $logging['message'] = __('The workflow `%s` prevented attribute `%s` (from event `%s`) to query the module `%s`', $trigger_id, $triggerData['Event']['Attribute'][0]['id'], $triggerData['Event']['id'], $postData['module']);
             }
