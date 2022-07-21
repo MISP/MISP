@@ -732,7 +732,7 @@ class Correlation extends AppModel
             return false;
         }
         $start = $query['limit'] * ($query['page'] -1);
-        $end = $query['limit'] * $query['page'];
+        $end = $query['limit'] * $query['page'] - 1;
         $list = $redis->zRevRange(self::CACHE_NAME, $start, $end, true);
         $results = [];
         foreach ($list as $value => $count) {
