@@ -285,7 +285,7 @@ function initDrawflow() {
         drop: function (event, ui) {
             ui.position.top += 96 // take padding/marging/position into account
             if (ui.draggable.data('blueprint')) {
-                addWorkflowBlueprint(ui.draggable.data('blueprint').WorkflowBlueprint.id)
+                addWorkflowBlueprint(ui.draggable.data('blueprint').WorkflowBlueprint.id, ui.position)
             } else {
                 addNode(ui.draggable.data('block'), ui.position)
             }
@@ -794,28 +794,26 @@ function duplicateNodesFromHtml(currentSelection) {
     return newNodes
 }
 
-function addNodesFromWorkflowBlueprint(workflowBlueprint) {
+function addNodesFromWorkflowBlueprint(workflowBlueprint, cursorPosition) {
     var newNodes = []
     if (workflowBlueprint.data.length == 0) {
         return counterNodeAdded
     }
     var oldNewIDMapping = {}
-    // We need min position to position nodes relatively
+    // We position all nodes relatively based on the left most node
     var minX = workflowBlueprint.data[0].pos_x
-    var minY = workflowBlueprint.data[0].pos_y
+    var matchingY = workflowBlueprint.data[0].pos_y
     workflowBlueprint.data.forEach(function(node) {
         minX = node.pos_x < minX ? node.pos_x : minX
-        minY = node.pos_y < minY ? node.pos_y : minY
+        matchingY = node.pos_x < minX ? node.pos_y : matchingY
     })
-
-    var canvasCentroid = getCanvasCentroid()
     workflowBlueprint.data.forEach(function(node) {
         if (node.data.module_type == 'trigger') {
             return
         }
         var position = {
-            top: ((node.pos_y - Math.abs(minY)) * editor.zoom + canvasCentroid.centroidY),
-            left: ((node.pos_x - Math.abs(minX)) * editor.zoom + canvasCentroid.centroidX),
+            top: (node.pos_y - matchingY) * editor.zoom + cursorPosition.top,
+            left: (node.pos_x - minX) * editor.zoom + cursorPosition.left,
         }
         if (all_blocks_by_id[node.data.id] === undefined) {
             var userFriendlyParams = {}
@@ -1025,19 +1023,25 @@ function deleteSelectedNodes(fromDelKey) {
     editor.dispatch('nodeUnselected')
 }
 
-function addWorkflowBlueprint(blueprintId) {
+function addWorkflowBlueprint(blueprintId, cursorPosition) {
     var workflowBlueprint = all_workflow_blueprints_by_id[blueprintId]
     if (!workflowBlueprint) {
         console.error('Tried to get workflow blueprint ' + blueprintId)
         return '';
     }
-    var newNodes = addNodesFromWorkflowBlueprint(workflowBlueprint.WorkflowBlueprint);
+    if (!cursorPosition) {
+        var centroid = getCanvasCentroid()
+        cursorPosition = {
+            top: centroid.centroidY,
+            left: centroid.centroidX,
+        }
+    }
+    var newNodes = addNodesFromWorkflowBlueprint(workflowBlueprint.WorkflowBlueprint, cursorPosition);
     if (newNodes.length > 0) {
         selection.clearSelection()
         selection.select(newNodes)
         editor.dispatch('nodeSelected', newNodes[0].id);
     }
-    editor.fitCanvas()
 }
 
 /* UI Utils */
