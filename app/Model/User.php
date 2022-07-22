@@ -299,15 +299,23 @@ class User extends AppModel
         $kafkaTopic = $this->kafkaTopic('user');
         $action = empty($created) ? 'edit' : 'add';
         $user = $this->data;
-        $user_id = $action == 'add' ? 0 : $user['User']['id'];
-        $workflowErrors = [];
-        $logging = [
-            'model' => 'User',
-            'action' => $action,
-            'id' => $user_id,
-            'message' => __('Error while executing workflow.'),
-        ];
-        $this->executeTrigger('user-after-save', $user['User'], $workflowErrors, $logging);
+        if (
+            empty($user['User']['action']) ||
+            (
+                $user['User']['action'] != 'logout' &&
+                $user['User']['action'] != 'login'
+            )
+        ) {
+            $user_id = $action == 'add' ? 0 : $user['User']['id'];
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'User',
+                'action' => $action,
+                'id' => $user_id,
+                'message' => __('Error while executing workflow.'),
+            ];
+            $this->executeTrigger('user-after-save', $user['User'], $workflowErrors, $logging);
+        }
         if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->data)) {
                 $user = $this->data;
