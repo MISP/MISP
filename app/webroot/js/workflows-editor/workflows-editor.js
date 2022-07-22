@@ -687,7 +687,7 @@ function loadWorkflow(workflow) {
             return '';
         }
         var module_data = Object.assign({}, all_blocks_by_id[block.data.id] || all_triggers_by_id[block.data.id])
-        module_data.params = block.data.params
+        module_data.params = mergeNodeAndModuleParams(block.data.params, module_data.params)
         module_data.saved_filters = block.data.saved_filters
         block.data = module_data
         var node_uid = uid() // only used for UI purposes
@@ -886,6 +886,31 @@ function getCanvasCentroid() {
         maxX: maxX,
         maxY: maxY,
     }
+}
+
+function mergeNodeAndModuleParams(nodeParams, moduleParams) {
+    var moduleParamsByFormattedName = {}
+    var nodeParamsByFormattedName = {}
+    moduleParams.forEach(function (param) {
+        moduleParamsByFormattedName[param.label.toLowerCase().replace(' ', '-')] = param
+    })
+    nodeParams.forEach(function (param) {
+        nodeParamsByFormattedName[param.label.toLowerCase().replace(' ', '-')] = param
+    })
+    var finalParams = {}
+    var nodeAndModuleParams = nodeParams.concat(moduleParams)
+    nodeAndModuleParams.forEach(function (param) {
+        var formattedName = param.label.toLowerCase().replace(' ', '-')
+        if (finalParams[formattedName]) { // param has already been processed
+            return;
+        }
+        if (moduleParamsByFormattedName[formattedName] === undefined) { // Param do not exist in the module (anymore or never did)
+            param.is_invalid = true
+        }
+        finalParam = Object.assign({}, nodeParamsByFormattedName[formattedName], moduleParamsByFormattedName[formattedName])
+        finalParams[formattedName] = finalParam
+    })
+    return Object.values(finalParams)
 }
 
 /* API */
@@ -1102,37 +1127,8 @@ function getTemplateForBlock(block) {
 
 function genBlockParamHtml(block) {
     var blockParams = block.params !== undefined ? block.params : []
-    var module = all_blocks_by_id[block.id]
-    var moduleParams = (module === undefined || module.params === undefined) ? [] : module.params
-    var moduleParamsByFormattedName = {}
-    var blockParamsByFormattedName = {}
-    moduleParams.forEach(function(param) {
-        moduleParamsByFormattedName[param.label.toLowerCase().replace(' ', '-')] = param
-    })
-    blockParams.forEach(function(param) {
-        blockParamsByFormattedName[param.label.toLowerCase().replace(' ', '-')] = param
-    })
-    var processedParam = {};
     var html = ''
-    var blockAndModuleParams = blockParams.concat(moduleParams)
-    blockAndModuleParams.forEach(function (param) {
-        var formattedName = param.label.toLowerCase().replace(' ', '-')
-        if (processedParam[formattedName]) { // param has already been processed
-            return;
-        }
-        if (moduleParamsByFormattedName[formattedName] === undefined) { // Param do not exist in the module (anymore or never did)
-            param.is_invalid = true
-        }
-        param = Object.assign({}, blockParamsByFormattedName[formattedName], moduleParamsByFormattedName[formattedName])
-        if (!param['param_id']) {
-            param['param_id'] = getIDForBlockParameter(block, param)
-            block.params.map(function(blockParam) { // We also need to update the block config
-                if (blockParam.label == param.label) {
-                    blockParam['param_id'] = param['param_id']
-                }
-                return blockParam
-            })
-        }
+    blockParams.forEach(function (param) {
         paramHtml = ''
         switch (param.type) {
             case 'input':
@@ -1156,7 +1152,6 @@ function genBlockParamHtml(block) {
             default:
                 break;
         }
-        processedParam[formattedName] = true
         html += paramHtml
     })
     return html
