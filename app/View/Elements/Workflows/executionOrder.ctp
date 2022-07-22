@@ -26,12 +26,12 @@
     <?php if (!empty($trigger['GroupedWorkflows']['non-blocking'])): ?>
         <ul class="unstyled">
             <li class="bold">
-                <i class="fa-fw <?= $this->FontAwesome->getClass('random') ?>" title="<?= __('Parallel execution path') ?>"></i>
-                <?= __('Parallel') ?>
+                <i class="fa-fw <?= $this->FontAwesome->getClass('random') ?>" title="<?= __('Concurrent execution path') ?>"></i>
+                <?= __('Concurrent') ?>
             </li>
             <?php foreach ($trigger['GroupedWorkflows']['non-blocking'] as $i => $workflow) : ?>
                 <li>
-                    <i class="fa-fw <?= $this->FontAwesome->getClass('arrow-right') ?>" title="<?= __('Parallel execution path') ?>" style="margin-left: <?= 1 ?>em"></i>
+                    <i class="fa-fw <?= $this->FontAwesome->getClass('arrow-right') ?>" title="<?= __('Concurrent execution path') ?>" style="margin-left: <?= 1 ?>em"></i>
                     <a
                         href="<?= $baseurl . '/workflows/view/' . h($workflow['Workflow']['id']) ?>"
                         title="<?= empty($workflow['Workflow']['enabled']) ? __('This workflow is disabled') : h($workflow['Workflow']['description']) ?>"

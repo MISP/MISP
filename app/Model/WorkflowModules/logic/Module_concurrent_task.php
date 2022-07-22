@@ -2,16 +2,16 @@
 include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 App::uses('BackgroundJobsTool', 'Tools');
 
-class Module_parallel_task extends WorkflowBaseLogicModule
+class Module_concurrent_task extends WorkflowBaseLogicModule
 {
-    public $id = 'parallel-task';
-    public $name = 'Parallel Task';
-    public $description = 'Allow breaking the execution process and running parallel tasks. You can connect multiple blocks the `parallel` output.';
+    public $id = 'concurrent-task';
+    public $name = 'Concurrent Task';
+    public $description = 'Allow breaking the execution process and running concurrent tasks. You can connect multiple blocks the `concurrent` output.';
     public $icon = 'random';
     public $inputs = 1;
     public $outputs = 1;
     public $multiple_output_connection = true;
-    public $html_template = 'parallel';
+    public $html_template = 'concurrent';
     public $params = [];
 
     private $Workflow;

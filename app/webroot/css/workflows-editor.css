@@ -606,7 +606,7 @@
     content: "\f00d"
 }
 
-.drawflow .drawflow-node.block-type-parallel > .outputs > .output::before {
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output::before {
     display: none;
     transform: translateX(calc(50% - 8px));
     right: 0;
@@ -616,11 +616,11 @@
     border-radius: 3px;
 }
 
-.drawflow .drawflow-node.block-type-parallel > .outputs > .output:hover::before {
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output:hover::before {
     display: block;
 }
 
-.drawflow .drawflow-node.block-type-parallel > .outputs > .output::after {
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output::after {
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
     position: absolute;
@@ -632,21 +632,21 @@
     transition-duration: .1s
 }
 
-.drawflow .drawflow-node.block-type-parallel > .outputs > .output:hover::after {
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output:hover::after {
     font-size: larger;
     width: 18px;
     top: -1px;
 }
 
-.drawflow .drawflow-node.block-type-parallel > .outputs > .output_1 {
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output_1 {
     background-color: #fff;
 }
 
-.drawflow .drawflow-node.block-type-parallel > .outputs > .output_1::before {
-    content: 'parallel tasks';
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output_1::before {
+    content: 'Concurrent tasks';
     top: -26px;
 }
 
-.drawflow .drawflow-node.block-type-parallel > .outputs > .output_1::after {
+.drawflow .drawflow-node.block-type-concurrent > .outputs > .output_1::after {
     content: "\f074";
 }

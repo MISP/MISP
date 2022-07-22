@@ -126,7 +126,7 @@ class GraphWalker
     private function _getPathType($node_id, $path_type)
     {
         $node = $this->graph[$node_id];
-        if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'parallel-task') {
+        if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'concurrent-task') {
             return 'non-blocking';
         }
         return $path_type;
@@ -154,8 +154,8 @@ class GraphWalker
         if ($node['data']['id'] == 'if') {
             $useFirstOutput = $this->_evaluateIFCondition($node, $roamingData);
             return $useFirstOutput ? ['output_1' => $outputs['output_1']] : ['output_2' => $outputs['output_2']];
-        } else if ($node['data']['id'] == 'parallel-task') {
-            $this->_evaluateParallelTask($node, $roamingData, $outputs['output_1']);
+        } else if ($node['data']['id'] == 'concurrent-task') {
+            $this->_evaluateConcurrentTask($node, $roamingData, $outputs['output_1']);
             return ['output_1' => []];
         } else {
             $useFirstOutput = $this->_evaluateCustomLogicCondition($node, $roamingData);
@@ -176,14 +176,14 @@ class GraphWalker
         return $result;
     }
 
-    private function _evaluateParallelTask($parallel_node, WorkflowRoamingData $roamingData, array $connections)
+    private function _evaluateConcurrentTask($concurrent_node, WorkflowRoamingData $roamingData, array $connections)
     {
         foreach ($connections['connections'] as $connection) {
             $node_id_to_exec = (int)$connection['node'];
             $data = $roamingData->getData();
             $data['__node_id_to_exec'] = $node_id_to_exec;
             $data = $roamingData->setData($data);
-            $this->WorkflowModel->executeNode($parallel_node, $roamingData);
+            $this->WorkflowModel->executeNode($concurrent_node, $roamingData);
         }
     }
 

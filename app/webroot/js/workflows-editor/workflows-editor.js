@@ -85,7 +85,7 @@ var dotBlock_if = doT.template(' \
     </div> \
 </div>')
 
-var dotBlock_parallel = doT.template(' \
+var dotBlock_concurrent = doT.template(' \
 <div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \

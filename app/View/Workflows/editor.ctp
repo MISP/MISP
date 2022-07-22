@@ -277,8 +277,8 @@ $data_passed_to_switch = [
                     <li><?= __('The `publish` workflow is called (this workflow is a `blocking` workflow)') ?></li>
                     <li><?= __('If a blocking module cancels the execution, the event will not be published') ?></li>
                 </ol>
-                <h3><?= __('Parallel Task') ?></h3>
-                <p><?= __('Allowing breaking the execution flow into a parallel tasks to be executed later on by a background worker, thus preventing blocking module to cancel the ongoing operation.') ?></p>
+                <h3><?= __('Concurrent Task') ?></h3>
+                <p><?= __('Allowing breaking the execution flow into a concurrent tasks to be executed later on by a background worker, thus preventing blocking module to cancel the ongoing operation.') ?></p>
             </div>
             <div class="tab-pane" id="modal-info-usage">
                 <h3><?= __('Shortcuts') ?></h3>

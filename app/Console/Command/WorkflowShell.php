@@ -51,14 +51,14 @@ class WorkflowShell extends AppShell {
         $for_path = $this->args[3];
         $jobId = $this->args[4];
 
-        $parallelErrors = [];
+        $concurrentErrors = [];
         $walkResult = [];
         $executionSuccess = $this->Workflow->walkGraph(
             $workflow,
             $node_id_to_exec,
             $for_path,
             $roamingData,
-            $parallelErrors,
+            $concurrentErrors,
             $walkResult,
         );
         $job = $this->Job->read(null, $jobId);
@@ -66,9 +66,9 @@ class WorkflowShell extends AppShell {
         $job['Job']['status'] = Job::STATUS_COMPLETED;
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
         if ($executionSuccess) {
-            $job['Job']['message'] = __('Workflow parallel task executed %s nodes starting from node %s.', count($walkResult['executed_nodes']), $node_id_to_exec);
+            $job['Job']['message'] = __('Workflow concurrent task executed %s nodes starting from node %s.', count($walkResult['executed_nodes']), $node_id_to_exec);
         } else {
-            $message = __('Error while executing workflow parallel task. %s', PHP_EOL . implode(', ', $parallelErrors));
+            $message = __('Error while executing workflow concurrent task. %s', PHP_EOL . implode(', ', $concurrentErrors));
             $this->Workflow->logExecutionError($workflow, $message);
             $job['Job']['message'] = $message;
         }
