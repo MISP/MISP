@@ -27,7 +27,7 @@ echo $this->element('genericElements/Form/genericForm', [
         'fields' => $fields,
         'submit' => [
             'action' => $this->request->params['action'],
-            'ajaxSubmit' => 'submitGenericFormInPlace();'
+            'ajaxSubmit' => 'submitModalInPlace();'
         ]
     ]
 ]);
@@ -35,3 +35,20 @@ echo $this->element('genericElements/Form/genericForm', [
 if (!$ajax) {
     echo $this->element('/genericElements/SideMenu/side_menu', $menuData);
 }
+?>
+
+<script>
+    function submitModalInPlace() {
+        var $genericForm = $('.genericForm');
+        $.ajax({
+            type: "POST",
+            url: $genericForm.attr('action'),
+            data: $genericForm.serialize(), // serializes the form's elements.
+            success: function(data) {
+                $('#genericModal').modal('hide').remove();
+                showMessage('success', '<?= $edit ? __('Blueprint updated') : __('Blueprint created') ?>');
+            },
+            error: xhrFailCallback,
+        });
+    }
+</script>

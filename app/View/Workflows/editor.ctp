@@ -168,13 +168,33 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
                                     <li><a href="#"><?= _('No workflow blueprints saved') ?></a></li>
                                 <?php endif; ?>
                                 <?php foreach ($workflowBlueprints as $workflowBlueprint) : ?>
-                                    <li><a href="#" title="<?= h($workflowBlueprint['WorkflowBlueprint']['description']) ?>" onclick="addWorkflowBlueprint(<?= h($workflowBlueprint['WorkflowBlueprint']['id']) ?>)">
+                                    <li>
+                                        <a href="#" title="<?= h($workflowBlueprint['WorkflowBlueprint']['description']) ?>" onclick="addWorkflowBlueprint(<?= h($workflowBlueprint['WorkflowBlueprint']['id']) ?>)">
                                             <?= h($workflowBlueprint['WorkflowBlueprint']['name']) ?>
                                             <small class="text-muted">[<?= h(substr($workflowBlueprint['WorkflowBlueprint']['uuid'], 0, 4)) ?>...]</small>
-                                        </a></li>
+                                        </a>
+                                    </li>
                                 <?php endforeach; ?>
                             </ul>
-                        <li id="control-save-blocks" class="disabled"><a href="<?= $baseurl . '/workflowBlueprints/add/1' ?>"><i class=" fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save blueprint') ?></a></li>
+                        <li id="control-save-blocks" class="disabled">
+                            <a href="<?= $baseurl . '/workflowBlueprints/add/1' ?>"><i class=" fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save blueprint') ?></a>
+                        </li>
+                        <li id="control-import-blocks-container" class="dropdown-submenu submenu-right disabled">
+                            <a href="#"><i class="fa-fw <?= $this->FontAwesome->getClass('edit') ?>"></i> <?= __('Edit existing blueprint') ?></a>
+                            <ul class="dropdown-menu pull-right disabled">
+                                <?php if (empty($workflowBlueprints)) : ?>
+                                    <li><a href="#"><?= _('No workflow blueprints saved') ?></a></li>
+                                <?php endif; ?>
+                                <?php foreach ($workflowBlueprints as $workflowBlueprint) : ?>
+                                    <li class="control-edit-bp-blocks">
+                                        <a href="<?= $baseurl . '/workflowBlueprints/edit/' . h($workflowBlueprint['WorkflowBlueprint']['id']) ?>" title="<?= h($workflowBlueprint['WorkflowBlueprint']['description']) ?>" data-bp-id="<?= h($workflowBlueprint['WorkflowBlueprint']['id']) ?>">
+                                            <?= h($workflowBlueprint['WorkflowBlueprint']['name']) ?>
+                                            <small class="text-muted">[<?= h(substr($workflowBlueprint['WorkflowBlueprint']['uuid'], 0, 4)) ?>...]</small>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </li>
                         </li>
                     </ul>
                 </div>
@@ -324,6 +344,8 @@ echo $this->element('genericElements/assetLoader', [
     var $controlDeleteButton = $('.control-buttons #control-delete')
     var $controlExportBlocksLi = $('.control-buttons #control-export-blocks')
     var $controlSaveBlocksLi = $('.control-buttons #control-save-blocks')
+    var $controlEditBlocksLiContainer = $('.control-buttons #control-import-blocks-container')
+    var $controlEditBlocksLis = $('.control-buttons .control-edit-bp-blocks')
     var $importWorkflowButton = $('#importWorkflow')
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')

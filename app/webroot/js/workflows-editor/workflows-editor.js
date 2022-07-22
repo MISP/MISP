@@ -365,6 +365,7 @@ function initDrawflow() {
         $controlDuplicateButton.removeClass('disabled')
         $controlDeleteButton.removeClass('disabled')
         $controlSaveBlocksLi.removeClass('disabled')
+        $controlEditBlocksLiContainer.removeClass('disabled').find('.dropdown-menu')
         selection.select([getNodeHtmlByID(node_id)])
     })
     editor.on('nodeUnselected', function() {
@@ -375,6 +376,7 @@ function initDrawflow() {
         $controlDuplicateButton.addClass('disabled')
         $controlDeleteButton.addClass('disabled')
         $controlSaveBlocksLi.addClass('disabled')
+        $controlEditBlocksLiContainer.addClass('disabled').find('.dropdown-menu')
     })
 
     selection = new SelectionArea({
@@ -428,7 +430,16 @@ function initDrawflow() {
     $controlSaveBlocksLi.click(function(evt) {
         var $link = $(this).find('a')
         evt.preventDefault()
-        saveBlueprint($link.attr('href'))
+        if (!$(this).hasClass('disabled')) {
+            saveBlueprint($link.attr('href'))
+        }
+    })
+    $controlEditBlocksLis.click(function(evt) {
+        var $link = $(this).find('a')
+        evt.preventDefault()
+        if (!$(this).hasClass('disabled')) {
+            saveBlueprint($link.attr('href'))
+        }
     })
     $saveBlueprintButton.click(function(evt) {
         evt.preventDefault()

@@ -56,6 +56,10 @@ form button.btn[disabled] {
     border-width: 5px 5px 5px 0;
 }
 
+.dropdown-submenu.disabled > .dropdown-menu {
+    display: none;
+}
+
 /*.close{
     float:none;
 }*/
