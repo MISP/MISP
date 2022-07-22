@@ -1640,11 +1640,22 @@ function highlightMultipleOutputConnection(connectionData) {
     }
 }
 
+function highlightPathWarning(pathWarningData) {
+    if (pathWarningData.has_path_warnings) {
+        pathWarningData.edges.forEach(function (edge) {
+            getPathForEdge(edge[0], edge[1])
+                .addClass('connection-warning')
+                .empty()
+                .append($(document.createElementNS('http://www.w3.org/2000/svg', 'title')).text(edge[2]))
+        })
+    }
+}
+
 function highlightGraphIssues(graphProperties) {
     $drawflow.find('svg.connection > path.main-path')
-        .removeClass('connection-danger')
+        .removeClass(['connection-danger', 'connection-warning'])
         .empty()
     highlightAcyclic(graphProperties.is_acyclic)
     highlightMultipleOutputConnection(graphProperties.multiple_output_connection)
-    
+    highlightPathWarning(graphProperties.path_warnings)
 }

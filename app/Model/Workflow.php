@@ -74,9 +74,6 @@ class Workflow extends AppModel
     const REDIS_KEY_TRIGGER_PER_WORKFLOW = 'workflow:trigger_list:%s';
     const REDIS_KEY_MODULES_ENABLED = 'workflow:modules_enabled';
 
-    const BLOCKING_PATH = 'blocking';
-    const NON_BLOCKING_PATH = 'non-blocking';
-
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -445,7 +442,7 @@ class Workflow extends AppModel
         $workflow = $this->__incrementWorkflowExecutionCount($workflow);
         $walkResult = [];
         $data = $this->__normalizeDataForTrigger($triggerModule, $data);
-        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, Workflow::BLOCKING_PATH, $data, $blockingErrors, $walkResult);
+        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, GraphWalker::PATH_TYPE_BLOCKING, $data, $blockingErrors, $walkResult);
         if (empty($blockingPathExecutionSuccess)) {
             $message = __('Error while executing blocking workflow. %s', PHP_EOL . implode(', ', $blockingErrors));
             $this->logExecutionError($workflow, $message);
@@ -524,7 +521,7 @@ class Workflow extends AppModel
             $walkResult['executed_nodes'][] = $node;
             if (empty($success)) {
                 $walkResult['blocking_nodes'][] = $node;
-                if ($graphNode['path_type'] == Workflow::BLOCKING_PATH) {
+                if ($graphNode['path_type'] == GraphWalker::PATH_TYPE_BLOCKING) {
                     if (!empty($nodeError)) {
                         $errors[] = __(
                             'Node `%s` (%s) from Workflow `%s` (%s) returned the following error: %s',
@@ -540,7 +537,7 @@ class Workflow extends AppModel
                     }
                 } else if (!empty($moduleClass->blocking)) {
                     return false; // Node stopped execution for any path. Not sure if this is relevant since multiple connections from the same output is not allowed anymore
-                } else if ($graphNode['path_type'] == Workflow::NON_BLOCKING_PATH) {
+                } else if ($graphNode['path_type'] == $this->workflowGraphTool::PATH_TYPE_NON_BLOCKING) {
                     $preventExecutionForPaths[] = $graphNode['path_list']; // Paths down the chain for this path should not be executed
                 }
             }
@@ -1076,6 +1073,40 @@ class Workflow extends AppModel
         unset($workflow['Workflow']['timestamp']);
         $errors = $this->__saveAndReturnErrors($workflow, ['fieldList' => self::CAPTURE_FIELDS], $errors);
         return $errors;
+    }
+
+    /**
+     * hasPathWarnings
+     *
+     * @param array $graphData
+     * @param array $edges
+     * @return boolean
+     */
+    public function hasPathWarnings(array $graphData, array &$edges=[])
+    {
+        $startNodes = $this->workflowGraphTool->extractConcurrentTasksFromWorkflow($graphData, true);
+        $concurrentNodeIDs = Hash::extract($startNodes, '{n}.id');
+        $roamingData = $this->workflowGraphTool->getRoamingData();
+        foreach ($concurrentNodeIDs as $concurrentNodeID) {
+            $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $this, $concurrentNodeID, GraphWalker::PATH_TYPE_INCLUDE_LOGIC, $roamingData);
+            foreach ($graphWalker as $graphNode) {
+                $moduleClass = $this->getModuleClass($graphNode['node']);
+                if (!empty($moduleClass->blocking)) {
+                    $parsedPathList = GraphWalker::parsePathList($graphNode['path_list']);
+                    foreach ($parsedPathList as $pathEntry) {
+                        $edges[] = [
+                            $pathEntry['source_id'],
+                            $pathEntry['next_node_id'],
+                            __('This path leads to a blocking node from a non-blocking context'),
+                            $moduleClass->blocking,
+                            $moduleClass->id,
+                            $graphNode['node']['id'],
+                        ];
+                    }
+                }
+            }
+        }
+        return !empty($edges);
     }
 
     private function __saveAndReturnErrors($data, $saveOptions = [], $errors = [])

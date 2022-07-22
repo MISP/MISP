@@ -302,8 +302,10 @@ class WorkflowsController extends AppController
         $graphData = JsonTool::decode($this->request->data['graph']);
         $cycles = [];
         $isAcyclic = $this->Workflow->workflowGraphTool->isAcyclic($graphData, $cycles);
-        $edges = [];
-        $hasMultipleOutputConnection = $this->Workflow->workflowGraphTool->hasMultipleOutputConnection($graphData, $edges);
+        $edgesMultipleOutput = [];
+        $hasMultipleOutputConnection = $this->Workflow->workflowGraphTool->hasMultipleOutputConnection($graphData, $edgesMultipleOutput);
+        $edgesWarnings = [];
+        $hasPathWarnings = $this->Workflow->hasPathWarnings($graphData, $edgesWarnings);
         $data = [
             'is_acyclic' => [
                 'is_acyclic' => $isAcyclic,
@@ -311,8 +313,12 @@ class WorkflowsController extends AppController
             ],
             'multiple_output_connection' => [
                 'has_multiple_output_connection' => $hasMultipleOutputConnection,
-                'edges' => $edges,
-            ]
+                'edges' => $edgesMultipleOutput,
+            ],
+            'path_warnings' => [
+                'has_path_warnings' => $hasPathWarnings,
+                'edges' => $edgesWarnings,
+            ],
         ];
         return $this->RestResponse->viewData($data, 'json');
     }

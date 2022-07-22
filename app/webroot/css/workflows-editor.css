@@ -325,6 +325,13 @@
     stroke: #bd362f;
 }
 
+.drawflow svg.connection > path.connection-warning {
+    stroke: #f89406;
+}
+.drawflow svg.connection > path.connection-warning:hover {
+    stroke: #e58806;
+}
+
 .drawflow .drawflow-node.disabled .canvas-workflow-block {
     border: 3px solid #e35651;
 }
