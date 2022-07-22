@@ -597,10 +597,12 @@ class Workflow extends AppModel
     public function attachNotificationToModules(array $modules, array $workflow): array
     {
         $trigger_is_misp_core_format = false;
+        $trigger_is_blocking = false;
         $trigger_id = $this->workflowGraphTool->extractTriggerFromWorkflow($workflow['Workflow']['data'], false);
         if (!empty($trigger_id)) {
             $triggerClass = $this->loaded_classes['trigger'][$trigger_id];
             $trigger_is_misp_core_format = !empty($triggerClass->misp_core_format);
+            $trigger_is_blocking = !empty($triggerClass->blocking);
         }
         foreach ($modules as $moduleType => $modulesByType) {
             foreach ($modulesByType as $i => $module) {
@@ -614,9 +616,20 @@ class Workflow extends AppModel
                         'text' => __('Module disabled'),
                         'description' => __('This module is disabled and thus will not be executed.'),
                         'details' => [
-                            __('Disabled modules that are blocking will also block the remaining of the execution')
+                            __('Disabled modules that are blocking will also stop the execution')
                         ],
                         '__show_in_sidebar' => false,
+                        '__show_in_node' => true,
+                    ];
+                }
+                if (!$trigger_is_blocking && !empty($module['blocking'])) {
+                    $modules[$moduleType][$i]['notifications']['warning'][] = [
+                        'text' => __('Blocking module might not work as intended'),
+                        'description' => __('This module is a blocking module for a non-blocking trigger.'),
+                        'details' => [
+                            __('The Blocking modules will be executed. However, it will not block the remaining of the execution')
+                        ],
+                        '__show_in_sidebar' => true,
                         '__show_in_node' => true,
                     ];
                 }
@@ -626,7 +639,7 @@ class Workflow extends AppModel
                             'text' => __('Potential data format issue'),
                             'description' => __('This module might not work properly as it expect data compliant with the MISP core format.'),
                             'details' => [
-                                __('This module expect data to be compliant with the MISP core format, however the data passed by the trigger might not be under this format.')
+                                __('This module expect data to be compliant with the MISP core format. However, the data passed by the trigger might not be under this format.')
                             ],
                             '__show_in_sidebar' => true,
                             '__show_in_node' => true,
