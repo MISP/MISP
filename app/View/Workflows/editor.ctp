@@ -363,8 +363,10 @@ echo $this->element('genericElements/assetLoader', [
     var all_triggers_by_id = <?= json_encode(Hash::combine($triggerModules, '{n}.id', '{n}')) ?>;
     var all_workflow_blueprints_by_id = <?= json_encode(Hash::combine($workflowBlueprints, '{n}.WorkflowBlueprint.id', '{n}')) ?>;
     var workflow = false
+    var workflowTriggerId = false
     <?php if (!empty($selectedWorkflow)) : ?>
-        var workflow = <?= json_encode($selectedWorkflow) ?>;
+        workflow = <?= json_encode($selectedWorkflow) ?>;
+        workflowTriggerId = '<?= h($workflowTriggerId) ?>';
     <?php endif; ?>
 
     $(document).ready(function() {

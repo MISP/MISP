@@ -141,6 +141,7 @@ class WorkflowsController extends AppController
         $this->loadModel('WorkflowBlueprint');
         $workflowBlueprints = $this->WorkflowBlueprint->find('all');
         $this->set('selectedWorkflow', $workflow);
+        $this->set('workflowTriggerId', $trigger_id);
         $this->set('modules', $modules);
         $this->set('workflowBlueprints', $workflowBlueprints);
     }

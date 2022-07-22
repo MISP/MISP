@@ -457,6 +457,7 @@ function saveBlueprint(href) {
     var selectedNodes = selection.getSelection()
     var editorData = getEditorData()
     openGenericModal(href, undefined, function () {
+        var trigger_id = (all_triggers_by_id[workflowTriggerId] || { id: 'unknown-trigger' }).id
         var nodes = selectedNodes.map(function (nodeHtml) {
             var node = editorData[nodeHtml.id.slice(5)]
             delete node.html
@@ -469,7 +470,11 @@ function saveBlueprint(href) {
         })
         var $modal = $('#genericModal')
         var $graphData = $modal.find('form #WorkflowBlueprintData')
+        var $graphDescription = $modal.find('form #WorkflowBlueprintDescription')
         $graphData.val(JSON.stringify(nodes))
+        if ($graphDescription.val().length == 0 ) {
+            $graphDescription.val('[' + trigger_id + ']\n')
+        }
         $modal.find('.modal-body').append(
             $('<h3></h3>').append(
                 $('<span></span').text('Workflow Blueprint Content '),
