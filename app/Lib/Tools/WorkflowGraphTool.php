@@ -104,6 +104,11 @@ class GraphWalker
     private $for_path;
     private $cursor;
 
+    const PATH_TYPE_BLOCKING = 'blocking';
+    const PATH_TYPE_NON_BLOCKING = 'non-blocking';
+    const PATH_TYPE_INCLUDE_LOGIC = 'include-logic';
+    const ALLOWED_PATH_TYPES = [GraphWalker::PATH_TYPE_BLOCKING, GraphWalker::PATH_TYPE_NON_BLOCKING, GraphWalker::PATH_TYPE_INCLUDE_LOGIC];
+
     public function __construct(array $graphData, $WorkflowModel, $startNodeID, $for_path=null)
     {
         $this->graph = $graphData;
@@ -127,16 +132,16 @@ class GraphWalker
     {
         $node = $this->graph[$node_id];
         if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'concurrent-task') {
-            return 'non-blocking';
+            return self::PATH_TYPE_NON_BLOCKING;
         }
         return $path_type;
     }
 
 
-    private function _evaluateOutputs($node, WorkflowRoamingData $roamingData)
+    private function _evaluateOutputs($node, WorkflowRoamingData $roamingData, $shouldExecuteLogicNode=true)
     {
         $allowed_outputs = ($node['outputs'] ?? []);
-        if ($node['data']['module_type'] == 'logic') {
+        if ($shouldExecuteLogicNode && $node['data']['module_type'] == 'logic') {
             $allowed_outputs = $this->_executeModuleLogic($node, $roamingData);
         }
         return $allowed_outputs;
@@ -191,18 +196,27 @@ class GraphWalker
     {
         $this->cursor = $node_id;
         $node = $this->graph[$node_id];
-        if ($node['data']['module_type'] != 'trigger' && $node['data']['module_type'] != 'logic') { // trigger and logic nodes should not be returned as they are "control" nodes
+        $shouldExecuteLogicNode = $path_type != self::PATH_TYPE_INCLUDE_LOGIC;
+        if (!$shouldExecuteLogicNode) {
+            yield ['node' => $node, 'path_type' => $path_type, 'path_list' => $path_list];
+        } else if ($node['data']['module_type'] != 'trigger' && $node['data']['module_type'] != 'logic') { // trigger and logic nodes should not be returned as they are "control" nodes
             yield ['node' => $node, 'path_type' => $path_type, 'path_list' => $path_list];
         }
-        $allowedOutputs = $this->_evaluateOutputs($node, $roamingData);
+        $allowedOutputs = $this->_evaluateOutputs($node, $roamingData, $shouldExecuteLogicNode);
         foreach ($allowedOutputs as $output_id => $outputs) {
-            $path_type = $this->_getPathType($node_id, $path_type);
+            if ($shouldExecuteLogicNode) {
+                $path_type = $this->_getPathType($node_id, $path_type);
+            }
             if (is_null($this->for_path) || $path_type == $this->for_path) {
                 foreach ($outputs as $connections) {
                     foreach ($connections as $connection_id => $connection) {
                         $next_node_id = (int)$connection['node'];
+                        $current_path = $this->__genPathList($node_id, $output_id, $connection_id, $next_node_id);
+                        if (in_array($current_path, $path_list)) { // avoid loops
+                            continue;
+                        }
                         $next_path_list = $path_list;
-                        $next_path_list[] = sprintf('%s:%s:%s:%s', $node_id, $output_id, $connection_id, $next_node_id);
+                        $next_path_list[] = $current_path;
                         yield from $this->_walk($next_node_id, $path_type, $next_path_list, $roamingData);
                     }
                 }
@@ -213,6 +227,24 @@ class GraphWalker
     public function walk(WorkflowRoamingData $roamingData)
     {
         return $this->_walk($this->cursor, $this->for_path, [], $roamingData);
+    }
+
+    private function __genPathList($source_id, $output_id, $connection_id, $next_node_id)
+    {
+        return sprintf('%s:%s:%s:%s', $source_id, $output_id, $connection_id, $next_node_id);
+    }
+
+    public static function parsePathList($pathList): array
+    {
+        return array_map(function($path) {
+            $split = explode(':', $path);
+            return [
+                'source_id' => $split[0],
+                'output_id' => $split[1],
+                'connection_id' => $split[2],
+                'next_node_id' => $split[3],
+            ];
+        }, $pathList);
     }
 }
 
@@ -308,6 +340,28 @@ class WorkflowGraphTool
     }
 
     /**
+     * extractConcurrentTasksFromWorkflow Return the list of concurrent-tasks's id (or full module) that are included in the workflow
+     *
+     * @param  array $workflow
+     * @param  bool $fullNode
+     * @return array
+     */
+    public static function extractConcurrentTasksFromWorkflow(array $graphData, bool $fullNode = false): array
+    {
+        $nodes = [];
+        foreach ($graphData as $node) {
+            if ($node['data']['module_type'] == 'logic' && $node['data']['id'] == 'concurrent-task') {
+                if (!empty($fullNode)) {
+                    $nodes[] = $node;
+                } else {
+                    $nodes[] = $node['data']['id'];
+                }
+            }
+        }
+        return $nodes;
+    }
+
+    /**
      * triggerHasBlockingPath Return if the provided trigger has an edge leading to a blocking path
      * 
      * @param array $node
@@ -377,13 +431,16 @@ class WorkflowGraphTool
         return -1;
     }
 
-    public static function getRoamingData(array $user, array $data, array $workflow, int $node_id)
+    public static function getRoamingData(array $user=[], array $data=[], array $workflow=[], int $node_id=-1)
     {
         return new WorkflowRoamingData($user, $data, $workflow, $node_id);
     }
 
     public static function getWalkerIterator(array $graphData, $WorkflowModel, $startNodeID, $path_type=null, WorkflowRoamingData $roamingData)
     {
+        if (!in_array($path_type, GraphWalker::ALLOWED_PATH_TYPES)) {
+            return [];
+        }
         $graphWalker = new GraphWalker($graphData, $WorkflowModel, $startNodeID, $path_type);
         return $graphWalker->walk($roamingData);
     }
