@@ -779,13 +779,14 @@ class ACLComponent extends Component
                 'checkGraph'=> [],
             ],
             'workflowBlueprints' => [
-                'index' => [],
                 'add' => [],
-                'edit' => [],
                 'delete' => [],
-                'view' => [],
-                'import' => [],
+                'edit' => [],
                 'export' => [],
+                'import' => [],
+                'index' => [],
+                'update' => [],
+                'view' => [],
             ],
             'allowedlists' => array(
                 'admin_add' => array('perm_regexp_access'),
