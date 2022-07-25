@@ -52,6 +52,11 @@
         ],
     ];
 
+    $html_description = sprintf('<div>%s</div><div>%s</div>',
+        __('Missing a trigger? Feel free to open a %s!', sprintf('<a href="%s">%s</a>', 'https://github.com/MISP/MISP/issues/new?assignees=&labels=feature+request%2Cneeds+triage&template=feature-request-form.yml&title=Feature+Request%3A+', __('Github issue'))),
+        sprintf('<a href="#workflow-info-modal" data-toggle="modal">%s</a>', __('Documentation and concepts'))
+    );
+
     echo $this->element('genericElements/IndexTable/scaffold', [
         'scaffold_data' => [
             'data' => [
@@ -63,7 +68,7 @@
                 'icon' => 'flag',
                 'title' => __('Triggers'),
                 'description' => __('List the available triggers that can be listened to by workflows.'),
-                'html' => __('Missing a trigger? Feel free to open a %s!', sprintf('<a href="%s">%s</a>', 'https://github.com/MISP/MISP/issues/new?assignees=&labels=feature+request%2Cneeds+triage&template=feature-request-form.yml&title=Feature+Request%3A+', __('Github issue'))),
+                'html' => $html_description,
                 'actions' => [
                     [
                         'title' => __('Enable'),
@@ -131,3 +136,5 @@
             ]
         ]
     ]);
+
+    echo $this->element('/Workflows/infoModal');
