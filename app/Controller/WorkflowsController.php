@@ -310,8 +310,8 @@ class WorkflowsController extends AppController
 
     private function __applyDataFromSavedWorkflow($newWorkflow, $savedWorkflow)
     {
-        if (!isset($newReport['Workflow'])) {
-            $newReport = ['Workflow' => $newWorkflow];
+        if (!isset($newWorkflow['Workflow'])) {
+            $newWorkflow = ['Workflow' => $newWorkflow];
         }
         $ignoreFieldList = ['id', 'uuid'];
         foreach (Workflow::CAPTURE_FIELDS_EDIT as $field) {

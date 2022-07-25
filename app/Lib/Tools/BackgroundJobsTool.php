@@ -74,14 +74,12 @@ class BackgroundJobsTool
         CMD_EVENT = 'event',
         CMD_SERVER = 'server',
         CMD_ADMIN = 'admin',
-        CMD_MODULE = 'module',
         CMD_WORKFLOW = 'workflow';
 
     const ALLOWED_COMMANDS = [
         self::CMD_EVENT,
         self::CMD_SERVER,
         self::CMD_ADMIN,
-        self::CMD_MODULE,
         self::CMD_WORKFLOW,
     ];
 
@@ -89,7 +87,6 @@ class BackgroundJobsTool
         self::CMD_EVENT => 'EventShell',
         self::CMD_SERVER => 'ServerShell',
         self::CMD_ADMIN => 'AdminShell',
-        self::CMD_MODULE => 'ModuleShell',
         self::CMD_WORKFLOW => 'WorkflowShell',
     ];
 

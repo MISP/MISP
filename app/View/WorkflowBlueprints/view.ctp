@@ -2,7 +2,7 @@
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
-        'title' => 'Workflow view',
+        'title' => 'Workflow blueprint view',
         'data' => $data,
         'fields' => [
             [

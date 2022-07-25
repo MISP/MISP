@@ -67,7 +67,7 @@ class WorkflowBlueprint extends AppModel
             }
             $results[$k]['WorkflowBlueprint']['data'] = JsonTool::decode($result['WorkflowBlueprint']['data']);
             if (!empty($results[$k]['WorkflowBlueprint']['data'])) {
-                $results[$k]['WorkflowBlueprint']['mermaid'] = $this->getMermaid($results[$k]['WorkflowBlueprint']['data']);
+                $results[$k]['WorkflowBlueprint']['mermaid'] = $this->getMermaidForData($results[$k]['WorkflowBlueprint']['data']);
             }
         }
         return $results;
@@ -112,9 +112,9 @@ class WorkflowBlueprint extends AppModel
         if (empty($blueprints_from_repo)) {
             throw new NotFoundException(__('Default blueprints could not be loaded or `%s` folder is empty', self::REPOSITORY_PATH));
         }
-        $existing_blueprints = $this->find('all', array(
+        $existing_blueprints = $this->find('all', [
             'recursive' => -1
-        ));
+        ]);
         $existing_blueprints_by_uuid = Hash::combine($existing_blueprints, '{n}.WorkflowBlueprint.uuid', '{n}.WorkflowBlueprint');
         foreach ($blueprints_from_repo as $blueprint_from_repo) {
             $blueprint_from_repo = $blueprint_from_repo['WorkflowBlueprint'];
@@ -134,10 +134,32 @@ class WorkflowBlueprint extends AppModel
         }
     }
 
-    public function getMermaid($workflowBlueprintData)
+    public function getMermaidForData($workflowBlueprintData)
     {
         App::uses('MermaidFlowchartTool', 'Tools');
         $mermaid = MermaidFlowchartTool::mermaid($workflowBlueprintData);
+        return $mermaid;
+    }
+
+    public function getDotNotation($id)
+    {
+        App::uses('GraphvizDOTTool', 'Tools');
+        $blueprint = $this->find('first', [
+            'conditions' => ['id' => $id],
+            'recursive' => -1,
+        ]);
+        $dot = GraphvizDOTTool::dot($blueprint['WorkflowBlueprint']['data']);
+        return $dot;
+    }
+
+    public function getMermaid($id)
+    {
+        App::uses('MermaidFlowchartTool', 'Tools');
+        $blueprint = $this->find('first', [
+            'conditions' => ['id' => $id],
+            'recursive' => -1,
+        ]);
+        $mermaid = MermaidFlowchartTool::mermaid($blueprint['WorkflowBlueprint']['data']);
         return $mermaid;
     }
 }

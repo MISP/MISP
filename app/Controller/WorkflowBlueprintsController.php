@@ -39,7 +39,7 @@ class WorkflowBlueprintsController extends AppController
             'beforeSave' => function(array $blueprint) {
                 $blueprint['WorkflowBlueprint']['default'] = false;
                 return $blueprint;
-            }
+            },
         ];
         $this->CRUD->add($params);
         if ($this->IndexFilter->isRest()) {
@@ -55,7 +55,7 @@ class WorkflowBlueprintsController extends AppController
             'beforeSave' => function (array $blueprint) {
                 $blueprint['WorkflowBlueprint']['default'] = false;
                 return $blueprint;
-            }
+            },
         ];
         $this->CRUD->edit($id, $params);
         if ($this->IndexFilter->isRest()) {
@@ -80,6 +80,16 @@ class WorkflowBlueprintsController extends AppController
 
     public function view($id)
     {
+        $filters = $this->IndexFilter->harvestParameters(['format']);
+        if (!empty($filters['format'])) {
+            if ($filters['format'] == 'dot') {
+                $dot = $this->WorkflowBlueprint->getDotNotation($id);
+                return $this->RestResponse->viewData($dot, $this->response->type());
+            } else if ($filters['format'] == 'mermaid') {
+                $mermaid = $this->WorkflowBlueprint->getMermaid($id);
+                return $this->RestResponse->viewData($mermaid, $this->response->type());
+            }
+        }
         $this->CRUD->view($id, [
         ]);
         if ($this->IndexFilter->isRest()) {
