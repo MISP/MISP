@@ -7167,13 +7167,6 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
-                // 'Workflow_triggers_publish' => array(
-                //     'level' => 1,
-                //     'description' => __('Enable/disable the `publish` trigger'),
-                //     'value' => false,
-                //     'test' => 'testBool',
-                //     'type' => 'boolean'
-                // ),
                 'Cortex_services_url' => array(
                     'level' => 1,
                     'description' => __('The url used to access Cortex. By default, it is accessible at http://cortex-url'),
