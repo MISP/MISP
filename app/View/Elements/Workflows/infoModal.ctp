@@ -115,7 +115,10 @@ $data_passed_to_if_module = [
 
             <div class="tab-pane" id="modal-debugging">
                 <h3><?= __('Debugging Workflows') ?></h3>
-                <p><?= __('TODO') ?></p>
+                <ul>
+                    <li><?= __('Workflow execution is logged in the application logs: %s', sprintf('<code>%s</code>', '/admin/logs/index')) ?></li>
+                    <li><?= __('Or in the following file stored on the disk: %s', sprintf('<code>%s</code>', '/app/tmp/logs/workflow-execution.log')) ?></li>
+                </ul>
             </div>
 
             <div class="tab-pane" id="modal-info-usage">
