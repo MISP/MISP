@@ -65,7 +65,8 @@ class Workflow extends AppModel
 
     private $module_initialized = false;
 
-    const CAPTURE_FIELDS = ['name', 'description', 'timestamp', 'data'];
+    const CAPTURE_FIELDS_EDIT = ['name', 'description', 'timestamp', 'data'];
+    const CAPTURE_FIELDS_ADD = ['uuid', 'name', 'description', 'timestamp', 'data', 'trigger_id'];
 
     const MODULE_ROOT_PATH = APP . 'Model/WorkflowModules/';
     const CUSTOM_MODULE_ROOT_PATH = APP . 'Lib/WorkflowModules/';
@@ -1056,14 +1057,31 @@ class Workflow extends AppModel
     }
 
     /**
+     * addWorkflow Add a worflow
+     *
+     * @param  array $trigger
+     * @return array Any errors preventing the edition
+     */
+    public function addWorkflow(array $workflow): array
+    {
+        $errors = [];
+        $this->create();
+        $saved = $this->__saveAndReturnErrors($workflow, ['fieldList' => self::CAPTURE_FIELDS_ADD], $errors);
+        return [
+            'saved' => $saved,
+            'errors' => $errors,
+        ];
+    }
+
+    /**
      * editWorkflow Edit a worflow
      *
      * @param  array $workflow
      * @return array Any errors preventing the edition
      */
-    public function editWorkflow(array $workflow)
+    public function editWorkflow(array $workflow): array
     {
-        $errors = array();
+        $errors = [];
         if (!isset($workflow['Workflow']['uuid'])) {
             $errors[] = __('Workflow doesn\'t have an UUID');
             return $errors;
@@ -1071,8 +1089,38 @@ class Workflow extends AppModel
         $existingWorkflow = $this->fetchWorkflow($workflow['Workflow']['id']);
         $workflow['Workflow']['id'] = $existingWorkflow['Workflow']['id'];
         unset($workflow['Workflow']['timestamp']);
-        $errors = $this->__saveAndReturnErrors($workflow, ['fieldList' => self::CAPTURE_FIELDS], $errors);
-        return $errors;
+        $saved = $this->__saveAndReturnErrors($workflow, ['fieldList' => self::CAPTURE_FIELDS_EDIT], $errors);
+        return [
+            'saved' => $saved,
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * genGraphDataForTrigger Generate fake graph data under the drawflow format
+     *
+     * @param string $trigger_id
+     * @return array
+     */
+    public function genGraphDataForTrigger($trigger_id): array
+    {
+        if (empty($this->loaded_modules['trigger'][$trigger_id])) {
+            throw new TriggerNotFoundException(__('Unknown trigger `%s`', $trigger_id));
+        }
+        $module_config = $this->loaded_modules['trigger'][$trigger_id];
+        $data = [
+            1 => [
+                'class' => 'block-type-trigger',
+                'data' => $module_config,
+                'id' => 1,
+                'inputs' => [],
+                'outputs' => [],
+                'pos_x' => 0,
+                'pos_y' => 0,
+                'typenode' => false,
+            ]
+        ];
+        return $data;
     }
 
     /**
@@ -1109,15 +1157,19 @@ class Workflow extends AppModel
         return !empty($edges);
     }
 
-    private function __saveAndReturnErrors($data, $saveOptions = [], $errors = [])
+    private function __saveAndReturnErrors($data, $saveOptions = [], &$errors = [])
     {
         $saveSuccess = $this->save($data, $saveOptions);
         if (!$saveSuccess) {
             foreach ($this->validationErrors as $validationError) {
                 $errors[] = $validationError[0];
             }
+        } else {
+            if (!empty($saveSuccess['Workflow']['data'])) {
+                $saveSuccess['Workflow']['data'] = JsonTool::decode($saveSuccess['Workflow']['data']);
+            }
         }
-        return $errors;
+        return $saveSuccess;
     }
     
     public function getDotNotation($id)

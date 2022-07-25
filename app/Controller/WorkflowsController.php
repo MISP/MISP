@@ -57,13 +57,13 @@ class WorkflowsController extends AppController
             $newWorkflow = $this->request->data;
             $newWorkflow['Workflow']['data'] = JsonTool::decode($newWorkflow['Workflow']['data']);
             $newWorkflow = $this->__applyDataFromSavedWorkflow($newWorkflow, $savedWorkflow);
-            $errors = $this->Workflow->editWorkflow($newWorkflow);
+            $result = $this->Workflow->editWorkflow($newWorkflow);
             $redirectTarget = ['action' => 'view', $id];
-            if (!empty($errors)) {
-                return $this->__getFailResponseBasedOnContext($errors, null, 'edit', $this->Workflow->id, $redirectTarget);
+            if (!empty($result['errors'])) {
+                return $this->__getFailResponseBasedOnContext($result['errors'], null, 'edit', $this->Workflow->id, $redirectTarget);
             } else {
                 $successMessage = __('Workflow saved.');
-                $savedWorkflow =$this->Workflow->fetchWorkflow($id);
+                $savedWorkflow = $result['saved'];
                 return $this->__getSuccessResponseBasedOnContext($successMessage, $savedWorkflow, 'edit', false, $redirectTarget);
             }
         } else {
@@ -121,21 +121,21 @@ class WorkflowsController extends AppController
         }
         $workflow = $this->Workflow->fetchWorkflowByTrigger($trigger_id, false);
         if (empty($workflow)) { // Workflow do not exists yet. Create it.
-            $this->Workflow->create();
-            $savedWorkflow = $this->Workflow->save([
+            $result = $this->Workflow->addWorkflow([
                 'name' => sprintf('Workflow for trigger %s', $trigger_id),
+                'data' => $this->Workflow->genGraphDataForTrigger($trigger_id),
                 'trigger_id' => $trigger_id,
             ]);
-            if (empty($savedWorkflow)) {
+            if (!empty($result['errors'])) {
                 return $this->__getFailResponseBasedOnContext(
-                    [__('Could not create workflow for trigger %s', $trigger_id), $this->Workflow->validationErrors],
+                    [__('Could not create workflow for trigger %s', $trigger_id), $result['errors']],
                     null,
                     'add',
                     $trigger_id,
                     ['controller' => 'workflows', 'action' => 'editor']
                 );
             }
-            $workflow = $savedWorkflow;
+            $workflow = $result['saved'];
         }
         $modules = $this->Workflow->attachNotificationToModules($modules, $workflow);
         $this->loadModel('WorkflowBlueprint');
@@ -314,7 +314,7 @@ class WorkflowsController extends AppController
             $newReport = ['Workflow' => $newWorkflow];
         }
         $ignoreFieldList = ['id', 'uuid'];
-        foreach (Workflow::CAPTURE_FIELDS as $field) {
+        foreach (Workflow::CAPTURE_FIELDS_EDIT as $field) {
             if (!in_array($field, $ignoreFieldList) && isset($newWorkflow['Workflow'][$field])) {
                 $savedWorkflow['Workflow'][$field] = $newWorkflow['Workflow'][$field];
             }
