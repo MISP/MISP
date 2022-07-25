@@ -48,11 +48,7 @@ class Module_push_zmq extends WorkflowBaseActionModule
             $errors[] = __('Error while trying to extract data with path `%s`', $path);
             return false;
         }
-        $this->push_zmq([
-            'namespace' => $params['Namespace']['value'],
-            'content' => $params['Content']['value'],
-            'extracted' => JsonTool::encode($extracted),
-        ]);
+        $this->push_zmq(JsonTool::encode($extracted));
         return true;
     }
 }

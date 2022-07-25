@@ -92,7 +92,7 @@ class WorkflowBaseModule
         return true;
     }
 
-    protected function push_zmq($message, $namespace='')
+    protected function push_zmq($message)
     {
         if (!self::$loadedPubSubTool) {
             App::uses('PubSubTool', 'Tools');
@@ -101,7 +101,7 @@ class WorkflowBaseModule
             self::$loadedPubSubTool = $pubSubTool;
         }
         $pubSubTool = self::$loadedPubSubTool;
-        $pubSubTool->workflow_push($message, $namespace);
+        $pubSubTool->workflow_push($message);
     }
 
     protected function logError($message)

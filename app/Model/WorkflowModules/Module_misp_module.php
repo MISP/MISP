@@ -87,10 +87,6 @@ class Module_misp_module extends WorkflowBaseActionModule
             $errors[] = $query['error'];
             return false;
         }
-        $message = [
-            "module:$this->name" => JsonTool::encode($query['data'])
-        ];
-        $this->push_zmq($message);
         return true;
     }
 
