@@ -135,7 +135,7 @@ class WorkflowsController extends AppController
                     ['controller' => 'workflows', 'action' => 'editor']
                 );
             }
-            $workflow = $result['saved'];
+            $workflow = $this->Workflow->fetchWorkflowByTrigger($trigger_id, false);
         }
         $modules = $this->Workflow->attachNotificationToModules($modules, $workflow);
         $this->loadModel('WorkflowBlueprint');
