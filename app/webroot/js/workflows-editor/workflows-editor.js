@@ -207,13 +207,12 @@ function initDrawflow() {
         var offset_y = (editor_bcr.height - parentOffsetY) / 2
 
         var canvasCentroid = getCanvasCentroid()
-        var calc_zoom = Math.min(
-            1,
-            Math.min(
+        var calc_zoom = Math.min(1, Math.min(
                 (editor_bcr.width - sidebarWidth) / ((canvasCentroid.maxX - canvasCentroid.minX) + sidebarWidth),
                 editor_bcr.height / ((canvasCentroid.maxY - canvasCentroid.minY) - parentOffsetY)
             ),
         ) // Zoom out if needed
+        calc_zoom = calc_zoom > 0 ? calc_zoom : 1
         calc_zoom = calc_zoom * 0.95
         offset_x += 100 * (1 / calc_zoom) // dirty fix to offset the position relative to the sidebar
         offset_y -= 100 * (1 / calc_zoom) // dirty fix to slightly move the graph up
