@@ -6,7 +6,7 @@ App::uses('JSONConverterTool', 'Tools');
  * - Attributes are encapsulated in the Event they belong to as well as their object (if applicable)
  * - Events have an additional key `_AttributeFlattened` which combines both Attribute and ObjectAttribute in the same array
  * - Attributes have an additional key `_allTags` which group both AttributeTag and EventTag.
- *      - Tags in this `_allTags` key have an additional flag `inherited` indicating if the tag has been propageted from the Event to the Attribute
+ *      - Tags in this `_allTags` key have an additional flag `inherited` indicating if the tag has been propagated from the Event to the Attribute
  */
 class WorkflowFormatConverterTool
 {
