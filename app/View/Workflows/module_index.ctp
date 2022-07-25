@@ -86,7 +86,7 @@
     echo $this->element('genericElements/IndexTable/scaffold', [
         'scaffold_data' => [
             'data' => [
-                'stupid_pagination' => true,
+                'light_paginator' => true,
                 'data' => $data,
                 'top_bar' => [
                     'children' => [

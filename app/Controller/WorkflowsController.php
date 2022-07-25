@@ -148,18 +148,42 @@ class WorkflowsController extends AppController
 
     public function triggers()
     {
+        $query = [
+            'limit' => 50,
+            'page' => 1
+        ];
+        if (!empty($this->params['named']['limit'])) {
+            $query['limit'] = $this->params['named']['limit'];
+        }
+        if (!empty($this->params['named']['page'])) {
+            $query['page'] = $this->params['named']['page'];
+        }
+
         $triggers = $this->Workflow->getModulesByType('trigger');
         $triggers = $this->Workflow->attachWorkflowToTriggers($triggers);
         $data = $triggers;
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($data, $this->response->type());
         }
+
+        $this->__setPagingParams($query['page'], $query['limit'], count($data), 'named');
         $this->set('data', $data);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_trigger']);
     }
 
     public function moduleIndex()
     {
+        $query = [
+            'limit' => 50,
+            'page' => 1
+        ];
+        if (!empty($this->params['named']['limit'])) {
+            $query['limit'] = $this->params['named']['limit'];
+        }
+        if (!empty($this->params['named']['page'])) {
+            $query['page'] = $this->params['named']['page'];
+        }
+
         $modules = $this->Workflow->getModulesByType();
         $errorWhileLoading = $this->Workflow->getModuleLoadingError();
         $this->Module = ClassRegistry::init('Module');
@@ -199,6 +223,7 @@ class WorkflowsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($data, $this->response->type());
         }
+        $this->__setPagingParams($query['page'], $query['limit'], count($data), 'named');
         $this->set('data', $data);
         $this->set('indexType', $moduleType);
         $this->set('actionType', $actionType);
