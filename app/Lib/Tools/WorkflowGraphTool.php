@@ -296,10 +296,6 @@ class WorkflowRoamingData
 
 class WorkflowGraphTool
 {
-
-    const GRAPH_BLOCKING_CONNECTION_NAME = 'output_1';
-    const GRAPH_NON_BLOCKING_CONNECTION_NAME = 'output_2';
-
     /**
      * extractTriggerFromWorkflow Return the trigger id (or full module) that are specified in the workflow
      *
@@ -359,28 +355,6 @@ class WorkflowGraphTool
             }
         }
         return $nodes;
-    }
-
-    /**
-     * triggerHasBlockingPath Return if the provided trigger has an edge leading to a blocking path
-     * 
-     * @param array $node
-     * @returns bool
-     */
-    public static function triggerHasBlockingPath(array $node): bool
-    {
-        return !empty($node['outputs'][WorkflowGraphTool::GRAPH_BLOCKING_CONNECTION_NAME]['connections']);
-    }
-
-    /**
-     * triggerHasBlockingPath Return if the provided trigger has an edge leading to a non-blocking path
-     * 
-     * @param array $node
-     * @returns bool
-     */
-    public static function triggerHasNonBlockingPath(array $node): bool
-    {
-        return !empty($node['outputs'][WorkflowGraphTool::GRAPH_NON_BLOCKING_CONNECTION_NAME]['connections']);
     }
 
     /**

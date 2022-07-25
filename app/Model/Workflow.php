@@ -242,13 +242,8 @@ class Workflow extends AppModel
         if (!empty($trigger_to_add)) {
             $pipeline = $redis->multi();
             foreach ($trigger_to_add as $trigger_id) {
-                if (
-                    $this->workflowGraphTool->triggerHasNonBlockingPath($new_node_trigger_list_per_id[$trigger_id]) ||
-                    $this->workflowGraphTool->triggerHasBlockingPath($new_node_trigger_list_per_id[$trigger_id])
-                ) {
-                    $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
-                    $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
-                }
+                $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_WORKFLOW_PER_TRIGGER, $trigger_id), $workflow['Workflow']['id']);
+                $pipeline->sAdd(sprintf(Workflow::REDIS_KEY_TRIGGER_PER_WORKFLOW, $workflow['Workflow']['id']), $trigger_id);
             }
             $pipeline->exec();
         }
@@ -1114,7 +1109,11 @@ class Workflow extends AppModel
                 'data' => $module_config,
                 'id' => 1,
                 'inputs' => [],
-                'outputs' => [],
+                'outputs' => [
+                    'output_1' => [
+                        'connections' => []
+                    ],
+                ],
                 'pos_x' => 0,
                 'pos_y' => 0,
                 'typenode' => false,
