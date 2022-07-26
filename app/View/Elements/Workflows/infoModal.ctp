@@ -123,12 +123,22 @@ $data_passed_to_if_module = [
 
             <div class="tab-pane" id="modal-info-usage">
                 <h3><?= __('Shortcuts') ?></h3>
-                <ul>
-                    <li><code>Ctrl + Mouse_wheel</code>: <?= __('Zoom in / out') ?></li>
-                    <li><code>Shift + Click</code>: <?= __('Multi-select tool') ?></li>
-                    <li><code>Ctrl + s</code>: <?= __('Save workflow') ?></li>
-                    <li><code>c</code>: <?= __('Center canvas in viewport') ?></li>
-                </ul>
+                <table class="table table-condensed">
+                    <thead>
+                        <tr>
+                            <th><?= __('Shortcut') ?></th>
+                            <th><?= __('Effect') ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>Ctrl + Mouse_wheel</code></td><td> <?= __('Zoom in / out') ?></td></tr>
+                        <tr><td><code>Shift + Ctrck</code></td><td> <?= __('Multi-select tool') ?></td></tr>
+                        <tr><td><code>Ctrl + s</code></td><td> <?= __('Save workflow') ?></td></tr>
+                        <tr><td><code>Ctrl + d</code></td><td> <?= __('Duptrcate selection') ?></td></tr>
+                        <tr><td><code>delete</code></td><td> <?= __('Deletion selection') ?></td></tr>
+                        <tr><td><code>c</code></td><td> <?= __('Center canvas in viewport') ?></td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

@@ -184,6 +184,10 @@ function initDrawflow() {
         if (evt.keyCode == 46 && $drawflow.is(evt.target)) {
             deleteSelectedNodes(true)
         }
+        if (evt.keyCode == 68 && evt.ctrlKey && $drawflow.is(evt.target)) {
+            duplicateSelection()
+            evt.preventDefault()
+        }
     })
     editor.translate_to = function (x, y) {
         this.canvas_x = x;
@@ -422,10 +426,7 @@ function initDrawflow() {
         })
     
     $controlDuplicateButton.click(function() {
-        var currentSelection = selection.getSelection()
-        var newNodes = duplicateNodesFromHtml(currentSelection)
-        selection.clearSelection()
-        selection.select(newNodes)
+        duplicateSelection()
     })
     $controlDeleteButton.click(function() {
         deleteSelectedNodes(false)
@@ -510,6 +511,13 @@ function saveBlueprint(href) {
         })
         $modal.find('.modal-body').append($ul)
     })
+}
+
+function duplicateSelection() {
+    var currentSelection = selection.getSelection()
+    var newNodes = duplicateNodesFromHtml(currentSelection)
+    selection.clearSelection()
+    selection.select(newNodes)
 }
 
 function buildModalForBlock(node_id, block) {

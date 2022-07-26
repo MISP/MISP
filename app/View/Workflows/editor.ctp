@@ -217,7 +217,7 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
     </div>
     <div class="modal-footer">
         <button id="delete-selected-node" class="btn btn-danger" style="float: left;"><?= __('Delete node') ?></button>
-        <button class="btn btn-success" data-dismiss="modal" aria-hidden="true"><?= __('Save') ?></button>
+        <button class="btn" data-dismiss="modal" aria-hidden="true"><?= __('Close') ?></button>
     </div>
 </div>
 
