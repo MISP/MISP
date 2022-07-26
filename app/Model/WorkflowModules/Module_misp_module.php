@@ -37,17 +37,17 @@ class Module_misp_module extends WorkflowBaseActionModule
         if (!empty($misp_module_config['meta']['outputs'])) {
             $this->inputs = (int)$misp_module_config['meta']['outputs'];
         }
-        if (!empty($misp_module_config['mispattributes']['blocking'])) {
-            $this->blocking = !empty($misp_module_config['mispattributes']['blocking']);
+        if (!empty($misp_module_config['meta']['config']['blocking'])) {
+            $this->blocking = !empty($misp_module_config['meta']['config']['blocking']);
         }
-        if (!empty($misp_module_config['mispattributes']['expect_misp_core_format'])) {
-            $this->expect_misp_core_format = !empty($misp_module_config['mispattributes']['expect_misp_core_format']);
+        if (!empty($misp_module_config['meta']['config']['expect_misp_core_format'])) {
+            $this->expect_misp_core_format = !empty($misp_module_config['meta']['config']['expect_misp_core_format']);
         }
-        if (!empty($misp_module_config['mispattributes']['support_filters'])) {
-            $this->support_filters = !empty($misp_module_config['mispattributes']['support_filters']);
+        if (!empty($misp_module_config['meta']['config']['support_filters'])) {
+            $this->support_filters = !empty($misp_module_config['meta']['config']['support_filters']);
         }
         if (!empty($misp_module_config['meta']['config'])) {
-            foreach ($misp_module_config['meta']['config'] as $paramName => $moduleParam) {
+            foreach ($misp_module_config['meta']['config']['params'] as $paramName => $moduleParam) {
                 $this->params[] = $this->translateParams($paramName, $moduleParam);
             }
         }
@@ -99,6 +99,8 @@ class Module_misp_module extends WorkflowBaseActionModule
         if ($moduleParam['type'] == 'hash_path') {
             $param['type'] = 'input';
             $param['_isHashPath'] = true;
+        } elseif ($moduleParam['type'] == 'large_string') {
+            $param['type'] = 'input';
         } else {
             $param['type'] = 'input';
         }
