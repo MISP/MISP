@@ -856,7 +856,6 @@ function addNodesFromWorkflowBlueprint(workflowBlueprint, cursorPosition) {
             return
         }
         var block = Object.assign({}, all_modules_by_id[node.data.id])
-        // block.params = node.data.params.slice()
         block.params = mergeNodeAndModuleParams(node, block.params)
         block.saved_filters = Object.assign({}, node.data.saved_filters)
         addNode(block, position)
@@ -1045,7 +1044,8 @@ function getSelectedNodeID() {
 }
 
 function getSelectedNodeIDInteger() {
-    return parseInt(getSelectedNodeID().split('-')[1]) // Couldn't find a better way to get the selected node
+    var nodeId = getSelectedNodeID()
+    return nodeId ? parseInt(nodeId.split('-')[1]) : null // Couldn't find a better way to get the selected node
 }
 
 function getNodeHtmlByID(node_id) {
@@ -1053,7 +1053,8 @@ function getNodeHtmlByID(node_id) {
 }
 
 function getSelectedBlock() {
-    return editor.getNodeFromId(getSelectedNodeIDInteger())
+    var nodeId = getSelectedNodeIDInteger()
+    return nodeId ? editor.getNodeFromId(nodeId) : [];
 }
 
 function deleteSelectedNode() {
