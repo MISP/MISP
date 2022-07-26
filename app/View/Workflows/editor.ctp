@@ -210,14 +210,14 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
 <div id="block-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="Module block modal" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3>Block options</h3>
+        <h3><?= __('Block options') ?></h3>
     </div>
     <div class="modal-body">
-        <p>Block options</p>
+        <p><?= __('Block options') ?></p>
     </div>
     <div class="modal-footer">
-        <button id="delete-selected-node" class="btn btn-danger">Delete</button>
-        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        <button id="delete-selected-node" class="btn btn-danger" style="float: left;"><?= __('Delete node') ?></button>
+        <button class="btn btn-success" data-dismiss="modal" aria-hidden="true"><?= __('Save') ?></button>
     </div>
 </div>
 
@@ -227,10 +227,10 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
         <h3><?= __('Module Notifications') ?></h3>
     </div>
     <div class="modal-body">
-        <p>Block notifications</p>
+        <p><?= __('Block notifications') ?></p>
     </div>
     <div class="modal-footer">
-        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        <button class="btn" data-dismiss="modal" aria-hidden="true"><?= __('Close') ?></button>
     </div>
 </div>
 
@@ -240,11 +240,11 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
         <h3><?= __('Module Filtering') ?></h3>
     </div>
     <div class="modal-body">
-        <p>Block filtering</p>
+        <p><?= __('Block filtering') ?></p>
     </div>
     <div class="modal-footer">
-        <button class="btn btn-success" onclick="saveFilteringForModule(this)" aria-hidden="true">Save</button>
-        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        <button class="btn btn-success" onclick="saveFilteringForModule(this)" aria-hidden="true"><?= __('Save') ?></button>
+        <button class="btn" data-dismiss="modal" aria-hidden="true"><?= __('Close') ?></button>
     </div>
 </div>
 
