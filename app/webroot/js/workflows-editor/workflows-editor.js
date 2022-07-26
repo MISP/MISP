@@ -21,16 +21,16 @@ var dotBlock_default = doT.template(' \
             {{?}} \
             <span style="margin-left: auto;"> \
                 <span class="block-notification-container"> \
-                    {{=it._block_notification_html}} \
+                    {{=it._node_notification_html}} \
                 </span> \
                 <span> \
                     <a href="#block-modal" role="button" class="btn btn-mini" data-toggle="modal"><i class="fas fa-ellipsis-h"></i></a> \
-                    {{=it._block_filter_html}} \
+                    {{=it._node_filter_html}} \
                 </span> \
             </span> \
         </div> \
         <div class="muted" class="description" style="margin-bottom: 0.5em;">{{=it.description}}</div> \
-        {{=it._block_param_html}} \
+        {{=it._node_param_html}} \
     </div> \
 </div>')
 
@@ -52,7 +52,7 @@ var dotBlock_trigger = doT.template(' \
                     <img src="/img/misp-logo-no-text.png" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0;" title="The data passed by this trigger is compliant with the MISP core format"> \
                 {{?}} \
                 <span class="block-notification-container"> \
-                    {{=it._block_notification_html}} \
+                    {{=it._node_notification_html}} \
                 </span> \
             </span> \
         </div> \
@@ -74,14 +74,14 @@ var dotBlock_if = doT.template(' \
             </strong> \
             <span style="margin-left: auto;"> \
                 <span class="block-notification-container"> \
-                    {{=it._block_notification_html}} \
+                    {{=it._node_notification_html}} \
                 </span> \
                 <span> \
                     <a href="#block-modal" role="button" class="btn btn-mini" data-toggle="modal"><i class="fas fa-ellipsis-h"></i></a> \
                 </span> \
             </span> \
         </div> \
-        {{=it._block_param_html}} \
+        {{=it._node_param_html}} \
     </div> \
 </div>')
 
@@ -100,14 +100,14 @@ var dotBlock_concurrent = doT.template(' \
             </strong> \
             <span style="margin-left: auto;"> \
                 <span class="block-notification-container"> \
-                    {{=it._block_notification_html}} \
+                    {{=it._node_notification_html}} \
                 </span> \
                 <span> \
                     <a href="#block-modal" role="button" class="btn btn-mini" data-toggle="modal"><i class="fas fa-ellipsis-h"></i></a> \
                 </span> \
             </span> \
         </div> \
-        {{=it._block_param_html}} \
+        {{=it._node_param_html}} \
         <div class="muted" class="description" style="margin-bottom: 0.5em;">{{=it.description}}</div> \
     </div> \
 </div>')
@@ -521,7 +521,7 @@ function duplicateSelection() {
 }
 
 function buildModalForBlock(node_id, block) {
-    var html = genBlockParamHtml(block, false)
+    var html = genNodeParamHtml(block, false)
     $blockModal
         .data('selected-block', block)
         .data('selected-node-id', node_id)
@@ -607,10 +607,10 @@ function addNode(block, position) {
     pos_x = pos_x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)) - (editor.precanvas.getBoundingClientRect().x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)));
     pos_y = pos_y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)) - (editor.precanvas.getBoundingClientRect().y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)));
 
-    block['_block_param_html'] = genBlockParamHtml(block)
-    block['_block_notification_html'] = genBlockNotificationHtml(block)
-    block['_block_filter_html'] = genBlockFilteringHtml(block)
-    var html = getTemplateForBlock(block)
+    block['_node_param_html'] = genNodeParamHtml(block)
+    block['_node_notification_html'] = genNodeNotificationHtml(block)
+    block['_node_filter_html'] = genNodeFilteringHtml(block)
+    var html = getTemplateForNode(block)
     var blockClass = block.class === undefined ? [] : block.class
     blockClass = !Array.isArray(blockClass) ? [blockClass] : blockClass
     blockClass.push('block-type-' + (block.html_template !== undefined ? block.html_template : 'default'))
@@ -718,9 +718,9 @@ function loadWorkflow(workflow) {
         node.data = module_data
         var node_uid = uid() // only used for UI purposes
         node.data['node_uid'] = node_uid
-        node.data['_block_param_html'] = genBlockParamHtml(node.data)
-        node.data['_block_notification_html'] = genBlockNotificationHtml(node.data)
-        node.data['_block_filter_html'] = genBlockFilteringHtml(node.data)
+        node.data['_node_param_html'] = genNodeParamHtml(node.data)
+        node.data['_node_notification_html'] = genNodeNotificationHtml(node.data)
+        node.data['_node_filter_html'] = genNodeFilteringHtml(node.data)
         var nodeClass = node.data.class === undefined ? [] : node.data.class
         nodeClass = !Array.isArray(nodeClass) ? [nodeClass] : nodeClass
         nodeClass.push('block-type-' + (node.data.html_template !== undefined ? node.data.html_template : 'default'))
@@ -730,7 +730,7 @@ function loadWorkflow(workflow) {
         if (node.data.disabled) {
             nodeClass.push('disabled')
         }
-        var html = getTemplateForBlock(node.data)
+        var html = getTemplateForNode(node.data)
         editor.nodeId = node.id // force the editor to use the saved id of the node instead of generating a new one
         editor.addNode(
             node.name,
@@ -795,10 +795,10 @@ function duplicateNodesFromHtml(currentSelection) {
             top: nodeHtml.getBoundingClientRect().top - 100 * editor.zoom,
             left: nodeHtml.getBoundingClientRect().left + 100 * editor.zoom,
         }
-        var block = Object.assign({}, all_modules_by_id[node.data.id])
-        block.params = node.data.params.slice()
-        block.saved_filters = Object.assign({}, node.data.saved_filters)
-        addNode(block, position)
+        var newNode = Object.assign({}, all_modules_by_id[node.data.id])
+        newNode.params = node.data.params.slice()
+        newNode.saved_filters = Object.assign({}, node.data.saved_filters)
+        addNode(newNode, position)
         oldNewIDMapping[node_id] = editor.nodeId - 1
         newNodes.push(getNodeHtmlByID(editor.nodeId - 1)) // nodeId is incremented as soon as a new node is created
     })
@@ -863,17 +863,17 @@ function addNodesFromWorkflowBlueprint(workflowBlueprint, cursorPosition) {
             )
             return
         }
-        var block = Object.assign({}, all_modules_by_id[node.data.id])
-        block.params = mergeNodeAndModuleParams(node, block.params)
-        block.saved_filters = Object.assign({}, node.data.saved_filters)
-        addNode(block, position)
+        var newNode = Object.assign({}, all_modules_by_id[node.data.id])
+        newNode.params = mergeNodeAndModuleParams(node, newNode.params)
+        newNode.saved_filters = Object.assign({}, node.data.saved_filters)
+        addNode(newNode, position)
         oldNewIDMapping[node.id] = editor.nodeId - 1
         newNodes.push(getNodeHtmlByID(editor.nodeId - 1)) // nodeId is incremented as soon as a new node is created
     })
     workflowBlueprint.data.forEach(function (node) {
         Object.keys(node.outputs).forEach(function (outputName) {
-            var block = Object.assign({}, all_modules_by_id[node.data.id])
-            if (block.outputs > 0) { // make sure the module configuration didn't change in regards of the outputs
+            var newNode = Object.assign({}, all_modules_by_id[node.data.id])
+            if (newNode.outputs > 0) { // make sure the module configuration didn't change in regards of the outputs
                 node.outputs[outputName].connections.forEach(function (connection) {
                     if (oldNewIDMapping[connection.node] !== undefined) {
                         editor.addConnection(
@@ -934,7 +934,7 @@ function mergeNodeAndModuleParams(node, moduleParams) {
             param.is_invalid = true
         }
         if (!param['param_id']) {
-            param['param_id'] = getIDForBlockParameter(node, param)
+            param['param_id'] = getIDForNodeParameter(node, param)
         }
         finalParam = Object.assign({}, nodeParamsByFormattedName[formattedName], moduleParamsByFormattedName[formattedName])
         finalParams[formattedName] = finalParam
@@ -1140,26 +1140,26 @@ function toggleEditorLoading(loading, message) {
     }
 }
 
-function getTemplateForBlock(block) {
+function getTemplateForNode(node) {
     var html = ''
-    block.icon_class = block.icon_class ? block.icon_class : 'fas'
-    if (block.html_template !== undefined) {
-        if (window['dotBlock_' + block.html_template] !== undefined) {
-            html = window['dotBlock_' + block.html_template](block)
+    node.icon_class = node.icon_class ? node.icon_class : 'fas'
+    if (node.html_template !== undefined) {
+        if (window['dotBlock_' + node.html_template] !== undefined) {
+            html = window['dotBlock_' + node.html_template](node)
         } else {
             html = 'Wrong HTML template'
-            console.error('Wrong HTML template for block', block)
+            console.error('Wrong HTML template for node', node)
         }
     } else {
-        html = dotBlock_default(block)
+        html = dotBlock_default(node)
     }
     return html
 }
 
-function genBlockParamHtml(block, forNode = true) {
-    var blockParams = block.params !== undefined ? block.params : []
+function genNodeParamHtml(node, forNode = true) {
+    var nodeParams = node.params !== undefined ? node.params : []
     var html = ''
-    blockParams.forEach(function (param) {
+    nodeParams.forEach(function (param) {
         paramHtml = ''
         switch (param.type) {
             case 'input':
@@ -1464,11 +1464,11 @@ function saveFilteringForModule() {
     }
 }
 
-function getIDForBlockParameter(block, param) {
+function getIDForNodeParameter(node, param) {
     if (param.id !== undefined) {
-        return param.id + '-' + block.node_uid
+        return param.id + '-' + node.node_uid
     }
-    return param.label.toLowerCase().replace(' ', '-') + '-' + block.node_uid
+    return param.label.toLowerCase().replace(' ', '-') + '-' + node.node_uid
 }
 
 function getNodeFromNodeInput($input) {
@@ -1510,7 +1510,7 @@ function setParamValueForInput($input, node_data) {
     return node_data
 }
 
-function genBlockNotificationHtml(block) {
+function genNodeNotificationHtml(block) {
     var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
     if (!module) {
         console.error('Tried to get notification of unknown module ' + block.id)
@@ -1579,7 +1579,7 @@ function genBlockNotificationForModalHtml(block) {
     return html
 }
 
-function genBlockFilteringHtml(block) {
+function genNodeFilteringHtml(block) {
     var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
     var html = ''
     if (module.support_filters) {
