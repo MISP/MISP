@@ -2805,13 +2805,22 @@ class Server extends AppModel
             $settings = array_keys(self::MYSQL_RECOMMENDED_SETTINGS);
 
             foreach ($dbVariables as $dbVariable) {
-                if (in_array($dbVariable['SESSION_VARIABLES']['Variable_name'], $settings)) {
+                // different rdbms have different casing
+                if (isset($dbVariable['SESSION_VARIABLES'])) {
+                    $dbVariable = $dbVariable['SESSION_VARIABLES'];
+                } elseif (isset($dbVariable['session_variables'])) {
+                    $dbVariable = $dbVariable['session_variables'];
+                } else {
+                    continue;
+                }
+
+                if (in_array($dbVariable['Variable_name'], $settings)) {
                     $configuration[] = [
-                        'name' => $dbVariable['SESSION_VARIABLES']['Variable_name'],
-                        'value' => $dbVariable['SESSION_VARIABLES']['Value'],
-                        'default' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['SESSION_VARIABLES']['Variable_name']]['default'],
-                        'recommended' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['SESSION_VARIABLES']['Variable_name']]['recommended'],
-                        'explanation' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['SESSION_VARIABLES']['Variable_name']]['explanation'],
+                        'name' => $dbVariable['Variable_name'],
+                        'value' => $dbVariable['Value'],
+                        'default' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['default'],
+                        'recommended' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['recommended'],
+                        'explanation' => self::MYSQL_RECOMMENDED_SETTINGS[$dbVariable['Variable_name']]['explanation'],
                     ];
                 }
             }
