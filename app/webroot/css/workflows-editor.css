@@ -285,6 +285,14 @@
     position: relative;
 }
 
+.CodeMirror.cm-s-default {
+    border: 1px solid #ccc;
+}
+
+.dropdown-menu li.disabled a {
+    pointer-events: none;
+}
+
 /* Canvas blocks */
 .default-main-container {
     display: flex;

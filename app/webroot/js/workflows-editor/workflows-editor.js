@@ -312,10 +312,14 @@ function initDrawflow() {
     $saveWorkflowButton.click(saveWorkflow)
     $importWorkflowButton.click(importWorkflow)
     $exportWorkflowButton.click(exportWorkflow)
-    $blockModal.on('show', function (evt) {
-        var selectedBlock = getSelectedBlock()
-        buildModalForBlock(selectedBlock.id, selectedBlock.data)
-    })
+    $blockModal
+        .on('show', function (evt) {
+            var selectedBlock = getSelectedBlock()
+            buildModalForBlock(selectedBlock.id, selectedBlock.data)
+        })
+        .on('shown', function (evt) {
+            afterModalShowCallback()
+        })
     $blockModalDeleteButton.click(function() {
         if (confirm('Are you sure you want to remove this block?')) {
             deleteSelectedNode()
@@ -509,12 +513,11 @@ function saveBlueprint(href) {
 }
 
 function buildModalForBlock(node_id, block) {
-    var html = genBlockParamHtml(block)
+    var html = genBlockParamHtml(block, false)
     $blockModal
         .data('selected-block', block)
         .data('selected-node-id', node_id)
     $blockModal.find('.modal-body').empty().append(html)
-    afterNodeDrawCallback()
 }
 
 function buildNotificationModalForBlock(node_id, block) {
@@ -1143,29 +1146,29 @@ function getTemplateForBlock(block) {
     return html
 }
 
-function genBlockParamHtml(block) {
+function genBlockParamHtml(block, forNode = true) {
     var blockParams = block.params !== undefined ? block.params : []
     var html = ''
     blockParams.forEach(function (param) {
         paramHtml = ''
         switch (param.type) {
             case 'input':
-                paramHtml = genInput(param)[0].outerHTML
+                paramHtml = genInput(param, false, forNode)[0].outerHTML
                 break;
             case 'textarea':
-                paramHtml = genInput(param, true)[0].outerHTML
+                paramHtml = genInput(param, true, forNode)[0].outerHTML
                 break;
             case 'select':
-                paramHtml = genSelect(param)[0].outerHTML
+                paramHtml = genSelect(param, forNode)[0].outerHTML
                 break;
             case 'picker':
-                paramHtml = genPicker(param)[0].outerHTML
+                paramHtml = genPicker(param, forNode)[0].outerHTML
                 break;
             case 'checkbox':
-                paramHtml = genCheckbox(param)[0].outerHTML
+                paramHtml = genCheckbox(param, forNode)[0].outerHTML
                 break;
             case 'radio':
-                paramHtml = genRadio(param)[0].outerHTML
+                paramHtml = genRadio(param, forNode)[0].outerHTML
                 break;
             default:
                 break;
@@ -1180,6 +1183,28 @@ function afterNodeDrawCallback() {
     $nodes.find('.start-chosen').chosen()
 }
 
+function afterModalShowCallback() {
+    $blockModal.find('.start-chosen').chosen()
+    var cmOptions = {
+        theme: 'default',
+        lineNumbers: true,
+        indentUnit: 4,
+        showCursorWhenSelecting: true,
+        lineWrapping: true,
+        autoCloseBrackets: true,
+        extraKeys: {
+            "Esc": function () {
+            },
+        },
+    }
+    $blockModal.find('.start-codemirror').each(function() {
+        CodeMirror.fromTextArea(this, cmOptions).on('change', function(cm, e) {
+            cm.save()
+            handleInputChange(cm.getTextArea())
+        })
+    })
+}
+
 function genParameterWarning(options) {
     return options.is_invalid ?
         $('<span>').addClass('text-error').css('margin-left', '5px')
@@ -1191,7 +1216,7 @@ function genParameterWarning(options) {
         ''
 }
 
-function genSelect(options) {
+function genSelect(options, forNode = true) {
     var $container = $('<div>')
     var $label = $('<label>')
         .css({
@@ -1253,14 +1278,14 @@ function genSelect(options) {
     return $container
 }
 
-function genPicker(options) {
+function genPicker(options, forNode = true) {
     var $container = genSelect(options)
     var $select = $container.find('select')
     $select.addClass('start-chosen')
     return $container
 }
 
-function genInput(options, isTextArea) {
+function genInput(options, isTextArea, forNode = true) {
     var $container = $('<div>')
     var $label = $('<label>')
         .css({
@@ -1273,7 +1298,11 @@ function genInput(options, isTextArea) {
         )
     var $input
     if (isTextArea) {
-        $input = $('<textarea>').attr('rows', 4).css({resize: 'none'})
+        if (forNode) {
+            $input = $('<textarea>').attr('rows', 1).prop('disabled', true).css({ resize: 'none' }).attr('title', 'Can only be edited in node settings')
+        } else {
+            $input = $('<textarea>').attr('rows', 4).css({resize: 'none'}).addClass('start-codemirror')
+        }
     } else {
         $input = $('<input>').attr('type', 'text').css({height: '30px'})
     }
@@ -1297,7 +1326,7 @@ function genInput(options, isTextArea) {
     return $container
 }
 
-function genCheckbox(options) {
+function genCheckbox(options, forNode = true) {
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
@@ -1326,7 +1355,7 @@ function genCheckbox(options) {
     return $container
 }
 
-function genRadio(options) {
+function genRadio(options, forNode = true) {
     var $container = $('<div>')
     var $rootLabel = $('<label>')
         .css({

@@ -259,6 +259,15 @@ echo $this->element('genericElements/assetLoader', [
     'css' => ['workflows-editor'],
     'js' => ['workflows-editor/workflows-editor', 'taskScheduler'],
 ]);
+echo $this->element('genericElements/assetLoader', [
+    'js' => array(
+        'codemirror/codemirror',
+        'codemirror/addons/closebrackets',
+    ),
+    'css' => array(
+        'codemirror',
+    )
+]);
 ?>
 
 <script>
@@ -306,9 +315,3 @@ echo $this->element('genericElements/assetLoader', [
         initDrawflow()
     })
 </script>
-
-<style>
-    .dropdown-menu li.disabled a {
-        pointer-events: none;
-    }
-</style>

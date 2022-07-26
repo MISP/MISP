@@ -100,7 +100,7 @@ class Module_misp_module extends WorkflowBaseActionModule
             $param['type'] = 'input';
             $param['_isHashPath'] = true;
         } elseif ($moduleParam['type'] == 'large_string') {
-            $param['type'] = 'input';
+            $param['type'] = 'textarea';
         } else {
             $param['type'] = 'input';
         }
