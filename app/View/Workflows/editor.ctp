@@ -35,14 +35,18 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
                 <i class="fa-fw <?= $this->FontAwesome->getClass('save') ?>"></i> <?= __('Save') ?>
                 <span class="fa fa-spin fa-spinner loading-span hidden"></span>
             </button>
-            <span id="workflow-saved-container" class="fa-stack small" style="margin-left: 0.75em;">
-                <i class=" fas fa-cloud fa-stack-2x"></i>
-                <i class="fas fa-save fa-stack-1x fa-inverse" style="top: 0.15em;"></i>
+            <span id="workflow-saved-container" class="fa-stack" style="margin-left: 0.75em;">
+                <i class="<?= $this->FontAwesome->getClass('cloud') ?> fa-stack-2x"></i>
+                <i class="<?= $this->FontAwesome->getClass('save') ?> fa-stack-1x fa-inverse" style="top: 0.15em;"></i>
             </span>
             <span id="workflow-saved-text" style="margin-left: 5px;"></span>
             <span id="workflow-saved-text-details" style="margin-left: 5px; font-size: 0.75em"></span>
         </span>
         <span style="display: flex; align-items: center; margin-left: auto; margin-right: 1em;">
+            <!-- <button id="workflow-debug-container" class="btn btn-success" style="margin-right: 0.5em;">
+                <i class="<?= $this->FontAwesome->getClass('bug') ?> fa-fw"></i>
+                <?= __('Run and Debug') ?> -->
+            </button>
             <button class="btn btn-info btn-mini" href="#workflow-info-modal" data-toggle="modal">
                 <i class="<?= $this->FontAwesome->getClass('info') ?>"></i>
             </button>
@@ -207,13 +211,13 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
     </div>
 </div>
 
-<div id="block-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="Module block modal" aria-hidden="true">
+<div id="block-modal" class="modal hide fade modal-lg" tabindex="-1" role="dialog" aria-labelledby="Module block modal" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3><?= __('Block options') ?></h3>
+        <h3><?= __('Node settings') ?></h3>
     </div>
-    <div class="modal-body">
-        <p><?= __('Block options') ?></p>
+    <div class="modal-body modal-body-xl">
+        <p><?= __('Node settings') ?></p>
     </div>
     <div class="modal-footer">
         <button id="delete-selected-node" class="btn btn-danger" style="float: left;"><?= __('Delete node') ?></button>
@@ -224,10 +228,10 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
 <div id="block-notifications-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="Module notification modal" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3><?= __('Module Notifications') ?></h3>
+        <h3><?= __('Node Notifications') ?></h3>
     </div>
     <div class="modal-body">
-        <p><?= __('Block notifications') ?></p>
+        <p><?= __('Node notifications') ?></p>
     </div>
     <div class="modal-footer">
         <button class="btn" data-dismiss="modal" aria-hidden="true"><?= __('Close') ?></button>
@@ -237,10 +241,10 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
 <div id="block-filtering-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="Module filtering modal" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3><?= __('Module Filtering') ?></h3>
+        <h3><?= __('Node Filtering') ?></h3>
     </div>
     <div class="modal-body">
-        <p><?= __('Block filtering') ?></p>
+        <p><?= __('Node filtering') ?></p>
     </div>
     <div class="modal-footer">
         <button class="btn btn-success" onclick="saveFilteringForModule(this)" aria-hidden="true"><?= __('Save') ?></button>
