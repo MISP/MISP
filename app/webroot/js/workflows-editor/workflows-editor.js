@@ -683,71 +683,71 @@ function loadWorkflow(workflow) {
             console.error('Unknown trigger');
             showMessage('error', 'Unknown trigger')
         }
-        var trigger_block = all_triggers_by_id[trigger_id]
-        addNode(trigger_block, {left: 0, top: 0})
+        var trigger_module = all_triggers_by_id[trigger_id]
+        addNode(trigger_module, {left: 0, top: 0})
     }
     // We cannot rely on the editor's import function as it recreates the nodes with the saved HTML instead of rebuilding them
     // We have to manually add the nodes and their connections
-    Object.values(workflow.data).forEach(function (block) {
-        var module = all_modules_by_id[block.data.id] || all_triggers_by_id[block.data.id]
+    Object.values(workflow.data).forEach(function (node) {
+        var module = all_modules_by_id[node.data.id] || all_triggers_by_id[node.data.id]
         if (!module) {
-            console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
+            console.error('Tried to add node for unknown module ' + node.data.id + ' (' + node.id + ')')
             var userFriendlyParams = {}
-            block.data.params.forEach(function (param) {
+            node.data.params.forEach(function (param) {
                 userFriendlyParams[param.label] = (param.value ?? param.default)
             })
             var html = window['dotBlock_error']({
-                error: 'Invalid module id`' + block.data.id + '` (' + block.id + ')',
+                error: 'Invalid module id`' + node.data.id + '` (' + node.id + ')',
                 data: JSON.stringify(userFriendlyParams, null, 2)
             })
             editor.addNode(
-                block.name,
-                Object.values(block.inputs).length,
-                Object.values(block.outputs).length,
-                block.pos_x,
-                block.pos_y,
+                node.name,
+                Object.values(node.inputs).length,
+                Object.values(node.outputs).length,
+                node.pos_x,
+                node.pos_y,
                 '',
-                block.data,
+                node.data,
                 html
             )
             return '';
         }
-        var module_data = Object.assign({}, all_modules_by_id[block.data.id] || all_triggers_by_id[block.data.id])
-        module_data.params = mergeNodeAndModuleParams(block, module_data.params)
-        module_data.saved_filters = block.data.saved_filters
-        block.data = module_data
+        var module_data = Object.assign({}, all_modules_by_id[node.data.id] || all_triggers_by_id[node.data.id])
+        module_data.params = mergeNodeAndModuleParams(node, module_data.params)
+        module_data.saved_filters = node.data.saved_filters
+        node.data = module_data
         var node_uid = uid() // only used for UI purposes
-        block.data['node_uid'] = node_uid
-        block.data['_block_param_html'] = genBlockParamHtml(block.data)
-        block.data['_block_notification_html'] = genBlockNotificationHtml(block.data)
-        block.data['_block_filter_html'] = genBlockFilteringHtml(block.data)
-        var blockClass = block.data.class === undefined ? [] : block.data.class
-        blockClass = !Array.isArray(blockClass) ? [blockClass] : blockClass
-        blockClass.push('block-type-' + (block.data.html_template !== undefined ? block.data.html_template : 'default'))
-        if (block.data.module_type == 'logic') {
-            blockClass.push('block-type-logic')
+        node.data['node_uid'] = node_uid
+        node.data['_block_param_html'] = genBlockParamHtml(node.data)
+        node.data['_block_notification_html'] = genBlockNotificationHtml(node.data)
+        node.data['_block_filter_html'] = genBlockFilteringHtml(node.data)
+        var nodeClass = node.data.class === undefined ? [] : node.data.class
+        nodeClass = !Array.isArray(nodeClass) ? [nodeClass] : nodeClass
+        nodeClass.push('block-type-' + (node.data.html_template !== undefined ? node.data.html_template : 'default'))
+        if (node.data.module_type == 'logic') {
+            nodeClass.push('block-type-logic')
         }
-        if (block.data.disabled) {
-            blockClass.push('disabled')
+        if (node.data.disabled) {
+            nodeClass.push('disabled')
         }
-        var html = getTemplateForBlock(block.data)
-        editor.nodeId = block.id // force the editor to use the saved id of the block instead of generating a new one
+        var html = getTemplateForBlock(node.data)
+        editor.nodeId = node.id // force the editor to use the saved id of the node instead of generating a new one
         editor.addNode(
-            block.name,
-            Object.values(block.inputs).length,
-            Object.values(block.outputs).length,
-            block.pos_x,
-            block.pos_y,
-            blockClass.join(' '),
-            block.data,
+            node.name,
+            Object.values(node.inputs).length,
+            Object.values(node.outputs).length,
+            node.pos_x,
+            node.pos_y,
+            nodeClass.join(' '),
+            node.data,
             html
         )
     })
     afterNodeDrawCallback()
-    Object.values(workflow.data).forEach(function (block) {
-        for (var input_name in block.inputs) {
-            block.inputs[input_name].connections.forEach(function (connection) {
-                editor.addConnection(connection.node, block.id, connection.input, input_name)
+    Object.values(workflow.data).forEach(function (node) {
+        for (var input_name in node.inputs) {
+            node.inputs[input_name].connections.forEach(function (connection) {
+                editor.addConnection(connection.node, node.id, connection.input, input_name)
             })
         }
     })
