@@ -254,15 +254,15 @@ function initDrawflow() {
 
     $('.sidebar-workflow-block').each(function() {
         var $block = $(this)
-        $block.data('block', all_modules_by_id[$block[0].id])
+        $block.data('module', all_modules_by_id[$block[0].id])
 
-        if ($(this).data('block').disabled) {
+        if ($(this).data('module').disabled) {
             $(this).addClass('disabled')
         }
         $(this).draggable({
             helper: "clone",
             scroll: false,
-            disabled: $(this).data('block').disabled,
+            disabled: $(this).data('module').disabled,
             start: function (event, ui) {
             },
             stop: function (event, ui) {
@@ -290,7 +290,7 @@ function initDrawflow() {
             if (ui.draggable.data('blueprint')) {
                 addWorkflowBlueprint(ui.draggable.data('blueprint').WorkflowBlueprint.id, ui.position)
             } else {
-                addNode(ui.draggable.data('block'), ui.position)
+                addNode(ui.draggable.data('module'), ui.position)
             }
         },
     });
@@ -765,15 +765,15 @@ function filterModules(clicked) {
     $modulesToShow.show()
     if (selectedFilter == 'enabled') {
         $modulesToShow.filter(function() {
-            return $(this).data('block')['disabled']
+            return $(this).data('module')['disabled']
         }).hide()
     } else if (selectedFilter == 'misp-module') {
         $modulesToShow.filter(function () {
-            return !$(this).data('block')['is_misp_module'] || $(this).data('block')['disabled']
+            return !$(this).data('module')['is_misp_module'] || $(this).data('module')['disabled']
         }).hide()
     } else if (selectedFilter == 'is-blocking') {
         $modulesToShow.filter(function () {
-            return !$(this).data('block')['blocking'] || $(this).data('block')['disabled']
+            return !$(this).data('module')['blocking'] || $(this).data('module')['disabled']
         }).hide()
     }
 }
