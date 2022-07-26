@@ -173,6 +173,10 @@ th.filter a {
     cursor: pointer;
 }
 
+th.pagination_link {
+    white-space: nowrap;
+}
+
 td.searchLabel{
     opacity: 50;
     height: 20px;

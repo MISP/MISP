@@ -4,6 +4,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 class Module_attribute_after_save extends WorkflowBaseTriggerModule
 {
     public $id = 'attribute-after-save';
+    public $scope = 'attribute';
     public $name = 'Attribute After Save';
     public $description = 'This trigger is called after an Attribute has been saved in the database';
     public $icon = 'cube';

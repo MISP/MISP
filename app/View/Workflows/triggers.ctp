@@ -11,6 +11,11 @@
             }
         ],
         [
+            'name' => __('Scope'),
+            'data_path' => 'scope',
+            'sort' => 'scope',
+        ],
+        [
             'name' => __('Description'),
             'data_path' => 'description',
         ],
@@ -60,7 +65,6 @@
     echo $this->element('genericElements/IndexTable/scaffold', [
         'scaffold_data' => [
             'data' => [
-                'light_paginator' => true,
                 'data' => $data,
                 'top_bar' => [
                 ],

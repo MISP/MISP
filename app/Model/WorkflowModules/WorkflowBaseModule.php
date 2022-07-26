@@ -190,6 +190,7 @@ class WorkflowBaseModule
 
 class WorkflowBaseTriggerModule extends WorkflowBaseModule
 {
+    public $scope = 'others';
     public $blocking = false;
     public $misp_core_format = false;
     public $inputs = 0;

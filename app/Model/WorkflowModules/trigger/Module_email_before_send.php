@@ -4,6 +4,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 class Module_email_before_send extends WorkflowBaseTriggerModule
 {
     public $id = 'email-before-send';
+    public $scope = 'event';
     public $name = 'Email Before Send';
     public $description = '-WorkInProgress- This trigger is called just before a email is sent to a user.';
     public $icon = 'envelope';
