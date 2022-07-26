@@ -24,8 +24,13 @@ class MyServer(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/html")
         self.end_headers()
         self.data_string = self.rfile.read(int(self.headers['Content-Length']))
-        data = json.loads(self.data_string)
-        pprint(data)
+        self.data_string = self.data_string.decode('utf8')
+        try:
+            data = json.loads(self.data_string)
+            pprint(data)
+        except json.decoder.JSONDecodeError as e:
+            data = self.data_string
+            print(data)
         print()
         self.wfile.write(bytes("<html><head><title>https://pythonbasics.org</title></head>", "utf-8"))
         self.wfile.write(bytes("<p>Request: %s</p>" % self.path, "utf-8"))
