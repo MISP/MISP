@@ -8,7 +8,7 @@ class Module_webhook extends WorkflowBaseActionModule
 {
     public $id = 'webhook';
     public $name = 'Webhook';
-    public $description = 'Lorem ipsum dolor, sit amet consectetur adipisicing elit.';
+    public $description = 'Allow to perform custom callbacks to the provided URL';
     public $icon_path = 'webhook.png';
     public $inputs = 1;
     public $outputs = 1;
