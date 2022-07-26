@@ -702,7 +702,7 @@ function loadWorkflow(workflow) {
             return '';
         }
         var module_data = Object.assign({}, all_blocks_by_id[block.data.id] || all_triggers_by_id[block.data.id])
-        module_data.params = mergeNodeAndModuleParams(block.data.params, module_data.params)
+        module_data.params = mergeNodeAndModuleParams(block, module_data.params)
         module_data.saved_filters = block.data.saved_filters
         block.data = module_data
         var node_uid = uid() // only used for UI purposes
@@ -903,17 +903,17 @@ function getCanvasCentroid() {
     }
 }
 
-function mergeNodeAndModuleParams(nodeParams, moduleParams) {
+function mergeNodeAndModuleParams(node, moduleParams) {
     var moduleParamsByFormattedName = {}
     var nodeParamsByFormattedName = {}
     moduleParams.forEach(function (param) {
         moduleParamsByFormattedName[param.label.toLowerCase().replace(' ', '-')] = param
     })
-    nodeParams.forEach(function (param) {
+    node.data.params.forEach(function (param) {
         nodeParamsByFormattedName[param.label.toLowerCase().replace(' ', '-')] = param
     })
     var finalParams = {}
-    var nodeAndModuleParams = nodeParams.concat(moduleParams)
+    var nodeAndModuleParams = node.data.params.concat(moduleParams)
     nodeAndModuleParams.forEach(function (param) {
         var formattedName = param.label.toLowerCase().replace(' ', '-')
         if (finalParams[formattedName]) { // param has already been processed
@@ -921,6 +921,9 @@ function mergeNodeAndModuleParams(nodeParams, moduleParams) {
         }
         if (moduleParamsByFormattedName[formattedName] === undefined) { // Param do not exist in the module (anymore or never did)
             param.is_invalid = true
+        }
+        if (!param['param_id']) {
+            param['param_id'] = getIDForBlockParameter(node, param)
         }
         finalParam = Object.assign({}, nodeParamsByFormattedName[formattedName], moduleParamsByFormattedName[formattedName])
         finalParams[formattedName] = finalParam
