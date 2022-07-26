@@ -302,7 +302,7 @@ function initDrawflow() {
         editor.fitCanvas()
         // block contextual menu for trigger blocks
         $canvas.find('.canvas-workflow-block').on('contextmenu', function (evt) {
-            var selectedNode = getSelectedBlock()
+            var selectedNode = getSelectedNode()
             if (selectedNode !== undefined && selectedNode.data.module_type == 'trigger') {
                 evt.stopPropagation();
                 evt.preventDefault();
@@ -314,8 +314,8 @@ function initDrawflow() {
     $exportWorkflowButton.click(exportWorkflow)
     $blockModal
         .on('show', function (evt) {
-            var selectedBlock = getSelectedBlock()
-            buildModalForBlock(selectedBlock.id, selectedBlock.data)
+            var selectedNode = getSelectedNode()
+            buildModalForBlock(selectedNode.id, selectedNode.data)
         })
         .on('shown', function (evt) {
             afterModalShowCallback()
@@ -536,9 +536,9 @@ function buildFilteringModalForBlock(node_id, block) {
     $blockFilteringModal.find('.modal-body').empty().append(html)
 }
 
-function showNotificationModalForBlock(clicked) {
-    var selectedBlock = getSelectedBlock()
-    buildNotificationModalForBlock(selectedBlock.id, selectedBlock.data)
+function showNotificationModalForBlock() {
+    var selectedNode = getSelectedNode()
+    buildNotificationModalForBlock(selectedNode.id, selectedNode.data)
     $blockNotificationModal.modal('show')
 }
 
@@ -553,9 +553,9 @@ function showNotificationModalForSidebarModule(clicked) {
     showNotificationModalForModule(blockID, all_modules_by_id[blockID])
 }
 
-function showFilteringModalForBlock(clicked) {
-    var selectedBlock = getSelectedBlock()
-    buildFilteringModalForBlock(selectedBlock.id, selectedBlock.data)
+function showFilteringModalForBlock() {
+    var selectedNode = getSelectedNode()
+    buildFilteringModalForBlock(selectedNode.id, selectedNode.data)
     $blockFilteringModal.modal('show')
 }
 
@@ -753,18 +753,18 @@ function filterModules(clicked) {
     } else {
         selectedFilter = 'enabled'
     }
-    var $blocksToShow = $('.sidebar .tab-pane.active').find('.sidebar-workflow-block')
-    $blocksToShow.show()
+    var $modulesToShow = $('.sidebar .tab-pane.active').find('.sidebar-workflow-block')
+    $modulesToShow.show()
     if (selectedFilter == 'enabled') {
-        $blocksToShow.filter(function() {
+        $modulesToShow.filter(function() {
             return $(this).data('block')['disabled']
         }).hide()
     } else if (selectedFilter == 'misp-module') {
-        $blocksToShow.filter(function () {
+        $modulesToShow.filter(function () {
             return !$(this).data('block')['is_misp_module'] || $(this).data('block')['disabled']
         }).hide()
     } else if (selectedFilter == 'is-blocking') {
-        $blocksToShow.filter(function () {
+        $modulesToShow.filter(function () {
             return !$(this).data('block')['blocking'] || $(this).data('block')['disabled']
         }).hide()
     }
@@ -1052,7 +1052,7 @@ function getNodeHtmlByID(node_id) {
     return editor.precanvas.querySelector('#node-' + node_id)
 }
 
-function getSelectedBlock() {
+function getSelectedNode() {
     var nodeId = getSelectedNodeIDInteger()
     return nodeId ? editor.getNodeFromId(nodeId) : [];
 }
