@@ -856,7 +856,8 @@ function addNodesFromWorkflowBlueprint(workflowBlueprint, cursorPosition) {
             return
         }
         var block = Object.assign({}, all_blocks_by_id[node.data.id])
-        block.params = node.data.params.slice()
+        // block.params = node.data.params.slice()
+        block.params = mergeNodeAndModuleParams(node, block.params)
         block.saved_filters = Object.assign({}, node.data.saved_filters)
         addNode(block, position)
         oldNewIDMapping[node.id] = editor.nodeId - 1
@@ -1212,7 +1213,7 @@ function genParameterWarning(options) {
                 $('<i>').addClass('fas fa-exclamation-triangle'),
                 $('<span>').text('Invalid parameter')
             )
-            .attr('title', 'This parameter does not exist in the associated workflow module and thus will be removed upon saving. Make sure you have the latest version of the this module.') :
+            .attr('title', 'This parameter does not exist in the associated module and thus will be removed upon saving. Make sure you have the latest version of this module.') :
         ''
 }
 
