@@ -1432,7 +1432,11 @@ function saveFilteringForModule() {
     var value = $blockFilteringModal.find('input#filtering-value').val()
     var operator = $blockFilteringModal.find('select#filtering-operator').val()
     var path = $blockFilteringModal.find('input#filtering-path').val()
-    if (selector && value && operator && path) {
+    if (selector.length > 0 && (value.length == 0 || operator.length == 0 || path.length == 0)) {
+        $blockFilteringModal.find('.modal-body').append(
+            $('<div></div>').addClass('alert alert-danger').text('Some fields cannot be empty')
+        )
+    } else {
         var node_id = $blockFilteringModal.data('selected-node-id')
         var block = $blockFilteringModal.data('selected-block')
         block.saved_filters = {
@@ -1442,10 +1446,13 @@ function saveFilteringForModule() {
             path: path,
         }
         editor.updateNodeDataFromId(node_id, block)
+        if (selector.length > 0) {
+            $drawflow.find('#node-' + node_id).find('.filtering-button').addClass('btn-success')
+        } else {
+            $drawflow.find('#node-' + node_id).find('.filtering-button').removeClass('btn-success')
+        }
         invalidateContentCache()
         $blockFilteringModal.modal('hide')
-    } else {
-        $blockFilteringModal.find('form')[0].reportValidity()
     }
 }
 
@@ -1572,7 +1579,7 @@ function genBlockFilteringHtml(block) {
             .attr({
                 href: '#block-filtering-modal',
                 role: 'button',
-                class: 'btn btn-mini ' + (getFiltersFromNode(block).value ? 'btn-success' : ''),
+                class: 'filtering-button btn btn-mini ' + (getFiltersFromNode(block).value ? 'btn-success' : ''),
                 onclick: 'showFilteringModalForBlock(this)',
                 title: 'Module filtering conditions'
             })
@@ -1610,10 +1617,10 @@ function genGenericBlockFilter(block) {
     ]
     var filters = getFiltersFromNode(block)
     var $div = $('<div></div>').append($('<form></form>').append(
-        genGenericInput({ id: 'filtering-selector', label: 'Element selector', type: 'text', placeholder: 'Attribute.{n}', required: true, value: filters.selector}),
-        genGenericInput({id: 'filtering-value', label: 'Value', type: 'text', placeholder: 'tlp:white', required: true, value: filters.value}),
+        genGenericInput({ id: 'filtering-selector', label: 'Element selector', type: 'text', placeholder: 'Attribute.{n}', required: false, value: filters.selector}),
+        genGenericInput({ id: 'filtering-value', label: 'Value', type: 'text', placeholder: 'tlp:white', required: false, value: filters.value}),
         genGenericSelect({ id: 'filtering-operator', label: 'Operator', options: operatorOptions, value: filters.operator}),
-        genGenericInput({ id: 'filtering-path', label: 'Hash Path', type: 'text', placeholder: 'AttributeTag.{n}.Tag.name', required: true, value: filters.path}),
+        genGenericInput({ id: 'filtering-path', label: 'Hash Path', type: 'text', placeholder: 'AttributeTag.{n}.Tag.name', required: false, value: filters.path}),
     ))
     return $div[0].outerHTML
 }
