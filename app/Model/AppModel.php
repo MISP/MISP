@@ -227,6 +227,10 @@ class AppModel extends Model
             case 48:
                 $dbUpdateSuccess = $this->__generateCorrelations();
                 break;
+            case 87:
+                $this->Workflow = Classregistry::init('Workflow');
+                $this->Workflow->enableDefaultModules();
+                break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
                 break;

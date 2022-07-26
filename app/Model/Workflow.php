@@ -56,6 +56,8 @@ class Workflow extends AppModel
         ]
     ];
 
+    /** @var WorkflowGraphTool */
+    public $workflowGraphTool;
     public $defaultContain = [
     ];
 
@@ -64,6 +66,7 @@ class Workflow extends AppModel
     private $error_while_loading = [];
 
     private $module_initialized = false;
+    private $modules_enabled_by_default = ['generic-if', 'distribution-if', 'published-if', 'organisation-if', 'tag-if', 'concurrent-task', 'stop-execution', 'webhook', 'push-zmq'];
 
     const CAPTURE_FIELDS_EDIT = ['name', 'description', 'timestamp', 'data'];
     const CAPTURE_FIELDS_ADD = ['uuid', 'name', 'description', 'timestamp', 'data', 'trigger_id'];
@@ -142,6 +145,11 @@ class Workflow extends AppModel
         // $this->data is empty?!
         parent::afterDelete();
         $this->updateListeningTriggers($this->workflowToDelete);
+    }
+
+    public function enableDefaultModules()
+    {
+        $this->toggleModules($this->modules_enabled_by_default, true, false);
     }
 
     protected function checkTriggerEnabled($trigger_id)
