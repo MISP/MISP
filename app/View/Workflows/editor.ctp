@@ -1,10 +1,10 @@
 <?php
 $usableModules = [
-    'blocks_action' => $modules['blocks_action'],
-    'blocks_logic' => $modules['blocks_logic'],
+    'modules_action' => $modules['modules_action'],
+    'modules_logic' => $modules['modules_logic'],
 ];
-$allModules = array_merge($usableModules['blocks_action'], $usableModules['blocks_logic']);
-$triggerModules = $modules['blocks_trigger'];
+$allModules = array_merge($usableModules['modules_action'], $usableModules['modules_logic']);
+$triggerModules = $modules['modules_trigger'];
 $selectedTrigger = Hash::get($selectedWorkflow, 'Workflow.listening_triggers.0', []);
 $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
 ?>
@@ -76,27 +76,27 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
                 <div class="tab-content">
                     <div class="tab-pane active" id="container-actions">
                         <div id="block-filter-group" class="btn-group" data-toggle="buttons-radio">
-                            <button type="button" class="btn btn-primary active" data-type="enabled" onclick="filterBlocks(this)"><?= __('Enabled') ?></button>
-                            <button type="button" class="btn btn-primary" data-type="misp-module" onclick="filterBlocks(this)">
+                            <button type="button" class="btn btn-primary active" data-type="enabled" onclick="filterModules(this)"><?= __('Enabled') ?></button>
+                            <button type="button" class="btn btn-primary" data-type="misp-module" onclick="filterModules(this)">
                                 misp-module<span class="is-misp-module"></span>
                             </button>
-                            <button type="button" class="btn btn-primary" data-type="is-blocking" onclick="filterBlocks(this)">
+                            <button type="button" class="btn btn-primary" data-type="is-blocking" onclick="filterModules(this)">
                                 <?= __('Blocking') ?>
                             </button>
-                            <button type="button" class="btn btn-primary" data-type="all" onclick="filterBlocks(this)"><?= __('All') ?></button>
+                            <button type="button" class="btn btn-primary" data-type="all" onclick="filterModules(this)"><?= __('All') ?></button>
                         </div>
                         <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off">
-                            <?php foreach ($modules['blocks_action'] as $block) : ?>
+                            <?php foreach ($modules['modules_action'] as $block) : ?>
                                 <?php if (empty($block['disabled'])) : ?>
                                     <option value="<?= h($block['id']) ?>"><?= h($block['name']) ?></option>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </select>
                         <div class="block-container">
-                            <?php foreach ($modules['blocks_action'] as $block) : ?>
+                            <?php foreach ($modules['modules_action'] as $block) : ?>
                                 <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
                             <?php endforeach; ?>
-                            <?php if (empty($modules['blocks_action'])) : ?>
+                            <?php if (empty($modules['modules_action'])) : ?>
                                 <div class="alert alert-danger" style="margin: 10px 5px;">
                                     <?= __('There are no modules available. They can be enabled %s.', sprintf('<a href="%s">%s</a>', $baseurl . '/workflows/moduleIndex', __('here'))) ?>
                                 </div>
@@ -105,18 +105,18 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
                     </div>
                     <div class="tab-pane" id="container-logic">
                         <select type="text" placeholder="Search for a block" class="chosen-container blocks" autocomplete="off" style="width: 305px; margin: 0 0.5em;">
-                            <?php foreach ($modules['blocks_logic'] as $block) : ?>
+                            <?php foreach ($modules['modules_logic'] as $block) : ?>
                                 <?php if (empty($block['disabled'])) : ?>
                                     <option value="<?= h($block['id']) ?>"><?= h($block['name']) ?></option>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </select>
                         <div class="block-container">
-                            <?php foreach ($modules['blocks_logic'] as $block) : ?>
+                            <?php foreach ($modules['modules_logic'] as $block) : ?>
                                 <?= $this->element('Workflows/sidebar-block', ['block' => $block]) ?>
                             <?php endforeach; ?>
                         </div>
-                        <?php if (empty($modules['blocks_logic'])) : ?>
+                        <?php if (empty($modules['modules_logic'])) : ?>
                             <div class="alert alert-danger" style="margin-top: 10px;">
                                 <?= __('There are no modules available. They can be enabled %s.', sprintf('<a href="%s">%s</a>', $baseurl . '/workflows/moduleIndex/type:logic', __('here'))) ?>
                             </div>
@@ -300,8 +300,8 @@ echo $this->element('genericElements/assetLoader', [
     var $blockContainerAction = $('#container-actions')
     var editor = false
     var selection = false
-    var all_blocks = <?= json_encode($allModules) ?>;
-    var all_blocks_by_id = <?= json_encode(Hash::combine($allModules, '{n}.id', '{n}')) ?>;
+    var all_modules = <?= json_encode($allModules) ?>;
+    var all_modules_by_id = <?= json_encode(Hash::combine($allModules, '{n}.id', '{n}')) ?>;
     var all_triggers_by_id = <?= json_encode(Hash::combine($triggerModules, '{n}.id', '{n}')) ?>;
     var all_workflow_blueprints_by_id = <?= json_encode(Hash::combine($workflowBlueprints, '{n}.WorkflowBlueprint.id', '{n}')) ?>;
     var workflow = false

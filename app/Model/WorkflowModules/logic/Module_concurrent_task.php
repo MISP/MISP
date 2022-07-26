@@ -6,7 +6,7 @@ class Module_concurrent_task extends WorkflowBaseLogicModule
 {
     public $id = 'concurrent-task';
     public $name = 'Concurrent Task';
-    public $description = 'Allow breaking the execution process and running concurrent tasks. You can connect multiple blocks the `concurrent` output.';
+    public $description = 'Allow breaking the execution process and running concurrent tasks. You can connect multiple nodes the `concurrent` output.';
     public $icon = 'random';
     public $inputs = 1;
     public $outputs = 1;

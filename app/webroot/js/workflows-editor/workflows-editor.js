@@ -233,7 +233,7 @@ function initDrawflow() {
     $chosenBlocks.chosen({width: '320px'})
         .on('change', function (evt, param) {
             var selection = param.selected
-            var selected_module = all_blocks_by_id[selection]
+            var selected_module = all_modules_by_id[selection]
             var canvasBR = $canvas[0].getBoundingClientRect()
             var position = {
                 top: canvasBR.height / 2 - canvasBR.top,
@@ -250,7 +250,7 @@ function initDrawflow() {
 
     $('.sidebar-workflow-block').each(function() {
         var $block = $(this)
-        $block.data('block', all_blocks_by_id[$block[0].id])
+        $block.data('block', all_modules_by_id[$block[0].id])
 
         if ($(this).data('block').disabled) {
             $(this).addClass('disabled')
@@ -296,7 +296,7 @@ function initDrawflow() {
         slowInterval: 60000,
     })
 
-    filterBlocks($blockFilterGroup.find('button.active')[0])
+    filterModules($blockFilterGroup.find('button.active')[0])
     fetchAndLoadWorkflow().then(function() {
         graphPooler.start(undefined)
         editor.fitCanvas()
@@ -550,7 +550,7 @@ function showNotificationModalForModule(module_id, data) {
 function showNotificationModalForSidebarModule(clicked) {
     var $block = $(clicked).closest('.sidebar-workflow-block')
     var blockID = $block.data('blockid')
-    showNotificationModalForModule(blockID, all_blocks_by_id[blockID])
+    showNotificationModalForModule(blockID, all_modules_by_id[blockID])
 }
 
 function showFilteringModalForBlock(clicked) {
@@ -583,7 +583,7 @@ function revalidateContentCache() {
 
 
 function addNode(block, position) {
-    var module = all_blocks_by_id[block.id] || all_triggers_by_id[block.id]
+    var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
     if (!module) {
         console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
         return '';
@@ -681,7 +681,7 @@ function loadWorkflow(workflow) {
     // We cannot rely on the editor's import function as it recreates the nodes with the saved HTML instead of rebuilding them
     // We have to manually add the nodes and their connections
     Object.values(workflow.data).forEach(function (block) {
-        var module = all_blocks_by_id[block.data.id] || all_triggers_by_id[block.data.id]
+        var module = all_modules_by_id[block.data.id] || all_triggers_by_id[block.data.id]
         if (!module) {
             console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
             var userFriendlyParams = {}
@@ -704,7 +704,7 @@ function loadWorkflow(workflow) {
             )
             return '';
         }
-        var module_data = Object.assign({}, all_blocks_by_id[block.data.id] || all_triggers_by_id[block.data.id])
+        var module_data = Object.assign({}, all_modules_by_id[block.data.id] || all_triggers_by_id[block.data.id])
         module_data.params = mergeNodeAndModuleParams(block, module_data.params)
         module_data.saved_filters = block.data.saved_filters
         block.data = module_data
@@ -745,7 +745,7 @@ function loadWorkflow(workflow) {
     })
 }
 
-function filterBlocks(clicked) {
+function filterModules(clicked) {
     var $activeButton = $(clicked)
     var selectedFilter
     if ($activeButton.length > 0) {
@@ -787,7 +787,7 @@ function duplicateNodesFromHtml(currentSelection) {
             top: nodeHtml.getBoundingClientRect().top - 100 * editor.zoom,
             left: nodeHtml.getBoundingClientRect().left + 100 * editor.zoom,
         }
-        var block = Object.assign({}, all_blocks_by_id[node.data.id])
+        var block = Object.assign({}, all_modules_by_id[node.data.id])
         block.params = node.data.params.slice()
         block.saved_filters = Object.assign({}, node.data.saved_filters)
         addNode(block, position)
@@ -833,7 +833,7 @@ function addNodesFromWorkflowBlueprint(workflowBlueprint, cursorPosition) {
             top: (node.pos_y - matchingY) * editor.zoom + cursorPosition.top,
             left: (node.pos_x - minX) * editor.zoom + cursorPosition.left,
         }
-        if (all_blocks_by_id[node.data.id] === undefined) {
+        if (all_modules_by_id[node.data.id] === undefined) {
             var userFriendlyParams = {}
             node.data.params.forEach(function (param) {
                 userFriendlyParams[param.label] = (param.value ?? param.default)
@@ -855,7 +855,7 @@ function addNodesFromWorkflowBlueprint(workflowBlueprint, cursorPosition) {
             )
             return
         }
-        var block = Object.assign({}, all_blocks_by_id[node.data.id])
+        var block = Object.assign({}, all_modules_by_id[node.data.id])
         // block.params = node.data.params.slice()
         block.params = mergeNodeAndModuleParams(node, block.params)
         block.saved_filters = Object.assign({}, node.data.saved_filters)
@@ -865,7 +865,7 @@ function addNodesFromWorkflowBlueprint(workflowBlueprint, cursorPosition) {
     })
     workflowBlueprint.data.forEach(function (node) {
         Object.keys(node.outputs).forEach(function (outputName) {
-            var block = Object.assign({}, all_blocks_by_id[node.data.id])
+            var block = Object.assign({}, all_modules_by_id[node.data.id])
             if (block.outputs > 0) { // make sure the module configuration didn't change in regards of the outputs
                 node.outputs[outputName].connections.forEach(function (connection) {
                     if (oldNewIDMapping[connection.node] !== undefined) {
@@ -1495,7 +1495,7 @@ function setParamValueForInput($input, node_data) {
 }
 
 function genBlockNotificationHtml(block) {
-    var module = all_blocks_by_id[block.id] || all_triggers_by_id[block.id]
+    var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
     if (!module) {
         console.error('Tried to get notification of unknown module ' + block.id)
         return '';
@@ -1531,7 +1531,7 @@ function genBlockNotificationHtml(block) {
 }
 
 function genBlockNotificationForModalHtml(block) {
-    var module = all_blocks_by_id[block.id] || all_triggers_by_id[block.id]
+    var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
     var html = ''
     var $notificationMainContainer = $('<div></div>')
     var reversedSeverities = [].concat(severities)
@@ -1564,7 +1564,7 @@ function genBlockNotificationForModalHtml(block) {
 }
 
 function genBlockFilteringHtml(block) {
-    var module = all_blocks_by_id[block.id] || all_triggers_by_id[block.id]
+    var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
     var html = ''
     if (module.support_filters) {
         var $link = $('<a></a>')
@@ -1583,7 +1583,7 @@ function genBlockFilteringHtml(block) {
 }
 
 function genModalFilteringHtml(block) {
-    var module = all_blocks_by_id[block.id] || all_triggers_by_id[block.id]
+    var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
     var html = ''
     if (module.support_filters) {
         html += genGenericBlockFilter(block)

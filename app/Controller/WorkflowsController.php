@@ -111,7 +111,7 @@ class WorkflowsController extends AppController
     public function editor($trigger_id)
     {
         $modules = $this->Workflow->getModulesByType();
-        $trigger_ids = Hash::extract($modules['blocks_trigger'], '{n}.id');
+        $trigger_ids = Hash::extract($modules['modules_trigger'], '{n}.id');
         if (!in_array($trigger_id, $trigger_ids)) {
             return $this->__getFailResponseBasedOnContext(
                 [__('Unkown trigger %s', $trigger_id)],
@@ -197,11 +197,11 @@ class WorkflowsController extends AppController
         $enabledState = $filters['enabled'] ?? false;
         if ($moduleType == 'all' || $moduleType == 'custom') {
             $data = array_merge(
-                $modules["blocks_action"],
-                $modules["blocks_logic"]
+                $modules["modules_action"],
+                $modules["modules_logic"]
             );
         } else {
-            $data = $modules["blocks_{$moduleType}"];
+            $data = $modules["modules_{$moduleType}"];
         }
         if ($actionType == 'mispmodule') {
             $data = array_filter($data, function($module) {

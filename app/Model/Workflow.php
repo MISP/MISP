@@ -642,7 +642,7 @@ class Workflow extends AppModel
                         '__show_in_node' => true,
                     ];
                 }
-                if ($moduleType != 'blocks_trigger') {
+                if ($moduleType != 'modules_trigger') {
                     if (!$trigger_is_misp_core_format && !empty($module['expect_misp_core_format'])) {
                         $modules[$moduleType][$i]['notifications']['warning'][] = [
                             'text' => __('Potential data format issue'),
@@ -902,24 +902,24 @@ class Workflow extends AppModel
     {
         $this->loadAllWorkflowModules();
 
-        $blocks_trigger = $this->loaded_modules['trigger'];
-        $blocks_logic = $this->loaded_modules['logic'];
-        $blocks_action = $this->loaded_modules['action'];
+        $modules_trigger = $this->loaded_modules['trigger'];
+        $modules_logic = $this->loaded_modules['logic'];
+        $modules_action = $this->loaded_modules['action'];
 
-        $this->__sortBlocksByName($blocks_trigger);
-        $this->__sortBlocksByName($blocks_logic);
-        $this->__sortBlocksByName($blocks_action);
-        $blocks_trigger = array_values($blocks_trigger);
-        $blocks_logic = array_values($blocks_logic);
-        $blocks_action = array_values($blocks_action);
+        $this->__sortModulesByName($modules_trigger);
+        $this->__sortModulesByName($modules_logic);
+        $this->__sortModulesByName($modules_action);
+        $modules_trigger = array_values($modules_trigger);
+        $modules_logic = array_values($modules_logic);
+        $modules_action = array_values($modules_action);
         $modules = [
-            'blocks_trigger' => $blocks_trigger,
-            'blocks_logic' => $blocks_logic,
-            'blocks_action' => $blocks_action,
+            'modules_trigger' => $modules_trigger,
+            'modules_logic' => $modules_logic,
+            'modules_action' => $modules_action,
         ];
         if (!empty($module_type)) {
-            if (!empty($modules['blocks_' . $module_type])) {
-                return $modules['blocks_' . $module_type];
+            if (!empty($modules['modules_' . $module_type])) {
+                return $modules['modules_' . $module_type];
             } else {
                 return [];
             }
@@ -927,9 +927,9 @@ class Workflow extends AppModel
         return $modules;
     }
 
-    private function __sortBlocksByName(&$blocks)
+    private function __sortModulesByName(&$modules)
     {
-        uasort($blocks, function ($module1, $module2) {
+        uasort($modules, function ($module1, $module2) {
             if ($module1['name'] == $module2['name']) {
                 return 0;
             }
@@ -940,7 +940,7 @@ class Workflow extends AppModel
     public function getModules(): array
     {
         $modulesByType = $this->getModulesByType();
-        return array_merge($modulesByType['blocks_trigger'], $modulesByType['blocks_logic'], $modulesByType['blocks_action']);
+        return array_merge($modulesByType['modules_trigger'], $modulesByType['modules_logic'], $modulesByType['modules_action']);
     }
 
     /**
