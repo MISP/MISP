@@ -1680,8 +1680,8 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     'url' => '/workflowBlueprints/index',
                     'text' => __('List Workflow Blueprints')
                 ));
-                echo $divider;
                 if ($menuItem === 'view' || $menuItem === 'edit') {
+                    echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'view',
                         'url' => '/workflows/view/' . h($id),
