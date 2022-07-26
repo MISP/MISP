@@ -7,6 +7,8 @@ class WorkflowsController extends AppController
         'RequestHandler'
     );
 
+    private $toggleableFields = ['enabled'];
+
     public function beforeFilter()
     {
         parent::beforeFilter();
@@ -269,6 +271,35 @@ class WorkflowsController extends AppController
                 $module_id,
                 ['action' => (!empty($is_trigger) ? 'triggers' : 'moduleIndex')]
             );
+        }
+    }
+
+    public function massToggleField($fieldName, $enabled, $is_trigger=false)
+    {
+        if (!in_array($fieldName, $this->toggleableFields)) {
+            throw new MethodNotAllowedException(__('The field `%s` cannot be toggled', $fieldName));
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $module_ids = JsonTool::decode($this->request->data['Workflow']['module_ids']);
+            $enabled_count = $this->Workflow->toggleModules($module_ids, $enabled, $is_trigger);
+            if (!empty($enabled_count)) {
+                return $this->__getSuccessResponseBasedOnContext(
+                    __('%s %s modules', ($enabled ? 'Enabled' : 'Disabled'), $enabled_count),
+                    null,
+                    'toggle_module',
+                    $module_ids,
+                    ['action' => (!empty($is_trigger) ? 'triggers' : 'moduleIndex')]
+                );
+            } else {
+                return '';
+                return $this->__getFailResponseBasedOnContext(
+                    __('Could not %s modules', ($enabled ? 'enable' : 'disable')),
+                    null,
+                    'toggle_module',
+                    $module_ids,
+                    ['action' => (!empty($is_trigger) ? 'triggers' : 'moduleIndex')]
+                );
+            }
         }
     }
 

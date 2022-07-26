@@ -172,7 +172,6 @@ class Workflow extends AppModel
     {
         if (!empty($is_trigger)) {
             $settingName = sprintf('Plugin.Workflow_triggers_%s', $module_id);
-            /** @var SystemSetting $systemSetting */
             $server = ClassRegistry::init('Server');
             return $server->serverSettingsSaveValue($settingName, !empty($enable), false);
         } else {
@@ -188,6 +187,15 @@ class Workflow extends AppModel
             }
         }
         return true;
+    }
+
+    public function toggleModules($module_ids, $enable, $is_trigger=false): int
+    {
+        $enabled_count = 0;
+        foreach ($module_ids as $module_id) {
+            $enabled_count += $this->toggleModule($module_id, $enable, $is_trigger) ? 1 : 0;
+        }
+        return $enabled_count;
     }
 
     protected function checkTriggerListenedTo($trigger_id)

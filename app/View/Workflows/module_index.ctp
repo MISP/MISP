@@ -1,11 +1,19 @@
 <?php
     $fields = [
         [
+            'element' => 'selector',
+            'data' => [
+                'id' => [
+                    'value_path' => 'id'
+                ]
+            ]
+        ],
+        [
             'name' => __('Module name'),
             'sort' => 'name',
             'data_path' => 'name',
             'element' => 'custom',
-            'class' => 'bold',
+            'class' => 'bold short',
             'function' => function ($row) use ($baseurl) {
                 if (!empty($row['icon'])) {
                     return sprintf('<i class="fa-fw %s"></i> %s', $this->FontAwesome->getClass($row['icon']), h($row['name']));
@@ -90,6 +98,23 @@
                 'data' => $data,
                 'top_bar' => [
                     'children' => [
+                        [
+                            'type' => 'simple',
+                            'children' => [
+                                [
+                                    'class' => 'hidden mass-select',
+                                    'text' => __('Enable selected'),
+                                    'onClick' => 'multiSelectToggleField',
+                                    'onClickParams' => ['workflows', 'massToggleField', 'enabled', '1', '#WorkflowModuleIds'],
+                                ],
+                                [
+                                    'class' => 'hidden mass-select',
+                                    'text' => __('Disable selected'),
+                                    'onClick' => 'multiSelectToggleField',
+                                    'onClickParams' => ['workflows', 'massToggleField', 'enabled', '0', '#WorkflowModuleIds'],
+                                ],
+                            ],
+                        ],
                         [
                             'type' => 'simple',
                             'children' => [

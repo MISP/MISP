@@ -939,7 +939,7 @@ function multiSelectToggleFeeds(on, cache) {
     $.get(baseurl + "/feeds/toggleSelected/" + on + "/" + cache + "/" + JSON.stringify(selected), openConfirmation).fail(xhrFailCallback);
 }
 
-function multiSelectToggleField(scope, action, fieldName, enabled) {
+function multiSelectToggleField(scope, action, fieldName, enabled, inputID) {
     var selected = [];
     $(".select:checked").each(function() {
         var temp = $(this).data("id");
@@ -949,7 +949,8 @@ function multiSelectToggleField(scope, action, fieldName, enabled) {
     });
     $.get(baseurl + "/" + scope + "/" + action + "/" + fieldName + "/" + enabled, function(data) {
         var $formData = $(data);
-        $formData.find("#UserUserIds").val(JSON.stringify(selected));
+        $('body').append($formData)
+        $formData.find(inputID).val(JSON.stringify(selected));
         $formData.find("form")[0].submit();
     }).fail(xhrFailCallback);
 }
