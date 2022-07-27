@@ -37,6 +37,8 @@ class Module_tag_if extends WorkflowBaseLogicModule
         $tags = array_column(array_column($tags, 'Tag'), 'name', 'id');
         $this->params = [
             [
+                'id' => 'scope',
+                'label' => 'Scope',
                 'type' => 'select',
                 'options' => [
                     'event' => __('Event'),
@@ -44,18 +46,19 @@ class Module_tag_if extends WorkflowBaseLogicModule
                     'event_attribute' => __('Inherited Attribute'),
                 ],
                 'default' => 'event',
-                'label' => 'Scope',
             ],
             [
-                'type' => 'select',
+                'id' => 'condition',
                 'label' => 'Condition',
+                'type' => 'select',
                 'default' => 'in_or',
                 'options' => $this->operators,
             ],
             [
+                'id' => 'tags',
+                'label' => 'Tags',
                 'type' => 'picker',
                 'multiple' => true,
-                'label' => 'Tags',
                 'options' => $tags,
                 'placeholder' => __('Pick a tag'),
             ],
@@ -67,9 +70,9 @@ class Module_tag_if extends WorkflowBaseLogicModule
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
 
-        $value = $params['Tags']['value'];
-        $operator = $params['Condition']['value'];
-        $scope = $params['Scope']['value'];
+        $value = $params['tags']['value'];
+        $operator = $params['condition']['value'];
+        $scope = $params['scope']['value'];
         $data = $roamingData->getData();
         $extracted = $this->__getTagFromScope($scope, $data);
         $eval = $this->evaluateCondition($extracted, $operator, $value);

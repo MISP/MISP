@@ -29,8 +29,9 @@ class Module_enrich_event extends WorkflowBaseActionModule
         }
         $this->params = [
             [
-                'type' => 'select',
+                'id' => 'modules',
                 'label' => 'Modules',
+                'type' => 'select',
                 'options' => $moduleOptions,
             ],
         ];
@@ -40,7 +41,7 @@ class Module_enrich_event extends WorkflowBaseActionModule
     {
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
-        if (empty($params['Modules']['value'])) {
+        if (empty($params['modules']['value'])) {
             $errors[] = __('No enrichmnent module selected');
             return false;
         }
@@ -49,7 +50,7 @@ class Module_enrich_event extends WorkflowBaseActionModule
         $options = [
             'user' => $roamingData->getUser(),
             'event_id' => $event_id,
-            'modules' => [$params['Modules']['value']]
+            'modules' => [$params['modules']['value']]
         ];
         $filters = $this->getFilters($node);
         $extracted = $this->extractData($rData, $filters['selector']);

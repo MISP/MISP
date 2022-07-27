@@ -690,7 +690,7 @@ function loadWorkflow(workflow) {
             console.error('Tried to add node for unknown module ' + node.data.id + ' (' + node.id + ')')
             var userFriendlyParams = {}
             node.data.params.forEach(function (param) {
-                userFriendlyParams[param.label] = (param.value ?? param.default)
+                userFriendlyParams[param.id] = (param.value ?? param.default)
             })
             var html = window['dotBlock_error']({
                 error: 'Invalid module id`' + node.data.id + '` (' + node.id + ')',
@@ -840,7 +840,7 @@ function addNodesFromWorkflowBlueprint(workflowBlueprint, cursorPosition) {
         if (all_modules_by_id[node.data.id] === undefined) {
             var userFriendlyParams = {}
             node.data.params.forEach(function (param) {
-                userFriendlyParams[param.label] = (param.value ?? param.default)
+                userFriendlyParams[param.id] = (param.value ?? param.default)
             })
             var errorMessage = 'Invalid ' + node.data.module_type + ' module id `' + node.data.id + '` (' + node.id + ')'
             var html = window['dotBlock_error']({
@@ -911,29 +911,35 @@ function getCanvasCentroid() {
 }
 
 function mergeNodeAndModuleParams(node, moduleParams) {
-    var moduleParamsByFormattedName = {}
-    var nodeParamsByFormattedName = {}
-    moduleParams.forEach(function (param) {
-        moduleParamsByFormattedName[param.label.toLowerCase().replace(' ', '-')] = param
+    var moduleParamsById = {}
+    var nodeParamsById = {}
+    moduleParams.forEach(function (param, i) {
+        if (param.id === undefined) { // Param id is not set in the module definition.
+            param.id = 'param-' + i
+            param.no_id = true
+        }
+        moduleParamsById[param.id] = param
     })
-    node.data.params.forEach(function (param) {
-        nodeParamsByFormattedName[param.label.toLowerCase().replace(' ', '-')] = param
+    node.data.params.forEach(function (param, i) {
+        if (param.id === undefined) { // Param id is not set in the module definition.
+            param.id = 'param-' + i
+        }
+        nodeParamsById[param.id] = param
     })
     var finalParams = {}
     var nodeAndModuleParams = node.data.params.concat(moduleParams)
     nodeAndModuleParams.forEach(function (param) {
-        var formattedName = param.label.toLowerCase().replace(' ', '-')
-        if (finalParams[formattedName]) { // param has already been processed
+        if (finalParams[param.id]) { // param has already been processed
             return;
         }
-        if (moduleParamsByFormattedName[formattedName] === undefined) { // Param do not exist in the module (anymore or never did)
+        if (moduleParamsById[param.id] === undefined) { // Param do not exist in the module (anymore or never did)
             param.is_invalid = true
         }
         if (!param['param_id']) {
             param['param_id'] = getIDForNodeParameter(node, param)
         }
-        finalParam = Object.assign({}, nodeParamsByFormattedName[formattedName], moduleParamsByFormattedName[formattedName])
-        finalParams[formattedName] = finalParam
+        finalParam = Object.assign({}, nodeParamsById[param.id], moduleParamsById[param.id])
+        finalParams[param.id] = finalParam
     })
     return Object.values(finalParams)
 }
@@ -1212,14 +1218,31 @@ function afterModalShowCallback() {
 }
 
 function genParameterWarning(options) {
-    return options.is_invalid ?
-        $('<span>').addClass('text-error').css('margin-left', '5px')
+    // return options.is_invalid ?
+    //     $('<span>').addClass('text-error').css('margin-left', '5px')
+    //         .append(
+    //             $('<i>').addClass('fas fa-exclamation-triangle'),
+    //             $('<span>').text('Invalid parameter')
+    //         )
+    //         .attr('title', 'This parameter does not exist in the associated module and thus will be removed upon saving. Make sure you have the latest version of this module.') :
+    //     ''
+    var text = '', text_short = ''
+    if (options.is_invalid) {
+        text = 'This parameter does not exist in the associated module and thus will be removed upon saving. Make sure you have the latest version of this module.'
+        text_short = 'Invalid parameter'
+    } else if (options.no_id) {
+        text = 'This parameter does not have an ID in the associated module and thus will be ignored. Make sure you have the latest version of this module.'
+        text_short = 'parameter has no ID'
+    }
+    if (text || text_short) {
+        return $('<span>').addClass('text-error').css('margin-left', '5px')
             .append(
                 $('<i>').addClass('fas fa-exclamation-triangle'),
-                $('<span>').text('Invalid parameter')
+                $('<span>').text(text_short)
             )
-            .attr('title', 'This parameter does not exist in the associated module and thus will be removed upon saving. Make sure you have the latest version of this module.') :
-        ''
+            .attr('title', text)
+    }
+    return ''
 }
 
 function genSelect(options, forNode = true) {
@@ -1464,7 +1487,7 @@ function getIDForNodeParameter(node, param) {
     if (param.id !== undefined) {
         return param.id + '-' + node.node_uid
     }
-    return param.label.toLowerCase().replace(' ', '-') + '-' + node.node_uid
+    return param.id + '-' + node.node_uid
 }
 
 function getNodeFromNodeInput($input) {
@@ -1621,10 +1644,10 @@ function genGenericBlockFilter(block) {
     ]
     var filters = getFiltersFromNode(block)
     var $div = $('<div></div>').append($('<form></form>').append(
-        genGenericInput({ id: 'filtering-selector', label: 'Element selector', type: 'text', placeholder: 'Attribute.{n}', required: false, value: filters.selector}),
-        genGenericInput({ id: 'filtering-value', label: 'Value', type: 'text', placeholder: 'tlp:white', required: false, value: filters.value}),
-        genGenericSelect({ id: 'filtering-operator', label: 'Operator', options: operatorOptions, value: filters.operator}),
-        genGenericInput({ id: 'filtering-path', label: 'Hash Path', type: 'text', placeholder: 'AttributeTag.{n}.Tag.name', required: false, value: filters.path}),
+        genGenericInput({ id: 'filtering-selector', id: 'element_selector', label: 'Element selector', type: 'text', placeholder: 'Attribute.{n}', required: false, value: filters.selector}),
+        genGenericInput({ id: 'filtering-value', id: 'value', label: 'Value', type: 'text', placeholder: 'tlp:white', required: false, value: filters.value}),
+        genGenericSelect({ id: 'filtering-operator', id: 'operator', label: 'Operator', options: operatorOptions, value: filters.operator}),
+        genGenericInput({ id: 'filtering-path', id: 'hash_path', label: 'Hash Path', type: 'text', placeholder: 'AttributeTag.{n}.Tag.name', required: false, value: filters.path}),
     ))
     return $div[0].outerHTML
 }

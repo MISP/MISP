@@ -70,7 +70,8 @@ class Module_misp_module extends WorkflowBaseActionModule
             $postData['filteredItems'] = !empty($filteredItems) ? $filteredItems : $rData;
         }
 
-        $postData['params'] = $this->getIndexedParamsWithValues($node);
+        $indexedParams = $this->getParamsWithValues($node);
+        $postData['params'] = Hash::combine($indexedParams, '{s}.id', '{s}.value');
         $params = $this->getParamsWithValues($node);
         $matchingData = [];
         foreach ($params as $param) {
@@ -93,9 +94,11 @@ class Module_misp_module extends WorkflowBaseActionModule
     // FIXME: We might want to align the module config with what's currently supported
     protected function translateParams($paramName, $moduleParam): array
     {
-        $param = [];
-        $param['label'] = $paramName;
-        $param['placeholder'] = $moduleParam['value'] ?? '';
+        $param = [
+            'id' => Inflector::underscore($paramName),
+            'label' => Inflector::humanize($paramName),
+            'placeholder' => $moduleParam['value'] ?? '',
+        ];
         if ($moduleParam['type'] == 'hash_path') {
             $param['type'] = 'input';
             $param['_isHashPath'] = true;

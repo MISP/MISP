@@ -17,20 +17,9 @@ class Module_push_zmq extends WorkflowBaseActionModule
         parent::__construct();
         $this->params = [
             [
-                'type' => 'input',
-                'label' => 'Namespace',
-                'default' => '',
-                'placeholder' => __('A namespace in the ZMQ topic')
-            ],
-            [
-                'type' => 'input',
-                'label' => 'Content',
-                'default' => '',
-                'placeholder' => __('Whatever text to be published')
-            ],
-            [
-                'type' => 'input',
+                'id' => 'match_condition',
                 'label' => 'Match Condition',
+                'type' => 'input',
                 'default' => '',
                 'placeholder' => 'Attribute.{n}.AttributeTag.{n}.Tag.name',
             ],
@@ -41,7 +30,7 @@ class Module_push_zmq extends WorkflowBaseActionModule
     {
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
-        $path = $params['Match Condition']['value'];
+        $path = $params['match_condition']['value'];
         $data = $roamingData->getData();
         $extracted = $this->extractData($data, $path);
         if ($extracted === false) {

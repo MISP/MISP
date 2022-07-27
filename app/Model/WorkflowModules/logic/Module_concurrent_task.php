@@ -38,7 +38,7 @@ class Module_concurrent_task extends WorkflowBaseLogicModule
             Job::WORKER_PRIO,
             'workflowParallelTask',
             sprintf('Workflow ID: %s', $roamingData->getWorkflow()['Workflow']['id']),
-            'Running workflow parallel tasks.'
+            __('Running workflow parallel tasks.')
         );
         $this->Job->getBackgroundJobsTool()->enqueue(
             BackgroundJobsTool::PRIO_QUEUE,
@@ -48,7 +48,7 @@ class Module_concurrent_task extends WorkflowBaseLogicModule
                 $roamingData->getWorkflow()['Workflow']['id'],
                 $node_id_to_exec,
                 JsonTool::encode($roamingData->getData()),
-                Workflow::NON_BLOCKING_PATH,
+                $this->Workflow::NON_BLOCKING_PATH,
                 $jobId
             ],
             true,

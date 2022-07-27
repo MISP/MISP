@@ -24,19 +24,22 @@ class Module_generic_if extends WorkflowBaseLogicModule
         parent::__construct();
         $this->params = [
             [
-                'type' => 'input',
+                'id' => 'value',
                 'label' => 'Value',
+                'type' => 'input',
                 'placeholder' => 'tlp:red',
             ],
             [
-                'type' => 'select',
+                'id' => 'operator',
                 'label' => 'Operator',
+                'type' => 'select',
                 'default' => 'in',
                 'options' => $this->operators,
             ],
             [
-                'type' => 'input',
+                'id' => 'hash_path',
                 'label' => 'Hash path',
+                'type' => 'input',
                 'placeholder' => 'Attribute.{n}.Tag',
             ],
         ];
@@ -46,9 +49,9 @@ class Module_generic_if extends WorkflowBaseLogicModule
     {
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
-        $path = $params['Hash path']['value'];
-        $operator = $params['Operator']['value'];
-        $value = $params['Value']['value'];
+        $path = $params['hash_path']['value'];
+        $operator = $params['operator']['value'];
+        $value = $params['value']['value'];
         $data = $roamingData->getData();
         $extracted = [];
         if ($operator == 'equals' || $operator == 'not_equals') {

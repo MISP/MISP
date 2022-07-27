@@ -32,33 +32,27 @@ class WorkflowBaseModule
     {
     }
 
-    protected function getParams($node): array
+    protected function mergeNodeConfigIntoParameters($node): array
     {
         $indexedParam = [];
-        $nodeParam = [];
+        $nodeParamByID = [];
         foreach ($node['data']['params'] as $param) {
-            $nodeParam[$param['label']] = $param;
+            $nodeParamByID[$param['id']] = $param;
         }
         foreach ($this->params as $param) {
-            $param['value'] = $nodeParam[$param['label']]['value'] ?? null;
-            $indexedParam[$param['label']] = $param;
+            $param['value'] = $nodeParamByID[$param['id']]['value'] ?? null;
+            $indexedParam[$param['id']] = $param;
         }
         return $indexedParam;
     }
 
     protected function getParamsWithValues($node): array
     {
-        $indexedParams = $this->getParams($node);
-        foreach ($indexedParams as $label => $param) {
-            $indexedParams[$label]['value'] = $param['value'] ?? ($param['default'] ?? '');
+        $indexedParams = $this->mergeNodeConfigIntoParameters($node);
+        foreach ($indexedParams as $id => $param) {
+            $indexedParams[$id]['value'] = $param['value'] ?? ($param['default'] ?? '');
         }
         return $indexedParams;
-    }
-
-    protected function getIndexedParamsWithValues($node): array
-    {
-        $indexedParams = $this->getParamsWithValues($node);
-        return Hash::combine($indexedParams, '{s}.label', '{s}.value');
     }
 
     protected function getFilters($node): array

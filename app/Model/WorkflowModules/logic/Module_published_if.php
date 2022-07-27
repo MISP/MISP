@@ -23,8 +23,9 @@ class Module_published_if extends WorkflowBaseLogicModule
         parent::__construct();
         $this->params = [
             [
-                'type' => 'select',
+                'id' => 'condition',
                 'label' => 'Condition',
+                'type' => 'select',
                 'default' => 'equals',
                 'options' => $this->operators,
             ],
@@ -36,7 +37,7 @@ class Module_published_if extends WorkflowBaseLogicModule
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
 
-        $operator = $params['Condition']['value'];
+        $operator = $params['condition']['value'];
         $data = $roamingData->getData();
         $path = 'Event.published';
         $is_published = !empty(Hash::get($data, $path));

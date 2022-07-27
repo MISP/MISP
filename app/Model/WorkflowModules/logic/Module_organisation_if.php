@@ -29,24 +29,26 @@ class Module_organisation_if extends WorkflowBaseLogicModule
         ]);
         $this->params = [
             [
+                'id' => 'org_type',
+                'label' => 'Organisation Type',
                 'type' => 'select',
                 'options' => [
                     'org' => __('Owner Organisation'),
                     'orgc' => __('Creator Organisation'),
                 ],
                 'default' => 'orgc',
-                'label' => 'Organisation Type',
             ],
             [
-                'type' => 'select',
+                'id' => 'condition',
                 'label' => 'Condition',
+                'type' => 'select',
                 'default' => 'equals',
                 'options' => $this->operators,
             ],
             [
+                'id' => 'org_id',
                 'type' => 'picker',
                 'multiple' => false,
-                'label' => 'Organisation',
                 'options' => $orgs,
                 'default' => 1,
                 'placeholder' => __('Pick an organisation'),
@@ -59,9 +61,9 @@ class Module_organisation_if extends WorkflowBaseLogicModule
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
 
-        $org_type = $params['Organisation Type']['value'];
-        $operator = $params['Condition']['value'];
-        $org_id = $params['Organisation']['value'];
+        $org_type = $params['org_type']['value'];
+        $operator = $params['condition']['value'];
+        $org_id = $params['org_id']['value'];
         $data = $roamingData->getData();
         $path = 'Event.org_id';
         if ($org_type == 'orgc') {

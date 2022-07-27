@@ -34,6 +34,7 @@ class Module_distribution_if extends WorkflowBaseLogicModule
         }
         $this->params = [
             [
+                'id' => 'scope',
                 'label' => 'Scope',
                 'type' => 'select',
                 'options' => [
@@ -43,12 +44,14 @@ class Module_distribution_if extends WorkflowBaseLogicModule
                 'default' => 'attribute',
             ],
             [
+                'id' => 'condition',
                 'label' => 'Condition',
                 'type' => 'select',
                 'default' => 'equals',
                 'options' => $this->operators,
             ],
             [
+                'id' => 'distribution',
                 'label' => 'Distribution',
                 'type' => 'select',
                 'default' => '0',
@@ -63,9 +66,9 @@ class Module_distribution_if extends WorkflowBaseLogicModule
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
 
-        $scope = $params['Scope']['value'];
-        $operator = $params['Condition']['value'];
-        $value = $params['Distribution']['value'];
+        $scope = $params['scope']['value'];
+        $operator = $params['condition']['value'];
+        $value = $params['distribution']['value'];
         $data = $roamingData->getData();
         $final_distribution = $this->__getPropagatedDistribution($data['Event']);
         if ($scope == 'attribute') {

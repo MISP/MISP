@@ -23,22 +23,25 @@ class Module_webhook extends WorkflowBaseActionModule
         parent::__construct();
         $this->params = [
             [
-                'type' => 'input',
+                'id' => 'url',
                 'label' => 'Payload URL',
+                'type' => 'input',
                 'placeholder' => 'https://example.com/test',
             ],
             [
-                'type' => 'select',
+                'id' => 'content_type',
                 'label' => 'Content type',
-                'default' => 'form',
+                'type' => 'select',
+                'default' => 'json',
                 'options' => [
                     'json' => 'application/json',
                     'form' => 'application/x-www-form-urlencoded',
                 ],
             ],
             [
-                'type' => 'input',
+                'id' => 'data_extraction_path',
                 'label' => 'Data extraction path',
+                'type' => 'input',
                 'default' => '',
                 'placeholder' => 'Attribute.{n}.AttributeTag.{n}.Tag.name',
             ],
@@ -49,16 +52,16 @@ class Module_webhook extends WorkflowBaseActionModule
     {
         parent::exec($node, $roamingData, $errors);
         $params = $this->getParamsWithValues($node);
-        if (empty($params['Payload URL']['value'])) {
+        if (empty($params['url']['value'])) {
             $errors[] = __('URL not provided.');
             return false;
         }
 
         $rData = $roamingData->getData();
-        $path = $params['Data extraction path']['value'];
-        $extracted = !empty($params['Data extraction path']['value']) ? $this->extractData($rData, $path) : $rData;
+        $path = $params['data_extraction_path']['value'];
+        $extracted = !empty($params['data_extraction_path']['value']) ? $this->extractData($rData, $path) : $rData;
         try {
-            $response = $this->doRequest($params['Payload URL']['value'], $params['Content type']['value'], $extracted);
+            $response = $this->doRequest($params['url']['value'], $params['content_type']['value'], $extracted);
             if ($response->isOk()) {
                 return true;
             }
