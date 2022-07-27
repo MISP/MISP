@@ -306,13 +306,11 @@ class User extends AppModel
                 $user['User']['action'] != 'login'
             )
         ) {
-            $user_id = $action == 'add' ? 0 : $user['User']['id'];
             $workflowErrors = [];
             $logging = [
                 'model' => 'User',
                 'action' => $action,
-                'id' => $user_id,
-                'message' => __('Error while executing workflow.'),
+                'id' => $user['User']['id'],
             ];
             $this->executeTrigger('user-after-save', $user['User'], $workflowErrors, $logging);
         }

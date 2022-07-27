@@ -490,13 +490,11 @@ class Attribute extends AppModel
                     $kafkaPubTool = $this->getKafkaPubTool();
                     $kafkaPubTool->publishJson($kafkaTopic, $attributeForPublish, $action);
                 }
-                $id = $action == 'add' ? 0 : $attributeForPublish['Attribute']['id'];
                 $workflowErrors = [];
                 $logging = [
                         'model' => 'Attribute',
                         'action' => $action,
-                        'id' => $id,
-                        'message' => __('Error while executing workflow.'),
+                        'id' => $attributeForPublish['Attribute']['id'],
                     ];
                 $triggerData = $attributeForPublish;
                 $this->executeTrigger('attribute-after-save', $triggerData, $workflowErrors, $logging);
