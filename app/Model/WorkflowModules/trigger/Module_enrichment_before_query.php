@@ -12,6 +12,7 @@ class Module_enrichment_before_query extends WorkflowBaseTriggerModule
     public $outputs = 1;
     public $blocking = true;
     public $misp_core_format = true;
+    public $trigger_overhead = self::OVERHEAD_LOW;
 
     public function __construct()
     {

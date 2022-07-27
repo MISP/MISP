@@ -11,6 +11,7 @@ class Module_user_after_save extends WorkflowBaseTriggerModule
     public $inputs = 0;
     public $outputs = 1;
     public $blocking = false;
+    public $trigger_overhead = self::OVERHEAD_LOW;
 
     public function __construct()
     {

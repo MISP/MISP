@@ -190,9 +190,15 @@ class WorkflowBaseModule
 
 class WorkflowBaseTriggerModule extends WorkflowBaseModule
 {
+    const OVERHEAD_LOW = 1;
+    const OVERHEAD_MEDIUM = 2;
+    const OVERHEAD_HIGH = 3;
+
     public $scope = 'others';
     public $blocking = false;
     public $misp_core_format = false;
+    public $trigger_overhead = self::OVERHEAD_LOW;
+    public $trigger_overhead_message = '';
     public $inputs = 0;
     public $outputs = 1;
 

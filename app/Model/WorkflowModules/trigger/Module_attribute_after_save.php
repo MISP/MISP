@@ -12,9 +12,11 @@ class Module_attribute_after_save extends WorkflowBaseTriggerModule
     public $outputs = 1;
     public $blocking = false;
     public $misp_core_format = true;
+    public $trigger_overhead = self::OVERHEAD_HIGH;
 
     public function __construct()
     {
         parent::__construct();
+        $this->trigger_overhead_message = __('This trigger is called each time an Attribute has been saved. This means that when a large quantity of Attributes are being saved (e.g. Feed pulling or synchronisation), the workflow will be run for as many time as there are Attributes.');
     }
 }

@@ -1,4 +1,20 @@
 <?php
+    $warning_message_title = __('This trigger might have a negative impact on performance');
+    $trigger_overhead_mapping = [
+        1 => [
+            'class' => 'success',
+            'text' => __('low'),
+        ],
+        2 => [
+            'class' => 'warning',
+            'text' => __('medium'),
+        ],
+        3 => [
+            'class' => 'important',
+            'text' => __('high'),
+        ],
+    ];
+
     $fields = [
         [
             'name' => __('Trigger name'),
@@ -16,8 +32,31 @@
             'sort' => 'scope',
         ],
         [
+            'name' => __('Trigger overhead'),
+            'data_path' => 'trigger_overhead',
+            'sort' => 'trigger_overhead',
+            'element' => 'custom',
+            'function' => function ($row) use ($trigger_overhead_mapping) {
+                return empty($row['trigger_overhead'])  ? '' :
+                    sprintf(
+                        '<span class="label %s">%s %s</span>',
+                        !empty($row['disabled']) ? '' : 'label-' . $trigger_overhead_mapping[$row['trigger_overhead']]['class'],
+                        h($trigger_overhead_mapping[$row['trigger_overhead']]['text']),
+                        empty($row['trigger_overhead_message']) ? '' : sprintf('<i class="fa-fw %s" title="%s" data-placement="right" data-toggle="tooltip"></i>', $this->FontAwesome->getClass('question-circle'), sprintf('%s%s',
+                            !empty($row['disabled']) ? sprintf('[%s]' . PHP_EOL, __('Trigger not enabled')) : '',
+                            h($row['trigger_overhead_message'])),
+                        )
+                    );
+            }
+        ],
+        [
             'name' => __('Description'),
             'data_path' => 'description',
+        ],
+        [
+            'name' => __('Run counter'),
+            'sort' => 'Workflow.counter',
+            'data_path' => 'Workflow.counter',
         ],
         [
             'name' => __('Blocking Workflow'),
@@ -142,3 +181,9 @@
     ]);
 
     echo $this->element('/Workflows/infoModal');
+?>
+<script>
+    $(document).ready(function() {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+</script>
