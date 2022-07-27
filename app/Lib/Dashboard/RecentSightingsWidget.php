@@ -43,7 +43,7 @@ class RecentSightingsWidget
             else $type = "Expiration";
 
             $output = $attribute->{'value'} . " (id: " . $attribute->{'id'} . ") in " . $event->{'info'} . " (id: " . $event->{'id'} . ")";
-            $data[] = array( 'title' => __($type), 'value' => $output, 
+            $data[] = array( 'title' => $type, 'value' => $output, 
                                 'html' => sprintf(
                                     ' (Event <a href="%s%s">%s</a>)',
                                     Configure::read('MISP.baseurl') . '/events/view/', $event->{'id'},
