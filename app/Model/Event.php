@@ -459,6 +459,17 @@ class Event extends AppModel
         if (empty($event['unpublishAction']) && empty($event['skip_kafka'])) {
             $this->publishKafkaNotification('event', $this->quickFetchEvent($event['id']), $created ? 'add' : 'edit');
         }
+        if ($this->isTriggerCallable('event-after-save')) {
+            $event = $this->quickFetchEvent($event['id']);
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'Event',
+                'action' => $created ? 'add' : 'edit',
+                'id' => $event['Event']['id'],
+            ];
+            $triggerData = $event;
+            $this->executeTrigger('event-after-save', $triggerData, $workflowErrors, $logging);
+        }
     }
 
     public function attachTagsToEvents(array $events)
