@@ -426,7 +426,7 @@
                         'html' => sprintf(
                             '<span style="display: flex;"><span>%s</span><span class="label label-info" style="margin-left: auto;">%s</span></span>',
                             __('Workflows'),
-                            __('beta')
+                            __('new')
                         ),
                         'url' => $baseurl . '/workflows/triggers',
                         'requirement' => $isSiteAdmin
