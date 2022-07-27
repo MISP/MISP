@@ -653,13 +653,9 @@ function getEditorData(cleanInvalidParams) {
 }
 
 function deleteInvalidParams(params) {
-    for (var i = 0; i < params.length; i++) {
-        var param = params[i];
-        if (param.is_invalid) {
-            params.splice(i, 1)
-        }
-    }
-    return params
+    return params.filter(function(param) {
+        return !param.is_invalid
+    })
 }
 
 function fetchAndLoadWorkflow() {
