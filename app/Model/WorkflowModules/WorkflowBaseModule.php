@@ -155,7 +155,7 @@ class WorkflowBaseModule
         } elseif ($operator == 'equals') {
             return !is_array($data) && $data == $value;
         } elseif ($operator == 'not_equals') {
-            return !is_array($data) &&  $data != $value;
+            return !is_array($data) && $data != $value;
         } elseif ($operator == 'in_or' || $operator == 'in_and' || $operator == 'not_in_or' || $operator == 'not_in_and') {
             if (!is_array($data) || !is_array($value)) {
                 return false;

@@ -50,7 +50,12 @@ class Module_generic_if extends WorkflowBaseLogicModule
         $operator = $params['Operator']['value'];
         $value = $params['Value']['value'];
         $data = $roamingData->getData();
-        $extracted = Hash::extract($data, $path);
+        $extracted = [];
+        if ($operator == 'equals' || $operator == 'not_equals') {
+            $extracted = Hash::get($data, $path, []);
+        } else {
+            $extracted = Hash::extract($data, $path);
+        }
         $eval = $this->evaluateCondition($extracted, $operator, $value);
         return !empty($eval);
     }
