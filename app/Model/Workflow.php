@@ -552,7 +552,7 @@ class Workflow extends AppModel
                     }
                 } else if (!empty($moduleClass->blocking)) {
                     return false; // Node stopped execution for any path. Not sure if this is relevant since multiple connections from the same output is not allowed anymore
-                } else if ($graphNode['path_type'] == $this->workflowGraphTool::PATH_TYPE_NON_BLOCKING) {
+                } else if ($graphNode['path_type'] == GraphWalker::PATH_TYPE_NON_BLOCKING) {
                     $preventExecutionForPaths[] = $graphNode['path_list']; // Paths down the chain for this path should not be executed
                 }
             }
