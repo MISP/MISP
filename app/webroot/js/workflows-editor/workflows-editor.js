@@ -462,28 +462,17 @@ function initDrawflow() {
 
 function saveBlueprint(href) {
     var selectedNodes = selection.getSelection()
-    var editorData = getEditorData()
+    var editorData = getEditorData(true)
     openGenericModal(href, undefined, function () {
         var trigger_id = (all_triggers_by_id[workflowTriggerId] || { id: 'unknown-trigger' }).id
         var nodes = selectedNodes.map(function (nodeHtml) {
             var node = editorData[nodeHtml.id.slice(5)]
             return node
         })
-        var nodesToBeSaved = nodes.map(function(node) {
-            var nodeCopy = JSON.parse(JSON.stringify(node)) // Deep copy is needed because of data.module_data deletion
-            delete nodeCopy.html
-            delete nodeCopy.data.module_data
-            Object.keys(nodeCopy.data).forEach(function (k) {
-                if (k.startsWith('_')) {
-                    delete nodeCopy.data[k]
-                }
-            })
-            return nodeCopy
-        })
         var $modal = $('#genericModal')
         var $graphData = $modal.find('form #WorkflowBlueprintData')
         var $graphDescription = $modal.find('form #WorkflowBlueprintDescription')
-        $graphData.val(JSON.stringify(nodesToBeSaved))
+        $graphData.val(JSON.stringify(nodes))
         if ($graphDescription.val().length == 0 ) {
             $graphDescription.val('[' + trigger_id + ']\n')
         }
@@ -495,7 +484,7 @@ function saveBlueprint(href) {
                     .attr('title', 'Copy Workflow Blueprint to clipboard')
                     .click(function () {
                         var $clicked = $(this)
-                        navigator.clipboard.writeText(JSON.stringify(nodesToBeSaved)).then(function () {
+                        navigator.clipboard.writeText(JSON.stringify(nodes)).then(function () {
                             $clicked.removeClass('fa-copy').addClass('fa-check').addClass('text-success')
                             setTimeout(function () {
                                 $clicked.removeClass('fa-check').addClass('fa-copy').removeClass('text-success')
@@ -508,14 +497,26 @@ function saveBlueprint(href) {
         )
         var $ul = $('<ul></ul>')
         nodes.forEach(function (node) {
-            var setParamCount = node.data.params.filter(function (param) { return param.value }).length
-            var setFilterCount = Object.values(node.data.saved_filters).filter(function (filter) { return filter }).length
+            var validParams = {}
+            Object.entries(node.data.indexed_params).forEach(function (e) {
+                var k = e[0], v = e[1]
+                if (v) {
+                    validParams[k] = v
+                }
+            })
+            var validFilters = {}
+            Object.entries(node.data.saved_filters).forEach(function (e) {
+                var k = e[0], v = e[1]
+                if (v) {
+                    validFilters[k] = v
+                }
+            })
             $ul.append(
                 $('<li></li>').append(
-                    $('<strong></strong>').text(node.data.module_data.name),
+                    $('<strong></strong>').text(node.data.name),
                     $('<ul></ul>').append(
-                        setFilterCount > 0 ? $('<li></li>').text('Has filter') : null,
-                        setParamCount > 0 ? $('<li></li>').text('Has ' + setParamCount + ' parameters') : null
+                        Object.values(validFilters).length == 0 ? null : $('<li></li>').text('Has filter').attr('title', JSON.stringify(validFilters, null, 4)),
+                        Object.values(validParams).length == 0 ? null : $('<li></li>').text('Has ' + Object.values(validParams).length + ' parameters').attr('title', JSON.stringify(validParams, null, 4))
                     )
                 )
             )
@@ -620,8 +621,8 @@ function addNode(block, position, additionalData={}) {
 
     var module_data = Object.assign({}, module)
     var newNode = {name: block.name, data: {}}
-    if (additionalData.params) {
-        newNode.data.params = additionalData.params
+    if (additionalData.indexed_params) {
+        newNode.data.indexed_params = additionalData.indexed_params
     }
     if (additionalData.saved_filters) {
         newNode.data.saved_filters = additionalData.saved_filters
@@ -659,10 +660,16 @@ function getEditorData(cleanNodes) {
         if (node !== null) { // for some reason, the editor create null nodes
             if (cleanNodes && node.data.params !== undefined) {
                 node.data.params = deleteInvalidParams(node.data.params)
+                cleanedIndexedParams = {}
+                node.data.params.forEach(function(param) {
+                    cleanedIndexedParams[param.id] = param.value
+                })
+                node.data.indexed_params = cleanedIndexedParams
             }
             if (cleanNodes) {
                 delete node.html
                 delete node.data.module_data
+                delete node.data.params
             }
             Object.keys(node.data).forEach(function (k) {
                 if (k.startsWith('_')) {
@@ -711,13 +718,9 @@ function loadWorkflow(workflow) {
         var module = all_modules_by_id[node.data.id] || all_triggers_by_id[node.data.id]
         if (!module) {
             console.error('Tried to add node for unknown module ' + node.data.module_data.id + ' (' + node.id + ')')
-            var userFriendlyParams = {}
-            node.data.params.forEach(function (param) {
-                userFriendlyParams[param.id] = (param.value ?? param.default)
-            })
             var html = window['dotBlock_error']({
                 error: 'Invalid module id`' + node.data.module_data.id + '` (' + node.id + ')',
-                data: JSON.stringify(userFriendlyParams, null, 2)
+                data: JSON.stringify(node.data.indexed_params, null, 2)
             })
             editor.addNode(
                 node.name,
@@ -733,8 +736,6 @@ function loadWorkflow(workflow) {
         }
         var module_data = Object.assign({}, module)
         var newNode = mergeNodeAndModule(node, module_data)
-        var node_uid = uid() // only used for UI purposes
-        newNode.data['node_uid'] = node_uid
         newNode.data['_node_param_html'] = genNodeParamHtml(newNode)
         newNode.data['_node_notification_html'] = genNodeNotificationHtml(newNode.data)
         newNode.data['_node_filter_html'] = genNodeFilteringHtml(newNode)
@@ -750,7 +751,7 @@ function loadWorkflow(workflow) {
         var html = getTemplateForNode(newNode)
         editor.nodeId = newNode.id // force the editor to use the saved id of the node instead of generating a new one
         editor.addNode(
-            newNode.name,
+            newNode.data.name,
             Object.values(newNode.inputs).length,
             Object.values(newNode.outputs).length,
             newNode.pos_x,
@@ -859,14 +860,10 @@ function addNodesFromBlueprint(workflowBlueprint, cursorPosition) {
             left: (node.pos_x - minX) * editor.zoom + cursorPosition.left,
         }
         if (all_modules_by_id[node.data.id] === undefined) {
-            var userFriendlyParams = {}
-            node.data.params.forEach(function (param) {
-                userFriendlyParams[param.id] = (param.value ?? param.default)
-            })
             var errorMessage = 'Invalid ' + node.data.module_data.module_type + ' module id `' + node.data.module_data.id + '` (' + node.id + ')'
             var html = window['dotBlock_error']({
                 error: errorMessage,
-                data: JSON.stringify(userFriendlyParams, null, 2)
+                data: JSON.stringify(node.data.indexed_params, null, 2)
             })
             editor.addNode(
                 node.name,
@@ -881,7 +878,7 @@ function addNodesFromBlueprint(workflowBlueprint, cursorPosition) {
             return
         }
         additionalData = {
-            params: node.data.params,
+            indexed_params: node.data.indexed_params,
             saved_filters: node.data.saved_filters,
         }
         addNode(all_modules_by_id[node.data.id], position, additionalData)
@@ -936,15 +933,19 @@ function mergeNodeAndModule(node, module_data) {
     if (node.data === undefined) {
         node.data = {}
     }
+    node.data.node_uid = uid() // only used for UI purposes
     node.data.params = node.data.params !== undefined ? node.data.params : []
+    node.data.indexed_params = node.data.indexed_params !== undefined ? node.data.indexed_params : {}
     node.data.saved_filters = node.data.saved_filters !== undefined ? node.data.saved_filters : {}
-    node.data.module_type = module_data.module_type,
-    node.data.id = module_data.id,
-    node.data.module_data = module_data,
-    node.data.multiple_output_connection = module_data.multiple_output_connection,
-    node.data.previous_module_version = node.module_version ? node.module_version : '?',
-    node.data.module_version = module_data.version,
+    node.data.module_type = module_data.module_type
+    node.data.id = module_data.id
+    node.data.name = node.data.name ? node.data.name : module_data.name
+    node.data.module_data = module_data
+    node.data.multiple_output_connection = module_data.multiple_output_connection
+    node.data.previous_module_version = node.module_version ? node.module_version : '?'
+    node.data.module_version = module_data.version
     node.data.params = mergeNodeAndModuleParams(node, module_data.params)
+    node.data.indexed_params = getIndexedParams(node, module_data.params)
     node.data.saved_filters = mergeNodeAndModuleFilters(node, module_data.saved_filters)
     return node
 }
@@ -959,28 +960,48 @@ function mergeNodeAndModuleParams(node, moduleParams) {
         }
         moduleParamsById[param.id] = param
     })
-    node.data.params.forEach(function (param, i) {
-        if (param.id === undefined) { // Param id is not set in the module definition.
-            param.id = 'param-' + i
+    Object.entries(node.data.indexed_params).forEach(function (e) {
+        var param_id = e[0], val = e[1]
+        nodeParamsById[param_id] = {
+            id: param_id,
+            label: param_id,
+            type: 'input',
+            value: val
         }
-        nodeParamsById[param.id] = param
     })
     var finalParams = {}
-    var nodeAndModuleParams = node.data.params.concat(moduleParams)
+    var fakeNodeFullParams = Object.values(nodeParamsById)
+    var nodeAndModuleParams = fakeNodeFullParams.concat(moduleParams)
     nodeAndModuleParams.forEach(function (param) {
+        var finalParam
         if (finalParams[param.id]) { // param has already been processed
             return;
         }
         if (moduleParamsById[param.id] === undefined) { // Param do not exist in the module (anymore or never did)
             param.is_invalid = true
+            finalParam = Object.assign({}, nodeParamsById[param.id])
+        } else {
+            finalParam = Object.assign({}, moduleParamsById[param.id])
+            finalParam.value = node.data.indexed_params[param.id]
         }
-        if (!param['param_id']) {
-            param['param_id'] = getIDForNodeParameter(node, param)
+        if (!finalParam['param_id']) {
+            finalParam['param_id'] = getIDForNodeParameter(node, finalParam)
         }
-        finalParam = Object.assign({}, nodeParamsById[param.id], moduleParamsById[param.id])
-        finalParams[param.id] = finalParam
+        finalParams[finalParam.id] = finalParam
     })
     return Object.values(finalParams)
+}
+
+function getIndexedParams(node, moduleParams) {
+    var finalParams = {}
+    moduleParams.forEach(function (param, i) {
+        if (param.id === undefined) { // Param id is not set in the module definition.
+            param.id = 'param-' + i
+            param.no_id = true
+        }
+        finalParams[param.id] = node.data.indexed_params[param.id] ? node.data.indexed_params[param.id] : (param.default ? param.default : '')
+    })
+    return finalParams
 }
 
 function mergeNodeAndModuleFilters(node, moduleFilters) {
@@ -1525,9 +1546,9 @@ function saveFilteringForModule() {
 
 function getIDForNodeParameter(node, param) {
     if (param.id !== undefined) {
-        return param.id + '-' + node.node_uid
+        return param.id + '-' + node.data.node_uid
     }
-    return param.id + '-' + node.node_uid
+    return param.id + '-' + node.data.node_uid
 }
 
 function getNodeFromNodeInput($input) {
@@ -1564,6 +1585,7 @@ function setParamValueForInput($input, node_data) {
                 newValue = $input.val()
             }
             node_data.params[i].value = newValue
+            node_data.indexed_params[param.id] = newValue
         }
     }
     return node_data

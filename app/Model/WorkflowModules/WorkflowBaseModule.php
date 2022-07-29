@@ -34,16 +34,13 @@ class WorkflowBaseModule
 
     protected function mergeNodeConfigIntoParameters($node): array
     {
-        $indexedParam = [];
-        $nodeParamByID = [];
-        foreach ($node['data']['params'] as $param) {
-            $nodeParamByID[$param['id']] = $param;
-        }
+        $fullIndexedParams = [];
         foreach ($this->params as $param) {
             $param['value'] = $nodeParamByID[$param['id']]['value'] ?? null;
-            $indexedParam[$param['id']] = $param;
+            $param['value'] = $node['data']['indexed_params'][$param['id']] ?? null;
+            $fullIndexedParams[$param['id']] = $param;
         }
-        return $indexedParam;
+        return $fullIndexedParams;
     }
 
     protected function getParamsWithValues($node): array

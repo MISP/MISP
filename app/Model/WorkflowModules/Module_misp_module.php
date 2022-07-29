@@ -95,7 +95,7 @@ class Module_misp_module extends WorkflowBaseActionModule
     protected function translateParams($paramName, $moduleParam): array
     {
         $param = [
-            'id' => Inflector::underscore($paramName),
+            'id' => Inflector::slug(Inflector::underscore($paramName)),
             'label' => Inflector::humanize($paramName),
             'placeholder' => $moduleParam['value'] ?? '',
         ];
