@@ -969,14 +969,16 @@ function mergeNodeAndModuleParams(node, moduleParams) {
             value: val
         }
     })
-    var finalParams = {}
+    var procesedParams = {}
+    var finalParams = []
     var fakeNodeFullParams = Object.values(nodeParamsById)
-    var nodeAndModuleParams = fakeNodeFullParams.concat(moduleParams)
+    var nodeAndModuleParams = moduleParams.concat(fakeNodeFullParams)
     nodeAndModuleParams.forEach(function (param) {
         var finalParam
-        if (finalParams[param.id]) { // param has already been processed
+        if (procesedParams[param.id]) { // param has already been processed
             return;
         }
+        procesedParams[param.id] = true
         if (moduleParamsById[param.id] === undefined) { // Param do not exist in the module (anymore or never did)
             param.is_invalid = true
             finalParam = Object.assign({}, nodeParamsById[param.id])
@@ -987,9 +989,9 @@ function mergeNodeAndModuleParams(node, moduleParams) {
         if (!finalParam['param_id']) {
             finalParam['param_id'] = getIDForNodeParameter(node, finalParam)
         }
-        finalParams[finalParam.id] = finalParam
+        finalParams.push(finalParam)
     })
-    return Object.values(finalParams)
+    return finalParams
 }
 
 function getIndexedParams(node, moduleParams) {
