@@ -47,7 +47,7 @@ class Workflow extends AppModel
             ],
             'hasOneTrigger' => [
                 'rule' => ['hasOneTrigger'],
-                'message' => 'Cannot save a workflow containing more than one trigger',
+                'message' => 'Cannot save a workflow containing no or more than one trigger',
             ],
             'satisfiesMultipleConnectionCondition' => [
                 'rule' => ['satisfiesMultipleConnectionCondition'],
@@ -351,7 +351,7 @@ class Workflow extends AppModel
     {
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $triggers = $this->workflowGraphTool->extractTriggersFromWorkflow($graphData, true);
-        return count($triggers) <= 1;
+        return count($triggers) == 1;
     }
 
     /**
