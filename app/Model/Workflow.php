@@ -606,6 +606,13 @@ class Workflow extends AppModel
         return $moduleClass;
     }
 
+    public function getModuleConfigByType($module_type, $id)
+    {
+        $this->loadAllWorkflowModules();
+        $moduleClass = $this->loaded_modules[$module_type][$id] ?? null;
+        return $moduleClass;
+    }
+
     public function attachNotificationToModules(array $modules, array $workflow): array
     {
         $trigger_is_misp_core_format = false;

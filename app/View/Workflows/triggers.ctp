@@ -85,6 +85,13 @@
             'url' => $baseurl . '/workflows/view/%s'
         ],
         [
+            'name' => __('Last Update'),
+            'class' => 'short',
+            'sort' => 'Workflow.timestamp',
+            'data_path' => 'Workflow.timestamp',
+            'element' => 'datetime',
+        ],
+        [
             'name' => __('Enabled'),
             'sort' => 'disabled',
             'class' => 'short',

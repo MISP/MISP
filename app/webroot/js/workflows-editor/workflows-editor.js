@@ -1,20 +1,20 @@
 var dotBlock_default = doT.template(' \
-<div class="canvas-workflow-block {{? it.is_misp_module }} is-misp-module {{?}}" data-nodeuid="{{=it.node_uid}}"> \
+<div class="canvas-workflow-block {{? it.module_data.is_misp_module }} is-misp-module {{?}}" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
-            {{? it.icon }} \
-                <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{? it.module_data.icon }} \
+                <i class="fa-fw fa-{{=it.module_data.icon}} {{=it.module_data.icon_class}}"></i> \
             {{?}} \
-            {{? it.icon_path }} \
-                <span style="display: flex;"><img src="/img/{{=it.icon_path}}" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0; filter: grayscale(1);"></span> \
+            {{? it.module_data.icon_path }} \
+                <span style="display: flex; height: 1em;"><img src="/img/{{=it.module_data.icon_path}}" alt="Icon of {{=it.module_data.name}}" width="18" height="18" style="margin: auto 0; filter: grayscale(1);"></span> \
             {{?}} \
             <strong style="margin-left: 0.25em;"> \
-                {{=it.name}} \
+                {{=it.module_data.name}} \
             </strong> \
-            {{? it.is_misp_module }} \
+            {{? it.module_data.is_misp_module }} \
                 <sup class="is-misp-module"></sup> \
             {{?}} \
-            {{? it.blocking }} \
+            {{? it.module_data.blocking }} \
                 <span style="margin-left: 2px;" class="text-error"> \
                     <i title="This module can block execution" class="fa-fw fas fa-stop-circle"></i> \
                 </span> \
@@ -29,7 +29,7 @@ var dotBlock_default = doT.template(' \
                 </span> \
             </span> \
         </div> \
-        <div class="muted" class="description" style="margin-bottom: 0.5em;">{{=it.description}}</div> \
+        <div class="muted" class="description" style="margin-bottom: 0.5em;">{{=it.module_data.description}}</div> \
         {{=it._node_param_html}} \
     </div> \
 </div>')
@@ -38,18 +38,18 @@ var dotBlock_trigger = doT.template(' \
 <div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container" style="border:none;"> \
-            {{? it.icon }} \
-                <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{? it.module_data.icon }} \
+                <i class="fa-fw fa-{{=it.module_data.icon}} {{=it.module_data.icon_class}}"></i> \
             {{?}} \
-            {{? it.icon_path }} \
-                <span style="display: flex;"><img src="/img/{{=it.icon_path}}" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0;"></span> \
+            {{? it.module_data.icon_path }} \
+                <span style="display: flex; height: 1em;"><img src="/img/{{=it.module_data.icon_path}}" alt="Icon of {{=it.module_data.name}}" width="18" height="18" style="margin: auto 0;"></span> \
             {{?}} \
             <strong style="margin-left: 0.25em;"> \
-                {{=it.name}} \
+                {{=it.module_data.name}} \
             </strong> \
             <span style="margin-left: auto; display: flex; align-items: center;"> \
-                {{? it.misp_core_format }} \
-                    <img src="/img/misp-logo-no-text.png" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0;" title="The data passed by this trigger is compliant with the MISP core format"> \
+                {{? it.module_data.misp_core_format }} \
+                    <img src="/img/misp-logo-no-text.png" alt="Icon of {{=it.module_data.name}}" width="18" height="18" style="margin: auto 0;" title="The data passed by this trigger is compliant with the MISP core format"> \
                 {{?}} \
                 <span class="block-notification-container"> \
                     {{=it._node_notification_html}} \
@@ -63,14 +63,14 @@ var dotBlock_if = doT.template(' \
 <div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
-            {{? it.icon }} \
-                <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{? it.module_data.icon }} \
+                <i class="fa-fw fa-{{=it.module_data.icon}} {{=it.module_data.icon_class}}"></i> \
             {{?}} \
-            {{? it.icon_path }} \
-                <span style="display: flex;"><img src="/img/{{=it.icon_path}}" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0;"></span> \
+            {{? it.module_data.icon_path }} \
+                <span style="display: flex; height: 1em;"><img src="/img/{{=it.module_data.icon_path}}" alt="Icon of {{=it.module_data.name}}" width="18" height="18" style="margin: auto 0;"></span> \
             {{?}} \
             <strong style="margin-left: 0.25em;"> \
-                {{=it.name}} \
+                {{=it.module_data.name}} \
             </strong> \
             <span style="margin-left: auto;"> \
                 <span class="block-notification-container"> \
@@ -89,14 +89,14 @@ var dotBlock_concurrent = doT.template(' \
 <div class="canvas-workflow-block" data-nodeuid="{{=it.node_uid}}"> \
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
-            {{? it.icon }} \
-                <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+            {{? it.module_data.icon }} \
+                <i class="fa-fw fa-{{=it.module_data.icon}} {{=it.module_data.icon_class}}"></i> \
             {{?}} \
-            {{? it.icon_path }} \
-                <span style="display: flex;"><img src="/img/{{=it.icon_path}}" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0;"></span> \
+            {{? it.module_data.icon_path }} \
+                <span style="display: flex; height: 1em;"><img src="/img/{{=it.module_data.icon_path}}" alt="Icon of {{=it.module_data.name}}" width="18" height="18" style="margin: auto 0;"></span> \
             {{?}} \
             <strong style="margin-left: 0.25em;"> \
-                {{=it.name}} \
+                {{=it.module_data.name}} \
             </strong> \
             <span style="margin-left: auto;"> \
                 <span class="block-notification-container"> \
@@ -108,7 +108,7 @@ var dotBlock_concurrent = doT.template(' \
             </span> \
         </div> \
         {{=it._node_param_html}} \
-        <div class="muted" class="description" style="margin-bottom: 0.5em;">{{=it.description}}</div> \
+        <div class="muted" class="description" style="margin-bottom: 0.5em;">{{=it.module_data.description}}</div> \
     </div> \
 </div>')
 
@@ -286,6 +286,9 @@ function initDrawflow() {
 
     $canvas.droppable({
         drop: function (event, ui) {
+            if (event.pageX < 340) { // dirty hack to avoid drops on the sidebar
+                return
+            }
             ui.position.top += 96 // take padding/marging/position into account
             if (ui.draggable.data('blueprint')) {
                 addWorkflowBlueprint(ui.draggable.data('blueprint').WorkflowBlueprint.id, ui.position)
@@ -307,7 +310,7 @@ function initDrawflow() {
         // block contextual menu for trigger blocks
         $canvas.find('.canvas-workflow-block').on('contextmenu', function (evt) {
             var selectedNode = getSelectedNode()
-            if (selectedNode !== undefined && selectedNode.data.module_type == 'trigger') {
+            if (selectedNode !== undefined && selectedNode.data.module_data.module_type == 'trigger') {
                 evt.stopPropagation();
                 evt.preventDefault();
             }
@@ -319,7 +322,7 @@ function initDrawflow() {
     $blockModal
         .on('show', function (evt) {
             var selectedNode = getSelectedNode()
-            buildModalForBlock(selectedNode.id, selectedNode.data)
+            buildModalForBlock(selectedNode.id, selectedNode)
         })
         .on('shown', function (evt) {
             afterModalShowCallback()
@@ -464,29 +467,35 @@ function saveBlueprint(href) {
         var trigger_id = (all_triggers_by_id[workflowTriggerId] || { id: 'unknown-trigger' }).id
         var nodes = selectedNodes.map(function (nodeHtml) {
             var node = editorData[nodeHtml.id.slice(5)]
-            delete node.html
-            Object.keys(node.data).forEach(function (k) {
+            return node
+        })
+        var nodesToBeSaved = nodes.map(function(node) {
+            var nodeCopy = JSON.parse(JSON.stringify(node)) // Deep copy is needed because of data.module_data deletion
+            delete nodeCopy.html
+            delete nodeCopy.data.module_data
+            Object.keys(nodeCopy.data).forEach(function (k) {
                 if (k.startsWith('_')) {
-                    delete node.data[k]
+                    delete nodeCopy.data[k]
                 }
             })
-            return node
+            return nodeCopy
         })
         var $modal = $('#genericModal')
         var $graphData = $modal.find('form #WorkflowBlueprintData')
         var $graphDescription = $modal.find('form #WorkflowBlueprintDescription')
-        $graphData.val(JSON.stringify(nodes))
+        $graphData.val(JSON.stringify(nodesToBeSaved))
         if ($graphDescription.val().length == 0 ) {
             $graphDescription.val('[' + trigger_id + ']\n')
         }
-        $modal.find('.modal-body').append(
+        var $modalBody = $modal.find('.modal-body')
+        $modalBody.append(
             $('<h3></h3>').append(
                 $('<span></span').text('Workflow Blueprint Content '),
                 $('<a class="fas fa-copy" href="#"></a>')
                     .attr('title', 'Copy Workflow Blueprint to clipboard')
                     .click(function () {
                         var $clicked = $(this)
-                        navigator.clipboard.writeText(JSON.stringify(nodes)).then(function () {
+                        navigator.clipboard.writeText(JSON.stringify(nodesToBeSaved)).then(function () {
                             $clicked.removeClass('fa-copy').addClass('fa-check').addClass('text-success')
                             setTimeout(function () {
                                 $clicked.removeClass('fa-check').addClass('fa-copy').removeClass('text-success')
@@ -499,17 +508,19 @@ function saveBlueprint(href) {
         )
         var $ul = $('<ul></ul>')
         nodes.forEach(function (node) {
+            var setParamCount = node.data.params.filter(function (param) { return param.value }).length
+            var setFilterCount = Object.values(node.data.saved_filters).filter(function (filter) { return filter }).length
             $ul.append(
                 $('<li></li>').append(
-                    $('<strong></strong>').text(node.data.name),
+                    $('<strong></strong>').text(node.data.module_data.name),
                     $('<ul></ul>').append(
-                        node.data.saved_filters.length > 0 ? $('<li></li>').text('Has filter') : null,
-                        node.data.params.length > 0 ? $('<li></li>').text('Has parameters') : null
+                        setFilterCount > 0 ? $('<li></li>').text('Has filter') : null,
+                        setParamCount > 0 ? $('<li></li>').text('Has ' + setParamCount + ' parameters') : null
                     )
                 )
             )
         })
-        $modal.find('.modal-body').append($ul)
+        $modalBody.append($ul)
     })
 }
 
@@ -520,26 +531,26 @@ function duplicateSelection() {
     selection.select(newNodes)
 }
 
-function buildModalForBlock(node_id, block) {
-    var html = genNodeParamHtml(block, false)
+function buildModalForBlock(node_id, node) {
+    var html = genNodeParamHtml(node, false)
     $blockModal
-        .data('selected-block', block)
+        .data('selected-block', node.data)
         .data('selected-node-id', node_id)
     $blockModal.find('.modal-body').empty().append(html)
 }
 
-function buildNotificationModalForBlock(node_id, block) {
-    var html = genBlockNotificationForModalHtml(block)
+function buildNotificationModalForBlock(node_id, data) {
+    var html = genBlockNotificationForModalHtml(data)
     $blockNotificationModal
-        .data('selected-block', block)
+        .data('selected-block', data)
         .data('selected-node-id', node_id)
     $blockNotificationModal.find('.modal-body').empty().append(html)
 }
 
-function buildFilteringModalForBlock(node_id, block) {
-    var html = genModalFilteringHtml(block)
+function buildFilteringModalForNode(node_id, node) {
+    var html = genModalFilteringHtml(node)
     $blockFilteringModal
-        .data('selected-block', block)
+        .data('selected-block', node.data)
         .data('selected-node-id', node_id)
     $blockFilteringModal.find('.modal-body').empty().append(html)
 }
@@ -551,7 +562,7 @@ function showNotificationModalForBlock() {
 }
 
 function showNotificationModalForModule(module_id, data) {
-    buildNotificationModalForBlock(module_id, data)
+    buildNotificationModalForBlock(module_id, {module_data: data})
     $blockNotificationModal.modal('show')
 }
 
@@ -561,9 +572,9 @@ function showNotificationModalForSidebarModule(clicked) {
     showNotificationModalForModule(blockID, all_modules_by_id[blockID])
 }
 
-function showFilteringModalForBlock() {
+function showFilteringModalForNode() {
     var selectedNode = getSelectedNode()
-    buildFilteringModalForBlock(selectedNode.id, selectedNode.data)
+    buildFilteringModalForNode(selectedNode.id, selectedNode)
     $blockFilteringModal.modal('show')
 }
 
@@ -590,7 +601,7 @@ function revalidateContentCache() {
 }
 
 
-function addNode(block, position) {
+function addNode(block, position, additionalData={}) {
     var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
     if (!module) {
         console.error('Tried to add node for unknown module ' + block.data.id + ' (' + block.id + ')')
@@ -607,40 +618,52 @@ function addNode(block, position) {
     pos_x = pos_x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)) - (editor.precanvas.getBoundingClientRect().x * (editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom)));
     pos_y = pos_y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)) - (editor.precanvas.getBoundingClientRect().y * (editor.precanvas.clientHeight / (editor.precanvas.clientHeight * editor.zoom)));
 
-    block['_node_param_html'] = genNodeParamHtml(block)
-    block['_node_notification_html'] = genNodeNotificationHtml(block)
-    block['_node_filter_html'] = genNodeFilteringHtml(block)
-    var html = getTemplateForNode(block)
-    var blockClass = block.class === undefined ? [] : block.class
+    var module_data = Object.assign({}, module)
+    var newNode = {name: block.name, data: {}}
+    if (additionalData.params) {
+        newNode.data.params = additionalData.params
+    }
+    if (additionalData.saved_filters) {
+        newNode.data.saved_filters = additionalData.saved_filters
+    }
+    newNode = mergeNodeAndModule(newNode, module_data)
+
+    newNode.data['_node_param_html'] = genNodeParamHtml(newNode)
+    newNode.data['_node_notification_html'] = genNodeNotificationHtml(newNode.data)
+    newNode.data['_node_filter_html'] = genNodeFilteringHtml(newNode)
+    var html = getTemplateForNode(newNode)
+    var blockClass = newNode.data.module_data.class === undefined ? [] : newNode.data.module_data.class
     blockClass = !Array.isArray(blockClass) ? [blockClass] : blockClass
-    blockClass.push('block-type-' + (block.html_template !== undefined ? block.html_template : 'default'))
-    if (block.module_type == 'logic') {
+    blockClass.push('block-type-' + (newNode.data.module_data.html_template !== undefined ? newNode.data.module_data.html_template : 'default'))
+    if (newNode.data.module_data.module_type == 'logic') {
         blockClass.push('block-type-logic')
     }
     editor.addNode(
-        block.name,
-        block.inputs === undefined ? 1 : block.inputs,
-        block.outputs === undefined ? 1 : block.outputs,
+        newNode.name,
+        module.inputs === undefined ? 1 : module.inputs,
+        module.outputs === undefined ? 1 : module.outputs,
         pos_x,
         pos_y,
         blockClass.join(' '),
-        block,
+        newNode.data,
         html
     )
     afterNodeDrawCallback()
 }
 
-function getEditorData(cleanInvalidParams) {
+function getEditorData(cleanNodes) {
     var data = {} // Make sure nodes are index by their internal IDs
     var editorExport = editor.export().drawflow.Home.data
     editorExport = Array.isArray(editorExport) ? editorExport : Object.values(editorExport)
     editorExport.forEach(function(node) {
         if (node !== null) { // for some reason, the editor create null nodes
-            if (cleanInvalidParams && node.data.params !== undefined) {
+            if (cleanNodes && node.data.params !== undefined) {
                 node.data.params = deleteInvalidParams(node.data.params)
             }
-            delete node.html
-            delete node.data.notifications
+            if (cleanNodes) {
+                delete node.html
+                delete node.data.module_data
+            }
             Object.keys(node.data).forEach(function (k) {
                 if (k.startsWith('_')) {
                     delete node.data[k]
@@ -687,13 +710,13 @@ function loadWorkflow(workflow) {
     Object.values(workflow.data).forEach(function (node) {
         var module = all_modules_by_id[node.data.id] || all_triggers_by_id[node.data.id]
         if (!module) {
-            console.error('Tried to add node for unknown module ' + node.data.id + ' (' + node.id + ')')
+            console.error('Tried to add node for unknown module ' + node.data.module_data.id + ' (' + node.id + ')')
             var userFriendlyParams = {}
             node.data.params.forEach(function (param) {
                 userFriendlyParams[param.id] = (param.value ?? param.default)
             })
             var html = window['dotBlock_error']({
-                error: 'Invalid module id`' + node.data.id + '` (' + node.id + ')',
+                error: 'Invalid module id`' + node.data.module_data.id + '` (' + node.id + ')',
                 data: JSON.stringify(userFriendlyParams, null, 2)
             })
             editor.addNode(
@@ -708,34 +731,32 @@ function loadWorkflow(workflow) {
             )
             return '';
         }
-        var module_data = Object.assign({}, all_modules_by_id[node.data.id] || all_triggers_by_id[node.data.id])
-        module_data.params = mergeNodeAndModuleParams(node, module_data.params)
-        module_data.saved_filters = node.data.saved_filters
-        node.data = module_data
+        var module_data = Object.assign({}, module)
+        var newNode = mergeNodeAndModule(node, module_data)
         var node_uid = uid() // only used for UI purposes
-        node.data['node_uid'] = node_uid
-        node.data['_node_param_html'] = genNodeParamHtml(node.data)
-        node.data['_node_notification_html'] = genNodeNotificationHtml(node.data)
-        node.data['_node_filter_html'] = genNodeFilteringHtml(node.data)
-        var nodeClass = node.data.class === undefined ? [] : node.data.class
+        newNode.data['node_uid'] = node_uid
+        newNode.data['_node_param_html'] = genNodeParamHtml(newNode)
+        newNode.data['_node_notification_html'] = genNodeNotificationHtml(newNode.data)
+        newNode.data['_node_filter_html'] = genNodeFilteringHtml(newNode)
+        var nodeClass = newNode.data.module_data.class === undefined ? [] : newNode.data.module_data.class
         nodeClass = !Array.isArray(nodeClass) ? [nodeClass] : nodeClass
-        nodeClass.push('block-type-' + (node.data.html_template !== undefined ? node.data.html_template : 'default'))
-        if (node.data.module_type == 'logic') {
+        nodeClass.push('block-type-' + (newNode.data.module_data.html_template !== undefined ? newNode.data.module_data.html_template : 'default'))
+        if (newNode.data.module_data.module_type == 'logic') {
             nodeClass.push('block-type-logic')
         }
-        if (node.data.disabled) {
+        if (newNode.data.module_data.disabled) {
             nodeClass.push('disabled')
         }
-        var html = getTemplateForNode(node.data)
-        editor.nodeId = node.id // force the editor to use the saved id of the node instead of generating a new one
+        var html = getTemplateForNode(newNode)
+        editor.nodeId = newNode.id // force the editor to use the saved id of the node instead of generating a new one
         editor.addNode(
-            node.name,
-            Object.values(node.inputs).length,
-            Object.values(node.outputs).length,
-            node.pos_x,
-            node.pos_y,
+            newNode.name,
+            Object.values(newNode.inputs).length,
+            Object.values(newNode.outputs).length,
+            newNode.pos_x,
+            newNode.pos_y,
             nodeClass.join(' '),
-            node.data,
+            newNode.data,
             html
         )
     })
@@ -784,14 +805,14 @@ function duplicateNodesFromHtml(currentSelection) {
         nodeHtml.classList.remove('selected');
         var node_id = nodeHtml.id.slice(5)
         var node = getEditorData()[node_id]
-        if (node.data.module_type == 'trigger') {
+        if (node.data.module_data.module_type == 'trigger') {
             return
         }
         var position = {
             top: nodeHtml.getBoundingClientRect().top - 100 * editor.zoom,
             left: nodeHtml.getBoundingClientRect().left + 100 * editor.zoom,
         }
-        var newNode = Object.assign({}, all_modules_by_id[node.data.id])
+        var newNode = Object.assign({}, all_modules_by_id[node.data.module_data.id])
         newNode.params = node.data.params.slice()
         newNode.saved_filters = Object.assign({}, node.data.saved_filters)
         addNode(newNode, position)
@@ -816,7 +837,7 @@ function duplicateNodesFromHtml(currentSelection) {
     return newNodes
 }
 
-function addNodesFromWorkflowBlueprint(workflowBlueprint, cursorPosition) {
+function addNodesFromBlueprint(workflowBlueprint, cursorPosition) {
     var newNodes = []
     if (workflowBlueprint.data.length == 0) {
         return counterNodeAdded
@@ -842,7 +863,7 @@ function addNodesFromWorkflowBlueprint(workflowBlueprint, cursorPosition) {
             node.data.params.forEach(function (param) {
                 userFriendlyParams[param.id] = (param.value ?? param.default)
             })
-            var errorMessage = 'Invalid ' + node.data.module_type + ' module id `' + node.data.id + '` (' + node.id + ')'
+            var errorMessage = 'Invalid ' + node.data.module_data.module_type + ' module id `' + node.data.module_data.id + '` (' + node.id + ')'
             var html = window['dotBlock_error']({
                 error: errorMessage,
                 data: JSON.stringify(userFriendlyParams, null, 2)
@@ -859,10 +880,11 @@ function addNodesFromWorkflowBlueprint(workflowBlueprint, cursorPosition) {
             )
             return
         }
-        var newNode = Object.assign({}, all_modules_by_id[node.data.id])
-        newNode.params = mergeNodeAndModuleParams(node, newNode.params)
-        newNode.saved_filters = Object.assign({}, node.data.saved_filters)
-        addNode(newNode, position)
+        additionalData = {
+            params: node.data.params,
+            saved_filters: node.data.saved_filters,
+        }
+        addNode(all_modules_by_id[node.data.id], position, additionalData)
         oldNewIDMapping[node.id] = editor.nodeId - 1
         newNodes.push(getNodeHtmlByID(editor.nodeId - 1)) // nodeId is incremented as soon as a new node is created
     })
@@ -910,6 +932,23 @@ function getCanvasCentroid() {
     }
 }
 
+function mergeNodeAndModule(node, module_data) {
+    if (node.data === undefined) {
+        node.data = {}
+    }
+    node.data.params = node.data.params !== undefined ? node.data.params : []
+    node.data.saved_filters = node.data.saved_filters !== undefined ? node.data.saved_filters : {}
+    node.data.module_type = module_data.module_type,
+    node.data.id = module_data.id,
+    node.data.module_data = module_data,
+    node.data.multiple_output_connection = module_data.multiple_output_connection,
+    node.data.previous_module_version = node.module_version ? node.module_version : '?',
+    node.data.module_version = module_data.version,
+    node.data.params = mergeNodeAndModuleParams(node, module_data.params)
+    node.data.saved_filters = mergeNodeAndModuleFilters(node, module_data.saved_filters)
+    return node
+}
+
 function mergeNodeAndModuleParams(node, moduleParams) {
     var moduleParamsById = {}
     var nodeParamsById = {}
@@ -942,6 +981,15 @@ function mergeNodeAndModuleParams(node, moduleParams) {
         finalParams[param.id] = finalParam
     })
     return Object.values(finalParams)
+}
+
+function mergeNodeAndModuleFilters(node, moduleFilters) {
+    node.saved_filters = node.saved_filters ? node.saved_filters : []
+    var finalFilters = {}
+    moduleFilters.forEach(function(filter) {
+        finalFilters[filter.text] = node.saved_filters[filter.text] ? node.saved_filters[filter.text] : filter.value
+    })
+    return finalFilters
 }
 
 /* API */
@@ -1094,7 +1142,7 @@ function addWorkflowBlueprint(blueprintId, cursorPosition) {
             left: centroid.centroidX,
         }
     }
-    var newNodes = addNodesFromWorkflowBlueprint(workflowBlueprint.WorkflowBlueprint, cursorPosition);
+    var newNodes = addNodesFromBlueprint(workflowBlueprint.WorkflowBlueprint, cursorPosition);
     if (newNodes.length > 0) {
         selection.clearSelection()
         selection.select(newNodes)
@@ -1144,22 +1192,22 @@ function toggleEditorLoading(loading, message) {
 
 function getTemplateForNode(node) {
     var html = ''
-    node.icon_class = node.icon_class ? node.icon_class : 'fas'
-    if (node.html_template !== undefined) {
-        if (window['dotBlock_' + node.html_template] !== undefined) {
-            html = window['dotBlock_' + node.html_template](node)
+    node.data.module_data.icon_class = node.data.module_data.icon_class ? node.data.module_data.icon_class : 'fas'
+    if (node.data.module_data.html_template !== undefined) {
+        if (window['dotBlock_' + node.data.module_data.html_template] !== undefined) {
+            html = window['dotBlock_' + node.data.module_data.html_template](node.data)
         } else {
             html = 'Wrong HTML template'
             console.error('Wrong HTML template for node', node)
         }
     } else {
-        html = dotBlock_default(node)
+        html = dotBlock_default(node.data)
     }
     return html
 }
 
 function genNodeParamHtml(node, forNode = true) {
-    var nodeParams = node.params !== undefined ? node.params : []
+    var nodeParams = node.data.params !== undefined ? node.data.params : []
     var html = ''
     nodeParams.forEach(function (param) {
         paramHtml = ''
@@ -1218,14 +1266,6 @@ function afterModalShowCallback() {
 }
 
 function genParameterWarning(options) {
-    // return options.is_invalid ?
-    //     $('<span>').addClass('text-error').css('margin-left', '5px')
-    //         .append(
-    //             $('<i>').addClass('fas fa-exclamation-triangle'),
-    //             $('<span>').text('Invalid parameter')
-    //         )
-    //         .attr('title', 'This parameter does not exist in the associated module and thus will be removed upon saving. Make sure you have the latest version of this module.') :
-    //     ''
     var text = '', text_short = ''
     if (options.is_invalid) {
         text = 'This parameter does not exist in the associated module and thus will be removed upon saving. Make sure you have the latest version of this module.'
@@ -1455,10 +1495,10 @@ function handleSelectChange(changed) {
 }
 
 function saveFilteringForModule() {
-    var selector = $blockFilteringModal.find('input#filtering-selector').val()
-    var value = $blockFilteringModal.find('input#filtering-value').val()
-    var operator = $blockFilteringModal.find('select#filtering-operator').val()
-    var path = $blockFilteringModal.find('input#filtering-path').val()
+    var selector = $blockFilteringModal.find('input#element_selector').val()
+    var value = $blockFilteringModal.find('input#value').val()
+    var operator = $blockFilteringModal.find('select#operator').val()
+    var path = $blockFilteringModal.find('input#hash_path').val()
     if (selector.length > 0 && (value.length == 0 || operator.length == 0 || path.length == 0)) {
         $blockFilteringModal.find('.modal-body').append(
             $('<div></div>').addClass('alert alert-danger').text('Some fields cannot be empty')
@@ -1530,9 +1570,10 @@ function setParamValueForInput($input, node_data) {
 }
 
 function genNodeNotificationHtml(block) {
-    var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
+    // var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
+    var module = all_modules_by_id[block.module_data.id] || all_triggers_by_id[block.module_data.id]
     if (!module) {
-        console.error('Tried to get notification of unknown module ' + block.id)
+        console.error('Tried to get notification of unknown module ' + block.module_data.id)
         return '';
     }
     var html = ''
@@ -1547,7 +1588,7 @@ function genNodeNotificationHtml(block) {
             var $notification = $('<button class="btn btn-mini" role="button" onclick="showNotificationModalForBlock(this)"></button>')
                 .attr({
                     'title': notificationTitles,
-                    'data-blockid': block.id,
+                    'data-blockid': block.module_data.id,
                 })
                 .addClass('btn-' + classBySeverity[severity])
                 .css({
@@ -1566,7 +1607,8 @@ function genNodeNotificationHtml(block) {
 }
 
 function genBlockNotificationForModalHtml(block) {
-    var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
+    // var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
+    var module = all_modules_by_id[block.module_data.id] || all_triggers_by_id[block.module_data.id]
     var html = ''
     var $notificationMainContainer = $('<div></div>')
     var reversedSeverities = [].concat(severities)
@@ -1598,16 +1640,16 @@ function genBlockNotificationForModalHtml(block) {
     return html
 }
 
-function genNodeFilteringHtml(block) {
-    var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
+function genNodeFilteringHtml(node) {
+    var module = all_modules_by_id[node.data.module_data.id] || all_triggers_by_id[node.data.module_data.id]
     var html = ''
     if (module.support_filters) {
         var $link = $('<a></a>')
             .attr({
                 href: '#block-filtering-modal',
                 role: 'button',
-                class: 'filtering-button btn btn-mini ' + (getFiltersFromNode(block).value ? 'btn-success' : ''),
-                onclick: 'showFilteringModalForBlock(this)',
+                class: 'filtering-button btn btn-mini ' + (getFiltersFromNode(node).value ? 'btn-success' : ''),
+                onclick: 'showFilteringModalForNode(this)',
                 title: 'Module filtering conditions'
             })
             .append($('<i></i>')
@@ -1617,32 +1659,32 @@ function genNodeFilteringHtml(block) {
     return html
 }
 
-function genModalFilteringHtml(block) {
-    var module = all_modules_by_id[block.id] || all_triggers_by_id[block.id]
+function genModalFilteringHtml(node) {
+    var module = all_modules_by_id[node.data.module_data.id] || all_triggers_by_id[node.data.module_data.id]
     var html = ''
     if (module.support_filters) {
-        html += genGenericBlockFilter(block)
+        html += genGenericBlockFilter(node)
     }
     return html
 }
 
-function getFiltersFromNode(block) {
+function getFiltersFromNode(node) {
     return {
-        'selector': block.saved_filters.value ? block.saved_filters.selector : '',
-        'value': block.saved_filters.value ? block.saved_filters.value : '',
-        'operator': block.saved_filters.operator ? block.saved_filters.operator : '',
-        'path': block.saved_filters.path ? block.saved_filters.path : '',
+        'selector': node.data.saved_filters.selector ? node.data.saved_filters.selector : '',
+        'value': node.data.saved_filters.value ? node.data.saved_filters.value : '',
+        'operator': node.data.saved_filters.operator ? node.data.saved_filters.operator : '',
+        'path': node.data.saved_filters.path ? node.data.saved_filters.path : '',
     }
 }
 
-function genGenericBlockFilter(block) {
+function genGenericBlockFilter(node) {
     var operatorOptions = [
         {value: 'in', text: 'In'},
         {value: 'not_in', text: 'Not in'},
         {value: 'equals', text: 'Equals'},
         {value: 'not_equals', text: 'Not equals'},
     ]
-    var filters = getFiltersFromNode(block)
+    var filters = getFiltersFromNode(node)
     var $div = $('<div></div>').append($('<form></form>').append(
         genGenericInput({ id: 'filtering-selector', id: 'element_selector', label: 'Element selector', type: 'text', placeholder: 'Attribute.{n}', required: false, value: filters.selector}),
         genGenericInput({ id: 'filtering-value', id: 'value', label: 'Value', type: 'text', placeholder: 'tlp:white', required: false, value: filters.value}),

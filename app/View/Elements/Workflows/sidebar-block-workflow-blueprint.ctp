@@ -1,19 +1,20 @@
 <?php
 $iconCount = ['icon' => [], 'icon_path' => []];
 foreach ($workflowBlueprint['data'] as $node) {
-    if (!empty($node['data']['icon'])) {
-        if (!isset($iconCount['icon'][$node['data']['icon']])) {
-            $iconClasses = sprintf('%s %s', $this->FontAwesome->getClass($node['data']['icon']), $node['data']['icon_class'] ?? '');
+    $moduleData = $node['data']['module_data'];
+    if (!empty($moduleData['icon'])) {
+        if (!isset($iconCount['icon'][$moduleData['icon']])) {
+            $iconClasses = sprintf('%s %s', $this->FontAwesome->getClass($moduleData['icon']), $moduleData['icon_class'] ?? '');
             $iconCount['icon'][$iconClasses]['count'] = 0;
             $iconCount['icon'][$iconClasses]['id'] = $node['data']['id'];
         }
         $iconCount['icon'][$iconClasses]['count'] += 1;
-    } elseif (!empty($node['data']['icon_path'])) {
-        if (!isset($iconCount['icon_path'][$node['data']['icon_path']])) {
-            $iconCount['icon_path'][$node['data']['icon_path']]['count'] = 0;
-            $iconCount['icon_path'][$node['data']['icon_path']]['id'] = $node['data']['id'];
+    } elseif (!empty($moduleData['icon_path'])) {
+        if (!isset($iconCount['icon_path'][$moduleData['icon_path']])) {
+            $iconCount['icon_path'][$moduleData['icon_path']]['count'] = 0;
+            $iconCount['icon_path'][$moduleData['icon_path']]['id'] = $node['data']['id'];
         }
-        $iconCount['icon_path'][$node['data']['icon_path']]['count'] += 1;
+        $iconCount['icon_path'][$moduleData['icon_path']]['count'] += 1;
     }
 }
 ?>

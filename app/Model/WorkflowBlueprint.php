@@ -66,6 +66,7 @@ class WorkflowBlueprint extends AppModel
                 $result['WorkflowBlueprint']['data'] = '{}';
             }
             $results[$k]['WorkflowBlueprint']['data'] = JsonTool::decode($result['WorkflowBlueprint']['data']);
+            $results[$k] = $this->attachModuleDataToBlueprint($results[$k]);
             if (!empty($results[$k]['WorkflowBlueprint']['data'])) {
                 $results[$k]['WorkflowBlueprint']['mermaid'] = $this->getMermaidForData($results[$k]['WorkflowBlueprint']['data']);
             }
@@ -79,6 +80,16 @@ class WorkflowBlueprint extends AppModel
             $this->data['WorkflowBlueprint']['data'] = JsonTool::encode($this->data['WorkflowBlueprint']['data']);
         }
         return true;
+    }
+
+    public function attachModuleDataToBlueprint(array $blueprint)
+    {
+        $this->Workflow = ClassRegistry::init('Workflow');
+        foreach ($blueprint['WorkflowBlueprint']['data'] as $i => $node) {
+            $module = $this->Workflow->getModuleConfigByType($node['data']['module_type'], $node['data']['id']);
+            $blueprint['WorkflowBlueprint']['data'][$i]['data']['module_data'] = $module;
+        }
+        return $blueprint;
     }
 
 

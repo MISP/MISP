@@ -72,8 +72,8 @@ class MermaidFlowchartTool
     private static function __singleNode(array $node)
     {
         $str = $node['id'];
-        $icon = sprintf("%s:fa-%s ", FontAwesomeHelper::findNamespace($node['data']['icon']), $node['data']['icon']);
-        $node_content = sprintf('"%s%s"',(!empty($node['data']['icon']) ? "$icon " : ''), $node['data']['name']);
+        $icon = sprintf("%s:fa-%s ", FontAwesomeHelper::findNamespace($node['data']['module_data']['icon']), $node['data']['module_data']['icon']);
+        $node_content = sprintf('"%s%s"',(!empty($node['data']['module_data']['icon']) ? "$icon " : ''), $node['name']);
         $str .= sprintf(
             self::NODE_STYLE[$node['data']['module_type']],
             $node_content
