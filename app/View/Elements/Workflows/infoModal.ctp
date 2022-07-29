@@ -83,7 +83,7 @@ $users = [
      ['id' => 356, 'name' => 'joe', 'surname' => 'smith'],
 ];
 $path_expression = '{n}[name=fred].id'
-$ids = Hash::extract($users, $$path_expression);
+$ids = Hash::extract($users, $path_expression);
 // $ids will be [123, 245]</pre>
 
                 <h3><?= __('Logic module with hash path') ?></h3>
@@ -117,7 +117,7 @@ $data_passed_to_if_module = [
                 <h3><?= __('Debugging Workflows') ?></h3>
                 <ul>
                     <li><?= __('Workflow execution is logged in the application logs: %s', sprintf('<code>%s</code>', '/admin/logs/index')) ?></li>
-                    <li><?= __('Or in the following file stored on the disk: %s', sprintf('<code>%s</code>', '/app/tmp/logs/workflow-execution.log')) ?></li>
+                    <li><?= __('Or stored on disk in the following file: %s', sprintf('<code>%s</code>', '/app/tmp/logs/workflow-execution.log')) ?></li>
                 </ul>
             </div>
 

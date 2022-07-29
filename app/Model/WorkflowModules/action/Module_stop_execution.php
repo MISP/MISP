@@ -6,7 +6,7 @@ class Module_stop_execution extends WorkflowBaseActionModule
     public $blocking = true;
     public $id = 'stop-execution';
     public $name = 'Stop execution';
-    public $description = 'Essentially stops the execution for blocking paths. Do nothing for non-blocking paths';
+    public $description = 'Essentially stops the execution for blocking workflows. Do nothing for non-blocking ones';
     public $icon = 'ban';
     public $inputs = 1;
     public $outputs = 0;
