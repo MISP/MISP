@@ -704,13 +704,9 @@ function fetchAndLoadWorkflow() {
 function loadWorkflow(workflow) {
     editor.clear()
     if (workflow.data.length == 0) {
-        var trigger_id = workflow['trigger_id'];
-        if (all_triggers_by_id[trigger_id] === undefined) {
-            console.error('Unknown trigger');
-            showMessage('error', 'Unknown trigger')
-        }
-        var trigger_module = all_triggers_by_id[trigger_id]
-        addNode(trigger_module, {left: 0, top: 0})
+        console.error('Workflow doesn\'t have a trigger.')
+        showMessage('fail', 'Workflow doesn\'t have a trigger.')
+        return
     }
     // We cannot rely on the editor's import function as it recreates the nodes with the saved HTML instead of rebuilding them
     // We have to manually add the nodes and their connections
@@ -732,7 +728,7 @@ function loadWorkflow(workflow) {
                 node.data,
                 html
             )
-            return '';
+            return
         }
         var module_data = Object.assign({}, module)
         var newNode = mergeNodeAndModule(node, module_data)
@@ -942,7 +938,7 @@ function mergeNodeAndModule(node, module_data) {
     node.data.name = node.data.name ? node.data.name : module_data.name
     node.data.module_data = module_data
     node.data.multiple_output_connection = module_data.multiple_output_connection
-    node.data.previous_module_version = node.module_version ? node.module_version : '?'
+    node.data.previous_module_version = node.data.module_version ? node.data.module_version : '?'
     node.data.module_version = module_data.version
     node.data.params = mergeNodeAndModuleParams(node, module_data.params)
     node.data.indexed_params = getIndexedParams(node, module_data.params)
