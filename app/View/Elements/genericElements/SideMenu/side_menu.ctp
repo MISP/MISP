@@ -499,7 +499,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/correlations/top',
                         'text' => __('Top Correlations')
                     ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'over',
+                        'url' => $baseurl . '/correlations/overCorrelations',
+                        'text' => __('Over-correlating Values')
+                    ));
                     break;
+
                 case 'warninglist':
                     if ($menuItem === 'view' || $menuItem === 'edit') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(

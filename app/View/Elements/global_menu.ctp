@@ -454,6 +454,11 @@
                         'text' => __('Top Correlations'),
                         'url' => $baseurl . '/correlations/top',
                         'requirement' => $isSiteAdmin
+                    ],
+                    [
+                        'text' => __('Over-correlating values'),
+                        'url' => $baseurl . '/correlations/overCorrelations',
+                        'requirement' => $isSiteAdmin
                     ]
                 )
             ),
@@ -539,7 +544,7 @@
         );
     }
 ?>
-<div id="topBar" class="navbar navbar-inverse <?= isset($debugMode) ? $debugMode : 'debugOff' ?>">
+<div id="topBar" class="navbar navbar-inverse <?= isset($debugMode) ? $debugMode : 'debugOff' ?>" style="z-index:100;">
   <div class="navbar-inner">
     <ul class="nav">
         <?php

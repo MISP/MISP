@@ -72,4 +72,39 @@ class CorrelationsController extends AppController
             $this->redirect(['controller' => 'correlations', 'action' => 'top']);
         }
     }
+
+    public function overCorrelations()
+    {
+        $query = [
+            'limit' => 50,
+            'page' => 1,
+            'order' => 'occurrence desc'
+        ];
+        foreach (array_keys($query) as $custom_param) {
+            if (isset($this->params['named'][$custom_param])) {
+                $query[$custom_param] = $this->params['named'][$custom_param];
+            }    
+        }
+        if (isset($this->params['named']['scope'])) {
+            $limit = $this->Correlation->OverCorrelatingValue->getLimit();
+            if ($this->params['named']['scope'] === 'over_correlating') {
+                $query['conditions'][] = ['occurrence >=' => $limit];
+            } else if ($this->params['named']['scope'] === 'not_over_correlating') {
+                $query['conditions'][] = ['occurrence <' => $limit];
+            }
+        }
+        $data = $this->Correlation->OverCorrelatingValue->getOverCorrelations($query);
+        $data = $this->Correlation->attachExclusionsToOverCorrelations($data);
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($data, 'json');
+        } else {
+            $this->set('data', $data);
+            $this->set('title_for_layout', __('Index of over correlating values'));
+            $this->set('menuData', [
+                'menuList' => 'correlationExclusions',
+                'menuItem' => 'over'
+            ]);
+        }
+    }
 }
