@@ -2204,7 +2204,7 @@ class Attribute extends AppModel
 
             $this->attachTagsToAttributes($results, $options);
             $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
-
+            $sgids = $this->SharingGroup->authorizedIds($user);
             foreach ($results as &$attribute) {
                 if (!empty($options['includeContext'])) {
                     $attribute['Event'] = $eventsById[$attribute['Attribute']['event_id']];
@@ -2216,7 +2216,7 @@ class Attribute extends AppModel
                 }
                 if (!empty($options['includeCorrelations'])) {
                     $attributeFields = array('id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'to_ids', 'comment');
-                    $attribute['Attribute']['RelatedAttribute'] = $this->Correlation->getRelatedAttributes($user, $attribute['Attribute'], $attributeFields, true);
+                    $attribute['Attribute']['RelatedAttribute'] = $this->Correlation->getRelatedAttributes($user, $sgids, $attribute['Attribute'], $attributeFields, true);
                 }
                 if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
                     continue;
