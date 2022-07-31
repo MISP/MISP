@@ -886,7 +886,9 @@ class AttributesController extends AppController
     // ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
     public function editField($id)
     {
-        $attribute = $this->__fetchAttribute($id);
+        $attribute = $this->Attribute->fetchAttributeSimple($this->Auth->user(), [
+            'conditions' => ['Attribute.id' => $id],
+        ]);
         if (empty($attribute)) {
             return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status' => 200, 'type' => 'json'));
         }
@@ -2970,6 +2972,7 @@ class AttributesController extends AppController
     /**
      * @param int|string $id Attribute ID or UUID
      * @return array
+     * @throws Exception
      */
     private function __fetchAttribute($id)
     {

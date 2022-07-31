@@ -1146,6 +1146,7 @@ class ServersController extends AppController
             // get the DB diagnostics
             $dbDiagnostics = $this->Server->dbSpaceUsage();
             $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
+            $dbConfiguration = $this->Server->dbConfiguration();
 
             $redisInfo = $this->Server->redisInfo();
 
@@ -1166,7 +1167,7 @@ class ServersController extends AppController
 
             $securityAudit = (new SecurityAudit())->run($this->Server);
 
-            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan', 'securityAudit');
+            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'dbConfiguration', 'redisInfo', 'attachmentScan', 'securityAudit');
         } else {
             $view = [];
         }
@@ -1207,6 +1208,7 @@ class ServersController extends AppController
                 'readableFiles' => $readableFiles,
                 'dbDiagnostics' => $dbDiagnostics,
                 'dbSchemaDiagnostics' => $dbSchemaDiagnostics,
+                'dbConfiguration' => $dbConfiguration,
                 'redisInfo' => $redisInfo,
                 'finalSettings' => $dumpResults,
                 'extensions' => $extensions,
@@ -1916,7 +1918,7 @@ class ServersController extends AppController
         $dbVersion = $this->AdminSetting->getSetting('db_version');
         $updateProgress = $this->Server->getUpdateProgress();
         $updateProgress['db_version'] = $dbVersion;
-        $maxUpdateNumber = max(array_keys($this->Server->db_changes));
+        $maxUpdateNumber = max(array_keys(Server::DB_CHANGES));
         $updateProgress['complete_update_remaining'] = max($maxUpdateNumber - $dbVersion, 0);
         $updateProgress['update_locked'] = $this->Server->isUpdateLocked();
         $updateProgress['lock_remaining_time'] = $this->Server->getLockRemainingTime();
@@ -2202,6 +2204,17 @@ class ServersController extends AppController
             $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
             $this->set('indexes', $dbSchemaDiagnostics['indexes']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
+        }
+    }
+
+    public function dbConfiguration()
+    {
+        $dbConfiguration = $this->Server->dbConfiguration();
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($dbConfiguration, $this->response->type());
+        } else {
+            $this->set('dbConfiguration', $dbConfiguration);
+            $this->render('/Elements/healthElements/db_config_diagnostic');
         }
     }
 

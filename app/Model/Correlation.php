@@ -687,7 +687,7 @@ class Correlation extends AppModel
             return false;
         }
         $start = $query['limit'] * ($query['page'] -1);
-        $end = $query['limit'] * $query['page'];
+        $end = $query['limit'] * $query['page'] - 1;
         $list = $redis->zRevRange(self::CACHE_NAME, $start, $end, true);
         $results = [];
         foreach ($list as $value => $count) {
@@ -717,6 +717,17 @@ class Correlation extends AppModel
             return false;
         }
         return $redis->get(self::CACHE_AGE);
+    }
+
+    /**
+     * @param array $attribute
+     * @return void
+     */
+    public function advancedCorrelationsUpdate(array $attribute)
+    {
+        if ($this->advancedCorrelationEnabled && in_array($attribute['type'], ['ip-src', 'ip-dst'], true) && strpos($attribute['value'], '/')) {
+            $this->updateCidrList();
+        }
     }
 
     /**

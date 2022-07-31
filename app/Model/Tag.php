@@ -583,7 +583,8 @@ class Tag extends AppModel
         $changedTags = $this->AttributeTag->getAffectedRows();
         $this->EventTag->updateAll(['tag_id' => $destinationTag['Tag']['id']], ['tag_id' => $sourceTag['Tag']['id']]);
         $changedTags += $this->EventTag->getAffectedRows();
-
+        $this->GalaxyClusterRelationTag->updateAll(['tag_id' => $destinationTag['Tag']['id']], ['tag_id' => $sourceTag['Tag']['id']]);
+        $changedTags += $this->GalaxyClusterRelationTag->getAffectedRows();
         $this->delete($sourceTag['Tag']['id']);
 
         return [

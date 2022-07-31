@@ -17,6 +17,7 @@ App::uses('ProcessTool', 'Tools');
  * @property ThreatLevel $ThreatLevel
  * @property Sighting $Sighting
  * @property Organisation $Org
+ * @property Organisation $Orgc
  * @property CryptographicKey $CryptographicKey
  */
 class Event extends AppModel
@@ -300,6 +301,9 @@ class Event extends AppModel
     );
 
     private $assetCache = [];
+
+    /** @var array|null */
+    private $eventBlockRule;
 
     public function beforeDelete($cascade = true)
     {
@@ -659,12 +663,13 @@ class Event extends AppModel
     /**
      * @param array $event
      * @param array $server
+     * @param ServerSyncTool $serverSync
      * @return false|string
      * @throws HttpSocketJsonException
      * @throws JsonException
      * @throws Exception
      */
-    public function uploadEventToServer(array $event, array $server)
+    public function uploadEventToServer(array $event, array $server, ServerSyncTool $serverSync)
     {
         $this->Server = ClassRegistry::init('Server');
 
@@ -674,8 +679,6 @@ class Event extends AppModel
         if (!$this->checkDistributionForPush($event, $server, 'Event')) {
             return 'The distribution level of this event blocks it from being pushed.';
         }
-
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
 
         $push = $this->Server->checkVersionCompatibility($server, false, $serverSync);
         if (empty($push['canPush'])) {
@@ -2577,7 +2580,7 @@ class Event extends AppModel
 
     public function set_filter_published(&$params, $conditions, $options)
     {
-        if (isset($params['published'])) {
+        if (isset($params['published']) && $params['published'] !== [true, false]) {
             $conditions['AND']['Event.published'] = $params['published'];
         }
         return $conditions;
@@ -2955,8 +2958,8 @@ class Event extends AppModel
     {
         if (Configure::read('MISP.extended_alert_subject')) {
             $subject = preg_replace("/\r|\n/", "", $event['Event']['info']);
-            if (strlen($subject) > 58) {
-                $subject = substr($subject, 0, 55) . '... - ';
+            if (mb_strlen($subject) > 58) {
+                $subject = mb_substr($subject, 0, 55) . '... - ';
             } else {
                 $subject .= " - ";
             }
@@ -2983,6 +2986,10 @@ class Event extends AppModel
         $template->set('tlp', $subjMarkingString);
         $template->subject($subject);
         $template->referenceId("event-alert|{$event['Event']['id']}");
+
+        $unsubscribeLink = $this->__getAnnounceBaseurl() . '/users/unsubscribe/' . $this->User->unsubscribeCode($user);
+        $template->set('unsubscribe', $unsubscribeLink);
+        $template->listUnsubscribe($unsubscribeLink);
         return $template;
     }
 
@@ -3257,17 +3264,18 @@ class Event extends AppModel
         return $attributes;
     }
 
-    public function checkEventBlockRules($event)
+    /**
+     * @param array $event
+     * @return bool
+     */
+    private function checkEventBlockRules(array $event)
     {
-        if (!isset($this->AdminSetting)) {
+        if (!isset($this->eventBlockRule)) {
             $this->AdminSetting = ClassRegistry::init('AdminSetting');
+            $setting = $this->AdminSetting->getSetting('eventBlockRule');
+            $this->eventBlockRule = $setting ? json_decode($setting, true) : false;
         }
-        $setting = $this->AdminSetting->getSetting('eventBlockRule');
-        if (empty($setting)) {
-            return true;
-        }
-        $rules = json_decode($setting, true);
-        if (empty($rules)) {
+        if (empty($this->eventBlockRule)) {
             return true;
         }
         if (!empty($rules['tags'])) {
@@ -3368,7 +3376,9 @@ class Event extends AppModel
     public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false && isset($data['Event']['uuid'])) {
-            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            if (!isset($this->EventBlocklist)) {
+                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            }
             if ($this->EventBlocklist->isBlocked($data['Event']['uuid'])) {
                 return 'Blocked by blocklist';
             }
@@ -4039,8 +4049,15 @@ class Event extends AppModel
 
         $failedServers = [];
         foreach ($servers as $server) {
+            $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
             try {
-                $this->pushSightingsToServer($server, $event, $sightingsUuidsToPush);
+                try {
+                    if ($serverSync->eventExists($event) === false) {
+                        continue; // skip if event not exists on remote server
+                    }
+                } catch (Exception $e) {}
+
+                $this->pushSightingsToServer($serverSync, $event, $sightingsUuidsToPush);
             } catch (Exception $e) {
                 $this->logException("Uploading sightings to server {$server['Server']['id']} failed.", $e);
                 $failedServers[] = $server['Server']['url'];
@@ -4053,25 +4070,16 @@ class Event extends AppModel
     }
 
     /**
-     * @param array $server
+     * @param ServerSyncTool $serverSync
      * @param array $event
      * @param array $sightingsUuidsToPush
      * @throws HttpSocketJsonException
-     * @throws JsonException
      * @throws Exception
      */
-    private function pushSightingsToServer(array $server, array $event, array $sightingsUuidsToPush = [])
+    private function pushSightingsToServer(ServerSyncTool $serverSync, array $event, array $sightingsUuidsToPush = [])
     {
-        App::uses('ServerSyncTool', 'Tools');
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-        try {
-            if ($serverSync->eventExists($event) === false) {
-                return; // skip if event not exists on remote server
-            }
-        } catch (Exception $e) {}
-
         $fakeSyncUser = [
-            'org_id' => $server['Server']['remote_org_id'],
+            'org_id' => $serverSync->server()['Server']['remote_org_id'],
             'Role' => [
                 'perm_site_admin' => 0,
             ],
@@ -4140,8 +4148,6 @@ class Event extends AppModel
         }
         $uploaded = true;
         $failedServers = [];
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
 
         foreach ($servers as $server) {
             if (
@@ -4151,7 +4157,7 @@ class Event extends AppModel
             }
             // Skip servers where the event has come from.
             if ($passAlong != $server['Server']['id']) {
-                $HttpSocket = $syncTool->setupHttpSocket($server);
+                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
                 $params = [
                     'eventid' => $id,
                     'includeAttachments' => true,
@@ -4179,17 +4185,17 @@ class Event extends AppModel
                         'perm_site_admin' => 0
                     )
                 );
-                $this->Server->syncGalaxyClusters($HttpSocket, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
-                $thisUploaded = $this->uploadEventToServer($event, $server);
+                $this->Server->syncGalaxyClusters($serverSync, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
+                $thisUploaded = $this->uploadEventToServer($event, $server, $serverSync);
                 if ($thisUploaded === 'Success') {
                     try {
-                        $this->pushSightingsToServer($server, $event); // push sighting by method that check for duplicates
+                        $this->pushSightingsToServer($serverSync, $event); // push sighting by method that check for duplicates
                     } catch (Exception $e) {
                         $this->logException("Uploading sightings to server {$server['Server']['id']} failed.", $e);
                     }
                 }
                 if (isset($this->data['ShadowAttribute'])) {
-                    $this->Server->syncProposals($HttpSocket, $server, null, $id, $this);
+                    $this->Server->syncProposals(null, $server, null, $id, $this);
                 }
                 if (!$thisUploaded) {
                     $uploaded = !$uploaded ? $uploaded : $thisUploaded;
@@ -4575,30 +4581,6 @@ class Event extends AppModel
             }
         }
         return $xmlArray;
-    }
-
-    public function removeOlder(array &$events, $scope = 'events')
-    {
-        $field = $scope === 'sightings' ? 'sighting_timestamp' : 'timestamp';
-        $localEvents = $this->find('all', [
-            'recursive' => -1,
-            'fields' => ['Event.uuid', 'Event.' . $field, 'Event.locked'],
-        ]);
-        $localEvents = array_column(array_column($localEvents, 'Event'), null, 'uuid');
-        foreach ($events as $k => $event) {
-            // remove all events for the sighting sync if the remote is not aware of the new field yet
-            if (!isset($event[$field])) {
-                unset($events[$k]);
-            } else {
-                $uuid = $event['uuid'];
-                if (isset($localEvents[$uuid])
-                      && ($localEvents[$uuid][$field] >= $event[$field]
-                      || ($scope === 'events' && !$localEvents[$uuid]['locked'])))
-                {
-                    unset($events[$k]);
-                }
-            }
-        }
     }
 
     public function sharingGroupRequired($field)
