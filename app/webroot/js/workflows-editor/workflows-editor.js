@@ -47,9 +47,17 @@ var dotBlock_trigger = doT.template(' \
             <strong style="margin-left: 0.25em;"> \
                 {{=it.module_data.name}} \
             </strong> \
-            <span style="margin-left: auto; display: flex; align-items: center;"> \
+            <span style="margin-left: auto; display: flex; align-items: center; gap: 3px;"> \
+                {{? it.module_data.blocking }} \
+                    <span class="label label-important" style="line-height: 20px;" title="This workflow is a blocking worklow and can prevent the default MISP behavior to execute"> \
+                        <i class="fa-lg fa-fw fas fa-stop-circle"></i> \
+                        Blocking \
+                    </span> \
+                {{?}} \
                 {{? it.module_data.misp_core_format }} \
-                    <img src="/img/misp-logo-no-text.png" alt="Icon of {{=it.module_data.name}}" width="18" height="18" style="margin: auto 0;" title="The data passed by this trigger is compliant with the MISP core format"> \
+                    <span class="label" style="margin: auto 3px; line-height: 20px; background-color: #009fdc;"> \
+                        <img src="/img/misp-logo-no-text.png" alt="MISP Core format" width="18" height="18" style="filter: brightness(0) invert(1);" title="The data passed by this trigger is compliant with the MISP core format"> \
+                    </span> \
                 {{?}} \
                 <span class="block-notification-container"> \
                     {{=it._node_notification_html}} \

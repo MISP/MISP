@@ -7,6 +7,7 @@ $allModules = array_merge($usableModules['modules_action'], $usableModules['modu
 $triggerModules = $modules['modules_trigger'];
 $selectedTrigger = Hash::get($selectedWorkflow, 'Workflow.listening_triggers.0', []);
 $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
+$isMISPFormat = $selectedTrigger['misp_core_format'] ?? false;
 ?>
 <div class="root-container">
     <div class="topbar">
@@ -27,6 +28,11 @@ $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
                 <span class="label label-success" style="line-height: 20px;" title="<?= __('This workflow is a not blocking worklow. The default MISP behavior will or has already happened') ?>">
                     <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('check-circle') ?>"></i>
                     <?= __('Non blocking') ?>
+                </span>
+            <?php endif; ?>
+            <?php if (!empty($isMISPFormat)) : ?>
+                <span class="label label-important" style="line-height: 20px; background-color: #009fdc;" title="<?= __('The data passed by this trigger is compliant with the MISP core format') ?>">
+                    <img src="/img/misp-logo-no-text.png" alt="MISP Core format" width="18" height="18" style="filter: brightness(0) invert(1);"> 
                 </span>
             <?php endif; ?>
         </span>
