@@ -102,6 +102,7 @@ class CorrelationsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($data, 'json');
         } else {
+            $this->__setPagingParams($query['page'], $query['limit'], count($data), 'named');
             $this->set('data', $data);
             $this->set('title_for_layout', __('Index of over correlating values'));
             $this->set('menuData', [
