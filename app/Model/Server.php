@@ -5294,6 +5294,13 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true,
                 ),
+                'store_api_access_time' => array(
+                    'level' => 1,
+                    'description' => __('If enabled, MISP will capture the last API access time following a successful authentication using API keys, stored against a user under the last_api_access field.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
                 'log_auth' => array(
                     'level' => 1,
                     'description' => __('If enabled, MISP will log all successful authentications using API keys. The requested URLs are also logged.'),

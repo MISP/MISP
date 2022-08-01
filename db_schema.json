@@ -7775,6 +7775,17 @@
                 "column_type": "varchar(255)",
                 "column_default": null,
                 "extra": ""
+            },
+            {
+                "column_name": "last_api_access",
+                "is_nullable": "YES",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0",
+                "extra": ""
             }
         ],
         "user_settings": [
@@ -8470,5 +8481,5 @@
             "id": true
         }
     },
-    "db_version": "86"
+    "db_version": "87"
 }

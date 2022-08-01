@@ -71,6 +71,7 @@ $config = array(
         'enableOrgBlocklisting'          => true,
         'log_client_ip'                  => false,
         'log_auth'                       => false,
+        'store_api_access_time'          => false,
         'disableUserSelfManagement'      => false,
         'disable_user_login_change'      => false,
         'disable_user_password_change'   => false,
