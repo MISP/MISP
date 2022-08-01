@@ -227,7 +227,7 @@ class AppModel extends Model
             case 48:
                 $dbUpdateSuccess = $this->__generateCorrelations();
                 break;
-            case 87:
+            case 89:
                 $this->Workflow = Classregistry::init('Workflow');
                 $this->Workflow->enableDefaultModules();
                 break;
@@ -1793,13 +1793,14 @@ class AppModel extends Model
                       `name` varchar(191) NOT NULL,
                       `description` varchar(191) NOT NULL,
                       `timestamp` int(11) NOT NULL DEFAULT 0,
-                      `default` tinyint(1) NOT NULL DEFAULT 0;
+                      `default` tinyint(1) NOT NULL DEFAULT 0,
                       `data` text,
                       PRIMARY KEY (`id`),
                       INDEX `uuid` (`uuid`),
                       INDEX `name` (`name`),
                       INDEX `timestamp` (`timestamp`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                    break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
