@@ -300,14 +300,17 @@ class MispObject extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        $object = $this->data;
+        if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
+            $object = $this->data['Object'];
+            $this->Attribute->Correlation->updateContainedCorrelations($object, 'object');
+        }
         $workflowErrors = [];
         $logging = [
             'model' => 'Object',
             'action' => $created ? 'add' : 'edit',
-            'id' => $object['Object']['id'],
+            'id' => $this->data['Object']['id'],
         ];
-        $this->executeTrigger('object-after-save', $object, $workflowErrors, $logging);
+        $this->executeTrigger('object-after-save', $this->data, $workflowErrors, $logging);
         $pubToZmq = $this->pubToZmq('object') && empty($this->data['Object']['skip_zmq']);
         $kafkaTopic = $this->kafkaTopic('object');
         $pubToKafka = $kafkaTopic && empty($this->data['Object']['skip_kafka']);

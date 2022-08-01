@@ -732,7 +732,13 @@ class AttributesController extends AppController
                 }
             }
             $dateObj = new DateTime();
-            $existingAttribute = $this->Attribute->findByUuid($this->Attribute->data['Attribute']['uuid']);
+            $existingAttribute = $this->Attribute->find('first', [
+                    'conditions' => [
+                        'Attribute.uuid' => $this->Attribute->data['Attribute']['uuid']
+                    ],
+                    'recursive' => -1
+                ]
+            );
             // check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
             // check which attribute is newer
             if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
@@ -828,7 +834,10 @@ class AttributesController extends AppController
                 }
             }
         } else {
-            $this->request->data = $this->Attribute->read(null, $id);
+            $this->request->data = $this->Attribute->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Attribute.id' => $id]
+            ]);
         }
         $this->set('attribute', $this->request->data);
         if (!empty($this->request->data['Attribute']['object_id'])) {
@@ -1461,57 +1470,62 @@ class AttributesController extends AppController
         return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
     }
 
+    private function __getSearchFilters()
+    {
+        if (isset($this->request->data['Attribute'])) {
+            $this->request->data = $this->request->data['Attribute'];
+        }
+        $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category', 'first_seen', 'last_seen');
+        foreach ($checkForEmpty as $field) {
+            if (empty($this->request->data[$field]) || $this->request->data[$field] === 'ALL') {
+                unset($this->request->data[$field]);
+            }
+        }
+        if (empty($this->request->data['to_ids'])) {
+            unset($this->request->data['to_ids']);
+            $this->request->data['ignore'] = 1;
+        }
+        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'first_seen', 'last_seen');
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->request->params['named'],
+            'paramArray' => $paramArray,
+            'additional_delimiters' => PHP_EOL
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        if (!empty($filters['uuid'])) {
+            if (!is_array($filters['uuid'])) {
+                $filters['uuid'] = array($filters['uuid']);
+            }
+            $uuid = array();
+            $ids = array();
+            foreach ($filters['uuid'] as $k => $filter) {
+                if ($filter[0] === '!') {
+                    $filter = substr($filter, 1);
+                }
+                if (Validation::uuid($filter)) {
+                    $uuid[] = $filters['uuid'][$k];
+                } else {
+                    $ids[] = $filters['uuid'][$k];
+                }
+            }
+            if (empty($uuid)) {
+                unset($filters['uuid']);
+            } else {
+                $filters['uuid'] = $uuid;
+            }
+            if (!empty($ids)) {
+                $filters['eventid'] = $ids;
+            }
+        }
+        return $filters;
+    }
+
     public function search($continue = false)
     {
+        $filters = $this->__getSearchFilters();
         if ($this->request->is('post') || !empty($this->request->params['named']['tags'])) {
-            if (isset($this->request->data['Attribute'])) {
-                $this->request->data = $this->request->data['Attribute'];
-            }
-            $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category', 'first_seen', 'last_seen');
-            foreach ($checkForEmpty as $field) {
-                if (empty($this->request->data[$field]) || $this->request->data[$field] === 'ALL') {
-                    unset($this->request->data[$field]);
-                }
-            }
-            if (empty($this->request->data['to_ids'])) {
-                unset($this->request->data['to_ids']);
-                $this->request->data['ignore'] = 1;
-            }
-            $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'first_seen', 'last_seen');
-            $filterData = array(
-                'request' => $this->request,
-                'named_params' => $this->request->params['named'],
-                'paramArray' => $paramArray,
-                'additional_delimiters' => PHP_EOL
-            );
-            $exception = false;
-            $filters = $this->_harvestParameters($filterData, $exception);
-            if (!empty($filters['uuid'])) {
-                if (!is_array($filters['uuid'])) {
-                    $filters['uuid'] = array($filters['uuid']);
-                }
-                $uuid = array();
-                $ids = array();
-                foreach ($filters['uuid'] as $k => $filter) {
-                    if ($filter[0] === '!') {
-                        $filter = substr($filter, 1);
-                    }
-                    if (Validation::uuid($filter)) {
-                        $uuid[] = $filters['uuid'][$k];
-                    } else {
-                        $ids[] = $filters['uuid'][$k];
-                    }
-                }
-                if (empty($uuid)) {
-                    unset($filters['uuid']);
-                } else {
-                    $filters['uuid'] = $uuid;
-                }
-                if (!empty($ids)) {
-                    $filters['eventid'] = $ids;
-                }
-            }
-            unset($filterData);
             if ($filters === false) {
                 return $exception;
             }
@@ -1539,6 +1553,7 @@ class AttributesController extends AppController
             $this->Session->write('search_attributes_filters', null);
         }
         if (isset($filters)) {
+            $filters['includeCorrelations'] = 1;
             $params = $this->Attribute->restSearch($this->Auth->user(), 'json', $filters, true);
             if (!isset($params['conditions']['Attribute.deleted'])) {
                 $params['conditions']['Attribute.deleted'] = 0;
@@ -1557,12 +1572,22 @@ class AttributesController extends AppController
                 'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
             ]);
             $orgTable = array_column(array_column($orgTable, 'Orgc'), null, 'id');
+            $sgids = $this->Attribute->SharingGroup->authorizedIds($this->Auth->user());
             foreach ($attributes as &$attribute) {
                 if (isset($orgTable[$attribute['Event']['orgc_id']])) {
                     $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
                 }
                 if (isset($orgTable[$attribute['Event']['org_id']])) {
                     $attribute['Event']['Org'] = $orgTable[$attribute['Event']['org_id']];
+                }
+                if (isset($filters['includeCorrelations'])) {
+                    $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $this->Attribute->Correlation->getRelatedAttributes(
+                        $this->Auth->user(),
+                        $sgids,
+                        $attribute['Attribute'],
+                        [],
+                        true
+                    );
                 }
             }
             if ($this->_isRest()) {

@@ -1603,6 +1603,17 @@ class Server extends AppModel
         }
     }
 
+    public function testForCorrelationEngine($value)
+    {
+        $defaults = $this->generateServerSettings();
+        $options = $defaults['MISP']['correlation_engine']['options'];
+        if (!empty($value) && !in_array($value, array_keys($options))) {
+            return __('Please select a valid option from the list of available engines: ', implode(', ', array_keys($options)));
+        } else {
+            return true;
+        }
+    }
+
     public function testLocalOrg($value)
     {
         if ($value == 0) {
@@ -4871,14 +4882,34 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
-                'enable_advanced_correlations' => array(
+                'correlation_engine' => [
+                    'level' => 0,
+                    'description' => __('Choose which correlation engine to use. MISP defaults to the default engine, maintaining all data in the database whilst enforcing ACL rules on any non site-admin user. This is recommended for any MISP instnace with multiple organisations. If you are an endpoint MISP, consider switching to the much leaner and faster No ACL engine.'),
+                    'value' => 'default',
+                    'test' => 'testForCorrelationEngine',
+                    'type' => 'string',
+                    'null' => true,
+                    'options' => [
+                        'Default' => __('Default Correlation Engine'),
+                        'NoAcl' => __('No ACL Engine')
+                    ],
+                ],
+                'correlation_limit' => [
+                    'level' => 0,
+                    'description' => __('Set a value for the maximum number of correlations a value should have before MISP will refuse to correlate it (extremely over-correlating values are rarely useful from a correlation perspective).'),
+                    'value' => 100,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
+                'enable_advanced_correlations' => [
                     'level' => 0,
                     'description' => __('Enable some performance heavy correlations (currently CIDR correlation)'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
                     'null' => true
-                ),
+                ],
                 'server_settings_skip_backup_rotate' => array(
                     'level' => 1,
                     'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
