@@ -83,9 +83,9 @@ class Module_tag_if extends WorkflowBaseLogicModule
     {
         $path = '';
         if ($scope == 'attribute') {
-            $path = 'Event.Attribute.0.Tag.{n}.id';
+            $path = 'Event._AttributeFlattened.{n}.Tag.{n}.id';
         } elseif ($scope == 'event_attribute') {
-            $path = 'Event.Attribute.0._allTags.{n}.id';
+            $path = 'Event._AttributeFlattened.{n}._allTags.{n}.id';
         } else {
             $path = 'Event.Tag.{n}.id';
         }
