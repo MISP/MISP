@@ -454,7 +454,8 @@ class Workflow extends AppModel
         $workflow = $this->__incrementWorkflowExecutionCount($workflow);
         $walkResult = [];
         $data = $this->__normalizeDataForTrigger($triggerModule, $data);
-        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, GraphWalker::PATH_TYPE_BLOCKING, $data, $blockingErrors, $walkResult);
+        $for_path = !empty($triggerModule->blocking) ? GraphWalker::PATH_TYPE_BLOCKING : GraphWalker::PATH_TYPE_NON_BLOCKING;
+        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, $for_path, $data, $blockingErrors, $walkResult);
         $executionStoppedByStopModule = in_array('stop-execution', Hash::extract($walkResult, 'blocking_nodes.{n}.data.id'));
         if (empty($blockingPathExecutionSuccess)) {
             $message = __('Execution stopped. %s', PHP_EOL . implode(', ', $blockingErrors));
@@ -543,24 +544,20 @@ class Workflow extends AppModel
             $walkResult['executed_nodes'][] = $node;
             if (empty($success)) {
                 $walkResult['blocking_nodes'][] = $node;
-                if ($graphNode['path_type'] == GraphWalker::PATH_TYPE_BLOCKING) {
-                    if (!empty($nodeError)) {
-                        $errors[] = __(
-                            'Node `%s` (%s) from Workflow `%s` (%s) returned the following error: %s',
-                            $node['data']['id'],
-                            $node['id'],
-                            $workflow['Workflow']['name'],
-                            $workflow['Workflow']['id'],
-                            implode(', ', $nodeError)
-                        );
-                    }
-                    if (!empty($moduleClass->blocking)) {
-                        return false; // Node stopped execution for blocking path
-                    }
-                } else if (!empty($moduleClass->blocking)) {
-                    return false; // Node stopped execution for any path. Not sure if this is relevant since multiple connections from the same output is not allowed anymore
+                if (!empty($nodeError)) {
+                    $errors[] = __(
+                        'Node `%s` (%s) from Workflow `%s` (%s) returned the following error: %s',
+                        $node['data']['id'],
+                        $node['id'],
+                        $workflow['Workflow']['name'],
+                        $workflow['Workflow']['id'],
+                        implode(', ', $nodeError)
+                    );
+                }
+                if (!empty($moduleClass->blocking)) {
+                    return false; // Node stopped execution for any path. If a module is blocking and it failed, stop the walk
                 } else if ($graphNode['path_type'] == GraphWalker::PATH_TYPE_NON_BLOCKING) {
-                    $preventExecutionForPaths[] = $graphNode['path_list']; // Paths down the chain for this path should not be executed
+                    $preventExecutionForPaths[] = $graphNode['path_list']; // Paths down the chain should not be executed
                 }
             }
         }
