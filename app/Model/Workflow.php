@@ -572,19 +572,24 @@ class Workflow extends AppModel
         $roamingData->setCurrentNode($node['id']);
         $moduleClass = $this->getModuleClass($node);
         if (!empty($moduleClass->disabled)) {
-            $this->logExecutionError($roamingData->getWorkflow(), __('Could not execute disabled module `%s`.', $node['data']['id']));
+            $message = __('Could not execute disabled module `%s`.', $node['data']['id']);
+            $this->logExecutionError($roamingData->getWorkflow(), $message);
+            $errors[] = $message;
             return false;
         }
         if (!is_null($moduleClass)) {
             try {
                 $success = $moduleClass->exec($node, $roamingData, $errors);
             } catch (Exception $e) {
-                $this->logExecutionError($roamingData->getWorkflow(), __('Error while executing module %s. Error: %s', $node['data']['id'], $e->getMessage()));
+                $message = __('Error while executing module %s. Error: %s', $node['data']['id'], $e->getMessage());
+                $this->logExecutionError($roamingData->getWorkflow(), $message);
+                $errors[] = $message;
                 return false;
             }
         } else {
-            $message = sprintf(__('Could not execute module: %s'), $node['data']['id']);
+            $message = sprintf(__('Could not load class for module: %s'), $node['data']['id']);
             $this->logExecutionError($roamingData->getWorkflow(), $message);
+            $errors[] = $message;
             return false;
         }
         return $success;
