@@ -32,7 +32,7 @@ $isMISPFormat = $selectedTrigger['misp_core_format'] ?? false;
             <?php endif; ?>
             <?php if (!empty($isMISPFormat)) : ?>
                 <span class="label label-important" style="line-height: 20px; background-color: #009fdc;" title="<?= __('The data passed by this trigger is compliant with the MISP core format') ?>">
-                    <img src="/img/misp-logo-no-text.png" alt="MISP Core format" width="18" height="18" style="filter: brightness(0) invert(1);"> 
+                    <img src="/img/misp-logo-no-text.png" alt="MISP Core format" width="18" height="18" style="filter: brightness(0) invert(1);">
                 </span>
             <?php endif; ?>
         </span>
@@ -48,11 +48,14 @@ $isMISPFormat = $selectedTrigger['misp_core_format'] ?? false;
             <span id="workflow-saved-text" style="margin-left: 5px;"></span>
             <span id="workflow-saved-text-details" style="margin-left: 5px; font-size: 0.75em"></span>
         </span>
-        <span style="display: flex; align-items: center; margin-left: auto; margin-right: 1em;">
+        <span style="display: flex; align-items: center; margin-left: auto; margin-right: 1em; gap: 1em;">
             <!-- <button id="workflow-debug-container" class="btn btn-success" style="margin-right: 0.5em;">
                 <i class="<?= $this->FontAwesome->getClass('bug') ?> fa-fw"></i>
-                <?= __('Run and Debug') ?> -->
-            </button>
+                <?= __('Run and Debug') ?>
+            </button> -->
+            <a href="<?= $baseurl . '/admin/logs/index/model:Workflow/action:execute_workflow/model_id:' . $selectedWorkflow['Workflow']['id'] ?>" title="<?= __('View execution logs') ?>" aria-label="<?= __('View execution logs') ?>">
+                <i class="<?= $this->FontAwesome->getClass('list-alt') ?>"></i> <?= __('Execution logs') ?>
+            </a>
             <button class="btn btn-info btn-mini" href="#workflow-info-modal" data-toggle="modal">
                 <i class="<?= $this->FontAwesome->getClass('info') ?>"></i>
             </button>
