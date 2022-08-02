@@ -564,6 +564,10 @@ class Workflow extends AppModel
     {
         $roamingData->setCurrentNode($node['id']);
         $moduleClass = $this->getModuleClass($node);
+        if (!empty($moduleClass->disabled)) {
+            $this->logExecutionError($roamingData->getWorkflow(), __('Could not execute disabled module `%s`.', $node['data']['id']));
+            return false;
+        }
         if (!is_null($moduleClass)) {
             try {
                 $success = $moduleClass->exec($node, $roamingData, $errors);
