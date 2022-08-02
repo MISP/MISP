@@ -363,7 +363,18 @@ class DefaultCorrelationBehavior extends ModelBehavior
         if (!empty($includeEventData)) {
             $contain['Event'] = [
                 'fields' => [
-                    'Event.id', 'Event.uuid', 'Event.info', 'Event.distribution', 'Event.sharing_group_id', 'Event.date', 'Event.orgc_id', 'Event.org_id'
+                    'Event.id',
+                    'Event.uuid',
+                    'Event.threat_level_id',
+                    'Event.analysis',
+                    'Event.info',
+                    'Event.extends_uuid',
+                    'Event.distribution',
+                    'Event.sharing_group_id',
+                    'Event.published',
+                    'Event.date',
+                    'Event.orgc_id',
+                    'Event.org_id'
                 ]
             ];
         }
@@ -379,10 +390,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
             $results = [];
             foreach ($relatedAttributes as $k => $attribute) {
                 $temp = $attribute['Attribute'];
-                $temp['info'] = $attribute['Event']['info'];
-                $temp['org_id'] = $attribute['Event']['org_id'];
-                $temp['id'] = $attribute['Event']['id'];
-                $temp['date'] = $attribute['Event']['date'];
+                $temp['Event'] = $attribute['Event'];
                 $results[] = $temp;
             }
             return $results;
@@ -455,8 +463,10 @@ class DefaultCorrelationBehavior extends ModelBehavior
 
     private function checkCorrelationACL($user, $correlation, $sgids, $prefix)
     {
-
         // check if user can see the event
+        if (isset($correlation['Correlation'])) {
+            $correlation = $correlation['Correlation'];
+        }
         if (
             $correlation[$prefix . 'org_id'] != $user['org_id'] &&
             (

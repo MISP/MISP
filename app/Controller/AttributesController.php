@@ -1470,7 +1470,7 @@ class AttributesController extends AppController
         return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
     }
 
-    private function __getSearchFilters()
+    private function __getSearchFilters(&$exception)
     {
         if (isset($this->request->data['Attribute'])) {
             $this->request->data = $this->request->data['Attribute'];
@@ -1524,7 +1524,8 @@ class AttributesController extends AppController
 
     public function search($continue = false)
     {
-        $filters = $this->__getSearchFilters();
+        $exception = null;
+        $filters = $this->__getSearchFilters($exception);
         if ($this->request->is('post') || !empty($this->request->params['named']['tags'])) {
             if ($filters === false) {
                 return $exception;
@@ -1552,7 +1553,7 @@ class AttributesController extends AppController
 
             $this->Session->write('search_attributes_filters', null);
         }
-        if (isset($filters)) {
+        if (!empty($filters)) {
             $filters['includeCorrelations'] = 1;
             $params = $this->Attribute->restSearch($this->Auth->user(), 'json', $filters, true);
             if (!isset($params['conditions']['Attribute.deleted'])) {
