@@ -125,7 +125,7 @@
                                 [
                                     'url' => $baseurl . '/workflows/moduleIndex/type:action',
                                     'text' => __('Action'),
-                                    'active' => $indexType === 'action' && $actionType === '',
+                                    'active' => $indexType === 'action' && $actionType === 'all',
                                 ],
                                 [
                                     'url' => $baseurl . '/workflows/moduleIndex/type:logic',
