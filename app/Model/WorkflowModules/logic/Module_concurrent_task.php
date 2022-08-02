@@ -48,7 +48,7 @@ class Module_concurrent_task extends WorkflowBaseLogicModule
                 $roamingData->getWorkflow()['Workflow']['id'],
                 $node_id_to_exec,
                 JsonTool::encode($roamingData->getData()),
-                $this->Workflow::NON_BLOCKING_PATH,
+                GraphWalker::PATH_TYPE_NON_BLOCKING,
                 $jobId
             ],
             true,
