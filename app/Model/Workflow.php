@@ -455,11 +455,18 @@ class Workflow extends AppModel
         $walkResult = [];
         $data = $this->__normalizeDataForTrigger($triggerModule, $data);
         $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, GraphWalker::PATH_TYPE_BLOCKING, $data, $blockingErrors, $walkResult);
+        $executionStoppedByStopModule = in_array('stop-execution', Hash::extract($walkResult, 'blocking_nodes.{n}.data.id'));
         if (empty($blockingPathExecutionSuccess)) {
-            $message = __('Error while executing blocking workflow. %s', PHP_EOL . implode(', ', $blockingErrors));
+            $message = __('Execution stopped. %s', PHP_EOL . implode(', ', $blockingErrors));
             $this->logExecutionError($workflow, $message);
         }
-        $message =  __('Finished executing workflow for trigger `%s` (%s). Outcome: %s', $trigger_id, $workflow['Workflow']['id'], $blockingPathExecutionSuccess ? 'success' : 'failure');
+        $outcomeText = 'failure';
+        if (!empty($blockingPathExecutionSuccess)) {
+            $outcomeText = 'success';
+        } else if ($executionStoppedByStopModule) {
+            $outcomeText = 'blocked';
+        }
+        $message =  __('Finished executing workflow for trigger `%s` (%s). Outcome: %s', $trigger_id, $workflow['Workflow']['id'], $outcomeText);
         $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
         $this->__logToFile($workflow, $message);
         return $blockingPathExecutionSuccess;
