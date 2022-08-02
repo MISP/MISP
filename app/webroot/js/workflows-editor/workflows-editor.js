@@ -55,7 +55,7 @@ var dotBlock_trigger = doT.template(' \
                     </span> \
                 {{?}} \
                 {{? it.module_data.misp_core_format }} \
-                    <span class="label" style="margin: auto 3px; line-height: 20px; background-color: #009fdc;"> \
+                    <span class="label" style="min-width: 18px; margin: auto 3px; line-height: 20px; background-color: #009fdc;"> \
                         <img src="/img/misp-logo-no-text.png" alt="MISP Core format" width="18" height="18" style="filter: brightness(0) invert(1);" title="The data passed by this trigger is compliant with the MISP core format"> \
                     </span> \
                 {{?}} \
