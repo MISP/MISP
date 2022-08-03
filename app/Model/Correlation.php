@@ -31,6 +31,12 @@ class Correlation extends AppModel
         ]
     );
 
+    public $validEngines = [
+        'Default' => 'default_correlations',
+        'NoAcl' => 'no_acl_correlations',
+        'Legacy' => 'correlations'
+    ];
+
     public $actsAs = array(
         'Containable'
     );
@@ -255,7 +261,7 @@ class Correlation extends AppModel
         $this->runBeforeSaveCorrelation($attribute);
     }
 
-    private function __cachedGetContainData($scope, $id): array
+    private function __cachedGetContainData($scope, $id)
     {
         if (!empty($this->getContainRules($scope))) {
             if (empty($this->__tempContainCache[$scope][$id])) {
@@ -345,6 +351,8 @@ class Correlation extends AppModel
                 'Event.disable_correlation' => 0,
                 'Attribute.deleted' => 0,
             ];
+            $correlationLimit = $this->OverCorrelatingValue->getLimit();
+
             $correlatingAttributes = $this->Attribute->find('all', [
                 'conditions' => $conditions,
                 'recursive' => -1,
@@ -352,9 +360,11 @@ class Correlation extends AppModel
                 'contain' => $this->getContainRules(),
                 'order' => [],
                 'callbacks' => 'before', // memory leak fix
+                // let's fetch the limit +1 - still allows us to detect overcorrelations, but we'll also never need more
+                'limit' => empty($correlationLimit) ? null : ($correlationLimit+1)
             ]);
+
             // Let's check if we don't have a case of an over-correlating attribute
-            $correlationLimit = $this->OverCorrelatingValue->getLimit();
             $count = count($correlatingAttributes);
             if ($count > $correlationLimit) {
                 // If we have more correlations for the value than the limit, set the block entry and stop the correlation process
@@ -372,9 +382,7 @@ class Correlation extends AppModel
                     $value = $cV;
                 }
                 if ($a['Attribute']['id'] > $b['Attribute']['id']) {
-                    if (!$full) {
-                        $correlations[] = $this->__createCorrelationEntry($value, $a, $b);
-                    }
+                    $correlations[] = $this->__createCorrelationEntry($value, $a, $b);
                 } else {
                     $correlations[] = $this->__createCorrelationEntry($value, $b, $a);
                 }
@@ -877,5 +885,82 @@ class Correlation extends AppModel
             $attribute['over_correlation'] = true;
         }
         return $attribute;
+    }
+
+    public function collectMetrics()
+    {
+        $results['engine'] = $this->getCorrelationModelName();
+        $results['db'] = [
+            'Default' => [
+                'name' => __('Default correlation engine'),
+                'tables' => [
+                    'default_correlations' => [
+                        'id_limit' => 4294967295
+                    ],
+                    'correlation_values' => [
+                        'id_limit' => 4294967295
+                    ]
+                ]
+            ],
+            'NoAcl' => [
+                'name' => __('No ACL correlation engine'),
+                'tables' => [
+                    'no_acl_correlations' => [
+                        'id_limit' => 4294967295
+                    ],
+                    'correlation_values' => [
+                        'id_limit' => 4294967295
+                    ]
+                ]
+            ],
+            'Legacy' => [
+                'name' => __('Legacy correlation engine (< 2.4.160)'),
+                'tables' => [
+                    'correlations' => [
+                        'id_limit' => 2147483647
+                    ]
+                ]
+            ]
+        ];
+        $results['over_correlations'] = $this->OverCorrelatingValue->find('count');
+        $this->CorrelationExclusion = ClassRegistry::init('CorrelationExclusion');
+        $results['excluded_correlations'] = $this->CorrelationExclusion->find('count');
+        foreach ($results['db'] as &$result) {
+            foreach ($result['tables'] as $table_name => &$table_data) {
+                $size_metrics = $this->query(sprintf('show table status like \'%s\';', $table_name));
+                if (!empty($size_metrics)) {
+                    $table_data['size_on_disk'] = $this->query(
+                        //'select FILE_SIZE from information_schema.innodb_sys_tablespaces where FILENAME like \'%/' . $table_name . '.ibd\';'
+                        sprintf(
+                            'select TABLE_NAME, ROUND((DATA_LENGTH + INDEX_LENGTH)) AS size FROM information_schema.TABLES where TABLE_SCHEMA="%s" AND TABLE_NAME="%s"',
+                            $this->getDataSource()->config['database'],
+                            $table_name
+                        )
+                    )[0][0]['size'];
+                    $last_id = $this->query(sprintf('select max(id) as max_id from %s;', $table_name));
+                    $table_data['row_count'] = $size_metrics[0]['TABLES']['Rows'];
+                    $table_data['last_id'] = $last_id[0][0]['max_id'];
+                    $table_data['id_saturation'] = round(100 * $table_data['last_id'] / $table_data['id_limit'], 2);
+                }
+            }
+        }
+        return $results;
+    }
+
+    public function truncate(array $user, string $engine)
+    {
+        $table = $this->validEngines[$engine];
+        $result = $this->query('truncate table ' . $table);
+        if ($result !== true) {
+            $this->loadLog()->createLogEntry(
+                $user,
+                'truncate',
+                'Correlation',
+                0,
+                'Could not truncate table ' . $table,
+                'Errors: ' . json_encode($result)
+            );
+        }
+        return $result === true;
     }
 }

@@ -3137,13 +3137,6 @@ class Server extends AppModel
             $tableIndexDiff = array_diff(array_keys($indexes), array_keys($actualIndex[$tableName])); // check for missing indexes
             foreach ($tableIndexDiff as $columnDiff) {
                 $shouldBeUnique = $indexes[$columnDiff];
-                if ($shouldBeUnique && !$this->checkIfColumnContainsJustUniqueValues($tableName, $columnDiff)) {
-                    $indexDiff[$tableName][$columnDiff] = array(
-                        'message' => __('Column `%s` should be unique indexed, but contains duplicate values', $columnDiff),
-                        'sql' => '',
-                    );
-                    continue;
-                }
 
                 $message = __('Column `%s` should be indexed', $columnDiff);
                 $indexDiff[$tableName][$columnDiff] = array(
@@ -3171,15 +3164,6 @@ class Server extends AppModel
                             'sql' => $sql,
                         );
                     } else {
-                        if (!$this->checkIfColumnContainsJustUniqueValues($tableName, $column)) {
-                            $message = __('Column `%s` should be unique index, but contains duplicate values', $column);
-                            $indexDiff[$tableName][$column] = array(
-                                'message' => $message,
-                                'sql' => '',
-                            );
-                            continue;
-                        }
-
                         $sql = $this->generateSqlDropIndexQuery($tableName, $column);
                         $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, true);
 
@@ -7414,6 +7398,7 @@ class Server extends AppModel
                     'Get IPs for user ID' => 'MISP/app/Console/cake Admin UserIP [user_id]',
                     'Get user ID for user IP' => 'MISP/app/Console/cake Admin IPUser [ip]',
                     'Generate correlation' => 'MISP/app/Console/cake Admin jobGenerateCorrelation [job_id]',
+                    'Truncate correlation table' => 'MISP/app/Console/cake Admin truncateTable [user_id] [correlation_engine_name] [job_id]',
                     'Purge correlation' => 'MISP/app/Console/cake Admin jobPurgeCorrelation [job_id]',
                     'Generate shadow attribute correlation' => 'MISP/app/Console/cake Admin jobGenerateShadowAttributeCorrelation [job_id]',
                     'Update MISP' => 'MISP/app/Console/cake Admin updateMISP',

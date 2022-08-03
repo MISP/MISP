@@ -84,10 +84,24 @@ class AttributesController extends AppController
             'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
         ]);
         $orgTable = Hash::combine($orgTable, '{n}.Orgc.id', '{n}.Orgc');
+        $sgids = $this->Attribute->SharingGroup->authorizedIds($this->Auth->user());
         foreach ($attributes as &$attribute) {
             if (isset($orgTable[$attribute['Event']['orgc_id']])) {
                 $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
             }
+            $temp = $this->Attribute->Correlation->getRelatedAttributes(
+                $this->Auth->user(),
+                $sgids,
+                $attribute['Attribute'],
+                [],
+                true
+            );
+            foreach ($temp as &$t) {
+                $t['info'] = $t['Event']['info'];
+                $t['org_id'] = $t['Event']['org_id'];
+                $t['date'] = $t['Event']['date'];
+            }
+            $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $temp;
         }
 
         list($attributes, $sightingsData) = $this->__searchUI($attributes);
@@ -1582,13 +1596,19 @@ class AttributesController extends AppController
                     $attribute['Event']['Org'] = $orgTable[$attribute['Event']['org_id']];
                 }
                 if (isset($filters['includeCorrelations'])) {
-                    $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $this->Attribute->Correlation->getRelatedAttributes(
+                    $temp = $this->Attribute->Correlation->getRelatedAttributes(
                         $this->Auth->user(),
                         $sgids,
                         $attribute['Attribute'],
                         [],
                         true
                     );
+                    foreach ($temp as &$t) {
+                        $t['info'] = $t['Event']['info'];
+                        $t['org_id'] = $t['Event']['org_id'];
+                        $t['date'] = $t['Event']['date'];
+                    }
+                    $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $temp;
                 }
             }
             if ($this->_isRest()) {
@@ -1905,36 +1925,38 @@ class AttributesController extends AppController
 
     public function generateCorrelation()
     {
-        $this->request->allowMethod(['post']);
+        if ($this->request->is('post')) {
+            if (!Configure::read('MISP.background_jobs')) {
+                $k = $this->Attribute->generateCorrelation();
+                $this->Flash->success(__('All done. %s attributes processed.', $k));
+                $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+            } else {
+                /** @var Job $job */
+                $job = ClassRegistry::init('Job');
+                $jobId = $job->createJob(
+                    'SYSTEM',
+                    Job::WORKER_DEFAULT,
+                    'generate correlation',
+                    'All attributes',
+                    'Job created.'
+                );
 
-        if (!Configure::read('MISP.background_jobs')) {
-            $k = $this->Attribute->generateCorrelation();
-            $this->Flash->success(__('All done. %s attributes processed.', $k));
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        } else {
-            /** @var Job $job */
-            $job = ClassRegistry::init('Job');
-            $jobId = $job->createJob(
-                'SYSTEM',
-                Job::WORKER_DEFAULT,
-                'generate correlation',
-                'All attributes',
-                'Job created.'
-            );
-
-            $this->Attribute->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_ADMIN,
-                [
-                    'jobGenerateCorrelation',
+                $this->Attribute->getBackgroundJobsTool()->enqueue(
+                    BackgroundJobsTool::DEFAULT_QUEUE,
+                    BackgroundJobsTool::CMD_ADMIN,
+                    [
+                        'jobGenerateCorrelation',
+                        $jobId
+                    ],
+                    true,
                     $jobId
-                ],
-                true,
-                $jobId
-            );
+                );
 
-            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (Administration -> Jobs).'));
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+                $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (Administration -> Jobs).'));
+                $this->redirect(Router::url($this->referer(), true));
+            }
+        } else {
+            $this->render('ajax/recorrelationConfirmation');
         }
     }
 

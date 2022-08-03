@@ -82,7 +82,7 @@ class AppModel extends Model
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
-        87 => false
+        87 => false, 88 => false, 89 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -226,6 +226,9 @@ class AppModel extends Model
                 break;
             case 48:
                 $dbUpdateSuccess = $this->__generateCorrelations();
+                break;
+            case 89:
+                $this->__retireOldCorrelationEngine();
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -3499,5 +3502,62 @@ class AppModel extends Model
             $this->_eventManager->attach($this);
         }
         return $this->_eventManager;
+    }
+
+    private function __retireOldCorrelationEngine($user = null) {
+        if ($user === null) {
+            $user = [
+                'id' => 0,
+                'email' => 'SYSTEM',
+                'Organisation' => [
+                    'name' => 'SYSTEM'
+                ]
+            ];
+        }
+        $this->Correlation = ClassRegistry::init('Correlation');
+        $this->Attribute = ClassRegistry::init('Attribute');
+        if (!Configure::read('MISP.background_jobs')) {
+            $this->Correlation->truncate($user, 'Legacy');
+            $this->Attribute->generateCorrelation();
+        } else {
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'truncate table',
+                $this->Correlation->validEngines['Legacy'],
+                'Job created.'
+            );
+            $this->Correlation->Attribute->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'truncateTable',
+                    0,
+                    'Legacy',
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate correlation',
+                'All attributes',
+                'Job created.'
+            );
+
+            $this->Attribute->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateCorrelation',
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
+        }
     }
 }

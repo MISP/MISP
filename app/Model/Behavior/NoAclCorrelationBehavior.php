@@ -136,7 +136,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
         $max_correlations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
         $source = $primary ? '' : '1_';
         $prefix = $primary ? '1_' : '';
-        $correlations = $this->Correlation->find('all', array(
+        $correlations = $this->Correlation->find('all', [
             'fields' => [
                 $source . 'attribute_id',
                 $prefix . 'attribute_id',
@@ -166,7 +166,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
             ],
             'order' => false,
             'limit' => $max_correlations
-        ));
+        ]);
         return $correlations;
     }
 
