@@ -114,11 +114,28 @@ $data_passed_to_if_module = [
             </div>
 
             <div class="tab-pane" id="modal-debugging">
-                <h3><?= __('Debugging Workflows') ?></h3>
+                <h2><?= __('Debugging Workflows') ?></h2>
+                <h4><?= __('Using Log entries') ?></h4>
                 <ul>
                     <li><?= __('Workflow execution is logged in the application logs: %s', sprintf('<code>%s</code>', '/admin/logs/index')) ?></li>
                     <li><?= __('Or stored on disk in the following file: %s', sprintf('<code>%s</code>', '/app/tmp/logs/workflow-execution.log')) ?></li>
                 </ul>
+                <h4><?= __('Using the Debug Mode') ?></h4>
+                <span class="btn btn-success" style="margin: 0 1em 0.5em 1em;">
+                    <i class="<?= $this->FontAwesome->getClass('bug') ?> fa-fw"></i>
+                    <?= __('Debug Mode: ') ?>
+                    <b><?= __('On') ?></b>
+                </span>
+                <ol>
+                    <li><?= __('Make sure you have configure the setting: %s', sprintf('<code>%s</code>', 'Plugin.Workflow_debug_url')) ?></li>
+                    <li><?= __('Have a webserver listening on the address') ?></li>
+                    <li><?= __('Turn the debug mode of the workflow to work on') ?></li>
+                    <ul>
+                        <li><?= __('For offline testing: %s', sprintf('<code>%s</code>', 'tools/misp-workflows/webhook-listener.py')) ?></li>
+                        <li><?= __('For online testing, you can use website such as %s', '<a href="https://requestbin.com" target="_blank">requestbin.com</a>') ?></li>
+                    </ul>
+                    <li><?= __('Execute the workflow') ?></li>
+                </ol>
             </div>
 
             <div class="tab-pane" id="modal-info-usage">
@@ -131,12 +148,30 @@ $data_passed_to_if_module = [
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td><code>Ctrl + Mouse_wheel</code></td><td> <?= __('Zoom in / out') ?></td></tr>
-                        <tr><td><code>Shift + Ctrck</code></td><td> <?= __('Multi-select tool') ?></td></tr>
-                        <tr><td><code>Ctrl + s</code></td><td> <?= __('Save workflow') ?></td></tr>
-                        <tr><td><code>Ctrl + d</code></td><td> <?= __('Duptrcate selection') ?></td></tr>
-                        <tr><td><code>delete</code></td><td> <?= __('Deletion selection') ?></td></tr>
-                        <tr><td><code>c</code></td><td> <?= __('Center canvas in viewport') ?></td></tr>
+                        <tr>
+                            <td><code>Ctrl + Mouse_wheel</code></td>
+                            <td> <?= __('Zoom in / out') ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>Shift + Ctrck</code></td>
+                            <td> <?= __('Multi-select tool') ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>Ctrl + s</code></td>
+                            <td> <?= __('Save workflow') ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>Ctrl + d</code></td>
+                            <td> <?= __('Duptrcate selection') ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>delete</code></td>
+                            <td> <?= __('Deletion selection') ?></td>
+                        </tr>
+                        <tr>
+                            <td><code>c</code></td>
+                            <td> <?= __('Center canvas in viewport') ?></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

@@ -58,7 +58,7 @@ $debugEnabled = !empty($selectedWorkflow['Workflow']['debug_enabled']);
             <a href="<?= $baseurl . '/admin/logs/index/model:Workflow/action:execute_workflow/model_id:' . h($selectedWorkflow['Workflow']['id']) ?>" title="<?= __('View execution logs') ?>" aria-label="<?= __('View execution logs') ?>">
                 <i class="<?= $this->FontAwesome->getClass('list-alt') ?>"></i> <?= __('Execution logs') ?>
             </a>
-            <button class="btn btn-info btn-mini" href="#workflow-info-modal" data-toggle="modal">
+            <button class="btn btn-info btn-mini" href="#workflow-info-modal" data-toggle="modal" title="<?= __('View help') ?>">
                 <i class="<?= $this->FontAwesome->getClass('info-circle') ?>"></i>
             </button>
         </span>
