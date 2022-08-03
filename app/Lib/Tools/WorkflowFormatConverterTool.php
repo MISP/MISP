@@ -74,7 +74,7 @@ class WorkflowFormatConverterTool
         $convertedAttribute = JSONConverterTool::convertAttribute($attribute, true);
         $convertedAttribute['Attribute']['_allTags'] = $allTags;
         if ($convertedAttribute['Attribute']['object_id'] != 0) {
-            $objectModel = ClassRegistry::init('Object');
+            $objectModel = ClassRegistry::init('MispObject');
             $object = $objectModel->fetchObjectSimple(self::$fakeSiteAdminUser, [
                 'conditions' => [
                     'Object.id' => $convertedAttribute['Attribute']['object_id'],

@@ -4,6 +4,7 @@ App::uses('WorkflowGraphTool', 'Tools');
 
 class WorkflowDuplicatedModuleIDException extends Exception {}
 class TriggerNotFoundException extends Exception {}
+class ModuleNotFoundException extends Exception {}
 class WorkflowNotFoundException extends Exception {}
 
 class Workflow extends AppModel
@@ -376,6 +377,36 @@ class Workflow extends AppModel
     }
 
     /**
+     * executeWorkflow
+     *
+     * @param int $workflow_id
+     * @param array $data
+     * @param array $blockingErrors
+     * @return array
+     */
+    public function executeWorkflow($workflow_id, array $data, array &$blockingErrors=[]): array
+    {
+        $this->loadAllWorkflowModules();
+
+        $workflow = $this->fetchWorkflow($workflow_id, true);
+        $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
+        $startNode = $this->workflowGraphTool->extractTriggerFromWorkflow($graphData, true);
+        $startNodeID = $startNode['id'];
+        $trigger_id = $startNode['data']['id'];
+        if ($startNode  == -1) {
+            $blockingErrors[] = __('Invalid start node `%s`', $startNodeID);
+            return false;
+        }
+
+        $triggerModule = $this->getModuleClassByType('trigger', $trigger_id, true);
+        if (!empty($triggerModule->disabled)) {
+            return true;
+        }
+        $result = $this->__runWorkflow($workflow, $triggerModule, $data, $startNodeID, $blockingErrors);
+        return $result;
+    }
+
+    /**
      * executeWorkflowForTrigger
      *
      * @param string $trigger_id
@@ -436,27 +467,38 @@ class Workflow extends AppModel
     {
         $this->loadAllWorkflowModules();
 
-        if (empty($this->loaded_modules['trigger'][$trigger_id])) {
-            throw new TriggerNotFoundException(__('Unknown trigger `%s`', $trigger_id));
-        }
-        $trigger = $this->loaded_modules['trigger'][$trigger_id];
-        if (!empty($trigger['disabled'])) {
+        $triggerModule = $this->getModuleClassByType('trigger', $trigger_id, true);
+        if (!empty($triggerModule->disabled)) {
             return true;
         }
-        $triggerModule = $this->loaded_classes['trigger'][$trigger_id];
 
         $workflow = $this->fetchWorkflowByTrigger($trigger_id, true);
         if (empty($workflow)) {
             throw new WorkflowNotFoundException(__('Could not get workflow for trigger `%s`', $trigger_id));
         }
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
-        $startNode = $this->workflowGraphTool->getNodeIdForTrigger($graphData, $trigger_id);
-        if ($startNode  == -1) {
-            $blockingErrors[] = __('Invalid start node `%s`', $startNode);
+        $startNodeID = $this->workflowGraphTool->getNodeIdForTrigger($graphData, $trigger_id);
+        if ($startNodeID  == -1) {
+            $blockingErrors[] = __('Invalid start node `%s`', $startNodeID);
             return false;
         }
+        $result = $this->__runWorkflow($workflow, $triggerModule, $data, $startNodeID, $blockingErrors);
+        return $result['success'];
+    }
+
+    /**
+     * runWorkflow
+     *
+     * @param array $workflow
+     * @param $triggerModule
+     * @param array $data
+     * @param int $startNodeID
+     * @return array
+     */
+    private function __runWorkflow(array $workflow, $triggerModule, array $data, $startNodeID, &$blockingErrors=[]): array
+    {
         $this->Log = ClassRegistry::init('Log');
-        $message =  __('Started executing workflow for trigger `%s` (%s)', $trigger_id, $workflow['Workflow']['id']);
+        $message =  __('Started executing workflow for trigger `%s` (%s)', $triggerModule->id, $workflow['Workflow']['id']);
         $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
         $this->__logToFile($workflow, $message);
         $workflow = $this->__incrementWorkflowExecutionCount($workflow);
@@ -465,7 +507,7 @@ class Workflow extends AppModel
         $for_path = !empty($triggerModule->blocking) ? GraphWalker::PATH_TYPE_BLOCKING : GraphWalker::PATH_TYPE_NON_BLOCKING;
         $this->sendRequestToDebugEndpoint($workflow, [], '/init?type=' . $for_path, $data);
 
-        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, $for_path, $data, $blockingErrors, $walkResult);
+        $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNodeID, $for_path, $data, $blockingErrors, $walkResult);
         $executionStoppedByStopModule = in_array('stop-execution', Hash::extract($walkResult, 'blocking_nodes.{n}.data.id'));
         if (empty($blockingPathExecutionSuccess)) {
             $message = __('Execution stopped. %s', PHP_EOL . implode(', ', $blockingErrors));
@@ -477,12 +519,16 @@ class Workflow extends AppModel
         } else if ($executionStoppedByStopModule) {
             $outcomeText = 'blocked';
         }
-        $message =  __('Finished executing workflow for trigger `%s` (%s). Outcome: %s', $trigger_id, $workflow['Workflow']['id'], $outcomeText);
+        $message =  __('Finished executing workflow for trigger `%s` (%s). Outcome: %s', $triggerModule->id, $workflow['Workflow']['id'], $outcomeText);
 
         $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
         $this->__logToFile($workflow, $message);
         $this->sendRequestToDebugEndpoint($workflow, [], '/end?outcome=' . $outcomeText, $walkResult);
-        return $blockingPathExecutionSuccess;
+        return [
+            'outcomeText' => $outcomeText,
+            'walkResult' => $walkResult,
+            'success' => $blockingPathExecutionSuccess,
+        ];
     }
 
     /**
@@ -635,11 +681,46 @@ class Workflow extends AppModel
         return $moduleClass;
     }
 
-    public function getModuleConfigByType($module_type, $id)
+    /**
+     * getModuleClassByType
+     *
+     * @param string $module_type
+     * @param string $id
+     * @param boolean $throwException
+     * @return
+     * @throws ModuleNotFoundException
+     */
+    public function getModuleClassByType($module_type, $id, $throwException=false)
     {
         $this->loadAllWorkflowModules();
-        $moduleClass = $this->loaded_modules[$module_type][$id] ?? null;
+        $moduleClass = $this->loaded_classes[$module_type][$id] ?? null;
+        if (is_null($moduleClass) && !empty($throwException)) {
+            if ($module_type == 'trigger') {
+                throw new TriggerNotFoundException(__('Unknown module `%s` for module type `%s`', $id, $module_type));
+            } else {
+                throw new ModuleNotFoundException(__('Unknown module `%s` for module type `%s`', $id, $module_type));
+            }
+        }
         return $moduleClass;
+    }
+
+    /**
+     * getModuleConfigByType
+     *
+     * @param string $module_type
+     * @param string $id
+     * @param boolean $throwException
+     * @return array
+     * @throws ModuleNotFoundException
+     */
+    public function getModuleConfigByType($module_type, $id, $throwException=false): array
+    {
+        $this->loadAllWorkflowModules();
+        $moduleConfig = $this->loaded_modules[$module_type][$id] ?? null;
+        if (is_null($moduleConfig) && !empty($throwException)) {
+            throw new ModuleNotFoundException(__('Unknown module `%s` for module type `%s`', $id, $module_type));
+        }
+        return $moduleConfig;
     }
 
     public function attachNotificationToModules(array $modules, array $workflow): array
@@ -648,7 +729,7 @@ class Workflow extends AppModel
         $trigger_is_blocking = false;
         $trigger_id = $this->workflowGraphTool->extractTriggerFromWorkflow($workflow['Workflow']['data'], false);
         if (!empty($trigger_id)) {
-            $triggerClass = $this->loaded_classes['trigger'][$trigger_id];
+            $triggerClass = $this->getModuleClassByType('trigger', $trigger_id, true);
             $trigger_is_misp_core_format = !empty($triggerClass->misp_core_format);
             $trigger_is_blocking = !empty($triggerClass->blocking);
         }

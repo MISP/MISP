@@ -108,36 +108,47 @@ class WorkflowsController extends AppController
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'view'));
     }
 
-    public function editor($trigger_id)
+    public function editor($id)
     {
-        $modules = $this->Workflow->getModulesByType();
-        $trigger_ids = Hash::extract($modules['modules_trigger'], '{n}.id');
-        if (!in_array($trigger_id, $trigger_ids)) {
-            return $this->__getFailResponseBasedOnContext(
-                [__('Unkown trigger %s', $trigger_id)],
-                null,
-                'add',
-                $trigger_id,
-                ['controller' => 'workflows', 'action' => 'triggers']
-            );
+        $trigger_id = false;
+        $workflow = false;
+        if (is_numeric($id)) {
+            $workflow_id = $id;
+        } else {
+            $trigger_id = $id;
         }
-        $workflow = $this->Workflow->fetchWorkflowByTrigger($trigger_id, false);
-        if (empty($workflow)) { // Workflow do not exists yet. Create it.
-            $result = $this->Workflow->addWorkflow([
-                'name' => sprintf('Workflow for trigger %s', $trigger_id),
-                'data' => $this->Workflow->genGraphDataForTrigger($trigger_id),
-                'trigger_id' => $trigger_id,
-            ]);
-            if (!empty($result['errors'])) {
+        $modules = $this->Workflow->getModulesByType();
+        if (!empty($trigger_id)) {
+            $trigger_ids = Hash::extract($modules['modules_trigger'], '{n}.id');
+            if (!in_array($trigger_id, $trigger_ids)) {
                 return $this->__getFailResponseBasedOnContext(
-                    [__('Could not create workflow for trigger %s', $trigger_id), $result['errors']],
+                    [__('Unkown trigger %s', $trigger_id)],
                     null,
                     'add',
                     $trigger_id,
-                    ['controller' => 'workflows', 'action' => 'editor']
+                    ['controller' => 'workflows', 'action' => 'triggers']
                 );
             }
             $workflow = $this->Workflow->fetchWorkflowByTrigger($trigger_id, false);
+            if (empty($workflow)) { // Workflow do not exists yet. Create it.
+                $result = $this->Workflow->addWorkflow([
+                    'name' => sprintf('Workflow for trigger %s', $trigger_id),
+                    'data' => $this->Workflow->genGraphDataForTrigger($trigger_id),
+                    'trigger_id' => $trigger_id,
+                ]);
+                if (!empty($result['errors'])) {
+                    return $this->__getFailResponseBasedOnContext(
+                        [__('Could not create workflow for trigger %s', $trigger_id), $result['errors']],
+                        null,
+                        'add',
+                        $trigger_id,
+                        ['controller' => 'workflows', 'action' => 'editor']
+                    );
+                }
+                $workflow = $this->Workflow->fetchWorkflowByTrigger($trigger_id, false);
+            }
+        } else {
+            $workflow = $this->Workflow->fetchWorkflow($workflow_id);
         }
         $modules = $this->Workflow->attachNotificationToModules($modules, $workflow);
         $this->loadModel('WorkflowBlueprint');
@@ -146,6 +157,23 @@ class WorkflowsController extends AppController
         $this->set('workflowTriggerId', $trigger_id);
         $this->set('modules', $modules);
         $this->set('workflowBlueprints', $workflowBlueprints);
+    }
+
+    public function executeWorkflow($workflow_id)
+    {
+        $this->request->allowMethod(['post', 'put']);
+        $blockingErrors = [];
+        $data = $this->request->data;
+        $result = $this->Workflow->executeWorkflow($workflow_id, $data, $blockingErrors);
+        if (!empty($logging) && empty($result['success'])) {
+            $logging['message'] = !empty($logging['message']) ? $logging['message'] : __('Error while executing workflow.');
+            $errorMessage = implode(', ', $blockingErrors);
+            $this->Workflow->loadLog()->createLogEntry('SYSTEM', $logging['action'], $logging['model'], $logging['id'], $logging['message'], __('Returned message: %s', $errorMessage));
+        }
+        return $this->RestResponse->viewData([
+            'success' => $result['success'],
+            'outcome' => $result['outcomeText'],
+        ], $this->response->type());
     }
 
     public function triggers()

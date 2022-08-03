@@ -778,6 +778,9 @@ class ACLComponent extends Component
                 'moduleView'=> [],
                 'toggleModule'=> [],
                 'checkGraph'=> [],
+                'executeWorkflow'=> [],
+                'debugToggleField'=> [],
+                'massToggleField'=> [],
             ],
             'workflowBlueprints' => [
                 'add' => [],
