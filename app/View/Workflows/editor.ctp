@@ -57,7 +57,7 @@ $isMISPFormat = $selectedTrigger['misp_core_format'] ?? false;
                 <i class="<?= $this->FontAwesome->getClass('list-alt') ?>"></i> <?= __('Execution logs') ?>
             </a>
             <button class="btn btn-info btn-mini" href="#workflow-info-modal" data-toggle="modal">
-                <i class="<?= $this->FontAwesome->getClass('info') ?>"></i>
+                <i class="<?= $this->FontAwesome->getClass('info-circle') ?>"></i>
             </button>
         </span>
     </div>
