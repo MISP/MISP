@@ -92,6 +92,16 @@
             'element' => 'datetime',
         ],
         [
+            'name' => __('Debug enabled'),
+            'sort' => 'Workflow.debug_enabled',
+            'class' => 'short',
+            'data_path' => 'Workflow.debug_enabled',
+            'element' => 'checkbox_action',
+            'onclick' => "enableWorkflowDebugMode(%s, %s)",
+            'onclick_params_data_path' => ['Workflow.id', 'Workflow.debug_enabled'],
+            'title' => __('Put the workflow in debug mode. Each nodes will send data to the provided debug URL')
+        ],
+        [
             'name' => __('Enabled'),
             'sort' => 'disabled',
             'class' => 'short',

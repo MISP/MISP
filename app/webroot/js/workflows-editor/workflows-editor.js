@@ -327,6 +327,7 @@ function initDrawflow() {
     $saveWorkflowButton.click(saveWorkflow)
     $importWorkflowButton.click(importWorkflow)
     $exportWorkflowButton.click(exportWorkflow)
+    $toggleWorkflowButton.click(enabledDebugMode)
     $blockModal
         .on('show', function (evt) {
             var selectedNode = getSelectedNode()
@@ -1122,6 +1123,21 @@ function importWorkflow() {
 
 function exportWorkflow() {
     showMessage('fail', 'Export workflow: to be implemented')
+}
+
+function enabledDebugMode() {
+    var $clicked = $(this)
+    enableWorkflowDebugMode(workflow_id, $clicked.data('enabled'), function(result) {
+        if (result.saved) {
+            $clicked.data('enabled', !$clicked.data('enabled'))
+            if ($clicked.data('enabled')) {
+                $clicked.removeClass('btn-primary').addClass('btn-success')
+            } else {
+                $clicked.removeClass('btn-success').addClass('btn-primary')
+            }
+            $clicked.find('.state-text').text($clicked.find('.state-text').data($clicked.data('enabled') ? 'on' : 'off'))
+        }
+    })
 }
 
 function getSelectedNodeID() {

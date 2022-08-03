@@ -68,8 +68,8 @@ class Workflow extends AppModel
     private $module_initialized = false;
     private $modules_enabled_by_default = ['generic-if', 'distribution-if', 'published-if', 'organisation-if', 'tag-if', 'concurrent-task', 'stop-execution', 'webhook', 'push-zmq'];
 
-    const CAPTURE_FIELDS_EDIT = ['name', 'description', 'timestamp', 'data'];
-    const CAPTURE_FIELDS_ADD = ['uuid', 'name', 'description', 'timestamp', 'data', 'trigger_id'];
+    const CAPTURE_FIELDS_EDIT = ['name', 'description', 'timestamp', 'data', 'debug_enabled'];
+    const CAPTURE_FIELDS_ADD = ['uuid', 'name', 'description', 'timestamp', 'data', 'trigger_id', 'debug_enabled'];
 
     const MODULE_ROOT_PATH = APP . 'Model/WorkflowModules/';
     const CUSTOM_MODULE_ROOT_PATH = APP . 'Lib/WorkflowModules/';
@@ -195,6 +195,14 @@ class Workflow extends AppModel
             }
         }
         return true;
+    }
+
+    public function toggleDebug($workflow_id, $enable): bool
+    {
+        $workflow = $this->fetchWorkflow($workflow_id);
+        $workflow['Workflow']['debug_enabled'] = !empty($enable);
+        $result = $this->editWorkflow($workflow);
+        return empty($result['errrors']);
     }
 
     public function toggleModules($module_ids, $enable, $is_trigger=false): int
@@ -455,6 +463,8 @@ class Workflow extends AppModel
         $walkResult = [];
         $data = $this->__normalizeDataForTrigger($triggerModule, $data);
         $for_path = !empty($triggerModule->blocking) ? GraphWalker::PATH_TYPE_BLOCKING : GraphWalker::PATH_TYPE_NON_BLOCKING;
+        $this->sendRequestToDebugEndpoint($workflow, [], '/init?type=' . $for_path, $data);
+
         $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNode, $for_path, $data, $blockingErrors, $walkResult);
         $executionStoppedByStopModule = in_array('stop-execution', Hash::extract($walkResult, 'blocking_nodes.{n}.data.id'));
         if (empty($blockingPathExecutionSuccess)) {
@@ -468,8 +478,10 @@ class Workflow extends AppModel
             $outcomeText = 'blocked';
         }
         $message =  __('Finished executing workflow for trigger `%s` (%s). Outcome: %s', $trigger_id, $workflow['Workflow']['id'], $outcomeText);
+
         $this->Log->createLogEntry('SYSTEM', 'execute_workflow', 'Workflow', $workflow['Workflow']['id'], $message);
         $this->__logToFile($workflow, $message);
+        $this->sendRequestToDebugEndpoint($workflow, [], '/end?outcome=' . $outcomeText, $walkResult);
         return $blockingPathExecutionSuccess;
     }
 
@@ -572,6 +584,7 @@ class Workflow extends AppModel
             $message = __('Could not execute disabled module `%s`.', $node['data']['id']);
             $this->logExecutionError($roamingData->getWorkflow(), $message);
             $errors[] = $message;
+            $this->sendRequestToDebugEndpoint($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $moduleClass->id, 'disabled_module'), $roamingData->getData());
             return false;
         }
         if (!is_null($moduleClass)) {
@@ -581,14 +594,17 @@ class Workflow extends AppModel
                 $message = __('Error while executing module %s. Error: %s', $node['data']['id'], $e->getMessage());
                 $this->logExecutionError($roamingData->getWorkflow(), $message);
                 $errors[] = $message;
+                $this->sendRequestToDebugEndpoint($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s&message=%s', $moduleClass->id, 'error', $e->getMessage()), $roamingData->getData());
                 return false;
             }
         } else {
             $message = sprintf(__('Could not load class for module: %s'), $node['data']['id']);
             $this->logExecutionError($roamingData->getWorkflow(), $message);
             $errors[] = $message;
+            $this->sendRequestToDebugEndpoint($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $node['data']['id'], 'loading_error'), $roamingData->getData());
             return false;
         }
+        $this->sendRequestToDebugEndpoint($roamingData->getWorkflow(), $node, sprintf('/exec/%s?result=%s', $moduleClass->id, 'success'), $roamingData->getData());
         return $success;
     }
 
@@ -1208,6 +1224,30 @@ class Workflow extends AppModel
             }
         }
         return $saveSuccess;
+    }
+
+    public function sendRequestToDebugEndpoint(array $workflow, array $node, $path='/', array $data=[])
+    {
+        $debug_url = Configure::read('Plugin.Workflow_debug_url');
+        if (empty($workflow['Workflow']['debug_enabled'])) {
+            return;
+        }
+        App::uses('HttpSocket', 'Network/Http');
+        $socket = new HttpSocket([
+            'timeout' => 5
+        ]);
+        $uri = sprintf('%s%s', $debug_url, $path);
+        $dataToPost = [
+            'source' => [
+                'node_id' => $node['id'] ?? '',
+                'module_id' => $node['data']['id'] ?? '',
+                'filters' => $node['data']['saved_filters'] ?? '',
+                'parameters' => $node['data']['indexed_params'] ?? '',
+            ],
+            'timestamp' => date("c"),
+            'data' => $data,
+        ];
+        $socket->post($uri, JsonTool::encode($dataToPost));
     }
     
     public function getDotNotation($id)

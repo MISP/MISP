@@ -259,6 +259,35 @@ class WorkflowsController extends AppController
         }
     }
 
+    public function debugToggleField($workflow_id, $enabled)
+    {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This action is available via AJAX only.'));
+        }
+        $this->layout = false;
+        $this->render('ajax/getDebugToggleField');
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $success = $this->Workflow->toggleDebug($workflow_id, $enabled);
+            if (!empty($success)) {
+                return $this->__getSuccessResponseBasedOnContext(
+                    __('%s debug mode', ($enabled ? __('Enabled') : __('Disabled'))),
+                    null,
+                    'toggle_debug',
+                    $workflow_id,
+                    ['action' => 'triggers']
+                );
+            } else {
+                return $this->__getFailResponseBasedOnContext(
+                    __('Could not %s debug mode', ($enabled ? __('enable') : __('disable'))),
+                    null,
+                    'toggle_debug',
+                    $workflow_id,
+                    ['action' => 'triggers']
+                );
+            }
+        }
+    }
+
     public function massToggleField($fieldName, $enabled, $is_trigger=false)
     {
         if (!in_array($fieldName, $this->toggleableFields)) {
@@ -276,7 +305,6 @@ class WorkflowsController extends AppController
                     ['action' => (!empty($is_trigger) ? 'triggers' : 'moduleIndex')]
                 );
             } else {
-                return '';
                 return $this->__getFailResponseBasedOnContext(
                     __('Could not %s modules', ($enabled ? 'enable' : 'disable')),
                     null,

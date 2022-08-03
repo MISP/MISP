@@ -7207,6 +7207,13 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
+                'Workflow_debug_url' => array(
+                    'level' => 1,
+                    'description' => __('Set the debug URL where info about workflow execution will be POSTed'),
+                    'value' => 'http://127.0.0.1:27051',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
                 'Cortex_services_url' => array(
                     'level' => 1,
                     'description' => __('The url used to access Cortex. By default, it is accessible at http://cortex-url'),

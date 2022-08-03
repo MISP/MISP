@@ -8,6 +8,7 @@ $triggerModules = $modules['modules_trigger'];
 $selectedTrigger = Hash::get($selectedWorkflow, 'Workflow.listening_triggers.0', []);
 $isBlockingTrigger = $selectedTrigger['blocking'] ?? false;
 $isMISPFormat = $selectedTrigger['misp_core_format'] ?? false;
+$debugEnabled = !empty($selectedWorkflow['Workflow']['debug_enabled']);
 ?>
 <div class="root-container">
     <div class="topbar">
@@ -49,11 +50,12 @@ $isMISPFormat = $selectedTrigger['misp_core_format'] ?? false;
             <span id="workflow-saved-text-details" style="margin-left: 5px; font-size: 0.75em"></span>
         </span>
         <span style="display: flex; align-items: center; margin-left: auto; margin-right: 1em; gap: 1em;">
-            <!-- <button id="workflow-debug-container" class="btn btn-success" style="margin-right: 0.5em;">
+            <button id="workflow-debug-container" class="btn btn-<?= $debugEnabled ? 'success' : 'primary' ?>" data-enabled="<?= $debugEnabled ? '1' : '0' ?>" style="margin-right: 0.5em;">
                 <i class="<?= $this->FontAwesome->getClass('bug') ?> fa-fw"></i>
-                <?= __('Run and Debug') ?>
-            </button> -->
-            <a href="<?= $baseurl . '/admin/logs/index/model:Workflow/action:execute_workflow/model_id:' . $selectedWorkflow['Workflow']['id'] ?>" title="<?= __('View execution logs') ?>" aria-label="<?= __('View execution logs') ?>">
+                <?= __('Debug Mode: ') ?>
+                <b class="state-text" data-on="<?= __('On') ?>" data-off="<?= __('Off') ?>"><?= $debugEnabled ? __('On') : __('Off') ?></b>
+            </button>
+            <a href="<?= $baseurl . '/admin/logs/index/model:Workflow/action:execute_workflow/model_id:' . h($selectedWorkflow['Workflow']['id']) ?>" title="<?= __('View execution logs') ?>" aria-label="<?= __('View execution logs') ?>">
                 <i class="<?= $this->FontAwesome->getClass('list-alt') ?>"></i> <?= __('Execution logs') ?>
             </a>
             <button class="btn btn-info btn-mini" href="#workflow-info-modal" data-toggle="modal">
@@ -304,6 +306,7 @@ echo $this->element('genericElements/assetLoader', [
     var $importWorkflowButton = $('#importWorkflow')
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')
+    var $toggleWorkflowButton = $('#workflow-debug-container')
     var $saveBlueprintButton = $('#saveBlueprint')
     var $lastModifiedField = $('#lastModifiedField')
     var $workflowSavedIconContainer = $('#workflow-saved-container')

@@ -5561,3 +5561,33 @@ $('td.rotate').hover(function() {
     var t = parseInt($(this).index()) + 1;
     $table.find('td:nth-child(' + t + ')').css('background-color', '');
 });
+
+function enableWorkflowDebugMode(workflow_id, currentEnabledState, callback) {
+    var enabled = currentEnabledState ? false : true
+    var url = baseurl + '/workflows/debugToggleField/' + workflow_id + '/' + (enabled ? '1' : '0')
+    fetchFormDataAjax(url, function (formData) {
+        var $formData = $(formData);
+        $.ajax({
+            data: $formData.find('form').serialize(),
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
+                showMessage('success', data.message);
+                if (callback) {
+                    callback(data)
+                }
+            },
+            error: function () {
+                showMessage('fail', 'Could not toggle debug mode.');
+            },
+            complete: function () {
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $(".loading").hide();
+            },
+            type: "post",
+            url: $formData.find('form').attr('action')
+        });
+    });
+}

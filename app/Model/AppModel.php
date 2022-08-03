@@ -1780,6 +1780,7 @@ class AppModel extends Model
                       `enabled` tinyint(1) NOT NULL DEFAULT 0,
                       `counter` int(11) NOT NULL DEFAULT 0,
                       `trigger_id` varchar(191) COLLATE utf8_bin NOT NULL,
+                      `debug_enabled` tinyint(1) NOT NULL DEFAULT 0,
                       `data` text,
                       PRIMARY KEY (`id`),
                       INDEX `uuid` (`uuid`),
