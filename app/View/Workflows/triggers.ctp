@@ -42,10 +42,15 @@
                         '<span class="label %s">%s %s</span>',
                         !empty($row['disabled']) ? '' : 'label-' . $trigger_overhead_mapping[$row['trigger_overhead']]['class'],
                         h($trigger_overhead_mapping[$row['trigger_overhead']]['text']),
-                        empty($row['trigger_overhead_message']) ? '' : sprintf('<i class="fa-fw %s" title="%s" data-placement="right" data-toggle="tooltip"></i>', $this->FontAwesome->getClass('question-circle'), sprintf('%s%s',
-                            !empty($row['disabled']) ? sprintf('[%s]' . PHP_EOL, __('Trigger not enabled')) : '',
-                            h($row['trigger_overhead_message'])),
-                        )
+                        empty($row['trigger_overhead_message']) ? '' :
+                            sprintf(
+                                '<i class="fa-fw %s" title="%s" data-placement="right" data-toggle="tooltip"></i>',
+                                $this->FontAwesome->getClass('question-circle'),
+                                sprintf('%s%s',
+                                    !empty($row['disabled']) ? sprintf('[%s]' . PHP_EOL, __('Trigger not enabled')) : '',
+                                    h($row['trigger_overhead_message'])
+                                )
+                            )
                     );
             }
         ],
