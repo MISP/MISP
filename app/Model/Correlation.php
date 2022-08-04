@@ -830,7 +830,7 @@ class Correlation extends AppModel
      * @param array $attribute Attribute Array
      * @param array $fields List of fields to include
      * @param bool $includeEventData Flag to include the event data in the response
-     * @return array
+     * @return array|null
      */
     public function getRelatedAttributes($user, $sgids, $attribute, $fields=[], $includeEventData = false)
     {
