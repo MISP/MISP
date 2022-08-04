@@ -96,12 +96,14 @@ class AttributesController extends AppController
                 [],
                 true
             );
-            foreach ($temp as &$t) {
-                $t['info'] = $t['Event']['info'];
-                $t['org_id'] = $t['Event']['org_id'];
-                $t['date'] = $t['Event']['date'];
+            if (!empty($temp)) {
+                foreach ($temp as &$t) {
+                    $t['info'] = $t['Event']['info'];
+                    $t['org_id'] = $t['Event']['org_id'];
+                    $t['date'] = $t['Event']['date'];
+                }
+                $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $temp;
             }
-            $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $temp;
         }
 
         list($attributes, $sightingsData) = $this->__searchUI($attributes);
