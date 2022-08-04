@@ -304,6 +304,20 @@ class MispObject extends AppModel
             $object = $this->data['Object'];
             $this->Attribute->Correlation->updateContainedCorrelations($object, 'object');
         }
+        if ($this->data['Object']['deleted']) {
+            $attributes_to_delete = $this->Attribute->find('all', [
+                'recursive' => -1,
+                'conditions' => [
+                    'Attribute.object_id' => $this->id,
+                    'Attribute.deleted' => 0
+                ]
+            ]);
+            foreach ($attributes_to_delete as &$attribute_to_delete) {
+                $attribute_to_delete['Attribute']['deleted'] = 1;
+                unset($attribute_to_delete['Attribute']['timestamp']);
+            }
+            $this->Attribute->saveMany($attributes_to_delete);
+        }
         $pubToZmq = $this->pubToZmq('object') && empty($this->data['Object']['skip_zmq']);
         $kafkaTopic = $this->kafkaTopic('object');
         $pubToKafka = $kafkaTopic && empty($this->data['Object']['skip_kafka']);
@@ -1008,6 +1022,9 @@ class MispObject extends AppModel
         $objectId = $this->id;
         if (!empty($object['Object']['Attribute'])) {
             foreach ($object['Object']['Attribute'] as $attribute) {
+                if (!empty($object['Object']['deleted'])) {
+                    $attribute['deleted'] = 1;
+                }
                 $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
             }
         }
@@ -1092,6 +1109,9 @@ class MispObject extends AppModel
         }
         if (!empty($object['Attribute'])) {
             foreach ($object['Attribute'] as $attribute) {
+                if (!empty($object['deleted'])) {
+                    $attribute['deleted'] = 1;
+                }
                 $result = $this->Attribute->editAttribute($attribute, $event, $user, $object['id'], false, $force);
             }
         }
