@@ -161,19 +161,21 @@ class WorkflowsController extends AppController
 
     public function executeWorkflow($workflow_id)
     {
-        $this->request->allowMethod(['post', 'put']);
-        $blockingErrors = [];
-        $data = $this->request->data;
-        $result = $this->Workflow->executeWorkflow($workflow_id, $data, $blockingErrors);
-        if (!empty($logging) && empty($result['success'])) {
-            $logging['message'] = !empty($logging['message']) ? $logging['message'] : __('Error while executing workflow.');
-            $errorMessage = implode(', ', $blockingErrors);
-            $this->Workflow->loadLog()->createLogEntry('SYSTEM', $logging['action'], $logging['model'], $logging['id'], $logging['message'], __('Returned message: %s', $errorMessage));
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $blockingErrors = [];
+            $data = JsonTool::decode($this->request->data['Workflow']['data']);
+            $result = $this->Workflow->executeWorkflow($workflow_id, $data, $blockingErrors);
+            if (!empty($logging) && empty($result['success'])) {
+                $logging['message'] = !empty($logging['message']) ? $logging['message'] : __('Error while executing workflow.');
+                $errorMessage = implode(', ', $blockingErrors);
+                $this->Workflow->loadLog()->createLogEntry('SYSTEM', $logging['action'], $logging['model'], $logging['id'], $logging['message'], __('Returned message: %s', $errorMessage));
+            }
+            return $this->RestResponse->viewData([
+                'success' => $result['success'],
+                'outcome' => $result['outcomeText'],
+            ], $this->response->type());
         }
-        return $this->RestResponse->viewData([
-            'success' => $result['success'],
-            'outcome' => $result['outcomeText'],
-        ], $this->response->type());
+        $this->render('ajax/executeWorkflow');
     }
 
     public function triggers()

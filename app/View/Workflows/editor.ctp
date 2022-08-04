@@ -50,10 +50,14 @@ $debugEnabled = !empty($selectedWorkflow['Workflow']['debug_enabled']);
             <span id="workflow-saved-text-details" style="margin-left: 5px; font-size: 0.75em"></span>
         </span>
         <span style="display: flex; align-items: center; margin-left: auto; margin-right: 1em; gap: 1em;">
-            <button id="workflow-debug-container" class="btn btn-<?= $debugEnabled ? 'success' : 'primary' ?>" data-enabled="<?= $debugEnabled ? '1' : '0' ?>" style="margin-right: 0.5em;">
+            <button id="workflow-debug-button" class="btn btn-<?= $debugEnabled ? 'success' : 'primary' ?>" data-enabled="<?= $debugEnabled ? '1' : '0' ?>">
                 <i class="<?= $this->FontAwesome->getClass('bug') ?> fa-fw"></i>
                 <?= __('Debug Mode: ') ?>
                 <b class="state-text" data-on="<?= __('On') ?>" data-off="<?= __('Off') ?>"><?= $debugEnabled ? __('On') : __('Off') ?></b>
+            </button>
+            <button id="workflow-run-button" class="btn btn-primary" <?= $debugEnabled ? '' : 'disabled' ?>>
+                <i class="<?= $this->FontAwesome->getClass('play') ?> fa-fw"></i>
+                <?= __('Run Workflow') ?>
             </button>
             <a href="<?= $baseurl . '/admin/logs/index/model:Workflow/action:execute_workflow/model_id:' . h($selectedWorkflow['Workflow']['id']) ?>" title="<?= __('View execution logs') ?>" aria-label="<?= __('View execution logs') ?>">
                 <i class="<?= $this->FontAwesome->getClass('list-alt') ?>"></i> <?= __('Execution logs') ?>
@@ -306,7 +310,8 @@ echo $this->element('genericElements/assetLoader', [
     var $importWorkflowButton = $('#importWorkflow')
     var $exportWorkflowButton = $('#exportWorkflow')
     var $saveWorkflowButton = $('#saveWorkflow')
-    var $toggleWorkflowButton = $('#workflow-debug-container')
+    var $toggleWorkflowButton = $('#workflow-debug-button')
+    var $runWorkflowButton = $('#workflow-run-button')
     var $saveBlueprintButton = $('#saveBlueprint')
     var $lastModifiedField = $('#lastModifiedField')
     var $workflowSavedIconContainer = $('#workflow-saved-container')
