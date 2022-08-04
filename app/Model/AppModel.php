@@ -232,9 +232,9 @@ class AppModel extends Model
                 $dbUpdateSuccess = true;
                 break;
             case 90:
+                $dbUpdateSuccess = $this->updateDatabase($command);
                 $this->Workflow = Classregistry::init('Workflow');
                 $this->Workflow->enableDefaultModules();
-                $dbUpdateSuccess = true;
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
