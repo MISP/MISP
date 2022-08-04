@@ -11,6 +11,11 @@
             'data_path' => 'Workflow.name',
         ],
         [
+            'name' => __('Description'),
+            'sort' => 'Workflow.description',
+            'data_path' => 'Workflow.description',
+        ],
+        [
             'name' => __('Run counter'),
             'sort' => 'Workflow.counter',
             'data_path' => 'Workflow.counter',
