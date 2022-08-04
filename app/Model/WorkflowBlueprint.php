@@ -104,9 +104,7 @@ class WorkflowBlueprint extends AppModel
         $files = $dir->find('.*\.json');
         $blueprints = [];
         foreach ($files as $file) {
-            $file = new File($dir->pwd() . DS . $file);
-            $blueprints[] = JsonTool::decode($file->read());
-            $file->close();
+            $blueprints[] = FileAccessTool::readJsonFromFile($dir->pwd() . DS . $file);
         }
         return $blueprints;
     }
