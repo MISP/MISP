@@ -99,6 +99,9 @@ class Workflow extends AppModel
         if (empty($this->data['Workflow']['timestamp'])) {
             $this->data['Workflow']['timestamp'] = time();
         }
+        if (empty($this->data['Workflow']['description'])) {
+            $this->data['Workflow']['description'] = '';
+        }
         return true;
     }
 
