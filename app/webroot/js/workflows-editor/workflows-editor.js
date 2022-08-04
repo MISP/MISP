@@ -1687,6 +1687,7 @@ function genNodeNotificationHtml(block) {
                 .css({
                     'vertical-align': 'middle',
                     'margin-right': '0.25em',
+                    'white-space': 'nowrap',
                 })
                 .append(
                     $('<i class="fas"></i>').addClass(iconBySeverity[severity]),
