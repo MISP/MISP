@@ -304,7 +304,7 @@ class MispObject extends AppModel
             $object = $this->data['Object'];
             $this->Attribute->Correlation->updateContainedCorrelations($object, 'object');
         }
-        if ($this->data['Object']['deleted']) {
+        if (!empty($this->data['Object']['deleted'] && !$created)) {
             $attributes_to_delete = $this->Attribute->find('all', [
                 'recursive' => -1,
                 'conditions' => [
