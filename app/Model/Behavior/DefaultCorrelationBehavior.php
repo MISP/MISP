@@ -463,6 +463,9 @@ class DefaultCorrelationBehavior extends ModelBehavior
 
     private function checkCorrelationACL($user, $correlation, $sgids, $prefix)
     {
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
         // check if user can see the event
         if (isset($correlation['Correlation'])) {
             $correlation = $correlation['Correlation'];
