@@ -22,8 +22,9 @@
         __('Active engine: %s', $currentEngineData['name']),
         $this->element('/healthElements/correlations_table', ['currentEngineData' => $currentEngineData]),
         sprintf(
-            '<div class="btn btn-primary" onClick="simplePopup(\'%s\');">Recorrelate</div>',
-            $baseurl . '/attributes/generateCorrelation'
+            '<div class="btn btn-primary" onClick="simplePopup(\'%s\');">%s</div>',
+            $baseurl . '/attributes/generateCorrelation',
+            __('Recorrelate'),
         )
     );
     foreach ($correlation_metrics['db'] as $engine => $engineData) {
@@ -32,12 +33,14 @@
             __('Dormant engine: %s', $engineData['name']),
             $this->element('/healthElements/correlations_table', ['currentEngineData' => $engineData]),
             $engine === 'Legacy' ? '' : sprintf(
-                '<div class="btn btn-primary" onClick="simplePopup(\'%s\');">Activate engine</div>',
-                $baseurl . '/correlations/switchEngine/' . h($engine)
+                '<div class="btn btn-primary" onClick="simplePopup(\'%s\');">%s</div>',
+                $baseurl . '/correlations/switchEngine/' . h($engine),
+                __('Activate engine')
             ),
             sprintf(
-                '<div class="btn btn-danger" onClick="simplePopup(\'%s\');">Truncate</div>',
-                $baseurl . '/correlations/truncate/' . h($engine)
+                '<div class="btn btn-danger" onClick="simplePopup(\'%s\');">%s</div>',
+                $baseurl . '/correlations/truncate/' . h($engine),
+                __('Truncate')
             )
         );
     }
