@@ -99,7 +99,9 @@ class ACLComponent extends Component
             'correlations' => [
                 'generateTopCorrelations' => [],
                 'overCorrelations' => [],
-                'top' => []
+                'switchEngine' => [],
+                'top' => [],
+                'truncate' => []
             ],
             'cryptographicKeys' => [
                 'add' => ['perm_add'],
