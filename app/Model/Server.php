@@ -7186,7 +7186,7 @@ class Server extends AppModel
                 ),
                 'Workflow_enable' => array(
                     'level' => 1,
-                    'description' => __('Enable/disable workflow feature'),
+                    'description' => __('Enable/disable workflow feature. [experimental]'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'

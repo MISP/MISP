@@ -469,7 +469,11 @@
                         'requirement' => $isSiteAdmin
                     ],
                     [
-                        'text' => __('Over-correlating values'),
+                        'html' => sprintf(
+                            '<span style="display: flex;"><span>%s</span><span class="label label-info" style="margin-left: auto;">%s</span></span>',
+                            __('Over-correlating values'),
+                            __('new')
+                        ),
                         'url' => $baseurl . '/correlations/overCorrelations',
                         'requirement' => $isSiteAdmin
                     ]
