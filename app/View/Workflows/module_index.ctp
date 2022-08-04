@@ -81,7 +81,7 @@
         echo sprintf('<div class="alert alert-error"><strong>%s</strong> %s<div>%s</div></div>',
             __('MISP Modules Action Services is not reachable!'),
             __('Some modules will not be available.'),
-            __('Make sure the %s %s is enabled and the action service is reachable.', sprintf('<a href="%s">%s</a>', $baseurl . '/servers/serverSettings/Plugin',  __('setting')), sprintf('<code>%s</code>', 'Plugin.Action_services_enable')),
+            __('Make sure the %s %s is enabled and the action service is reachable.', sprintf('<a href="%s">%s</a>', $baseurl . '/servers/serverSettings/Plugin',  __('setting')), sprintf('<code>%s</code>', 'Plugin.Action_services_enable'))
         );
     }
     if (!empty($errorWhileLoading)) {
