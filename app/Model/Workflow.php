@@ -562,9 +562,9 @@ class Workflow extends AppModel
             $userForWorkflow = [
                 'email' => 'SYSTEM',
                 'id' => 0,
-                'org_id' => $hostOrg['Org']['id'],
+                'org_id' => $hostOrg['Organisation']['id'],
                 'Role' => ['perm_site_admin' => 1],
-                'Organisation' => $hostOrg['Org']
+                'Organisation' => $hostOrg['Organisation']
             ];
         } else {
             $this->User = ClassRegistry::init('User');
