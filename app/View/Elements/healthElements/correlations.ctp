@@ -24,7 +24,7 @@
         sprintf(
             '<div class="btn btn-primary" onClick="simplePopup(\'%s\');">%s</div>',
             $baseurl . '/attributes/generateCorrelation',
-            __('Recorrelate'),
+            __('Recorrelate')
         )
     );
     foreach ($correlation_metrics['db'] as $engine => $engineData) {
