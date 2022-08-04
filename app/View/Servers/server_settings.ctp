@@ -13,6 +13,8 @@
             echo $this->element('healthElements/workers');
         } else if ($tab === 'files') {
             echo $this->element('healthElements/files');
+        } else if ($tab === 'correlations') {
+            echo $this->element('healthElements/correlations');
         } else {
             echo $this->element('healthElements/overview');
         }

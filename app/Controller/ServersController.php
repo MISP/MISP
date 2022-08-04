@@ -1072,6 +1072,11 @@ class ServersController extends AppController
         $diagnostic_errors = 0;
         App::uses('File', 'Utility');
         App::uses('Folder', 'Utility');
+        if ($tab === 'correlations') {
+            $this->loadModel('Correlation');
+            $correlation_metrics = $this->Correlation->collectMetrics();
+            $this->set('correlation_metrics', $correlation_metrics);
+        }
         if ($tab === 'files') {
             $files = $this->Server->grabFiles();
             $this->set('files', $files);

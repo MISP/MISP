@@ -82,7 +82,7 @@ class AppModel extends Model
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
-        87 => false, 88 => false, 89 => false,
+        87 => false, 88 => false, 89 => false, 90 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -228,6 +228,9 @@ class AppModel extends Model
                 $dbUpdateSuccess = $this->__generateCorrelations();
                 break;
             case 89:
+                $this->__retireOldCorrelationEngine();
+                break;
+            case 90:
                 $this->Workflow = Classregistry::init('Workflow');
                 $this->Workflow->enableDefaultModules();
                 break;
@@ -1770,7 +1773,7 @@ class AppModel extends Model
                 $sqlArray[] = 'ALTER TABLE `users` ADD `external_auth_required` tinyint(1) NOT NULL DEFAULT 0;';
                 $sqlArray[] = 'ALTER TABLE `users` ADD `external_auth_key` text COLLATE utf8_bin;';
                 break;
-            case 89:
+            case 90:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `workflows` (
                       `id` int(11) NOT NULL AUTO_INCREMENT,
                       `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
@@ -2227,7 +2230,7 @@ class AppModel extends Model
                 'fields' => ['id', 'value'],
             ]);
             if (count($db_version) > 1) {
-                // we rgan into a bug where we have more than one db_version entry. This bug happened in some rare circumstances around 2.4.50-2.4.57
+                // we ran into a bug where we have more than one db_version entry. This bug happened in some rare circumstances around 2.4.50-2.4.57
                 foreach ($db_version as $k => $v) {
                     if ($k > 0) {
                         $this->AdminSetting->delete($v['AdminSetting']['id']);
@@ -3577,5 +3580,62 @@ class AppModel extends Model
             $this->_eventManager->attach($this);
         }
         return $this->_eventManager;
+    }
+
+    private function __retireOldCorrelationEngine($user = null) {
+        if ($user === null) {
+            $user = [
+                'id' => 0,
+                'email' => 'SYSTEM',
+                'Organisation' => [
+                    'name' => 'SYSTEM'
+                ]
+            ];
+        }
+        $this->Correlation = ClassRegistry::init('Correlation');
+        $this->Attribute = ClassRegistry::init('Attribute');
+        if (!Configure::read('MISP.background_jobs')) {
+            $this->Correlation->truncate($user, 'Legacy');
+            $this->Attribute->generateCorrelation();
+        } else {
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'truncate table',
+                $this->Correlation->validEngines['Legacy'],
+                'Job created.'
+            );
+            $this->Correlation->Attribute->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'truncateTable',
+                    0,
+                    'Legacy',
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generate correlation',
+                'All attributes',
+                'Job created.'
+            );
+
+            $this->Attribute->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateCorrelation',
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
+        }
     }
 }

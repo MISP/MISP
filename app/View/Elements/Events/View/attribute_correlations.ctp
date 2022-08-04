@@ -57,10 +57,17 @@
             );
         }
     }
-    if (!empty($object['over_correlation']) || !empty($object['correlation_exclusion'])) {
+    if (!empty($object['correlation_exclusion'])) {
         echo sprintf(
-            '<span class="bold red">%s</span> ',
+            '<span class="bold red" title="%s">%s</span> ',
+            __('The attribute value matches a correlation exclusion rule defined by a site-administrator for this instance. Click the magnifying glass to search for all occurrences of the value.'),
             __('Excluded.')
+        );
+    } else if (!empty($object['over_correlation'])) {
+        echo sprintf(
+            '<span class="bold red" title="%s">%s</span> ',
+            __('The instance threshold for the maximum number of correlations for the given attribute value has been exceeded. Click the magnifying glass to search for all occurrences of the value.'),
+            __('Too many correlations.')
         );
     }
     echo $this->Html->link(

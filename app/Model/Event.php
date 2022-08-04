@@ -1938,7 +1938,7 @@ class Event extends AppModel
                 if (!empty($options['includeRelatedTags'])) {
                     $event = $this->includeRelatedTags($event, $options);
                 }
-                $event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
+                //$event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
             }
             $shadowAttributeByOldId = [];
             if (!empty($event['ShadowAttribute'])) {
