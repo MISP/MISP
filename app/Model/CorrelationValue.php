@@ -15,6 +15,8 @@ class CorrelationValue extends AppModel
 
     public function getValueId($value)
     {
+        // index is 191 long, missing the existing value lookup can lead to a duplicate entry
+        $value = mb_substr($value, 0, 191);
         $existingValue = $this->find('first', [
             'recursive' => -1,
             'conditions' => [
