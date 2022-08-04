@@ -1,4 +1,5 @@
 <?php
+    $doNotDisplay = false;
     if (!empty($field['onclick'])) {
         if (!empty($field['onclick_params_data_path'])) {
             $data_path_params = [];
