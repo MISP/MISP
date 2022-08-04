@@ -127,17 +127,16 @@ class WorkflowBlueprint extends AppModel
         $existing_blueprints_by_uuid = Hash::combine($existing_blueprints, '{n}.WorkflowBlueprint.uuid', '{n}.WorkflowBlueprint');
         foreach ($blueprints_from_repo as $blueprint_from_repo) {
             $blueprint_from_repo = $blueprint_from_repo['WorkflowBlueprint'];
+            $blueprint_from_repo['default'] = true;
             if (!empty($existing_blueprints_by_uuid[$blueprint_from_repo['uuid']])) {
                 $existing_blueprint = $existing_blueprints_by_uuid[$blueprint_from_repo['uuid']];
                 if ($force || $blueprint_from_repo['timestamp'] > $existing_blueprint['timestamp']) {
                     $blueprint_from_repo['id'] = $existing_blueprint['id'];
-                    $blueprint_from_repo['default'] = true;
                     $this->save($blueprint_from_repo);
                     continue;
                 }
             } else {
                 $this->create();
-                $blueprint_from_repo['default'] = true;
                 $this->save($blueprint_from_repo);
             }
         }
