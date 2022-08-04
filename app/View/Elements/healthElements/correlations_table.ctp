@@ -8,7 +8,7 @@
         __('The table\'s size in MB on disk'),
         __('Size on disk'),
         __('The saturation of the ID space of the given table. Be careful, reaching the limit will block further correlations from being created - make sure you recorrelate in time or extend the ID space by changing the column type.'),
-        __('ID space saturation'),
+        __('ID space saturation')
     );
     foreach ($currentEngineData['tables'] as $table_name => $table_data) {
         $engine_contents .= sprintf(
@@ -20,7 +20,7 @@
             sprintf(
                 "Last inserted correlation ID: %s\nHighest possible ID: %s",
                 h($table_data['last_id']),
-                h($table_data['id_limit']),
+                h($table_data['id_limit'])
             ),
             h($table_data['id_saturation']) . '%'
 
