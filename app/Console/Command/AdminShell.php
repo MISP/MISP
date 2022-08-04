@@ -1192,7 +1192,7 @@ class AdminShell extends AppShell
     public function truncateTable()
     {
         $this->ConfigLoad->execute();
-        if (empty($this->args[0])) {
+        if (!isset($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation'] . PHP_EOL);
         }
         $userId = $this->args[0];
@@ -1216,6 +1216,7 @@ class AdminShell extends AppShell
         $table = trim($this->args[1]);
         $this->Correlation->truncate($user, $table);
         if ($jobId) {
+            $this->Job->id = $jobId;
             $this->Job->saveField('progress', 100);
             $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
             $this->Job->saveField('message', __('Database truncated: ' . $table));
