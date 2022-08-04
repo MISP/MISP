@@ -229,10 +229,12 @@ class AppModel extends Model
                 break;
             case 89:
                 $this->__retireOldCorrelationEngine();
+                $dbUpdateSuccess = true;
                 break;
             case 90:
                 $this->Workflow = Classregistry::init('Workflow');
                 $this->Workflow->enableDefaultModules();
+                $dbUpdateSuccess = true;
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
