@@ -1758,7 +1758,7 @@ class AppModel extends Model
                   ) ENGINE=InnoDB;";
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `correlation_values` (
                     `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-                    `value` text,
+                    `value` varchar(191) NOT NULL,
                     PRIMARY KEY (`id`),
                     UNIQUE KEY `value` (`value`(191))
                   ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
