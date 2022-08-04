@@ -17,8 +17,8 @@ class Module_push_zmq extends WorkflowBaseActionModule
         parent::__construct();
         $this->params = [
             [
-                'id' => 'match_condition',
-                'label' => 'Match Condition',
+                'id' => 'data_extraction_path',
+                'label' => 'Data extraction path',
                 'type' => 'input',
                 'default' => '',
                 'placeholder' => 'Attribute.{n}.AttributeTag.{n}.Tag.name',

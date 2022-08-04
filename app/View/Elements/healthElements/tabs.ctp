@@ -30,7 +30,11 @@
 
     $data['children'][0]['children'][] = array(
         'url' => $baseurl . '/servers/serverSettings/correlations',
-        'html' => __('Correlations'),
+        'html' => sprintf(
+            '<span style="display: flex;"><span>%s</span><span class="label label-info" style="margin-left: 0.5em;">%s</span></span>',
+            __('Correlations'),
+            __('new')
+        ),
         'active' => $active_tab === 'correlations'
     );
 
