@@ -52,6 +52,17 @@ class WorkflowBaseModule
         return $indexedParams;
     }
 
+    protected function filtersEnabled($node): bool
+    {
+        $indexedFilters = $this->getFilters($node);
+        foreach ($indexedFilters as $k => $v) {
+            if ($v != '') {
+                return true;
+            }
+        }
+        return false;
+    }
+
     protected function getFilters($node): array
     {
         $indexedFilters = [];
@@ -170,7 +181,10 @@ class WorkflowBaseModule
     protected function getItemsMatchingCondition($items, $value, $operator, $path)
     {
         foreach ($items as $i => $item) {
-            $subItem = $this->extractData($item, $path);
+            $subItem = $this->extractData($item, $path, $operator);
+            if (in_array($operator, ['equals', 'not_equals'])) {
+                $subItem = !empty($subItem) ? $subItem[0] : $subItem;
+            }
             if (!$this->evaluateCondition($subItem, $operator, $value)) {
                 unset($items[$i]);
             }
