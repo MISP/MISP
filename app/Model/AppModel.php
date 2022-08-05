@@ -1686,7 +1686,7 @@ class AppModel extends Model
                 $sqlArray[] = sprintf("ALTER table users MODIFY description text;");
                 break;
             case 87:
-                $sqlArray[] = "ALTER TABLE users ADD `last_login` INT(11) DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE users ADD `last_api_access` INT(11) DEFAULT 0;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
