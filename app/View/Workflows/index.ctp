@@ -27,7 +27,7 @@
             'function' => function ($row) use ($baseurl) {
                 return implode('<br />', array_map(function($trigger) use ($baseurl) {
                         return sprintf('<a href="%s/workflows/moduleView/%s" %s><i class="fa-fw %s"></i> %s</a>',
-                            $baseurl,
+                            h($baseurl),
                             h($trigger['id']),
                             !empty($trigger['disabled']) ? sprintf('class="%s" style="%s" title="%s"', 'muted', 'text-decoration: line-through;', __('Trigger disabled')) : '',
                             $this->FontAwesome->getClass($trigger['icon']),

@@ -59,7 +59,7 @@ class WorkflowShell extends AppShell {
             $for_path,
             $roamingData,
             $concurrentErrors,
-            $walkResult,
+            $walkResult
         );
         $job = $this->Job->read(null, $jobId);
         $job['Job']['progress'] = 100;

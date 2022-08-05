@@ -137,8 +137,9 @@ class AppModel extends Model
         switch ($command) {
             case '2.4.20':
                 $dbUpdateSuccess = $this->updateDatabase($command);
-                $this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
-                $this->ShadowAttribute->upgradeToProposalCorrelation();
+                //deprecated
+                //$this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
+                //$this->ShadowAttribute->upgradeToProposalCorrelation();
                 break;
             case '2.4.25':
                 $dbUpdateSuccess = $this->updateDatabase($command);
