@@ -4342,26 +4342,38 @@ class Event extends AppModel
         $userForPubSub = [
             'id' => 0,
             'org_id' => $hostOrg['Org']['id'],
-            'Role' => ['perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0],
+            'Role' => ['perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 1],
             'Organisation' => $hostOrg['Org']
         ];
-        $currentUserId = Configure::read('CurrentUserId');
-        $userForWorkflow = $this->User->getAuthUser($currentUserId, true);
-        $fullEvent = $this->fetchEvent($userForWorkflow, [
-            'eventid' => $id,
-            'includeAttachments' => 1
-        ]);
-        $workflowErrors = [];
-        $logging = [
-            'model' => 'Event',
-            'action' => 'publish',
-            'id' => $id,
-            'message' => __('Publishing stopped by a blocking workflow.'),
-        ];
-        $success = $this->executeTrigger('event-publish', $fullEvent[0], $workflowErrors, $logging);
-        if (empty($success)) {
-            $errorMessage = implode(', ', $workflowErrors);
-            return $errorMessage;
+        $allowZMQ = Configure::read('Plugin.ZeroMQ_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
+        $allowKafka = Configure::read('Plugin.Kafka_enable') &&
+            Configure::read('Plugin.Kafka_event_publish_notifications_enable') &&
+            !empty($kafkaTopic);
+        $triggerCallable = $this->isTriggerCallable('event-publish');
+
+        if ($allowZMQ || $allowKafka || $triggerCallable) {
+            $currentUserId = Configure::read('CurrentUserId');
+            $userForWorkflow = $this->User->getAuthUser($currentUserId, true);
+            $userForWorkflow['Role']['perm_site_admin'] = 1;
+            $fullEvent = $this->fetchEvent($userForWorkflow, [
+                'eventid' => $id,
+                'includeAttachments' => 1
+            ]);
+        }
+        if ($triggerCallable) {
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'Event',
+                'action' => 'publish',
+                'id' => $id,
+                'message' => __('Publishing stopped by a blocking workflow.'),
+            ];
+            $success = $this->executeTrigger('event-publish', $fullEvent[0], $workflowErrors, $logging);
+            if (empty($success)) {
+                $errorMessage = implode(', ', $workflowErrors);
+                return $errorMessage;
+            }
         }
         if ($jobId) {
             $this->Behaviors->unload('SysLogLogable.SysLogLogable');
@@ -4375,15 +4387,10 @@ class Event extends AppModel
             $event['Event']['skip_kafka'] = 1;
             $this->save($event, array('fieldList' => $fieldList));
         }
-        $kafkaTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
-        if (Configure::read('Plugin.ZeroMQ_enable')) {
+        if ($allowZMQ) {
             $this->publishEventToZmq($id, $userForPubSub, $fullEvent);
         }
-        if (
-            Configure::read('Plugin.Kafka_enable') &&
-            Configure::read('Plugin.Kafka_event_publish_notifications_enable') &&
-            !empty($kafkaTopic)
-        ) {
+        if ($allowKafka) {
             $this->publishEventToKafka($id, $userForPubSub, $fullEvent, $kafkaTopic);
         }
         return $this->uploadEventToServersRouter($id, $passAlong);
