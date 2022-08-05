@@ -4320,7 +4320,6 @@ class Event extends AppModel
                 $jobId
             );
         }
-
         return $this->publish($id, $passAlong);
     }
 
@@ -4365,6 +4364,7 @@ class Event extends AppModel
             'recursive' => -1,
             'conditions' => array('Event.id' => $id)
         ));
+        
         if (empty($event)) {
             return false;
         }
@@ -4413,6 +4413,7 @@ class Event extends AppModel
             $success = $this->executeTrigger('event-publish', $fullEvent[0], $workflowErrors, $logging);
             if (empty($success)) {
                 $errorMessage = implode(', ', $workflowErrors);
+                
                 return $errorMessage;
             }
         }
