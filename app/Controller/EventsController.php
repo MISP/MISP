@@ -3011,16 +3011,11 @@ class EventsController extends AppController
                 // Performs all the actions required to publish an event
                 $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
                 if (!is_array($result)) {
-                    if ($result === true) {
-                        // redirect to the view event page
-                        if (Configure::read('MISP.background_jobs')) {
-                            $message = 'Job queued.';
-                        } else {
-                            $message = 'Email sent to all participants.';
-                        }
+                    // redirect to the view event page
+                    if (Configure::read('MISP.background_jobs')) {
+                        $message = 'Job queued.';
                     } else {
-                        $message = $result;
-                        $errors['Module'] = 'Module failure.';
+                        $message = 'Email sent to all participants.';
                     }
                 } else {
                     $lastResult = array_pop($result);
@@ -3028,6 +3023,7 @@ class EventsController extends AppController
                     $errors['failed_servers'] = $result;
                     $message = __('Not published given no connection to %s but email sent to all participants.', $resultString);
                 }
+
             } elseif (!is_bool($emailResult)) {
                 // Performs all the actions required to publish an event
                 $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user());
