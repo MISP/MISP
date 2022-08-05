@@ -489,6 +489,47 @@ class Event extends AppModel
         return $events;
     }
 
+    public function touch($event_id)
+    {
+        $event = $this->find('first', [
+            'conditions' => ['Event.id' => $event_id],
+            'recursive' => -1,
+        ]);
+        $event['Event']['published'] = 0;
+        $event['Event']['timestamp'] = (new DateTime())->getTimestamp();
+        return $this->save($event, true, ['timestamp', 'published']);
+    }
+
+    public function attachTagsToEventAndTouch($event_id, $tags)
+    {
+        $touchEvent = false;
+        $success = false;
+        foreach ($tags as $tagId) {
+            $nothingToChange = false;
+            $success = $success || $this->EventTag->attachTagToEvent($event_id, ['id' => $tagId], $nothingToChange);
+            $touchEvent = $touchEvent || !$nothingToChange;
+        }
+        if ($touchEvent) {
+           return $this->touch($event_id);
+        }
+        return $success;
+    }
+
+    public function detachTagsFromEventAndTouch($event_id, $tags)
+    {
+        $touchEvent = false;
+        $success = false;
+        foreach ($tags as $tagId) {
+            $nothingToChange = false;
+            $success = $success || $this->EventTag->detachTagFromEvent($event_id, $tagId, $nothingToChange);
+            $touchEvent = $touchEvent || !$nothingToChange;
+        }
+        if ($touchEvent) {
+            return $this->touch($event_id);
+        }
+        return $success;
+    }
+
     /**
      * Gets the logged in user + an array of events, attaches the correlation count to each
      * @param array $user

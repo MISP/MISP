@@ -2422,6 +2422,60 @@ class Attribute extends AppModel
         return $attribute;
     }
 
+    public function touch($attribute_id)
+    {
+        $attribute = $this->find('first', [
+            'conditions' => ['Attribute.id' => $attribute_id],
+            'recursive' => -1,
+        ]);
+        $event = $this->Event->find('first', [
+            'conditions' => ['Event.id' => $attribute['Attribute']['event_id']],
+            'recursive' => -1,
+        ]);
+        $timestamp = (new DateTime())->getTimestamp();
+        $event['Event']['published'] = 0;
+        $event['Event']['timestamp'] = $timestamp;
+        $attribute['Attribute']['timestamp'] = $timestamp;
+        $saveSucces = true;
+        if ($attribute['Attribute']['object_id'] != 0) {
+            $saveSucces = $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $timestamp);
+        }
+        $saveSucces = $saveSucces && $this->save($attribute['Attribute'], true, ['timestamp']);
+        return $saveSucces && $this->Event->save($event, true, ['timestamp', 'published']);
+    }
+
+    public function attachTagsFromAttributeAndTouch($attribute_id, $event_id, $tags)
+    {
+        $touchAttribute = false;
+        $success = false;
+        foreach ($tags as $tag_id) {
+            $nothingToChange = false;
+            $saveSuccess = $this->AttributeTag->attachTagToAttribute($attribute_id, $event_id, $tag_id, false, $nothingToChange);
+            $success = $success || !empty($saveSuccess);
+            $touchAttribute = $touchAttribute || !$nothingToChange;
+        }
+        if ($touchAttribute) {
+            return $this->touch($attribute_id);
+        }
+        return $success;
+    }
+
+    public function detachTagsFromAttributeAndTouch($attribute_id, $event_id, $tags)
+    {
+        $touchAttribute = false;
+        $success = false;
+        foreach ($tags as $tag_id) {
+            $nothingToChange = false;
+            $saveSuccess = $this->AttributeTag->detachTagFromAttribute($attribute_id, $event_id, $tag_id, $nothingToChange);
+            $success = $success || !empty($saveSuccess);
+            $touchAttribute = $touchAttribute || !$nothingToChange;
+        }
+        if ($touchAttribute) {
+            return $this->touch($attribute_id);
+        }
+        return $success;
+    }
+
     private function __blockAttributeViaProposal($attribute)
     {
         if (!empty($attribute['ShadowAttribute'])) {
