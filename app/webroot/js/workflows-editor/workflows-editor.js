@@ -1013,10 +1013,10 @@ function getIndexedParams(node, moduleParams) {
 }
 
 function mergeNodeAndModuleFilters(node, moduleFilters) {
-    node.saved_filters = node.saved_filters ? node.saved_filters : []
+    node.saved_filters = node.data.saved_filters ? node.data.saved_filters : []
     var finalFilters = {}
     moduleFilters.forEach(function(filter) {
-        finalFilters[filter.text] = node.saved_filters[filter.text] ? node.saved_filters[filter.text] : filter.value
+        finalFilters[filter.text] = node.data.saved_filters[filter.text] ? node.data.saved_filters[filter.text] : filter.value
     })
     return finalFilters
 }
@@ -1780,10 +1780,10 @@ function genGenericBlockFilter(node) {
     ]
     var filters = getFiltersFromNode(node)
     var $div = $('<div></div>').append($('<form></form>').append(
-        genGenericInput({ id: 'filtering-selector', id: 'element_selector', label: 'Element selector', type: 'text', placeholder: 'Attribute.{n}', required: false, value: filters.selector}),
+        genGenericInput({ id: 'filtering-selector', id: 'element_selector', label: 'Element selector', type: 'text', placeholder: 'Event._AttributeFlattened.{n}', required: false, value: filters.selector}),
         genGenericInput({ id: 'filtering-value', id: 'value', label: 'Value', type: 'text', placeholder: 'tlp:white', required: false, value: filters.value}),
         genGenericSelect({ id: 'filtering-operator', id: 'operator', label: 'Operator', options: operatorOptions, value: filters.operator}),
-        genGenericInput({ id: 'filtering-path', id: 'hash_path', label: 'Hash Path', type: 'text', placeholder: 'AttributeTag.{n}.Tag.name', required: false, value: filters.path}),
+        genGenericInput({ id: 'filtering-path', id: 'hash_path', label: 'Hash Path', type: 'text', placeholder: 'Tag.{n}.name', required: false, value: filters.path}),
     ))
     return $div[0].outerHTML
 }
