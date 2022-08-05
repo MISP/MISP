@@ -1683,7 +1683,7 @@ class AppModel extends Model
                 $this->__addIndex('cryptographic_keys', 'fingerprint');
                 break;
             case 86:
-                $sqlArray[] = sprintf("ALTER table users MODIFY description text;");
+                $this->__addIndex('attributes', 'timestamp');
                 break;
             case 87:
                 $sqlArray[] = "ALTER TABLE users ADD `last_api_access` INT(11) DEFAULT 0;";
