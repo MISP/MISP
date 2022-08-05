@@ -3,7 +3,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
 class Module_tag_operation extends WorkflowBaseActionModule
 {
-    public $blocking = true;
+    public $blocking = false;
     public $id = 'tag_operation';
     public $name = 'Tag operation';
     public $description = 'Add or remove tags on Event or Attributes.';
