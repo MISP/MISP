@@ -1253,7 +1253,7 @@ class TestSecurity(unittest.TestCase):
 
             # Publish
             self.assertSuccessfulResponse(self.admin_misp_connector.publish(created_event))
-            sleep(6);
+            time.sleep(6);
 
             # Event is published, so normal user should see that event
             self.assertTrue(logged_in.event_exists(created_event.uuid))
