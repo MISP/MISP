@@ -820,9 +820,11 @@ function duplicateNodesFromHtml(currentSelection) {
             left: nodeHtml.getBoundingClientRect().left + 100 * editor.zoom,
         }
         var newNode = Object.assign({}, all_modules_by_id[node.data.module_data.id])
-        newNode.params = node.data.params.slice()
-        newNode.saved_filters = Object.assign({}, node.data.saved_filters)
-        addNode(newNode, position)
+        var additionalData = {
+            indexed_params: node.data.indexed_params,
+            saved_filters: node.data.saved_filters,
+        }
+        addNode(newNode, position, additionalData)
         oldNewIDMapping[node_id] = editor.nodeId - 1
         newNodes.push(getNodeHtmlByID(editor.nodeId - 1)) // nodeId is incremented as soon as a new node is created
     })
