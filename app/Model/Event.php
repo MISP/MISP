@@ -4300,19 +4300,6 @@ class Event extends AppModel
 
     public function publishRouter($id, $passAlong = null, $user)
     {
-        $event = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Event.id' => $id)
-        ));
-        
-        if (empty($event)) {
-            return false;
-        }
-        $fieldList = array('published', 'id', 'info', 'publish_timestamp');
-        $event['Event']['published'] = 1;
-        $event['Event']['publish_timestamp'] = time();
-        $this->save($event, array('fieldList' => $fieldList));
-
         if (Configure::read('MISP.background_jobs')) {
 
             /** @var Job $job */
