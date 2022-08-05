@@ -16,8 +16,9 @@ App::uses('JsonTool', 'Tools');
  */
 class AdminShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed', 'SharingGroupBlueprint');
-
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed', 'SharingGroupBlueprint', 'Correlation');
+    public $tasks = array('ConfigLoad');
+    
     public function getOptionParser()
     {
         $parser = parent::getOptionParser();
@@ -99,6 +100,7 @@ class AdminShell extends AppShell
 
     public function jobGenerateCorrelation()
     {
+        $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate correlation'] . PHP_EOL);
         }
@@ -1185,5 +1187,39 @@ class AdminShell extends AppShell
             $stats['failed']
         );
         $this->out($message);
+    }
+
+    public function truncateTable()
+    {
+        $this->ConfigLoad->execute();
+        if (!isset($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation'] . PHP_EOL);
+        }
+        $userId = $this->args[0];
+        if ($userId) {
+            $user = $this->User->getAuthUser($userId);
+        } else {
+            $user = [
+                'id' => 0,
+                'email' => 'SYSTEM',
+                'Organisation' => [
+                    'name' => 'SYSTEM'
+                ]
+            ];
+        }
+        if (empty($this->args[1])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation'] . PHP_EOL);
+        }
+        if (!empty($this->args[2])) {
+            $jobId = $this->args[2];
+        }
+        $table = trim($this->args[1]);
+        $this->Correlation->truncate($user, $table);
+        if ($jobId) {
+            $this->Job->id = $jobId;
+            $this->Job->saveField('progress', 100);
+            $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
+            $this->Job->saveField('message', __('Database truncated: ' . $table));
+        }
     }
 }

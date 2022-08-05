@@ -171,7 +171,7 @@ class MispZmq:
         topics = ["misp_json", "misp_json_event", "misp_json_attribute", "misp_json_sighting",
                   "misp_json_organisation", "misp_json_user", "misp_json_conversation",
                   "misp_json_object", "misp_json_object_reference", "misp_json_audit",
-                  "misp_json_tag", "misp_json_warninglist"
+                  "misp_json_tag", "misp_json_warninglist", "misp_json_workflow"
                   ]
 
         lists = ["{}:command".format(self.namespace)]

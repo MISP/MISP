@@ -98,7 +98,10 @@ class ACLComponent extends Component
             ],
             'correlations' => [
                 'generateTopCorrelations' => [],
-                'top' => []
+                'overCorrelations' => [],
+                'switchEngine' => [],
+                'top' => [],
+                'truncate' => []
             ],
             'cryptographicKeys' => [
                 'add' => ['perm_add'],
@@ -499,6 +502,7 @@ class ACLComponent extends Component
             'servers' => array(
                 'add' => array(),
                 'dbSchemaDiagnostic' => array(),
+                'dbConfiguration' => array(),
                 'cache' => array(),
                 'changePriority' => array(),
                 'checkout' => array(),
@@ -669,6 +673,7 @@ class ACLComponent extends Component
                 'view' => array('*'),
                 'unhideTag' => array('perm_tagger'),
                 'hideTag' => array('perm_tagger'),
+                'normalizeCustomTagsToTaxonomyFormat' => [],
             ),
             'templateElements' => array(
                 'add' => array('perm_template'),
@@ -738,6 +743,7 @@ class ACLComponent extends Component
                 'verifyGPG' => array(),
                 'view' => array('*'),
                 'getGpgPublicKey' => array('*'),
+                'unsubscribe' => ['*'],
             ),
             'userSettings' => array(
                 'index' => array('*'),
@@ -762,6 +768,32 @@ class ACLComponent extends Component
                 'export' => ['*'],
                 'import' => ['perm_warninglist'],
             ),
+            'workflows' => [
+                'index'=> [],
+                'rebuildRedis'=> [],
+                'edit'=> [],
+                'delete'=> [],
+                'view'=> [],
+                'editor'=> [],
+                'triggers'=> [],
+                'moduleIndex'=> [],
+                'moduleView'=> [],
+                'toggleModule'=> [],
+                'checkGraph'=> [],
+                'executeWorkflow'=> [],
+                'debugToggleField'=> [],
+                'massToggleField'=> [],
+            ],
+            'workflowBlueprints' => [
+                'add' => [],
+                'delete' => [],
+                'edit' => [],
+                'export' => [],
+                'import' => [],
+                'index' => [],
+                'update' => [],
+                'view' => [],
+            ],
             'allowedlists' => array(
                 'admin_add' => array('perm_regexp_access'),
                 'admin_delete' => array('perm_regexp_access'),
@@ -979,6 +1011,8 @@ class ACLComponent extends Component
 
     private function __findAllFunctions()
     {
+        $functionsToIgnore = ['beforeFilter', 'afterFilter', 'beforeRender',  'getEventManager'];
+
         $functionFinder = '/function[\s\n]+(\S+)[\s\n]*\(/';
         $dir = new Folder(APP . 'Controller');
         $files = $dir->find('.*\.php');
@@ -989,11 +1023,11 @@ class ACLComponent extends Component
                 $controllerName = '*';
             }
             $functionArray = array();
-            $fileContents = file_get_contents(APP . 'Controller' . DS . $file);
+            $fileContents = FileAccessTool::readFromFile(APP . 'Controller' . DS . $file);
             $fileContents = preg_replace('/\/\*[^\*]+?\*\//', '', $fileContents);
             preg_match_all($functionFinder, $fileContents, $functionArray);
             foreach ($functionArray[1] as $function) {
-                if ($function[0] !== '_' && $function !== 'beforeFilter' && $function !== 'afterFilter' && $function !== 'beforeRender') {
+                if ($function[0] !== '_' && !in_array($function, $functionsToIgnore, true)) {
                     $results[$controllerName][] = $function;
                 }
             }
@@ -1014,8 +1048,7 @@ class ACLComponent extends Component
         $missing = array();
         foreach ($results as $controller => $functions) {
             foreach ($functions as $function) {
-                if (!isset(self::ACL_LIST[$controller])
-                || !in_array($function, array_keys(self::ACL_LIST[$controller]))) {
+                if (!isset(self::ACL_LIST[$controller]) || !in_array($function, array_keys(self::ACL_LIST[$controller]))) {
                     $missing[$controller][] = $function;
                 }
             }

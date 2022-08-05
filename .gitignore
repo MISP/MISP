@@ -50,6 +50,8 @@ app/Lib/EventWarning/Custom/*
 !/app/files/misp-objects/*
 !/app/files/misp-decaying-models
 !/app/files/misp-decaying-models/*
+!/app/files/misp-workflow-blueprints
+!/app/files/misp-workflow-blueprints/*
 /app/files/scripts/*.pyc
 /app/files/scripts/*.py~
 /app/files/scripts/__pycache__

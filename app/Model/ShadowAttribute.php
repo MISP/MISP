@@ -190,7 +190,8 @@ class ShadowAttribute extends AppModel
             $this->data['ShadowAttribute']['deleted'] = 0;
         }
         if ($this->data['ShadowAttribute']['deleted']) {
-            $this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
+            // correlations for proposals are deprecated.
+            //$this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
         }
 
         // convert into utc and micro sec
@@ -277,12 +278,15 @@ class ShadowAttribute extends AppModel
                 $result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
             }
         }
+        /*
+         * correlations are deprecated for proposals
         if ((isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) || (isset($this->data['ShadowAttribute']['proposal_to_delete']) && $this->data['ShadowAttribute']['proposal_to_delete'])) {
             // this is a deletion
             // Could be a proposal to delete or flagging a proposal that it was discarded / accepted - either way, we don't want to correlate here for now
         } else {
             $this->__afterSaveCorrelation($this->data['ShadowAttribute']);
         }
+        */
         if (empty($this->data['ShadowAttribute']['deleted'])) {
             $action = $created ? 'add' : 'edit';
             $this->publishKafkaNotification('shadow_attribute', $this->data, $action);
