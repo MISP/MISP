@@ -4279,7 +4279,6 @@ class Event extends AppModel
                 $jobId
             );
         }
-
         return $this->publish($id, $passAlong);
     }
 
@@ -4324,6 +4323,7 @@ class Event extends AppModel
             'recursive' => -1,
             'conditions' => array('Event.id' => $id)
         ));
+        
         if (empty($event)) {
             return false;
         }
@@ -4339,6 +4339,10 @@ class Event extends AppModel
                 'order' => ['id ASC']
             ]);
         }
+        $fieldList = array('published', 'id', 'info', 'publish_timestamp');
+        $event['Event']['skip_zmq'] = 1;
+        $event['Event']['skip_kafka'] = 1;
+        $this->save($event, array('fieldList' => $fieldList));
         $userForPubSub = [
             'id' => 0,
             'org_id' => $hostOrg['Org']['id'],
@@ -4372,6 +4376,7 @@ class Event extends AppModel
             $success = $this->executeTrigger('event-publish', $fullEvent[0], $workflowErrors, $logging);
             if (empty($success)) {
                 $errorMessage = implode(', ', $workflowErrors);
+                
                 return $errorMessage;
             }
         }
