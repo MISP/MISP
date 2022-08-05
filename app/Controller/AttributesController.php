@@ -2820,14 +2820,18 @@ class AttributesController extends AppController
                 $tag_id = $this->request->data['tag'];
             }
             $this->Attribute->id = $id;
-            if (!$this->Attribute->exists()) {
+            $attribute = $this->__fetchAttribute($id);
+            $attribute = $this->Attribute->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Attribute.id' => $id],
+                'fields' => ['Attribute.deleted', 'Attribute.event_id', 'Attribute.id', 'Attribute.object_id']
+            ]);
+            if (empty($attribute)) {
                 throw new NotFoundException(__('Invalid attribute'));
             }
-            $this->Attribute->read();
-            if ($this->Attribute->data['Attribute']['deleted']) {
+            if ($attribute['Attribute']['deleted']) {
                 throw new NotFoundException(__('Invalid attribute'));
             }
-            $eventId = $this->Attribute->data['Attribute']['event_id'];
             if (empty($tag_id)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200, 'type' => 'json'));
             }
@@ -2842,12 +2846,13 @@ class AttributesController extends AppController
                 $id = $this->request->data['Attribute']['id'];
             }
 
-            $this->Attribute->Event->recursive = -1;
-            $event = $this->Attribute->Event->read(array(), $eventId);
+            $event = $this->Attribute->Event->find('first', [
+                'recursive' => -1,
+                'conditons' => ['Event.id' => $attribute['Attribute']['event_id']]
+            ]);
             if (!$this->_isRest()) {
-                $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
+                $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
             }
-            $this->Attribute->recursive = -1;
             $attributeTag = $this->Attribute->AttributeTag->find('first', array(
                 'conditions' => array(
                     'attribute_id' => $id,
@@ -2875,11 +2880,11 @@ class AttributesController extends AppController
                     $date = new DateTime();
                     $event['Event']['timestamp'] = $date->getTimestamp();
                     $this->Attribute->Event->save($event);
-                    if ($this->Attribute->data['Attribute']['object_id'] != 0) {
-                        $this->Attribute->Object->updateTimestamp($this->Attribute->data['Attribute']['object_id'], $date->getTimestamp());
+                    if ($attribute['Attribute']['object_id'] != 0) {
+                        $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
                     }
-                    $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
-                    $this->Attribute->save($this->Attribute->data);
+                    $attribute['Attribute']['timestamp'] = $date->getTimestamp();
+                    $this->Attribute->save($attribute);
                 }
                 $log = ClassRegistry::init('Log');
                 $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
