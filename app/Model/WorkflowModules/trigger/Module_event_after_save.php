@@ -12,11 +12,11 @@ class Module_event_after_save extends WorkflowBaseTriggerModule
     public $outputs = 1;
     public $blocking = false;
     public $misp_core_format = true;
-    public $trigger_overhead = self::OVERHEAD_MEDIUM;
+    public $trigger_overhead = self::OVERHEAD_HIGH;
 
     public function __construct()
     {
         parent::__construct();
-        $this->trigger_overhead_message = __('This trigger is called each time an Event has been saved. Generally, the performance impact of running the workflow is low but in some cases (e.g. Very active community or frequent synchronisations) it can introduce a slight slowdown of the instance.');
+        $this->trigger_overhead_message = __('This trigger is called each time an Event or Attribute have been saved. This means that when a large quantity of Attributes are being saved (e.g. Feed pulling or synchronisation), the workflow will be run for as many time as there are Attributes.');
     }
 }
