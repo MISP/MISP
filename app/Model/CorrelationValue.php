@@ -25,8 +25,17 @@ class CorrelationValue extends AppModel
         ]);
         if (empty($existingValue)) {
             $this->create();
-            if ($this->save(['value' => $value])) {
+            try {
+                $this->save(['value' => $value]);
                 return $this->id;
+            } catch (Exception $e) {
+                $existingValue = $this->find('first', [
+                    'recursive' => -1,
+                    'conditions' => [
+                        'value' => $value
+                    ]
+                ]);
+                return $existingValue['ExistingValue']['id'];
             }
         } else {
             return $existingValue['CorrelationValue']['id'];
