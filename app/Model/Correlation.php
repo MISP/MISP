@@ -250,13 +250,13 @@ class Correlation extends AppModel
         return $this->saveCorrelations($correlations);
     }
 
-    public function correlateAttribute(array $attribute): void
+    public function correlateAttribute(array $attribute)
     {
         $this->runBeforeSaveCorrelation($attribute);
         $this->afterSaveCorrelation($attribute);
     }
 
-    public function beforeSaveCorrelation(array $attribute): void
+    public function beforeSaveCorrelation(array $attribute)
     {
         $this->runBeforeSaveCorrelation($attribute);
     }
@@ -687,7 +687,7 @@ class Correlation extends AppModel
         return true;
     }
 
-    public function findTop(array $query): array
+    public function findTop(array $query)
     {
         try {
             $redis = $this->setupRedisWithException();
