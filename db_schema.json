@@ -8690,37 +8690,14 @@
             "model_id": false
         },
         "default_correlations": {
-            "id": true,
-            "attribute_id": false,
             "1_attribute_id": false,
-            "value_id": false,
-            "event_id": false,
-            "object_id": false,
-            "org_id": false,
-            "distribution": false,
-            "object_distribution": false,
-            "event_distribution": false,
-            "sharing_group_id": false,
-            "object_sharing_group_id": false,
-            "event_sharing_group_id": false,
             "1_event_id": false,
             "1_object_id": false,
-            "1_org_id": false,
-            "1_distribution": false,
-            "1_object_distribution": false,
-            "1_event_distribution": false,
-            "1_sharing_group_id": false,
-            "1_object_sharing_group_id": false,
-            "1_event_sharing_group_id": false
-        },
-        "events": {
+            "attribute_id": false,
+            "event_id": false,
+            "object_id": false,
             "id": true,
-            "uuid": true,
-            "info": false,
-            "sharing_group_id": false,
-            "org_id": false,
-            "orgc_id": false,
-            "extends_uuid": false
+            "value_id": false
         },
         "event_blocklists": {
             "id": true,
@@ -9099,5 +9076,5 @@
             "timestamp": false
         }
     },
-    "db_version": "92"
+    "db_version": "93"
 }
