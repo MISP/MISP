@@ -742,7 +742,7 @@ class Correlation extends AppModel
      * Get list of all CIDR for correlation from database
      * @return array
      */
-    private function getCidrListFromDatabase(): array
+    private function getCidrListFromDatabase()
     {
         return $this->Attribute->find('column', [
             'conditions' => [
@@ -760,7 +760,7 @@ class Correlation extends AppModel
     /**
      * @return array
      */
-    public function updateCidrList(): array
+    public function updateCidrList()
     {
         $redis = $this->setupRedisWithException();
         $cidrList = [];
@@ -785,7 +785,7 @@ class Correlation extends AppModel
     /**
      * @return void
      */
-    public function clearCidrCache(): void
+    public function clearCidrCache()
     {
         $this->cidrListCache = null;
     }
@@ -793,7 +793,7 @@ class Correlation extends AppModel
     /**
      * @return array
      */
-    public function getCidrList(): array
+    public function getCidrList()
     {
         if ($this->cidrListCache !== null) {
             return $this->cidrListCache;
@@ -819,7 +819,7 @@ class Correlation extends AppModel
      * @param array $sgids List of sharing group IDs
      * @return array
      */
-    public function getAttributesRelatedToEvent(array $user, $eventIds, array $sgids): array
+    public function getAttributesRelatedToEvent(array $user, $eventIds, array $sgids)
     {
         return $this->runGetAttributesRelatedToEvent($user, $eventIds, $sgids);
     }
@@ -832,7 +832,7 @@ class Correlation extends AppModel
      * @param bool $includeEventData Flag to include the event data in the response
      * @return array
      */
-    public function getRelatedAttributes($user, $sgids, $attribute, $fields=[], $includeEventData = false): array
+    public function getRelatedAttributes($user, $sgids, $attribute, $fields=[], $includeEventData = false)
     {
         if (in_array($attribute['type'], Attribute::NON_CORRELATING_TYPES)) {
             return [];
@@ -846,7 +846,7 @@ class Correlation extends AppModel
      * @param array $sgids List of sharing group IDs
      * @return array
      */
-    public function getRelatedEventIds(array $user, int $eventId, array $sgids): array
+    public function getRelatedEventIds(array $user, int $eventId, array $sgids)
     {
         $relatedEventIds = $this->fetchRelatedEventIds($user, $eventId, $sgids);
         if (empty($relatedEventIds)) {
