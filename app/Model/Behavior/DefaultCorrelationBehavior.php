@@ -1,17 +1,14 @@
 <?php
-
 App::uses('AppModel', 'Model');
-App::uses('RandomTool', 'Tools');
 
 /**
  * Default correlation behaviour
  */
 class DefaultCorrelationBehavior extends ModelBehavior
 {
+    const TABLE_NAME = 'default_correlations';
 
-    private $__tableName = 'default_correlations';
-
-    private $__config = [
+    const CONFIG = [
         'AttributeFetcher' => [
             'fields' =>  [
                 'Attribute.event_id',
@@ -44,26 +41,29 @@ class DefaultCorrelationBehavior extends ModelBehavior
         ]
     ];
 
-    public $Correlation = null;
+    /** @var Correlation */
+    public $Correlation;
 
     private $deadlockAvoidance = false;
 
-    public function setup(Model $Model, $settings = []) {
-        $Model->useTable = $this->__tableName;
+    public function setup(Model $Model, $settings = [])
+    {
+        $Model->useTable = self::TABLE_NAME;
         $this->Correlation = $Model;
         $this->deadlockAvoidance = $settings['deadlockAvoidance'];
     }
 
     public function getTableName(Model $Model)
     {
-        return $this->__tableName;
+        return self::TABLE_NAME;
     }
 
-    public function createCorrelationEntry(Model $Model, $value, $a, $b) {
-        $value_id = $this->Correlation->CorrelationValue->getValueId($value);
+    public function createCorrelationEntry(Model $Model, $value, $a, $b)
+    {
+        $valueId = $this->Correlation->CorrelationValue->getValueId($value);
         if ($this->deadlockAvoidance) {
             return [
-                'value_id' => $value_id,
+                'value_id' => $valueId,
                 '1_event_id' => $a['Event']['id'],
                 '1_object_id' => $a['Attribute']['object_id'],
                 '1_attribute_id' => $a['Attribute']['id'],
@@ -87,7 +87,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
             ];
         } else {
             return [
-                (int) $value_id,
+                (int) $valueId,
                 (int) $a['Event']['id'],
                 (int) $a['Attribute']['object_id'],
                 (int) $a['Attribute']['id'],
@@ -182,20 +182,28 @@ class DefaultCorrelationBehavior extends ModelBehavior
     public function getContainRules(Model $Model, $filter = null)
     {
         if (empty($filter)) {
-            return $this->__config['AttributeFetcher']['contain'];
+            return self::CONFIG['AttributeFetcher']['contain'];
         } else {
-            return empty($this->__config['AttributeFetcher']['contain'][$filter]) ? false : $this->__config['AttributeFetcher']['contain'][$filter];
+            return empty(self::CONFIG['AttributeFetcher']['contain'][$filter]) ? false : self::CONFIG['AttributeFetcher']['contain'][$filter];
         }
     }
 
     public function getFieldRules(Model $Model)
     {
-        return $this->__config['AttributeFetcher']['fields'];
+        return self::CONFIG['AttributeFetcher']['fields'];
     }
 
-    private function __collectCorrelations($user, $id, $sgids, $primary)
+    /**
+     * Fetch correalations for given event.
+     * @param array $user
+     * @param int $eventId
+     * @param array $sgids
+     * @param bool $primary
+     * @return array
+     */
+    private function __collectCorrelations(array $user, $eventId, $sgids, $primary)
     {
-        $max_correlations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
+        $maxCorrelations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
         $source = $primary ? '' : '1_';
         $prefix = $primary ? '1_' : '';
         $correlations = $this->Correlation->find('all', array(
@@ -214,7 +222,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
             ],
             'conditions' => [
                 'OR' => [
-                    $source . 'event_id' => $id
+                    $source . 'event_id' => $eventId
                 ],
                 'AND' => [
                     [
@@ -235,46 +243,50 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 ]
             ],
             'order' => false,
-            'limit' => $max_correlations
+            'limit' => $maxCorrelations
         ));
-        foreach ($correlations as $k => &$correlation) {
+        foreach ($correlations as $k => $correlation) {
             if (!$this->checkCorrelationACL($user, $correlation['Correlation'], $sgids, $prefix)) {
                 unset($correlations[$k]);
             }
         }
-        $correlations = array_values($correlations);
         return $correlations;
     }
 
+    /**
+     * @param Model $Model
+     * @param array $user
+     * @param int $id Event ID
+     * @param array $sgids
+     * @return array
+     */
     public function runGetAttributesRelatedToEvent(Model $Model, $user, $id, $sgids)
     {
-        $temp_correlations = $this->__collectCorrelations($user, $id, $sgids, false);
-        $temp_correlations_1 = $this->__collectCorrelations($user, $id, $sgids, true);
         $correlations = [];
-        $event_ids = [];
-        foreach ($temp_correlations as $temp_correlation) {
+        $eventIds = [];
+        foreach ($this->__collectCorrelations($user, $id, $sgids, false) as $correlation) {
             $correlations[] = [
-                'id' => $temp_correlation['Correlation']['event_id'],
-                'attribute_id' => $temp_correlation['Correlation']['attribute_id'],
-                'parent_id' => $temp_correlation['Correlation']['1_attribute_id'],
-                'value' => $temp_correlation['CorrelationValue']['value']
+                'id' => $correlation['Correlation']['event_id'],
+                'attribute_id' => $correlation['Correlation']['attribute_id'],
+                'parent_id' => $correlation['Correlation']['1_attribute_id'],
+                'value' => $correlation['CorrelationValue']['value']
             ];
-            $event_ids[$temp_correlation['Correlation']['event_id']] = true;
+            $eventIds[$correlation['Correlation']['event_id']] = true;
         }
-        foreach ($temp_correlations_1 as $temp_correlation) {
+        foreach ($this->__collectCorrelations($user, $id, $sgids, true) as $correlation) {
             $correlations[] = [
-                'id' => $temp_correlation['Correlation']['1_event_id'],
-                'attribute_id' => $temp_correlation['Correlation']['1_attribute_id'],
-                'parent_id' => $temp_correlation['Correlation']['attribute_id'],
-                'value' => $temp_correlation['CorrelationValue']['value']
+                'id' => $correlation['Correlation']['1_event_id'],
+                'attribute_id' => $correlation['Correlation']['1_attribute_id'],
+                'parent_id' => $correlation['Correlation']['attribute_id'],
+                'value' => $correlation['CorrelationValue']['value']
             ];
-            $event_ids[$temp_correlation['Correlation']['1_event_id']] = true;
+            $eventIds[$correlation['Correlation']['1_event_id']] = true;
         }
         if (empty($correlations)) {
             return [];
         }
         $conditions = $Model->Event->createEventConditions($user);
-        $conditions['Event.id'] = array_keys($event_ids);
+        $conditions['Event.id'] = array_keys($eventIds);
         $events = $Model->Event->find('all', [
             'recursive' => -1,
             'conditions' => $conditions,
@@ -289,9 +301,9 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 continue;
             }
             $event = $events[$eventId];
-            $correlation['org_id'] = $events[$eventId]['orgc_id'];
-            $correlation['info'] = $events[$eventId]['info'];
-            $correlation['date'] = $events[$eventId]['date'];
+            $correlation['org_id'] = $event['orgc_id'];
+            $correlation['info'] = $event['info'];
+            $correlation['date'] = $event['date'];
             $parentId = $correlation['parent_id'];
             unset($correlation['parent_id']);
             $relatedAttributes[$parentId][] = $correlation;
@@ -389,7 +401,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
         ]);
         if (!empty($includeEventData)) {
             $results = [];
-            foreach ($relatedAttributes as $k => $attribute) {
+            foreach ($relatedAttributes as $attribute) {
                 $temp = $attribute['Attribute'];
                 $temp['Event'] = $attribute['Event'];
                 $results[] = $temp;
@@ -416,7 +428,6 @@ class DefaultCorrelationBehavior extends ModelBehavior
         $primaryEventIds = $this->__filterRelatedEvents($Model, $user, $eventId, $sgids, true);
         $secondaryEventIds = $this->__filterRelatedEvents($Model, $user, $eventId, $sgids, false);
         return array_unique(array_merge($primaryEventIds,$secondaryEventIds));
-
     }
 
     private function __filterRelatedEvents(Model $Model, array $user, int $eventId, array $sgids, bool $primary)
@@ -462,12 +473,19 @@ class DefaultCorrelationBehavior extends ModelBehavior
         }
     }
 
-    private function checkCorrelationACL($user, $correlation, $sgids, $prefix)
+    /**
+     * @param array $user
+     * @param array $correlation
+     * @param array $sgids
+     * @param string $prefix
+     * @return bool
+     */
+    private function checkCorrelationACL(array $user, $correlation, $sgids, $prefix)
     {
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
-        // check if user can see the event
+        // Check if user can see the event
         if (isset($correlation['Correlation'])) {
             $correlation = $correlation['Correlation'];
         }
@@ -484,7 +502,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
             return false;
         }
 
-        //check if the user can see the object, if we're looking at an object attribute
+        // Check if the user can see the object, if we're looking at an object attribute
         if (
             $correlation[$prefix . 'object_id'] &&
             (
@@ -499,7 +517,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
             return false;
         }
 
-        //check if the user can see the attribute
+        // Check if the user can see the attribute
         if (
             (
                 $correlation[$prefix . 'distribution'] == 0 ||
@@ -551,7 +569,8 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 $Model->updateAll(
                     $side,
                     [
-                        $updateFields[$k] => (int)$data['id']]
+                        $updateFields[$k] => (int)$data['id']
+                    ]
                 );
             }
         }

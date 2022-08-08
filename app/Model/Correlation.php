@@ -1,6 +1,5 @@
 <?php
 App::uses('AppModel', 'Model');
-App::uses('RandomTool', 'Tools');
 
 /**
  * @property Attribute $Attribute
