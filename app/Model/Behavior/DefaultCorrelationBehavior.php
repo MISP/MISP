@@ -160,7 +160,8 @@ class DefaultCorrelationBehavior extends ModelBehavior
         }
     }
 
-    public function runBeforeSaveCorrelation(Model $Model, $attribute) {
+    public function runBeforeSaveCorrelation(Model $Model, $attribute)
+    {
         // (update-only) clean up the relation of the old value: remove the existing relations related to that attribute, we DO have a reference, the id
         // ==> DELETE FROM default_correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id; */
         // first check if it's an update
@@ -518,7 +519,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
         array $data,
         string $type = 'event',
         array $options = []
-    ): bool
+    )
     {
         $updateCorrelation = [];
         $updateFields = [
@@ -557,7 +558,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
         return true;
     }
 
-    public function purgeCorrelations(Model $Model, $eventId = null): void
+    public function purgeCorrelations(Model $Model, $eventId = null)
     {
         if (!$eventId) {
             $Model->query('TRUNCATE TABLE default_correlations;');
@@ -573,7 +574,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
         }
     }
 
-    public function purgeByValue(Model $Model, string $value): void
+    public function purgeByValue(Model $Model, string $value)
     {
         $valueIds = $Model->CorrelationValue->find('column', [
             'recursive' => -1,
