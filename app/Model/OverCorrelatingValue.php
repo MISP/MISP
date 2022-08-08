@@ -1,6 +1,5 @@
 <?php
 App::uses('AppModel', 'Model');
-App::uses('RandomTool', 'Tools');
 
 class OverCorrelatingValue extends AppModel
 {
@@ -10,9 +9,13 @@ class OverCorrelatingValue extends AppModel
         'Containable'
     );
 
-    public $validate = [
-    ];
 
+    /**
+     * @param string $value
+     * @param int $count
+     * @return void
+     * @throws Exception
+     */
     public function block($value, $count = 0)
     {
         $this->unblock($value);
@@ -25,15 +28,23 @@ class OverCorrelatingValue extends AppModel
         );
     }
 
+    /**
+     * @param string $value
+     * @return void
+     */
     public function unBlock($value)
     {
         $this->deleteAll(
             [
                 'OverCorrelatingValue.value' => $value
-            ]
+            ],
+            false
         );
     }
 
+    /**
+     * @return int
+     */
     public function getLimit()
     {
         return Configure::check('MISP.correlation_limit') ? Configure::read('MISP.correlation_limit') : 20;
@@ -55,15 +66,7 @@ class OverCorrelatingValue extends AppModel
 
     public function checkValue($value)
     {
-        $hit = $this->find('first', [
-            'recursive' => -1,
-            'conditions' => ['value' => $value],
-            'fields' => ['id']
-        ]);
-        if (empty($hit)) {
-            return false;
-        }
-        return true;
+        return $this->hasAny(['value' => $value]);
     }
 
     public function generateOccurrencesRouter()

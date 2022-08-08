@@ -3,6 +3,9 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property Attribute $Attribute
+ * @method saveCorrelations
+ * @method runBeforeSaveCorrelation
+ * @method fetchRelatedEventIds
  */
 class Correlation extends AppModel
 {
@@ -43,36 +46,27 @@ class Correlation extends AppModel
     /** @var array */
     private $exclusions;
 
-    /**
-     * Use old schema with `date` and `info` fields.
-     * @var bool
-     */
-    private $oldSchema;
-
-    /** @var bool */
-    private $deadlockAvoidance;
-
     /** @var bool */
     private $advancedCorrelationEnabled;
 
     /** @var array */
     private $cidrListCache;
 
-    private $__correlationEngine = 'DefaultCorrelation';
-
-    protected $_config = [];
+    /** @var string */
+    private $__correlationEngine;
 
     private $__tempContainCache = [];
 
-    public $OverCorrelatingValue = null;
+    /** @var OverCorrelatingValue */
+    public $OverCorrelatingValue;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
         $this->__correlationEngine = $this->getCorrelationModelName();
-        $this->deadlockAvoidance = Configure::check('MISP.deadlock_avoidance') ? Configure::read('MISP.deadlock_avoidance') : false;
+        $deadlockAvoidance = Configure::check('MISP.deadlock_avoidance') ? Configure::read('MISP.deadlock_avoidance') : false;
         // load the currently used correlation engine
-        $this->Behaviors->load($this->__correlationEngine . 'Correlation', ['deadlockAvoidance' => false]);
+        $this->Behaviors->load($this->__correlationEngine . 'Correlation', ['deadlockAvoidance' => $deadlockAvoidance]);
         // getTableName() needs to be implemented by the engine - this points us to the table to be used
         $this->useTable = $this->getTableName();
         $this->advancedCorrelationEnabled = (bool)Configure::read('MISP.enable_advanced_correlations');
@@ -289,6 +283,7 @@ class Correlation extends AppModel
      * @param bool $full
      * @param array|false $event
      * @return array|bool|bool[]|mixed
+     * @throws Exception
      */
     public function afterSaveCorrelation($a, $full = false, $event = false)
     {
@@ -335,7 +330,7 @@ class Correlation extends AppModel
             return true;
         }
         $correlations = [];
-        foreach ($correlatingValues as $k => $cV) {
+        foreach ($correlatingValues as $cV) {
             if ($cV === null) {
                 continue;
             }
@@ -346,6 +341,7 @@ class Correlation extends AppModel
                         'Attribute.value2' => $cV,
                         'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
                     ],
+                    $extraConditions,
                 ],
                 'NOT' => [
                     'Attribute.event_id' => $a['Attribute']['event_id'],
@@ -850,7 +846,7 @@ class Correlation extends AppModel
     
     /**
      * @param array $user User array
-     * @param int $eventIds List of event IDs
+     * @param int $eventId List of event IDs
      * @param array $sgids List of sharing group IDs
      * @return array
      */
@@ -871,27 +867,32 @@ class Correlation extends AppModel
         return $data;
     }
 
+    /**
+     * @param array $attribute
+     * @return array
+     */
     public function setCorrelationExclusion($attribute)
     {
-        if (empty($this->__compositeTypes)) {
+        if (!isset($this->__compositeTypes)) {
             $this->__compositeTypes = $this->Attribute->getCompositeTypes();
         }
-        $values = [$attribute['value']];
-        if (in_array($attribute['type'], $this->__compositeTypes)) {
+        if (in_array($attribute['type'], $this->__compositeTypes, true)) {
             $values = explode('|', $attribute['value']);
+        } else {
+            $values = [$attribute['value']];
         }
         if ($this->__preventExcludedCorrelations($values[0])) {
             $attribute['correlation_exclusion'] = true;
-        }
-        if (!empty($values[1]) && $this->__preventExcludedCorrelations($values[1])) {
+        } elseif (!empty($values[1]) && $this->__preventExcludedCorrelations($values[1])) {
             $attribute['correlation_exclusion'] = true;
         }
+
         if ($this->OverCorrelatingValue->checkValue($values[0])) {
             $attribute['over_correlation'] = true;
-        }
-        if (!empty($values[1]) && $this->OverCorrelatingValue->checkValue($values[1])) {
+        } elseif (!empty($values[1]) && $this->OverCorrelatingValue->checkValue($values[1])) {
             $attribute['over_correlation'] = true;
         }
+
         return $attribute;
     }
 
