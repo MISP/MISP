@@ -247,7 +247,12 @@ class Correlation extends AppModel
      */
     private function __saveCorrelations(array $correlations)
     {
-        return $this->saveCorrelations($correlations);
+        try {
+            return $this->saveCorrelations($correlations);
+        } catch (Exception $e) {
+            // Correlations may fail for different reasons, such as the correlation already existing. We don't care and don't want to break the process
+            return true;
+        }
     }
 
     public function correlateAttribute(array $attribute)
@@ -375,6 +380,10 @@ class Correlation extends AppModel
                 $this->OverCorrelatingValue->unblock($cV);
             }
             foreach ($correlatingAttributes as $b) {
+                // On a full correlation, only correlate with attributes that have a higher ID to avoid duplicate correlations
+                if ($full && $b['Attribute']['id'] < $b['Attribute']['id']) {
+                    continue;
+                }
                 if (isset($b['Attribute']['value1'])) {
                     // TODO: Currently it is hard to check if value1 or value2 correlated, so we check value2 and if not, it is value1
                     $value = $cV === $b['Attribute']['value2'] ? $b['Attribute']['value2'] : $b['Attribute']['value1'];

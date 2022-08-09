@@ -82,7 +82,7 @@ class AppModel extends Model
         69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
         75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
         81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
-        87 => false, 88 => false, 89 => false, 90 => false,
+        87 => false, 88 => false, 89 => false, 90 => false, 91 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -236,6 +236,29 @@ class AppModel extends Model
                 $dbUpdateSuccess = $this->updateDatabase($command);
                 $this->Workflow = Classregistry::init('Workflow');
                 $this->Workflow->enableDefaultModules();
+                break;
+            case 91:
+                $existing_index = $this->query(
+                    "SHOW INDEX FROM default_correlations WHERE Key_name = 'unique_correlation';"
+                );
+                if (empty($existing_index)) {
+                    $this->query(
+                        "ALTER TABLE default_correlations
+                        ADD CONSTRAINT unique_correlation
+                        UNIQUE KEY(attribute_id, 1_attribute_id, value_id);"
+                    );
+                }
+                $existing_index = $this->query(
+                    "SHOW INDEX FROM no_acl_correlations WHERE Key_name = 'unique_correlation';"
+                );
+                if (empty($existing_index)) {
+                    $this->query(
+                        "ALTER TABLE no_acl_correlations
+                        ADD CONSTRAINT unique_correlation
+                        UNIQUE KEY(attribute_id, 1_attribute_id, value_id);"
+                    );
+                }
+                $dbUpdateSuccess = true;
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
