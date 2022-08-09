@@ -5,6 +5,7 @@ import uuid
 import subprocess
 import unittest
 import requests
+import time
 from xml.etree import ElementTree as ET
 from io import BytesIO
 import urllib3  # type: ignore
@@ -804,7 +805,7 @@ class TestComprehensive(unittest.TestCase):
         check_response(event)
 
         self.admin_misp_connector.publish(event, alert=False)
-
+        time.sleep(6)
         snort = self._search({'returnFormat': 'snort', 'eventid': event.id})
         self.assertIsInstance(snort, str)
         self.assertIn('8.8.8.8', snort)
